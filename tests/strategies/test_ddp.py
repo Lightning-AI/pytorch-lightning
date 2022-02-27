@@ -23,9 +23,9 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
-from tests.accelerators import ddp_model
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
+from tests.strategies import ddp_model
 from tests.utilities.distributed import call_training_script
 
 CLI_ARGS = "--max_epochs 1 --gpus 2 --strategy ddp"
@@ -127,13 +127,13 @@ def test_ddp_wrapper(tmpdir, precision):
             self.weird_module = WeirdModule()
 
             # should be skip.
-            self._ddp_params_and_buffers_to_ignore = "something"
+            self._ddp_params_and_buffers_to_ignore = ["something"]
 
     class CustomCallback(Callback):
         def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
             assert isinstance(trainer.strategy.model, DistributedDataParallel)
-            assert trainer.strategy.model.parameters_to_ignore == ("something")
-            assert trainer.strategy.model.module._ddp_params_and_buffers_to_ignore == ("something")
+            assert trainer.strategy.model.parameters_to_ignore == ["module.something"]
+            assert trainer.strategy.model.module._ddp_params_and_buffers_to_ignore == ["module.something"]
 
     model = CustomModel()
     trainer = Trainer(

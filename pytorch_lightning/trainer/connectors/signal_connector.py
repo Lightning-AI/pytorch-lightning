@@ -66,8 +66,8 @@ class SignalConnector:
         rank_zero_info("handling SIGUSR1")
 
         # save logger to make sure we get all the metrics
-        if self.trainer.logger:
-            self.trainer.logger.finalize("finished")
+        for logger in self.trainer.loggers:
+            logger.finalize("finished")
         hpc_save_path = self.trainer._checkpoint_connector.hpc_save_path(self.trainer.weights_save_path)
         self.trainer.save_checkpoint(hpc_save_path)
 
@@ -101,7 +101,7 @@ class SignalConnector:
         log.info("bypassing sigterm")
 
     def teardown(self) -> None:
-        """Restores the signals that were previsouly configured before :class:`SignalConnector` replaced them."""
+        """Restores the signals that were previously configured before :class:`SignalConnector` replaced them."""
         for signum, handler in self._original_handlers.items():
             if handler is not None:
                 self._register_signal(signum, handler)

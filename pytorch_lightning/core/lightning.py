@@ -38,6 +38,7 @@ from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, Hyperparameter
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
@@ -94,9 +95,6 @@ class LightningModule(
 
         # pointer to the trainer object
         self.trainer = None
-
-        self._strategy_type = None
-        self._device_type = None
 
         # true if using amp
         self.use_amp: bool = False
@@ -255,16 +253,23 @@ class LightningModule(
 
     @property
     def loggers(self) -> List[LightningLoggerBase]:
-        """Reference to the loggers object in the Trainer."""
+        """Reference to the list of loggers in the Trainer."""
         return self.trainer.loggers if self.trainer else []
 
     def _apply_batch_transfer_handler(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0
     ) -> Any:
         device = device or self.device
-        batch = self.on_before_batch_transfer(batch, dataloader_idx)
-        batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
-        batch = self.on_after_batch_transfer(batch, dataloader_idx)
+        datahook_selector = (
+            _DataHookSelector(self, None) if self.trainer is None else self.trainer._data_connector._datahook_selector
+        )
+
+        hook = datahook_selector.get_hook("on_before_batch_transfer")
+        batch = hook(batch, dataloader_idx)
+        hook = datahook_selector.get_hook("transfer_batch_to_device")
+        batch = hook(batch, device, dataloader_idx)
+        hook = datahook_selector.get_hook("on_after_batch_transfer")
+        batch = hook(batch, dataloader_idx)
         return batch
 
     def print(self, *args, **kwargs) -> None:
@@ -1962,7 +1967,7 @@ class LightningModule(
             )
         return get_model_size_mb(self)
 
-    def add_to_queue(self, queue: pl.strategies.ddp_spawn._FakeQueue) -> None:
+    def add_to_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
         """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
         sharing, we cast the data to numpy.
 
@@ -1970,11 +1975,10 @@ class LightningModule(
             queue: the instance of the queue to append the data.
 
         .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of `DDPSpawnStrategy.add_to_queue`
-            and will be removed in v1.7.
+            This method was deprecated in v1.5 and will be removed in v1.7.
         """
 
-    def get_from_queue(self, queue: pl.strategies.ddp_spawn._FakeQueue) -> None:
+    def get_from_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
         """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
         we cast back the data to ``torch.Tensor``.
 
@@ -1982,8 +1986,7 @@ class LightningModule(
             queue: the instance of the queue from where to get the data.
 
         .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of `DDPSpawnStrategy.get_from_queue`
-            and will be removed in v1.7.
+            This method was deprecated in v1.5 and will be removed in v1.7.
         """
 
     @contextmanager

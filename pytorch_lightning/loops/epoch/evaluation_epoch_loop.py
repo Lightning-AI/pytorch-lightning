@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from collections import OrderedDict
-from dataclasses import asdict
 from functools import lru_cache
 from typing import Any, Dict, Iterator, Optional
 
@@ -27,10 +26,9 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import (
     _collect_states_on_rank_zero_over_collection,
     _reload_dataloader_state_dict,
-    MergedIteratorState,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import AbstractDataFetcher
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
@@ -109,12 +107,14 @@ class EvaluationEpochLoop(Loop):
         void(dl_max_batches)
 
         assert self._dataloader_iter is not None
-        batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
-        if batch is None:
-            raise StopIteration
+        if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
+            batch_idx = self.batch_progress.current.ready
+            batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
+        else:
+            batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
 
         # configure step_kwargs
-        kwargs = self._build_kwargs(kwargs, batch)
+        kwargs = self._build_kwargs(kwargs, batch, batch_idx)
 
         self.batch_progress.increment_ready()
 
@@ -165,20 +165,16 @@ class EvaluationEpochLoop(Loop):
         state_dict = super().on_save_checkpoint()
 
         if (
-            self.trainer is None
-            or not self.trainer.state._fault_tolerant_mode.is_enabled
-            or self._data_fetcher is None
-            or self._num_completed_batches_reached()  # did not finish
-            # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
-            or self.batch_progress.current.ready == 0  # did not start
+            self.trainer is not None
+            and self.trainer.state._fault_tolerant_mode.is_enabled
+            and self._data_fetcher is not None
+            and not self._num_completed_batches_reached()  # did not finish
+            and self.batch_progress.current.ready  # did start
         ):
-            return state_dict
+            state = CombinedLoader._state_dict_fn(self._data_fetcher.dataloader_iter, self._has_completed())
+            if state:
+                state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(state)
 
-        # TODO: this should use `pytorch_lightning/trainer/supporters.py::CombinedLoader._state_dict_fn`
-        state_to_save = "state" if self._has_completed() else "previous_state"
-        state: Optional[MergedIteratorState] = getattr(self._data_fetcher.dataloader_iter, state_to_save, None)
-        if state:
-            state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(asdict(state))
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
@@ -270,7 +266,7 @@ class EvaluationEpochLoop(Loop):
 
         self.trainer.logger_connector.on_batch_end()
 
-    def _build_kwargs(self, kwargs: OrderedDict, batch: Any) -> OrderedDict:
+    def _build_kwargs(self, kwargs: OrderedDict, batch: Any, batch_idx: int) -> OrderedDict:
         """Helper function to build the arguments for the current step.
 
         Args:
@@ -280,7 +276,7 @@ class EvaluationEpochLoop(Loop):
         Returns:
             The kwargs passed down to the hooks.
         """
-        kwargs.update({"batch": batch, "batch_idx": self.batch_progress.current.ready})
+        kwargs.update({"batch": batch, "batch_idx": batch_idx})
         kwargs.move_to_end("batch_idx", last=False)
         kwargs.move_to_end("batch", last=False)
         return kwargs

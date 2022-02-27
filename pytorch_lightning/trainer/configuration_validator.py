@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytorch_lightning as pl
+from pytorch_lightning.strategies import DataParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -99,13 +100,13 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
             " Please use `train_dataloader()` directly."
         )
 
-    trainer.overriden_optimizer_step = is_overridden("optimizer_step", model)
-    trainer.overriden_optimizer_zero_grad = is_overridden("optimizer_zero_grad", model)
+    trainer.overridden_optimizer_step = is_overridden("optimizer_step", model)
+    trainer.overridden_optimizer_zero_grad = is_overridden("optimizer_zero_grad", model)
     automatic_optimization = model.automatic_optimization
     going_to_accumulate_grad_batches = trainer.accumulation_scheduler.going_to_accumulate_grad_batches()
 
-    has_overriden_optimization_functions = trainer.overriden_optimizer_step or trainer.overriden_optimizer_zero_grad
-    if has_overriden_optimization_functions and going_to_accumulate_grad_batches and automatic_optimization:
+    has_overridden_optimization_functions = trainer.overridden_optimizer_step or trainer.overridden_optimizer_zero_grad
+    if has_overridden_optimization_functions and going_to_accumulate_grad_batches and automatic_optimization:
         rank_zero_warn(
             "When using `Trainer(accumulate_grad_batches != 1)` and overriding"
             " `LightningModule.optimizer_{step,zero_grad}`, the hooks will not be called on every batch"
@@ -137,7 +138,7 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
 
 def _check_progress_bar(model: "pl.LightningModule") -> None:
     r"""
-    Checks if get_progress_bar_dict is overriden and sends a deprecation warning.
+    Checks if get_progress_bar_dict is overridden and sends a deprecation warning.
 
     Args:
         model: The model to check the get_progress_bar_dict method.
@@ -151,7 +152,7 @@ def _check_progress_bar(model: "pl.LightningModule") -> None:
 
 def _check_on_post_move_to_device(model: "pl.LightningModule") -> None:
     r"""
-    Checks if `on_post_move_to_device` method is overriden and sends a deprecation warning.
+    Checks if `on_post_move_to_device` method is overridden and sends a deprecation warning.
 
     Args:
         model: The model to check the `on_post_move_to_device` method.
@@ -206,8 +207,11 @@ def __verify_dp_batch_transfer_support(trainer: "pl.Trainer", model: "pl.Lightni
     """Raise Misconfiguration exception since these hooks are not supported in DP mode."""
     # TODO: Remove this blocker once batch transfer to device is integrated in Lightning for DP mode.
     batch_transfer_hooks = ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
+    datahook_selector = trainer._data_connector._datahook_selector
     for hook in batch_transfer_hooks:
-        if trainer._accelerator_connector.use_dp and is_overridden(hook, model):
+        if isinstance(trainer.strategy, DataParallelStrategy) and (
+            is_overridden(hook, datahook_selector.model) or is_overridden(hook, datahook_selector.datamodule)
+        ):
             raise MisconfigurationException(f"Overriding `{hook}` is not supported in DP mode.")
 
 
@@ -254,20 +258,18 @@ def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") 
 
 def _check_add_get_queue(model: "pl.LightningModule") -> None:
     r"""
-    Checks if add_to_queue or get_from_queue is overriden and sends a deprecation warning.
+    Checks if add_to_queue or get_from_queue is overridden and sends a deprecation warning.
 
     Args:
         model: The lightning module
     """
     if is_overridden("add_to_queue", model):
         rank_zero_deprecation(
-            "The `LightningModule.add_to_queue` method was deprecated in v1.5 and will be removed in v1.7 in "
-            "favor of `DDPSpawnStrategy.add_to_queue`"
+            "The `LightningModule.add_to_queue` method was deprecated in v1.5 and will be removed in v1.7."
         )
     if is_overridden("get_from_queue", model):
         rank_zero_deprecation(
-            "The `LightningModule.get_from_queue` method was deprecated in v1.5 and will be removed in v1.7 in "
-            "favor of `DDPSpawnStrategy.get_from_queue`"
+            "The `LightningModule.get_from_queue` method was deprecated in v1.5 and will be removed in v1.7."
         )
 
 
@@ -350,7 +352,6 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
                     f"The `Callback.{hook}` hook was deprecated in v1.6 and"
                     f" will be removed in v1.8. Please use `Callback.{alternative_hook}` instead."
                 )
-
         for hook, alternative_hook in (
             ["on_epoch_start", "on_<train/validation/test>_epoch_start"],
             ["on_epoch_end", "on_<train/validation/test>_epoch_end"],
@@ -359,4 +360,10 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
                 rank_zero_deprecation(
                     f"The `Callback.{hook}` hook was deprecated in v1.6 and"
                     f" will be removed in v1.8. Please use `Callback.{alternative_hook}` instead."
+                )
+        for hook in ("on_pretrain_routine_start", "on_pretrain_routine_end"):
+            if is_overridden(method_name=hook, instance=callback):
+                rank_zero_deprecation(
+                    f"The `Callback.{hook}` hook has been deprecated in v1.6 and"
+                    f" will be removed in v1.8. Please use `Callback.on_fit_start` instead."
                 )
