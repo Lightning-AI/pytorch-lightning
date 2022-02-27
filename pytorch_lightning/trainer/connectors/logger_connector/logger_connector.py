@@ -16,11 +16,12 @@ from typing import Any, Dict, Iterable, Optional, Union
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
+from pytorch_lightning.accelerators import GPUAccelerator
+from pytorch_lightning.loggers import LightningLoggerBase, TensorBoardLogger
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities import _AcceleratorType, memory
+from pytorch_lightning.utilities import memory
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -89,15 +90,15 @@ class LoggerConnector:
     def configure_logger(self, logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]]) -> None:
         if isinstance(logger, bool):
             # default logger
-            self.trainer.logger = (
-                TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id())
+            self.trainer.loggers = (
+                [TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id())]
                 if logger
-                else None
+                else []
             )
         elif isinstance(logger, Iterable):
-            self.trainer.logger = LoggerCollection(logger)
+            self.trainer.loggers = list(logger)
         else:
-            self.trainer.logger = logger
+            self.trainer.loggers = [logger]
 
     def log_metrics(self, metrics: _OUT_DICT, step: Optional[int] = None) -> None:
         """Logs the metric dict passed in. If `step` parameter is None and `step` key is presented is metrics, uses
@@ -108,7 +109,7 @@ class LoggerConnector:
             step: Step for which metrics should be logged. Default value is `self.global_step` during training or
                 the total validation / test log step count during validation and testing.
         """
-        if self.trainer.logger is None or not metrics:
+        if not self.trainer.loggers or not metrics:
             return
 
         self._logged_metrics.update(metrics)
@@ -125,11 +126,12 @@ class LoggerConnector:
             step = self.trainer.global_step
 
         # log actual metrics
-        if self._override_agg_and_log_metrics:
-            self.trainer.logger.agg_and_log_metrics(metrics=scalar_metrics, step=step)
-        else:
-            self.trainer.logger.log_metrics(metrics=scalar_metrics, step=step)
-        self.trainer.logger.save()
+        for logger in self.trainer.loggers:
+            if self._override_agg_and_log_metrics:
+                logger.agg_and_log_metrics(metrics=scalar_metrics, step=step)
+            else:
+                logger.log_metrics(metrics=scalar_metrics, step=step)
+            logger.save()
 
     """
     Evaluation metric updates
@@ -305,7 +307,7 @@ class LoggerConnector:
         .. deprecated:: v1.5
             Will be removed in v1.7.
         """
-        if self.trainer._device_type == _AcceleratorType.GPU and self.log_gpu_memory:
+        if isinstance(self.trainer.accelerator, GPUAccelerator) and self.log_gpu_memory:
             mem_map = memory.get_memory_profile(self.log_gpu_memory)
             self._gpus_metrics.update(mem_map)
         return self._gpus_metrics

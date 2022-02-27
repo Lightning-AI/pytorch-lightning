@@ -12,14 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.8.0."""
+import time
 from unittest.mock import Mock
 
+import numpy as np
 import pytest
 import torch
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.loggers import CSVLogger
+from pytorch_lightning.loggers import CSVLogger, LightningLoggerBase
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
@@ -32,6 +34,7 @@ from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnSharde
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
+from pytorch_lightning.profiler import AdvancedProfiler, SimpleProfiler
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
@@ -248,7 +251,7 @@ def test_v1_8_0_deprecate_trainer_callback_hook_mixin():
     )
     model = BoringModel()
     # need to attach model to trainer for testing of `on_pretrain_routine_start`
-    trainer.fit(model)
+    trainer.strategy.connect(model)
     for method_name in methods_with_self:
         fn = getattr(trainer, method_name, None)
         with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
@@ -503,6 +506,45 @@ def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
         trainer.fit(model)
 
 
+def test_v1_8_0_logger_agg_parameters():
+    class CustomLogger(LightningLoggerBase):
+        @rank_zero_only
+        def log_hyperparams(self, params):
+            pass
+
+        @rank_zero_only
+        def log_metrics(self, metrics, step):
+            pass
+
+        @property
+        def name(self):
+            pass
+
+        @property
+        def version(self):
+            pass
+
+    with pytest.deprecated_call(
+        match="The `agg_key_funcs` parameter for `LightningLoggerBase` was deprecated in v1.6"
+        " and will be removed in v1.8."
+    ):
+        CustomLogger(agg_key_funcs={"mean", np.mean})
+
+    with pytest.deprecated_call(
+        match="The `agg_default_func` parameter for `LightningLoggerBase` was deprecated in v1.6"
+        " and will be removed in v1.8."
+    ):
+        CustomLogger(agg_default_func=np.mean)
+
+    # Should have no deprecation warning
+    logger = CustomLogger()
+
+    with pytest.deprecated_call(
+        match="`LightningLoggerBase.update_agg_funcs` was deprecated in v1.6 and will be removed in v1.8."
+    ):
+        logger.update_agg_funcs()
+
+
 def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
     class AggregationOverrideLogger(CSVLogger):
         @rank_zero_only
@@ -532,3 +574,81 @@ def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
         Trainer(logger=[logger, logger3])
     # Should have no deprecation warning
     Trainer(logger=[logger2, logger3])
+
+
+def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
+    class TestCallback(Callback):
+        def on_pretrain_routine_start(self, trainer, pl_module):
+            print("on_pretrain_routine_start called.")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `Callback.on_pretrain_routine_start` hook has been deprecated in v1.6" " and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+    class TestCallback(Callback):
+        def on_pretrain_routine_end(self, trainer, pl_module):
+            print("on_pretrain_routine_end called.")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `Callback.on_pretrain_routine_end` hook has been deprecated in v1.6" " and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+
+@pytest.mark.flaky(reruns=3)
+@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
+def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list):
+    """Ensure the reported durations are reasonably accurate."""
+
+    def _sleep_generator(durations):
+        """the profile_iterable method needs an iterable in which we can ensure that we're properly timing how long
+        it takes to call __next__"""
+        for duration in durations:
+            time.sleep(duration)
+            yield duration
+
+    def _get_python_cprofile_total_duration(profile):
+        return sum(x.inlinetime for x in profile.getstats())
+
+    simple_profiler = SimpleProfiler()
+    iterable = _sleep_generator(expected)
+
+    with pytest.deprecated_call(
+        match="`BaseProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."
+    ):
+        for _ in simple_profiler.profile_iterable(iterable, action):
+            pass
+
+    # we exclude the last item in the recorded durations since that's when StopIteration is raised
+    np.testing.assert_allclose(simple_profiler.recorded_durations[action][:-1], expected, rtol=0.2)
+
+    advanced_profiler = AdvancedProfiler(dirpath=tmpdir, filename="profiler")
+
+    iterable = _sleep_generator(expected)
+
+    with pytest.deprecated_call(
+        match="`BaseProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."
+    ):
+        for _ in advanced_profiler.profile_iterable(iterable, action):
+            pass
+
+    recorded_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
+    expected_total_duration = np.sum(expected)
+    np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)

@@ -416,19 +416,28 @@ benchmark
 
 |
 
-The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to. If not specified, the value
-set in the current session will be used.
-Setting this flag to ``True`` is likely to increase the speed of your system if your input sizes don't
-change. However, if it does, then it will likely make your system slower.
+The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to. If neither of this flag or
+:paramref:`~pytorch_lightning.trainer.Trainer.deterministic` are set, the value for
+``torch.backends.cudnn.benchmark`` set in the current session will be used. If
+:paramref:`~pytorch_lightning.trainer.Trainer.deterministic` is set to ``True``, this will default to ``False``.
+You can read more about the interaction of ``torch.backends.cudnn.benchmark`` and ``torch.backends.cudnn.deterministic``
+`here <https://pytorch.org/docs/stable/notes/randomness.html#cuda-convolution-benchmarking>`__
 
-The speedup comes from allowing the cudnn auto-tuner to find the best
-algorithm for the hardware `[see discussion here]
-<https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936>`_.
+Setting this flag to ``True`` is likely to increase the speed of your system if your input sizes don't
+change. However, if they do, then it might make your system slower. The CUDNN auto-tuner will try to find the best
+algorithm for the hardware when a new input size is encountered. Read more about it
+`here <https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936>`__.
 
 Example::
 
     # default used by the Trainer (will use whatever the current value for torch.backends.cudnn.benchmark is)
     trainer = Trainer(benchmark=None)
+
+    # you can overwrite the value
+    trainer = Trainer(benchmark=False)
+
+    # defaults to False when deterministic is True
+    trainer = Trainer(deterministic=True)
 
 deterministic
 ^^^^^^^^^^^^^
@@ -1544,8 +1553,8 @@ val_check_interval
 How often within one training epoch to check the validation set.
 Can specify as float or int.
 
-- use (float) to check within a training epoch
-- use (int) to check every n steps (batches)
+- pass a ``float`` in the range [0.0, 1.0] to check after a fraction of the training epoch.
+- pass an ``int`` to check after a fixed number of training batches.
 
 .. testcode::
 
