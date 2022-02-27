@@ -78,7 +78,7 @@ class EvaluationLoop(DataLoaderLoop):
         """Returns the validation or test dataloaders."""
         dataloaders = self.trainer.test_dataloaders if self.trainer.testing else self.trainer.val_dataloaders
         if dataloaders is None:
-            raise RuntimeError("Dataloaders should be available.")
+            return []
         return dataloaders
 
     def connect(self, epoch_loop: EvaluationEpochLoop) -> None:  # type: ignore[override]
