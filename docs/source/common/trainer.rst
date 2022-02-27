@@ -427,7 +427,7 @@ algorithm for the hardware `[see discussion here]
 
 Example::
 
-    # default used by the Trainer (current setting for torch.backends.cudnn.benchmark is unchanged)
+    # default used by the Trainer (will use whatever the current value for torch.backends.cudnn.benchmark is)
     trainer = Trainer(benchmark=None)
 
 deterministic
