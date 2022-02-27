@@ -846,15 +846,3 @@ class AcceleratorConnector:
         if isinstance(self.accelerator, TPUAccelerator):
             is_distributed |= self.strategy.is_distributed
         return is_distributed
-
-    @property
-    def has_ipu(self) -> bool:
-        return isinstance(self.accelerator, IPUAccelerator) and isinstance(self.strategy, IPUStrategy)
-
-    @property
-    def use_ipu(self) -> bool:
-        return isinstance(self.accelerator, IPUAccelerator)
-
-    @property
-    def has_tpu(self) -> bool:
-        return isinstance(self.accelerator, TPUAccelerator)
