@@ -262,7 +262,8 @@ class Trainer(
                 Default: ``False``.
 
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
-                Default: ``False``.
+                If not set, defaults to ``False``.
+                Default: ``None``.
 
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
                 based on the accelerator type.
