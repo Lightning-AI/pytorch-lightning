@@ -652,3 +652,24 @@ def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list)
     recorded_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
     expected_total_duration = np.sum(expected)
     np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
+
+
+def test_v1_8_0_logger_collection(tmpdir):
+    logger1 = CSVLogger(tmpdir)
+    logger2 = CSVLogger(tmpdir)
+
+    trainer1 = Trainer(logger=logger1)
+    trainer2 = Trainer(logger=[logger1, logger2])
+
+    # Should have no deprecation warning
+    trainer1.logger
+    trainer1.loggers
+    trainer2.loggers
+
+    with pytest.deprecated_call(
+        match="Using `trainer.logger` when Trainer is configured to use multiple loggers."
+        " `LoggerCollection` is deprecated in v1.6 and will be removed in v1.8."
+        " This behavior will change in v1.8 such that `trainer.logger` will return the first"
+        " logger in `trainer.loggers`."
+    ):
+        trainer1.logger
