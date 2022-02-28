@@ -363,18 +363,18 @@ class ModelCheckpoint(Callback):
         dirpath_from_ckpt = state_dict.get("dirpath", self.dirpath)
 
         if self.dirpath == dirpath_from_ckpt:
-            self.best_model_score = callback_state["best_model_score"]
-            self.kth_best_model_path = callback_state.get("kth_best_model_path", self.kth_best_model_path)
-            self.kth_value = callback_state.get("kth_value", self.kth_value)
-            self.best_k_models = callback_state.get("best_k_models", self.best_k_models)
+            self.best_model_score = state_dict["best_model_score"]
+            self.kth_best_model_path = state_dict.get("kth_best_model_path", self.kth_best_model_path)
+            self.kth_value = state_dict.get("kth_value", self.kth_value)
+            self.best_k_models = state_dict.get("best_k_models", self.best_k_models)
         else:
             warnings.warn(
                 f"The dirpath has changed from {dirpath_from_ckpt!r} to {self.dirpath!r},"
                 " therefore `best_model_score`, `kth_best_model_path`, `kth_value` and `best_k_models`"
                 " won't be reloaded. Only `last_model_path` and `best_model_path` will be reloaded."
             )
-        self.last_model_path = callback_state.get("last_model_path", self.last_model_path)
-        self.best_model_path = callback_state["best_model_path"]
+        self.last_model_path = state_dict.get("last_model_path", self.last_model_path)
+        self.best_model_path = state_dict["best_model_path"]
 
     def save_checkpoint(self, trainer: "pl.Trainer") -> None:
         """Performs the main logic around saving a checkpoint.
