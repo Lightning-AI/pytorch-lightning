@@ -300,9 +300,8 @@ class Callback:
 
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
-    ) -> Optional[dict]:
-        r"""
-        Called when saving a checkpoint to give you a chance to store anything else you might want to save.
+    ) -> dict:
+        """Called when saving a model checkpoint, use to persist state.
 
         Args:
             trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
@@ -310,18 +309,13 @@ class Callback:
             checkpoint: the checkpoint dictionary that will be saved.
 
         Returns:
-            None or the callback state. Support for returning callback state will be removed in v1.8.
-
-        .. deprecated:: v1.6
-            Returning state in this callback hook was deprecated in v1.6 and will be removed in v1.8.
-            Use ``state_dict`` instead to return state. In v1.8 ``on_save_checkpoint`` can only return None.
+            The callback state.
         """
 
     def on_load_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
     ) -> None:
-        r"""
-        Called when loading a model checkpoint, use to reload state.
+        """Called when loading a model checkpoint, use to reload state.
 
         Args:
             trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
@@ -332,12 +326,6 @@ class Callback:
             The ``on_load_checkpoint`` won't be called with an undefined state.
             If your ``on_load_checkpoint`` hook behavior doesn't rely on a state,
             you will still need to override ``on_save_checkpoint`` to return a ``dummy state``.
-
-        .. deprecated:: v1.6
-            This callback hook will change its signature and behavior in v1.8.
-            If you wish to load the state of the callback, use ``load_state_dict`` instead.
-            In v1.8 ``on_load_checkpoint(checkpoint)`` will receive the entire loaded
-            checkpoint dictionary instead of callback state.
         """
 
     def on_before_backward(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", loss: torch.Tensor) -> None:
