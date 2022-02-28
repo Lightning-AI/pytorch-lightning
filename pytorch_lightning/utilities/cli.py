@@ -135,7 +135,7 @@ class LightningArgumentParser(ArgumentParser):
             )
         super().__init__(*args, **kwargs)
         self.add_argument(
-            "--config", action=ActionConfigFile, help="Path to a configuration file in json or yaml format."
+            "-c", "--config", action=ActionConfigFile, help="Path to a configuration file in json or yaml format."
         )
         self.callback_keys: List[str] = []
         # separate optimizers and lr schedulers to know which were added
@@ -415,8 +415,6 @@ class SaveConfigCallback(Callback):
         self.multifile = multifile
 
     def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
-        # save the config in `setup` because (1) we want it to save regardless of the trainer function run
-        # and we want to save before processes are spawned
         log_dir = trainer.log_dir  # this broadcasts the directory
         assert log_dir is not None
         config_path = os.path.join(log_dir, self.config_filename)
@@ -437,17 +435,13 @@ class SaveConfigCallback(Callback):
 
         # save the file on rank 0
         if trainer.is_global_zero:
-            # save only on rank zero to avoid race conditions on DDP.
+            # save only on rank zero to avoid race conditions.
             # the `log_dir` needs to be created as we rely on the logger to do it usually
             # but it hasn't logged anything at this point
             fs.makedirs(log_dir, exist_ok=True)
             self.parser.save(
                 self.config, config_path, skip_none=False, overwrite=self.overwrite, multifile=self.multifile
             )
-
-    def __reduce__(self) -> Tuple[Type["SaveConfigCallback"], Tuple, Dict]:
-        # `ArgumentParser` is un-pickleable. Drop it
-        return self.__class__, (None, self.config, self.config_filename), {}
 
 
 class LightningCLI:

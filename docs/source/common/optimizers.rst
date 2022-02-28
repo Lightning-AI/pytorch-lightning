@@ -526,7 +526,6 @@ to perform a step, Lightning won't be able to support accelerators, precision an
 
 -----
 
-.. _configure_gradient_clipping:
 
 Bring your own Custom Learning Rate Schedulers
 ==============================================
@@ -550,6 +549,8 @@ If you are using native PyTorch schedulers, there is no need to override this ho
     def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
         scheduler.step(epoch=self.current_epoch)  # timm's scheduler need the epoch value
 
+
+.. _configure_gradient_clipping:
 
 Configure Gradient Clipping
 ===========================
@@ -592,3 +593,21 @@ Here we configure gradient clipping differently for optimizer B.
             self.clip_gradients(
                 optimizer, gradient_clip_val=gradient_clip_val * 2, gradient_clip_algorithm=gradient_clip_algorithm
             )
+
+
+Total Stepping Batches
+======================
+
+You can use built-in trainer property :paramref:`~pytorch_lightning.trainer.trainer.Trainer.estimated_stepping_batches` to compute
+total number of stepping batches for the complete training. The property is computed considering gradient accumulation factor and
+distributed setting into consideration so you don't have to derive it manually. One good example where this can be helpful is while using
+:class:`~torch.optim.lr_scheduler.OneCycleLR` scheduler, which requires pre-computed ``total_steps`` during initialization.
+
+.. code-block:: python
+
+    def configure_optimizers(self):
+        optimizer = ...
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer, max_lr=1e-3, total_steps=self.trainer.estimated_stepping_batches
+        )
+        return [optimizer], [scheduler]
