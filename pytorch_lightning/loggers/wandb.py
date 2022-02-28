@@ -254,7 +254,6 @@ class WandbLogger(LightningLoggerBase):
         offline: Optional[bool] = False,
         id: Optional[str] = None,
         anonymous: Optional[bool] = None,
-        version: Optional[str] = None,
         project: Optional[str] = None,
         log_model: Optional[bool] = False,
         experiment=None,
@@ -293,7 +292,7 @@ class WandbLogger(LightningLoggerBase):
         self._wandb_init = dict(
             name=name,
             project=project,
-            id=version or id,
+            id=id,
             dir=save_dir,
             resume="allow",
             anonymous=anonymous_lut.get(anonymous, anonymous),
