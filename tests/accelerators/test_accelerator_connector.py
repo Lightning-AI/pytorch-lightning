@@ -899,7 +899,7 @@ def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock
 
 
 @mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.parse_devices", return_value=8)
-def test_unsupported_tpu_choice(monkeypatch):
+def test_unsupported_tpu_choice():
 
     with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         Trainer(accelerator="tpu", precision=64)
@@ -917,11 +917,9 @@ def test_unsupported_tpu_choice(monkeypatch):
 def test_unsupported_ipu_choice(monkeypatch):
     import pytorch_lightning.strategies.ipu as ipu
     import pytorch_lightning.utilities.imports as imports
-    from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 
     monkeypatch.setattr(imports, "_IPU_AVAILABLE", True)
     monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
-    monkeypatch.setattr(AcceleratorConnector, "has_ipu", True)
     with pytest.raises(MisconfigurationException, match=r"accelerator='ipu', precision='bf16'\)` is not supported"):
         Trainer(accelerator="ipu", precision="bf16")
     with pytest.raises(MisconfigurationException, match=r"accelerator='ipu', precision=64\)` is not supported"):

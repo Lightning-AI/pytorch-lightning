@@ -304,3 +304,9 @@ def test_mp_device_dataloader_attribute(_):
     dataset = RandomDataset(32, 64)
     dataloader = TPUSpawnStrategy().process_dataloader(DataLoader(dataset))
     assert dataloader.dataset == dataset
+
+
+@RunIf(tpu=True)
+def test_warning_if_tpus_not_used():
+    with pytest.warns(UserWarning, match="TPU available but not used. Set `accelerator` and `devices`"):
+        Trainer()
