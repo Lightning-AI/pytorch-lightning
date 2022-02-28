@@ -253,7 +253,7 @@ class LightningModule(
 
     @property
     def loggers(self) -> List[LightningLoggerBase]:
-        """Reference to the loggers object in the Trainer."""
+        """Reference to the list of loggers in the Trainer."""
         return self.trainer.loggers if self.trainer else []
 
     def _apply_batch_transfer_handler(
@@ -1384,7 +1384,7 @@ class LightningModule(
         # Iterate over all optimizer parameters to preserve their `requires_grad` information
         # in case these are pre-defined during `configure_optimizers`
         param_requires_grad_state = {}
-        for opt in self.optimizers(use_pl_optimizer=False):
+        for opt in self.trainer.optimizers:
             for group in opt.param_groups:
                 for param in group["params"]:
                     # If a param already appear in param_requires_grad_state, continue
@@ -1408,7 +1408,7 @@ class LightningModule(
         Args:
             optimizer_idx: The index of the optimizer to untoggle.
         """
-        for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):
+        for opt_idx, opt in enumerate(self.trainer.optimizers):
             if optimizer_idx != opt_idx:
                 for group in opt.param_groups:
                     for param in group["params"]:
