@@ -151,9 +151,9 @@ class FitLoop(Loop[None]):
 
     @property
     def prefetch_batches(self) -> int:
-        iterable_dataset = self.trainer.num_training_batches == float("inf")
+        is_unsized = self.trainer.num_training_batches == float("inf")
         inter_batch_parallelism = os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1"
-        return 1 if iterable_dataset or inter_batch_parallelism else 0
+        return 1 if is_unsized or inter_batch_parallelism else 0
 
     @property
     def _skip_backward(self) -> bool:
