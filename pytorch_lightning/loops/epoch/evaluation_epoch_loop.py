@@ -85,6 +85,8 @@ class EvaluationEpochLoop(Loop):
         self._reload_dataloader_state_dict(data_fetcher)
         # creates the iterator inside the fetcher but returns `self`
         self._data_fetcher = cast(AbstractDataFetcher, iter(data_fetcher))
+        # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
+        data_fetcher.fetched += self.batch_progress.current.ready
 
     def advance(  # type: ignore[override]
         self,
