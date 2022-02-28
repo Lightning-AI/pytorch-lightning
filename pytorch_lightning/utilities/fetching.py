@@ -235,7 +235,7 @@ class DataFetcher(AbstractDataFetcher):
             except StopIteration:
                 break
 
-    def fetching_function(self) -> Tuple[Any, bool]:
+    def fetching_function(self) -> Any:
         assert self.dataloader_iter is not None
         if self.batches:
             # there are pre-fetched batches already from a previous `prefetching` call.
@@ -260,7 +260,7 @@ class DataFetcher(AbstractDataFetcher):
             # the iterator is empty
             raise StopIteration
         self.wait()
-        return self.move_to_device(batch), self.done
+        return self.move_to_device(batch)
 
     def _fetch_next_batch(self, iterator: Iterator) -> None:
         start_output = self.on_fetch_start()
@@ -369,7 +369,7 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
         assert iterator is not None
         self.iterator = iter(StepFuncDataLoaderIter(iterator, self))
 
-    def fetching_function(self) -> Tuple[int, Tuple[Iterator, bool]]:
+    def fetching_function(self) -> Tuple[int, Iterator]:
         if not self.done:
-            return self.fetched, (self.iterator, self.done)
+            return self.fetched, self.iterator
         raise StopIteration

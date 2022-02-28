@@ -39,6 +39,16 @@ if _HOROVOD_AVAILABLE:
     import horovod
     import horovod.torch as hvd
 
+
+@RunIf(min_gpus=1, horovod=True)
+@pytest.mark.xfail(reason="FIXME(@Borda): nccl is not available in the GPU image")
+def test_nccl_is_available_on_gpu_environment():
+    from tests.helpers.runif import _HOROVOD_NCCL_AVAILABLE
+
+    # the GPU environment should always install Horovod NCCL
+    assert _HOROVOD_NCCL_AVAILABLE
+
+
 # This script will run the actual test model training in parallel
 TEST_SCRIPT = os.path.join(os.path.dirname(__file__), "data", "horovod", "train_default_model.py")
 
