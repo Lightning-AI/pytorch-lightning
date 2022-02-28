@@ -313,14 +313,14 @@ class AcceleratorConnector:
                         f"Passing {plugin} `strategy` to the `plugins` flag in Trainer has been deprecated"
                         f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={plugin})` instead."
                     )
-                    plugins_flags_types_list.append("Strategy")
+                    plugins_flags_types_list.append(Strategy.__name__)
 
                 elif isinstance(plugin, PrecisionPlugin):
                     self._precision_plugin_flag = plugin
-                    plugins_flags_types_list.append("PrecisionPlugin")
+                    plugins_flags_types_list.append(PrecisionPlugin.__name__)
                 elif isinstance(plugin, CheckpointIO):
                     self.checkpoint_io = plugin
-                    plugins_flags_types_list.append("CheckpointIO")
+                    plugins_flags_types_list.append(CheckpointIO.__name__)
                 elif isinstance(plugin, ClusterEnvironment):
                     self._cluster_environment_flag = plugin
                     plugins_flags_types_list.append("ClusterEnvironment")
@@ -331,6 +331,7 @@ class AcceleratorConnector:
                             " plugin, but this is not allowed. Choose one or the other."
                         )
                     self._layer_sync = plugin
+                    plugins_flags_types_list.append(ClusterEnvironment.__name__)
                 else:
                     raise MisconfigurationException(
                         f"Found invalid type for plugin {plugin}. Expected PrecisionPlugin, "
