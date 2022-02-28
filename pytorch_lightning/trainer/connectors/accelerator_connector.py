@@ -473,7 +473,7 @@ class AcceleratorConnector:
                 )
             accelerator_class = ACCELERATORS[self._accelerator_flag]
             self.accelerator = accelerator_class()  # type: ignore[abstract]
-            
+
         if not self.accelerator.is_available():
             if isinstance(self.accelerator, GPUAccelerator):
                 hardware_str = "GPU"
@@ -486,7 +486,7 @@ class AcceleratorConnector:
                 + hardware_str
                 + "s are not available."
             )
-            
+
         self._set_devices_flag_if_auto_passed()
 
         self._gpus = self._devices_flag if not self._gpus else self._gpus
