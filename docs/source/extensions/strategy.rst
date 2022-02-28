@@ -4,56 +4,57 @@
 Strategy
 ########
 
-Strategy depicts the training strategy to be used by the :doc:`Lightning Trainer <../common/trainer>`. It can be controlled by passing different
-training strategies with aliases (``ddp``, ``ddp_spawn``, ``deepspeed``, etc) as well as custom training strategies to the ``strategy`` parameter for Trainer.
+Strategy controls the model distribution across training, evaluation, and prediction to be used by the :doc:`Trainer <../common/trainer>`. It can be controlled by passing different
+strategy with aliases (``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"`` and so on.) as well as custom strategy to the ``strategy`` parameter for Trainer.
 
-Strategy in Lightning handles some of the following responsibilities:
+The Strategy in Lightning handles the following responsibilities:
 
 * Launching and teardown of training processes (if applicable)
-
-* Setup communication between processes (NCCL, GLOO, MPI, …)
-
-* Provide a unified communication interface for reduction, broadcast, etc.
-
-* Provide access to the wrapped LightningModule
+* Setup communication between processes (NCCL, GLOO, MPI and so on.)
+* Provide a unified communication interface for reduction, broadcast and so on.
+* Owns the LightningModule
+* Handles/owns optimizers and schedulers
 
 
 :class:`~pytorch_lightning.strategies.strategy.Strategy` also manages the accelerator, precision and the checkpointing plugins.
 
 
 ****************************************
-Training Strategies with various configs
+Training Strategies with Various Configs
 ****************************************
 
 .. code-block:: python
 
-    # Training with the DistributedDataParallel strategy on 4 gpus
+    # Training with the DistributedDataParallel strategy on 4 GPUs
     trainer = Trainer(strategy="ddp", accelerator="gpu", devices=4)
 
-    # Training with the custom DistributedDataParallel strategy on 4 gpus
+    # Training with the custom DistributedDataParallel strategy on 4 GPUs
     trainer = Trainer(strategy=DDPStrategy(...), accelerator="gpu", devices=4)
 
     # Training with the DDP Spawn strategy using auto accelerator selection
     trainer = Trainer(strategy="ddp_spawn", accelerator="auto", devices=4)
 
-    # Training with the DeepSpeed strategy on available gpus
+    # Training with the DeepSpeed strategy on available GPUs
     trainer = Trainer(strategy="deepspeed", accelerator="gpu", devices="auto")
 
-    # Training with the DDP strategy using 3 cpu processes
+    # Training with the DDP strategy using 3 CPU processes
     trainer = Trainer(strategy="ddp", accelerator="cpu", devices=3)
 
-    # Training with the DDP Spawn strategy on 8 tpu cores
+    # Training with the DDP Spawn strategy on 8 TPU cores
     trainer = Trainer(strategy="ddp_spawn", accelerator="tpu", devices=8)
 
-    # Training with the default IPU strategy on 8 ipus
+    # Training with the default IPU strategy on 8 IPUs
     trainer = Trainer(accelerator="ipu", devices=8)
 
 
+----------
+
+
 ************************
-Create a custom Strategy
+Create a Custom Strategy
 ************************
 
-Expert users may choose to extend an existing strategy by overriding its methods ...
+Expert users may choose to extend an existing strategy by overriding its methods.
 
 .. code-block:: python
 
@@ -62,12 +63,12 @@ Expert users may choose to extend an existing strategy by overriding its methods
 
     class CustomDDPStrategy(DDPStrategy):
         def configure_ddp(self):
-            self._model = MyCustomDistributedDataParallel(
+            self.model = MyCustomDistributedDataParallel(
                 self.model,
                 device_ids=...,
             )
 
-or by subclassing the base classes :class:`~pytorch_lightning.strategies.Strategy` to create new ones. These custom strategies
+or by subclassing the base class :class:`~pytorch_lightning.strategies.Strategy` to create new ones. These custom strategies
 can then be passed into the Trainer directly via the ``strategy`` parameter.
 
 .. code-block:: python
@@ -82,13 +83,14 @@ can then be passed into the Trainer directly via the ``strategy`` parameter.
     trainer = Trainer(strategy=training_strategy)
 
 
-The full list of built-in strategies is listed below.
+The complete list of built-in strategies is listed below.
 
 ----------
 
 
-Training Strategies
--------------------
+****************************
+Built-In Training Strategies
+****************************
 
 .. currentmodule:: pytorch_lightning.strategies
 
@@ -96,16 +98,19 @@ Training Strategies
     :nosignatures:
     :template: classtemplate.rst
 
-    Strategy
-    SingleDeviceStrategy
-    ParallelStrategy
-    DataParallelStrategy
-    DDPStrategy
+    BaguaStrategy
     DDP2Strategy
+    DDPFullyShardedStrategy
     DDPShardedStrategy
     DDPSpawnShardedStrategy
     DDPSpawnStrategy
+    DDPStrategy
+    DataParallelStrategy
     DeepSpeedStrategy
     HorovodStrategy
+    IPUStrategy
+    ParallelStrategy
+    SingleDeviceStrategy
     SingleTPUStrategy
+    Strategy
     TPUSpawnStrategy
