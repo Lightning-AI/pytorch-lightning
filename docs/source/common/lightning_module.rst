@@ -1387,7 +1387,6 @@ on_validation_end
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.on_validation_end
     :noindex:
 
-
 on_test_batch_start
 ~~~~~~~~~~~~~~~~~~~
 
