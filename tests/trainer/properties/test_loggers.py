@@ -52,12 +52,11 @@ def test_trainer_loggers_setters():
     """Test the behavior of setters for trainer.logger and trainer.loggers."""
     logger1 = CustomLogger()
     logger2 = CustomLogger()
-    logger_collection = LoggerCollection([logger1, logger2])
-    logger_collection_2 = LoggerCollection([logger2])
-    logger_collection_dep = "Using `trainer.logger` when Trainer is configured to use multiple loggers."
-    " `LoggerCollection` is deprecated in v1.6 in favor of `trainer.loggers` and will be removed in v1.8."
-    " This behavior will change in v1.8 such that `trainer.logger` will return the first"
-    " logger in `trainer.loggers`."
+    logger_collection_dep = "`LoggerCollection` is deprecated in v1.6"
+    with pytest.deprecated_call(match=logger_collection_dep):
+        logger_collection = LoggerCollection([logger1, logger2])
+    with pytest.deprecated_call(match=logger_collection_dep):
+        logger_collection_2 = LoggerCollection([logger2])
 
     trainer = Trainer()
     assert type(trainer.logger) == TensorBoardLogger

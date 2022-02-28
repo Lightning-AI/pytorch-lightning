@@ -221,6 +221,9 @@ class LightningLoggerBase(ABC):
 class LoggerCollection(LightningLoggerBase):
     """The :class:`LoggerCollection` class is used to iterate all logging actions over the given `logger_iterable`.
 
+    .. deprecated:: v1.6
+        `LoggerCollection` is deprecated in v1.6 in favor of `trainer.loggers` and will be removed in v1.8.
+
     Args:
         logger_iterable: An iterable collection of loggers
     """
@@ -228,6 +231,9 @@ class LoggerCollection(LightningLoggerBase):
     def __init__(self, logger_iterable: Iterable[LightningLoggerBase]):
         super().__init__()
         self._logger_iterable = logger_iterable
+        rank_zero_deprecation(
+            "`LoggerCollection` is deprecated in v1.6 in favor of `trainer.loggers` and will be removed in v1.8."
+        )
 
     def __getitem__(self, index: int) -> LightningLoggerBase:
         return list(self._logger_iterable)[index]

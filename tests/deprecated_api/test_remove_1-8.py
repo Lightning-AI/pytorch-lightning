@@ -21,7 +21,7 @@ import torch
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.loggers import CSVLogger, LightningLoggerBase
+from pytorch_lightning.loggers import CSVLogger, LightningLoggerBase, LoggerCollection
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
@@ -666,10 +666,10 @@ def test_v1_8_0_logger_collection(tmpdir):
     trainer1.loggers
     trainer2.loggers
 
-    with pytest.deprecated_call(
-        match="Using `trainer.logger` when Trainer is configured to use multiple loggers."
-        " `LoggerCollection` is deprecated in v1.6 in favor of `trainer.loggers` and will be removed in v1.8."
-        " This behavior will change in v1.8 such that `trainer.logger` will return the first"
-        " logger in `trainer.loggers`."
-    ):
+    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
         trainer2.logger
+
+    with pytest.deprecated_call(match="Using `trainer.logger` when Trainer is configured to use multiple loggers."):
+        trainer2.logger
+    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
+        LoggerCollection([logger1, logger2])
