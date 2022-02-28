@@ -2018,7 +2018,7 @@ class Trainer(
 
     @property
     def num_nodes(self) -> int:
-        return self._accelerator_connector.num_nodes
+        return getattr(self.strategy, "num_nodes", 1)
 
     @property
     def num_processes(self) -> int:
