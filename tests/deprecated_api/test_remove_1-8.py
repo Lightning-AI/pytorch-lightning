@@ -668,7 +668,7 @@ def test_v1_8_0_logger_collection(tmpdir):
 
     with pytest.deprecated_call(
         match="Using `trainer.logger` when Trainer is configured to use multiple loggers."
-        " `LoggerCollection` is deprecated in v1.6 and will be removed in v1.8."
+        " `LoggerCollection` is deprecated in v1.6 in favor of `trainer.loggers` and will be removed in v1.8."
         " This behavior will change in v1.8 such that `trainer.logger` will return the first"
         " logger in `trainer.loggers`."
     ):
