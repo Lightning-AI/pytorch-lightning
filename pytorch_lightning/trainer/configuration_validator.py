@@ -59,7 +59,7 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     # TODO: Delete on_epoch_start/on_epoch_end hooks in v1.8
     _check_on_epoch_start_end(model)
     # TODO: Delete CheckpointHooks off PrecisionPlugin in v1.8
-    _check_precplugin_checkpoint_hooks(trainer)
+    _check_precision_plugin_checkpoint_hooks(trainer)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -372,7 +372,7 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
                 )
 
 
-def _check_precplugin_checkpoint_hooks(trainer: "pl.Trainer") -> None:
+def _check_precision_plugin_checkpoint_hooks(trainer: "pl.Trainer") -> None:
     if is_overridden(method_name="on_save_checkpoint", instance=trainer.precision_plugin, parent=PrecisionPlugin):
         rank_zero_deprecation(
             "`PrecisionPlugin.on_save_checkpoint` was deprecated in"

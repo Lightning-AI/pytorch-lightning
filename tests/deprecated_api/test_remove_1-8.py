@@ -655,7 +655,7 @@ def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list)
     np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
 
 
-def test_v1_8_0_precplugin_checkpointhooks(tmpdir):
+def test_v1_8_0_precision_plugin_checkpoint_hooks(tmpdir):
     class PrecisionPluginSaveHook(PrecisionPlugin):
         def on_save_checkpoint(self, checkpoint):
             print("override on_save_checkpoint")
