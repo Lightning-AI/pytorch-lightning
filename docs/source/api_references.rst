@@ -226,9 +226,8 @@ Profiler API
     :nosignatures:
     :template: classtemplate.rst
 
-    AbstractProfiler
+    Profiler
     AdvancedProfiler
-    BaseProfiler
     PassThroughProfiler
     PyTorchProfiler
     SimpleProfiler

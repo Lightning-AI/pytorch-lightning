@@ -261,17 +261,17 @@ Custom Profiling
 Custom Profiler
 ===============
 
-You can also configure a custom profiler and pass it to the Trainer. To configure it, subclass :class:`~pytorch_lightning.profiler.base.BaseProfiler`
+You can also configure a custom profiler and pass it to the Trainer. To configure it, subclass :class:`~pytorch_lightning.profiler.base.Profiler`
 and override some of its methods. The following is a simple example that profiles the first occurrence and total calls of each action:
 
 .. code-block:: python
 
-    from pytorch_lightning.profiler.base import BaseProfiler
+    from pytorch_lightning.profiler.base import Profiler
     from collections import defaultdict
     import time
 
 
-    class ActionCountProfiler(BaseProfiler):
+    class ActionCountProfiler(Profiler):
         def __init__(self, dirpath=None, filename=None):
             super().__init__(dirpath=dirpath, filename=filename)
             self._action_count = defaultdict(int)

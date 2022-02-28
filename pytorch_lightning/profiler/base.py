@@ -32,7 +32,7 @@ class AbstractProfiler(ABC):
 
     .. deprecated:: v1.6
         `AbstractProfiler` was deprecated in v1.6 and will be removed in v1.8.
-        Please use `BaseProfiler` instead
+        Please use `Profiler` instead
     """
 
     @abstractmethod
@@ -56,7 +56,7 @@ class AbstractProfiler(ABC):
         """Execute arbitrary post-profiling tear-down steps as defined by subclass."""
 
 
-class BaseProfiler(ABC):
+class Profiler(ABC):
     """If you wish to write a custom profiler, you should inherit from this class."""
 
     def __init__(
@@ -107,9 +107,9 @@ class BaseProfiler(ABC):
         See deprecation message below.
 
         .. deprecated:: v1.6
-            `BaseProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8.
+            `Profiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8.
         """
-        rank_zero_deprecation("`BaseProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8.")
+        rank_zero_deprecation("`Profiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8.")
         iterator = iter(iterable)
         while True:
             try:
@@ -203,7 +203,24 @@ class BaseProfiler(ABC):
         return 0 if self._local_rank is None else self._local_rank
 
 
-class PassThroughProfiler(BaseProfiler):
+class BaseProfiler(Profiler):
+    """If you wish to write a custom profiler, you should inherit from this class.
+
+    See deprecation warning below
+
+    .. deprecated:: v1.6
+        `BaseProfiler` was deprecated in v1.6 and will be removed in v1.8.
+        Please use `Profiler` instead
+    """
+
+    def __init__(self, *args, **kwargs):
+        rank_zero_deprecation(
+            "`BaseProfiler` was deprecated in v1.6 and will be removed in v1.8. Please use `Profiler instead."
+        )
+        super().__init__(*args, **kwargs)
+
+
+class PassThroughProfiler(Profiler):
     """This class should be used when you don't want the (small) overhead of profiling.
 
     The Trainer uses this class by default.

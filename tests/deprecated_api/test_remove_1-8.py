@@ -34,7 +34,7 @@ from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnSharde
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
-from pytorch_lightning.profiler import AdvancedProfiler, SimpleProfiler
+from pytorch_lightning.profiler import AdvancedProfiler, BaseProfiler, Profiler, SimpleProfiler
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
@@ -637,9 +637,7 @@ def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list)
     simple_profiler = SimpleProfiler()
     iterable = _sleep_generator(expected)
 
-    with pytest.deprecated_call(
-        match="`BaseProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."
-    ):
+    with pytest.deprecated_call(match="`Profiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."):
         for _ in simple_profiler.profile_iterable(iterable, action):
             pass
 
@@ -650,12 +648,32 @@ def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list)
 
     iterable = _sleep_generator(expected)
 
-    with pytest.deprecated_call(
-        match="`BaseProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."
-    ):
+    with pytest.deprecated_call(match="`Profiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."):
         for _ in advanced_profiler.profile_iterable(iterable, action):
             pass
 
     recorded_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
     expected_total_duration = np.sum(expected)
     np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
+
+
+def test_v1_8_0_base_profiler(tmpdir):
+    class CustomProfiler1(BaseProfiler):
+        def start(self, action_name: str) -> None:
+            pass
+
+        def stop(self, action_name: str) -> None:
+            pass
+
+    class CustomProfiler2(Profiler):
+        def start(self, action_name: str) -> None:
+            pass
+
+        def stop(self, action_name: str) -> None:
+            pass
+
+    with pytest.deprecated_call(match="`BaseProfiler` was deprecated in v1.6"):
+        CustomProfiler1()
+
+    # No deprecation message
+    CustomProfiler2()
