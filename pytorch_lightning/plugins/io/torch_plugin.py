@@ -44,9 +44,9 @@ class TorchCheckpointIO(CheckpointIO):
         """
         if storage_options is not None:
             raise MisconfigurationException(
-                "`Trainer.save_checkpoint(..., storage_options=...)` with `storage_options` arg "
-                f"is not supported for `{self.__class__.__name__}`. Please implement your custom `CheckpointIO`"
-                "to define how you'd like to use `storage_options`."
+                "`Trainer.save_checkpoint(..., storage_options=...)` with `storage_options` arg"
+                f" is not supported for `{self.__class__.__name__}`. Please implement your custom `CheckpointIO`"
+                " to define how you'd like to use `storage_options`."
             )
         fs = get_filesystem(path)
         fs.makedirs(os.path.dirname(path), exist_ok=True)

@@ -743,8 +743,8 @@ class DeepSpeedStrategy(DDPStrategy):
         """
         if storage_options is not None:
             raise MisconfigurationException(
-                "`Trainer.save_checkpoint(..., storage_options=...)` with `storage_options` arg "
-                f"is not supported for `{self.__class__.__name__}` as `CheckpointIO` is not used."
+                "`Trainer.save_checkpoint(..., storage_options=...)` with `storage_options` arg"
+                f" is not supported for `{self.__class__.__name__}` as `CheckpointIO` is not used."
             )
         if self.zero_stage_3 and self._multi_device and self.is_global_zero:
             warning_cache.warn(

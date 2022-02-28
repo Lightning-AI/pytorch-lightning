@@ -15,11 +15,15 @@ import os
 from unittest import mock
 from unittest.mock import ANY
 
+import pytest
 import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
+from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 
 
@@ -118,3 +122,20 @@ def test_trainer_save_checkpoint_storage_options(tmpdir):
         cc_mock.assert_called_with(instance_path, weights_only=True, storage_options=None)
         trainer.save_checkpoint(instance_path, False, instance_storage_options)
         cc_mock.assert_called_with(instance_path, weights_only=False, storage_options=instance_storage_options)
+
+    torch_checkpoint_io = TorchCheckpointIO()
+    with pytest.raises(
+        MisconfigurationException, match="`Trainer.save_checkpoint\(..., storage_options=...\)` with `storage_options` arg"
+            f" is not supported for `{torch_checkpoint_io.__class__.__name__}`. Please implement your custom `CheckpointIO`"
+            " to define how you'd like to use `storage_options`."
+
+    ):
+        torch_checkpoint_io.save_checkpoint({}, instance_path, storage_options=instance_storage_options)
+    xla_checkpoint_io = XLACheckpointIO()
+    with pytest.raises(
+        MisconfigurationException, match="`Trainer.save_checkpoint\(..., storage_options=...\)` with `storage_options` arg"
+            f" is not supported for `{xla_checkpoint_io.__class__.__name__}`. Please implement your custom `CheckpointIO`"
+            " to define how you'd like to use `storage_options`."
+
+    ):
+        xla_checkpoint_io.save_checkpoint({}, instance_path, storage_options=instance_storage_options)
