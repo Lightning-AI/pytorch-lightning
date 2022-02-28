@@ -349,24 +349,26 @@ class RichProgressBar(ProgressBarBase):
     def on_validation_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        if self.has_dataloader_changed(dataloader_idx):
-            if trainer.sanity_checking:
-                if self.val_sanity_progress_bar_id is not None:
-                    self.progress.update(self.val_sanity_progress_bar_id, advance=0, visible=False)
+        if not self.has_dataloader_changed(dataloader_idx):
+            return
 
-                self.val_sanity_progress_bar_id = self._add_task(
-                    self.total_val_batches, self.sanity_check_description, visible=False
-                )
-            else:
-                if self.val_progress_bar_id is not None:
-                    self.progress.update(self.val_progress_bar_id, advance=0, visible=False)
+        if trainer.sanity_checking:
+            if self.val_sanity_progress_bar_id is not None:
+                self.progress.update(self.val_sanity_progress_bar_id, advance=0, visible=False)
 
-                # TODO: remove old tasks when new onces are created
-                self.val_progress_bar_id = self._add_task(
-                    self.total_val_batches, self.validation_description, visible=False
-                )
+            self.val_sanity_progress_bar_id = self._add_task(
+                self.total_val_batches, self.sanity_check_description, visible=False
+            )
+        else:
+            if self.val_progress_bar_id is not None:
+                self.progress.update(self.val_progress_bar_id, advance=0, visible=False)
 
-            self.refresh()
+            # TODO: remove old tasks when new onces are created
+            self.val_progress_bar_id = self._add_task(
+                self.total_val_batches, self.validation_description, visible=False
+            )
+
+        self.refresh()
 
     def _add_task(self, total_batches: int, description: str, visible: bool = True) -> Optional[int]:
         if self.progress is not None:
@@ -403,20 +405,24 @@ class RichProgressBar(ProgressBarBase):
     def on_test_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        if self.has_dataloader_changed(dataloader_idx):
-            if self.test_progress_bar_id is not None:
-                self.progress.update(self.test_progress_bar_id, advance=0, visible=False)
-            self.test_progress_bar_id = self._add_task(self.total_test_batches, self.test_description)
-            self.refresh()
+        if not self.has_dataloader_changed(dataloader_idx):
+            return
+
+        if self.test_progress_bar_id is not None:
+            self.progress.update(self.test_progress_bar_id, advance=0, visible=False)
+        self.test_progress_bar_id = self._add_task(self.total_test_batches, self.test_description)
+        self.refresh()
 
     def on_predict_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        if self.has_dataloader_changed(dataloader_idx):
-            if self.predict_progress_bar_id is not None:
-                self.progress.update(self.predict_progress_bar_id, advance=0, visible=False)
-            self.predict_progress_bar_id = self._add_task(self.total_predict_batches, self.predict_description)
-            self.refresh()
+        if not self.has_dataloader_changed(dataloader_idx):
+            return
+
+        if self.predict_progress_bar_id is not None:
+            self.progress.update(self.predict_progress_bar_id, advance=0, visible=False)
+        self.predict_progress_bar_id = self._add_task(self.total_predict_batches, self.predict_description)
+        self.refresh()
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         self._update(self.main_progress_bar_id, self.train_batch_idx, self.total_train_batches)

@@ -309,10 +309,12 @@ class TQDMProgressBar(ProgressBarBase):
     def on_validation_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        if self.has_dataloader_changed(dataloader_idx):
-            self.val_progress_bar.total = convert_inf(self.total_val_batches)
-            desc = self.sanity_check_description if trainer.sanity_checking else self.validation_description
-            self.val_progress_bar.set_description(f"{desc} DataLoader {dataloader_idx}")
+        if not self.has_dataloader_changed(dataloader_idx):
+            return
+
+        self.val_progress_bar.total = convert_inf(self.total_val_batches)
+        desc = self.sanity_check_description if trainer.sanity_checking else self.validation_description
+        self.val_progress_bar.set_description(f"{desc} DataLoader {dataloader_idx}")
 
     def on_validation_batch_end(self, trainer: "pl.Trainer", *_: Any) -> None:
         if self._should_update(self.val_batch_idx, self.total_val_batches):
@@ -332,9 +334,11 @@ class TQDMProgressBar(ProgressBarBase):
     def on_test_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        if self.has_dataloader_changed(dataloader_idx):
-            self.test_progress_bar.total = convert_inf(self.total_test_batches)
-            self.test_progress_bar.set_description(f"{self.test_description} DataLoader {dataloader_idx}")
+        if not self.has_dataloader_changed(dataloader_idx):
+            return
+
+        self.test_progress_bar.total = convert_inf(self.total_test_batches)
+        self.test_progress_bar.set_description(f"{self.test_description} DataLoader {dataloader_idx}")
 
     def on_test_batch_end(self, *_: Any) -> None:
         if self._should_update(self.test_batch_idx, self.total_test_batches):
@@ -350,9 +354,11 @@ class TQDMProgressBar(ProgressBarBase):
     def on_predict_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
-        if self.has_dataloader_changed(dataloader_idx):
-            self.predict_progress_bar.total = convert_inf(self.total_predict_batches)
-            self.predict_progress_bar.set_description(f"{self.predict_description} DataLoader {dataloader_idx}")
+        if not self.has_dataloader_changed(dataloader_idx):
+            return
+
+        self.predict_progress_bar.total = convert_inf(self.total_predict_batches)
+        self.predict_progress_bar.set_description(f"{self.predict_description} DataLoader {dataloader_idx}")
 
     def on_predict_batch_end(self, *_: Any) -> None:
         if self._should_update(self.predict_batch_idx, self.total_predict_batches):

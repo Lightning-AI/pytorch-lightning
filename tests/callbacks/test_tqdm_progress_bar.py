@@ -169,9 +169,10 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     n = trainer.num_training_batches
     m = trainer.num_val_batches
     assert len(trainer.train_dataloader) == n
+    # main progress bar should have reached the end (train batches + val batches)
     assert bar.main_progress_bar.total == n + sum(m)
-    assert bar.main_progress_bar.leave
     assert bar.main_progress_bar.n == n + sum(m)
+    assert bar.main_progress_bar.leave
 
     # check val progress bar total
     assert bar.val_progress_bar.total_values == m
