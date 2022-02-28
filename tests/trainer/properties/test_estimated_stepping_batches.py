@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import logging
+from unittest import mock
 
 import pytest
 import torch
 from torch.utils.data import DataLoader
-from unittest import mock
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
