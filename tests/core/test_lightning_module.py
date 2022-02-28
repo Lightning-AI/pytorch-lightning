@@ -87,29 +87,21 @@ def test_property_loggers(tmpdir):
     assert model.loggers == [logger]
 
 
-def test_1_optimizer_toggle_model(tmpdir):
-    """Test toggle_model run without exceptions when only one optimizer is used."""
+def test_1_optimizer_toggle_model():
+    """Test toggle_model runs when only one optimizer is used."""
+    model = BoringModel()
+    trainer = Mock()
+    model.trainer = trainer
+    params = model.parameters()
+    optimizer = torch.optim.SGD(params, lr=0.1)
+    trainer.optimizers = [optimizer]
 
-    class TestModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-
-        def training_step(self, batch, batch_idx):
-            opt = self.optimizers()
-            assert not isinstance(opt, list)
-            with opt.toggle_model():
-                pass
-
-        def configure_optimizers(self):
-            opt = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            return opt
-
-    model = TestModel()
-    model.training_epoch_end = None
-    trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, limit_test_batches=1
-    )
-    trainer.fit(model)
+    assert not model._param_requires_grad_state
+    # toggle optimizer was failing with a single optimizer
+    model.toggle_optimizer(optimizer, 0)
+    assert model._param_requires_grad_state
+    model.untoggle_optimizer(0)
+    assert not model._param_requires_grad_state
 
 
 def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
