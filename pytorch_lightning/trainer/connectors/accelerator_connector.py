@@ -47,7 +47,6 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.strategies import (
-    DataParallelStrategy,
     DDP2Strategy,
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
@@ -99,7 +98,7 @@ class AcceleratorConnector:
         amp_type: str = "native",
         amp_level: Optional[str] = None,
         sync_batchnorm: bool = False,
-        benchmark: bool = False,
+        benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
         deterministic: bool = False,
         num_processes: Optional[int] = None,  # deprecated
@@ -142,8 +141,14 @@ class AcceleratorConnector:
             B. Strategy > Accelerator/precision/plugins
             C. TODO When multiple flag set to the same thing
         """
+        if benchmark and deterministic:
+            rank_zero_warn(
+                "You passed `deterministic=True` and `benchmark=True`. Note that PyTorch ignores"
+                " torch.backends.cudnn.deterministic=True when torch.backends.cudnn.benchmark=True.",
+            )
+        self.benchmark = not deterministic if benchmark is None else benchmark
         # TODO: move to gpu accelerator
-        torch.backends.cudnn.benchmark = benchmark
+        torch.backends.cudnn.benchmark = self.benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
         self.sync_batchnorm = sync_batchnorm
         self._init_deterministic(deterministic)
@@ -764,21 +769,6 @@ class AcceleratorConnector:
         return self._parallel_devices
 
     @property
-    def device_type(self) -> str:
-        if isinstance(self.accelerator, CPUAccelerator):
-            return "cpu"
-        if isinstance(self.accelerator, GPUAccelerator):
-            return "gpu"
-        if isinstance(self.accelerator, TPUAccelerator):
-            return "tpu"
-        if isinstance(self.accelerator, IPUAccelerator):
-            return "ipu"
-
-    @property
-    def num_nodes(self) -> int:
-        return self._num_nodes_flag
-
-    @property
     def num_processes(self) -> int:
         return self.devices if self.devices is not None else 1
 
@@ -852,19 +842,3 @@ class AcceleratorConnector:
         if isinstance(self.accelerator, TPUAccelerator):
             is_distributed |= self.strategy.is_distributed
         return is_distributed
-
-    @property
-    def has_ipu(self) -> bool:
-        return isinstance(self.accelerator, IPUAccelerator) and isinstance(self.strategy, IPUStrategy)
-
-    @property
-    def use_ipu(self) -> bool:
-        return isinstance(self.accelerator, IPUAccelerator)
-
-    @property
-    def has_tpu(self) -> bool:
-        return isinstance(self.accelerator, TPUAccelerator)
-
-    @property
-    def use_dp(self) -> bool:
-        return isinstance(self.strategy, DataParallelStrategy)

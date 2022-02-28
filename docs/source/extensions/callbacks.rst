@@ -375,18 +375,6 @@ on_train_end
 .. automethod:: pytorch_lightning.callbacks.Callback.on_train_end
     :noindex:
 
-on_pretrain_routine_start
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_pretrain_routine_start
-    :noindex:
-
-on_pretrain_routine_end
-~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_pretrain_routine_end
-    :noindex:
-
 on_validation_start
 ~~~~~~~~~~~~~~~~~~~
 

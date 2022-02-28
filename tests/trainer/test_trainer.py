@@ -638,23 +638,31 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
 
-def test_benchmark_option(tmpdir):
+@pytest.mark.parametrize(
+    ["benchmark_", "deterministic", "expected"],
+    [
+        (None, False, True),
+        (None, True, False),
+        (True, False, True),
+        (True, True, True),
+        (False, True, False),
+        (False, False, False),
+    ],
+)
+def test_benchmark_option(benchmark_, deterministic, expected):
     """Verify benchmark option."""
 
-    model = BoringModel()
+    original_val = torch.backends.cudnn.benchmark
 
-    # verify torch.backends.cudnn.benchmark is not turned on
-    assert not torch.backends.cudnn.benchmark
+    if benchmark_ and deterministic:
+        with pytest.warns(UserWarning, match="You passed `deterministic=True` and `benchmark=True`"):
+            trainer = Trainer(benchmark=benchmark_, deterministic=deterministic)
+    else:
+        trainer = Trainer(benchmark=benchmark_, deterministic=deterministic)
+    assert torch.backends.cudnn.benchmark == expected
+    assert trainer._accelerator_connector.benchmark == expected
 
-    # fit model
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, benchmark=True)
-    trainer.fit(model)
-
-    # verify training completed
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-
-    # verify torch.backends.cudnn.benchmark is not turned off
-    assert torch.backends.cudnn.benchmark
+    torch.backends.cudnn.benchmark = original_val
 
 
 @pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
@@ -2051,7 +2059,6 @@ def test_detect_anomaly_nan(tmpdir):
         ({"strategy": None}, SingleDeviceStrategy, "single_device", CPUAccelerator, 0),
         ({"strategy": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 0),
         ({"strategy": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"strategy": "ddp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
         ({"strategy": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
         ({"strategy": "ddp2"}, DDPStrategy, "ddp", CPUAccelerator, 0),
         ({"strategy": None, "gpus": 1}, SingleDeviceStrategy, "single_device", GPUAccelerator, 1),
@@ -2089,6 +2096,23 @@ def test_detect_anomaly_nan(tmpdir):
             2,
         ),
         ({"strategy": DDPShardedStrategy(), "gpus": 2}, DDPShardedStrategy, "ddp_sharded", GPUAccelerator, 2),
+        ({"strategy": "ddp2", "gpus": 2, "num_nodes": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
+        ({"strategy": "ddp_spawn", "gpus": 2, "num_nodes": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
+        (
+            {"strategy": "ddp_fully_sharded", "gpus": 1, "num_nodes": 2},
+            DDPFullyShardedStrategy,
+            "ddp_fully_sharded",
+            GPUAccelerator,
+            1,
+        ),
+        ({"strategy": "ddp_sharded", "gpus": 2, "num_nodes": 2}, DDPShardedStrategy, "ddp_sharded", GPUAccelerator, 2),
+        (
+            {"strategy": "ddp_sharded_spawn", "gpus": 2, "num_nodes": 2},
+            DDPSpawnShardedStrategy,
+            "ddp_sharded_spawn",
+            GPUAccelerator,
+            2,
+        ),
     ],
 )
 def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, strategy_name, accelerator_cls, num_gpus):
@@ -2102,6 +2126,7 @@ def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, stra
     assert strategy_cls.strategy_name == strategy_name
     assert isinstance(trainer.accelerator, accelerator_cls)
     assert trainer.num_gpus == num_gpus
+    assert trainer.num_nodes == trainer_kwargs.get("num_nodes", 1)
 
 
 @pytest.mark.parametrize(

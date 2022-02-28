@@ -35,6 +35,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.logger import _name, _version
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import _METRIC, _PATH, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -248,18 +249,16 @@ class ModelCheckpoint(Callback):
         )
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
+        self.__resolve_ckpt_dir(trainer)
+        if trainer.is_global_zero and stage == "fit":
+            self.__warn_if_dir_not_empty(self.dirpath)
+
         # NOTE: setting these attributes needs to happen as early as possible BEFORE reloading callback states,
         # because the attributes are part of the state_key which needs to be fully defined before reloading.
         if self._save_on_train_epoch_end is None:
             # if the user runs validation multiple times per training epoch or multiple training epochs without
             # validation, then we run after validation instead of on train epoch end
             self._save_on_train_epoch_end = trainer.val_check_interval == 1.0 and trainer.check_val_every_n_epoch == 1
-
-    def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """When pretrain routine starts we build the ckpt dir on the fly."""
-        self.__resolve_ckpt_dir(trainer)
-        if trainer.is_global_zero:
-            self.__warn_if_dir_not_empty(self.dirpath)
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._last_time_checked = time.monotonic()
@@ -381,8 +380,9 @@ class ModelCheckpoint(Callback):
         self._save_last_checkpoint(trainer, monitor_candidates)
 
         # notify loggers
-        if trainer.is_global_zero and trainer.logger:
-            trainer.logger.after_save_checkpoint(proxy(self))
+        if trainer.is_global_zero:
+            for logger in trainer.loggers:
+                logger.after_save_checkpoint(proxy(self))
 
     def _should_skip_saving_checkpoint(self, trainer: "pl.Trainer") -> bool:
         from pytorch_lightning.trainer.states import TrainerFn
@@ -574,20 +574,20 @@ class ModelCheckpoint(Callback):
         """
         if self.dirpath is not None:
             return  # short circuit
-
-        if trainer.logger is not None:
+        if trainer.loggers:
             if trainer.weights_save_path != trainer.default_root_dir:
                 # the user has changed weights_save_path, it overrides anything
                 save_dir = trainer.weights_save_path
-            else:
+            elif len(trainer.loggers) == 1:
                 save_dir = trainer.logger.save_dir or trainer.default_root_dir
+            else:
+                save_dir = trainer.default_root_dir
 
-            version = (
-                trainer.logger.version
-                if isinstance(trainer.logger.version, str)
-                else f"version_{trainer.logger.version}"
-            )
-            ckpt_path = os.path.join(save_dir, str(trainer.logger.name), version, "checkpoints")
+            name = _name(trainer.loggers)
+            version = _version(trainer.loggers)
+            version = version if isinstance(version, str) else f"version_{version}"
+
+            ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
         else:
             ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
 
