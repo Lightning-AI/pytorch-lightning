@@ -444,10 +444,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Deprecated `LightningLoggerBase.agg_and_log_metrics` in favor of `LightningLoggerBase.log_metrics` ([#11832](https://github.com/PyTorchLightning/pytorch-lightning/pull/11832))
 
-  
+
 - Deprecated `BaseProfiler.profile_iterable` ([#12102](https://github.com/PyTorchLightning/pytorch-lightning/pull/12102))
 
-  
+
 - Deprecated `Callback.on_save_checkpoint -> dict` in favor of `Callback.state_dict` ([#11887](https://github.com/PyTorchLightning/pytorch-lightning/pull/11887))
 
 

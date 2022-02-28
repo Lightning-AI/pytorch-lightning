@@ -653,7 +653,7 @@ def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list)
     expected_total_duration = np.sum(expected)
     np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
 
-    
+
 def test_v1_8_0_callback_on_load_checkpoint_hook(tmpdir):
     class TestCallbackLoadHook(Callback):
         def on_load_checkpoint(self, trainer, pl_module, callback_state):
@@ -669,9 +669,9 @@ def test_v1_8_0_callback_on_load_checkpoint_hook(tmpdir):
         default_root_dir=tmpdir,
     )
     with pytest.deprecated_call(
-        match="Method `Callback.on_load_checkpoint\(callback_state\)` is deprecated in v1.6 and"
+        match=r"Method `Callback.on_load_checkpoint\(callback_state\)` is deprecated in v1.6 and"
         " will be removed in v1.8. Please use `Callback.load_state_dict` instead,"
-        " or new method signature `Callback.on_load_checkpoint_new\(checkpoint\)`."
+        r" or new method signature `Callback.on_load_checkpoint_new\(checkpoint\)`."
     ):
         trainer.fit(model)
 
