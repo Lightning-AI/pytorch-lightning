@@ -14,6 +14,7 @@
 """Trainer to automate the training."""
 import inspect
 import logging
+import math
 import os
 import traceback
 import warnings
@@ -172,7 +173,7 @@ class Trainer(
         num_sanity_val_steps: int = 2,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, str]] = None,
-        benchmark: bool = False,
+        benchmark: Optional[bool] = None,
         deterministic: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
         auto_lr_find: Union[bool, str] = False,
@@ -228,8 +229,9 @@ class Trainer(
                 that only one process at a time can access them.
                 Default: ``False``.
 
-            benchmark: If ``True``, enables cudnn.benchmark.
-                Default: ``False``.
+            benchmark: Sets ``torch.backends.cudnn.benchmark``.
+                Defaults to ``True`` if :paramref:`~pytorch_lightning.trainer.trainer.Trainer.deterministic`
+                is ``False``. Overwrite to manually set a different value. Default: ``None``.
 
             callbacks: Add a callback or list of callbacks.
                 Default: ``None``.
@@ -656,7 +658,7 @@ class Trainer(
             self.fit_loop.max_epochs = 1
             val_check_interval = 1.0
             self.check_val_every_n_epoch = 1
-            self.logger = DummyLogger() if self.logger is not None else None
+            self.loggers = [DummyLogger()] if self.loggers else []
 
             rank_zero_info(
                 "Running in fast_dev_run mode: will run a full train,"
@@ -1245,41 +1247,43 @@ class Trainer(
         return results
 
     def _log_hyperparams(self) -> None:
+        if not self.loggers:
+            return
         # log hyper-parameters
         hparams_initial = None
 
-        if self.logger is not None:
-            # save exp to get started (this is where the first experiment logs are written)
-            datamodule_log_hyperparams = self.datamodule._log_hyperparams if self.datamodule is not None else False
+        # save exp to get started (this is where the first experiment logs are written)
+        datamodule_log_hyperparams = self.datamodule._log_hyperparams if self.datamodule is not None else False
 
-            if self.lightning_module._log_hyperparams and datamodule_log_hyperparams:
-                datamodule_hparams = self.datamodule.hparams_initial
-                lightning_hparams = self.lightning_module.hparams_initial
-                inconsistent_keys = []
-                for key in lightning_hparams.keys() & datamodule_hparams.keys():
-                    lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
-                    if type(lm_val) != type(dm_val):
-                        inconsistent_keys.append(key)
-                    elif isinstance(lm_val, torch.Tensor) and id(lm_val) != id(dm_val):
-                        inconsistent_keys.append(key)
-                    elif lm_val != dm_val:
-                        inconsistent_keys.append(key)
-                if inconsistent_keys:
-                    raise MisconfigurationException(
-                        f"Error while merging hparams: the keys {inconsistent_keys} are present "
-                        "in both the LightningModule's and LightningDataModule's hparams "
-                        "but have different values."
-                    )
-                hparams_initial = {**lightning_hparams, **datamodule_hparams}
-            elif self.lightning_module._log_hyperparams:
-                hparams_initial = self.lightning_module.hparams_initial
-            elif datamodule_log_hyperparams:
-                hparams_initial = self.datamodule.hparams_initial
+        if self.lightning_module._log_hyperparams and datamodule_log_hyperparams:
+            datamodule_hparams = self.datamodule.hparams_initial
+            lightning_hparams = self.lightning_module.hparams_initial
+            inconsistent_keys = []
+            for key in lightning_hparams.keys() & datamodule_hparams.keys():
+                lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
+                if type(lm_val) != type(dm_val):
+                    inconsistent_keys.append(key)
+                elif isinstance(lm_val, torch.Tensor) and id(lm_val) != id(dm_val):
+                    inconsistent_keys.append(key)
+                elif lm_val != dm_val:
+                    inconsistent_keys.append(key)
+            if inconsistent_keys:
+                raise MisconfigurationException(
+                    f"Error while merging hparams: the keys {inconsistent_keys} are present "
+                    "in both the LightningModule's and LightningDataModule's hparams "
+                    "but have different values."
+                )
+            hparams_initial = {**lightning_hparams, **datamodule_hparams}
+        elif self.lightning_module._log_hyperparams:
+            hparams_initial = self.lightning_module.hparams_initial
+        elif datamodule_log_hyperparams:
+            hparams_initial = self.datamodule.hparams_initial
 
+        for logger in self.loggers:
             if hparams_initial is not None:
-                self.logger.log_hyperparams(hparams_initial)
-            self.logger.log_graph(self.lightning_module)
-            self.logger.save()
+                logger.log_hyperparams(hparams_initial)
+            logger.log_graph(self.lightning_module)
+            logger.save()
 
     def _teardown(self):
         """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and
@@ -1518,8 +1522,8 @@ class Trainer(
 
         # todo: TPU 8 cores hangs in flush with TensorBoard. Might do for all loggers.
         # It might be related to xla tensors blocked when moving the cpu kill loggers.
-        if self.logger is not None:
-            self.logger.finalize("success")
+        for logger in self.loggers:
+            logger.finalize("success")
 
         # summarize profile results
         self.profiler.describe()
@@ -1782,20 +1786,21 @@ class Trainer(
 
         if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
             rank_zero_warn(
-                "GPU available but not used. Set the gpus flag in your trainer `Trainer(gpus=1)` or script `--gpus=1`.",
+                "GPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='gpu', devices={GPUAccelerator.auto_device_count()})`.",
                 category=PossibleUserWarning,
             )
 
         if _TPU_AVAILABLE and not isinstance(self.accelerator, TPUAccelerator):
             rank_zero_warn(
-                "TPU available but not used. Set the `tpu_cores` flag in your trainer"
-                " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
+                "TPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='tpu', devices={TPUAccelerator.auto_device_count()})`."
             )
 
         if _IPU_AVAILABLE and not isinstance(self.accelerator, IPUAccelerator):
             rank_zero_warn(
-                "IPU available but not used. Set the `ipus` flag in your trainer"
-                " `Trainer(ipus=8)` or script `--ipus=8`."
+                "IPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='ipu', devices={IPUAccelerator.auto_device_count()})`."
             )
 
     """
@@ -1888,7 +1893,7 @@ class Trainer(
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
 
-        if self.logger and self.num_training_batches < self.log_every_n_steps:
+        if self.loggers and self.num_training_batches < self.log_every_n_steps:
             rank_zero_warn(
                 f"The number of training samples ({self.num_training_batches}) is smaller than the logging interval"
                 f" Trainer(log_every_n_steps={self.log_every_n_steps}). Set a lower value for log_every_n_steps if"
@@ -2014,7 +2019,7 @@ class Trainer(
 
     @property
     def num_nodes(self) -> int:
-        return self._accelerator_connector.num_nodes
+        return getattr(self.strategy, "num_nodes", 1)
 
     @property
     def num_processes(self) -> int:
@@ -2135,14 +2140,13 @@ class Trainer(
 
     @property
     def log_dir(self) -> Optional[str]:
-        if self.logger is None:
-            dirpath = self.default_root_dir
-        elif isinstance(self.logger, TensorBoardLogger):
-            dirpath = self.logger.log_dir
-        elif isinstance(self.logger, LoggerCollection):
-            dirpath = self.default_root_dir
+        if len(self.loggers) == 1:
+            if isinstance(self.logger, TensorBoardLogger):
+                dirpath = self.logger.log_dir
+            else:
+                dirpath = self.logger.save_dir
         else:
-            dirpath = self.logger.save_dir
+            dirpath = self.default_root_dir
 
         dirpath = self.strategy.broadcast(dirpath)
         return dirpath
@@ -2659,6 +2663,51 @@ class Trainer(
     """
     Other
     """
+
+    @property
+    def estimated_stepping_batches(self) -> Union[int, float]:
+        r"""
+        Estimated stepping batches for the complete training inferred from DataLoaders, gradient
+        accumulation factor and distributed setup.
+
+        Examples::
+
+            def configure_optimizers(self):
+                optimizer = ...
+                scheduler = torch.optim.lr_scheduler.OneCycleLR(
+                    optimizer, max_lr=1e-3, total_steps=self.trainer.estimated_stepping_batches
+                )
+                return [optimizer], [scheduler]
+
+        """
+        accumulation_scheduler = self.accumulation_scheduler
+
+        if accumulation_scheduler.epochs != [0]:
+            raise MisconfigurationException(
+                "Estimated stepping batches cannot be computed with different"
+                " `accumulate_grad_batches` at different epochs."
+            )
+
+        # infinite training
+        if self.max_epochs == -1 and self.max_steps == -1:
+            return float("inf")
+
+        if self.train_dataloader is None:
+            rank_zero_info("Loading `train_dataloader` to estimate number of stepping batches.")
+            self.reset_train_dataloader()
+
+        total_batches = self.num_training_batches
+
+        # iterable dataset
+        if total_batches == float("inf"):
+            return self.max_steps
+
+        self.accumulate_grad_batches = accumulation_scheduler.get_accumulate_grad_batches(self.current_epoch)
+        effective_batch_size = self.accumulate_grad_batches
+        max_estimated_steps = math.ceil(total_batches / effective_batch_size) * max(self.max_epochs, 1)
+
+        max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
+        return max_estimated_steps
 
     @property
     def terminate_on_nan(self) -> bool:
