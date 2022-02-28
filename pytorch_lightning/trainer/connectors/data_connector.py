@@ -599,8 +599,9 @@ class _DataHookSelector:
                 )
             return getattr(self.datamodule, hook_name)
 
-        warning_cache.warn(
-            f"You have overridden `{hook_name}` in `LightningModule` but have passed in a"
-            " `LightningDataModule`. It will use the implementation from `LightningModule` instance."
-        )
+        if is_overridden(hook_name, self.model):
+            warning_cache.warn(
+                f"You have overridden `{hook_name}` in `LightningModule` but have passed in a"
+                " `LightningDataModule`. It will use the implementation from `LightningModule` instance."
+            )
         return getattr(self.model, hook_name)

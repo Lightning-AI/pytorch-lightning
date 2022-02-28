@@ -1381,6 +1381,25 @@ def test_lightning_cli_parse_kwargs_with_subcommands(tmpdir):
     assert cli.trainer.limit_val_batches == 3
 
 
+def test_lightning_cli_subcommands_common_default_config_files(tmpdir):
+    class Model(BoringModel):
+        def __init__(self, foo: int, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.foo = foo
+
+    config = {"fit": {"model": {"foo": 123}}}
+    config_path = tmpdir / "default.yaml"
+    config_path.write_text(str(config), "utf8")
+    parser_kwargs = {"default_config_files": [str(config_path)]}
+
+    with mock.patch("sys.argv", ["any.py", "fit"]), mock.patch(
+        "pytorch_lightning.Trainer.fit", autospec=True
+    ) as fit_mock:
+        cli = LightningCLI(Model, parser_kwargs=parser_kwargs)
+    fit_mock.assert_called()
+    assert cli.model.foo == 123
+
+
 def test_lightning_cli_reinstantiate_trainer():
     with mock.patch("sys.argv", ["any.py"]):
         cli = LightningCLI(BoringModel, run=False)
