@@ -2,7 +2,6 @@
 name: Typos and doc fixes
 about: Tell us about how we can improve our documentation
 title: ''
-labels: docs
 assignees: ''
 ---
 
