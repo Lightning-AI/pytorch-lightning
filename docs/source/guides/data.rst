@@ -27,7 +27,7 @@ There are a few different data containers used in Lightning:
    * - :class:`~torch.utils.data.IterableDataset`
      - The PyTorch :class:`~torch.utils.data.IterableDataset` represents a stream of data.
    * - :class:`~torch.utils.data.DataLoader`
-     - The PyTorch :class:`~torch.utils.data.DataLoader` represents a Python iterable over a dataset.
+     - The PyTorch :class:`~torch.utils.data.DataLoader` represents a Python iterable over a Dataset.
    * - :class:`~pytorch_lightning.core.datamodule.LightningDataModule`
      -  A :class:`~pytorch_lightning.core.datamodule.LightningDataModule` is simply a collection of: training DataLoader(s), validation DataLoader(s), test DataLoader(s) and predict DataLoader(s), along with the matching transforms and data processing/downloads steps required.
 
@@ -35,7 +35,7 @@ There are a few different data containers used in Lightning:
 Why Use LightningDataModule?
 ============================
 
-The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` was designed as a way of decoupling data-related hooks from the :class:`~pytorch_lightning.core.lightning.LightningModule` so you can develop dataset agnostic models. The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` makes it easy to hot swap different datasets with your model, so you can test it and benchmark it across domains. It also makes sharing and reusing the exact data splits and transforms across projects possible.
+The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` was designed as a way of decoupling data-related hooks from the :class:`~pytorch_lightning.core.lightning.LightningModule` so you can develop dataset agnostic models. The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` makes it easy to hot swap different Datasets with your model, so you can test it and benchmark it across domains. It also makes sharing and reusing the exact data splits and transforms across projects possible.
 
 Read :ref:`this <datamodules>` for more details on LightningDataModule.
 
@@ -47,13 +47,13 @@ Read :ref:`this <datamodules>` for more details on LightningDataModule.
 Multiple Datasets
 *****************
 
-There are a few ways to pass multiple datasets to Lightning:
+There are a few ways to pass multiple Datasets to Lightning:
 
-1. Create a DataLoader that iterates over multiple datasets under the hood.
+1. Create a DataLoader that iterates over multiple Datasets under the hood.
 2. In the training loop, you can pass multiple DataLoaders as a dict or list/tuple, and Lightning will
    automatically combine the batches from different DataLoaders.
-3. In the validation, test or prediction, you have the option to return multiple DataLoaders as list/tuple, which Lightning will call sequentially
-   or combine the DataLoaders  using :class:`~pytorch_lightning.trainer.supporters.CombinedLoader`, which Lightning will
+3. In the validation, test, or prediction, you have the option to return multiple DataLoaders as list/tuple, which Lightning will call sequentially
+   or combine the DataLoaders using :class:`~pytorch_lightning.trainer.supporters.CombinedLoader`, which Lightning will
    automatically combine the batches from different DataLoaders.
 
 
@@ -88,9 +88,9 @@ Using LightningModule Hooks
 Concatenated Dataset
 --------------------
 
-For training with multiple datasets, you can create a :class:`~torch.utils.data.DataLoader` class
-which wraps your multiple datasets using :class:`~torch.utils.data.ConcatDataset`. This, of course,
-also works for testing, validation, and prediction datasets.
+For training with multiple Datasets, you can create a :class:`~torch.utils.data.DataLoader` class
+which wraps your multiple Datasets using :class:`~torch.utils.data.ConcatDataset`. This, of course,
+also works for testing, validation, and prediction Datasets.
 
 .. testcode::
 
@@ -254,7 +254,7 @@ set is not available at the time your model was declared. Simply pass the test s
 Accessing DataLoaders within LightningModule
 ********************************************
 
-In the case that you require access to the DataLoader or dataset objects, DataLoaders for each step can be accessed using the ``Trainer`` object:
+In the case that you require access to the DataLoader or Dataset objects, DataLoaders for each step can be accessed using the ``Trainer`` object:
 
 .. testcode::
 
@@ -270,7 +270,8 @@ In the case that you require access to the DataLoader or dataset objects, DataLo
             # extract metadata, etc. from the dataset:
             ...
 
-If you are using a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader` object which allows you to fetch batches from a collection of DataLoaders DataLoader simultaneously which supports collections of DataLoader such as list, tuple, or dictionary. The DataLoaders can be accessed using the same collection structure:
+If you are using a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader` object which allows you to fetch batches from a collection of DataLoaders
+simultaneously which supports collections of DataLoader such as list, tuple, or dictionary. The DataLoaders can be accessed using the same collection structure:
 
 .. code-block:: python
 
@@ -361,7 +362,7 @@ Lightning can handle TBPTT automatically via this flag.
 
 Iterable Datasets
 =================
-Lightning supports using :class:`~torch.utils.data.IterableDataset` as well as map-style datasets. IterableDatasets provide a more natural
+Lightning supports using :class:`~torch.utils.data.IterableDataset` as well as map-style Datasets. IterableDatasets provide a more natural
 option when using sequential data.
 
 .. note:: When using an :class:`~torch.utils.data.IterableDataset` you must set the ``val_check_interval`` to 1.0 (the default) or an int

@@ -78,7 +78,7 @@ Whereas :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs two
 |
 
 
-When Using DDP Plugins Set find_unused_parameters=False
+When Using DDP Plugins, Set find_unused_parameters=False
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 By default, we have set ``find_unused_parameters=True`` for compatibility reasons that have been observed in the past (refer to the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
@@ -105,7 +105,7 @@ When enabled, it can result in a performance hit and can be disabled in most cas
         strategy=DDPSpawnStrategy(find_unused_parameters=False),
     )
 
-When Using DDP on a Multi-node Cluster Set NCCL Parameters
+When Using DDP on a Multi-node Cluster, Set NCCL Parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 `NCCL <https://developer.nvidia.com/nccl>`__ is the NVIDIA Collective Communications Library that is used by PyTorch to handle communication across nodes and GPUs. There are reported benefits in terms of speedups when adjusting NCCL parameters as seen in this `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues/7179>`__. In the issue, we see a 30% speed improvement when training the Transformer XLM-RoBERTa and a 15% improvement in training with Detectron2.
@@ -251,7 +251,7 @@ less memory bandwidth and run match operations much faster on GPUs that support 
 
 |
 
-Mixed precision combines the use of both 32 and 16-bit floating points to reduce memory footprint during model training, resulting in improved performance, achieving +3X speedups on modern GPUs.
+Mixed precision combines the use of both 32 and 16-bit floating points to reduce memory footprint during model training, resulting in improved performance, achieving upto +3X speedups on modern GPUs.
 
 Lightning offers mixed precision training for GPUs and CPUs, as well as bfloat16 mixed precision training for TPUs.
 

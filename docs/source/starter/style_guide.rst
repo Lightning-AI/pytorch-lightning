@@ -25,21 +25,40 @@ In Lightning, we differentiate between a system and a model.
 
 A model is something like a resnet18, RNN, and so on.
 
-A system defines how a collection of models interact with each other. Examples of this are:
+A system defines how a collection of models interact with each other with user-defined training/evaluation logic. Examples of this are:
 
 * GANs
 * Seq2Seq
 * BERT
-* etc
+* etc.
 
-A LightningModule can define both a system and a model.
+A LightningModule can define both a system and a model:
 
-Here's a LightningModule that defines a model:
+Here's a LightningModule that defines a system. This structure is what we recommend as a best practice. Keeping the model separate from the system improves
+modularity, which eventually helps in better testing, reduces dependencies on the system and makes it easier to refactor.
 
 .. testcode::
 
-    class LitModel(LightningModule):
-        def __init__(self, num_layers: int = 3):
+    class Encoder(nn.Module):
+        ...
+
+
+    class Decoder(nn.Module):
+        ...
+
+
+    class AutoEncoder(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.encoder = Encoder()
+            self.decoder = Decoder()
+
+        def forward(self, x):
+            return self.encoder(x)
+
+
+    class AutoEncoderSystem(LightningModule):
+        def __init__(self):
             super().__init__()
             self.auto_encoder = AutoEncoder()
 
@@ -47,21 +66,21 @@ Here's a LightningModule that defines a model:
 For fast prototyping, it's often useful to define all the computations in a LightningModule. For reusability
 and scalability, it might be better to pass in the relevant backbones.
 
-Here's a LightningModule that defines a system:
+Here's a LightningModule that defines a model. Although, we do not recommend to define a model like in the example.
 
 .. testcode::
 
     class LitModel(LightningModule):
-        def __init__(self, encoder: nn.Module = None, decoder: nn.Module = None):
+        def __init__(self):
             super().__init__()
-            self.encoder = encoder
-            self.decoder = decoder
+            self.layer_1 = nn.Linear()
+            self.layer_2 = nn.Linear()
+            self.layer_3 = nn.Linear()
 
-For fast prototyping, it's often useful to define all the computations in a LightningModule. For reusability
-and scalability, it might be better to pass in the relevant backbones.
 
 Self-contained
 ==============
+
 A Lightning module should be self-contained. To see how self-contained your model is, a good test is to ask
 yourself this question:
 
@@ -84,7 +103,7 @@ Here's an example where a user will have to go hunt through files to figure out 
             self.lr = params.lr
             self.coef_x = params.coef_x
 
-Models defined as such leave you with many questions, such as what is coef_x? Is it a string? A float? What is the range?
+Models defined as such leave you with many questions, such as what is ``coef_x``? Is it a string? A float? What is the range?
 Instead, be explicit in your init
 
 .. testcode::
@@ -112,6 +131,7 @@ However, if you decide to implement the rest of the optional methods, the recomm
 * training hooks
 * validation hooks
 * test hooks
+* predict hooks
 * configure_optimizers
 * any other hooks
 
@@ -147,9 +167,12 @@ In practice, the code looks like this:
 
         def any_extra_hook(...):
 
+
 Forward vs training_step
 ========================
-We recommend using forward for inference/predictions and keeping training_step independent
+
+We recommend using :meth:`~pytorch_lightning.core.lightning.LightningModule.forward` for inference/predictions and keeping
+:meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` independent.
 
 .. code-block:: python
 
@@ -157,49 +180,49 @@ We recommend using forward for inference/predictions and keeping training_step i
         embeddings = self.encoder(x)
 
 
-    def training_step(self):
+    def training_step(self, batch, batch_idx):
         x, y = ...
         z = self.encoder(x)
         pred = self.decoder(z)
         ...
 
-However, when using DataParallel, you will need to call forward manually
-
-.. code-block:: python
-
-    def training_step(self):
-        x, y = ...
-        z = self(x)  # < ---------- instead of self.encoder(x)
-        pred = self.decoder(z)
-        ...
 
 --------------
 
 ****
 Data
 ****
+
 These are best practices for handling data.
 
 Dataloaders
 ===========
-Lightning uses dataloaders to handle all the data flow through the system. Whenever you structure dataloaders,
+Lightning uses :class:`~torch.utils.data.DataLoader` to handle all the data flow through the system. Whenever you structure dataloaders,
 make sure to tune the number of workers for maximum efficiency.
 
-.. warning:: Make sure not to use ddp_spawn with num_workers > 0 or you will bottleneck your code.
+.. warning:: Make sure not to use ``Trainer(strategy="ddp_spawn")`` with ``num_workers>0`` in the DataLoader or you will bottleneck you code.
 
 DataModules
 ===========
-Lightning introduced datamodules. The problem with dataloaders is that sharing full datasets is often still challenging
-because all these questions need to be answered:
+Lightning introduced datamodules.
+The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` is designed as a way of decoupling data-related
+hooks from the :class:`~pytorch_lightning.core.lightning.LightningModule` so you can develop dataset agnostic models. It makes it easy to hot swap different
+datasets with your model, so you can test it and benchmark it across domains. It also makes sharing and reusing the exact data splits and transforms across projects possible.
 
-* What splits were used?
-* How many samples does this dataset have?
-* What transforms were used?
+Check out :ref:`data` document to understand data management within Lightning and its best practices.
+
+* What dataset splits were used?
+* How many samples does this dataset have overall and within each split?
+* Which transforms were used?
 
 It's for this reason that we recommend you use datamodules. This is especially important when collaborating because
 it will save your team a lot of time as well.
 
-All they need to do is drop a datamodule into a lightning trainer and not worry about what was done to the data.
+All they need to do is drop a datamodule into the Trainer and not worry about what was done to the data.
 
 This is true for both academic and corporate settings where data cleaning and ad-hoc instructions slow down the progress
 of iterating through ideas.
+
+- Checkout the live examples to get your hands dirty:
+- `Introduction to PyTorch Lightning <https://pytorch-lightning.readthedocs.io/en/stable/notebooks/lightning_examples/mnist-hello-world.html>`_
+- `Introduction to DataModules <https://pytorch-lightning.readthedocs.io/en/stable/notebooks/lightning_examples/datamodules.html>`_
