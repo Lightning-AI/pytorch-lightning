@@ -445,7 +445,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `BaseProfiler.profile_iterable` ([#12102](https://github.com/PyTorchLightning/pytorch-lightning/pull/12102))
 
 
-- Deprecated `PrecisionPlugin.on_save/load_checkpoint` in favor of `state_dict/load_state_dict` ([#11978](https://github.com/PyTorchLightning/pytorch-lightning/pull/11978))
+- Deprecated `PrecisionPlugin.on_{save,load}_checkpoint` in favor of `PrecisionPlugin.{state_dict,load_state_dict}` ([#11978](https://github.com/PyTorchLightning/pytorch-lightning/pull/11978))
 
 
 ### Removed
