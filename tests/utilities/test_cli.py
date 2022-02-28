@@ -52,6 +52,7 @@ from pytorch_lightning.utilities.cli import (
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
+from tests.helpers.runif import RunIf
 from tests.helpers.utils import no_warning_call
 
 torchvision_version = version.parse("0")
@@ -575,6 +576,7 @@ class EarlyExitTestModel(BoringModel):
         raise MisconfigurationException("Error on fit start")
 
 
+@RunIf(skip_windows=True)
 @pytest.mark.parametrize("logger", (False, True))
 @pytest.mark.parametrize("strategy", ("ddp_spawn", "ddp"))
 def test_cli_distributed_save_config_callback(tmpdir, logger, strategy):
