@@ -109,14 +109,14 @@ Instead, be explicit in your init
 .. testcode::
 
     class LitModel(LightningModule):
-        def __init__(self, encoder: nn.Module, coeff_x: float = 0.2, lr: float = 1e-3):
+        def __init__(self, encoder: nn.Module, coef_x: float = 0.2, lr: float = 1e-3):
             ...
 
 Now the user doesn't have to guess. Instead, they know the value type, and the model has a sensible default where the
 user can see the value immediately.
 
 
-Method order
+Method Order
 ============
 The only required methods in the LightningModule are:
 
@@ -178,10 +178,11 @@ We recommend using :meth:`~pytorch_lightning.core.lightning.LightningModule.forw
 
     def forward(self, x):
         embeddings = self.encoder(x)
+        return embeddings
 
 
     def training_step(self, batch, batch_idx):
-        x, y = ...
+        x, _ = batch
         z = self.encoder(x)
         pred = self.decoder(z)
         ...
@@ -195,8 +196,9 @@ Data
 
 These are best practices for handling data.
 
-Dataloaders
+DataLoaders
 ===========
+
 Lightning uses :class:`~torch.utils.data.DataLoader` to handle all the data flow through the system. Whenever you structure dataloaders,
 make sure to tune the number of workers for maximum efficiency.
 
@@ -204,7 +206,7 @@ make sure to tune the number of workers for maximum efficiency.
 
 DataModules
 ===========
-Lightning introduced datamodules.
+
 The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` is designed as a way of decoupling data-related
 hooks from the :class:`~pytorch_lightning.core.lightning.LightningModule` so you can develop dataset agnostic models. It makes it easy to hot swap different
 datasets with your model, so you can test it and benchmark it across domains. It also makes sharing and reusing the exact data splits and transforms across projects possible.

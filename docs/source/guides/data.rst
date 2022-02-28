@@ -184,6 +184,25 @@ Furthermore, Lightning also supports nested lists and dicts (or a combination).
             batch_c = batch_c_d["c"]
             batch_d = batch_c_d["d"]
 
+Alternatively, you can also pass in a :class:`~pytorch_lightning.trainer.supporters.CombinedLoader` containing multiple DataLoaders.
+
+.. testcode::
+
+    from pytorch_lightning.trainer.supporters import CombinedLoader
+
+
+    def train_dataloader(self):
+        loader_a = DataLoader()
+        loader_b = DataLoader()
+        loaders = {"a": loader_a, "b": loader_b}
+        combined_loader = CombinedLoader(loaders, mode="max_size_cycle")
+        return combined_loader
+
+
+    def training_step(self, batch, batch_idx):
+        batch_a = batch["a"]
+        batch_b = batch["b"]
+
 
 Multiple Validation/Test/Predict DataLoaders
 ============================================
