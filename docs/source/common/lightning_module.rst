@@ -1223,7 +1223,6 @@ for more information.
         setup("fit")
         configure_optimizers()
 
-
         # the sanity check runs here
 
         on_train_start()
