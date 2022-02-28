@@ -43,7 +43,7 @@ def test_default_args(mock_argparse, tmpdir):
     assert trainer.max_epochs == 5
 
 
-@pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], ["--weights_save_path=./"], []])
+@pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], []])
 def test_add_argparse_args_redefined(cli_args: list):
     """Redefines some default Trainer arguments via the cli and tests the Trainer initialization correctness."""
     parser = ArgumentParser(add_help=False)
@@ -64,7 +64,7 @@ def test_add_argparse_args_redefined(cli_args: list):
     assert isinstance(trainer, Trainer)
 
 
-@pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], ["--weights_save_path=./"], []])
+@pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], []])
 def test_add_argparse_args(cli_args: list):
     """Simple test ensuring Trainer.add_argparse_args works."""
     parser = ArgumentParser(add_help=False)
@@ -128,7 +128,6 @@ def test_add_argparse_args_redefined_error(cli_args: list, monkeypatch):
                 # They should not be changed by the argparse interface.
                 "min_steps": None,
                 "accelerator": None,
-                "weights_save_path": None,
                 "profiler": None,
             },
         ),
