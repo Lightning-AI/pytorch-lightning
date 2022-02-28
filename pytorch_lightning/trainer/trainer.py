@@ -30,7 +30,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator, IPUAccelerator
+from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -75,7 +75,6 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
-    _AcceleratorType,
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
     AMPType,
@@ -173,7 +172,7 @@ class Trainer(
         num_sanity_val_steps: int = 2,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, str]] = None,
-        benchmark: bool = False,
+        benchmark: Optional[bool] = None,
         deterministic: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
         auto_lr_find: Union[bool, str] = False,
@@ -188,7 +187,7 @@ class Trainer(
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
         terminate_on_nan: Optional[bool] = None,
-    ):
+    ) -> None:
         r"""
         Customize every aspect of training via flags.
 
@@ -229,8 +228,9 @@ class Trainer(
                 that only one process at a time can access them.
                 Default: ``False``.
 
-            benchmark: If ``True``, enables cudnn.benchmark.
-                Default: ``False``.
+            benchmark: Sets ``torch.backends.cudnn.benchmark``.
+                Defaults to ``True`` if :paramref:`~pytorch_lightning.trainer.trainer.Trainer.deterministic`
+                is ``False``. Overwrite to manually set a different value. Default: ``None``.
 
             callbacks: Add a callback or list of callbacks.
                 Default: ``None``.
@@ -657,7 +657,7 @@ class Trainer(
             self.fit_loop.max_epochs = 1
             val_check_interval = 1.0
             self.check_val_every_n_epoch = 1
-            self.logger = DummyLogger() if self.logger is not None else None
+            self.loggers = [DummyLogger()] if self.loggers else []
 
             rank_zero_info(
                 "Running in fast_dev_run mode: will run a full train,"
@@ -729,7 +729,6 @@ class Trainer(
             if distributed_available() and self.world_size > 1:
                 # try syncing remaining processes, kill otherwise
                 self.strategy.reconciliate_processes(traceback.format_exc())
-            self._on_exception()
             self._call_callback_hooks("on_exception", exception)
             self._teardown()
             # teardown might access the stage so we reset it after
@@ -802,7 +801,7 @@ class Trainer(
         # TODO: ckpt_path only in v2.0
         ckpt_path = ckpt_path or self.resume_from_checkpoint
         self._ckpt_path = self.__set_ckpt_path(
-            ckpt_path, model_provided=model, model_connected=self.lightning_module is not None
+            ckpt_path, model_provided=True, model_connected=self.lightning_module is not None
         )
         results = self._run(model, ckpt_path=self.ckpt_path)
 
@@ -1247,41 +1246,43 @@ class Trainer(
         return results
 
     def _log_hyperparams(self) -> None:
+        if not self.loggers:
+            return
         # log hyper-parameters
         hparams_initial = None
 
-        if self.logger is not None:
-            # save exp to get started (this is where the first experiment logs are written)
-            datamodule_log_hyperparams = self.datamodule._log_hyperparams if self.datamodule is not None else False
+        # save exp to get started (this is where the first experiment logs are written)
+        datamodule_log_hyperparams = self.datamodule._log_hyperparams if self.datamodule is not None else False
 
-            if self.lightning_module._log_hyperparams and datamodule_log_hyperparams:
-                datamodule_hparams = self.datamodule.hparams_initial
-                lightning_hparams = self.lightning_module.hparams_initial
-                inconsistent_keys = []
-                for key in lightning_hparams.keys() & datamodule_hparams.keys():
-                    lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
-                    if type(lm_val) != type(dm_val):
-                        inconsistent_keys.append(key)
-                    elif isinstance(lm_val, torch.Tensor) and id(lm_val) != id(dm_val):
-                        inconsistent_keys.append(key)
-                    elif lm_val != dm_val:
-                        inconsistent_keys.append(key)
-                if inconsistent_keys:
-                    raise MisconfigurationException(
-                        f"Error while merging hparams: the keys {inconsistent_keys} are present "
-                        "in both the LightningModule's and LightningDataModule's hparams "
-                        "but have different values."
-                    )
-                hparams_initial = {**lightning_hparams, **datamodule_hparams}
-            elif self.lightning_module._log_hyperparams:
-                hparams_initial = self.lightning_module.hparams_initial
-            elif datamodule_log_hyperparams:
-                hparams_initial = self.datamodule.hparams_initial
+        if self.lightning_module._log_hyperparams and datamodule_log_hyperparams:
+            datamodule_hparams = self.datamodule.hparams_initial
+            lightning_hparams = self.lightning_module.hparams_initial
+            inconsistent_keys = []
+            for key in lightning_hparams.keys() & datamodule_hparams.keys():
+                lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
+                if type(lm_val) != type(dm_val):
+                    inconsistent_keys.append(key)
+                elif isinstance(lm_val, torch.Tensor) and id(lm_val) != id(dm_val):
+                    inconsistent_keys.append(key)
+                elif lm_val != dm_val:
+                    inconsistent_keys.append(key)
+            if inconsistent_keys:
+                raise MisconfigurationException(
+                    f"Error while merging hparams: the keys {inconsistent_keys} are present "
+                    "in both the LightningModule's and LightningDataModule's hparams "
+                    "but have different values."
+                )
+            hparams_initial = {**lightning_hparams, **datamodule_hparams}
+        elif self.lightning_module._log_hyperparams:
+            hparams_initial = self.lightning_module.hparams_initial
+        elif datamodule_log_hyperparams:
+            hparams_initial = self.datamodule.hparams_initial
 
+        for logger in self.loggers:
             if hparams_initial is not None:
-                self.logger.log_hyperparams(hparams_initial)
-            self.logger.log_graph(self.lightning_module)
-            self.logger.save()
+                logger.log_hyperparams(hparams_initial)
+            logger.log_graph(self.lightning_module)
+            logger.save()
 
     def _teardown(self):
         """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and
@@ -1419,6 +1420,16 @@ class Trainer(
             self.state.stage = stage
 
     def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
+        # fault-tolerance takes precedence
+        from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
+
+        ft_checkpoints = [cb for cb in self.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
+        if ft_checkpoints:
+            ft_ckpt_path = ft_checkpoints[0].ckpt_path
+            fs = get_filesystem(ft_ckpt_path)
+            if fs.exists(ft_ckpt_path):
+                return ft_ckpt_path
+
         if model_provided and ckpt_path is None:
             # use passed model to function without loading weights
             return
@@ -1510,8 +1521,8 @@ class Trainer(
 
         # todo: TPU 8 cores hangs in flush with TensorBoard. Might do for all loggers.
         # It might be related to xla tensors blocked when moving the cpu kill loggers.
-        if self.logger is not None:
-            self.logger.finalize("success")
+        for logger in self.loggers:
+            logger.finalize("success")
 
         # summarize profile results
         self.profiler.describe()
@@ -1760,44 +1771,36 @@ class Trainer(
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
 
     def _log_device_info(self) -> None:
-        rank_zero_info(f"GPU available: {torch.cuda.is_available()}, used: {self._device_type == _AcceleratorType.GPU}")
+        rank_zero_info(
+            f"GPU available: {torch.cuda.is_available()}, used: {isinstance(self.accelerator, GPUAccelerator)}"
+        )
 
         num_tpu_cores = (
-            self.tpu_cores if self.tpu_cores is not None and self._device_type == _AcceleratorType.TPU else 0
+            self.tpu_cores if self.tpu_cores is not None and isinstance(self.accelerator, TPUAccelerator) else 0
         )
         rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
 
         num_ipus = self.ipus if self.ipus is not None else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
-        if torch.cuda.is_available() and self._device_type != _AcceleratorType.GPU:
+        if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
             rank_zero_warn(
-                "GPU available but not used. Set the gpus flag in your trainer `Trainer(gpus=1)` or script `--gpus=1`.",
+                "GPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='gpu', devices={GPUAccelerator.auto_device_count()})`.",
                 category=PossibleUserWarning,
             )
 
-        if _TPU_AVAILABLE and self._device_type != _AcceleratorType.TPU:
+        if _TPU_AVAILABLE and not isinstance(self.accelerator, TPUAccelerator):
             rank_zero_warn(
-                "TPU available but not used. Set the `tpu_cores` flag in your trainer"
-                " `Trainer(tpu_cores=8)` or script `--tpu_cores=8`."
+                "TPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='tpu', devices={TPUAccelerator.auto_device_count()})`."
             )
 
-        if (
-            _IPU_AVAILABLE
-            and self._device_type != _AcceleratorType.IPU
-            and not isinstance(self.accelerator, IPUAccelerator)
-        ):
+        if _IPU_AVAILABLE and not isinstance(self.accelerator, IPUAccelerator):
             rank_zero_warn(
-                "IPU available but not used. Set the `ipus` flag in your trainer"
-                " `Trainer(ipus=8)` or script `--ipus=8`."
+                "IPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='ipu', devices={IPUAccelerator.auto_device_count()})`."
             )
-
-    def _on_exception(self) -> None:
-        if not _fault_tolerant_training():
-            return
-        # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
-        file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
-        self.save_checkpoint(file_path)
 
     """
     Data loading methods
@@ -1889,7 +1892,7 @@ class Trainer(
                 self.val_check_batch = int(self.num_training_batches * self.val_check_interval)
                 self.val_check_batch = max(1, self.val_check_batch)
 
-        if self.logger and self.num_training_batches < self.log_every_n_steps:
+        if self.loggers and self.num_training_batches < self.log_every_n_steps:
             rank_zero_warn(
                 f"The number of training samples ({self.num_training_batches}) is smaller than the logging interval"
                 f" Trainer(log_every_n_steps={self.log_every_n_steps}). Set a lower value for log_every_n_steps if"
@@ -2014,12 +2017,8 @@ class Trainer(
         )
 
     @property
-    def _device_type(self) -> _AcceleratorType:
-        return self._accelerator_connector.device_type
-
-    @property
     def num_nodes(self) -> int:
-        return self._accelerator_connector.num_nodes
+        return getattr(self.strategy, "num_nodes", 1)
 
     @property
     def num_processes(self) -> int:
@@ -2140,14 +2139,13 @@ class Trainer(
 
     @property
     def log_dir(self) -> Optional[str]:
-        if self.logger is None:
-            dirpath = self.default_root_dir
-        elif isinstance(self.logger, TensorBoardLogger):
-            dirpath = self.logger.log_dir
-        elif isinstance(self.logger, LoggerCollection):
-            dirpath = self.default_root_dir
+        if len(self.loggers) == 1:
+            if isinstance(self.logger, TensorBoardLogger):
+                dirpath = self.logger.log_dir
+            else:
+                dirpath = self.logger.save_dir
         else:
-            dirpath = self.logger.save_dir
+            dirpath = self.default_root_dir
 
         dirpath = self.strategy.broadcast(dirpath)
         return dirpath

@@ -135,7 +135,7 @@ class LightningArgumentParser(ArgumentParser):
             )
         super().__init__(*args, **kwargs)
         self.add_argument(
-            "--config", action=ActionConfigFile, help="Path to a configuration file in json or yaml format."
+            "-c", "--config", action=ActionConfigFile, help="Path to a configuration file in json or yaml format."
         )
         self.callback_keys: List[str] = []
         # separate optimizers and lr schedulers to know which were added
