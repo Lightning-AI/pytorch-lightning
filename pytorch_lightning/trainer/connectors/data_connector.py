@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampl
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import IPUAccelerator
+from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSampler
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
