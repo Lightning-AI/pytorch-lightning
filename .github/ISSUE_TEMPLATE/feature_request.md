@@ -2,7 +2,6 @@
 name: Feature request
 about: Propose a feature for this project
 title: ''
-labels: feature
 assignees: ''
 ---
 
