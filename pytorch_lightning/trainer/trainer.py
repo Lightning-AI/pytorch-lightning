@@ -2702,7 +2702,7 @@ class Trainer(
 
         self.accumulate_grad_batches = accumulation_scheduler.get_accumulate_grad_batches(self.current_epoch)
         effective_batch_size = self.accumulate_grad_batches
-        max_estimated_steps = math.ceil(total_batches / effective_batch_size) * max(self.max_epoch, 1)
+        max_estimated_steps = math.ceil(total_batches / effective_batch_size) * max(self.max_epochs, 1)
 
         max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
         return max_estimated_steps
