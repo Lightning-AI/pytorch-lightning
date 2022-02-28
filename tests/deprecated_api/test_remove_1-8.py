@@ -672,4 +672,4 @@ def test_v1_8_0_logger_collection(tmpdir):
         " This behavior will change in v1.8 such that `trainer.logger` will return the first"
         " logger in `trainer.loggers`."
     ):
-        trainer1.logger
+        trainer2.logger

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from tests.loggers.test_base import CustomLogger
@@ -52,6 +54,10 @@ def test_trainer_loggers_setters():
     logger2 = CustomLogger()
     logger_collection = LoggerCollection([logger1, logger2])
     logger_collection_2 = LoggerCollection([logger2])
+    logger_collection_dep = "Using `trainer.logger` when Trainer is configured to use multiple loggers."
+    " `LoggerCollection` is deprecated in v1.6 in favor of `trainer.loggers` and will be removed in v1.8."
+    " This behavior will change in v1.8 such that `trainer.logger` will return the first"
+    " logger in `trainer.loggers`."
 
     trainer = Trainer()
     assert type(trainer.logger) == TensorBoardLogger
@@ -63,7 +69,8 @@ def test_trainer_loggers_setters():
     assert trainer.loggers == [logger1]
 
     trainer.logger = logger_collection
-    assert trainer.logger._logger_iterable == logger_collection._logger_iterable
+    with pytest.deprecated_call(match=logger_collection_dep):
+        assert trainer.logger._logger_iterable == logger_collection._logger_iterable
     assert trainer.loggers == [logger1, logger2]
 
     # LoggerCollection of size 1 should result in trainer.logger becoming the contained logger.
@@ -78,7 +85,8 @@ def test_trainer_loggers_setters():
     # Test setters for trainer.loggers
     trainer.loggers = [logger1, logger2]
     assert trainer.loggers == [logger1, logger2]
-    assert trainer.logger._logger_iterable == logger_collection._logger_iterable
+    with pytest.deprecated_call(match=logger_collection_dep):
+        assert trainer.logger._logger_iterable == logger_collection._logger_iterable
 
     trainer.loggers = [logger1]
     assert trainer.loggers == [logger1]
