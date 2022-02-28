@@ -175,6 +175,24 @@ def test_replace_dataloader_init_method():
         assert dataloader.attribute1 == "attribute1"
         assert dataloader.attribute2 == "attribute2"
 
+    # `poptorch.DataLoader` uses this pattern, simulate it
+    class PoptorchDataLoader(DataLoader):
+        def __init__(self, options, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self._options = options
+
+        @property
+        def options(self):
+            return self._options
+
+    # †his read-only property pattern is fine
+    dataloader = PoptorchDataLoader(123, [1])
+    assert dataloader.options == 123
+    # still works with the init replacement
+    with _replace_dataloader_init_method():
+        dataloader = PoptorchDataLoader(123, [1])
+    assert dataloader.options == 123
+
 
 @pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])
 def test_dataloader_kwargs_replacement_with_iterable_dataset(mode):

@@ -47,7 +47,6 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.strategies import (
-    DataParallelStrategy,
     DDP2Strategy,
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
@@ -770,21 +769,6 @@ class AcceleratorConnector:
         return self._parallel_devices
 
     @property
-    def device_type(self) -> str:
-        if isinstance(self.accelerator, CPUAccelerator):
-            return "cpu"
-        if isinstance(self.accelerator, GPUAccelerator):
-            return "gpu"
-        if isinstance(self.accelerator, TPUAccelerator):
-            return "tpu"
-        if isinstance(self.accelerator, IPUAccelerator):
-            return "ipu"
-
-    @property
-    def num_nodes(self) -> int:
-        return self._num_nodes_flag
-
-    @property
     def num_processes(self) -> int:
         return self.devices if self.devices is not None else 1
 
@@ -858,19 +842,3 @@ class AcceleratorConnector:
         if isinstance(self.accelerator, TPUAccelerator):
             is_distributed |= self.strategy.is_distributed
         return is_distributed
-
-    @property
-    def has_ipu(self) -> bool:
-        return isinstance(self.accelerator, IPUAccelerator) and isinstance(self.strategy, IPUStrategy)
-
-    @property
-    def use_ipu(self) -> bool:
-        return isinstance(self.accelerator, IPUAccelerator)
-
-    @property
-    def has_tpu(self) -> bool:
-        return isinstance(self.accelerator, TPUAccelerator)
-
-    @property
-    def use_dp(self) -> bool:
-        return isinstance(self.strategy, DataParallelStrategy)

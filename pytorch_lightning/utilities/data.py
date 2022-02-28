@@ -322,7 +322,13 @@ def _wrap_init(init: Callable) -> Callable:
         params = dict(inspect.signature(obj.__init__).parameters)
         params.pop("args", None)
         params.pop("kwargs", None)
+        cls = type(obj)
         for arg_name, arg_value in chain(zip(params, args), kwargs.items()):
+            if hasattr(cls, arg_name) and getattr(cls, arg_name).fset is None:
+                # the class defines a read-only (no setter) property of this name. it's likely that the implementation
+                # will set `self._arg_name = arg_value` in `__init__` which is the attribute returned by the `arg_name`
+                # property so we are fine skipping in that case
+                continue
             setattr(obj, arg_name, arg_value)
         init(obj, *args, **kwargs)
 
