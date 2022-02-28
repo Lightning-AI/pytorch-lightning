@@ -2663,9 +2663,9 @@ class Trainer(
     """
 
     @property
-    def estimated_num_optimization_steps(self) -> Union[int, float]:
+    def estimated_stepping_batches(self) -> Union[int, float]:
         r"""
-        Estimated number of optimization steps for the complete training inferred from DataLoaders, gradient
+        Estimated stepping batches for the complete training inferred from DataLoaders, gradient
         accumulation factor and distributed setup.
 
         Examples::
@@ -2673,7 +2673,7 @@ class Trainer(
             def configure_optimizers(self):
                 optimizer = ...
                 scheduler = torch.optim.lr_scheduler.OneCycleLR(
-                    optimizer, max_lr=1e-3, total_steps=self.trainer.estimated_num_optimization_steps
+                    optimizer, max_lr=1e-3, total_steps=self.trainer.estimated_stepping_batches
                 )
                 return [optimizer], [scheduler]
 
@@ -2682,7 +2682,7 @@ class Trainer(
 
         if accumulation_scheduler.epochs != [0]:
             raise MisconfigurationException(
-                "Estimated optimization steps cannot be computed with different"
+                "Estimated stepping batches cannot be computed with different"
                 " `accumulate_grad_batches` at different epochs."
             )
 
@@ -2691,7 +2691,7 @@ class Trainer(
             return float("inf")
 
         if self.train_dataloader is None:
-            rank_zero_info("Loading `train_dataloader` to estimate number of optimization steps.")
+            rank_zero_info("Loading `train_dataloader` to estimate number of stepping batches.")
             self.reset_train_dataloader()
 
         total_batches = self.num_training_batches
@@ -2702,9 +2702,7 @@ class Trainer(
 
         self.accumulate_grad_batches = accumulation_scheduler.get_accumulate_grad_batches(self.current_epoch)
         effective_batch_size = self.accumulate_grad_batches
-        max_estimated_steps = math.ceil(total_batches / effective_batch_size) * (
-            self.max_epochs if self.max_epochs != -1 else 1
-        )
+        max_estimated_steps = math.ceil(total_batches / effective_batch_size) * max(self.max_epoch, 1)
 
         max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
         return max_estimated_steps

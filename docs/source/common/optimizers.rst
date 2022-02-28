@@ -595,11 +595,11 @@ Here we configure gradient clipping differently for optimizer B.
             )
 
 
-Total Optimization Steps
-========================
+Total Stepping Batches
+======================
 
-You can use built-in trainer property :paramref:`~pytorch_lightning.trainer.trainer.Trainer.estimated_num_optimization_steps` to compute
-total number of optimization steps for the complete training. The property is computed considering gradient accumulation factor and
+You can use built-in trainer property :paramref:`~pytorch_lightning.trainer.trainer.Trainer.estimated_stepping_batches` to compute
+total number of stepping batches for the complete training. The property is computed considering gradient accumulation factor and
 distributed setting into consideration so you don't have to derive it manually. One good example where this can be helpful is while using
 :class:`~torch.optim.lr_scheduler.OneCycleLR` scheduler, which requires pre-computed ``total_steps`` during initialization.
 
@@ -608,6 +608,6 @@ distributed setting into consideration so you don't have to derive it manually. 
     def configure_optimizers(self):
         optimizer = ...
         scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            optimizer, max_lr=1e-3, total_steps=self.trainer.estimated_num_optimization_steps
+            optimizer, max_lr=1e-3, total_steps=self.trainer.estimated_stepping_batches
         )
         return [optimizer], [scheduler]
