@@ -109,7 +109,7 @@ def __scale_batch_reset_params(trainer: "pl.Trainer", steps_per_trial: int) -> N
     trainer.auto_scale_batch_size = None  # prevent recursion
     trainer.auto_lr_find = False  # avoid lr find being called multiple times
     trainer.fit_loop.max_steps = steps_per_trial  # take few steps
-    trainer.logger = DummyLogger() if trainer.logger is not None else None
+    trainer.loggers = [DummyLogger()] if trainer.loggers else []
     trainer.callbacks = []  # not needed before full run
     trainer.limit_train_batches = 1.0
 

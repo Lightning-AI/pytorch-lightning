@@ -150,6 +150,12 @@ class FitLoop(Loop[None]):
         Loop.restarting.fset(self, restarting)  # call the parent setter
 
     @property
+    def prefetch_batches(self) -> int:
+        is_unsized = self.trainer.num_training_batches == float("inf")
+        inter_batch_parallelism = os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1"
+        return 1 if is_unsized or inter_batch_parallelism else 0
+
+    @property
     def _skip_backward(self) -> bool:
         """Determines whether the loop will skip backward during automatic optimization."""
         return self.epoch_loop.batch_loop.optimizer_loop._skip_backward
@@ -213,8 +219,9 @@ class FitLoop(Loop[None]):
         """Calls the ``on_train_start`` hook."""
         # reset train dataloader and val dataloader
         self.trainer.reset_train_val_dataloaders(self.trainer.lightning_module)
+
         data_fetcher_cls = _select_data_fetcher(self.trainer)
-        self._data_fetcher = data_fetcher_cls()
+        self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)
 
         self._is_fresh_start_epoch = True
         self._results.to(device=self.trainer.lightning_module.device)

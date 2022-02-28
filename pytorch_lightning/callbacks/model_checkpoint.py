@@ -22,6 +22,7 @@ import logging
 import os
 import re
 import time
+import warnings
 from copy import deepcopy
 from datetime import timedelta
 from typing import Any, Dict, Optional
@@ -35,6 +36,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.logger import _name, _version
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import _METRIC, _PATH, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -142,6 +144,9 @@ class ModelCheckpoint(Callback):
 
         If you want to checkpoint every N hours, every M train batches, and/or every K val epochs,
         then you should create multiple ``ModelCheckpoint`` callbacks.
+
+        If the checkpoint's ``dirpath`` changed from what it was before while resuming the training,
+        only ``last_model_path`` and ``best_model_path`` will be reloaded and a warning will be issued.
 
     Raises:
         MisconfigurationException:
@@ -351,12 +356,21 @@ class ModelCheckpoint(Callback):
     def on_load_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
     ) -> None:
-        self.best_model_score = callback_state["best_model_score"]
-        self.best_model_path = callback_state["best_model_path"]
-        self.best_k_models = callback_state.get("best_k_models", self.best_k_models)
-        self.kth_best_model_path = callback_state.get("kth_best_model_path", self.kth_best_model_path)
-        self.kth_value = callback_state.get("kth_value", self.kth_value)
+        dirpath_from_ckpt = callback_state.get("dirpath", self.dirpath)
+
+        if self.dirpath == dirpath_from_ckpt:
+            self.best_model_score = callback_state["best_model_score"]
+            self.kth_best_model_path = callback_state.get("kth_best_model_path", self.kth_best_model_path)
+            self.kth_value = callback_state.get("kth_value", self.kth_value)
+            self.best_k_models = callback_state.get("best_k_models", self.best_k_models)
+        else:
+            warnings.warn(
+                f"The dirpath has changed from {dirpath_from_ckpt!r} to {self.dirpath!r},"
+                " therefore `best_model_score`, `kth_best_model_path`, `kth_value` and `best_k_models`"
+                " won't be reloaded. Only `last_model_path` and `best_model_path` will be reloaded."
+            )
         self.last_model_path = callback_state.get("last_model_path", self.last_model_path)
+        self.best_model_path = callback_state["best_model_path"]
 
     def save_checkpoint(self, trainer: "pl.Trainer") -> None:
         """Performs the main logic around saving a checkpoint.
@@ -379,8 +393,9 @@ class ModelCheckpoint(Callback):
         self._save_last_checkpoint(trainer, monitor_candidates)
 
         # notify loggers
-        if trainer.is_global_zero and trainer.logger:
-            trainer.logger.after_save_checkpoint(proxy(self))
+        if trainer.is_global_zero:
+            for logger in trainer.loggers:
+                logger.after_save_checkpoint(proxy(self))
 
     def _should_skip_saving_checkpoint(self, trainer: "pl.Trainer") -> bool:
         from pytorch_lightning.trainer.states import TrainerFn
@@ -572,20 +587,20 @@ class ModelCheckpoint(Callback):
         """
         if self.dirpath is not None:
             return  # short circuit
-
-        if trainer.logger is not None:
+        if trainer.loggers:
             if trainer.weights_save_path != trainer.default_root_dir:
                 # the user has changed weights_save_path, it overrides anything
                 save_dir = trainer.weights_save_path
-            else:
+            elif len(trainer.loggers) == 1:
                 save_dir = trainer.logger.save_dir or trainer.default_root_dir
+            else:
+                save_dir = trainer.default_root_dir
 
-            version = (
-                trainer.logger.version
-                if isinstance(trainer.logger.version, str)
-                else f"version_{trainer.logger.version}"
-            )
-            ckpt_path = os.path.join(save_dir, str(trainer.logger.name), version, "checkpoints")
+            name = _name(trainer.loggers)
+            version = _version(trainer.loggers)
+            version = version if isinstance(version, str) else f"version_{version}"
+
+            ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
         else:
             ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
 
