@@ -3703,3 +3703,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.2.x] - 2019-07-09
 
 ## [0.1.x] - 2019-06-DD
+
+### Fixed
+
+- Fixed a bug where not providing arguments to the `WandbLogger` created checkpoint directories named `None` ([#12142](https://github.com/PyTorchLightning/pytorch-lightning/pull/12142)) 
