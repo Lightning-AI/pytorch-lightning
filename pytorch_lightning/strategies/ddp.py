@@ -32,8 +32,10 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
-from pytorch_lightning.strategies.launchers.subprocess_script_hydra import _SubprocessScriptHydraLauncher
+from pytorch_lightning.strategies.launchers.subprocess_script import (
+    _HydraSubprocessScriptLauncher,
+    _SubprocessScriptLauncher,
+)
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
@@ -129,7 +131,7 @@ class DDPStrategy(ParallelStrategy):
         return True
 
     def _configure_launcher(self) -> None:
-        launcher_cls = _SubprocessScriptHydraLauncher if _HYDRA_AVAILABLE else _SubprocessScriptLauncher
+        launcher_cls = _HydraSubprocessScriptLauncher if _HYDRA_AVAILABLE else _SubprocessScriptLauncher
         self._launcher = launcher_cls(self.cluster_environment, self.num_processes, self.num_nodes)
         if not self.cluster_environment.creates_processes_externally:
             self._rank_0_will_call_children_scripts = True

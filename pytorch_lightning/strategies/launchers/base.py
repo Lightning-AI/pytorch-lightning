@@ -34,6 +34,3 @@ class _Launcher(ABC):
     @abstractmethod
     def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
         """Launches the processes."""
-
-    def teardown(self) -> None:
-        """This method is called to teardown the launcher."""
