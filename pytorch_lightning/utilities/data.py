@@ -126,7 +126,7 @@ def has_len_all_ranks(
         if total_length == 0:
             rank_zero_warn(
                 f"Total length of `{dataloader.__class__.__name__}` across ranks is zero."
-                " Please make sure this was your intention"
+                " Please make sure this was your intention."
             )
         if total_length > 0 and local_length == 0:
             if model.allow_zero_length_dataloader_with_multiple_devices:
