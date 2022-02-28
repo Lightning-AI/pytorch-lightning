@@ -654,7 +654,7 @@ def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list)
     expected_total_duration = np.sum(expected)
     np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
 
-    
+
 def test_v1_8_0_precplugin_checkpointhooks(tmpdir):
     class PrecisionPluginSaveHook(PrecisionPlugin):
         def on_save_checkpoint(self, checkpoint):
