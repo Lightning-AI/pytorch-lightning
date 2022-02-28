@@ -102,7 +102,7 @@ def test_trainer_save_checkpoint_storage_options(tmpdir):
         enable_checkpointing=False,
     )
     trainer.fit(model)
-    instance_path = tmpdir + "path.ckpt"
+    instance_path = tmpdir / "path.ckpt"
     instance_storage_options = "my instance storage options"
 
     with mock.patch("pytorch_lightning.plugins.io.torch_plugin.TorchCheckpointIO.save_checkpoint") as io_mock:
