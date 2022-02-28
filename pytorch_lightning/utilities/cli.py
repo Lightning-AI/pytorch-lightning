@@ -104,7 +104,7 @@ class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
         self.monitor = monitor
 
 
-def _fill_registries(subclasses: bool) -> None:
+def _populate_registries(subclasses: bool) -> None:
     if subclasses:
         # this will register any subclasses from all loaded modules including userland
         for cls in get_all_subclasses(torch.optim.Optimizer):
@@ -484,7 +484,7 @@ class LightningCLI:
         subclass_mode_model: bool = False,
         subclass_mode_data: bool = False,
         run: bool = True,
-        register_automatically: bool = False,
+        auto_registry: bool = False,
     ) -> None:
         """Receives as input pytorch-lightning classes (or callables which return pytorch-lightning classes), which
         are called / instantiated using a parsed configuration file and / or command line args.
@@ -528,7 +528,7 @@ class LightningCLI:
                 of the given class.
             run: Whether subcommands should be added to run a :class:`~pytorch_lightning.trainer.trainer.Trainer`
                 method. If set to ``False``, the trainer and model classes will be instantiated only.
-            register_automatically: Whether to automatically fill up the registries with all defined subclasses.
+            auto_registry: Whether to automatically fill up the registries with all defined subclasses.
         """
         self.save_config_callback = save_config_callback
         self.save_config_filename = save_config_filename
@@ -548,7 +548,7 @@ class LightningCLI:
         self._datamodule_class = datamodule_class or LightningDataModule
         self.subclass_mode_data = (datamodule_class is None) or subclass_mode_data
 
-        _fill_registries(register_automatically)
+        _populate_registries(auto_registry)
 
         main_kwargs, subparser_kwargs = self._setup_parser_kwargs(
             parser_kwargs or {},  # type: ignore  # github.com/python/mypy/issues/6463

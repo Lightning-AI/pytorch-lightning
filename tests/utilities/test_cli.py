@@ -38,7 +38,7 @@ from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import (
-    _fill_registries,
+    _populate_registries,
     CALLBACK_REGISTRY,
     DATAMODULE_REGISTRY,
     instantiate_class,
@@ -898,7 +898,7 @@ def clear_registries():
 
 def test_registries():
     # the registries are global so this is only necessary when this test is run standalone
-    _fill_registries(False)
+    _populate_registries(False)
 
     @OPTIMIZER_REGISTRY
     class CustomAdam(torch.optim.Adam):
@@ -946,7 +946,7 @@ def test_registries():
 def test_registries_register_automatically():
     assert "SaveConfigCallback" not in CALLBACK_REGISTRY
     with mock.patch("sys.argv", ["any.py"]):
-        LightningCLI(BoringModel, run=False, register_automatically=True)
+        LightningCLI(BoringModel, run=False, auto_registry=True)
     assert "SaveConfigCallback" in CALLBACK_REGISTRY
 
 
@@ -1023,7 +1023,7 @@ def test_lightning_cli_datamodule_choices():
         assert not hasattr(cli.parser.groups["data"], "group_class")
 
     with mock.patch("sys.argv", ["any.py"]), mock.patch.dict(DATAMODULE_REGISTRY, clear=True):
-        cli = LightningCLI(BoringModel, run=False, register_automatically=False)
+        cli = LightningCLI(BoringModel, run=False, auto_registry=False)
         # no registered classes so not added automatically
         assert "data" not in cli.parser.groups
     assert len(DATAMODULE_REGISTRY)  # check state was not modified
@@ -1094,7 +1094,7 @@ def test_argv_transformation_single_callback():
         }
     ]
     expected = base + ["--trainer.callbacks", str(callbacks)]
-    _fill_registries(False)
+    _populate_registries(False)
     argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, "trainer.callbacks", input)
     assert argv == expected
 
@@ -1118,7 +1118,7 @@ def test_argv_transformation_multiple_callbacks():
         },
     ]
     expected = base + ["--trainer.callbacks", str(callbacks)]
-    _fill_registries(False)
+    _populate_registries(False)
     argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, "trainer.callbacks", input)
     assert argv == expected
 
@@ -1146,7 +1146,7 @@ def test_argv_transformation_multiple_callbacks_with_config():
     ]
     expected = base + ["--trainer.callbacks", str(callbacks)]
     nested_key = "trainer.callbacks"
-    _fill_registries(False)
+    _populate_registries(False)
     argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, nested_key, input)
     assert argv == expected
 
@@ -1183,7 +1183,7 @@ def test_argv_transformation_multiple_callbacks_with_config():
 def test_argv_transformations_with_optimizers_and_lr_schedulers(args, expected, nested_key, registry):
     base = ["any.py", "--trainer.max_epochs=1"]
     argv = base + args
-    _fill_registries(False)
+    _populate_registries(False)
     new_argv = LightningArgumentParser._convert_argv_issue_84(registry.classes, nested_key, argv)
     assert new_argv == base + [f"--{nested_key}", str(expected)]
 

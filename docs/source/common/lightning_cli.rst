@@ -352,7 +352,7 @@ To use shorthand notation, the options need to be registered beforehand. This ca
 
 .. code-block::
 
-    LightningCLI(register_automatically=True)  # False by default
+    LightningCLI(auto_registry=True)  # False by default
 
 which will register all subclasses of :class:`torch.optim.Optimizer`, :class:`torch.optim.lr_scheduler._LRScheduler`,
 :class:`~pytorch_lightning.core.lightning.LightningModule`,
