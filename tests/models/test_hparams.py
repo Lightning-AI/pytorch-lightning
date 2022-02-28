@@ -320,7 +320,8 @@ def test_collect_init_arguments(tmpdir, cls):
     if isinstance(model, (SubClassBoringModel, NonSavingSubClassBoringModel)):
         assert model.hparams.subclass_arg == 1200
 
-    assert "my_loss" not in model.hparams
+    if isinstance(model, AggSubClassBoringModel):
+        assert isinstance(model.hparams.my_loss, torch.nn.CosineEmbeddingLoss)
 
     # verify that the checkpoint saved the correct values
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, overfit_batches=0.5)
@@ -336,7 +337,8 @@ def test_collect_init_arguments(tmpdir, cls):
     model = cls.load_from_checkpoint(raw_checkpoint_path)
     assert model.hparams.batch_size == 179
 
-    assert "my_loss" not in model.hparams
+    if isinstance(model, AggSubClassBoringModel):
+        assert isinstance(model.hparams.my_loss, torch.nn.CosineEmbeddingLoss)
 
     if isinstance(model, DictConfSubClassBoringModel):
         assert isinstance(model.hparams.dict_conf, Container)
@@ -817,7 +819,7 @@ def test_colliding_hparams(tmpdir):
         trainer.fit(model, datamodule=data)
 
 
-def test_nn_modules_not_saved_within_hparams():
+def test_nn_modules_raises_warning_when_saved_as_hparams():
     class TorchModule(torch.nn.Module):
         def __init__(self):
             super().__init__()
@@ -828,5 +830,7 @@ def test_nn_modules_not_saved_within_hparams():
             super().__init__()
             self.save_hyperparameters()
 
-    model = CustomBoringModel(encoder=TorchModule(), decoder=TorchModule())
-    assert list(model.hparams) == ["other_hparam"]
+    with pytest.warns(UserWarning, match="is an instance of `nn.Module` and is already saved"):
+        model = CustomBoringModel(encoder=TorchModule(), decoder=TorchModule())
+
+    assert list(model.hparams) == ["encoder", "decoder", "other_hparam"]
