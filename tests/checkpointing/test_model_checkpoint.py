@@ -1255,7 +1255,7 @@ def test_model_checkpoint_saveload_ckpt(tmpdir):
     #    We therefore set "dirpath" and "monitor" to something different than for ckpt/cb_write so we can assert them.
     # 2. "current_score" is left as initialized, i.e. None, and can therefore also be asserted
     # 3. When a different `dirpath` is passed to `ModelCheckpoint` to resume training, only
-    #    `best_model_path` and `last_model_path` are tracked (tracking for others is stopped).
+    #    `best_model_path` and `last_model_path` are reloaded (reloading for others is stopped).
     cb_restore = ModelCheckpoint(dirpath=tmpdir + "/restore", monitor=None, save_top_k=-1, save_last=True)
     with pytest.warns(UserWarning, match="The dirpath has changed from*"):
         cb_restore.on_load_checkpoint("", "", written_ckpt)
