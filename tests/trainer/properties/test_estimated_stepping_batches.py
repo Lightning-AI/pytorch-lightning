@@ -20,6 +20,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
+from pytorch_lightning.strategies.ipu import IPUStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomIterableDataset
 from tests.helpers.runif import RunIf
@@ -150,12 +151,11 @@ def test_num_stepping_batches_with_tpu(devices, estimated_steps):
 def test_num_stepping_batches_with_ipu(monkeypatch):
     """Test stepping batches with IPU training which acts like DP."""
     import pytorch_lightning.strategies.ipu as ipu
-    from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 
     monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
-    monkeypatch.setattr(AcceleratorConnector, "has_ipu", True)
     trainer = Trainer(accelerator="ipu", devices=2, max_epochs=1)
     model = BoringModel()
     trainer._data_connector.attach_data(model)
     trainer.strategy.connect(model)
+    assert isinstance(trainer.strategy, IPUStrategy)
     assert trainer.estimated_stepping_batches == 64
