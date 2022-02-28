@@ -465,7 +465,6 @@ def test_pytorch_profiler_multiple_loggers(tmpdir):
     assert not look_for_trace(tmpdir)
 
     model = BoringModel()
-    # Wrap the logger in a list so it becomes a LoggerCollection
     loggers = [TensorBoardLogger(save_dir=tmpdir), CSVLogger(tmpdir)]
     trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", logger=loggers, limit_train_batches=5, max_epochs=1)
     assert len(trainer.loggers) == 2

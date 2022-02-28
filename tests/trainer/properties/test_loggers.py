@@ -52,10 +52,9 @@ def test_trainer_loggers_setters():
     """Test the behavior of setters for trainer.logger and trainer.loggers."""
     logger1 = CustomLogger()
     logger2 = CustomLogger()
-    logger_collection_dep = "`LoggerCollection` is deprecated in v1.6"
-    with pytest.deprecated_call(match=logger_collection_dep):
+    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
         logger_collection = LoggerCollection([logger1, logger2])
-    with pytest.deprecated_call(match=logger_collection_dep):
+    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
         logger_collection_2 = LoggerCollection([logger2])
 
     trainer = Trainer()
@@ -68,7 +67,7 @@ def test_trainer_loggers_setters():
     assert trainer.loggers == [logger1]
 
     trainer.logger = logger_collection
-    with pytest.deprecated_call(match=logger_collection_dep):
+    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
         assert trainer.logger._logger_iterable == logger_collection._logger_iterable
     assert trainer.loggers == [logger1, logger2]
 
@@ -84,7 +83,7 @@ def test_trainer_loggers_setters():
     # Test setters for trainer.loggers
     trainer.loggers = [logger1, logger2]
     assert trainer.loggers == [logger1, logger2]
-    with pytest.deprecated_call(match=logger_collection_dep):
+    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
         assert trainer.logger._logger_iterable == logger_collection._logger_iterable
 
     trainer.loggers = [logger1]

@@ -2599,7 +2599,7 @@ class Trainer(
         if len(self.loggers) == 1:
             return self.loggers[0]
         else:
-            rank_zero_deprecation(
+            rank_zero_warn(
                 "Using `trainer.logger` when Trainer is configured to use multiple loggers."
                 " This behavior will change in v1.8 such that `trainer.logger` will return the first"
                 " logger in `trainer.loggers`."
