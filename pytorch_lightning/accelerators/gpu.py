@@ -93,6 +93,11 @@ class GPUAccelerator(Accelerator):
     def is_available() -> bool:
         return torch.cuda.device_count() > 0
 
+    @staticmethod
+    def hardware_name() -> str:
+        """Name of the hardware."""
+        return "GPU"
+
 
 def get_nvidia_gpu_stats(device: _DEVICE) -> Dict[str, float]:
     """Get GPU stats including memory, fan speed, and temperature from nvidia-smi.

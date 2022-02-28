@@ -13,7 +13,6 @@
 # limitations under the License
 import collections
 from copy import deepcopy
-from unittest import mock
 from unittest.mock import patch
 
 import pytest
