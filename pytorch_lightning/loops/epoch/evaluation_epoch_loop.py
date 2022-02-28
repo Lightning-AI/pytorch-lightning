@@ -14,7 +14,7 @@
 
 from collections import OrderedDict
 from functools import lru_cache
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, cast, Dict, Optional
 
 from deprecate import void
 from torch.utils.data import DataLoader
@@ -47,7 +47,6 @@ class EvaluationEpochLoop(Loop):
 
         self._outputs: EPOCH_OUTPUT = []
         self._dl_max_batches = 0
-        self._dataloader_iter: Optional[Iterator] = None
         self._data_fetcher: Optional[AbstractDataFetcher] = None
         self._dataloader_state_dict: Dict[str, Any] = {}
 
@@ -83,10 +82,11 @@ class EvaluationEpochLoop(Loop):
         """
         void(kwargs)
         self._dl_max_batches = dl_max_batches
-        self._data_fetcher = data_fetcher
-
         self._reload_dataloader_state_dict(data_fetcher)
-        self._dataloader_iter = iter(data_fetcher)
+        # creates the iterator inside the fetcher but returns `self`
+        self._data_fetcher = cast(AbstractDataFetcher, iter(data_fetcher))
+        # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
+        data_fetcher.fetched += self.batch_progress.current.ready
 
     def advance(  # type: ignore[override]
         self,
@@ -106,12 +106,12 @@ class EvaluationEpochLoop(Loop):
         """
         void(dl_max_batches)
 
-        assert self._dataloader_iter is not None
         if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
             batch_idx = self.batch_progress.current.ready
-            batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
+            batch = next(data_fetcher)
         else:
-            batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
+            batch_idx, batch = next(data_fetcher)
+        self.batch_progress.is_last_batch = data_fetcher.done
 
         # configure step_kwargs
         kwargs = self._build_kwargs(kwargs, batch, batch_idx)
@@ -153,7 +153,6 @@ class EvaluationEpochLoop(Loop):
     def on_run_end(self) -> EPOCH_OUTPUT:
         """Returns the outputs of the whole run."""
         outputs, self._outputs = self._outputs, []  # free memory
-        self._dataloader_iter = None
         self._data_fetcher = None
         return outputs
 

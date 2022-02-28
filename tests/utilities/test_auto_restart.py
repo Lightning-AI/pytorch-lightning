@@ -786,7 +786,7 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
         return dl, sampler
 
     def fetch(fetcher, prefetch_iter, num_batches_fetched):
-        batch, _ = next(prefetch_iter)
+        _ = next(prefetch_iter)
 
         state: List[MergedIteratorState] = fetcher.state
         assert len(state) == 1
@@ -814,8 +814,8 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     state = deepcopy(state[0])
 
     # (B) simulate 2 additional batches
-    batch05, _ = next(prefetch_iter)
-    batch06, _ = next(prefetch_iter)
+    batch05 = next(prefetch_iter)
+    batch06 = next(prefetch_iter)
 
     # start reloading
     dataset, random_sampler = create_dataset_sampler()
@@ -830,8 +830,8 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     prefetch_iter = iter(prefetcher)
 
     # fetch 2 random batches, these should match exactly the batches seen at (B)
-    batch05_restart, _ = next(prefetch_iter)
-    batch06_restart, _ = next(prefetch_iter)
+    batch05_restart = next(prefetch_iter)
+    batch06_restart = next(prefetch_iter)
 
     assert torch.equal(batch05, batch05_restart)
     assert torch.equal(batch06, batch06_restart)
@@ -1452,7 +1452,7 @@ class RandomFaultTolerantDataset(RandomGetItemDataset):
 
 
 class RandomFaultTolerantSampler(RandomSampler):
-    def __init__(self, *args, seed: int = 0, generator=None, **kwargs):
+    def __init__(self, *args, seed: int = 0, **kwargs):
         generator = torch.Generator().manual_seed(seed)
         super().__init__(*args, generator=generator, **kwargs)
         self.counter = 0
@@ -1558,7 +1558,7 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
     seed_everything(42)
     model = TestModel(should_fail=True)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
-    with suppress(CustomException):
+    with pytest.raises(CustomException):
         trainer.fit(model)
     trainer.train_dataloader = None
     failed_batches = model.batches

@@ -17,11 +17,12 @@ import pytest
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.trainer.connectors.data_connector import _DataLoaderSource
+from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector, _DataLoaderSource, warning_cache
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.boring_model import RandomDataset
+from tests.helpers.utils import no_warning_call
 
 
 class NoDataLoaderModel(BoringModel):
@@ -69,6 +70,76 @@ def test_dataloader_source_request_from_module():
     module.foo.assert_not_called()
     assert isinstance(source.dataloader(), DataLoader)
     module.foo.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "hook_name", ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
+)
+class TestDataHookSelector:
+    def overridden_func(self, batch, *args, **kwargs):
+        return batch
+
+    def reset_instances(self):
+        warning_cache.clear()
+        return BoringDataModule(), BoringModel(), Trainer()
+
+    def test_no_datamodule_no_overridden(self, hook_name):
+        model, _, trainer = self.reset_instances()
+        trainer._data_connector.attach_datamodule(model, datamodule=None)
+        with no_warning_call(match=f"have overridden `{hook_name}` in"):
+            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
+
+        assert hook == getattr(model, hook_name)
+
+    def test_with_datamodule_no_overridden(self, hook_name):
+        model, dm, trainer = self.reset_instances()
+        trainer._data_connector.attach_datamodule(model, datamodule=dm)
+        with no_warning_call(match=f"have overridden `{hook_name}` in"):
+            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
+
+        assert hook == getattr(model, hook_name)
+
+    def test_override_model_hook(self, hook_name):
+        model, dm, trainer = self.reset_instances()
+        trainer._data_connector.attach_datamodule(model, datamodule=dm)
+        with no_warning_call(match=f"have overridden `{hook_name}` in"):
+            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
+
+        assert hook == getattr(model, hook_name)
+
+    def test_override_datamodule_hook(self, hook_name):
+        model, dm, trainer = self.reset_instances()
+        trainer._data_connector.attach_datamodule(model, datamodule=dm)
+        setattr(dm, hook_name, self.overridden_func)
+        with no_warning_call(match=f"have overridden `{hook_name}` in"):
+            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
+
+        assert hook == getattr(dm, hook_name)
+
+    def test_override_both_model_and_datamodule(self, hook_name):
+        model, dm, trainer = self.reset_instances()
+        trainer._data_connector.attach_datamodule(model, datamodule=dm)
+        setattr(model, hook_name, self.overridden_func)
+        setattr(dm, hook_name, self.overridden_func)
+        with pytest.warns(UserWarning, match=f"have overridden `{hook_name}` in both"):
+            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
+
+        assert hook == getattr(dm, hook_name)
+
+    def test_with_datamodule_override_model(self, hook_name):
+        model, dm, trainer = self.reset_instances()
+        trainer._data_connector.attach_datamodule(model, datamodule=dm)
+        setattr(model, hook_name, self.overridden_func)
+        with pytest.warns(UserWarning, match=f"have overridden `{hook_name}` in `LightningModule`"):
+            hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
+
+        assert hook == getattr(model, hook_name)
+
+
+def test_invalid_hook_passed_in_datahook_selector():
+    dh_selector = _DataHookSelector(BoringModel(), None)
+    with pytest.raises(ValueError, match="is not a shared hook"):
+        dh_selector.get_hook("setup")
 
 
 def test_eval_distributed_sampler_warning(tmpdir):

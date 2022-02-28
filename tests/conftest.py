@@ -77,6 +77,7 @@ def restore_env_variables():
         "XRT_HOST_WORLD_SIZE",
         "XRT_SHARD_ORDINAL",
         "XRT_SHARD_LOCAL_ORDINAL",
+        "TF_CPP_MIN_LOG_LEVEL",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"

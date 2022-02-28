@@ -393,6 +393,9 @@ option when using sequential data.
     to ``limit_{mode}_batches``, if it is set to 1.0 it will run for the whole dataset, otherwise it will throw an exception.
     Here ``mode`` can be train/val/test/predict.
 
+When iterable datasets are used, Lightning will pre-fetch 1 batch (in addition to the current batch) so it can detect
+when the training will stop and run validation if necessary.
+
 .. testcode::
 
     # IterableDataset
