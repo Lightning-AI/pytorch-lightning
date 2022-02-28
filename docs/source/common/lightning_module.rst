@@ -96,6 +96,8 @@ Here are the only required methods.
 .. code-block:: python
 
     import pytorch_lightning as pl
+    import torch.nn as nn
+    import torch.nn.functional as F
 
 
     class LitModel(pl.LightningModule):
