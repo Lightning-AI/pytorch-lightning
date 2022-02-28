@@ -13,7 +13,7 @@
 # limitations under the License.
 import math
 from collections import defaultdict, OrderedDict
-from typing import Any, Dict, Generator, Iterator, List, Optional, overload, Tuple, Union
+from typing import Any, Dict, Generator, List, Optional, overload, Tuple, Union
 
 import numpy as np
 import torch
@@ -70,7 +70,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self._results = _ResultCollection(training=True)
         self._outputs: _OUTPUTS_TYPE = []
         self._warning_cache = WarningCache()
-        self._dataloader_iter: Optional[Iterator] = None
         # caches the loaded dataloader state until dataloader objects are available
         self._dataloader_state_dict: Dict[str, Any] = {}
 
@@ -143,7 +142,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
         self._reload_dataloader_state_dict(data_fetcher)
-        self._dataloader_iter = iter(data_fetcher)
+        iter(data_fetcher)  # creates the iterator inside the fetcher
 
     def advance(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
         """Runs a single training batch.
@@ -157,12 +156,12 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
 
-        assert self._dataloader_iter is not None
         if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
             batch_idx = self.batch_idx + 1
-            batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
+            batch = next(data_fetcher)
         else:
-            batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
+            batch_idx, batch = next(data_fetcher)
+        self.batch_progress.is_last_batch = data_fetcher.done
 
         kwargs = self._build_kwargs(OrderedDict(), batch, batch_idx)
 
@@ -506,8 +505,10 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         """Flushes loggers to disk."""
         # when loggers should save to disk
         should_flush_logs = self.trainer.logger_connector.should_flush_logs
-        if should_flush_logs and self.trainer.is_global_zero and self.trainer.logger is not None:
-            self.trainer.logger.save()
+        # TODO: is_global_zero check should be moved to logger.save() implementation
+        if should_flush_logs and self.trainer.is_global_zero:
+            for logger in self.trainer.loggers:
+                logger.save()
 
     def _reload_dataloader_state_dict(self, data_fetcher: AbstractDataFetcher) -> None:
         if self._dataloader_state_dict:
