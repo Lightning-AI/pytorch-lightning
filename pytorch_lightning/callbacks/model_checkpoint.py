@@ -144,6 +144,9 @@ class ModelCheckpoint(Callback):
         If you want to checkpoint every N hours, every M train batches, and/or every K val epochs,
         then you should create multiple ``ModelCheckpoint`` callbacks.
 
+        If the checkpoint's ``dirpath`` changed from what it was before while resuming the training,
+        only ``last_model_path`` and ``best_model_path`` will be reloaded and a warning will be issued.
+
     Raises:
         MisconfigurationException:
             If ``save_top_k`` is smaller than ``-1``,
@@ -190,9 +193,6 @@ class ModelCheckpoint(Callback):
         following arguments:
 
         *monitor, mode, every_n_train_steps, every_n_epochs, train_time_interval, save_on_train_epoch_end*
-
-    .. note:: If the checkpoint's ``dirpath`` changed from what it was before while resuming the training,
-        only ``last_model_path`` and ``best_model_path`` will be reloaded and a warning will be issued.
 
         Read more: :ref:`Persisting Callback State`
     """
