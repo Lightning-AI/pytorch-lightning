@@ -1253,4 +1253,4 @@ def test_last_global_step_saved():
     trainer = MagicMock()
     trainer.callback_metrics = {"foo": 123}
     model_checkpoint.save_checkpoint(trainer)
-    assert model_checkpoint._last_global_step_saved == -1
+    assert model_checkpoint._last_global_step_saved == 0
