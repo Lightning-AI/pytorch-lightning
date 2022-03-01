@@ -46,6 +46,7 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
+from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
 from pytorch_lightning.strategies import (
     DDP2Strategy,
     DDPFullyShardedStrategy,
@@ -150,7 +151,6 @@ class AcceleratorConnector:
         # TODO: move to gpu accelerator
         torch.backends.cudnn.benchmark = self.benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
-        self.sync_batchnorm = sync_batchnorm
         self._init_deterministic(deterministic)
 
         # 1. Parsing flags
@@ -169,6 +169,7 @@ class AcceleratorConnector:
         self._precision_plugin_flag: Optional[PrecisionPlugin] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
         self._parallel_devices: List[Union[int, torch.device]] = []
+        self._layer_sync: Optional[LayerSync] = NativeSyncBatchNorm() if sync_batchnorm else None
         self.checkpoint_io: Optional[CheckpointIO] = None
         self._amp_type_flag: Optional[LightningEnum] = None
         self._amp_level_flag: Optional[str] = amp_level
@@ -180,6 +181,7 @@ class AcceleratorConnector:
             plugins=plugins,
             amp_type=amp_type,
             amp_level=amp_level,
+            sync_batchnorm=sync_batchnorm,
         )
         self._check_device_config_and_set_final_flags(
             devices=devices, num_nodes=num_nodes, num_processes=num_processes, gpus=gpus, ipus=ipus, tpu_cores=tpu_cores
@@ -230,6 +232,7 @@ class AcceleratorConnector:
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]],
         amp_type: str,
         amp_level: Optional[str],
+        sync_batchnorm: bool,
     ) -> None:
         """This method checks:
 
@@ -317,6 +320,13 @@ class AcceleratorConnector:
                     self.checkpoint_io = plugin
                 elif isinstance(plugin, ClusterEnvironment):
                     self._cluster_environment_flag = plugin
+                elif isinstance(plugin, LayerSync):
+                    if sync_batchnorm and not isinstance(plugin, NativeSyncBatchNorm):
+                        raise MisconfigurationException(
+                            f"You set `Trainer(sync_batchnorm=True)` and provided a `{plugin.__class__.__name__}`"
+                            " plugin, but this is not allowed. Choose one or the other."
+                        )
+                    self._layer_sync = plugin
                 else:
                     raise MisconfigurationException(
                         f"Found invalid type for plugin {plugin}. Expected a precision plugin or training strategy."
@@ -715,8 +725,8 @@ class AcceleratorConnector:
                 self.strategy.parallel_devices = self._parallel_devices
         if hasattr(self.strategy, "num_nodes"):
             self.strategy._num_nodes = self._num_nodes_flag
-        if hasattr(self.strategy, "sync_batchnorm"):
-            self.strategy.sync_batchnorm = self.sync_batchnorm
+        if hasattr(self.strategy, "_layer_sync"):
+            self.strategy._layer_sync = self._layer_sync
         if hasattr(self.strategy, "set_world_ranks"):
             self.strategy.set_world_ranks()
         self.strategy._configure_launcher()

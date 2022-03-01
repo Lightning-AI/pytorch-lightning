@@ -237,6 +237,21 @@ Checkpoint IO Plugins
     TorchCheckpointIO
     XLACheckpointIO
 
+
+Other Plugins
+^^^^^^^^^^^^^
+
+.. currentmodule:: pytorch_lightning.plugins
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    LayerSync
+    NativeSyncBatchNorm
+
+
 Profiler API
 ------------
 
