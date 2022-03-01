@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Iterable, Optional, TextIO, Union
 
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 log = logging.getLogger(__name__)
 
@@ -62,7 +63,6 @@ class BaseProfiler(AbstractProfiler):
         self._output_file: Optional[TextIO] = None
         self._write_stream: Optional[Callable] = None
         self._local_rank: Optional[int] = None
-        self._log_dir: Optional[str] = None
         self._stage: Optional[str] = None
 
     @contextmanager
@@ -84,6 +84,14 @@ class BaseProfiler(AbstractProfiler):
             self.stop(action_name)
 
     def profile_iterable(self, iterable: Iterable, action_name: str) -> Generator:
+        """Profiles over each value of an iterable.
+
+        See deprecation message below.
+
+        .. deprecated:: v1.6
+            `BaseProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8.
+        """
+        rank_zero_deprecation("`BaseProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8.")
         iterator = iter(iterable)
         while True:
             try:
@@ -157,7 +165,6 @@ class BaseProfiler(AbstractProfiler):
         """Execute arbitrary pre-profiling set-up steps."""
         self._stage = stage
         self._local_rank = local_rank
-        self._log_dir = log_dir
         self.dirpath = self.dirpath or log_dir
 
     def teardown(self, stage: Optional[str] = None) -> None:

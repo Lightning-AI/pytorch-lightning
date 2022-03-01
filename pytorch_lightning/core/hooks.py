@@ -182,10 +182,20 @@ class ModelHooks:
         self.trainer.model.eval()
 
     def on_epoch_start(self) -> None:
-        """Called when either of train/val/test epoch begins."""
+        """Called when either of train/val/test epoch begins.
+
+        .. deprecated:: v1.6
+            :meth:`on_epoch_start` has been deprecated in v1.6 and will be removed in v1.8.
+            Use ``on_<train/validation/test>_epoch_start`` instead.
+        """
 
     def on_epoch_end(self) -> None:
-        """Called when either of train/val/test epoch ends."""
+        """Called when either of train/val/test epoch ends.
+
+        .. deprecated:: v1.6
+            :meth:`on_epoch_end` has been deprecated in v1.6 and will be removed in v1.8.
+            Use ``on_<train/validation/test>_epoch_end`` instead.
+        """
 
     def on_train_epoch_start(self) -> None:
         """Called in the training loop at the very beginning of the epoch."""

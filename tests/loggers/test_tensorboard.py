@@ -119,7 +119,7 @@ def test_tensorboard_no_name(tmpdir, name):
     """Verify that None or empty name works."""
     logger = TensorBoardLogger(save_dir=tmpdir, name=name)
     logger.log_hyperparams({"a": 1, "b": 2, 123: 3, 3.5: 4, 5j: 5})  # Force data to be written
-    assert logger.root_dir == tmpdir
+    assert os.path.normpath(logger.root_dir) == tmpdir  # use os.path.normpath to handle trailing /
     assert os.listdir(tmpdir / "version_0")
 
 
@@ -226,7 +226,7 @@ def test_tensorboard_log_omegaconf_hparams_and_metrics(tmpdir):
 
 @pytest.mark.parametrize("example_input_array", [None, torch.rand(2, 32)])
 def test_tensorboard_log_graph(tmpdir, example_input_array):
-    """test that log graph works with both model.example_input_array and if array is passed externaly."""
+    """test that log graph works with both model.example_input_array and if array is passed externally."""
     model = BoringModel()
     if example_input_array is not None:
         model.example_input_array = None

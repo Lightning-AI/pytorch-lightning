@@ -201,5 +201,5 @@ def test_amp_with_apex(bwd_mock, tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert bwd_mock.call_count == 10
 
-    assert isinstance(trainer.lr_schedulers[0]["scheduler"].optimizer, optim.Adam)
-    assert isinstance(trainer.lr_schedulers[1]["scheduler"].optimizer, optim.SGD)
+    assert isinstance(trainer.lr_scheduler_configs[0].scheduler.optimizer, optim.Adam)
+    assert isinstance(trainer.lr_scheduler_configs[1].scheduler.optimizer, optim.SGD)

@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.logger import _version
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 
 class ProgressBarBase(Callback):
@@ -46,11 +47,13 @@ class ProgressBarBase(Callback):
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._trainer: Optional["pl.Trainer"] = None
 
     @property
     def trainer(self) -> "pl.Trainer":
+        if self._trainer is None:
+            raise TypeError(f"The `{self.__class__.__name__}._trainer` reference has not been set yet.")
         return self._trainer
 
     @property
@@ -59,8 +62,6 @@ class ProgressBarBase(Callback):
 
         Use this to update your progress bar.
         """
-        if self.trainer is None:
-            return 0
         return self.trainer.fit_loop.epoch_loop.batch_progress.current.processed
 
     @property
@@ -69,8 +70,6 @@ class ProgressBarBase(Callback):
 
         Use this to update your progress bar.
         """
-        if self.trainer is None:
-            return 0
         if self.trainer.state.fn == "fit":
             return self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.current.processed
         return self.trainer.validate_loop.epoch_loop.batch_progress.current.processed
@@ -81,8 +80,6 @@ class ProgressBarBase(Callback):
 
         Use this to update your progress bar.
         """
-        if self.trainer is None:
-            return 0
         return self.trainer.test_loop.epoch_loop.batch_progress.current.processed
 
     @property
@@ -91,12 +88,10 @@ class ProgressBarBase(Callback):
 
         Use this to update your progress bar.
         """
-        if self.trainer is None:
-            return 0
         return self.trainer.predict_loop.epoch_loop.batch_progress.current.processed
 
     @property
-    def total_train_batches(self) -> int:
+    def total_train_batches(self) -> Union[int, float]:
         """The total number of training batches, which may change from epoch to epoch.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the training
@@ -105,12 +100,15 @@ class ProgressBarBase(Callback):
         return self.trainer.num_training_batches
 
     @property
-    def total_val_batches(self) -> int:
+    def total_val_batches(self) -> Union[int, float]:
         """The total number of validation batches, which may change from epoch to epoch.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the validation
         dataloader is of infinite size.
         """
+        if self.trainer.sanity_checking:
+            return sum(self.trainer.num_sanity_val_batches)
+
         total_val_batches = 0
         if self.trainer.enable_validation:
             is_val_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
@@ -119,7 +117,7 @@ class ProgressBarBase(Callback):
         return total_val_batches
 
     @property
-    def total_test_batches(self) -> int:
+    def total_test_batches(self) -> Union[int, float]:
         """The total number of testing batches, which may change from epoch to epoch.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the test dataloader is
@@ -128,7 +126,7 @@ class ProgressBarBase(Callback):
         return sum(self.trainer.num_test_batches)
 
     @property
-    def total_predict_batches(self) -> int:
+    def total_predict_batches(self) -> Union[int, float]:
         """The total number of prediction batches, which may change from epoch to epoch.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the predict dataloader
@@ -136,29 +134,27 @@ class ProgressBarBase(Callback):
         """
         return sum(self.trainer.num_predict_batches)
 
-    def disable(self):
-        """You should provide a way to disable the progress bar.
-
-        The :class:`~pytorch_lightning.trainer.trainer.Trainer` will call this to disable the
-        output on processes that have a rank different from 0, e.g., in multi-node training.
-        """
+    def disable(self) -> None:
+        """You should provide a way to disable the progress bar."""
         raise NotImplementedError
 
-    def enable(self):
+    def enable(self) -> None:
         """You should provide a way to enable the progress bar.
 
         The :class:`~pytorch_lightning.trainer.trainer.Trainer` will call this in e.g. pre-training
-        routines like the :ref:`learning rate finder <advanced/lr_finder:Learning Rate Finder>`
+        routines like the :ref:`learning rate finder <advanced/training_tricks:Learning Rate Finder>`.
         to temporarily enable and disable the main progress bar.
         """
         raise NotImplementedError
 
-    def print(self, *args, **kwargs):
+    def print(self, *args: Any, **kwargs: Any) -> None:
         """You should provide a way to print without breaking the progress bar."""
         print(*args, **kwargs)
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         self._trainer = trainer
+        if not trainer.is_global_zero:
+            self.disable()
 
     def get_metrics(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Dict[str, Union[int, str]]:
         r"""
@@ -211,17 +207,19 @@ def get_standard_metrics(trainer: "pl.Trainer", pl_module: "pl.LightningModule")
     elif pl_module.automatic_optimization:
         avg_training_loss = float("NaN")
 
-    items_dict = {}
+    items_dict: Dict[str, Union[int, str]] = {}
     if avg_training_loss is not None:
         items_dict["loss"] = f"{avg_training_loss:.3g}"
 
     if pl_module.truncated_bptt_steps > 0:
         items_dict["split_idx"] = trainer.fit_loop.split_idx
 
-    if trainer.logger is not None and trainer.logger.version is not None:
-        version = trainer.logger.version
-        # show last 4 places of long version strings
-        version = version[-4:] if isinstance(version, str) else version
-        items_dict["v_num"] = version
+    if trainer.loggers:
+        version = _version(trainer.loggers)
+        if version is not None:
+            if isinstance(version, str):
+                # show last 4 places of long version strings
+                version = version[-4:]
+            items_dict["v_num"] = version
 
     return items_dict

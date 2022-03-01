@@ -15,57 +15,43 @@ import logging
 import os
 import shutil
 import signal
-import subprocess
-import sys
 import tempfile
 import time
 from pathlib import Path
-from time import sleep
 from typing import Any, Dict, List, Optional, Union
 
-import __main__
-import numpy as np
 import torch
 import torch.distributed
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import _convert_to_lightning_optimizers, LightningOptimizer
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import (
     _FAIRSCALE_AVAILABLE,
-    _HYDRA_AVAILABLE,
     _IS_WINDOWS,
     _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
     _TORCH_GREATER_EQUAL_1_10,
-    rank_zero_warn,
 )
 from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.distributed import (
-    init_dist_connection,
-    rank_zero_only,
-    ReduceOp,
-    sync_ddp_if_available,
-)
-from pytorch_lightning.utilities.enums import _StrategyType
-from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
+from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
+from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
-if _HYDRA_AVAILABLE:
-    from hydra.core.hydra_config import HydraConfig
-    from hydra.utils import get_original_cwd, to_absolute_path
 if _TORCH_GREATER_EQUAL_1_8:
     from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 
@@ -74,13 +60,9 @@ log = logging.getLogger(__name__)
 
 
 class DDPStrategy(ParallelStrategy):
-    """Plugin for multi-process single-device training on one or multiple nodes.
+    """Strategy for multi-process single-device training on one or multiple nodes."""
 
-    The main process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
-    devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.launch` launches processes.
-    """
-
-    distributed_backend = _StrategyType.DDP
+    strategy_name = "ddp"
 
     def __init__(
         self,
@@ -102,10 +84,9 @@ class DDPStrategy(ParallelStrategy):
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
-        self.interactive_ddp_procs = []
+        log.detail(f"{self.__class__.__name__}: initializing DDP plugin")
         self._num_nodes = 1
         self.sync_batchnorm = False
-        self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._ddp_kwargs = kwargs
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
@@ -113,8 +94,7 @@ class DDPStrategy(ParallelStrategy):
         self._model_averaging_period = model_averaging_period
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
-        self._rank_0_has_called_call_children_scripts: bool = False
-        self.set_world_ranks()
+        self._rank_0_will_call_children_scripts: bool = False
 
     @property
     def is_distributed(self) -> bool:
@@ -132,7 +112,10 @@ class DDPStrategy(ParallelStrategy):
     def num_nodes(self, num_nodes: int) -> None:
         # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
         self._num_nodes = num_nodes
-        self.set_world_ranks()
+
+    @property
+    def num_processes(self):
+        return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
     def distributed_sampler_kwargs(self):
@@ -143,18 +126,19 @@ class DDPStrategy(ParallelStrategy):
     def _is_single_process_single_device(self) -> bool:
         return True
 
-    def setup_environment(self) -> None:
-        # start the other scripts
+    def _configure_launcher(self) -> None:
+        self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
         if not self.cluster_environment.creates_processes_externally:
-            self._call_children_scripts()
+            self._rank_0_will_call_children_scripts = True
 
+    def setup_environment(self) -> None:
         self.setup_distributed()
         super().setup_environment()
 
     def setup(self, trainer: "pl.Trainer") -> None:
         super().setup(trainer)
         # share ddp pids to all processes
-        self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts)
+        self._rank_0_will_call_children_scripts = self.broadcast(self._rank_0_will_call_children_scripts)
         if self._should_run_deadlock_detection():
             self._share_information_to_prevent_deadlock()
 
@@ -165,84 +149,18 @@ class DDPStrategy(ParallelStrategy):
             self.model = self.configure_sync_batchnorm(self.model)
 
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
-        trainer_fn = self.lightning_module.trainer.state.fn
+        trainer_fn = trainer.state.fn
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
-        return DistributedDataParallel(module=model, device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs)
-
-    def _call_children_scripts(self):
-        # bookkeeping of spawned processes
-        self._check_can_spawn_children()
-
-        # DDP Environment variables
-        os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
-        os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
-
-        # allow the user to pass the node rank
-        os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
-        os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
-
-        # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
-        # See https://docs.python.org/3/reference/import.html#main-spec
-        if __main__.__spec__ is None:  # pragma: no-cover
-            # Script called as `python a/b/c.py`
-            # when user is using hydra find the absolute path
-            path_lib = os.path.abspath if not _HYDRA_AVAILABLE else to_absolute_path
-
-            # pull out the commands used to run the script and resolve the abs file path
-            command = sys.argv
-            try:
-                full_path = path_lib(command[0])
-            except Exception:
-                full_path = os.path.abspath(command[0])
-
-            command[0] = full_path
-            # use the same python interpreter and actually running
-            command = [sys.executable] + command
-        else:  # Script called as `python -m a.b.c`
-            command = [sys.executable, "-m", __main__.__spec__.name] + sys.argv[1:]
-
-        # the visible devices tell us how many GPUs we want to use.
-        # when the trainer script was called the device has already been scoped by the time
-        # code reaches this point. so, to call the scripts, we need to leave cuda visible devices alone
-        # but forward the GPUs selected via environment variables
-        if self.parallel_devices is None:
-            raise MisconfigurationException("you selected (distribute_backend = ddp) but did not set Trainer(gpus=?)")
-
-        os.environ["WORLD_SIZE"] = f"{self.num_processes * self.num_nodes}"
-
-        self.interactive_ddp_procs = []
-
-        for local_rank in range(1, self.num_processes):
-            env_copy = os.environ.copy()
-            env_copy["LOCAL_RANK"] = f"{local_rank}"
-
-            # remove env var if global seed not set
-            if os.environ.get("PL_GLOBAL_SEED") is None and "PL_GLOBAL_SEED" in env_copy:
-                del env_copy["PL_GLOBAL_SEED"]
-
-            # start process
-            # if hydra is available and initialized, make sure to set the cwd correctly
-            cwd: Optional[str] = None
-            if _HYDRA_AVAILABLE:
-                if HydraConfig.initialized():
-                    cwd = get_original_cwd()
-                    os_cwd = f'"{os.getcwd()}"'
-                    command += [f"hydra.run.dir={os_cwd}", f"hydra.job.name=train_ddp_process_{local_rank}"]
-            proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
-            self.interactive_ddp_procs.append(proc)
-
-            # starting all processes at once can cause issues
-            # with dataloaders delay between 1-10 seconds
-            delay = np.random.uniform(1, 5, 1)[0]
-            sleep(delay)
-
-        self._rank_0_has_called_call_children_scripts = True
+        device_ids = self.determine_ddp_device_ids()
+        log.detail(f"setting up DDP model with device ids: {device_ids}, kwargs: {self._ddp_kwargs}")
+        return DistributedDataParallel(module=model, device_ids=device_ids, **self._ddp_kwargs)
 
     def setup_distributed(self):
+        log.detail(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
 
         # determine which process we are and world size
@@ -255,14 +173,6 @@ class DDPStrategy(ParallelStrategy):
         # try to init for 20 times at max in case ports are taken
         # where to store ip_table
         init_dist_connection(self.cluster_environment, self.torch_distributed_backend)
-
-    def _check_can_spawn_children(self):
-        if self.local_rank != 0:
-            raise RuntimeError(
-                "Lightning attempted to launch new distributed processes with `local_rank > 0`. This should not happen."
-                " Possible reasons: 1) LOCAL_RANK environment variable was incorrectly modified by the user,"
-                " 2) `ClusterEnvironment.creates_processes_externally` incorrectly implemented."
-            )
 
     def set_world_ranks(self) -> None:
         if self.cluster_environment is None:
@@ -288,10 +198,11 @@ class DDPStrategy(ParallelStrategy):
             self._ddp_kwargs["find_unused_parameters"] = True
 
     def _register_ddp_hooks(self) -> None:
+        log.detail(f"{self.__class__.__name__}: registering ddp hooks")
         # In 1.8, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # Since 1.9, DDP communication hooks can work on all backends.
         if _TORCH_GREATER_EQUAL_1_9 or (
-            _TORCH_GREATER_EQUAL_1_8 and self.on_gpu and self._is_single_process_single_device
+            _TORCH_GREATER_EQUAL_1_8 and self.root_device.type == "cuda" and self._is_single_process_single_device
         ):
             register_ddp_comm_hook(
                 model=self.model,
@@ -307,7 +218,8 @@ class DDPStrategy(ParallelStrategy):
                     self._reinit_optimizers_with_post_localSGD(self._ddp_comm_state.start_localSGD_iter)
 
     def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int):
-        optimizers = self.lightning_module.trainer.optimizers
+        log.detail(f"{self.__class__.__name__}: reinitializing optimizers with post localSGD")
+        optimizers = self.optimizers
         if self._model_averaging_period is None:
             raise ValueError(
                 "Post-localSGD algorithm is used, but model averaging period is not provided to DDP strategy."
@@ -345,11 +257,10 @@ class DDPStrategy(ParallelStrategy):
             )
             optimizers[x] = post_localSGD_optimizer
             del optimizer
-        trainer = self.lightning_module.trainer
-        trainer.optimizers = optimizers
-        _convert_to_lightning_optimizers(trainer)
+        self.optimizers = optimizers
 
     def configure_ddp(self) -> None:
+        log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
         self.pre_configure_ddp()
         self.model = self._setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
@@ -380,6 +291,7 @@ class DDPStrategy(ParallelStrategy):
             prepare_for_backward(self.model, closure_loss)
 
     def model_to_device(self):
+        log.detail(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         self.model.to(self.root_device)
 
     def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
@@ -431,6 +343,11 @@ class DDPStrategy(ParallelStrategy):
             description="DDP Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
         )
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )
 
     def _should_run_deadlock_detection(self) -> bool:
         """Determines whether the plugin will perform process reconciliation in case of errors.
@@ -439,7 +356,7 @@ class DDPStrategy(ParallelStrategy):
         By default this is disabled. Otherwise, if the cluster environment creates the processes, allow the scheduler /
         parent process to perform the process termination, external to Lightning.
         """
-        return os.getenv("PL_RECONCILE_PROCESS", "0") == "1" or self._rank_0_has_called_call_children_scripts
+        return os.getenv("PL_RECONCILE_PROCESS", "0") == "1" or self._rank_0_will_call_children_scripts
 
     def _share_information_to_prevent_deadlock(self) -> None:
         self._share_pids()
@@ -500,6 +417,7 @@ class DDPStrategy(ParallelStrategy):
         raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
 
     def teardown(self) -> None:
+        log.detail(f"{self.__class__.__name__}: tearing down DDP plugin")
         super().teardown()
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
@@ -507,8 +425,9 @@ class DDPStrategy(ParallelStrategy):
         if self.sync_batchnorm:
             self.model = _revert_sync_batchnorm(self.model)
 
-        if self.on_gpu:
+        if self.root_device.type == "cuda":
             # GPU teardown
+            log.detail(f"{self.__class__.__name__}: moving model to CPU")
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()

@@ -15,7 +15,7 @@ import os
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
+from pytorch_lightning.loggers import CSVLogger, LoggerCollection, TensorBoardLogger
 from tests.helpers.boring_model import BoringModel
 
 
@@ -117,7 +117,7 @@ def test_logdir_logger_collection(tmpdir):
     trainer = Trainer(
         default_root_dir=default_root_dir,
         max_steps=2,
-        logger=[TensorBoardLogger(save_dir=save_dir, name="custom_logs")],
+        logger=[TensorBoardLogger(save_dir=save_dir, name="custom_logs"), CSVLogger(tmpdir)],
     )
     assert isinstance(trainer.logger, LoggerCollection)
     assert trainer.log_dir == default_root_dir

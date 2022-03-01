@@ -11,17 +11,38 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Sequence, Union
+import os
+import shutil
+from collections import OrderedDict
+from functools import partial
+from typing import Any, IO, Iterable, List, Optional, Sequence, Type, Union
 
 import torch
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
 
+import pytorch_lightning as pl
+from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetching import (
+    AbstractDataFetcher,
+    DataFetcher,
+    DataLoaderIterDataFetcher,
+    InterBatchParallelDataFetcher,
+)
+from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
+
+if _RICH_AVAILABLE:
+    from rich.console import Console
+    from rich.table import Column, Table
 
 
 class EvaluationLoop(DataLoaderLoop):
@@ -37,6 +58,7 @@ class EvaluationLoop(DataLoaderLoop):
         self._logged_outputs: List[_OUT_DICT] = []
         self._max_batches: List[int] = []
         self._has_run: bool = False
+        self._data_fetcher: Optional[AbstractDataFetcher] = None
 
     @property
     def num_dataloaders(self) -> int:
@@ -58,6 +80,13 @@ class EvaluationLoop(DataLoaderLoop):
         if dataloaders is None:
             raise RuntimeError("Dataloaders should be available.")
         return dataloaders
+
+    @property
+    def prefetch_batches(self) -> int:
+        batches = self.trainer.num_test_batches if self.trainer.testing else self.trainer.num_val_batches
+        is_unsized = batches[self.current_dataloader_idx] == float("inf")
+        inter_batch_parallelism = os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1"
+        return 1 if is_unsized or inter_batch_parallelism else 0
 
     def connect(self, epoch_loop: EvaluationEpochLoop) -> None:  # type: ignore[override]
         """Connect the evaluation epoch loop with this loop."""
@@ -98,6 +127,9 @@ class EvaluationLoop(DataLoaderLoop):
         hooks."""
         void(*args, **kwargs)
 
+        data_fetcher_cls = _select_data_fetcher_type(self.trainer)
+        self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)
+
         # hook
         self._on_evaluation_model_eval()
         self.trainer.lightning_module.zero_grad()
@@ -110,14 +142,17 @@ class EvaluationLoop(DataLoaderLoop):
 
         dataloader_idx = self.current_dataloader_idx
         dataloader = self.trainer.strategy.process_dataloader(self.current_dataloader)
-        self.data_fetcher = dataloader = self.trainer._data_connector.get_profiled_dataloader(
-            dataloader, dataloader_idx=dataloader_idx
+        assert self._data_fetcher is not None
+        self._data_fetcher.setup(
+            dataloader,
+            batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=dataloader_idx),
         )
         dl_max_batches = self._max_batches[dataloader_idx]
 
-        dl_outputs = self.epoch_loop.run(
-            dataloader, dataloader_idx if self.num_dataloaders > 1 else None, dl_max_batches
-        )
+        kwargs = OrderedDict()
+        if self.num_dataloaders > 1:
+            kwargs["dataloader_idx"] = dataloader_idx
+        dl_outputs = self.epoch_loop.run(self._data_fetcher, dl_max_batches, kwargs)
 
         # store batch level output per dataloader
         self._outputs.append(dl_outputs)
@@ -167,6 +202,9 @@ class EvaluationLoop(DataLoaderLoop):
         return logged_outputs
 
     def teardown(self) -> None:
+        if self._data_fetcher is not None:
+            self._data_fetcher.teardown()
+            self._data_fetcher = None
         self._results.cpu()
         self.epoch_loop.teardown()
 
@@ -176,9 +214,6 @@ class EvaluationLoop(DataLoaderLoop):
             max_batches = self.trainer.num_test_batches
         else:
             if self.trainer.sanity_checking:
-                self.trainer.num_sanity_val_batches = [
-                    min(self.trainer.num_sanity_val_steps, val_batches) for val_batches in self.trainer.num_val_batches
-                ]
                 max_batches = self.trainer.num_sanity_val_batches
             else:
                 max_batches = self.trainer.num_val_batches
@@ -271,17 +306,98 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer._call_lightning_module_hook("on_epoch_end")
         self.trainer.logger_connector.on_epoch_end()
 
-    def _print_results(self, results: List[_OUT_DICT], stage: RunningStage) -> None:
-        # TODO: this could be updated to look nicer
-        from pprint import pprint
+    @staticmethod
+    def _get_keys(data: dict) -> Iterable[str]:
+        if any(isinstance(v, dict) for v in data.values()):
+            for v in data.values():
+                yield from apply_to_collection(v, dict, dict.keys)
+        else:
+            yield from data.keys()
 
-        print("-" * 80)
-        for i, metrics_dict in enumerate(results):
-            print(f"DATALOADER:{i} {stage.upper()} RESULTS")
-            pprint(
-                {
-                    k: (v.item() if v.numel() == 1 else v.tolist()) if isinstance(v, torch.Tensor) else v
-                    for k, v in metrics_dict.items()
-                }
-            )
-            print("-" * 80)
+    @staticmethod
+    def _find_value(data: dict, target: str) -> Iterable[Any]:
+        for k, v in data.items():
+            if k == target:
+                yield v
+            elif isinstance(v, dict):
+                yield from EvaluationLoop._find_value(v, target)
+
+    @staticmethod
+    def _print_results(results: List[_OUT_DICT], stage: str, file: Optional[IO[str]] = None) -> None:
+        # remove the dl idx suffix
+        results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
+        metrics = sorted({k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys})
+        headers = [f"DataLoader {i}" for i in range(len(results))]
+
+        # fallback is useful for testing of printed output
+        term_size = shutil.get_terminal_size(fallback=(120, 30)).columns or 120
+        max_length = int(min(max(len(max(metrics + headers, key=len)), 25), term_size / 2))
+
+        rows: List[List[Any]] = [[] for _ in metrics]
+
+        for result in results:
+            for metric, row in zip(metrics, rows):
+                v = list(EvaluationLoop._find_value(result, metric))
+                if v:
+                    val = v[0]
+                    if isinstance(val, torch.Tensor):
+                        val = val.item() if val.numel() == 1 else val.tolist()
+                    row.append(f"{val}")
+                else:
+                    row.append(" ")
+
+        # keep one column with max length for metrics
+        num_cols = int((term_size - max_length) / max_length)
+
+        for i in range(0, len(headers), num_cols):
+            table_headers = headers[i : (i + num_cols)]
+            table_rows = [row[i : (i + num_cols)] for row in rows]
+
+            table_headers.insert(0, f"{stage} Metric".capitalize())
+
+            if _RICH_AVAILABLE:
+                console = Console(file=file)
+
+                columns = [Column(h, justify="center", style="magenta", width=max_length) for h in table_headers]
+                columns[0].style = "cyan"
+
+                table = Table(*columns)
+                for metric, row in zip(metrics, table_rows):
+                    row.insert(0, metric)
+                    table.add_row(*row)
+                console.print(table)
+            else:
+                row_format = f"{{:^{max_length}}}" * len(table_headers)
+                half_term_size = int(term_size / 2)
+
+                bar = "─" * term_size
+                lines = [bar, row_format.format(*table_headers).rstrip(), bar]
+                for metric, row in zip(metrics, table_rows):
+                    # deal with column overflow
+                    if len(metric) > half_term_size:
+                        while len(metric) > half_term_size:
+                            row_metric = metric[:half_term_size]
+                            metric = metric[half_term_size:]
+                            lines.append(row_format.format(row_metric, *row).rstrip())
+                        lines.append(row_format.format(metric, " ").rstrip())
+                    else:
+                        lines.append(row_format.format(metric, *row).rstrip())
+                lines.append(bar)
+                print(os.linesep.join(lines), file=file)
+
+
+def _select_data_fetcher_type(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:
+    lightning_module = trainer.lightning_module
+    step_fx_name = "test_step" if trainer.testing else "validation_step"
+    step_fx = getattr(lightning_module, step_fx_name)
+    if is_param_in_hook_signature(step_fx, "dataloader_iter", explicit=True):
+        rank_zero_warn(
+            f"Found `dataloader_iter` argument in the `{step_fx_name}`. Note that the support for "
+            "this signature is experimental and the behavior is subject to change."
+        )
+        return DataLoaderIterDataFetcher
+    elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
+        if not isinstance(trainer.accelerator, GPUAccelerator):
+            raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
+        return InterBatchParallelDataFetcher
+    return DataFetcher

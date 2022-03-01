@@ -15,7 +15,6 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-import torch.distributed as dist
 from torch import nn
 from torch.optim import Adam, SGD
 
@@ -77,45 +76,32 @@ def test_property_logger(tmpdir):
     assert model.logger == logger
 
 
-def test_params_groups_and_state_are_accessible(tmpdir):
-    class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            return {"loss": loss}
+def test_property_loggers(tmpdir):
+    """Test that loggers in LightningModule is accessible via the Trainer."""
+    model = BoringModel()
+    assert model.loggers == []
 
-        def configure_optimizers(self):
-            optimizer = SGD(self.layer.parameters(), lr=0.1)
-            optimizer_2 = Adam(self.layer.parameters(), lr=0.1)
-            return [optimizer, optimizer_2]
+    logger = TensorBoardLogger(tmpdir)
+    trainer = Trainer(logger=logger)
+    model.trainer = trainer
+    assert model.loggers == [logger]
 
-        def optimizer_step(
-            self,
-            epoch,
-            batch_idx,
-            optimizer,
-            optimizer_idx,
-            optimizer_closure,
-            on_tpu=False,
-            using_native_amp=False,
-            using_lbfgs=False,
-        ):
-            # warm up lr
-            if self.trainer.global_step < 500:
-                lr_scale = min(1.0, float(self.trainer.global_step + 1) / 500.0)
-                for pg in optimizer.param_groups:
-                    pg["lr"] = lr_scale * 0.01
 
-            optimizer.step(closure=optimizer_closure)
+def test_1_optimizer_toggle_model():
+    """Test toggle_model runs when only one optimizer is used."""
+    model = BoringModel()
+    trainer = Mock()
+    model.trainer = trainer
+    params = model.parameters()
+    optimizer = torch.optim.SGD(params, lr=0.1)
+    trainer.optimizers = [optimizer]
 
-    model = TestModel()
-    model.training_epoch_end = None
-
-    trainer = Trainer(
-        max_epochs=1, default_root_dir=tmpdir, limit_train_batches=8, limit_val_batches=1, accumulate_grad_batches=1
-    )
-
-    trainer.fit(model)
+    assert not model._param_requires_grad_state
+    # toggle optimizer was failing with a single optimizer
+    model.toggle_optimizer(optimizer, 0)
+    assert model._param_requires_grad_state
+    model.untoggle_optimizer(0)
+    assert not model._param_requires_grad_state
 
 
 def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
@@ -287,7 +273,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
 def test_device_placement(tmpdir):
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="gpu", devices=1)
     trainer.fit(model)
 
     def assert_device(device: torch.device) -> None:
@@ -304,16 +290,18 @@ def test_device_placement(tmpdir):
     assert_device(torch.device("cpu"))
 
 
-class BoringModelWithShardedTensor(BoringModel):
-    def __init__(self, spec):
-        super().__init__()
-        self.sharded_tensor = dist._sharded_tensor.empty(spec, 10, 20)
-        self.sharded_tensor.local_shards()[0].tensor.fill_(0)
-
-
 @RunIf(min_torch="1.10", skip_windows=True)
 def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
-    spec = dist._sharding_spec.ChunkShardingSpec(
+    from torch.distributed._sharded_tensor import empty as sharded_tensor_empty
+    from torch.distributed._sharding_spec import ChunkShardingSpec
+
+    class BoringModelWithShardedTensor(BoringModel):
+        def __init__(self, spec):
+            super().__init__()
+            self.sharded_tensor = sharded_tensor_empty(spec, 10, 20)
+            self.sharded_tensor.local_shards()[0].tensor.fill_(0)
+
+    spec = ChunkShardingSpec(
         dim=0,
         placements=[
             "rank:0/cpu",

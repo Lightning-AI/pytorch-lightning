@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+import logging
 from typing import Dict, Generator, List, Optional
 
 import torch
@@ -22,18 +23,21 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
-from pytorch_lightning.utilities.enums import _StrategyType, PrecisionType
+from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import default_auto_wrap_policy, enable_wrap
     from fairscale.nn.data_parallel import FullyShardedDataParallel
 
+log = logging.getLogger(__name__)
+
 
 class DDPFullyShardedStrategy(DDPStrategy):
 
-    distributed_backend = _StrategyType.DDP_FULLY_SHARDED
+    strategy_name = "ddp_fully_sharded"
 
     def __init__(
         self,
@@ -95,7 +99,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
                 (Default: 1e8)
             state_dict_to_cpu: Whether to return parameters (returned by :func:`state_dict`) on CPU device.
                 If ``False``, this will default to ``compute_device``.
-                (Defautl: True).
+                (Default: True).
         """
 
         super().__init__(
@@ -123,7 +127,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         return self._process_group
 
     def setup_distributed(self) -> None:
-        if not self.on_gpu:
+        if not self.root_device.type == "cuda":
             raise MisconfigurationException(
                 "You selected strategy to be `ddp_fully_sharded`, but GPU is not available."
             )
@@ -133,7 +137,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
-        self._move_optimizer_state()
+        optimizers_to_device(self.optimizers, self.root_device)
 
         if self.sync_batchnorm:
             self.model = self.configure_sync_batchnorm(self.model)
@@ -144,6 +148,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
+        log.detail(f"{self.__class__.__name__}: entered model_sharded_context.")
         precision = self.precision_plugin.precision
 
         def wrap_policy(*args, **kwargs):
@@ -165,7 +170,10 @@ class DDPFullyShardedStrategy(DDPStrategy):
         ):
             yield
 
+        log.detail(f"{self.__class__.__name__}: exiting model_sharded_context.")
+
     def configure_ddp(self) -> None:
+        log.detail(f"{self.__class__.__name__}: configuring DDP... (cpu_offload: [{self.cpu_offload}])")
         if not self.cpu_offload:
             # When using CPU Offload, FSDP will manage the CUDA movement for us.
             # Note: this would be problematic for large model (which could not fit in one GPU)
@@ -177,6 +185,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         self.setup_optimizers(self.lightning_module.trainer)
 
     def model_to_device(self) -> None:
+        log.detail(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         # ensure we update the device type in the lightning module
         self.lightning_module.to(self.root_device)
 
@@ -203,4 +212,10 @@ class DDPFullyShardedStrategy(DDPStrategy):
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
             "fsdp", cls, description="Fully sharded training with checkpointing the full state dict."
+        )
+
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
         )

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Helper functions to help with reproducibility of models."""
+"""Utilities to help with reproducibility of models."""
 
 import logging
 import os
@@ -21,8 +21,7 @@ from typing import Optional
 import numpy as np
 import torch
 
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -88,9 +87,10 @@ def reset_seed() -> None:
     If :func:`pytorch_lightning.utilities.seed.seed_everything` is unused, this function will do nothing.
     """
     seed = os.environ.get("PL_GLOBAL_SEED", None)
+    if seed is None:
+        return
     workers = os.environ.get("PL_SEED_WORKERS", "0")
-    if seed is not None:
-        seed_everything(int(seed), workers=bool(int(workers)))
+    seed_everything(int(seed), workers=bool(int(workers)))
 
 
 def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:  # pragma: no cover

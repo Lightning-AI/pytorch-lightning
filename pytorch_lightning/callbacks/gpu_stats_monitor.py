@@ -29,9 +29,9 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import _AcceleratorType, rank_zero_deprecation, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
@@ -123,10 +123,10 @@ class GPUStatsMonitor(Callback):
         self._gpu_ids: List[str] = []  # will be assigned later in setup()
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
-        if not trainer.logger:
+        if not trainer.loggers:
             raise MisconfigurationException("Cannot use GPUStatsMonitor callback with Trainer that has no logger.")
 
-        if trainer._device_type != _AcceleratorType.GPU:
+        if trainer.strategy.root_device.type != "cuda":
             raise MisconfigurationException(
                 "You are using GPUStatsMonitor but are not running on GPU"
                 f" since gpus attribute in Trainer is set to {trainer.gpus}."
@@ -161,8 +161,8 @@ class GPUStatsMonitor(Callback):
             # First log at beginning of second step
             logs["batch_time/inter_step (ms)"] = (time.time() - self._snap_inter_step_time) * 1000
 
-        assert trainer.logger is not None
-        trainer.logger.log_metrics(logs, step=trainer.global_step)
+        for logger in trainer.loggers:
+            logger.log_metrics(logs, step=trainer.global_step)
 
     @rank_zero_only
     def on_train_batch_end(
@@ -186,8 +186,8 @@ class GPUStatsMonitor(Callback):
         if self._log_stats.intra_step_time and self._snap_intra_step_time:
             logs["batch_time/intra_step (ms)"] = (time.time() - self._snap_intra_step_time) * 1000
 
-        assert trainer.logger is not None
-        trainer.logger.log_metrics(logs, step=trainer.global_step)
+        for logger in trainer.loggers:
+            logger.log_metrics(logs, step=trainer.global_step)
 
     @staticmethod
     def _get_gpu_ids(device_ids: List[int]) -> List[str]:
@@ -207,7 +207,7 @@ class GPUStatsMonitor(Callback):
         gpu_ids = ",".join(self._gpu_ids)
         result = subprocess.run(
             [
-                # it's ok to supress the warning here since we ensure nvidia-smi exists during init
+                # it's ok to suppress the warning here since we ensure nvidia-smi exists during init
                 shutil.which("nvidia-smi"),  # type: ignore
                 f"--query-gpu={gpu_query}",
                 f"--format={format}",

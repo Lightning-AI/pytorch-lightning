@@ -44,7 +44,7 @@ class DeviceStatsMonitor(Callback):
     """
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
-        if not trainer.logger:
+        if not trainer.loggers:
             raise MisconfigurationException("Cannot use DeviceStatsMonitor callback with Trainer that has no logger.")
 
     def on_train_batch_start(
@@ -55,16 +55,18 @@ class DeviceStatsMonitor(Callback):
         batch_idx: int,
         unused: Optional[int] = 0,
     ) -> None:
-        if not trainer.logger:
+        if not trainer.loggers:
             raise MisconfigurationException("Cannot use `DeviceStatsMonitor` callback with `Trainer(logger=False)`.")
 
         if not trainer.logger_connector.should_update_logs:
             return
 
-        device_stats = trainer.accelerator.get_device_stats(pl_module.device)
-        separator = trainer.logger.group_separator
-        prefixed_device_stats = _prefix_metric_keys(device_stats, "on_train_batch_start", separator)
-        trainer.logger.log_metrics(prefixed_device_stats, step=trainer.global_step)
+        device = trainer.strategy.root_device
+        device_stats = trainer.accelerator.get_device_stats(device)
+        for logger in trainer.loggers:
+            separator = logger.group_separator
+            prefixed_device_stats = _prefix_metric_keys(device_stats, "on_train_batch_start", separator)
+            logger.log_metrics(prefixed_device_stats, step=trainer.global_step)
 
     def on_train_batch_end(
         self,
@@ -75,16 +77,18 @@ class DeviceStatsMonitor(Callback):
         batch_idx: int,
         unused: Optional[int] = 0,
     ) -> None:
-        if not trainer.logger:
+        if not trainer.loggers:
             raise MisconfigurationException("Cannot use `DeviceStatsMonitor` callback with `Trainer(logger=False)`.")
 
         if not trainer.logger_connector.should_update_logs:
             return
 
-        device_stats = trainer.accelerator.get_device_stats(pl_module.device)
-        separator = trainer.logger.group_separator
-        prefixed_device_stats = _prefix_metric_keys(device_stats, "on_train_batch_end", separator)
-        trainer.logger.log_metrics(prefixed_device_stats, step=trainer.global_step)
+        device = trainer.strategy.root_device
+        device_stats = trainer.accelerator.get_device_stats(device)
+        for logger in trainer.loggers:
+            separator = logger.group_separator
+            prefixed_device_stats = _prefix_metric_keys(device_stats, "on_train_batch_end", separator)
+            logger.log_metrics(prefixed_device_stats, step=trainer.global_step)
 
 
 def _prefix_metric_keys(metrics_dict: Dict[str, float], prefix: str, separator: str) -> Dict[str, float]:

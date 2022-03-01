@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Union
 
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.utilities import _IPU_AVAILABLE
 
 
 class IPUAccelerator(Accelerator):
@@ -26,8 +27,22 @@ class IPUAccelerator(Accelerator):
         return {}
 
     @staticmethod
+    def parse_devices(devices: int) -> int:
+        """Accelerator device parsing logic."""
+        return devices
+
+    @staticmethod
+    def get_parallel_devices(devices: int) -> List[int]:
+        """Gets parallel devices for the Accelerator."""
+        return list(range(devices))
+
+    @staticmethod
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         # TODO (@kaushikb11): 4 is the minimal unit they are shipped in.
         # Update this when api is exposed by the Graphcore team.
         return 4
+
+    @staticmethod
+    def is_available() -> bool:
+        return _IPU_AVAILABLE

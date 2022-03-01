@@ -32,6 +32,7 @@ from torch.utils.data import DataLoader, IterableDataset
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
+from pytorch_lightning.accelerators import CPUAccelerator, GPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
@@ -45,9 +46,9 @@ from pytorch_lightning.strategies import (
     DDPSpawnShardedStrategy,
     DDPSpawnStrategy,
     DDPStrategy,
+    SingleDeviceStrategy,
 )
-from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _AcceleratorType, _StrategyType
+from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _IS_WINDOWS, _OMEGACONF_AVAILABLE, _TORCH_GREATER_EQUAL_1_8
@@ -330,11 +331,11 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
     trainer.save_checkpoint = mock_save_function
 
     # emulate callback's calls during the training
-    for i, loss in enumerate(losses):
-        trainer.fit_loop.current_epoch = i
+    for i, loss in enumerate(losses, 1):
         trainer.fit_loop.global_step = i
         trainer.callback_metrics.update({"checkpoint_on": torch.tensor(loss)})
         checkpoint_callback.on_validation_end(trainer, trainer.lightning_module)
+        trainer.fit_loop.epoch_progress.current.completed = i  # sets `trainer.current_epoch`
 
     file_lists = set(os.listdir(tmpdir))
 
@@ -384,7 +385,7 @@ def test_model_checkpoint_only_weights(tmpdir):
 
     # assert restoring train state fails
     with pytest.raises(KeyError, match="checkpoint contains only the model"):
-        trainer.checkpoint_connector.restore(new_weights_path)
+        trainer._checkpoint_connector.restore(new_weights_path)
 
 
 def test_model_freeze_unfreeze():
@@ -412,7 +413,7 @@ def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ck
         num_batches_seen = 0
         num_on_load_checkpoint_called = 0
 
-        def on_epoch_end(self):
+        def on_train_epoch_end(self):
             self.num_epochs_end_seen += 1
 
         def on_train_batch_start(self, *_):
@@ -435,8 +436,7 @@ def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ck
     )
     trainer.fit(model)
 
-    # `on_epoch_end` will be called once for val_sanity, twice for train, twice for val
-    assert model.num_epochs_end_seen == 1 + 2 + 2
+    assert model.num_epochs_end_seen == 2
     assert model.num_batches_seen == trainer.num_training_batches * 2
     assert model.num_on_load_checkpoint_called == 0
 
@@ -487,7 +487,7 @@ def test_trainer_max_steps_and_epochs(tmpdir):
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.global_step == num_train_samples * trainer.max_epochs
-    assert trainer.current_epoch == trainer.max_epochs - 1, "Model did not stop at max_epochs"
+    assert trainer.current_epoch == trainer.max_epochs, "Model did not stop at max_epochs"
 
     # if max_steps is positive and max_epochs is negative, use max_steps
     trainer_kwargs["max_epochs"] = -1
@@ -638,23 +638,31 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
 
-def test_benchmark_option(tmpdir):
+@pytest.mark.parametrize(
+    ["benchmark_", "deterministic", "expected"],
+    [
+        (None, False, True),
+        (None, True, False),
+        (True, False, True),
+        (True, True, True),
+        (False, True, False),
+        (False, False, False),
+    ],
+)
+def test_benchmark_option(benchmark_, deterministic, expected):
     """Verify benchmark option."""
 
-    model = BoringModel()
+    original_val = torch.backends.cudnn.benchmark
 
-    # verify torch.backends.cudnn.benchmark is not turned on
-    assert not torch.backends.cudnn.benchmark
+    if benchmark_ and deterministic:
+        with pytest.warns(UserWarning, match="You passed `deterministic=True` and `benchmark=True`"):
+            trainer = Trainer(benchmark=benchmark_, deterministic=deterministic)
+    else:
+        trainer = Trainer(benchmark=benchmark_, deterministic=deterministic)
+    assert torch.backends.cudnn.benchmark == expected
+    assert trainer._accelerator_connector.benchmark == expected
 
-    # fit model
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, benchmark=True)
-    trainer.fit(model)
-
-    # verify training completed
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-
-    # verify torch.backends.cudnn.benchmark is not turned off
-    assert torch.backends.cudnn.benchmark
+    torch.backends.cudnn.benchmark = original_val
 
 
 @pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
@@ -686,8 +694,7 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
     trainer.fit(model)
 
     trainer_fn = getattr(trainer, fn)
-    path_attr = f"{fn}{'d' if fn == 'validate' else 'ed'}_ckpt_path"
-    assert getattr(trainer, path_attr) is None
+    assert getattr(trainer, "ckpt_path") is None
 
     if ckpt_path == "best":
         # ckpt_path is 'best', meaning we load the best weights
@@ -698,20 +705,20 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
                 trainer_fn(model, ckpt_path=ckpt_path)
         else:
             trainer_fn(ckpt_path=ckpt_path)
-            assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
+            assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.best_model_path
 
             trainer_fn(model, ckpt_path=ckpt_path)
-            assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
+            assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.best_model_path
     elif ckpt_path is None:
         # ckpt_path is None, meaning we don't load any checkpoints and use the provided model
         trainer_fn(model, ckpt_path=ckpt_path)
-        assert getattr(trainer, path_attr) is None
+        assert getattr(trainer, "ckpt_path") is None
 
         if save_top_k > 0:
             # ckpt_path is None with no model provided means load the best weights
             with pytest.warns(UserWarning, match="The best model of the previous `fit` call will be used"):
                 trainer_fn(ckpt_path=ckpt_path)
-                assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
+                assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.best_model_path
     else:
         # specific checkpoint, pick one from saved ones
         if save_top_k == 0:
@@ -724,10 +731,10 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
                 ].absolute()
             )
             trainer_fn(ckpt_path=ckpt_path)
-            assert getattr(trainer, path_attr) == ckpt_path
+            assert getattr(trainer, "ckpt_path") == ckpt_path
 
             trainer_fn(model, ckpt_path=ckpt_path)
-            assert getattr(trainer, path_attr) == ckpt_path
+            assert getattr(trainer, "ckpt_path") == ckpt_path
 
 
 @pytest.mark.parametrize("enable_checkpointing", (False, True))
@@ -758,15 +765,14 @@ def test_tested_checkpoint_path_best(tmpdir, enable_checkpointing, fn):
     trainer.fit(model)
 
     trainer_fn = getattr(trainer, fn)
-    path_attr = f"{fn}{'d' if fn == 'validate' else 'ed'}_ckpt_path"
-    assert getattr(trainer, path_attr) is None
+    assert getattr(trainer, "ckpt_path") is None
 
     if enable_checkpointing:
         trainer_fn(ckpt_path="best")
-        assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
+        assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.best_model_path
 
         trainer_fn(model, ckpt_path="best")
-        assert getattr(trainer, path_attr) == trainer.checkpoint_callback.best_model_path
+        assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.best_model_path
     else:
         with pytest.raises(MisconfigurationException, match="`ModelCheckpoint` is not configured."):
             trainer_fn(ckpt_path="best")
@@ -846,7 +852,7 @@ def test_disabled_training(tmpdir):
         assert not torch.all(torch.eq(before_state_dict[key], after_state_dict[key]))
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.current_epoch == 0
+    assert trainer.current_epoch == 1
     assert model.training_step_invoked, "did not run `training_step` with `fast_dev_run=True`"
     assert model.training_epoch_end_invoked, "did not run `training_epoch_end` with `fast_dev_run=True`"
 
@@ -883,7 +889,7 @@ def test_disabled_validation(tmpdir):
 
     # check that limit_val_batches=0 turns off validation
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.current_epoch == 1
+    assert trainer.current_epoch == 2
     assert not model.validation_step_invoked, "`validation_step` should not run when `limit_val_batches=0`"
     assert not model.validation_epoch_end_invoked, "`validation_epoch_end` should not run when `limit_val_batches=0`"
 
@@ -894,7 +900,7 @@ def test_disabled_validation(tmpdir):
     trainer.fit(model)
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.current_epoch == 0
+    assert trainer.current_epoch == 1
     assert model.validation_step_invoked, "did not run `validation_step` with `fast_dev_run=True`"
     assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
 
@@ -1098,10 +1104,10 @@ def test_gpu_choice(tmpdir):
         return
 
     num_gpus = torch.cuda.device_count()
-    Trainer(**trainer_options, gpus=num_gpus, auto_select_gpus=True)
+    Trainer(**trainer_options, accelerator="gpu", devices=num_gpus, auto_select_gpus=True)
 
-    with pytest.raises(RuntimeError, match=r".*No GPUs available.*"):
-        Trainer(**trainer_options, gpus=num_gpus + 1, auto_select_gpus=True)
+    with pytest.raises(MisconfigurationException, match=r".*But your machine only has.*"):
+        Trainer(**trainer_options, accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
 
 
 @pytest.mark.parametrize("limit_val_batches", [0.0, 1, 1.0, 0.5, 5])
@@ -1176,100 +1182,45 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
 
 
 @pytest.mark.parametrize(
-    "trainer_kwargs,expected",
+    ["trainer_kwargs", "strategy_cls", "strategy_name", "accelerator_cls", "num_gpus"],
     [
-        (
-            dict(accelerator=None, gpus=None),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
-        ),
-        (
-            dict(accelerator="dp", gpus=None),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
-        ),
-        (
-            dict(accelerator="ddp", gpus=None),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
-        ),
-        (
-            dict(accelerator="ddp", num_processes=2, gpus=None),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
-        ),
-        (
-            dict(accelerator="ddp", num_nodes=2, gpus=None),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
-        ),
-        (
-            dict(accelerator="ddp_cpu", num_processes=2, gpus=None),
-            dict(
-                _strategy_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2
-            ),
-        ),
-        (
-            dict(accelerator="ddp2", gpus=None),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
-        ),
-        (
-            dict(accelerator=None, gpus=1),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
-        ),
-        (
-            dict(accelerator="dp", gpus=1),
-            dict(_strategy_type=_StrategyType.DP, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
-        ),
-        (
-            dict(accelerator="ddp", gpus=1),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
-        ),
-        (
-            dict(accelerator="ddp_cpu", num_processes=2, gpus=1),
-            dict(
-                _strategy_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2
-            ),
-        ),
-        (
-            dict(accelerator="ddp2", gpus=1),
-            dict(_strategy_type=_StrategyType.DDP2, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
-        ),
-        (
-            dict(accelerator=None, gpus=2),
-            dict(
-                _strategy_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=2
-            ),
-        ),
-        (
-            dict(accelerator="dp", gpus=2),
-            dict(_strategy_type=_StrategyType.DP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
-        ),
-        (
-            dict(accelerator="ddp", gpus=2),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=2),
-        ),
-        (
-            dict(accelerator="ddp2", gpus=2),
-            dict(_strategy_type=_StrategyType.DDP2, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
-        ),
-        (
-            dict(accelerator="ddp2", num_processes=2, gpus=None),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
-        ),
-        (
-            dict(accelerator="dp", num_processes=2, gpus=None),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
-        ),
+        ({"accelerator": None}, SingleDeviceStrategy, "single_device", CPUAccelerator, 0),
+        ({"accelerator": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 0),
+        ({"accelerator": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 0),
+        ({"accelerator": "ddp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
+        ({"accelerator": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
+        ({"accelerator": "ddp_cpu", "num_processes": 2}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 0),
+        ({"accelerator": "ddp2"}, DDPStrategy, "ddp", CPUAccelerator, 0),
+        ({"accelerator": None, "gpus": 1}, SingleDeviceStrategy, "single_device", GPUAccelerator, 1),
+        ({"accelerator": "dp", "gpus": 1}, DataParallelStrategy, "dp", GPUAccelerator, 1),
+        ({"accelerator": "ddp", "gpus": 1}, DDPStrategy, "ddp", GPUAccelerator, 1),
+        ({"accelerator": "ddp_cpu", "num_processes": 2, "gpus": 1}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 0),
+        ({"accelerator": "ddp2", "gpus": 1}, DDP2Strategy, "ddp2", GPUAccelerator, 1),
+        ({"accelerator": None, "gpus": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
+        ({"accelerator": "dp", "gpus": 2}, DataParallelStrategy, "dp", GPUAccelerator, 2),
+        ({"accelerator": "ddp", "gpus": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
+        ({"accelerator": "ddp2", "gpus": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
+        ({"accelerator": "ddp2", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
+        ({"accelerator": "dp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
     ],
 )
-def test_trainer_config(trainer_kwargs, expected, monkeypatch):
-    if trainer_kwargs["gpus"] is not None:
+def test_trainer_config_accelerator(
+    monkeypatch, trainer_kwargs, strategy_cls, strategy_name, accelerator_cls, num_gpus
+):
+    if trainer_kwargs.get("gpus") is not None:
         monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
         monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
+
     if trainer_kwargs["accelerator"] in (None, "ddp_cpu"):
         trainer = Trainer(**trainer_kwargs)
     else:
         with pytest.deprecated_call(match=r"accelerator='.*'\)` has been deprecated in v1.5"):
             trainer = Trainer(**trainer_kwargs)
-    assert len(expected) == 4
-    for k, v in expected.items():
-        assert getattr(trainer, k) == v, f"Failed {k}: {v}"
+
+    assert isinstance(trainer.strategy, strategy_cls)
+    assert strategy_cls.strategy_name == strategy_name
+    assert isinstance(trainer.accelerator, accelerator_cls)
+    assert trainer.num_gpus == num_gpus
 
 
 def test_trainer_subclassing():
@@ -1309,9 +1260,13 @@ def test_trainer_subclassing():
 
 
 @RunIf(omegaconf=True)
-@pytest.mark.parametrize("trainer_params", [{"max_epochs": 1, "gpus": 1}, {"max_epochs": 1, "gpus": [0]}])
+@pytest.mark.parametrize(
+    "trainer_params",
+    [{"max_epochs": 1, "accelerator": "gpu", "devices": 1}, {"max_epochs": 1, "accelerator": "gpu", "devices": [0]}],
+)
+@mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=1)
-def test_trainer_omegaconf(_, trainer_params):
+def test_trainer_omegaconf(_, __, trainer_params):
     config = OmegaConf.create(trainer_params)
     Trainer(**config)
 
@@ -1544,13 +1499,10 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
 
 
 @pytest.mark.skipif(_IS_WINDOWS and not _TORCH_GREATER_EQUAL_1_8, reason="torch.distributed support required")
-@patch("torch.cuda.device_count", return_value=2)
-@patch("torch.cuda.is_available", return_value=True)
-@pytest.mark.parametrize("accelerator", ("cpu", "gpu"))
-def test_spawn_predict_return_predictions(_, __, accelerator):
+def test_spawn_predict_return_predictions(tmpdir):
     """Test that `return_predictions=True` raise a MisconfigurationException with spawn training type plugins."""
     model = BoringModel()
-    trainer = Trainer(accelerator=accelerator, strategy="ddp_spawn", devices=2, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", strategy="ddp_spawn", devices=2, fast_dev_run=True)
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
     with pytest.raises(ProcessRaisedException, match="`return_predictions` should be set to `False`"):
         trainer.predict(model, dataloaders=model.train_dataloader(), return_predictions=True)
@@ -1573,7 +1525,7 @@ def test_predict_return_predictions_cpu(return_predictions, precision, tmpdir):
 
 @pytest.mark.parametrize(
     ["limit_train_batches", "global_step", "num_training_batches", "current_epoch", "should_train"],
-    [(0.2, 0, 0, 0, False), (0.5, 10, 2, 4, True)],
+    [(0.2, 0, 0, 0, False), (0.5, 10, 2, 5, True)],
 )
 def test_disabled_training_for_insufficient_limit_train_batches(
     tmpdir, limit_train_batches, global_step, num_training_batches, current_epoch, should_train
@@ -1676,7 +1628,7 @@ def test_setup_hook_move_to_device_correctly(tmpdir):
 
     # model
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="gpu", devices=1)
     trainer.fit(model, train_data)
 
 
@@ -1761,27 +1713,6 @@ def test_train_loop_system(tmpdir):
         "training_step",
         "backward",
     ]
-
-
-def test_init_optimizers_resets_lightning_optimizers(tmpdir):
-    """Test that the Trainer resets the `lightning_optimizers` list everytime new optimizers get initialized."""
-
-    def compare_optimizers():
-        assert trainer.lightning_optimizers[0].optimizer is trainer.optimizers[0]
-
-    model = BoringModel()
-    model.lr = 0.2
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_lr_find=True)
-
-    trainer.tune(model)
-    compare_optimizers()
-
-    trainer.fit(model)
-    compare_optimizers()
-
-    trainer.fit_loop.max_epochs = 2  # simulate multiple fit calls
-    trainer.fit(model)
-    compare_optimizers()
 
 
 def test_check_val_every_n_epoch_exception(tmpdir):
@@ -1942,7 +1873,13 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
     model = TestModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=5, num_sanity_val_steps=0, gpus=2, strategy="ddp"
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=5,
+        num_sanity_val_steps=0,
+        accelerator="gpu",
+        devices=2,
+        strategy="ddp",
     )
 
     # simulate random failure in training_step on rank 0
@@ -1964,7 +1901,7 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
             return torch.optim.Adam(self.layer.parameters(), lr=0.1)
 
     class Check(Callback):
-        def on_epoch_start(self, trainer, *_):
+        def on_train_epoch_start(self, trainer, *_):
             assert isinstance(trainer.strategy.model, DistributedDataParallel)
 
     def current_memory():
@@ -1978,7 +1915,8 @@ def test_multiple_trainer_constant_memory_allocated(tmpdir):
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
         fast_dev_run=True,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
         strategy="ddp",
         enable_progress_bar=False,
         callbacks=Check(),
@@ -2016,40 +1954,41 @@ class TrainerStagesErrorsModel(BoringModel):
         raise Exception("Error during predict")
 
 
-@pytest.mark.parametrize(
-    "strategy,num_processes",
-    [
-        (None, 1),
-        pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True)),
-    ],
-)
-def test_error_handling_all_stages(tmpdir, strategy, num_processes):
+class ExceptionCounter(Callback):
+    exceptions = 0
+
+    def on_exception(self, *_):
+        self.exceptions += 1
+
+
+@pytest.mark.parametrize("strategy", [None, pytest.param("ddp_spawn", marks=RunIf(skip_windows=True))])
+def test_error_handling_all_stages(tmpdir, strategy):
     model = TrainerStagesErrorsModel()
-    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, num_processes=num_processes, fast_dev_run=True)
+    counter = ExceptionCounter()
 
-    with pytest.raises(Exception, match=r"Error during train"), patch(
-        "pytorch_lightning.Trainer._on_exception"
-    ) as exception_hook:
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        strategy=strategy,
+        devices=1,
+        callbacks=counter,
+        fast_dev_run=True,
+    )
+
+    with pytest.raises(Exception, match=r"Error during train"):
         trainer.fit(model)
-    exception_hook.assert_called()
+    assert counter.exceptions == 1
 
-    with pytest.raises(Exception, match=r"Error during validation"), patch(
-        "pytorch_lightning.Trainer._on_exception"
-    ) as exception_hook:
+    with pytest.raises(Exception, match=r"Error during validation"):
         trainer.validate(model)
-    exception_hook.assert_called()
+    assert counter.exceptions == 2
 
-    with pytest.raises(Exception, match=r"Error during test"), patch(
-        "pytorch_lightning.Trainer._on_exception"
-    ) as exception_hook:
+    with pytest.raises(Exception, match=r"Error during test"):
         trainer.test(model)
-    exception_hook.assert_called()
+    assert counter.exceptions == 3
 
-    with pytest.raises(Exception, match=r"Error during predict"), patch(
-        "pytorch_lightning.Trainer._on_exception"
-    ) as exception_hook:
+    with pytest.raises(Exception, match=r"Error during predict"):
         trainer.predict(model, model.val_dataloader(), return_predictions=False)
-    exception_hook.assert_called()
+    assert counter.exceptions == 4
 
 
 def test_trainer_metrics_reset_before_each_task(tmpdir):
@@ -2115,158 +2054,95 @@ def test_detect_anomaly_nan(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "trainer_kwargs,expected",
+    ["trainer_kwargs", "strategy_cls", "strategy_name", "accelerator_cls", "num_gpus"],
     [
+        ({"strategy": None}, SingleDeviceStrategy, "single_device", CPUAccelerator, 0),
+        ({"strategy": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 0),
+        ({"strategy": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 0),
+        ({"strategy": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
+        ({"strategy": "ddp2"}, DDPStrategy, "ddp", CPUAccelerator, 0),
+        ({"strategy": None, "gpus": 1}, SingleDeviceStrategy, "single_device", GPUAccelerator, 1),
+        ({"strategy": "dp", "gpus": 1}, DataParallelStrategy, "dp", GPUAccelerator, 1),
+        ({"strategy": "ddp", "gpus": 1}, DDPStrategy, "ddp", GPUAccelerator, 1),
+        ({"strategy": "ddp_spawn", "gpus": 1}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 1),
+        ({"strategy": "ddp2", "gpus": 1}, DDP2Strategy, "ddp2", GPUAccelerator, 1),
+        ({"strategy": None, "gpus": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
+        ({"strategy": "dp", "gpus": 2}, DataParallelStrategy, "dp", GPUAccelerator, 2),
+        ({"strategy": "ddp", "gpus": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
+        ({"strategy": "ddp2", "gpus": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
+        ({"strategy": "ddp2", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
+        ({"strategy": "ddp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
+        ({"strategy": "ddp_spawn", "num_processes": 2}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 0),
+        ({"strategy": "ddp_spawn", "num_processes": 1}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 0),
+        ({"strategy": "ddp_fully_sharded", "gpus": 1}, DDPFullyShardedStrategy, "ddp_fully_sharded", GPUAccelerator, 1),
+        ({"strategy": DDPSpawnStrategy(), "num_processes": 2}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 0),
+        ({"strategy": DDPSpawnStrategy(), "gpus": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
+        ({"strategy": DDPStrategy()}, DDPStrategy, "ddp", CPUAccelerator, 0),
+        ({"strategy": DDPStrategy(), "gpus": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
+        ({"strategy": DDP2Strategy(), "gpus": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
+        ({"strategy": DataParallelStrategy(), "gpus": 2}, DataParallelStrategy, "dp", GPUAccelerator, 2),
         (
-            dict(strategy=None, gpus=None),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
+            {"strategy": DDPFullyShardedStrategy(), "gpus": 2},
+            DDPFullyShardedStrategy,
+            "ddp_fully_sharded",
+            GPUAccelerator,
+            2,
         ),
         (
-            dict(strategy="dp", gpus=None),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
+            {"strategy": DDPSpawnShardedStrategy(), "gpus": 2},
+            DDPSpawnShardedStrategy,
+            "ddp_sharded_spawn",
+            GPUAccelerator,
+            2,
         ),
+        ({"strategy": DDPShardedStrategy(), "gpus": 2}, DDPShardedStrategy, "ddp_sharded", GPUAccelerator, 2),
+        ({"strategy": "ddp2", "gpus": 2, "num_nodes": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
+        ({"strategy": "ddp_spawn", "gpus": 2, "num_nodes": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
         (
-            dict(strategy="ddp", gpus=None),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
+            {"strategy": "ddp_fully_sharded", "gpus": 1, "num_nodes": 2},
+            DDPFullyShardedStrategy,
+            "ddp_fully_sharded",
+            GPUAccelerator,
+            1,
         ),
+        ({"strategy": "ddp_sharded", "gpus": 2, "num_nodes": 2}, DDPShardedStrategy, "ddp_sharded", GPUAccelerator, 2),
         (
-            dict(strategy="ddp", num_processes=2, gpus=None),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
-        ),
-        (
-            dict(strategy="ddp", num_nodes=2, gpus=None),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
-        ),
-        (
-            dict(strategy="ddp2", gpus=None),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
-        ),
-        (
-            dict(strategy=None, gpus=1),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
-        ),
-        (
-            dict(strategy="dp", gpus=1),
-            dict(_strategy_type=_StrategyType.DP, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
-        ),
-        (
-            dict(strategy="ddp", gpus=1),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
-        ),
-        (
-            dict(strategy="ddp_spawn", gpus=1),
-            dict(
-                _strategy_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1
-            ),
-        ),
-        (
-            dict(strategy="ddp2", gpus=1),
-            dict(_strategy_type=_StrategyType.DDP2, _device_type=_AcceleratorType.GPU, num_gpus=1, num_processes=1),
-        ),
-        (
-            dict(strategy=None, gpus=2),
-            dict(
-                _strategy_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=2
-            ),
-        ),
-        (
-            dict(strategy="dp", gpus=2),
-            dict(_strategy_type=_StrategyType.DP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
-        ),
-        (
-            dict(strategy="ddp", gpus=2),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=2),
-        ),
-        (
-            dict(strategy="ddp2", gpus=2),
-            dict(_strategy_type=_StrategyType.DDP2, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
-        ),
-        (
-            dict(strategy="ddp2", num_processes=2, gpus=None),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
-        ),
-        (
-            dict(strategy="dp", num_processes=2, gpus=None),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
-        ),
-        (
-            dict(strategy="ddp_spawn", num_processes=2, gpus=None),
-            dict(
-                _strategy_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2
-            ),
-        ),
-        (
-            dict(strategy="ddp_spawn", num_processes=1, gpus=None),
-            dict(_strategy_type=None, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=1),
-        ),
-        (
-            dict(strategy="ddp_fully_sharded", gpus=1),
-            dict(
-                _strategy_type=_StrategyType.DDP_FULLY_SHARDED,
-                _device_type=_AcceleratorType.GPU,
-                num_gpus=1,
-                num_processes=1,
-            ),
-        ),
-        (
-            dict(strategy=DDPSpawnStrategy(), num_processes=2, gpus=None),
-            dict(
-                _strategy_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2
-            ),
-        ),
-        (
-            dict(strategy=DDPSpawnStrategy(), gpus=2),
-            dict(
-                _strategy_type=_StrategyType.DDP_SPAWN, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1
-            ),
-        ),
-        (
-            dict(strategy=DDPStrategy(), num_processes=2, gpus=None),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.CPU, num_gpus=0, num_processes=2),
-        ),
-        (
-            dict(strategy=DDPStrategy(), gpus=2),
-            dict(_strategy_type=_StrategyType.DDP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
-        ),
-        (
-            dict(strategy=DDP2Strategy(), gpus=2),
-            dict(_strategy_type=_StrategyType.DDP2, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
-        ),
-        (
-            dict(strategy=DataParallelStrategy(), gpus=2),
-            dict(_strategy_type=_StrategyType.DP, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1),
-        ),
-        (
-            dict(strategy=DDPFullyShardedStrategy(), gpus=2),
-            dict(
-                _strategy_type=_StrategyType.DDP_FULLY_SHARDED,
-                _device_type=_AcceleratorType.GPU,
-                num_gpus=2,
-                num_processes=1,
-            ),
-        ),
-        (
-            dict(strategy=DDPSpawnShardedStrategy(), gpus=2),
-            dict(
-                _strategy_type=_StrategyType.DDP_SHARDED_SPAWN,
-                _device_type=_AcceleratorType.GPU,
-                num_gpus=2,
-                num_processes=1,
-            ),
-        ),
-        (
-            dict(strategy=DDPShardedStrategy(), gpus=2),
-            dict(
-                _strategy_type=_StrategyType.DDP_SHARDED, _device_type=_AcceleratorType.GPU, num_gpus=2, num_processes=1
-            ),
+            {"strategy": "ddp_sharded_spawn", "gpus": 2, "num_nodes": 2},
+            DDPSpawnShardedStrategy,
+            "ddp_sharded_spawn",
+            GPUAccelerator,
+            2,
         ),
     ],
 )
-def test_trainer_config_strategy(trainer_kwargs, expected, monkeypatch):
-    if trainer_kwargs["gpus"] is not None:
+def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, strategy_name, accelerator_cls, num_gpus):
+    if trainer_kwargs.get("gpus") is not None:
         monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
         monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
+
     trainer = Trainer(**trainer_kwargs)
-    assert len(expected) == 4
-    for k, v in expected.items():
-        assert getattr(trainer, k) == v, f"Failed {k}: {v}"
+
+    assert isinstance(trainer.strategy, strategy_cls)
+    assert strategy_cls.strategy_name == strategy_name
+    assert isinstance(trainer.accelerator, accelerator_cls)
+    assert trainer.num_gpus == num_gpus
+    assert trainer.num_nodes == trainer_kwargs.get("num_nodes", 1)
+
+
+@pytest.mark.parametrize(
+    "running_stage", [RunningStage.TRAINING, RunningStage.VALIDATING, RunningStage.TESTING, RunningStage.PREDICTING]
+)
+def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_stage):
+    dl_prefix = running_stage.dataloader_prefix
+    trainer_kwargs = {f"limit_{dl_prefix}_batches": 0}
+    trainer = Trainer(**trainer_kwargs)
+    model = BoringModel()
+    trainer._data_connector.attach_data(model)
+    reset_dataloader = getattr(trainer, f"reset_{dl_prefix}_dataloader")
+    reset_dataloader(model)
+    dl = (
+        trainer.train_dataloader
+        if running_stage == RunningStage.TRAINING
+        else getattr(trainer, f"{dl_prefix}_dataloaders")
+    )
+    assert dl is None

@@ -48,7 +48,6 @@ from pytorch_lightning.utilities.auto_restart import (
     _reload_dataloader_state_dict,
     _rotate_worker_indices,
     _SingleProcessDataLoaderIterStateful,
-    _SupportsStateDict,
     _teardown_dataloader_get_iterators,
     _validate_fault_tolerant_automatic,
     CaptureIterableDataset,
@@ -131,8 +130,8 @@ def test_fast_forward_getattr():
 
 
 def test_fast_forward_on_batch_sampler():
-    """This test ensures ``FastForwardSampler`` applied to ``BatchSampler`` correctly retrived the right next batch
-    on restart."""
+    """This test ensures ``FastForwardSampler`` applied to ``BatchSampler`` correctly retrieved the right next
+    batch on restart."""
     dataset = range(15)
     sampler = SequentialSampler(dataset)
     batch_sampler = BatchSampler(sampler, 3, False)
@@ -155,7 +154,7 @@ def test_fast_forward_on_batch_sampler():
 
 
 def test_fast_forward_on_sequential_sampler():
-    """This test ensures ``FastForwardSampler`` applied to ``SequentialSampler`` correctly retrived the right next
+    """This test ensures ``FastForwardSampler`` applied to ``SequentialSampler`` correctly retrieved the right next
     batch on restart."""
     dataset = range(15)
     sequential_sampler = SequentialSampler(dataset)
@@ -257,7 +256,6 @@ class RangeIterableDataset(IterableDataset):
 @pytest.mark.parametrize(
     "num_workers", [0, pytest.param(1, marks=RunIf(slow=True)), pytest.param(2, marks=RunIf(slow=True))]
 )
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_fast_forward_sampler_over_iterable_dataset(num_workers):
     """This test ensures ``FastForwardSampler`` and ``CaptureIterableDataset`` are properly being used to capture
     workers states."""
@@ -788,7 +786,7 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
         return dl, sampler
 
     def fetch(fetcher, prefetch_iter, num_batches_fetched):
-        batch, _ = next(prefetch_iter)
+        _ = next(prefetch_iter)
 
         state: List[MergedIteratorState] = fetcher.state
         assert len(state) == 1
@@ -816,8 +814,8 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     state = deepcopy(state[0])
 
     # (B) simulate 2 additional batches
-    batch05, _ = next(prefetch_iter)
-    batch06, _ = next(prefetch_iter)
+    batch05 = next(prefetch_iter)
+    batch06 = next(prefetch_iter)
 
     # start reloading
     dataset, random_sampler = create_dataset_sampler()
@@ -832,8 +830,8 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
     prefetch_iter = iter(prefetcher)
 
     # fetch 2 random batches, these should match exactly the batches seen at (B)
-    batch05_restart, _ = next(prefetch_iter)
-    batch06_restart, _ = next(prefetch_iter)
+    batch05_restart = next(prefetch_iter)
+    batch06_restart = next(prefetch_iter)
 
     assert torch.equal(batch05, batch05_restart)
     assert torch.equal(batch06, batch06_restart)
@@ -904,7 +902,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_
         [RandomGetItemDataset],
         [SequentialIterableDataset],
         [SequentialDictIterableDataset],
-        # multiple training datasets (combinded dataloader)
+        # multiple training datasets (combined dataloader)
         [SequentialGetItemDataset, SequentialIterableDataset],
         [SequentialIterableDataset, SequentialIterableDataset],
         # [RandomGetItemDataset, RandomGetItemDataset],  # TODO: support in the future
@@ -1152,8 +1150,12 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
     model_signaled = _fit_model(
         tmpdir, True, val_check_interval, failure_on_step, failure_on_training, on_last_batch, status=status
     )
-    checkpoint_path = str(tmpdir / ".pl_auto_save.ckpt")
-    assert os.path.exists(checkpoint_path)
+    # we saved a ft-checkpoint
+    signaled_ckpt_path = str(tmpdir / ".pl_auto_save.ckpt")
+    assert os.path.exists(signaled_ckpt_path)
+    # load for later as the next fit call will delete it
+    checkpoint = torch.load(signaled_ckpt_path)["loops"]["fit_loop"]
+
     model_restarted = _fit_model(tmpdir, False, val_check_interval, failure_on_step, failure_on_training, on_last_batch)
 
     # check the batches
@@ -1166,7 +1168,6 @@ def test_auto_restart_under_signal(on_last_batch, val_check_interval, failure_on
         assert not torch.equal(model_total.layer.weight, model_signaled.layer.weight)
     assert torch.equal(model_restarted.layer.weight, model_total.layer.weight)
 
-    checkpoint = torch.load(checkpoint_path)["loops"]["fit_loop"]
     p = checkpoint["epoch_loop.batch_progress"]
     if p["is_last_batch"] and p["current"]["completed"] == 4:
         assert "dataloader_state_dict" not in checkpoint["epoch_loop.state_dict"]
@@ -1294,29 +1295,6 @@ def test_rotate_worker_indices():
 
     with pytest.raises(MisconfigurationException, match="The `state` should contain"):
         _rotate_worker_indices(state_dict, 2, 3)
-
-
-def test_supports_state_dict_protocol():
-    class StatefulClass:
-        def state_dict(self):
-            pass
-
-        def load_state_dict(self, state_dict):
-            pass
-
-    assert isinstance(StatefulClass(), _SupportsStateDict)
-
-    class NotStatefulClass:
-        def state_dict(self):
-            pass
-
-    assert not isinstance(NotStatefulClass(), _SupportsStateDict)
-
-    class NotStateful2Class:
-        def load_state_dict(self, state_dict):
-            pass
-
-    assert not isinstance(NotStateful2Class(), _SupportsStateDict)
 
 
 def test_fault_tolerant_mode_enum():
@@ -1474,7 +1452,7 @@ class RandomFaultTolerantDataset(RandomGetItemDataset):
 
 
 class RandomFaultTolerantSampler(RandomSampler):
-    def __init__(self, *args, seed: int = 0, generator=None, **kwargs):
+    def __init__(self, *args, seed: int = 0, **kwargs):
         generator = torch.Generator().manual_seed(seed)
         super().__init__(*args, generator=generator, **kwargs)
         self.counter = 0
@@ -1580,7 +1558,7 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
     seed_everything(42)
     model = TestModel(should_fail=True)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
-    with suppress(CustomException):
+    with pytest.raises(CustomException):
         trainer.fit(model)
     trainer.train_dataloader = None
     failed_batches = model.batches

@@ -19,8 +19,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import DeviceStatsMonitor
 from pytorch_lightning.callbacks.device_stats_monitor import _prefix_metric_keys
 from pytorch_lightning.loggers import CSVLogger
-from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -44,7 +44,8 @@ def test_device_stats_gpu_from_torch(tmpdir):
         max_epochs=2,
         limit_train_batches=7,
         log_every_n_steps=1,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
         callbacks=[device_stats],
         logger=DebugLogger(tmpdir),
         enable_checkpointing=False,
@@ -73,7 +74,8 @@ def test_device_stats_gpu_from_nvidia(tmpdir):
         max_epochs=2,
         limit_train_batches=7,
         log_every_n_steps=1,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
         callbacks=[device_stats],
         logger=DebugLogger(tmpdir),
         enable_checkpointing=False,
@@ -101,7 +103,8 @@ def test_device_stats_monitor_tpu(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=1,
-        tpu_cores=8,
+        accelerator="tpu",
+        devices=8,
         log_every_n_steps=1,
         callbacks=[device_stats],
         logger=DebugLogger(tmpdir),

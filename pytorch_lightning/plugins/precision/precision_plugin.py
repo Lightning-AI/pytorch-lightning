@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from functools import partial
-from typing import Any, Callable, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -146,16 +146,20 @@ class PrecisionPlugin(CheckpointHooks):
         optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> None:
+    ) -> Any:
         """Hook to run the optimizer step."""
         if isinstance(model, pl.LightningModule):
             closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
-        optimizer.step(closure=closure, **kwargs)
+        return optimizer.step(closure=closure, **kwargs)
 
     def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
         if trainer.track_grad_norm == -1:
             return
-        kwargs = {"group_separator": trainer.logger.group_separator} if trainer.logger is not None else {}
+
+        kwargs = {}
+        if len(trainer.loggers) == 1:
+            kwargs["group_separator"] = trainer.loggers[0].group_separator
+
         grad_norm_dict = grad_norm(trainer.lightning_module, trainer.track_grad_norm, **kwargs)
         if grad_norm_dict:
             prev_fx = trainer.lightning_module._current_fx_name
@@ -242,3 +246,20 @@ class PrecisionPlugin(CheckpointHooks):
 
         It is the right place to release memory and free other resources.
         """
+
+    def state_dict(self) -> Dict[str, Any]:
+        """Called when saving a checkpoint, implement to generate precision plugin state_dict.
+
+        Returns:
+            A dictionary containing precision plugin state.
+        """
+        return {}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        """Called when loading a checkpoint, implement to reload precision plugin state given precision plugin
+        state_dict.
+
+        Args:
+            state_dict: the precision plugin state returned by ``state_dict``.
+        """
+        pass

@@ -208,7 +208,7 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
     logger = TestLogger(**_get_logger_args(TestLogger, save_dir))
     trainer = Trainer(**trainer_args, logger=logger, weights_save_path=weights_save_path)
     trainer.fit(model)
-    assert trainer.weights_save_path == trainer.default_root_dir
+    assert trainer._weights_save_path_internal == trainer.default_root_dir
     assert trainer.checkpoint_callback.dirpath == os.path.join(logger.save_dir, "name", "version", "checkpoints")
     assert trainer.default_root_dir == tmpdir
 
@@ -216,18 +216,20 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
     save_dir = tmpdir / "logs"
     weights_save_path = tmpdir / "weights"
     logger = TestLogger(**_get_logger_args(TestLogger, save_dir))
-    trainer = Trainer(**trainer_args, logger=logger, weights_save_path=weights_save_path)
+    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
+        trainer = Trainer(**trainer_args, logger=logger, weights_save_path=weights_save_path)
     trainer.fit(model)
-    assert trainer.weights_save_path == weights_save_path
+    assert trainer._weights_save_path_internal == weights_save_path
     assert trainer.logger.save_dir == save_dir
     assert trainer.checkpoint_callback.dirpath == weights_save_path / "name" / "version" / "checkpoints"
     assert trainer.default_root_dir == tmpdir
 
     # no logger given
     weights_save_path = tmpdir / "weights"
-    trainer = Trainer(**trainer_args, logger=False, weights_save_path=weights_save_path)
+    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
+        trainer = Trainer(**trainer_args, logger=False, weights_save_path=weights_save_path)
     trainer.fit(model)
-    assert trainer.weights_save_path == weights_save_path
+    assert trainer._weights_save_path_internal == weights_save_path
     assert trainer.checkpoint_callback.dirpath == weights_save_path / "checkpoints"
     assert trainer.default_root_dir == tmpdir
 
@@ -284,7 +286,7 @@ def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
 
-    # make sure we restord properly
+    # make sure we restored properly
     assert trainer2.logger.name == logger.name
     assert trainer2.logger.save_dir == logger.save_dir
 
@@ -354,7 +356,8 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
         logger=logger,
         default_root_dir=tmpdir,
         strategy="ddp_spawn",
-        num_processes=2,
+        accelerator="cpu",
+        devices=2,
         max_steps=1,
         callbacks=[RankZeroLoggerCheck()],
     )
@@ -386,9 +389,9 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
     # Neptune
     with mock.patch("pytorch_lightning.loggers.neptune.neptune"):
         logger = _instantiate_logger(NeptuneLogger, api_key="test", project="project", save_dir=tmpdir, prefix=prefix)
-        assert logger.experiment.__getitem__.call_count == 1
-        logger.log_metrics({"test": 1.0}, step=0)
         assert logger.experiment.__getitem__.call_count == 2
+        logger.log_metrics({"test": 1.0}, step=0)
+        assert logger.experiment.__getitem__.call_count == 3
         logger.experiment.__getitem__.assert_called_with("tmp/test")
         logger.experiment.__getitem__().log.assert_called_once_with(1.0)
 
@@ -413,3 +416,28 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         wandb.init().step = 0
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.log.assert_called_once_with({"tmp-test": 1.0, "trainer/global_step": 0})
+
+
+def test_logger_default_name(tmpdir):
+    """Test that the default logger name is lightning_logs."""
+
+    # CSV
+    logger = CSVLogger(save_dir=tmpdir)
+    assert logger.name == "lightning_logs"
+
+    # TensorBoard
+    with mock.patch("pytorch_lightning.loggers.tensorboard.SummaryWriter"):
+        logger = _instantiate_logger(TensorBoardLogger, save_dir=tmpdir)
+        assert logger.name == "lightning_logs"
+
+    # MLflow
+    with mock.patch("pytorch_lightning.loggers.mlflow.mlflow"), mock.patch(
+        "pytorch_lightning.loggers.mlflow.MlflowClient"
+    ) as mlflow_client:
+        mlflow_client().get_experiment_by_name.return_value = None
+        logger = _instantiate_logger(MLFlowLogger, save_dir=tmpdir)
+
+        _ = logger.experiment
+        logger._mlflow_client.create_experiment.assert_called_with(name="lightning_logs", artifact_location=ANY)
+        # on MLFLowLogger `name` refers to the experiment id
+        # assert logger.experiment.get_experiment(logger.name).name == "lightning_logs"

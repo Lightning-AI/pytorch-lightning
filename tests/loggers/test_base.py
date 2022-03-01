@@ -24,8 +24,9 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.loggers.base import DummyExperiment, DummyLogger
-from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.logger import _convert_params, _sanitize_params
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 
 
@@ -47,9 +48,9 @@ def test_logger_collection():
     mock1.update_agg_funcs.assert_called_once_with({"test": np.mean}, np.sum)
     mock2.update_agg_funcs.assert_called_once_with({"test": np.mean}, np.sum)
 
-    logger.agg_and_log_metrics({"test": 2.0}, 4)
-    mock1.agg_and_log_metrics.assert_called_once_with({"test": 2.0}, 4)
-    mock2.agg_and_log_metrics.assert_called_once_with({"test": 2.0}, 4)
+    logger.log_metrics(metrics={"test": 2.0}, step=4)
+    mock1.log_metrics.assert_called_once_with(metrics={"test": 2.0}, step=4)
+    mock2.log_metrics.assert_called_once_with(metrics={"test": 2.0}, step=4)
 
     logger.finalize("success")
     mock1.finalize.assert_called_once()
@@ -185,10 +186,11 @@ def test_multiple_loggers_pickle(tmpdir):
     trainer = Trainer(logger=[logger1, logger2])
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
-    trainer2.logger.log_metrics({"acc": 1.0}, 0)
+    for logger in trainer2.loggers:
+        logger.log_metrics({"acc": 1.0}, 0)
 
-    assert trainer2.logger[0].metrics_logged == {"acc": 1.0}
-    assert trainer2.logger[1].metrics_logged == {"acc": 1.0}
+    for logger in trainer2.loggers:
+        assert logger.metrics_logged == {"acc": 1.0}
 
 
 def test_adding_step_key(tmpdir):
@@ -222,31 +224,6 @@ def test_adding_step_key(tmpdir):
         num_sanity_val_steps=0,
     )
     trainer.fit(model)
-
-
-def test_with_accumulate_grad_batches():
-    """Checks if the logging is performed once for `accumulate_grad_batches` steps."""
-
-    class StoreHistoryLogger(CustomLogger):
-        def __init__(self):
-            super().__init__()
-            self.history = {}
-
-        @rank_zero_only
-        def log_metrics(self, metrics, step):
-            if step not in self.history:
-                self.history[step] = {}
-            self.history[step].update(metrics)
-
-    logger = StoreHistoryLogger()
-
-    np.random.seed(42)
-    for i, loss in enumerate(np.random.random(10)):
-        logger.agg_and_log_metrics({"loss": loss}, step=int(i / 5))
-
-    assert logger.history == {0: {"loss": 0.5623850983416314}}
-    logger.save()
-    assert logger.history == {0: {"loss": 0.5623850983416314}, 1: {"loss": 0.4778883735637184}}
 
 
 def test_dummyexperiment_support_indexing():
@@ -290,8 +267,8 @@ def test_np_sanitization():
 
         @rank_zero_only
         def log_hyperparams(self, params):
-            params = self._convert_params(params)
-            params = self._sanitize_params(params)
+            params = _convert_params(params)
+            params = _sanitize_params(params)
             self.logged_params = params
 
     logger = CustomParamsLogger()

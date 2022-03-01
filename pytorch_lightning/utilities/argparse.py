@@ -11,16 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities for Argument Parsing within Lightning Components."""
+
 import inspect
 import os
 from abc import ABC
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
 from contextlib import suppress
 from functools import wraps
-from typing import Any, Callable, Dict, List, Tuple, Type, Union
+from typing import Any, Callable, cast, Dict, List, Tuple, Type, TypeVar, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_int, str_to_bool_or_str
+
+_T = TypeVar("_T", bound=Callable[..., Any])
 
 
 class ParseArgparserDataType(ABC):
@@ -35,8 +39,8 @@ class ParseArgparserDataType(ABC):
 def from_argparse_args(
     cls: Type[ParseArgparserDataType], args: Union[Namespace, ArgumentParser], **kwargs: Any
 ) -> ParseArgparserDataType:
-    """Create an instance from CLI arguments. Eventually use varibles from OS environement which are defined as
-    "PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>".
+    """Create an instance from CLI arguments. Eventually use variables from OS environment which are defined as
+    ``"PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"``.
 
     Args:
         cls: Lightning class
@@ -45,7 +49,8 @@ def from_argparse_args(
         **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
             These must be valid Trainer arguments.
 
-    Example:
+    Examples:
+
         >>> from pytorch_lightning import Trainer
         >>> parser = ArgumentParser(add_help=False)
         >>> parser = Trainer.add_argparse_args(parser)
@@ -94,7 +99,8 @@ def parse_argparser(cls: Type["pl.Trainer"], arg_parser: Union[ArgumentParser, N
 def parse_env_variables(cls: Type["pl.Trainer"], template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
     """Parse environment arguments if they are defined.
 
-    Example:
+    Examples:
+
         >>> from pytorch_lightning import Trainer
         >>> parse_env_variables(Trainer)
         Namespace()
@@ -185,14 +191,14 @@ def add_argparse_args(
 
     Examples:
 
-        # Option 1: Default usage.
+        >>> # Option 1: Default usage.
         >>> import argparse
         >>> from pytorch_lightning import Trainer
         >>> parser = argparse.ArgumentParser()
         >>> parser = Trainer.add_argparse_args(parser)
         >>> args = parser.parse_args([])
 
-        # Option 2: Disable use_argument_group (old behavior).
+        >>> # Option 2: Disable use_argument_group (old behavior).
         >>> import argparse
         >>> from pytorch_lightning import Trainer
         >>> parser = argparse.ArgumentParser()
@@ -315,7 +321,7 @@ def _precision_allowed_type(x: Union[int, str]) -> Union[int, str]:
         return x
 
 
-def _defaults_from_env_vars(fn: Callable) -> Callable:
+def _defaults_from_env_vars(fn: _T) -> _T:
     @wraps(fn)
     def insert_env_defaults(self: Any, *args: Any, **kwargs: Any) -> Any:
         cls = self.__class__  # get the class
@@ -331,4 +337,4 @@ def _defaults_from_env_vars(fn: Callable) -> Callable:
         # all args were already moved to kwargs
         return fn(self, **kwargs)
 
-    return insert_env_defaults
+    return cast(_T, insert_env_defaults)

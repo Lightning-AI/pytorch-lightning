@@ -37,23 +37,20 @@ from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
+from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.utilities import (
-    _IS_WINDOWS,
-    _TORCH_GREATER_EQUAL_1_10,
-    GradClipAlgorithmType,
-    rank_zero_deprecation,
-    rank_zero_warn,
-)
+from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.distributed import distributed_available, rank_zero_debug, sync_ddp
+from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import get_model_size_mb
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.parsing import collect_init_args
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, STEP_OUTPUT
+from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, LRSchedulerTypeUnion, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
@@ -80,6 +77,7 @@ class LightningModule(
             "global_rank",
             "local_rank",
             "logger",
+            "loggers",
             "model_size",
             "automatic_optimization",
             "truncated_bptt_steps",
@@ -97,9 +95,6 @@ class LightningModule(
 
         # pointer to the trainer object
         self.trainer = None
-
-        self._strategy_type = None
-        self._device_type = None
 
         # true if using amp
         self.use_amp: bool = False
@@ -148,7 +143,7 @@ class LightningModule(
             A single optimizer, or a list of optimizers in case multiple ones are present.
         """
         if use_pl_optimizer:
-            opts = list(self.trainer.lightning_optimizers.values())
+            opts = list(self.trainer.strategy._lightning_optimizers.values())
         else:
             opts = self.trainer.optimizers
 
@@ -158,7 +153,7 @@ class LightningModule(
         # multiple opts
         return opts
 
-    def lr_schedulers(self) -> Optional[Union[Any, List[Any]]]:
+    def lr_schedulers(self) -> Optional[Union[LRSchedulerTypeUnion, List[LRSchedulerTypeUnion]]]:
         """Returns the learning rate scheduler(s) that are being used during training. Useful for manual
         optimization.
 
@@ -166,11 +161,11 @@ class LightningModule(
             A single scheduler, or a list of schedulers in case multiple ones are present, or ``None`` if no
             schedulers were returned in :meth:`configure_optimizers`.
         """
-        if not self.trainer.lr_schedulers:
+        if not self.trainer.lr_scheduler_configs:
             return None
 
         # ignore other keys "interval", "frequency", etc.
-        lr_schedulers = [s["scheduler"] for s in self.trainer.lr_schedulers]
+        lr_schedulers = [config.scheduler for config in self.trainer.lr_scheduler_configs]
 
         # single scheduler
         if len(lr_schedulers) == 1:
@@ -199,10 +194,7 @@ class LightningModule(
 
     @property
     def current_epoch(self) -> int:
-        """The current epoch in the Trainer.
-
-        If no Trainer is attached, this propery is 0.
-        """
+        """The current epoch in the ``Trainer``, or 0 if not attached."""
         return self.trainer.current_epoch if self.trainer else 0
 
     @property
@@ -255,17 +247,29 @@ class LightningModule(
         self._truncated_bptt_steps = truncated_bptt_steps
 
     @property
-    def logger(self):
+    def logger(self) -> Optional[LightningLoggerBase]:
         """Reference to the logger object in the Trainer."""
         return self.trainer.logger if self.trainer else None
+
+    @property
+    def loggers(self) -> List[LightningLoggerBase]:
+        """Reference to the list of loggers in the Trainer."""
+        return self.trainer.loggers if self.trainer else []
 
     def _apply_batch_transfer_handler(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0
     ) -> Any:
         device = device or self.device
-        batch = self.on_before_batch_transfer(batch, dataloader_idx)
-        batch = self.transfer_batch_to_device(batch, device, dataloader_idx)
-        batch = self.on_after_batch_transfer(batch, dataloader_idx)
+        datahook_selector = (
+            _DataHookSelector(self, None) if self.trainer is None else self.trainer._data_connector._datahook_selector
+        )
+
+        hook = datahook_selector.get_hook("on_before_batch_transfer")
+        batch = hook(batch, dataloader_idx)
+        hook = datahook_selector.get_hook("transfer_batch_to_device")
+        batch = hook(batch, device, dataloader_idx)
+        hook = datahook_selector.get_hook("on_after_batch_transfer")
+        batch = hook(batch, dataloader_idx)
         return batch
 
     def print(self, *args, **kwargs) -> None:
@@ -319,8 +323,10 @@ class LightningModule(
             value: value to log. Can be a ``float``, ``Tensor``, ``Metric``, or a dictionary of the former.
             prog_bar: if ``True`` logs to the progress bar.
             logger: if ``True`` logs to the logger.
-            on_step: if ``True`` logs at this step.
-            on_epoch: if True logs epoch accumulated metrics.
+            on_step: if ``True`` logs at this step. The default value is determined by the hook.
+                See :ref:`extensions/logging:Automatic Logging` for details.
+            on_epoch: if ``True`` logs epoch accumulated metrics. The default value is determined by the hook.
+                See :ref:`extensions/logging:Automatic Logging` for details.
             reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
             enable_graph: if ``True``, will not auto detach the graph.
             sync_dist: if ``True``, reduces the metric across devices. Use with care as this may lead to a significant
@@ -454,19 +460,25 @@ class LightningModule(
         Args:
             dictionary: key value pairs.
                 The values can be a ``float``, ``Tensor``, ``Metric``, or a dictionary of the former.
-            prog_bar: if True logs to the progress base
-            logger: if True logs to the logger
-            on_step: if True logs at this step. None auto-logs for training_step but not validation/test_step
-            on_epoch: if True logs epoch accumulated metrics. None auto-logs for val/test step but not training_step
+            prog_bar: if ``True`` logs to the progress base.
+            logger: if ``True`` logs to the logger.
+            on_step: if ``True`` logs at this step.
+                ``None`` auto-logs for training_step but not validation/test_step.
+                The default value is determined by the hook.
+                See :ref:`extensions/logging:Automatic Logging` for details.
+            on_epoch: if ``True`` logs epoch accumulated metrics.
+                ``None`` auto-logs for val/test step but not ``training_step``.
+                The default value is determined by the hook.
+                See :ref:`extensions/logging:Automatic Logging` for details.
             reduce_fx: reduction function over step values for end of epoch. :meth:`torch.mean` by default.
-            enable_graph: if True, will not auto detach the graph
-            sync_dist: if True, reduces the metric across GPUs/TPUs. Use with care as this may lead to a significant
+            enable_graph: if ``True``, will not auto-detach the graph
+            sync_dist: if ``True``, reduces the metric across GPUs/TPUs. Use with care as this may lead to a significant
                 communication overhead.
-            sync_dist_group: the ddp group sync across
-            add_dataloader_idx: if True, appends the index of the current dataloader to
-                the name (when using multiple). If False, user needs to give unique names for
-                each dataloader to not mix values
-            batch_size: Current batch_size. This will be directly inferred from the loaded batch,
+            sync_dist_group: the ddp group to sync across.
+            add_dataloader_idx: if ``True``, appends the index of the current dataloader to
+                the name (when using multiple). If ``False``, user needs to give unique names for
+                each dataloader to not mix values.
+            batch_size: Current batch size. This will be directly inferred from the loaded batch,
                 but some data structures might need to explicitly provide it.
             rank_zero_only: Whether the value will be logged only on rank 0. This will prevent synchronization which
                 would produce a deadlock as not all processes would perform this log call.
@@ -514,9 +526,9 @@ class LightningModule(
 
             # DEFAULT
             def log_grad_norm(self, grad_norm_dict):
-                self.log_dict(grad_norm_dict, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+                self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=False, logger=True)
         """
-        self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=False, logger=True)
 
     def all_gather(
         self, data: Union[torch.Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
@@ -1372,7 +1384,7 @@ class LightningModule(
         # Iterate over all optimizer parameters to preserve their `requires_grad` information
         # in case these are pre-defined during `configure_optimizers`
         param_requires_grad_state = {}
-        for opt in self.optimizers(use_pl_optimizer=False):
+        for opt in self.trainer.optimizers:
             for group in opt.param_groups:
                 for param in group["params"]:
                     # If a param already appear in param_requires_grad_state, continue
@@ -1396,7 +1408,7 @@ class LightningModule(
         Args:
             optimizer_idx: The index of the optimizer to untoggle.
         """
-        for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):
+        for opt_idx, opt in enumerate(self.trainer.optimizers):
             if optimizer_idx != opt_idx:
                 for group in opt.param_groups:
                     for param in group["params"]:
@@ -1493,6 +1505,42 @@ class LightningModule(
             optimizer, gradient_clip_val=gradient_clip_val, gradient_clip_algorithm=gradient_clip_algorithm
         )
 
+    def lr_scheduler_step(
+        self,
+        scheduler: LRSchedulerTypeUnion,
+        optimizer_idx: int,
+        metric: Optional[Any],
+    ) -> None:
+        r"""
+        Override this method to adjust the default way the
+        :class:`~pytorch_lightning.trainer.trainer.Trainer` calls each scheduler.
+        By default, Lightning calls ``step()`` and as shown in the example
+        for each scheduler based on its ``interval``.
+
+        Args:
+            scheduler: Learning rate scheduler.
+            optimizer_idx: Index of the optimizer associated with this scheduler.
+            metric: Value of the monitor used for schedulers like ``ReduceLROnPlateau``.
+
+        Examples::
+
+            # DEFAULT
+            def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+                if metric is None:
+                    scheduler.step()
+                else:
+                    scheduler.step(metric)
+
+            # Alternative way to update schedulers if it requires an epoch value
+            def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+                scheduler.step(epoch=self.current_epoch)
+
+        """
+        if metric is None:
+            scheduler.step()
+        else:
+            scheduler.step(metric)
+
     def optimizer_step(
         self,
         epoch: int,
@@ -1505,18 +1553,19 @@ class LightningModule(
         using_lbfgs: bool = False,
     ) -> None:
         r"""
-        Override this method to adjust the default way the
-        :class:`~pytorch_lightning.trainer.trainer.Trainer` calls each optimizer.
-        By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example
-        once per optimizer. This method (and ``zero_grad()``) won't be called during the
-        accumulation phase when ``Trainer(accumulate_grad_batches != 1)``.
+        Override this method to adjust the default way the :class:`~pytorch_lightning.trainer.trainer.Trainer` calls
+        each optimizer.
+
+        By default, Lightning calls ``step()`` and ``zero_grad()`` as shown in the example once per optimizer.
+        This method (and ``zero_grad()``) won't be called during the accumulation phase when
+        ``Trainer(accumulate_grad_batches != 1)``. Overriding this hook has no benefit with manual optimization.
 
         Args:
             epoch: Current epoch
             batch_idx: Index of current batch
             optimizer: A PyTorch optimizer
             optimizer_idx: If you used multiple optimizers, this indexes into that list.
-            optimizer_closure: Closure for all optimizers. This closure must be executed as it includes the
+            optimizer_closure: The optimizer closure. This closure must be executed as it includes the
                 calls to ``training_step()``, ``optimizer.zero_grad()``, and ``backward()``.
             on_tpu: ``True`` if TPU backward is required
             using_native_amp: ``True`` if using native amp
@@ -1633,7 +1682,7 @@ class LightningModule(
 
         Note:
             Called in the training loop after
-            :meth:`~pytorch_lightning.callbacks.base.Callback.on_batch_start`
+            :meth:`~pytorch_lightning.callbacks.base.Callback.on_train_batch_start`
             if :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
             Each returned batch split is passed separately to :meth:`training_step`.
         """
@@ -1859,7 +1908,7 @@ class LightningModule(
             ...         return torch.relu(self.l1(x.view(x.size(0), -1)))
             ...
             >>> model = SimpleModel()
-            >>> torch.jit.save(model.to_torchscript(), "model.pt")  # doctest: +SKIP
+            >>> model.to_torchscript(file_path="model.pt")  # doctest: +SKIP
             >>> os.path.isfile("model.pt")  # doctest: +SKIP
             >>> torch.jit.save(model.to_torchscript(file_path="model_trace.pt", method='trace', # doctest: +SKIP
             ...                                     example_inputs=torch.randn(1, 64)))  # doctest: +SKIP
@@ -1918,7 +1967,7 @@ class LightningModule(
             )
         return get_model_size_mb(self)
 
-    def add_to_queue(self, queue: pl.strategies.ddp_spawn._FakeQueue) -> None:
+    def add_to_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
         """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
         sharing, we cast the data to numpy.
 
@@ -1926,11 +1975,10 @@ class LightningModule(
             queue: the instance of the queue to append the data.
 
         .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of `DDPSpawnStrategy.add_to_queue`
-            and will be removed in v1.7.
+            This method was deprecated in v1.5 and will be removed in v1.7.
         """
 
-    def get_from_queue(self, queue: pl.strategies.ddp_spawn._FakeQueue) -> None:
+    def get_from_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
         """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
         we cast back the data to ``torch.Tensor``.
 
@@ -1938,8 +1986,7 @@ class LightningModule(
             queue: the instance of the queue from where to get the data.
 
         .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of `DDPSpawnStrategy.get_from_queue`
-            and will be removed in v1.7.
+            This method was deprecated in v1.5 and will be removed in v1.7.
         """
 
     @contextmanager

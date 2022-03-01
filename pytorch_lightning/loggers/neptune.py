@@ -32,9 +32,10 @@ import torch
 from pytorch_lightning import __version__
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.imports import _NEPTUNE_AVAILABLE, _NEPTUNE_GREATER_EQUAL_0_9
+from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _sanitize_callable_params
 from pytorch_lightning.utilities.model_summary import ModelSummary
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
     try:
@@ -293,9 +294,10 @@ class NeptuneLogger(LightningLoggerBase):
     def _retrieve_run_data(self):
         try:
             self._run_instance.wait()
-            self._run_short_id = self.run._short_id  # skipcq: PYL-W0212
+            self._run_short_id = self._run_instance["sys/id"].fetch()
             self._run_name = self._run_instance["sys/name"].fetch()
         except NeptuneOfflineModeFetchException:
+            self._run_short_id = "OFFLINE"
             self._run_name = "offline-name"
 
     @property
@@ -478,8 +480,8 @@ class NeptuneLogger(LightningLoggerBase):
 
             neptune_logger.log_hyperparams(PARAMS)
         """
-        params = self._convert_params(params)
-        params = self._sanitize_callable_params(params)
+        params = _convert_params(params)
+        params = _sanitize_callable_params(params)
 
         parameters_key = self.PARAMETERS_KEY
         parameters_key = self._construct_path_with_prefix(parameters_key)
@@ -497,7 +499,7 @@ class NeptuneLogger(LightningLoggerBase):
         if rank_zero_only.rank != 0:
             raise ValueError("run tried to log from global_rank != 0")
 
-        metrics = self._add_prefix(metrics)
+        metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
         for key, val in metrics.items():
             # `step` is ignored because Neptune expects strictly increasing step values which
@@ -577,7 +579,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @staticmethod
     def _get_full_model_name(model_path: str, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> str:
-        """Returns model name which is string `modle_path` appended to `checkpoint_callback.dirpath`."""
+        """Returns model name which is string `model_path` appended to `checkpoint_callback.dirpath`."""
         expected_model_path = f"{checkpoint_callback.dirpath}{os.path.sep}"
         if not model_path.startswith(expected_model_path):
             raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")

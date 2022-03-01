@@ -12,13 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.8.0."""
+import time
 from unittest.mock import Mock
 
+import numpy as np
 import pytest
 import torch
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.loggers import CSVLogger, LightningLoggerBase
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
@@ -31,11 +34,12 @@ from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnSharde
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
+from pytorch_lightning.profiler import AdvancedProfiler, SimpleProfiler
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
+from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
@@ -146,12 +150,28 @@ def test_v1_8_0_trainer_verbose_evaluate():
         trainer.verbose_evaluate = False
 
 
+@pytest.mark.parametrize("fn_prefix", ["validated", "tested", "predicted"])
+def test_v1_8_0_trainer_ckpt_path_attributes(fn_prefix: str):
+    test_attr = f"{fn_prefix}_ckpt_path"
+    trainer = Trainer()
+    with pytest.deprecated_call(match=f"{test_attr}` attribute was deprecated in v1.6 and will be removed in v1.8"):
+        _ = getattr(trainer, test_attr)
+    with pytest.deprecated_call(match=f"{test_attr}` attribute was deprecated in v1.6 and will be removed in v1.8"):
+        setattr(trainer, test_attr, "v")
+
+
 def test_v1_8_0_deprecated_trainer_should_rank_save_checkpoint(tmpdir):
     trainer = Trainer()
     with pytest.deprecated_call(
         match=r"`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in v1.8."
     ):
         _ = trainer.should_rank_save_checkpoint
+
+
+def test_v1_8_0_deprecated_lr_scheduler():
+    trainer = Trainer()
+    with pytest.deprecated_call(match=r"`Trainer.lr_schedulers` is deprecated in v1.6 and will be removed in v1.8."):
+        assert trainer.lr_schedulers == []
 
 
 def test_v1_8_0_trainer_optimizers_mixin():
@@ -231,7 +251,7 @@ def test_v1_8_0_deprecate_trainer_callback_hook_mixin():
     )
     model = BoringModel()
     # need to attach model to trainer for testing of `on_pretrain_routine_start`
-    trainer.fit(model)
+    trainer.strategy.connect(model)
     for method_name in methods_with_self:
         fn = getattr(trainer, method_name, None)
         with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
@@ -326,7 +346,7 @@ def test_v1_8_0_deprecated_single_device_plugin_class():
             " Use `.*SingleDeviceStrategy` instead."
         )
     ):
-        SingleDevicePlugin(Mock())
+        SingleDevicePlugin("cpu")
 
 
 @RunIf(tpu=True)
@@ -337,3 +357,305 @@ def test_v1_8_0_deprecated_single_tpu_plugin_class():
         )
     ):
         SingleTPUPlugin(0)
+
+
+def test_v1_8_0_deprecated_lightning_optimizers():
+    trainer = Trainer()
+    with pytest.deprecated_call(
+        match="Trainer.lightning_optimizers` is deprecated in v1.6 and will be removed in v1.8"
+    ):
+        assert trainer.lightning_optimizers == {}
+
+
+def test_v1_8_0_remove_on_batch_start_end(tmpdir):
+    class TestCallback(Callback):
+        def on_batch_start(self, *args, **kwargs):
+            print("on_batch_start")
+
+    model = BoringModel()
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `Callback.on_batch_start` hook was deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+    class TestCallback(Callback):
+        def on_batch_end(self, *args, **kwargs):
+            print("on_batch_end")
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `Callback.on_batch_end` hook was deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+
+def test_v1_8_0_on_configure_sharded_model(tmpdir):
+    class TestCallback(Callback):
+        def on_configure_sharded_model(self, trainer, model):
+            print("Configuring sharded model")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        max_epochs=1,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `on_configure_sharded_model` callback hook was deprecated in v1.6 and will be removed in v1.8."
+    ):
+        trainer.fit(model)
+
+
+def test_v1_8_0_remove_on_epoch_start_end_lightning_module(tmpdir):
+    class CustomModel(BoringModel):
+        def on_epoch_start(self, *args, **kwargs):
+            print("on_epoch_start")
+
+    model = CustomModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `LightningModule.on_epoch_start` hook was deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+    class CustomModel(BoringModel):
+        def on_epoch_end(self, *args, **kwargs):
+            print("on_epoch_end")
+
+    trainer = Trainer(
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+
+    model = CustomModel()
+    with pytest.deprecated_call(
+        match="The `LightningModule.on_epoch_end` hook was deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+
+def test_v1_8_0_rank_zero_imports():
+
+    import warnings
+
+    from pytorch_lightning.utilities.distributed import rank_zero_debug, rank_zero_info
+    from pytorch_lightning.utilities.warnings import LightningDeprecationWarning, rank_zero_deprecation, rank_zero_warn
+
+    with pytest.deprecated_call(
+        match="pytorch_lightning.utilities.distributed.rank_zero_debug has been deprecated in v1.6"
+        " and will be removed in v1.8."
+    ):
+        rank_zero_debug("foo")
+    with pytest.deprecated_call(
+        match="pytorch_lightning.utilities.distributed.rank_zero_info has been deprecated in v1.6"
+        " and will be removed in v1.8."
+    ):
+        rank_zero_info("foo")
+    with pytest.deprecated_call(
+        match="pytorch_lightning.utilities.warnings.rank_zero_warn has been deprecated in v1.6"
+        " and will be removed in v1.8."
+    ):
+        rank_zero_warn("foo")
+    with pytest.deprecated_call(
+        match="pytorch_lightning.utilities.warnings.rank_zero_deprecation has been deprecated in v1.6"
+        " and will be removed in v1.8."
+    ):
+        rank_zero_deprecation("foo")
+    with pytest.deprecated_call(
+        match="pytorch_lightning.utilities.warnings.LightningDeprecationWarning has been deprecated in v1.6"
+        " and will be removed in v1.8."
+    ):
+        warnings.warn("foo", LightningDeprecationWarning, stacklevel=5)
+
+
+def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
+    class TestCallback(Callback):
+        def on_before_accelerator_backend_setup(self, *args, **kwargs):
+            print("on_before_accelerator_backend called.")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        max_epochs=1,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `on_before_accelerator_backend_setup` callback hook was deprecated in v1.6"
+        " and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+
+def test_v1_8_0_logger_agg_parameters():
+    class CustomLogger(LightningLoggerBase):
+        @rank_zero_only
+        def log_hyperparams(self, params):
+            pass
+
+        @rank_zero_only
+        def log_metrics(self, metrics, step):
+            pass
+
+        @property
+        def name(self):
+            pass
+
+        @property
+        def version(self):
+            pass
+
+    with pytest.deprecated_call(
+        match="The `agg_key_funcs` parameter for `LightningLoggerBase` was deprecated in v1.6"
+        " and will be removed in v1.8."
+    ):
+        CustomLogger(agg_key_funcs={"mean", np.mean})
+
+    with pytest.deprecated_call(
+        match="The `agg_default_func` parameter for `LightningLoggerBase` was deprecated in v1.6"
+        " and will be removed in v1.8."
+    ):
+        CustomLogger(agg_default_func=np.mean)
+
+    # Should have no deprecation warning
+    logger = CustomLogger()
+
+    with pytest.deprecated_call(
+        match="`LightningLoggerBase.update_agg_funcs` was deprecated in v1.6 and will be removed in v1.8."
+    ):
+        logger.update_agg_funcs()
+
+
+def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
+    class AggregationOverrideLogger(CSVLogger):
+        @rank_zero_only
+        def agg_and_log_metrics(self, metrics, step):
+            self.log_metrics(metrics=metrics, step=step)
+
+    logger = AggregationOverrideLogger(tmpdir)
+    logger2 = CSVLogger(tmpdir)
+    logger3 = CSVLogger(tmpdir)
+
+    # Test single loggers
+    with pytest.deprecated_call(
+        match="`LightningLoggerBase.agg_and_log_metrics` is deprecated in v1.6 and will be removed"
+        " in v1.8. `Trainer` will directly call `LightningLoggerBase.log_metrics` so custom"
+        " loggers should not implement `LightningLoggerBase.agg_and_log_metrics`."
+    ):
+        Trainer(logger=logger)
+    # Should have no deprecation warning
+    Trainer(logger=logger2)
+
+    # Test multiple loggers
+    with pytest.deprecated_call(
+        match="`LightningLoggerBase.agg_and_log_metrics` is deprecated in v1.6 and will be removed"
+        " in v1.8. `Trainer` will directly call `LightningLoggerBase.log_metrics` so custom"
+        " loggers should not implement `LightningLoggerBase.agg_and_log_metrics`."
+    ):
+        Trainer(logger=[logger, logger3])
+    # Should have no deprecation warning
+    Trainer(logger=[logger2, logger3])
+
+
+def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
+    class TestCallback(Callback):
+        def on_pretrain_routine_start(self, trainer, pl_module):
+            print("on_pretrain_routine_start called.")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `Callback.on_pretrain_routine_start` hook has been deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+    class TestCallback(Callback):
+        def on_pretrain_routine_end(self, trainer, pl_module):
+            print("on_pretrain_routine_end called.")
+
+    model = BoringModel()
+
+    trainer = Trainer(
+        callbacks=[TestCallback()],
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `Callback.on_pretrain_routine_end` hook has been deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+
+def test_v1_8_0_weights_save_path(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
+        trainer = Trainer(weights_save_path=tmpdir)
+    with pytest.deprecated_call(match=r"`Trainer.weights_save_path` has been deprecated in v1.6"):
+        _ = trainer.weights_save_path
+
+
+@pytest.mark.flaky(reruns=3)
+@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
+def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list):
+    """Ensure the reported durations are reasonably accurate."""
+
+    def _sleep_generator(durations):
+        """the profile_iterable method needs an iterable in which we can ensure that we're properly timing how long
+        it takes to call __next__"""
+        for duration in durations:
+            time.sleep(duration)
+            yield duration
+
+    def _get_python_cprofile_total_duration(profile):
+        return sum(x.inlinetime for x in profile.getstats())
+
+    simple_profiler = SimpleProfiler()
+    iterable = _sleep_generator(expected)
+
+    with pytest.deprecated_call(
+        match="`BaseProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."
+    ):
+        for _ in simple_profiler.profile_iterable(iterable, action):
+            pass
+
+    # we exclude the last item in the recorded durations since that's when StopIteration is raised
+    np.testing.assert_allclose(simple_profiler.recorded_durations[action][:-1], expected, rtol=0.2)
+
+    advanced_profiler = AdvancedProfiler(dirpath=tmpdir, filename="profiler")
+
+    iterable = _sleep_generator(expected)
+
+    with pytest.deprecated_call(
+        match="`BaseProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."
+    ):
+        for _ in advanced_profiler.profile_iterable(iterable, action):
+            pass
+
+    recorded_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
+    expected_total_duration = np.sum(expected)
+    np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)

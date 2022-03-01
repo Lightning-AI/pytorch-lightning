@@ -15,14 +15,16 @@ import logging
 import os
 import shutil
 import subprocess
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.types import _DEVICE
 
 _log = logging.getLogger(__name__)
 
@@ -36,8 +38,9 @@ class GPUAccelerator(Accelerator):
             MisconfigurationException:
                 If the selected device is not GPU.
         """
-        if "cuda" not in str(root_device):
-            raise MisconfigurationException(f"Device should be GPU, got {self.root_device} instead")
+        super().setup_environment(root_device)
+        if root_device.type != "cuda":
+            raise MisconfigurationException(f"Device should be GPU, got {root_device} instead")
         torch.cuda.set_device(root_device)
 
     def setup(self, trainer: "pl.Trainer") -> None:
@@ -54,7 +57,7 @@ class GPUAccelerator(Accelerator):
         devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
         _log.info(f"LOCAL_RANK: {local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]")
 
-    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Gets stats for the given GPU device.
 
         Args:
@@ -72,12 +75,26 @@ class GPUAccelerator(Accelerator):
         return get_nvidia_gpu_stats(device)
 
     @staticmethod
+    def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
+        """Accelerator device parsing logic."""
+        return device_parser.parse_gpu_ids(devices)
+
+    @staticmethod
+    def get_parallel_devices(devices: List[int]) -> List[torch.device]:
+        """Gets parallel devices for the Accelerator."""
+        return [torch.device("cuda", i) for i in devices]
+
+    @staticmethod
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         return torch.cuda.device_count()
 
+    @staticmethod
+    def is_available() -> bool:
+        return torch.cuda.device_count() > 0
 
-def get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
+
+def get_nvidia_gpu_stats(device: _DEVICE) -> Dict[str, float]:
     """Get GPU stats including memory, fan speed, and temperature from nvidia-smi.
 
     Args:
@@ -106,7 +123,8 @@ def get_nvidia_gpu_stats(device: torch.device) -> Dict[str, float]:
     gpu_stat_keys = [k for k, _ in gpu_stat_metrics]
     gpu_query = ",".join(gpu_stat_keys)
 
-    gpu_id = _get_gpu_id(device.index)
+    index = torch._utils._get_device_index(device)
+    gpu_id = _get_gpu_id(index)
     result = subprocess.run(
         [nvidia_smi_path, f"--query-gpu={gpu_query}", "--format=csv,nounits,noheader", f"--id={gpu_id}"],
         encoding="utf-8",
@@ -130,5 +148,5 @@ def _get_gpu_id(device_id: int) -> str:
     """Get the unmasked real GPU IDs."""
     # All devices if `CUDA_VISIBLE_DEVICES` unset
     default = ",".join(str(i) for i in range(torch.cuda.device_count()))
-    cuda_visible_devices: List[str] = os.getenv("CUDA_VISIBLE_DEVICES", default=default).split(",")
+    cuda_visible_devices = os.getenv("CUDA_VISIBLE_DEVICES", default=default).split(",")
     return cuda_visible_devices[device_id].strip()

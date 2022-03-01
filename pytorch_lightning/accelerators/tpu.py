@@ -11,12 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities import _XLA_AVAILABLE
+from pytorch_lightning.utilities import device_parser
+from pytorch_lightning.utilities.imports import _TPU_AVAILABLE, _XLA_AVAILABLE
 
 if _XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -44,6 +45,22 @@ class TPUAccelerator(Accelerator):
         return device_stats
 
     @staticmethod
+    def parse_devices(devices: Union[int, str, List[int]]) -> Optional[Union[int, List[int]]]:
+        """Accelerator device parsing logic."""
+        return device_parser.parse_tpu_cores(devices)
+
+    @staticmethod
+    def get_parallel_devices(devices: Union[int, List[int]]) -> List[int]:
+        """Gets parallel devices for the Accelerator."""
+        if isinstance(devices, int):
+            return list(range(devices))
+        return devices
+
+    @staticmethod
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
         return 8
+
+    @staticmethod
+    def is_available() -> bool:
+        return _TPU_AVAILABLE

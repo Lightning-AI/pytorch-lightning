@@ -27,8 +27,9 @@ from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.types import LRSchedulerConfig
 
 
 class LearningRateMonitor(Callback):
@@ -103,7 +104,7 @@ class LearningRateMonitor(Callback):
             MisconfigurationException:
                 If ``Trainer`` has no ``logger``.
         """
-        if not trainer.logger:
+        if not trainer.loggers:
             raise MisconfigurationException(
                 "Cannot use `LearningRateMonitor` callback with `Trainer` that has no logger."
             )
@@ -111,8 +112,10 @@ class LearningRateMonitor(Callback):
         if self.log_momentum:
 
             def _check_no_key(key: str) -> bool:
-                if trainer.lr_schedulers:
-                    return any(key not in sch["scheduler"].optimizer.defaults for sch in trainer.lr_schedulers)
+                if trainer.lr_scheduler_configs:
+                    return any(
+                        key not in config.scheduler.optimizer.defaults for config in trainer.lr_scheduler_configs
+                    )
 
                 return any(key not in optimizer.defaults for optimizer in trainer.optimizers)
 
@@ -129,7 +132,7 @@ class LearningRateMonitor(Callback):
             sched_hparam_keys,
             optimizers_with_scheduler,
             optimizers_with_scheduler_types,
-        ) = self._find_names_from_schedulers(trainer.lr_schedulers)
+        ) = self._find_names_from_schedulers(trainer.lr_scheduler_configs)
         names.extend(sched_hparam_keys)
 
         # Find names for leftover optimizers
@@ -146,7 +149,6 @@ class LearningRateMonitor(Callback):
         self.last_momentum_values = {name + "-momentum": None for name in names_flatten}
 
     def on_train_batch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
-        assert trainer.logger is not None
         if not trainer.logger_connector.should_update_logs:
             return
 
@@ -155,16 +157,17 @@ class LearningRateMonitor(Callback):
             latest_stat = self._extract_stats(trainer, interval)
 
             if latest_stat:
-                trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
+                for logger in trainer.loggers:
+                    logger.log_metrics(latest_stat, step=trainer.global_step)
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
-        assert trainer.logger is not None
         if self.logging_interval != "step":
             interval = "epoch" if self.logging_interval is None else "any"
             latest_stat = self._extract_stats(trainer, interval)
 
             if latest_stat:
-                trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
+                for logger in trainer.loggers:
+                    logger.log_metrics(latest_stat, step=trainer.global_step)
 
     def _extract_stats(self, trainer: "pl.Trainer", interval: str) -> Dict[str, float]:
         latest_stat = {}
@@ -173,12 +176,12 @@ class LearningRateMonitor(Callback):
             scheduler_hparam_keys,
             optimizers_with_scheduler,
             optimizers_with_scheduler_types,
-        ) = self._find_names_from_schedulers(trainer.lr_schedulers, add_lr_sch_names=False)
+        ) = self._find_names_from_schedulers(trainer.lr_scheduler_configs, add_lr_sch_names=False)
         self._remap_keys(scheduler_hparam_keys)
 
-        for name, scheduler in zip(scheduler_hparam_keys, trainer.lr_schedulers):
-            if interval in [scheduler["interval"], "any"]:
-                opt = scheduler["scheduler"].optimizer
+        for name, config in zip(scheduler_hparam_keys, trainer.lr_scheduler_configs):
+            if interval in [config.interval, "any"]:
+                opt = config.scheduler.optimizer
                 current_stat = self._get_lr_momentum_stat(opt, name)
                 latest_stat.update(current_stat)
 
@@ -261,22 +264,22 @@ class LearningRateMonitor(Callback):
         return {n for n in names if names.count(n) > 1}
 
     def _find_names_from_schedulers(
-        self, lr_schedulers: List, add_lr_sch_names: bool = True
+        self, lr_scheduler_configs: List[LRSchedulerConfig], add_lr_sch_names: bool = True
     ) -> Tuple[List[List[str]], List[Optimizer], DefaultDict[Type[Optimizer], int]]:
         # Create unique names in the case we have multiple of the same learning
         # rate scheduler + multiple parameter groups
         names = []
         seen_optimizers: List[Optimizer] = []
         seen_optimizer_types: DefaultDict[Type[Optimizer], int] = defaultdict(int)
-        for scheduler in lr_schedulers:
-            sch = scheduler["scheduler"]
-            if scheduler["name"] is not None:
-                name = scheduler["name"]
+        for config in lr_scheduler_configs:
+            sch = config.scheduler
+            if config.name is not None:
+                name = config.name
             else:
                 name = "lr-" + sch.optimizer.__class__.__name__
 
             updated_names = self._check_duplicates_and_update_name(
-                sch.optimizer, name, seen_optimizers, seen_optimizer_types, scheduler, add_lr_sch_names
+                sch.optimizer, name, seen_optimizers, seen_optimizer_types, config, add_lr_sch_names
             )
             names.append(updated_names)
 
@@ -313,14 +316,14 @@ class LearningRateMonitor(Callback):
         name: str,
         seen_optimizers: List[Optimizer],
         seen_optimizer_types: DefaultDict[Type[Optimizer], int],
-        scheduler: Dict[str, Any] = None,
+        lr_scheduler_config: Optional[LRSchedulerConfig],
         add_lr_sch_names: bool = True,
     ) -> List[str]:
         seen_optimizers.append(optimizer)
         optimizer_cls = type(optimizer)
-        if scheduler is not None and scheduler["name"] is None:
+        if lr_scheduler_config is not None and lr_scheduler_config.name is None:
             seen_optimizer_types[optimizer_cls] += 1
-        elif scheduler is None:
+        elif lr_scheduler_config is None:
             seen_optimizer_types[optimizer_cls] += 1
 
         # Multiple param groups for the same optimizer

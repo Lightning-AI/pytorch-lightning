@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from copy import deepcopy
 
 import torch
 
@@ -53,8 +52,6 @@ def test_finetuning_with_ckpt_path(tmpdir):
     assert os.listdir(tmpdir) == ["epoch=00.ckpt"]
 
     best_model_paths = [checkpoint_callback.best_model_path]
-    results = []
-
     for idx in range(3, 6):
         # load from checkpoint
         trainer = pl.Trainer(
@@ -67,7 +64,6 @@ def test_finetuning_with_ckpt_path(tmpdir):
         )
         trainer.fit(model, ckpt_path=best_model_paths[-1])
         trainer.test()
-        results.append(deepcopy(trainer.callback_metrics))
         best_model_paths.append(trainer.checkpoint_callback.best_model_path)
 
     for idx, best_model_path in enumerate(best_model_paths):

@@ -13,7 +13,7 @@
 # limitations under the License.
 import json
 import os
-from typing import Any, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 from torch.utils.data import DataLoader
@@ -35,6 +35,8 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _POPTORCH_AVAILABLE:
     import poptorch
+else:
+    poptorch = None
 
 
 class LightningIPUModule(_LightningModuleWrapperBase):
@@ -59,6 +61,8 @@ class LightningIPUModule(_LightningModuleWrapperBase):
 
 class IPUStrategy(ParallelStrategy):
     """Plugin for training on IPU devices."""
+
+    strategy_name = "ipu_strategy"
 
     def __init__(
         self,
@@ -113,6 +117,8 @@ class IPUStrategy(ParallelStrategy):
                 self._fs.makedirs(self.autoreport_dir, exist_ok=True)
                 options["autoReport.directory"] = self.autoreport_dir
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
+
+        self._update_dataloader_original: Optional[Callable] = None
 
     def setup(self, trainer: "pl.Trainer") -> None:
         # set the `accumulate_grad_batches` property as early as possible
@@ -208,12 +214,13 @@ class IPUStrategy(ParallelStrategy):
     def _convert_to_poptorch_loader(
         self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None
     ) -> "poptorch.DataLoader":
-        dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler)
-        # Override to drop last uneven batch, as IPUs does not support uneven inputs.
-        dl_kwargs["drop_last"] = True
+        if isinstance(dataloader, poptorch.DataLoader):
+            # the user is returning the `poptorch.DataLoader` directly, don't change anything.
+            return dataloader
 
+        dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler)
         opts = self.training_opts if mode == RunningStage.TRAINING else self.inference_opts
-        dataloader = poptorch.DataLoader(**dl_kwargs, options=opts)
+        dataloader = poptorch.DataLoader(opts, **dl_kwargs)
         return dataloader
 
     def _handle_gradient_accumulation_steps(self) -> None:
@@ -277,8 +284,9 @@ class IPUStrategy(ParallelStrategy):
 
     def teardown(self) -> None:
         super().teardown()
-        # undo dataloader patching
-        pl.trainer.connectors.data_connector._update_dataloader = self._update_dataloader_original
+        if self._update_dataloader_original is not None:
+            # undo dataloader patching
+            pl.trainer.connectors.data_connector._update_dataloader = self._update_dataloader_original
 
         for model in self.poptorch_models.values():
             model.destroy()
@@ -334,10 +342,6 @@ class IPUStrategy(ParallelStrategy):
         self.poptorch_models[RunningStage.TRAINING].setOptimizer(optimizer)
 
     @property
-    def on_gpu(self) -> bool:
-        return False
-
-    @property
     def root_device(self) -> torch.device:
         pass
 
@@ -359,3 +363,11 @@ class IPUStrategy(ParallelStrategy):
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         return obj
+
+    @classmethod
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )
