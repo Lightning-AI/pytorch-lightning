@@ -14,7 +14,6 @@ Supported Progress Bars
 .. currentmodule:: pytorch_lightning.callbacks.progress
 
 .. autosummary::
-    :toctree: generated
     :nosignatures:
     :template: classtemplate.rst
 
