@@ -41,7 +41,9 @@ class CPUAccelerator(Accelerator):
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> int:
         """Accelerator device parsing logic."""
-        return device_parser.parse_cpu_cores(devices)
+        devices = device_parser.parse_cpu_cores(devices)
+        assert devices is not None
+        return devices
 
     @staticmethod
     def get_parallel_devices(devices: int) -> List[torch.device]:
