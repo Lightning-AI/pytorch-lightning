@@ -223,7 +223,7 @@ a comma separated list of GPU ids:
     Trainer(accelerator="gpu", devices=-1)
 
 The table below lists examples of possible input formats and how they are interpreted by Lightning.
-Note in particular the difference between `devices=0`, `devices=[0]` and `devices="0"`.
+Note in particular the difference between ``devices=0``, ``devices=[0]`` and ``devices="0"``.
 
 +------------------+-----------+---------------------+---------------------------------+
 | `devices`        | Type      | Parsed              | Meaning                         |
