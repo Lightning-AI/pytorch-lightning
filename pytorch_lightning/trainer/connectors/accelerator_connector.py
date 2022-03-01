@@ -46,8 +46,8 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
+from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
 from pytorch_lightning.strategies import (
-    DataParallelStrategy,
     DDP2Strategy,
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
@@ -99,7 +99,7 @@ class AcceleratorConnector:
         amp_type: str = "native",
         amp_level: Optional[str] = None,
         sync_batchnorm: bool = False,
-        benchmark: bool = False,
+        benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
         deterministic: bool = False,
         num_processes: Optional[int] = None,  # deprecated
@@ -142,10 +142,15 @@ class AcceleratorConnector:
             B. Strategy > Accelerator/precision/plugins
             C. TODO When multiple flag set to the same thing
         """
+        if benchmark and deterministic:
+            rank_zero_warn(
+                "You passed `deterministic=True` and `benchmark=True`. Note that PyTorch ignores"
+                " torch.backends.cudnn.deterministic=True when torch.backends.cudnn.benchmark=True.",
+            )
+        self.benchmark = not deterministic if benchmark is None else benchmark
         # TODO: move to gpu accelerator
-        torch.backends.cudnn.benchmark = benchmark
+        torch.backends.cudnn.benchmark = self.benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
-        self.sync_batchnorm = sync_batchnorm
         self._init_deterministic(deterministic)
 
         # 1. Parsing flags
@@ -163,6 +168,8 @@ class AcceleratorConnector:
         self._precision_flag: Optional[Union[int, str]] = None
         self._precision_plugin_flag: Optional[PrecisionPlugin] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
+        self._parallel_devices: List[Union[int, torch.device]] = []
+        self._layer_sync: Optional[LayerSync] = NativeSyncBatchNorm() if sync_batchnorm else None
         self.checkpoint_io: Optional[CheckpointIO] = None
         self._amp_type_flag: Optional[LightningEnum] = None
         self._amp_level_flag: Optional[str] = amp_level
@@ -174,6 +181,7 @@ class AcceleratorConnector:
             plugins=plugins,
             amp_type=amp_type,
             amp_level=amp_level,
+            sync_batchnorm=sync_batchnorm,
         )
         self._check_device_config_and_set_final_flags(
             devices=devices, num_nodes=num_nodes, num_processes=num_processes, gpus=gpus, ipus=ipus, tpu_cores=tpu_cores
@@ -224,6 +232,7 @@ class AcceleratorConnector:
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]],
         amp_type: str,
         amp_level: Optional[str],
+        sync_batchnorm: bool,
     ) -> None:
         """This method checks:
 
@@ -311,6 +320,13 @@ class AcceleratorConnector:
                     self.checkpoint_io = plugin
                 elif isinstance(plugin, ClusterEnvironment):
                     self._cluster_environment_flag = plugin
+                elif isinstance(plugin, LayerSync):
+                    if sync_batchnorm and not isinstance(plugin, NativeSyncBatchNorm):
+                        raise MisconfigurationException(
+                            f"You set `Trainer(sync_batchnorm=True)` and provided a `{plugin.__class__.__name__}`"
+                            " plugin, but this is not allowed. Choose one or the other."
+                        )
+                    self._layer_sync = plugin
                 else:
                     raise MisconfigurationException(
                         f"Found invalid type for plugin {plugin}. Expected a precision plugin or training strategy."
@@ -356,6 +372,7 @@ class AcceleratorConnector:
                         self._accelerator_flag = "cpu"
                     if self._strategy_flag.parallel_devices[0].type == "cuda":
                         self._accelerator_flag = "gpu"
+                    self._parallel_devices = self._strategy_flag.parallel_devices
 
         amp_type = amp_type if isinstance(amp_type, str) else None
         self._amp_type_flag = AMPType.from_str(amp_type)
@@ -382,7 +399,7 @@ class AcceleratorConnector:
             devices, num_processes, gpus, ipus, tpu_cores
         )
 
-        if self._devices_flag in ([], 0, "0", "0,"):
+        if self._devices_flag in ([], 0, "0"):
             rank_zero_warn(f"You passed `devices={devices}`, switching to `cpu` accelerator")
             self._accelerator_flag = "cpu"
 
@@ -403,10 +420,8 @@ class AcceleratorConnector:
         """Sets the `devices_flag` and `accelerator_flag` based on num_processes, gpus, ipus, tpu_cores."""
         self._gpus: Optional[Union[List[int], str, int]] = gpus
         self._tpu_cores: Optional[Union[List[int], str, int]] = tpu_cores
-        gpus = device_parser.parse_gpu_ids(gpus)
-        tpu_cores = device_parser.parse_tpu_cores(tpu_cores)
         deprecated_devices_specific_flag = num_processes or gpus or ipus or tpu_cores
-        if deprecated_devices_specific_flag and deprecated_devices_specific_flag not in (0, "0"):
+        if deprecated_devices_specific_flag and deprecated_devices_specific_flag not in ([], 0, "0"):
             if devices:
                 # TODO: @awaelchli improve error message
                 rank_zero_warn(
@@ -451,50 +466,33 @@ class AcceleratorConnector:
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
         # TODO add device availability check
-        self._parallel_devices: List[Union[int, torch.device]] = []
-
         if isinstance(self._accelerator_flag, Accelerator):
             self.accelerator: Accelerator = self._accelerator_flag
-        elif self._accelerator_flag == "tpu":
-            self.accelerator = TPUAccelerator()
-            self._set_devices_flag_if_auto_passed()
-            if isinstance(self._devices_flag, int):
-                self._parallel_devices = list(range(self._devices_flag))
-            else:
-                self._parallel_devices = self._devices_flag  # type: ignore[assignment]
-
-        elif self._accelerator_flag == "ipu":
-            self.accelerator = IPUAccelerator()
-            self._set_devices_flag_if_auto_passed()
-            if isinstance(self._devices_flag, int):
-                self._parallel_devices = list(range(self._devices_flag))
-
-        elif self._accelerator_flag == "gpu":
-            self.accelerator = GPUAccelerator()
-            self._set_devices_flag_if_auto_passed()
-            if isinstance(self._devices_flag, int) or isinstance(self._devices_flag, str):
-                self._devices_flag = int(self._devices_flag)
-                self._parallel_devices = (
-                    [torch.device("cuda", i) for i in device_parser.parse_gpu_ids(self._devices_flag)]  # type: ignore
-                    if self._devices_flag != 0
-                    else []
+        else:
+            ACCELERATORS = {
+                "cpu": CPUAccelerator,
+                "gpu": GPUAccelerator,
+                "tpu": TPUAccelerator,
+                "ipu": IPUAccelerator,
+            }
+            assert self._accelerator_flag is not None
+            self._accelerator_flag = self._accelerator_flag.lower()
+            if self._accelerator_flag not in ACCELERATORS:
+                raise MisconfigurationException(
+                    "When passing string value for the `accelerator` argument of `Trainer`,"
+                    f" it can only be one of {list(ACCELERATORS)}."
                 )
-            else:
-                self._parallel_devices = [torch.device("cuda", i) for i in self._devices_flag]  # type: ignore
+            accelerator_class = ACCELERATORS[self._accelerator_flag]
+            self.accelerator = accelerator_class()  # type: ignore[abstract]
 
-        elif self._accelerator_flag == "cpu":
-            self.accelerator = CPUAccelerator()
-            self._set_devices_flag_if_auto_passed()
-            if isinstance(self._devices_flag, int):
-                self._parallel_devices = [torch.device("cpu")] * self._devices_flag
-            else:
-                rank_zero_warn(
-                    "The flag `devices` must be an int with `accelerator='cpu'`,"
-                    f" got `devices={self._devices_flag}` instead."
-                )
+        self._set_devices_flag_if_auto_passed()
 
         self._gpus = self._devices_flag if not self._gpus else self._gpus
         self._tpu_cores = self._devices_flag if not self._tpu_cores else self._tpu_cores
+
+        self._devices_flag = self.accelerator.parse_devices(self._devices_flag)
+        if not self._parallel_devices:
+            self._parallel_devices = self.accelerator.get_parallel_devices(self._devices_flag)
 
     def _set_devices_flag_if_auto_passed(self) -> None:
         if self._devices_flag == "auto" or not self._devices_flag:
@@ -727,8 +725,8 @@ class AcceleratorConnector:
                 self.strategy.parallel_devices = self._parallel_devices
         if hasattr(self.strategy, "num_nodes"):
             self.strategy._num_nodes = self._num_nodes_flag
-        if hasattr(self.strategy, "sync_batchnorm"):
-            self.strategy.sync_batchnorm = self.sync_batchnorm
+        if hasattr(self.strategy, "_layer_sync"):
+            self.strategy._layer_sync = self._layer_sync
         if hasattr(self.strategy, "set_world_ranks"):
             self.strategy.set_world_ranks()
         self.strategy._configure_launcher()
@@ -762,21 +760,6 @@ class AcceleratorConnector:
     @property
     def parallel_devices(self) -> List[Union[torch.device, int]]:
         return self._parallel_devices
-
-    @property
-    def device_type(self) -> str:
-        if isinstance(self.accelerator, CPUAccelerator):
-            return "cpu"
-        if isinstance(self.accelerator, GPUAccelerator):
-            return "gpu"
-        if isinstance(self.accelerator, TPUAccelerator):
-            return "tpu"
-        if isinstance(self.accelerator, IPUAccelerator):
-            return "ipu"
-
-    @property
-    def num_nodes(self) -> int:
-        return self._num_nodes_flag
 
     @property
     def num_processes(self) -> int:
@@ -852,19 +835,3 @@ class AcceleratorConnector:
         if isinstance(self.accelerator, TPUAccelerator):
             is_distributed |= self.strategy.is_distributed
         return is_distributed
-
-    @property
-    def has_ipu(self) -> bool:
-        return isinstance(self.accelerator, IPUAccelerator) and isinstance(self.strategy, IPUStrategy)
-
-    @property
-    def use_ipu(self) -> bool:
-        return isinstance(self.accelerator, IPUAccelerator)
-
-    @property
-    def has_tpu(self) -> bool:
-        return isinstance(self.accelerator, TPUAccelerator)
-
-    @property
-    def use_dp(self) -> bool:
-        return isinstance(self.strategy, DataParallelStrategy)
