@@ -96,6 +96,8 @@ Here are the only required methods.
 .. code-block:: python
 
     import pytorch_lightning as pl
+    import torch.nn as nn
+    import torch.nn.functional as F
 
 
     class LitModel(pl.LightningModule):
@@ -398,7 +400,7 @@ Validation Epoch-level Metrics
 ==============================
 
 If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
-override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end` method.
+override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end` method. Note that this method is called before :meth:`~pytorch_lightning.core.lightning.LightningModule.training_epoch_end`.
 
 .. code-block:: python
 
