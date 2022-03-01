@@ -38,7 +38,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.seed import collect_rng_states, set_rng_states
+from pytorch_lightning.utilities.seed import _collect_rng_states, _set_rng_states
 from pytorch_lightning.utilities.types import _Stateful
 
 
@@ -248,7 +248,7 @@ class CaptureMapDataset(Dataset):
     def __getitem__(self, item) -> Tuple[Any, Dict[int, Dict]]:
         if self._cached_state_dict is not None:
             if self.worker_id in self._cached_state_dict:
-                set_rng_states(self._cached_state_dict[self.worker_id]["rng_states"])
+                _set_rng_states(self._cached_state_dict[self.worker_id]["rng_states"])
             self._cached_state_dict = None
 
         return self.dataset[item]
@@ -261,7 +261,7 @@ class CaptureMapDataset(Dataset):
         self._cached_state_dict = _rotate_worker_indices(deepcopy(state_dict), latest_worker_id, num_workers)
 
     def state_dict(self) -> Dict[int, Dict[str, Any]]:
-        return {self.worker_id: {"rng_states": collect_rng_states()}}
+        return {self.worker_id: {"rng_states": _collect_rng_states()}}
 
 
 class CaptureIterableDataset(IterableDataset):

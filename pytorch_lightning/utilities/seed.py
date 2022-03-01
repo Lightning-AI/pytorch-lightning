@@ -122,12 +122,12 @@ def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:
     random.seed(stdlib_seed)
 
 
-def collect_rng_states() -> Dict[str, Any]:
+def _collect_rng_states() -> Dict[str, Any]:
     """Collect the global random state of :mod:`torch`, :mod:`numpy` and Python."""
     return {"torch": torch.get_rng_state(), "numpy": np.random.get_state(), "python": python_get_rng_state()}
 
 
-def set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
+def _set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
     """Set the global random state of :mod:`torch`, :mod:`numpy` and Python in the current process."""
     torch.set_rng_state(rng_state_dict["torch"])
     np.random.set_state(rng_state_dict["numpy"])
@@ -150,6 +150,6 @@ def isolate_rng() -> Generator[None, None, None]:
         >>> torch.rand(1)
         tensor([0.7576])
     """
-    states = collect_rng_states()
+    states = _collect_rng_states()
     yield
-    set_rng_states(states)
+    _set_rng_states(states)
