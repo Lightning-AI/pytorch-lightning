@@ -29,7 +29,7 @@ from tests.helpers.runif import RunIf
 from tests.strategies import ddp_model
 from tests.utilities.distributed import call_training_script
 
-CLI_ARGS = "--max_epochs 1 --gpus 2 --strategy ddp"
+CLI_ARGS = "--max_epochs 1 --accelerator 'gpu' --devices 2 --strategy ddp"
 
 
 @RunIf(min_gpus=2)

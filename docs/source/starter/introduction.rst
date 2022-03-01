@@ -243,7 +243,7 @@ then call fit with both the data and model.
     autoencoder = LitAutoEncoder()
 
     # most basic trainer, uses good defaults (auto-tensorboard, checkpoints, logs, and more)
-    # trainer = pl.Trainer(gpus=8) (if you have GPUs)
+    # trainer = pl.Trainer(accelerator="gpu", devices=8) (if you have GPUs)
     trainer = pl.Trainer()
     trainer.fit(model=autoencoder, train_dataloaders=train_loader)
 
@@ -446,16 +446,16 @@ GPU
 .. code-block:: python
 
     # train on 1 GPU
-    trainer = pl.Trainer(gpus=1)
+    trainer = pl.Trainer(accelerator="gpu", devices=1)
 
     # train on multiple GPUs across nodes (32 gpus here)
-    trainer = pl.Trainer(gpus=4, num_nodes=8)
+    trainer = pl.Trainer(accelerator="gpu", devices=4, num_nodes=8)
 
     # train on gpu 1, 3, 5 (3 gpus total)
-    trainer = pl.Trainer(gpus=[1, 3, 5])
+    trainer = pl.Trainer(accelerator="gpu", devices=[1, 3, 5])
 
     # Multi GPU with mixed precision
-    trainer = pl.Trainer(gpus=2, precision=16)
+    trainer = pl.Trainer(accelerator="gpu", devices=2, precision=16)
 
 TPU
 ---

@@ -100,13 +100,14 @@ In Python scripts, it's recommended you use a main function to call the Trainer.
 
     def main(hparams):
         model = LightningModule()
-        trainer = Trainer(gpus=hparams.gpus)
+        trainer = Trainer(accelerator=hparams.accelerator, devices=hparams.devices)
         trainer.fit(model)
 
 
     if __name__ == "__main__":
         parser = ArgumentParser()
-        parser.add_argument("--gpus", default=None)
+        parser.add_argument("--accelerator", default=None)
+        parser.add_argument("--devices", default=None)
         args = parser.parse_args()
 
         main(args)
@@ -115,7 +116,7 @@ So you can run it like so:
 
 .. code-block:: bash
 
-    python main.py --gpus 2
+    python main.py --accelerator 'gpu' --devices 2
 
 .. note::
 
@@ -143,7 +144,7 @@ So you can run it like so:
 
 .. code-block:: bash
 
-    python main.py --gpus 2 --max_steps 10 --limit_train_batches 10 --any_trainer_arg x
+    python main.py --accelerator 'gpu' --devices 2 --max_steps 10 --limit_train_batches 10 --any_trainer_arg x
 
 .. note::
     If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
@@ -356,16 +357,16 @@ such that only one process at a time can access them.
 Example::
 
     # no auto selection (picks first 2 gpus on system, may fail if other process is occupying)
-    trainer = Trainer(gpus=2, auto_select_gpus=False)
+    trainer = Trainer(accelerator="gpu", devices=2, auto_select_gpus=False)
 
     # enable auto selection (will find two available gpus on system)
-    trainer = Trainer(gpus=2, auto_select_gpus=True)
+    trainer = Trainer(accelerator="gpu", devices=2, auto_select_gpus=True)
 
     # specifies all GPUs regardless of its availability
-    Trainer(gpus=-1, auto_select_gpus=False)
+    Trainer(accelerator="gpu", devices=-1, auto_select_gpus=False)
 
     # specifies all available GPUs (if only one GPU is not occupied, uses one gpu)
-    Trainer(gpus=-1, auto_select_gpus=True)
+    Trainer(accelerator="gpu", devices=-1, auto_select_gpus=True)
 
 auto_lr_find
 ^^^^^^^^^^^^
@@ -710,30 +711,30 @@ gpus
 .. testcode::
 
     # default used by the Trainer (ie: train on CPU)
-    trainer = Trainer(gpus=None)
+    trainer = Trainer(accelerator="gpu", devices=None)
 
     # equivalent
-    trainer = Trainer(gpus=0)
+    trainer = Trainer(accelerator="gpu", devices=0)
 
 Example::
 
     # int: train on 2 gpus
-    trainer = Trainer(gpus=2)
+    trainer = Trainer(accelerator="gpu", devices=2)
 
     # list: train on GPUs 1, 4 (by bus ordering)
-    trainer = Trainer(gpus=[1, 4])
-    trainer = Trainer(gpus='1, 4') # equivalent
+    trainer = Trainer(accelerator="gpu", devices=[1, 4])
+    trainer = Trainer(accelerator="gpu", devices='1, 4') # equivalent
 
     # -1: train on all gpus
-    trainer = Trainer(gpus=-1)
-    trainer = Trainer(gpus='-1') # equivalent
+    trainer = Trainer(accelerator="gpu", devices=-1)
+    trainer = Trainer(accelerator="gpu", devices='-1') # equivalent
 
     # combine with num_nodes to train on multiple GPUs across nodes
     # uses 8 gpus in total
-    trainer = Trainer(gpus=2, num_nodes=4)
+    trainer = Trainer(accelerator="gpu", devices=2, num_nodes=4)
 
     # train only on GPUs 1 and 4 across nodes
-    trainer = Trainer(gpus=[1, 4], num_nodes=4)
+    trainer = Trainer(accelerator="gpu", devices=[1, 4], num_nodes=4)
 
 See Also:
     - :ref:`accelerators/gpu:Multi GPU Training`
