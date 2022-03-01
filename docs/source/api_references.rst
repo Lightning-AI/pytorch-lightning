@@ -74,14 +74,29 @@ Callbacks API
 .. autosummary::
     :toctree: api
     :nosignatures:
+    :template: classtemplate.rst
 
-    base
-    early_stopping
-    gpu_stats_monitor
-    gradient_accumulation_scheduler
-    lr_monitor
-    model_checkpoint
-    progress
+    BackboneFinetuning
+    BaseFinetuning
+    BasePredictionWriter
+    Callback
+    DeviceStatsMonitor
+    EarlyStopping
+    GPUStatsMonitor
+    GradientAccumulationScheduler
+    LambdaCallback
+    LearningRateMonitor
+    ModelCheckpoint
+    ModelPruning
+    ModelSummary
+    ProgressBarBase
+    QuantizationAwareTraining
+    RichModelSummary
+    RichProgressBar
+    StochasticWeightAveraging
+    Timer
+    TQDMProgressBar
+    XLAStatsMonitor
 
 Loggers API
 -----------
