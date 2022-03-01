@@ -242,7 +242,8 @@ Example::
     Trainer(accelerator=MyOwnAcc())
 
 .. note::
-    If the `devices` flag is not defined, it will assume `devices`` to be `"auto"` and fetch the `auto_device_count`
+
+    If the ``devices`` flag is not defined, it will assume ``devices``` to be ``"auto"`` and fetch the ``auto_device_count``
     from the accelerator.
 
 .. code-block:: python
