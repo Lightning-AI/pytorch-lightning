@@ -319,9 +319,9 @@ def test_broadcast_on_tpu():
 def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
     if error_expected:
         with pytest.raises(MisconfigurationException, match=r".*tpu_cores` can only be 1, 8 or [<1-8>]*"):
-            Trainer(default_root_dir=tmpdir, accelerator="tpu", devices=tpu_cores)
+            Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores)
     else:
-        trainer = Trainer(default_root_dir=tmpdir, accelerator="tpu", devices=tpu_cores)
+        trainer = Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores)
         assert trainer._accelerator_connector.tpu_id == expected_tpu_id
 
 
