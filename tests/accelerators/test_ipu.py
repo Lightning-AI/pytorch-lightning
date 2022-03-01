@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from typing import Optional
+import warnings
 
 import pytest
 import torch
@@ -35,6 +36,13 @@ from tests.helpers.simple_models import ClassificationModel
 
 if _IPU_AVAILABLE:
     import poptorch
+
+
+warnings.filterwarnings(
+    "ignore",
+    category=UserWarning,
+    message=r"Detected call of `lr_scheduler.step\(\)` before `optimizer.step\(\)`",
+)
 
 
 class IPUModel(BoringModel):
