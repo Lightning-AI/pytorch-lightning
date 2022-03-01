@@ -250,6 +250,8 @@ def test_configure_optimizer_from_dict(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
+# TODO(akihironitta): Remove the warning filter in a fix PR for #12169.
+@pytest.mark.filterwarnings(r"ignore:Detected call of `lr_scheduler.step\(\)` before `optimizer.step\(\)`:UserWarning")
 @pytest.mark.parametrize(
     "schedulers, kwargs, intervals, frequencies, expected_steps, max_epochs",
     [
