@@ -71,7 +71,10 @@ class FitLoop(Loop[None]):
     @property
     def global_step(self) -> int:
         """Returns the global step."""
-        return self.epoch_loop.global_step
+        lightning_module = self.trainer.lightning_module
+        if lightning_module is None or lightning_module.automatic_optimization:
+            return self.epoch_loop.global_step
+        return self.epoch_loop.batch_loop.manual_loop.optim_step_progress.total.completed
 
     @global_step.setter
     def global_step(self, value: int) -> None:
@@ -96,7 +99,7 @@ class FitLoop(Loop[None]):
     @property
     def min_steps(self) -> Optional[int]:
         # TODO(@justusschock): Why aren't we using the attribute in this class?
-        """Returns the minimum numnber of steps to run."""
+        """Returns the minimum number of steps to run."""
         return self.epoch_loop.min_steps
 
     @min_steps.setter
@@ -145,6 +148,12 @@ class FitLoop(Loop[None]):
             self.epoch_progress.current.completed = self.epoch_progress.current.processed
         restarting &= finished_before_on_train_end
         Loop.restarting.fset(self, restarting)  # call the parent setter
+
+    @property
+    def prefetch_batches(self) -> int:
+        is_unsized = self.trainer.num_training_batches == float("inf")
+        inter_batch_parallelism = os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1"
+        return 1 if is_unsized or inter_batch_parallelism else 0
 
     @property
     def _skip_backward(self) -> bool:
@@ -210,8 +219,9 @@ class FitLoop(Loop[None]):
         """Calls the ``on_train_start`` hook."""
         # reset train dataloader and val dataloader
         self.trainer.reset_train_val_dataloaders(self.trainer.lightning_module)
+
         data_fetcher_cls = _select_data_fetcher(self.trainer)
-        self._data_fetcher = data_fetcher_cls()
+        self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)
 
         self._is_fresh_start_epoch = True
         self._results.to(device=self.trainer.lightning_module.device)
@@ -263,6 +273,7 @@ class FitLoop(Loop[None]):
         log.detail(f"{self.__class__.__name__}: advancing loop")
         assert self.trainer.train_dataloader is not None
         dataloader = self.trainer.strategy.process_dataloader(self.trainer.train_dataloader)
+        assert self._data_fetcher is not None
         self._data_fetcher.setup(
             dataloader, batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=0)
         )

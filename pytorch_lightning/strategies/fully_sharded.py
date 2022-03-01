@@ -23,8 +23,9 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
-from pytorch_lightning.utilities.enums import _StrategyType, PrecisionType
+from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
@@ -36,7 +37,7 @@ log = logging.getLogger(__name__)
 
 class DDPFullyShardedStrategy(DDPStrategy):
 
-    distributed_backend = _StrategyType.DDP_FULLY_SHARDED
+    strategy_name = "ddp_fully_sharded"
 
     def __init__(
         self,
@@ -98,7 +99,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
                 (Default: 1e8)
             state_dict_to_cpu: Whether to return parameters (returned by :func:`state_dict`) on CPU device.
                 If ``False``, this will default to ``compute_device``.
-                (Defautl: True).
+                (Default: True).
         """
 
         super().__init__(
@@ -136,10 +137,10 @@ class DDPFullyShardedStrategy(DDPStrategy):
         self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
-        self._move_optimizer_state()
+        optimizers_to_device(self.optimizers, self.root_device)
 
-        if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
+        if self._layer_sync:
+            self.model = self._layer_sync.apply(self.model)
 
         self.configure_ddp()
         self.barrier()
@@ -211,4 +212,10 @@ class DDPFullyShardedStrategy(DDPStrategy):
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
             "fsdp", cls, description="Fully sharded training with checkpointing the full state dict."
+        )
+
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
         )

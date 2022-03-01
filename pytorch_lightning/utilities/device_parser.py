@@ -19,9 +19,10 @@ from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import _DEVICE
 
 
-def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
+def determine_root_gpu_device(gpus: List[_DEVICE]) -> Optional[_DEVICE]:
     """
     Args:
         gpus: non-empty list of ints representing which gpus to use
@@ -164,7 +165,7 @@ def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:
     for gpu in gpus:
         if gpu not in all_available_gpus:
             raise MisconfigurationException(
-                f"You requested GPUs: {gpus}\n But your machine only has: {all_available_gpus}"
+                f"You requested gpu: {gpus}\n But your machine only has: {all_available_gpus}"
             )
     return gpus
 

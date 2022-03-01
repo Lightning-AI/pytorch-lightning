@@ -208,7 +208,7 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
     logger = TestLogger(**_get_logger_args(TestLogger, save_dir))
     trainer = Trainer(**trainer_args, logger=logger, weights_save_path=weights_save_path)
     trainer.fit(model)
-    assert trainer.weights_save_path == trainer.default_root_dir
+    assert trainer._weights_save_path_internal == trainer.default_root_dir
     assert trainer.checkpoint_callback.dirpath == os.path.join(logger.save_dir, "name", "version", "checkpoints")
     assert trainer.default_root_dir == tmpdir
 
@@ -216,18 +216,20 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
     save_dir = tmpdir / "logs"
     weights_save_path = tmpdir / "weights"
     logger = TestLogger(**_get_logger_args(TestLogger, save_dir))
-    trainer = Trainer(**trainer_args, logger=logger, weights_save_path=weights_save_path)
+    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
+        trainer = Trainer(**trainer_args, logger=logger, weights_save_path=weights_save_path)
     trainer.fit(model)
-    assert trainer.weights_save_path == weights_save_path
+    assert trainer._weights_save_path_internal == weights_save_path
     assert trainer.logger.save_dir == save_dir
     assert trainer.checkpoint_callback.dirpath == weights_save_path / "name" / "version" / "checkpoints"
     assert trainer.default_root_dir == tmpdir
 
     # no logger given
     weights_save_path = tmpdir / "weights"
-    trainer = Trainer(**trainer_args, logger=False, weights_save_path=weights_save_path)
+    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
+        trainer = Trainer(**trainer_args, logger=False, weights_save_path=weights_save_path)
     trainer.fit(model)
-    assert trainer.weights_save_path == weights_save_path
+    assert trainer._weights_save_path_internal == weights_save_path
     assert trainer.checkpoint_callback.dirpath == weights_save_path / "checkpoints"
     assert trainer.default_root_dir == tmpdir
 
@@ -284,7 +286,7 @@ def _test_loggers_pickle(tmpdir, monkeypatch, logger_class):
     trainer2 = pickle.loads(pkl_bytes)
     trainer2.logger.log_metrics({"acc": 1.0})
 
-    # make sure we restord properly
+    # make sure we restored properly
     assert trainer2.logger.name == logger.name
     assert trainer2.logger.save_dir == logger.save_dir
 

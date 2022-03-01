@@ -13,15 +13,17 @@
 # limitations under the License.
 import multiprocessing
 import os
-from dataclasses import dataclass
-from typing import Any, Collection, List, Optional, Tuple, Union
+from dataclasses import dataclass, field
+from typing import Any, Callable, Collection, List, Optional, Tuple, Union
 from weakref import proxy
 
 from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
+from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSampler
+from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -34,13 +36,14 @@ from pytorch_lightning.utilities.data import (
     has_iterable_dataset,
     has_len_all_ranks,
 )
-from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
-from pytorch_lightning.utilities.warnings import PossibleUserWarning
+from pytorch_lightning.utilities.warnings import PossibleUserWarning, WarningCache
+
+warning_cache = WarningCache()
 
 
 class DataConnector:
@@ -51,6 +54,8 @@ class DataConnector:
         self._val_dataloader_source = _DataLoaderSource(None, "")
         self._test_dataloader_source = _DataLoaderSource(None, "")
         self._predict_dataloader_source = _DataLoaderSource(None, "")
+
+        self._datahook_selector = _DataHookSelector(None, None)
 
     @property
     def _should_reload_train_dl(self) -> bool:
@@ -192,6 +197,8 @@ class DataConnector:
         self, model: "pl.LightningModule", datamodule: Optional["pl.LightningDataModule"] = None
     ) -> None:
         # If we have a datamodule, attach necessary hooks + dataloaders
+        self._datahook_selector = _DataHookSelector(model, datamodule)
+
         if datamodule is None:
             return
 
@@ -199,12 +206,6 @@ class DataConnector:
         self._val_dataloader_source = _DataLoaderSource(datamodule, "val_dataloader")
         self._test_dataloader_source = _DataLoaderSource(datamodule, "test_dataloader")
         self._predict_dataloader_source = _DataLoaderSource(datamodule, "predict_dataloader")
-
-        # Override data transfer hooks if dataset-specific to_device logic has been defined in datamodule
-        batch_transfer_hooks = ("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
-        for hook in batch_transfer_hooks:
-            if is_overridden(hook, datamodule):
-                setattr(model, hook, getattr(datamodule, hook))
 
         self.trainer.datamodule = datamodule
         datamodule.trainer = self.trainer
@@ -217,7 +218,7 @@ class DataConnector:
         if not isinstance(dataloader, DataLoader):
             return
 
-        using_spawn = self.trainer._accelerator_connector._strategy_type == _StrategyType.DDP_SPAWN
+        using_spawn = isinstance(self.trainer.strategy, DDPSpawnStrategy)
         num_cpus = multiprocessing.cpu_count()
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
@@ -269,6 +270,8 @@ class DataConnector:
             and self.trainer._accelerator_connector.is_distributed
             and not isinstance(dataloader.sampler, DistributedSampler)
             and not has_iterable_dataset(dataloader)
+            # `DistributedSampler` is never used with `poptorch.DataLoader`
+            and not isinstance(self.trainer.accelerator, IPUAccelerator)
         )
 
     # TODO: shuffle here is kept for BC. Remove it once data_loading.py is removed (#11248)
@@ -303,7 +306,8 @@ class DataConnector:
             _fault_tolerant_training()  # injects components to track the state
             or self._requires_distributed_sampler(dataloader)  # sets the distributed sampler
             or mode == RunningStage.PREDICTING  # to track indices for the predictions
-            or self.trainer._accelerator_connector.use_ipu  # IPUs use a custom `DataLoader`
+            # IPUs use a custom `poptorch.DataLoader` which we might need to convert to
+            or isinstance(self.trainer.accelerator, IPUAccelerator)
         ):
             if shuffle is None:
                 # for training, set to True always
@@ -421,21 +425,21 @@ class DataConnector:
                 limit_eval_batches = getattr(self.trainer, f"limit_{mode.dataloader_prefix}_batches")
 
                 # limit num batches either as a percent or num steps
-                if isinstance(limit_eval_batches, int) or limit_eval_batches == 0.0:
+                if isinstance(limit_eval_batches, int):
                     num_batches = min(num_batches, int(limit_eval_batches))
                 elif num_batches != float("inf"):
                     num_batches = int(num_batches * limit_eval_batches)
                 elif limit_eval_batches != 1.0:
                     raise MisconfigurationException(
                         f"When using an IterableDataset for `limit_{mode}_batches`,"
-                        f" `Trainer(limit_{mode.dataloader_prefix}_batches)` must be `0.0`, `1.0` or an int. An int k"
+                        f" `Trainer(limit_{mode.dataloader_prefix}_batches)` must be `1.0` or an int. An int k"
                         f" specifies `num_{mode.dataloader_prefix}_batches` to use."
                     )
 
                 if num_batches == 0 and limit_eval_batches > 0.0 and isinstance(limit_eval_batches, float):
                     min_pct = 1.0 / len(dataloader)
                     raise MisconfigurationException(
-                        f"you requested to check {limit_eval_batches} of the `{mode.dataloader_prefix}_dataloader` but"
+                        f"You requested to check {limit_eval_batches} of the `{mode.dataloader_prefix}_dataloader` but"
                         f" {limit_eval_batches} * {orig_num_batches} < 1. Please increase the"
                         f" `limit_{mode.dataloader_prefix}_batches` flag. Try at least"
                         f" `limit_{mode.dataloader_prefix}_batches={min_pct}`"
@@ -555,3 +559,49 @@ class _DataLoaderSource:
         from pytorch_lightning import LightningDataModule, LightningModule  # prevent cyclic import
 
         return isinstance(self.instance, (LightningModule, LightningDataModule))
+
+
+@dataclass
+class _DataHookSelector:
+    """Stores the info about the shared DataHooks within LightningModule and LightningDataModule.
+
+    The hook source can be
+
+    1. a method from the :class:`~pytorch_lightning.core.lightning.LightningModule`,
+    2. a method from the :class:`~pytorch_lightning.core.datamodule.LightningDataModule`,
+
+    Arguments:
+        model: A LightningModule
+        datamodule: A LightningDataModule
+    """
+
+    model: "pl.LightningModule"
+    datamodule: Optional["pl.LightningDataModule"]
+    _valid_hooks: Tuple[str] = field(
+        default=("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
+    )
+
+    def get_hook(self, hook_name: str) -> Callable:
+        if hook_name not in self._valid_hooks:
+            raise ValueError(
+                f"`{hook_name}` is not a shared hook within `LightningModule` and `LightningDataModule`."
+                f" Valid hooks are {self._valid_hooks}."
+            )
+
+        if self.datamodule is None:
+            return getattr(self.model, hook_name)
+
+        if is_overridden(hook_name, self.datamodule):
+            if is_overridden(hook_name, self.model):
+                warning_cache.warn(
+                    f"You have overridden `{hook_name}` in both `LightningModule` and `LightningDataModule`."
+                    " It will use the implementation from `LightningDataModule` instance."
+                )
+            return getattr(self.datamodule, hook_name)
+
+        if is_overridden(hook_name, self.model):
+            warning_cache.warn(
+                f"You have overridden `{hook_name}` in `LightningModule` but have passed in a"
+                " `LightningDataModule`. It will use the implementation from `LightningModule` instance."
+            )
+        return getattr(self.model, hook_name)

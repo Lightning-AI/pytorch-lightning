@@ -15,19 +15,29 @@ import os
 import shutil
 from collections import OrderedDict
 from functools import partial
-from typing import Any, IO, Iterable, List, Optional, Sequence, Union
+from typing import Any, IO, Iterable, List, Optional, Sequence, Type, Union
 
 import torch
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
 
+import pytorch_lightning as pl
+from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetching import (
+    AbstractDataFetcher,
+    DataFetcher,
+    DataLoaderIterDataFetcher,
+    InterBatchParallelDataFetcher,
+)
 from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
 if _RICH_AVAILABLE:
@@ -71,6 +81,13 @@ class EvaluationLoop(DataLoaderLoop):
             raise RuntimeError("Dataloaders should be available.")
         return dataloaders
 
+    @property
+    def prefetch_batches(self) -> int:
+        batches = self.trainer.num_test_batches if self.trainer.testing else self.trainer.num_val_batches
+        is_unsized = batches[self.current_dataloader_idx] == float("inf")
+        inter_batch_parallelism = os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1"
+        return 1 if is_unsized or inter_batch_parallelism else 0
+
     def connect(self, epoch_loop: EvaluationEpochLoop) -> None:  # type: ignore[override]
         """Connect the evaluation epoch loop with this loop."""
         self.epoch_loop = epoch_loop
@@ -110,7 +127,8 @@ class EvaluationLoop(DataLoaderLoop):
         hooks."""
         void(*args, **kwargs)
 
-        self._data_fetcher = DataFetcher()
+        data_fetcher_cls = _select_data_fetcher_type(self.trainer)
+        self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)
 
         # hook
         self._on_evaluation_model_eval()
@@ -366,3 +384,20 @@ class EvaluationLoop(DataLoaderLoop):
                         lines.append(row_format.format(metric, *row).rstrip())
                 lines.append(bar)
                 print(os.linesep.join(lines), file=file)
+
+
+def _select_data_fetcher_type(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:
+    lightning_module = trainer.lightning_module
+    step_fx_name = "test_step" if trainer.testing else "validation_step"
+    step_fx = getattr(lightning_module, step_fx_name)
+    if is_param_in_hook_signature(step_fx, "dataloader_iter", explicit=True):
+        rank_zero_warn(
+            f"Found `dataloader_iter` argument in the `{step_fx_name}`. Note that the support for "
+            "this signature is experimental and the behavior is subject to change."
+        )
+        return DataLoaderIterDataFetcher
+    elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
+        if not isinstance(trainer.accelerator, GPUAccelerator):
+            raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
+        return InterBatchParallelDataFetcher
+    return DataFetcher

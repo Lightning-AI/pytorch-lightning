@@ -54,7 +54,7 @@ class NestedLoop(Loop):
 
 @pytest.mark.parametrize("loop_name", ["fit_loop", "validate_loop", "test_loop", "predict_loop"])
 def test_connect_loops_direct(loop_name):
-    """Test Trainer referenes in loops on assignment."""
+    """Test Trainer references in loops on assignment."""
     loop = NestedLoop()
 
     with pytest.raises(RuntimeError, match="The loop is not attached to a Trainer"):
@@ -512,6 +512,10 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
         },
         "epoch_loop.batch_loop.state_dict": ANY,
         "epoch_loop.batch_loop.manual_loop.state_dict": ANY,
+        "epoch_loop.batch_loop.manual_loop.optim_step_progress": {
+            "total": {"ready": 0, "completed": 0},
+            "current": {"ready": 0, "completed": 0},
+        },
         "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
         "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
             "optimizer_position": stop_optimizer,
@@ -561,8 +565,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     trainer.fit_loop.epoch_loop.reset()
     trainer.fit_loop.epoch_loop.batch_loop.reset()
     trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.reset()
-    trainer.fit_loop.epoch_loop.val_loop.reset()
-    trainer.fit_loop.epoch_loop.val_loop.epoch_loop.reset()
 
     epoch_progress = trainer.fit_loop.epoch_progress
     assert epoch_progress.current.ready == stop_epoch
@@ -646,16 +648,12 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
                 "ready": n_epochs,
                 "started": n_epochs,
                 "processed": n_epochs,
-                # TODO: the following "-1" offset will be fixed by
-                #   https://github.com/PyTorchLightning/pytorch-lightning/pull/8578
                 "completed": n_epochs - 1,
             },
             "current": {
                 "ready": n_epochs,
                 "started": n_epochs,
                 "processed": n_epochs,
-                # TODO: the following "-1" offset will be fixed by
-                #   https://github.com/PyTorchLightning/pytorch-lightning/pull/8578
                 "completed": n_epochs - 1,
             },
         },
@@ -681,6 +679,10 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
         },
         "epoch_loop.batch_loop.state_dict": ANY,
         "epoch_loop.batch_loop.manual_loop.state_dict": ANY,
+        "epoch_loop.batch_loop.manual_loop.optim_step_progress": {
+            "total": {"ready": 0, "completed": 0},
+            "current": {"ready": 0, "completed": 0},
+        },
         "epoch_loop.batch_loop.optimizer_loop.state_dict": {},
         "epoch_loop.batch_loop.optimizer_loop.optim_progress": {
             "optimizer_position": n_optimizers,
@@ -950,8 +952,6 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
     # totals are increased by 1 (the failed batch which never completed)
     expected = state_dict.copy()
 
-    # TODO: `is_last_batch` is not correct on reload, the next line should not be necessary
-    expected["epoch_loop.batch_progress"]["is_last_batch"] = val_check_interval == 1.0
     assert state_dict_after_restart["epoch_loop.batch_progress"] == expected["epoch_loop.batch_progress"]
 
     val_dl_progress = "epoch_loop.val_loop.dataloader_progress"

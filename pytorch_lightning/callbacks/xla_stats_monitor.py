@@ -21,8 +21,9 @@ Monitor and logs XLA stats during training.
 import time
 
 import pytorch_lightning as pl
+from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import _AcceleratorType, _TPU_AVAILABLE
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
 
@@ -69,10 +70,10 @@ class XLAStatsMonitor(Callback):
         self._verbose = verbose
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if not trainer.logger:
+        if not trainer.loggers:
             raise MisconfigurationException("Cannot use XLAStatsMonitor callback with Trainer that has no logger.")
 
-        if trainer._device_type != _AcceleratorType.TPU:
+        if isinstance(trainer.accelerator, TPUAccelerator):
             raise MisconfigurationException(
                 "You are using XLAStatsMonitor but are not running on TPU"
                 f" since `tpu_cores` attribute in Trainer is set to {trainer.tpu_cores}."
@@ -87,7 +88,7 @@ class XLAStatsMonitor(Callback):
         self._start_time = time.time()
 
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if not trainer.logger:
+        if not trainer.loggers:
             raise MisconfigurationException("Cannot use XLAStatsMonitor callback with Trainer that has no logger.")
 
         device = trainer.strategy.root_device
@@ -101,10 +102,11 @@ class XLAStatsMonitor(Callback):
         peak_memory = trainer.strategy.reduce(peak_memory) * 0.001
         epoch_time = trainer.strategy.reduce(epoch_time)
 
-        trainer.logger.log_metrics(
-            {"avg. free memory (MB)": float(free_memory), "avg. peak memory (MB)": float(peak_memory)},
-            step=trainer.current_epoch,
-        )
+        for logger in trainer.loggers:
+            logger.log_metrics(
+                {"avg. free memory (MB)": float(free_memory), "avg. peak memory (MB)": float(peak_memory)},
+                step=trainer.current_epoch,
+            )
 
         if self._verbose:
             rank_zero_info(f"Average Epoch time: {epoch_time:.2f} seconds")

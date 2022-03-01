@@ -234,22 +234,18 @@ class Counter(Callback):
         self.test_epoch_count += 1
 
 
-@pytest.mark.parametrize(
-    ["limit_train_batches", "limit_val_batches", "limit_test_batches"], [(0.0, 0.0, 0.0), (1.0, 1.0, 1.0)]
-)
-def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
+def test_inf_dataloaders_with_limit_percent_batches(tmpdir):
     """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit in percent."""
 
-    ckpt_callback = ModelCheckpoint(monitor="val_log", save_top_k=1, mode="max", verbose=False)
     epoch_cb = Counter()
     trainer = Trainer(
         default_root_dir=tmpdir,
         num_sanity_val_steps=0,
         max_epochs=1,
-        callbacks=[epoch_cb, ckpt_callback],
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=limit_val_batches,
-        limit_test_batches=limit_test_batches,
+        callbacks=[epoch_cb],
+        limit_train_batches=1.0,
+        limit_val_batches=1.0,
+        limit_test_batches=1.0,
     )
     model = DummyModel()
 
@@ -268,39 +264,34 @@ def test_inf_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches,
     trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.num_training_batches == float("inf")
-    assert epoch_cb.train_epoch_count == int(limit_train_batches > 0)
-    # when limit_val_batches = 0, num_val_batches is empty as no data is loaded
-    if limit_val_batches != 0.0:
-        assert trainer.num_val_batches[0] == float("inf")
-    assert epoch_cb.val_epoch_count == int(limit_val_batches > 0)
+    assert epoch_cb.train_epoch_count == 1
+
+    assert trainer.num_val_batches[0] == float("inf")
+    assert epoch_cb.val_epoch_count == 1
 
     trainer.test(model, dataloaders=test_dl)
-    assert trainer.num_test_batches[0] == (0 if limit_test_batches == 0.0 else float("inf"))
-    assert epoch_cb.test_epoch_count == int(limit_test_batches > 0)
+    assert trainer.num_test_batches[0] == float("inf")
+    assert epoch_cb.test_epoch_count == 1
 
 
 @pytest.mark.parametrize(
     ["dataset", "limit_train_batches"],
     [
-        (RandomDataset(32, 128), 0),
         (RandomDataset(32, 128), 10),
-        (RandomIterableDataset(32, 128), 0),
         (RandomIterableDataset(32, 128), 10),
-        (RandomIterableDatasetWithLen(32, 128), 0),
         (RandomIterableDatasetWithLen(32, 128), 10),
     ],
 )
 def test_dataloaders_with_limit_train_batches(tmpdir, dataset, limit_train_batches):
     """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number."""
 
-    ckpt_callback = ModelCheckpoint(monitor="val_log", save_top_k=1, mode="max", verbose=False)
     epoch_cb = Counter()
-    epochs = 2
+    max_epochs = 2
     trainer = Trainer(
         default_root_dir=tmpdir,
         num_sanity_val_steps=0,
-        max_epochs=epochs,
-        callbacks=[epoch_cb, ckpt_callback],
+        max_epochs=max_epochs,
+        callbacks=[epoch_cb],
         limit_train_batches=limit_train_batches,
     )
     model = DummyModel()
@@ -311,37 +302,32 @@ def test_dataloaders_with_limit_train_batches(tmpdir, dataset, limit_train_batch
 
     trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.num_training_batches == (limit_train_batches if limit_train_batches != 0.0 else float("inf"))
-    assert epoch_cb.train_epoch_count == (epochs if limit_train_batches > 0 else 0)
-    assert epoch_cb.train_batches_seen == limit_train_batches * epochs
+    assert trainer.num_training_batches == limit_train_batches
+    assert epoch_cb.train_epoch_count == max_epochs
+    assert epoch_cb.train_batches_seen == limit_train_batches * max_epochs
 
 
 @pytest.mark.parametrize(
-    ["dataset", "limit_val_batches"],
+    "dataset",
     [
-        (RandomDataset(32, 128), 0),
-        (RandomDataset(32, 128), 10),
-        (RandomIterableDataset(32, 128), 0),
-        (RandomIterableDataset(32, 128), 10),
-        (RandomIterableDatasetWithLen(32, 128), 0),
-        (RandomIterableDatasetWithLen(32, 128), 10),
+        RandomDataset(32, 128),
+        RandomIterableDataset(32, 128),
+        RandomIterableDatasetWithLen(32, 128),
     ],
 )
-def test_dataloaders_with_limit_val_batches(tmpdir, dataset, limit_val_batches):
+def test_dataloaders_with_limit_val_batches(tmpdir, dataset):
     """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number."""
 
     epoch_cb = Counter()
     callbacks = [epoch_cb]
     enable_checkpointing = False
-    if limit_val_batches > 0:
-        callbacks.append(ModelCheckpoint(monitor="val_log", save_top_k=1, mode="max", verbose=False))
-        enable_checkpointing = True
 
-    epochs = 2
+    max_epochs = 2
+    limit_val_batches = 10
     trainer = Trainer(
         default_root_dir=tmpdir,
         num_sanity_val_steps=0,
-        max_epochs=epochs,
+        max_epochs=max_epochs,
         callbacks=callbacks,
         limit_val_batches=limit_val_batches,
         enable_checkpointing=enable_checkpointing,
@@ -355,37 +341,33 @@ def test_dataloaders_with_limit_val_batches(tmpdir, dataset, limit_val_batches):
     trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     assert trainer.num_val_batches[0] == limit_val_batches
-    assert epoch_cb.val_epoch_count == (epochs if limit_val_batches > 0 else 0)
-    assert epoch_cb.val_batches_seen == limit_val_batches * epochs
+    assert epoch_cb.val_epoch_count == max_epochs
+    assert epoch_cb.val_batches_seen == limit_val_batches * max_epochs
 
 
+@pytest.mark.skip()
 @pytest.mark.parametrize(
-    ["dataset", "limit_train_batches", "limit_val_batches", "limit_test_batches"],
+    "dataset",
     [
-        (RandomDataset(32, 128), 0, 0, 0),
-        (RandomDataset(32, 128), 10, 10, 10),
-        (RandomIterableDataset(32, 128), 0, 0, 0),
-        (RandomIterableDataset(32, 128), 10, 10, 10),
-        (RandomIterableDatasetWithLen(32, 128), 0, 0, 0),
-        (RandomIterableDatasetWithLen(32, 128), 10, 10, 10),
+        RandomDataset(32, 128),
+        RandomIterableDataset(32, 128),
+        RandomIterableDatasetWithLen(32, 128),
     ],
 )
-def test_datasets_dataloaders_with_limit_num_batches(
-    tmpdir, dataset, limit_train_batches, limit_val_batches, limit_test_batches
-):
+def test_datasets_dataloaders_with_limit_num_batches(tmpdir, dataset):
     """Verify inf train, val & test dataloaders (e.g. IterableDataset) passed with batch limit as number."""
 
-    ckpt_callback = ModelCheckpoint(monitor="val_log", save_top_k=1, mode="max", verbose=False)
     epoch_cb = Counter()
-    epochs = 2
+    max_epochs = 2
+    limit_batches = 10
     trainer = Trainer(
         default_root_dir=tmpdir,
         num_sanity_val_steps=0,
-        max_epochs=epochs,
-        callbacks=[epoch_cb, ckpt_callback],
-        limit_train_batches=limit_train_batches,
-        limit_val_batches=limit_val_batches,
-        limit_test_batches=limit_test_batches,
+        max_epochs=max_epochs,
+        callbacks=[epoch_cb],
+        limit_train_batches=limit_batches,
+        limit_val_batches=limit_batches,
+        limit_test_batches=limit_batches,
     )
     model = DummyModel()
 
@@ -396,24 +378,22 @@ def test_datasets_dataloaders_with_limit_num_batches(
 
     trainer.fit(model, train_dataloaders=train_dl, val_dataloaders=val_dl)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.num_training_batches == (limit_train_batches if limit_train_batches > 0.0 else float("inf"))
-    if limit_val_batches != 0.0:
-        assert trainer.num_val_batches[0] == limit_val_batches
-    else:
-        assert trainer.num_val_batches == []
-    assert epoch_cb.train_epoch_count == (epochs if limit_train_batches > 0 else 0)
-    assert epoch_cb.train_batches_seen == limit_train_batches * epochs
-    assert epoch_cb.val_epoch_count == (epochs if limit_val_batches > 0 else 0)
-    assert epoch_cb.val_batches_seen == limit_val_batches * epochs
+    assert trainer.num_training_batches == limit_batches
+    assert trainer.num_val_batches[0] == limit_batches
+    assert epoch_cb.train_epoch_count == max_epochs
+    assert epoch_cb.train_batches_seen == limit_batches * max_epochs
+    assert epoch_cb.val_epoch_count == max_epochs
+    assert epoch_cb.val_batches_seen == limit_batches * max_epochs
 
     trainer.test(model, dataloaders=test_dl)
-    assert trainer.num_test_batches[0] == limit_test_batches
-    assert epoch_cb.test_epoch_count == int(limit_test_batches > 0)
+    assert trainer.num_test_batches[0] == limit_batches
+    assert epoch_cb.test_epoch_count == 1
 
 
+@pytest.mark.skip()
 @pytest.mark.parametrize(
     ["limit_train_batches", "limit_val_batches", "limit_test_batches"],
-    [(0.0, 0.0, 0.0), (0, 0, 0.5), (1.0, 1.0, 1.0), (0.2, 0.4, 0.4)],
+    [(1.0, 1.0, 1.0), (0.2, 0.4, 0.4)],
 )
 def test_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
     """Verify num_batches for train, val & test dataloaders passed with batch limit in percent."""
@@ -427,22 +407,17 @@ def test_dataloaders_with_limit_percent_batches(tmpdir, limit_train_batches, lim
         limit_test_batches=limit_test_batches,
     )
     trainer.fit(model)
-    if limit_train_batches != 0.0:
-        expected_train_batches = int(len(trainer.train_dataloader) * limit_train_batches)
-        expected_val_batches = [int(len(dataloader) * limit_val_batches) for dataloader in trainer.val_dataloaders]
-        assert trainer.num_training_batches == expected_train_batches
-        assert trainer.num_val_batches == expected_val_batches
-    else:
-        assert trainer.train_dataloader is None
+    expected_train_batches = int(len(trainer.train_dataloader) * limit_train_batches)
+    expected_val_batches = [int(len(dataloader) * limit_val_batches) for dataloader in trainer.val_dataloaders]
+    assert trainer.num_training_batches == expected_train_batches
+    assert trainer.num_val_batches == expected_val_batches
 
     trainer.test(model)
     expected_test_batches = [int(len(dataloader) * limit_test_batches) for dataloader in trainer.test_dataloaders]
     assert trainer.num_test_batches == expected_test_batches
 
 
-@pytest.mark.parametrize(
-    ["limit_train_batches", "limit_val_batches", "limit_test_batches"], [(0, 0, 0), (1, 2, 3), (1, 2, 1e50)]
-)
+@pytest.mark.parametrize(["limit_train_batches", "limit_val_batches", "limit_test_batches"], [(1, 2, 3), (1, 2, 1e50)])
 def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_val_batches, limit_test_batches):
     """Verify num_batches for train, val & test dataloaders passed with batch limit as number."""
 
@@ -464,12 +439,9 @@ def test_dataloaders_with_limit_num_batches(tmpdir, limit_train_batches, limit_v
         wraps=trainer.fit_loop.epoch_loop.val_loop.epoch_loop._evaluation_step,
     ) as mocked:
         trainer.fit(model)
-        assert trainer.num_training_batches == (limit_train_batches if limit_train_batches != 0.0 else float("inf"))
-        if limit_train_batches != 0.0:
-            assert trainer.num_val_batches == [limit_val_batches] * len(trainer.val_dataloaders)
-            assert mocked.call_count == limit_val_batches * len(trainer.val_dataloaders)
-        else:
-            assert trainer.val_dataloaders is None
+        assert trainer.num_training_batches == limit_train_batches
+        assert trainer.num_val_batches == [limit_val_batches] * len(trainer.val_dataloaders)
+        assert mocked.call_count == limit_val_batches * len(trainer.val_dataloaders)
 
     with patch.object(
         trainer.test_loop.epoch_loop,
@@ -544,20 +516,16 @@ def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
     assert len(trainer.test_dataloaders) == 1
 
 
-def test_error_on_zero_len_dataloader(tmpdir):
-    """Test that error is raised if a zero-length dataloader is defined."""
-
-    class CustomBoringModel(BoringModel):
-        def train_dataloader(self):
-            return DataLoader(RandomDataset(32, 0))
-
-    model = CustomBoringModel()
+def test_warning_on_zero_len_dataloader(tmpdir):
+    """Test that a warning is raised if a zero-length dataloader is defined."""
+    model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=1,
     )
-    with pytest.raises(ValueError, match="returned 0 length. .* at least 1 batch"):
-        trainer.fit(model)
+    dataloader = DataLoader(RandomDataset(32, 0))
+    with pytest.warns(UserWarning, match="returned 0 length"):
+        trainer.fit(model, dataloader)
 
 
 @RunIf(skip_windows=True)
@@ -628,7 +596,7 @@ def test_warning_with_few_workers_multi_loader(_, tmpdir, ckpt_path, stage):
 
 
 class NumpyRandomDataset(Dataset):
-    # this datset uses numpy instead of torch to produce random numbers
+    # this dataset uses numpy instead of torch to produce random numbers
     size = 16
 
     def __getitem__(self, index):
@@ -662,7 +630,7 @@ def test_missing_worker_init_fn():
     is_deterministic = torch.eq(batches0, batches1).all()
 
     # depending on the OS, we either have
-    # 1) the same seed in all worker proceses, producing duplicate samples / augmentations, or
+    # 1) the same seed in all worker processes, producing duplicate samples / augmentations, or
     # 2) different seeds in each worker process, but they are not derived from the seed of the main process
     assert not is_deterministic or is_duplicated
 
@@ -934,7 +902,7 @@ def test_batch_size_smaller_than_num_gpus(tmpdir):
     [("min_size", 16), ("max_size_cycle", 64)],
 )
 def test_fit_multiple_train_loaders(tmpdir, multiple_trainloader_mode, num_training_batches):
-    """Integration test for multple train loaders."""
+    """Integration test for multiple train loaders."""
 
     class CustomBoringModel(BoringModel):
         def train_dataloader(self):
@@ -994,7 +962,7 @@ def test_inf_dataloader_raise_error_with_partial_batch_limits(tmpdir, stage, dat
     trainer = Trainer(**trainer_kwargs)
     trainer_fn = "fit" if stage == RunningStage.TRAINING else stage.value
 
-    with pytest.raises(MisconfigurationException, match=r"using an IterableDataset .* must be `0.0`, `1.0`"):
+    with pytest.raises(MisconfigurationException, match=r"using an IterableDataset .* must be `1.0` or an int"):
         getattr(trainer, trainer_fn)(model)
 
 

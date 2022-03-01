@@ -27,11 +27,17 @@ Core API
 .. autosummary::
     :toctree: api
     :nosignatures:
+    :template: classtemplate.rst
 
-    datamodule
-    decorators
-    hooks
-    lightning
+    ~hooks.CheckpointHooks
+    ~hooks.DataHooks
+    ~hooks.ModelHooks
+    LightningDataModule
+    LightningModule
+    ~mixins.DeviceDtypeModuleMixin
+    ~mixins.HyperparametersMixin
+    ~optimizer.LightningOptimizer
+    ~saving.ModelIO
 
 Strategy API
 ------------
@@ -68,14 +74,29 @@ Callbacks API
 .. autosummary::
     :toctree: api
     :nosignatures:
+    :template: classtemplate.rst
 
-    base
-    early_stopping
-    gpu_stats_monitor
-    gradient_accumulation_scheduler
-    lr_monitor
-    model_checkpoint
-    progress
+    BackboneFinetuning
+    BaseFinetuning
+    BasePredictionWriter
+    Callback
+    DeviceStatsMonitor
+    EarlyStopping
+    GPUStatsMonitor
+    GradientAccumulationScheduler
+    LambdaCallback
+    LearningRateMonitor
+    ModelCheckpoint
+    ModelPruning
+    ModelSummary
+    ProgressBarBase
+    QuantizationAwareTraining
+    RichModelSummary
+    RichProgressBar
+    StochasticWeightAveraging
+    Timer
+    TQDMProgressBar
+    XLAStatsMonitor
 
 Loggers API
 -----------
@@ -216,6 +237,21 @@ Checkpoint IO Plugins
     TorchCheckpointIO
     XLACheckpointIO
 
+
+Other Plugins
+^^^^^^^^^^^^^
+
+.. currentmodule:: pytorch_lightning.plugins
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    LayerSync
+    NativeSyncBatchNorm
+
+
 Profiler API
 ------------
 
@@ -288,6 +324,7 @@ Utilities API
     finite_checks
     memory
     model_summary
+    optimizer
     parsing
     rank_zero
     seed
