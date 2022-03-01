@@ -289,7 +289,7 @@ Lightning allows multiple ways of training
 - DistributedDataParallel 2 (``strategy='ddp2'``) (DP in a machine, DDP across machines).
 - Horovod (``strategy='horovod'``) (multi-machine, multi-gpu, configured at runtime)
 - Bagua (``strategy='bagua'``) (multiple-gpus across many machines with advanced training algorithms)
-- TPUs (``tpu_cores=8|x``) (tpu or TPU pod)
+- TPUs (``accelerator="tpu", devices=8|x``) (tpu or TPU pod)
 
 .. note::
     If you request multiple GPUs or nodes without setting a mode, DDP Spawn will be automatically used.

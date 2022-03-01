@@ -1106,7 +1106,7 @@ class LightningModule(
 
         The :class:`~pytorch_lightning.callbacks.BasePredictionWriter` should be used while using a spawn
         based accelerator. This happens for ``Trainer(strategy="ddp_spawn")``
-        or training on 8 TPU cores with ``Trainer(tpu_cores=8)`` as predictions won't be returned.
+        or training on 8 TPU cores with ``Trainer(accelerator="tpu", devices=8)`` as predictions won't be returned.
 
         Example ::
 

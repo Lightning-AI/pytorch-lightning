@@ -463,18 +463,18 @@ TPU
 .. code-block:: python
 
     # Train on 8 TPU cores
-    trainer = pl.Trainer(tpu_cores=8)
+    trainer = pl.Trainer(accelerator="tpu", devices=8)
 
     # Train on single TPU core
-    trainer = pl.Trainer(tpu_cores=1)
+    trainer = pl.Trainer(accelerator="tpu", devices=1)
 
     # Train on 7th TPU core
-    trainer = pl.Trainer(tpu_cores=[7])
+    trainer = pl.Trainer(accelerator="tpu", devices=[7])
 
     # without changing a SINGLE line of your code, you can
     # train on TPUs using 16-bit precision
     # using only half the training data and checking validation every quarter of a training epoch
-    trainer = pl.Trainer(tpu_cores=8, precision=16, limit_train_batches=0.5, val_check_interval=0.25)
+    trainer = pl.Trainer(accelerator="tpu", devices=8, precision=16, limit_train_batches=0.5, val_check_interval=0.25)
 
 IPU
 ---

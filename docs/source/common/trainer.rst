@@ -1504,21 +1504,21 @@ Example::
     # your_trainer_file.py
 
     # default used by the Trainer (ie: train on CPU)
-    trainer = Trainer(tpu_cores=None)
+    trainer = Trainer(accelerator="tpu", devices=None)
 
     # int: train on a single core
-    trainer = Trainer(tpu_cores=1)
+    trainer = Trainer(accelerator="tpu", devices=1)
 
     # list: train on a single selected core
-    trainer = Trainer(tpu_cores=[2])
+    trainer = Trainer(accelerator="tpu", devices=[2])
 
     # int: train on all cores few cores
-    trainer = Trainer(tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
 
     # for 8+ cores must submit via xla script with
     # a max of 8 cores specified. The XLA script
     # will duplicate script onto each TPU in the POD
-    trainer = Trainer(tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
 
 To train on more than 8 cores (ie: a POD),
 submit this script using the xla_dist script.
