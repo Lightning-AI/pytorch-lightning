@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 from typing import Optional
-import warnings
 
 import pytest
 import torch
@@ -38,10 +37,8 @@ if _IPU_AVAILABLE:
     import poptorch
 
 
-warnings.filterwarnings(
-    "ignore",
-    category=UserWarning,
-    message=r"Detected call of `lr_scheduler.step\(\)` before `optimizer.step\(\)`",
+pytestmark = pytest.mark.filterwarnings(
+    r"ignore:Detected call of `lr_scheduler.step\(\)` before `optimizer.step\(\)`:UserWarning"
 )
 
 
