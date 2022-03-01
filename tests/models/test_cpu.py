@@ -66,7 +66,7 @@ def test_cpu_slurm_save_load(tmpdir):
     # save logger to make sure we get all the metrics
     if logger:
         logger.finalize("finished")
-    hpc_save_path = trainer._checkpoint_connector.hpc_save_path(trainer.weights_save_path)
+    hpc_save_path = trainer._checkpoint_connector.hpc_save_path(trainer.default_root_dir)
     trainer.save_checkpoint(hpc_save_path)
     assert os.path.exists(hpc_save_path)
 

@@ -39,6 +39,16 @@ if _HOROVOD_AVAILABLE:
     import horovod
     import horovod.torch as hvd
 
+
+@RunIf(min_gpus=1, horovod=True)
+@pytest.mark.xfail(reason="FIXME(@Borda): nccl is not available in the GPU image")
+def test_nccl_is_available_on_gpu_environment():
+    from tests.helpers.runif import _HOROVOD_NCCL_AVAILABLE
+
+    # the GPU environment should always install Horovod NCCL
+    assert _HOROVOD_NCCL_AVAILABLE
+
+
 # This script will run the actual test model training in parallel
 TEST_SCRIPT = os.path.join(os.path.dirname(__file__), "data", "horovod", "train_default_model.py")
 
@@ -70,7 +80,6 @@ def test_horovod_cpu(tmpdir):
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         enable_progress_bar=False,
         max_epochs=1,
@@ -100,7 +109,6 @@ def test_horovod_cpu_clip_grad_by_value(tmpdir):
     """Test Horovod running multi-process on CPU."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         gradient_clip_algorithm="value",
         enable_progress_bar=False,
@@ -117,7 +125,6 @@ def test_horovod_cpu_implicit(tmpdir):
     """Test Horovod without specifying a backend, inferring from env set by `horovodrun`."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         enable_progress_bar=False,
         max_epochs=1,
@@ -132,7 +139,6 @@ def test_horovod_multi_gpu(tmpdir):
     """Test Horovod with multi-GPU support."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         enable_progress_bar=False,
         max_epochs=1,
@@ -183,7 +189,6 @@ def test_horovod_multi_gpu_grad_by_value(tmpdir):
     """Test Horovod with multi-GPU support."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         gradient_clip_algorithm="value",
         enable_progress_bar=False,
@@ -206,7 +211,6 @@ def test_horovod_apex(tmpdir):
     """Test Horovod with multi-GPU support using apex amp."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         enable_progress_bar=False,
         max_epochs=1,
@@ -226,7 +230,6 @@ def test_horovod_amp(tmpdir):
     """Test Horovod with multi-GPU support using native amp."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         enable_progress_bar=False,
         max_epochs=1,
@@ -246,7 +249,6 @@ def test_horovod_gather(tmpdir):
     """Test Horovod with multi-GPU support using native amp."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         enable_progress_bar=False,
         max_epochs=1,
