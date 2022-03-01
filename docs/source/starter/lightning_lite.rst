@@ -235,7 +235,7 @@ but there are several major challenges ahead of you now:
 
 
 If you are facing one of those challenges, then you are already meeting the limit of :class:`~pytorch_lightning.lite.LightningLite`.
-We recommend you to convert to :doc:`Lightning <../starter/new-project>`, so you never have to worry about those.
+We recommend you to convert to :doc:`Lightning <../starter/introduction>`, so you never have to worry about those.
 
 ----------
 
@@ -472,7 +472,7 @@ Number of cluster nodes for distributed operation.
     lite = Lite(num_nodes=8)
 
 
-Learn more about distributed multi-node training on clusters :doc:`here <../clouds/cluster>`.
+Learn more about distributed multi-node training on clusters :doc:`here <../clouds/cluster_environment>`.
 
 
 precision

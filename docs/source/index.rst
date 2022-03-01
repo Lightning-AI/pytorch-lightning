@@ -18,7 +18,7 @@ PyTorch Lightning
    :name: start
    :caption: Getting started
 
-   starter/new-project
+   starter/introduction
    starter/installation
    starter/converting
    starter/lightning_lite
@@ -69,25 +69,25 @@ PyTorch Lightning
    :caption: Common Use Cases
 
    clouds/cloud_training
-   clouds/cluster
+   clouds/cluster_environment
    common/debugging
    common/early_stopping
    common/hyperparameters
    common/production_inference
    common/lightning_cli
    common/loggers
-   advanced/advanced_gpu
-   advanced/mixed_precision
+   advanced/model_parallel
+   advanced/precision
    common/checkpointing
    advanced/fault_tolerant_training
-   common/optimizers
-   advanced/profiler
+   common/optimization
+   advanced/profiling
    advanced/strategy_registry
    common/remote_fs
    advanced/training_tricks
    advanced/pruning_quantization
    advanced/transfer_learning
-   common/test_set
+   common/evaluation
 
 .. toctree::
    :maxdepth: 1
@@ -95,7 +95,7 @@ PyTorch Lightning
    :caption: Tutorials
    :glob:
 
-   starter/introduction_guide
+   starter/core_guide
    PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
    From PyTorch to PyTorch Lightning [Blog] <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
    From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>

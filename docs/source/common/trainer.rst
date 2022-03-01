@@ -1250,7 +1250,7 @@ profiler
 
 To profile individual steps during training and assist in identifying bottlenecks.
 
-See the :doc:`profiler documentation <../advanced/profiler>`. for more details.
+See the :doc:`profiler documentation <../advanced/profiling>`. for more details.
 
 .. testcode::
 
@@ -1433,7 +1433,7 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
 
 See Also:
     - :ref:`accelerators/gpu:Multi GPU Training`.
-    - :doc:`Model Parallel GPU training guide <../advanced/advanced_gpu>`.
+    - :doc:`Model Parallel GPU training guide <../advanced/model_parallel>`.
     - :doc:`TPU training guide <../accelerators/tpu>`.
 
 sync_batchnorm
