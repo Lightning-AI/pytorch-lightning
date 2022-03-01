@@ -2123,16 +2123,16 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
     [
         ({"strategy": None}, [0]),
         ({"num_processes": 1}, [0]),
-        ({"gpus": 1}, [0]),
         ({"devices": 1}, [0]),
+        ({"accelerator": "gpu", "devices": 1}, [0]),
         ({"strategy": "ddp", "devices": 1}, [0]),
-        ({"strategy": "ddp", "gpus": 2}, [0, 1]),
-        ({"strategy": "ddp", "num_processes": 2}, [0, 1]),
-        ({"strategy": "ddp", "gpus": [0, 2]}, [0, 2]),
+        ({"strategy": "ddp", "accelerator": "gpu", "devices": 2}, [0, 1]),
+        ({"strategy": "ddp", "devices": 2}, [0, 1]),
+        ({"strategy": "ddp", "accelerator": "gpu", "devices": [0, 2]}, [0, 2]),
     ],
 )
 def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_ids):
-    if trainer_kwargs.get("gpus") is not None:
+    if trainer_kwargs.get("accelerator") == "gpu":
         monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
         monkeypatch.setattr(torch.cuda, "device_count", lambda: 4)
     trainer = Trainer(**trainer_kwargs)
