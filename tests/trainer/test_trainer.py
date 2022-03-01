@@ -2121,7 +2121,7 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
 @pytest.mark.parametrize(
     ["trainer_kwargs", "expected_device_ids"],
     [
-        ({"strategy": None}, []),
+        ({"strategy": None}, [0]),
         ({"num_processes": 1}, [0]),
         ({"gpus": 1}, [0]),
         ({"devices": 1}, [0]),
@@ -2136,4 +2136,4 @@ def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_
         monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
         monkeypatch.setattr(torch.cuda, "device_count", lambda: 4)
     trainer = Trainer(**trainer_kwargs)
-    trainer.num_devices = expected_device_ids
+    assert trainer.device_ids == expected_device_ids
