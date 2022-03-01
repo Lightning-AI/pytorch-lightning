@@ -25,7 +25,7 @@ Example 1: Functional Metrics
 
 Below is a simple example for calculating the accuracy using the functional interface:
 
-.. testcode::
+.. code-block:: python
 
     import torch
     import torchmetrics
@@ -43,7 +43,7 @@ Example 2: Module Metrics
 
 The example below shows how to use the class-based interface:
 
-.. testcode::
+.. code-block:: python
 
     import torch
     import torchmetrics
@@ -74,7 +74,7 @@ Example 3: TorchMetrics with Lightning
 
 The example below shows how to use a metric in your :doc:`LightningModule <../common/lightning_module>`:
 
-.. testcode::
+.. code-block:: python
 
     class MyModel(LightningModule):
         def __init__(self):
