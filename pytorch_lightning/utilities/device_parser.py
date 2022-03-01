@@ -79,8 +79,9 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     Returns:
         a list of gpus to be used or ``None`` if no GPUs were requested
 
-    If no GPUs are available but the value of gpus variable indicates request for GPUs
-    then a MisconfigurationException is raised.
+    Raises:
+        MisconfigurationException:
+            If no GPUs are available but the value of gpus variable indicates request for GPUs
     """
     # Check that gpus param is None, Int, String or List
     _check_data_type(gpus)
@@ -135,6 +136,27 @@ def parse_tpu_cores(tpu_cores: Optional[Union[int, str, List[int]]]) -> Optional
         raise MisconfigurationException("No TPU devices were found.")
 
     return tpu_cores
+
+
+def parse_cpu_cores(cpu_cores: Optional[Union[int, str, List[int]]]) -> Optional[int]:
+    """
+    Parses the cpu_cores given in the format as accepted by the
+    :class:`~pytorch_lightning.trainer.Trainer`.
+
+    Args:
+        cpu_cores: An int > 0.
+
+    Returns:
+        an int representing the number of processes
+
+    Raises:
+        MisconfigurationException:
+            If cpu_cores is not an int > 0
+    """
+    if not isinstance(cpu_cores, int) or cpu_cores <= 0:
+        raise MisconfigurationException("`devices` selected with `CPUAccelerator` should be an int > 0.")
+
+    return cpu_cores
 
 
 def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[int, List[int]]:

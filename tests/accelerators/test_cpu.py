@@ -11,6 +11,7 @@ from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.strategies import SingleDeviceStrategy
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel
 
 
@@ -66,3 +67,10 @@ def test_restore_checkpoint_after_pre_setup(tmpdir, restore_after_pre_setup):
     for func in (trainer.test, trainer.validate, trainer.predict):
         plugin.setup_called = False
         func(model, ckpt_path=checkpoint_path)
+
+
+@pytest.mark.parametrize("devices", ([3], -1, "1", 0))
+def test_invalid_devices_with_cpu_accelerator(devices):
+    """Test invalid device flag raises MisconfigurationException with CPUAccelerator."""
+    with pytest.raises(MisconfigurationException, match="should be an int > 0"):
+        Trainer(accelerator="cpu", devices=devices)
