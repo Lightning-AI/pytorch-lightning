@@ -1,0 +1,11 @@
+# adds a triage 3 minutes after creation.
+# triagers should replace this label with any appropriate labels, then, the cc-bot will cc interested parties.
+enabled: true
+label: "needs triage"
+delay: 3
+# issus only have assignees, milestones, or these labels when a core contributor created them.
+# no need to add the triage label in that case
+skip_when_has_assignee: true
+skip_when_has_milestone: true
+# consider it triaged once a label is added. this means issues cannot have automatic labels
+skip_when_has_labels: ["*"]

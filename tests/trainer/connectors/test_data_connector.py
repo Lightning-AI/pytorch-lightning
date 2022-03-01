@@ -20,9 +20,9 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector, _DataLoaderSource, warning_cache
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
-from tests.deprecated_api import no_warning_call
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.boring_model import RandomDataset
+from tests.helpers.utils import no_warning_call
 
 
 class NoDataLoaderModel(BoringModel):
@@ -80,12 +80,13 @@ class TestDataHookSelector:
         return batch
 
     def reset_instances(self):
+        warning_cache.clear()
         return BoringDataModule(), BoringModel(), Trainer()
 
     def test_no_datamodule_no_overridden(self, hook_name):
         model, _, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=None)
-        with no_warning_call(match="have overridden `{hook_name}` in both"):
+        with no_warning_call(match=f"have overridden `{hook_name}` in"):
             hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
 
         assert hook == getattr(model, hook_name)
@@ -93,7 +94,7 @@ class TestDataHookSelector:
     def test_with_datamodule_no_overridden(self, hook_name):
         model, dm, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
-        with no_warning_call(match="have overridden `{hook_name}` in both"):
+        with no_warning_call(match=f"have overridden `{hook_name}` in"):
             hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
 
         assert hook == getattr(model, hook_name)
@@ -101,7 +102,7 @@ class TestDataHookSelector:
     def test_override_model_hook(self, hook_name):
         model, dm, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
-        with no_warning_call(match="have overridden `{hook_name}` in both"):
+        with no_warning_call(match=f"have overridden `{hook_name}` in"):
             hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
 
         assert hook == getattr(model, hook_name)
@@ -110,7 +111,7 @@ class TestDataHookSelector:
         model, dm, trainer = self.reset_instances()
         trainer._data_connector.attach_datamodule(model, datamodule=dm)
         setattr(dm, hook_name, self.overridden_func)
-        with no_warning_call(match="have overridden `{hook_name}` in both"):
+        with no_warning_call(match=f"have overridden `{hook_name}` in"):
             hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
 
         assert hook == getattr(dm, hook_name)
@@ -123,7 +124,6 @@ class TestDataHookSelector:
         with pytest.warns(UserWarning, match=f"have overridden `{hook_name}` in both"):
             hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
 
-        warning_cache.clear()
         assert hook == getattr(dm, hook_name)
 
     def test_with_datamodule_override_model(self, hook_name):
@@ -133,7 +133,6 @@ class TestDataHookSelector:
         with pytest.warns(UserWarning, match=f"have overridden `{hook_name}` in `LightningModule`"):
             hook = trainer._data_connector._datahook_selector.get_hook(hook_name)
 
-        warning_cache.clear()
         assert hook == getattr(model, hook_name)
 
 

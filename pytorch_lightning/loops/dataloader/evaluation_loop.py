@@ -81,6 +81,13 @@ class EvaluationLoop(DataLoaderLoop):
             raise RuntimeError("Dataloaders should be available.")
         return dataloaders
 
+    @property
+    def prefetch_batches(self) -> int:
+        batches = self.trainer.num_test_batches if self.trainer.testing else self.trainer.num_val_batches
+        is_unsized = batches[self.current_dataloader_idx] == float("inf")
+        inter_batch_parallelism = os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1"
+        return 1 if is_unsized or inter_batch_parallelism else 0
+
     def connect(self, epoch_loop: EvaluationEpochLoop) -> None:  # type: ignore[override]
         """Connect the evaluation epoch loop with this loop."""
         self.epoch_loop = epoch_loop
@@ -121,7 +128,7 @@ class EvaluationLoop(DataLoaderLoop):
         void(*args, **kwargs)
 
         data_fetcher_cls = _select_data_fetcher_type(self.trainer)
-        self._data_fetcher = data_fetcher_cls()
+        self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)
 
         # hook
         self._on_evaluation_model_eval()
