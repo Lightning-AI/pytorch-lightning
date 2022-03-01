@@ -22,11 +22,10 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     """Base Class for mixed precision."""
 
     @property
-    @abstractmethod
     def backend(self) -> AMPType:
-        """Deprecated in 1.6.
+        """Deprecated in v1.6.
 
-        Switch to instance checks instead
+        Switch to instance check instead
         """
 
     precision: Union[str, int] = "mixed"

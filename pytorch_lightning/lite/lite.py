@@ -91,7 +91,6 @@ class LightningLite(ABC):
         self._check_accelerator_flag(accelerator)
         self._check_strategy_flag(strategy)
 
-        # breakpoint()
         gpu_ids, tpu_cores = _parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
         self._accelerator_connector = AcceleratorConnector(
             num_processes=None,
@@ -480,16 +479,15 @@ class LightningLite(ABC):
         if not isinstance(accelerator, self._supported_accelerators()):
             supported_values = ["auto"] + [x.lower() for x in self._supported_device_types]
             raise MisconfigurationException(
-                f"`accelerator={repr(accelerator)}` is not a valid choice for LightningLite."
+                f"`accelerator={accelerator!r}` is not a valid choice for `LightningLite`."
                 f" Choose one of {supported_values} or pass in a `Accelerator` instance."
             )
 
     def _check_strategy_type(self, strategy: Optional[Union[str, Strategy]]) -> None:
-
         if not isinstance(strategy, self._supported_strategies()):
             valid = [t.lower() for t in self._supported_strategy_types()]
             raise MisconfigurationException(
-                f"`strategy={repr(strategy)}` is not a valid choice."
+                f"`strategy={strategy!r}` is not a valid choice for `LightningLite`."
                 f" Choose one of {valid} or pass in a `Strategy` instance."
             )
 
@@ -507,7 +505,6 @@ class LightningLite(ABC):
 
     @staticmethod
     def _supported_strategies() -> Tuple[Type[Strategy], ...]:
-
         return (
             SingleDeviceStrategy,
             DataParallelStrategy,
