@@ -317,61 +317,6 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(
     assert trainer.lr_scheduler_configs[1].scheduler._step_count == expected_steps[1]
 
 
-def test_tmp(tmpdir):
-    class DummyModel(BoringModel):
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            print(f"batch{batch_idx} training_step")
-            return super().training_step(batch, batch_idx)
-
-        def training_epoch_end(self, outputs) -> None:
-            pass
-
-        def configure_optimizers(self):
-            optimizer1 = optim.Adam(self.parameters(), lr=0.01)
-            optimizer2 = optim.Adam(self.parameters(), lr=0.01)
-            scheduler1 = optim.lr_scheduler.StepLR(optimizer1, step_size=5)
-            scheduler2 = optim.lr_scheduler.CosineAnnealingLR(optimizer2, T_max=2)
-            lr_scheduler_config_1 = {"scheduler": scheduler1, "interval": "epoch"}
-            lr_scheduler_config_2 = {"scheduler": scheduler2, "interval": "epoch"}
-            return [
-                {"optimizer": optimizer1, "frequency": 5, "lr_scheduler": lr_scheduler_config_1},
-                {"optimizer": optimizer2, "frequency": 10, "lr_scheduler": lr_scheduler_config_2},
-            ]
-
-        def optimizer_step(
-            self,
-            epoch,
-            batch_idx,
-            optimizer,
-            optimizer_idx,
-            optimizer_closure=None,
-            on_tpu: bool = False,
-            using_native_amp: bool = False,
-            using_lbfgs: bool = False,
-        ) -> None:
-            print(f"batch{batch_idx} optimizer{optimizer_idx}.step()")
-            return super().optimizer_step(
-                epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu, using_native_amp, using_lbfgs
-            )
-
-        def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
-            print(f"       scheduler{optimizer_idx}.step()")
-            return super().lr_scheduler_step(scheduler, optimizer_idx, metric)
-
-    model = DummyModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_val_batches=1,
-        limit_train_batches=10,
-        max_epochs=3,
-        enable_progress_bar=False,
-        accelerator="cpu",
-    )
-    print("asdfadsf")
-    trainer.fit(model)
-    assert False is True
-
-
 @pytest.mark.parametrize("fn", ("validate", "test", "predict"))
 def test_init_optimizers_during_evaluation_and_prediction(tmpdir, fn):
     """Test that optimizers is an empty list during evaluation and prediction."""
