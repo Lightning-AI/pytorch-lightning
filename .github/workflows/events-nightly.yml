@@ -126,6 +126,9 @@ jobs:
         # the config used in '.github/workflows/ci_test-conda.yml'
         python_version: ["3.8"]
         pytorch_version: ["1.8", "1.9", "1.10"]
+        include:
+          # nightly: add when there's a release candidate
+          - {python_version: "3.10", pytorch_version: "1.11"}
 
     steps:
       - name: Checkout
