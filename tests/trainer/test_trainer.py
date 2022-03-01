@@ -2117,3 +2117,24 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
         else getattr(trainer, f"{dl_prefix}_dataloaders")
     )
     assert dl is None
+
+
+@pytest.mark.parametrize(
+    ["trainer_kwargs", "expected_device_ids"],
+    [
+        ({"strategy": None}, []),
+        ({"num_processes": 1}, [0]),
+        ({"gpus": 1}, [0]),
+        ({"devices": 1}, [0]),
+        ({"strategy": "ddp", "devices": 1}, [0]),
+        ({"strategy": "ddp", "gpus": 2}, [0, 1]),
+        ({"strategy": "ddp", "num_processes": 2}, [0, 1]),
+        ({"strategy": "ddp", "gpus": [0, 2]}, [0, 2]),
+    ],
+)
+def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_ids):
+    if trainer_kwargs.get("gpus") is not None:
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+        monkeypatch.setattr(torch.cuda, "device_count", lambda: 4)
+    trainer = Trainer(**trainer_kwargs)
+    trainer.num_devices = expected_device_ids

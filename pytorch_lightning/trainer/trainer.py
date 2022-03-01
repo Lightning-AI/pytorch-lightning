@@ -58,7 +58,7 @@ from pytorch_lightning.profiler import (
     SimpleProfiler,
     XLAProfiler,
 )
-from pytorch_lightning.strategies import ParallelStrategy, Strategy
+from pytorch_lightning.strategies import ParallelStrategy, SingleDeviceStrategy, Strategy
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
@@ -2011,6 +2011,18 @@ class Trainer(
         return getattr(self.strategy, "num_nodes", 1)
 
     @property
+    def device_ids(self) -> List[int]:
+        if isinstance(self.strategy, ParallelStrategy):
+            return [torch._utils._get_device_index(device, allow_cpu=True) for device in self.strategy.parallel_devices]
+        elif isinstance(self.strategy, SingleDeviceStrategy):
+            return [torch._utils._get_device_index(self.strategy.root_device, allow_cpu=True)]
+        return []
+
+    @property
+    def num_devices(self) -> int:
+        return len(self.device_ids)
+
+    @property
     def num_processes(self) -> int:
         return self._accelerator_connector.num_processes
 
@@ -2032,7 +2044,11 @@ class Trainer(
 
     @property
     def devices(self) -> Optional[Union[List[int], str, int]]:
-        return self._accelerator_connector.devices
+        rank_zero_deprecation(
+            "`Trainer.devices` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
+        )
+        return self.num_devices
 
     @property
     def data_parallel_device_ids(self) -> Optional[List[int]]:

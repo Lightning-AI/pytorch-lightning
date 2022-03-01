@@ -101,7 +101,7 @@ def test_accelerator_tpu(accelerator, devices):
     trainer = Trainer(accelerator=accelerator, devices=devices)
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
-    assert trainer.devices == 8
+    assert trainer.num_devices == 8
     assert trainer.tpu_cores == 8
 
 
@@ -120,7 +120,7 @@ def test_accelerator_tpu_with_tpu_cores_priority():
 def test_set_devices_if_none_tpu():
 
     trainer = Trainer(accelerator="tpu", tpu_cores=8)
-    assert trainer.devices == 8
+    assert trainer.num_devices == 8
 
 
 @RunIf(tpu=True)
