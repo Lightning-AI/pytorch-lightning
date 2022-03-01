@@ -58,7 +58,7 @@ from pytorch_lightning.profiler import (
     SimpleProfiler,
     XLAProfiler,
 )
-from pytorch_lightning.strategies import ParallelStrategy, SingleDeviceStrategy, Strategy
+from pytorch_lightning.strategies import ParallelStrategy, Strategy
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
@@ -2012,11 +2012,14 @@ class Trainer(
 
     @property
     def device_ids(self) -> List[int]:
-        if isinstance(self.strategy, ParallelStrategy):
-            return [torch._utils._get_device_index(device, allow_cpu=True) for device in self.strategy.parallel_devices]
-        elif isinstance(self.strategy, SingleDeviceStrategy):
-            return [torch._utils._get_device_index(self.strategy.root_device, allow_cpu=True)]
-        return []
+        devices = getattr(self.strategy, "parallel_devices", [self.strategy.root_device])
+        device_ids = []
+        for idx, device in enumerate(devices):
+            if isinstance(device, torch.device):
+                device_ids.append(device.index or idx)
+            elif isinstance(device, int):
+                device_ids.append(device)
+        return device_ids
 
     @property
     def num_devices(self) -> int:
