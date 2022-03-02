@@ -295,7 +295,7 @@ class Callback:
         """Called when any trainer execution is interrupted by an exception."""
 
     def state_dict(self) -> Dict[str, Any]:
-        """Called when saving a checkpoint, implement to generate callback state_dict.
+        """Called when saving a checkpoint, implement to generate callback's ``state_dict``.
 
         Returns:
             A dictionary containing callback state.
@@ -303,36 +303,18 @@ class Callback:
         return {}
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        """Called when loading a checkpoint, implement to reload callback state given callback state_dict.
+        """Called when loading a checkpoint, implement to reload callback state given callback's ``state_dict``.
 
         Args:
             state_dict: the callback state returned by ``state_dict``.
         """
         pass
 
-    # should we have this to support a migration period?
-    # between v1.6 and v1.8, need to support old on_load_checkpoint signature
-    # load_state_dict does not fully replace on_load_checkpoint due to trainer and LM args, so either:
-    #
-    # v1.8 introduces BC for on_load_checkpoint signature (callback_state --> checkpoint arg)
-    # or
-    # on_load_checkpoint_new gives migration opportunity, v1.8 BC requires on_load_checkpoint_new --> on_load_checkpoint
-    def on_load_checkpoint_new(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
-    ) -> None:
-        """Called by Lightning when loading a checkpoint to give you a chance to reload or customize anything else
-        you may have saved in on_save_checkpoint.
-
-        Args:
-            trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
-            pl_module: the current :class:`~pytorch_lightning.core.lightning.LightningModule` instance.
-            checkpoint: entire loaded checkpoint dictionary
-        """
-
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
     ) -> Optional[dict]:
-        """Called when saving a model checkpoint, use to persist state.
+        r"""
+        Called when saving a checkpoint to give you a chance to store anything else you might want to save.
 
         Args:
             trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
@@ -340,13 +322,18 @@ class Callback:
             checkpoint: the checkpoint dictionary that will be saved.
 
         Returns:
-            The callback state.
+            None or the callback state. Support for returning callback state will be removed in v1.8.
+
+        .. deprecated:: v1.6
+            Returning state in this callback hook was deprecated in v1.6 and will be removed in v1.8.
+            Use ``state_dict`` instead to return state. In v1.8 ``on_save_checkpoint`` can only return None.
         """
 
     def on_load_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
     ) -> None:
-        """Called when loading a model checkpoint, use to reload state.
+        r"""
+        Called when loading a model checkpoint, use to reload state.
 
         Args:
             trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
@@ -357,6 +344,12 @@ class Callback:
             The ``on_load_checkpoint`` won't be called with an undefined state.
             If your ``on_load_checkpoint`` hook behavior doesn't rely on a state,
             you will still need to override ``on_save_checkpoint`` to return a ``dummy state``.
+
+        .. deprecated:: v1.6
+            This callback hook will change its signature and behavior in v1.8.
+            If you wish to load the state of the callback, use ``load_state_dict`` instead.
+            In v1.8 ``on_load_checkpoint(checkpoint)`` will receive the entire loaded
+            checkpoint dictionary instead of callback state.
         """
 
     def on_before_backward(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", loss: torch.Tensor) -> None:

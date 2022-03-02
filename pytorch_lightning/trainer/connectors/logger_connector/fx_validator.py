@@ -128,7 +128,6 @@ class _FxValidator:
         "on_exception": None,
         "state_dict": None,
         "on_save_checkpoint": None,
-        "on_load_checkpoint_new": None,
         "on_load_checkpoint": None,
         "load_state_dict": None,
         "setup": None,

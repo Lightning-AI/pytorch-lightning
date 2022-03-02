@@ -224,11 +224,6 @@ class AllStatefulCallback(Callback):
         assert callback_state == {"old_state_precedence": 10}
         self.old_state_precedence = callback_state["old_state_precedence"]
 
-    def on_load_checkpoint_new(self, trainer, pl_module, checkpoint):
-        assert "callbacks" in checkpoint
-        assert checkpoint["callbacks"][self.state_key] == {"old_state_precedence": 10}
-        self.on_load_checkpoint_new_ran = 1
-
 
 def test_resume_callback_state_all(tmpdir):
     """Test on_save/load_checkpoint state precedence over state_dict/load_state_dict until v1.8 removal."""
@@ -248,4 +243,3 @@ def test_resume_callback_state_all(tmpdir):
         trainer.fit(model, ckpt_path=ckpt_path)
     assert callback.state == 10
     assert callback.old_state_precedence == 10
-    assert callback.on_load_checkpoint_new_ran == 1
