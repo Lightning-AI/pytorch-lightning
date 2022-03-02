@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import logging
+from unittest import mock
 
 import pytest
 import torch
@@ -148,7 +149,8 @@ def test_num_stepping_batches_with_tpu(devices, estimated_steps):
     assert trainer.estimated_stepping_batches == estimated_steps
 
 
-def test_num_stepping_batches_with_ipu(monkeypatch):
+@mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
+def test_num_stepping_batches_with_ipu(mock_ipu_acc_avail, monkeypatch):
     """Test stepping batches with IPU training which acts like DP."""
     import pytorch_lightning.strategies.ipu as ipu
 

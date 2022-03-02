@@ -62,3 +62,8 @@ class CPUAccelerator(Accelerator):
     def is_available() -> bool:
         """CPU is always available for execution."""
         return True
+
+    @staticmethod
+    def name() -> str:
+        """Name of the Accelerator."""
+        return "cpu"
