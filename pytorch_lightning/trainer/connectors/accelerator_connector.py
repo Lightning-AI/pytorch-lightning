@@ -158,7 +158,7 @@ class AcceleratorConnector:
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
         self._registered_strategies = StrategyRegistry.available_strategies()
-        self._accelerator_types = ("tpu", "ipu", "gpu", "cpu")
+        self._accelerator_types = AcceleratorRegistry.available_accelerators()
         self._precision_types = ("16", "32", "64", "bf16", "mixed")
 
         # Raise an exception if there are conflicts between flags
@@ -495,15 +495,13 @@ class AcceleratorConnector:
             if self._accelerator_flag not in AcceleratorRegistry:
                 raise MisconfigurationException(
                     "When passing string value for the `accelerator` argument of `Trainer`,"
-                    f" it can only be one of {AcceleratorRegistry.available_accelerators()}."
+                    f" it can only be one of {self._accelerator_types}."
                 )
             self.accelerator = AcceleratorRegistry.get(self._accelerator_flag)
 
         if not self.accelerator.is_available():
             available_accelerator = [
-                acc_str
-                for acc_str in AcceleratorRegistry.available_accelerators()
-                if AcceleratorRegistry[acc_str].is_available()
+                acc_str for acc_str in self._accelerator_types if AcceleratorRegistry[acc_str].is_available()
             ]
             raise MisconfigurationException(
                 f"{self.accelerator.__class__.__qualname__} can not run on your system"
