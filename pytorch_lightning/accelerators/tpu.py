@@ -64,3 +64,8 @@ class TPUAccelerator(Accelerator):
     @staticmethod
     def is_available() -> bool:
         return _TPU_AVAILABLE
+
+    @staticmethod
+    def name() -> str:
+        """Name of the Accelerator."""
+        return "tpu"

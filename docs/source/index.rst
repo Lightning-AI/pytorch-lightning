@@ -110,10 +110,14 @@ PyTorch Lightning
 
 .. toctree::
    :maxdepth: 1
-   :name: Bolts
-   :caption: Bolts
+   :name: Lightning Ecosystem
+   :caption: Lightning Ecosystem
 
+   ecosystem/metrics
+   ecosystem/flash
    ecosystem/bolts
+   ecosystem/transformers
+   ecosystem/ecosystem-ci
 
 .. toctree::
    :maxdepth: 1
