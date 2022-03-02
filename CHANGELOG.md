@@ -723,6 +723,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed to avoid common hook warning if no hook is overridden ([#12131](https://github.com/PyTorchLightning/pytorch-lightning/pull/12131))
 
 
+- Fixed logging on step level for eval mode ([#12184](https://github.com/PyTorchLightning/pytorch-lightning/pull/12184))
+
+
 ## [1.5.10] - 2022-02-08
 
 ### Fixed

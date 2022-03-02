@@ -63,7 +63,7 @@ class EvaluationLoop(DataLoaderLoop):
     @property
     def num_dataloaders(self) -> int:
         """Returns the total number of dataloaders."""
-        # case where user does:_get_max_batches
+        # case where user does:
         # return dl1, dl2
         dataloaders = self.dataloaders
         if dataloaders is None:
