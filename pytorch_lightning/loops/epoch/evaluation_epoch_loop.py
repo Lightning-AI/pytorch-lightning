@@ -292,9 +292,9 @@ class EvaluationEpochLoop(Loop):
             return is_overridden("test_epoch_end", model)
         return is_overridden("validation_epoch_end", model)
 
-    def _initialize_batch_idx_tracker(self, num_dataloaders):
+    def _initialize_batch_idx_tracker(self, num_dataloaders: int) -> None:
         self._seen_batches = [0] * num_dataloaders
 
-    def _increment_batch_idx_tracker(self, dataloader_idx, max_batches):
+    def _increment_batch_idx_tracker(self, dataloader_idx: int) -> None:
         if not self.trainer.sanity_checking:
-            self._seen_batches[dataloader_idx] = max_batches
+            self._seen_batches[dataloader_idx] += self.batch_progress.current.completed

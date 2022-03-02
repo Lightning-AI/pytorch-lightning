@@ -954,7 +954,7 @@ def test_eval_step_logging(tmpdir, num_dataloaders):
 
     logger = CustomLogger(tmpdir)
     limit_batches = 4
-    max_epochs = 2
+    max_epochs = 3
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=max_epochs,
@@ -973,8 +973,8 @@ def test_eval_step_logging(tmpdir, num_dataloaders):
 
     for dl_idx in range(num_dataloaders):
         suffix = f"/dataloader_idx_{dl_idx}" if num_dataloaders == 2 else ""
-        assert logger.logged_metrics[f"val_log_fit{suffix}"]["logged_values"] == list(range(limit_batches)) * 2
-        assert logger.logged_metrics[f"val_log_fit{suffix}"]["logged_steps"] == list(range(limit_batches * 2))
+        assert logger.logged_metrics[f"val_log_fit{suffix}"]["logged_values"] == list(range(limit_batches)) * max_epochs
+        assert logger.logged_metrics[f"val_log_fit{suffix}"]["logged_steps"] == list(range(limit_batches * max_epochs))
         assert logger.logged_metrics[f"val_log_validate{suffix}"]["logged_values"] == list(range(limit_batches))
         assert logger.logged_metrics[f"val_log_validate{suffix}"]["logged_values"] == list(range(limit_batches))
         assert logger.logged_metrics[f"test_log{suffix}"]["logged_steps"] == list(range(limit_batches))

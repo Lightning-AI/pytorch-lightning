@@ -153,7 +153,7 @@ class EvaluationLoop(DataLoaderLoop):
         if self.num_dataloaders > 1:
             kwargs["dataloader_idx"] = dataloader_idx
         dl_outputs = self.epoch_loop.run(self._data_fetcher, dl_max_batches, kwargs)
-        self.epoch_loop._increment_batch_idx_tracker(dataloader_idx, dl_max_batches)
+        self.epoch_loop._increment_batch_idx_tracker(dataloader_idx)
 
         # store batch level output per dataloader
         self._outputs.append(dl_outputs)

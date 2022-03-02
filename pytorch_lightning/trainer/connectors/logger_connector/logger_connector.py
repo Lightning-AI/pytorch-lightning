@@ -139,7 +139,7 @@ class LoggerConnector:
         assert results is not None
         results.dataloader_idx = None
 
-    def update_eval_step_metrics(self, step) -> None:
+    def update_eval_step_metrics(self, step: int) -> None:
         assert not self._epoch_end_reached
         # logs user requested information to logger
         self.log_metrics(self.metrics["log"], step=step)
