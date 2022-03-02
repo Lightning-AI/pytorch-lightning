@@ -417,7 +417,8 @@ class AcceleratorConnector:
         ipus: Optional[int],
         tpu_cores: Optional[Union[List[int], str, int]],
     ) -> None:
-        """Emit deprecation warnings for num_processes, gpus, ipus, tpu_cores and set the `devices_flag` and `accelerator_flag`."""
+        """Emit deprecation warnings for num_processes, gpus, ipus, tpu_cores and set the `devices_flag` and
+        `accelerator_flag`."""
         if num_processes:
             rank_zero_deprecation(
                 f"Setting `Trainer(num_processes={num_processes})` is deprecated in v1.6 and will be removed"

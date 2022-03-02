@@ -137,7 +137,7 @@ class Trainer(
         gradient_clip_algorithm: Optional[str] = None,
         process_position: int = 0,
         num_nodes: int = 1,
-        num_processes: Optional[int] = None, # TODO: Remove in 2.0
+        num_processes: Optional[int] = None,  # TODO: Remove in 2.0
         devices: Optional[Union[List[int], str, int]] = None,
         gpus: Optional[Union[List[int], str, int]] = None,  # TODO: Remove in 2.0
         auto_select_gpus: bool = False,
