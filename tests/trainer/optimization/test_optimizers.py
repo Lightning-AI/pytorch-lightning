@@ -803,3 +803,39 @@ def test_invalid_lr_scheduler_with_custom_step_method(override):
     else:
         with pytest.raises(MisconfigurationException, match="CustomScheduler` doesn't follow"):
             _init_optimizers_and_lr_schedulers(model)
+
+
+@RunIf(min_gpus=1)
+def test_optimizer_step_before_lr_scheduler_step_native_amp(tmpdir):
+    """Test PyTorch doesn't raise "UserWarning: Detected call of lr_scheduler.step() before optimizer.step(). "
+    This is a known issue with PyTorch amp. See https://github.com/pytorch/pytorch/issues/44511.
+    """
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        logger=False,
+        max_epochs=1,
+        gpus=1,
+        precision=16,
+        limit_train_batches=4,
+        limit_val_batches=0,
+        limit_test_batches=0,
+    )
+
+    class TestModel(BoringModel):
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.parameters(), lr=0.1)
+            scheduler = {
+                "scheduler": torch.optim.lr_scheduler.StepLR(optimizer, step_size=1),
+                # Note: It's very likely that PyTorch raises the warning during the first few iterations
+                # as its scale factor calibrates, so setting `"step"`` interval and `1` frequency.
+                "interval": "step",
+                "frequency": 1,
+            }
+            return {"optimizer": optimizer, "lr_scheduler": scheduler}
+
+    model = TestModel()
+    model.training_epoch_end = None
+    trainer.fit(model)
