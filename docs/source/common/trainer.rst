@@ -1584,6 +1584,12 @@ Can specify as float or int.
 weights_save_path
 ^^^^^^^^^^^^^^^^^
 
+
+.. warning:: `weights_save_path` has been deprecated in v1.6 and will be removed in v1.8. Please pass
+   ``dirpath`` directly to the :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+   callback.
+
+
 .. raw:: html
 
     <video width="50%" max-width="400px" controls
@@ -1705,6 +1711,7 @@ tune
 .. automethod:: pytorch_lightning.trainer.Trainer.tune
    :noindex:
 
+
 Properties
 ^^^^^^^^^^
 
@@ -1817,3 +1824,9 @@ The metrics sent to the progress bar.
 
     progress_bar_metrics = trainer.progress_bar_metrics
     assert progress_bar_metrics["a_val"] == 2
+
+
+estimated_stepping_batches
+**************************
+
+Check out :paramref:`~pytorch_lightning.trainer.trainer.Trainer.estimated_stepping_batches`.

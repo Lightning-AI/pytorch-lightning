@@ -13,7 +13,7 @@
 # limitations under the License.
 import math
 from collections import defaultdict
-from typing import Any, Dict, Generator, Iterator, List, Optional, overload, Tuple, Union
+from typing import Any, Dict, Generator, List, Optional, overload, Tuple, Union
 
 import numpy as np
 import torch
@@ -69,7 +69,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self._results = _ResultCollection(training=True)
         self._outputs: _OUTPUTS_TYPE = []
         self._warning_cache = WarningCache()
-        self._dataloader_iter: Optional[Iterator] = None
         # caches the loaded dataloader state until dataloader objects are available
         self._dataloader_state_dict: Dict[str, Any] = {}
         self._batches_that_stepped: int = 0
@@ -150,7 +149,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
         self._reload_dataloader_state_dict(data_fetcher)
-        self._dataloader_iter = iter(data_fetcher)
+        _ = iter(data_fetcher)  # creates the iterator inside the fetcher
+        # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
+        data_fetcher.fetched += self.batch_progress.current.ready
 
     def advance(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
         """Runs a single training batch.
@@ -164,12 +165,12 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
 
-        assert self._dataloader_iter is not None
         if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
             batch_idx = self.batch_idx + 1
-            batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
+            batch = next(data_fetcher)
         else:
-            batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
+            batch_idx, batch = next(data_fetcher)
+        self.batch_progress.is_last_batch = data_fetcher.done
 
         self.batch_progress.increment_ready()
 
@@ -506,8 +507,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def _save_loggers_on_train_batch_end(self) -> None:
         """Flushes loggers to disk."""
-        # TODO: is_global_zero check should be moved to logger.save() implementation
-        if not self.trainer.is_global_zero or self.trainer.logger is None:
+        if self.trainer.logger is None:
             return
         # this assumes that `batches_that_stepped` was increased before
         should_flush = self._batches_that_stepped % self.trainer.flush_logs_every_n_steps == 0
