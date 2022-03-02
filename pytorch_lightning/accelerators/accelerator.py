@@ -74,3 +74,8 @@ class Accelerator(ABC):
     @abstractmethod
     def is_available() -> bool:
         """Detect if the hardware is available."""
+
+    @staticmethod
+    @abstractmethod
+    def name() -> str:
+        """Name of the Accelerator."""

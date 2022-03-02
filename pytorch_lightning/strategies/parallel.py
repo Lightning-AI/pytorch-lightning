@@ -21,6 +21,7 @@ from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
+from pytorch_lightning.plugins import LayerSync
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -42,6 +43,7 @@ class ParallelStrategy(Strategy, ABC):
         super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
         self.parallel_devices = parallel_devices
         self.cluster_environment = cluster_environment
+        self._layer_sync: Optional[LayerSync] = None
 
     @property
     @abstractmethod
@@ -104,21 +106,6 @@ class ParallelStrategy(Strategy, ABC):
         if torch_backend is None:
             torch_backend = "nccl" if self.root_device.type == "cuda" else "gloo"
         return torch_backend
-
-    @staticmethod
-    def configure_sync_batchnorm(model: "pl.LightningModule") -> "pl.LightningModule":
-        """Add global batchnorm for a model spread across multiple GPUs and nodes.
-
-        Override to synchronize batchnorm between specific process groups instead
-        of the whole world or use a different sync_bn like `apex`'s version.
-
-        Args:
-            model: pointer to current :class:`LightningModule`.
-
-        Return:
-            LightningModule with batchnorm layers synchronized between process groups
-        """
-        return torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
     @contextmanager
     def block_backward_sync(self):

@@ -83,7 +83,6 @@ Lightning has a few built-in callbacks.
 .. currentmodule:: pytorch_lightning.callbacks
 
 .. autosummary::
-    :toctree: generated
     :nosignatures:
     :template: classtemplate.rst
 
