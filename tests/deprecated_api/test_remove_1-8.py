@@ -450,6 +450,31 @@ def test_v1_8_0_remove_on_epoch_start_end_lightning_module(tmpdir):
         trainer.fit(model)
 
 
+def test_v1_8_0_deprecated_dict_outputs_format(tmpdir):
+    class CustomModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            out = super().training_step(batch, batch_idx)
+            return out["loss"]
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    model = CustomModel()
+    with pytest.deprecated_call(match="will change in version v1.8 to be a list of tensors"):
+        trainer.fit(model)
+
+    class CustomModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
+        def training_step(self, batch, batch_idx):
+            return torch.tensor(1.0)
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    model = CustomModel()
+    with pytest.deprecated_call(match="will change in version v1.8 to be a list of tensors"):
+        trainer.fit(model)
+
+
 def test_v1_8_0_rank_zero_imports():
 
     import warnings
