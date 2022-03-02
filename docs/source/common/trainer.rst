@@ -696,6 +696,9 @@ See Also:
 gpus
 ^^^^
 
+.. warning:: Setting `Trainer(gpus=x)` is deprecated in v1.6 and will be removed"
+    in v2.0. Please use `Trainer(accelerator='gpu', devices=x)` instead.
+
 .. raw:: html
 
     <video width="50%" max-width="400px" controls
@@ -711,30 +714,30 @@ gpus
 .. testcode::
 
     # default used by the Trainer (ie: train on CPU)
-    trainer = Trainer(accelerator="gpu", devices=None)
+    trainer = Trainer(gpus=None)
 
     # equivalent
-    trainer = Trainer(accelerator="gpu", devices=0)
+    trainer = Trainer(gpus=0)
 
 Example::
 
     # int: train on 2 gpus
-    trainer = Trainer(accelerator="gpu", devices=2)
+    trainer = Trainer(gpus=2)
 
     # list: train on GPUs 1, 4 (by bus ordering)
-    trainer = Trainer(accelerator="gpu", devices=[1, 4])
-    trainer = Trainer(accelerator="gpu", devices='1, 4') # equivalent
+    trainer = Trainer(gpus=[1, 4])
+    trainer = Trainer(gpus='1, 4') # equivalent
 
     # -1: train on all gpus
-    trainer = Trainer(accelerator="gpu", devices=-1)
-    trainer = Trainer(accelerator="gpu", devices='-1') # equivalent
+    trainer = Trainer(gpus=-1)
+    trainer = Trainer(gpus='-1') # equivalent
 
     # combine with num_nodes to train on multiple GPUs across nodes
     # uses 8 gpus in total
-    trainer = Trainer(accelerator="gpu", devices=2, num_nodes=4)
+    trainer = Trainer(gpus=2, num_nodes=4)
 
     # train only on GPUs 1 and 4 across nodes
-    trainer = Trainer(accelerator="gpu", devices=[1, 4], num_nodes=4)
+    trainer = Trainer(gpus=[1, 4], num_nodes=4)
 
 See Also:
     - :ref:`accelerators/gpu:Multi GPU Training`
