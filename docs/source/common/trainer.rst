@@ -1250,7 +1250,7 @@ profiler
 
 To profile individual steps during training and assist in identifying bottlenecks.
 
-See the :doc:`profiler documentation <../advanced/profiling>`. for more details.
+See the :doc:`profiler documentation <../advanced/profiler>`. for more details.
 
 .. testcode::
 

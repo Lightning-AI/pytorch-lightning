@@ -472,7 +472,7 @@ Number of cluster nodes for distributed operation.
     lite = Lite(num_nodes=8)
 
 
-Learn more about distributed multi-node training on clusters :doc:`here <../clouds/cluster_environment>`.
+Learn more about distributed multi-node training on clusters :doc:`here <../clouds/cluster>`.
 
 
 precision

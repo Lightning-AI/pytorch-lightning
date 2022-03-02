@@ -631,7 +631,7 @@ Once you define and train your first Lightning model, you might want to try othe
 - :ref:`Automatically scale your batch size <advanced/training_tricks:Batch Size Finder>`
 - :ref:`Automatically scale your batch size <advanced/training_tricks:Learning Rate Finder>`
 - :ref:`Load checkpoints directly from S3 <common/checkpointing:Checkpoint Loading>`
-- :doc:`Scale to massive compute clusters <../clouds/cluster_environment>`
+- :doc:`Scale to massive compute clusters <../clouds/cluster>`
 - :doc:`Use multiple dataloaders per train/val/test/predict loop <../guides/data>`
 - :ref:`Use multiple optimizers to do reinforcement learning or even GANs <common/optimization:Use multiple optimizers (like GANs)>`
 

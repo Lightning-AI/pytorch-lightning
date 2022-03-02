@@ -69,7 +69,7 @@ PyTorch Lightning
    :caption: Common Use Cases
 
    clouds/cloud_training
-   clouds/cluster_environment
+   clouds/cluster
    common/debugging
    common/early_stopping
    common/hyperparameters
@@ -81,7 +81,7 @@ PyTorch Lightning
    common/checkpointing
    advanced/fault_tolerant_training
    common/optimization
-   advanced/profiling
+   advanced/profiler
    advanced/strategy_registry
    common/remote_fs
    advanced/training_tricks
