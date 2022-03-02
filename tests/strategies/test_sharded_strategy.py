@@ -16,6 +16,8 @@ if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
 
 
+# TODO(akihironitta): Ignore the warning for now since lr_schedulers doesn't wrap new OSS optimizers that are
+# initialized by the strategy.
 @pytest.mark.filterwarnings(r"ignore:Detected call of `lr_scheduler.step\(\)` before `optimizer.step\(\)`:UserWarning")
 @pytest.mark.parametrize("clip_val", [0, 10])
 @RunIf(min_gpus=1, skip_windows=True, fairscale=True)
@@ -218,6 +220,8 @@ class BoringModelSharded(BoringModel):
         assert isinstance(self.trainer.model, LightningModule)
 
 
+# TODO(akihironitta): Ignore the warning for now since lr_schedulers doesn't wrap new OSS optimizers that are
+# initialized by the strategy.
 @pytest.mark.filterwarnings(r"ignore:Detected call of `lr_scheduler.step\(\)` before `optimizer.step\(\)`:UserWarning")
 @RunIf(skip_windows=True, fairscale=True)
 def test_configure_ddp(tmpdir):
