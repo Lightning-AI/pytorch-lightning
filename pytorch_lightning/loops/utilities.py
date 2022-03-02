@@ -24,8 +24,6 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops import Loop
-from pytorch_lightning.loops.optimization.manual_loop import ManualResult
-from pytorch_lightning.loops.optimization.optimizer_loop import ClosureResult
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities import rank_zero_warn
@@ -235,7 +233,10 @@ def _v1_8_output_format(fx: Callable) -> bool:
 
 # FIXME: remove in v1.8
 def _deprecate_output_format(
-    result: Union[ClosureResult, ManualResult], lightning_module: "pl.LightningModule"
+    result: Union[
+        "pl.loops.optimization.optimizer_loop.ClosureResult", "pl.loops.optimization.manual_loop.ManualResult"
+    ],
+    lightning_module: "pl.LightningModule",
 ) -> None:
     if result.was_dict:
         return
