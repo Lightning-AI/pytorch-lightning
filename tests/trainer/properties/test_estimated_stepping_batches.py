@@ -150,7 +150,7 @@ def test_num_stepping_batches_with_tpu(devices, estimated_steps):
 
 
 @mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
-def test_num_stepping_batches_with_ipu(mock_ipuacc_avail, monkeypatch):
+def test_num_stepping_batches_with_ipu(mock_ipu_acc_avail, monkeypatch):
     """Test stepping batches with IPU training which acts like DP."""
     import pytorch_lightning.strategies.ipu as ipu
 
