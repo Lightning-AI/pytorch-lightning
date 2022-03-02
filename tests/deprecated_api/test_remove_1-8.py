@@ -878,3 +878,29 @@ def test_parallel_strategy_torch_distributed_backend():
         match="ParallelStrategy.torch_distributed_backend was deprecated" " in v1.6 and will be removed in v1.8."
     ):
         strategy.torch_distributed_backend
+
+
+@pytest.mark.parametrize(
+    ["trainer_kwargs", "expected_devices"],
+    [
+        ({}, 1),
+        ({"devices": 1}, 1),
+        ({"accelerator": "gpu", "devices": 1}, 1),
+        ({"strategy": "ddp", "devices": 1}, 1),
+        ({"strategy": "ddp", "accelerator": "gpu", "devices": 1}, 1),
+        ({"strategy": "ddp", "devices": 2}, 2),
+        ({"strategy": "ddp", "accelerator": "gpu", "devices": 2}, 2),
+        ({"strategy": "ddp", "accelerator": "gpu", "devices": [2]}, 1),
+        ({"strategy": "ddp", "accelerator": "gpu", "devices": [0, 2]}, 2),
+    ],
+)
+def test_v1_8_0_trainer_devices(monkeypatch, trainer_kwargs, expected_devices):
+    if trainer_kwargs.get("accelerator") == "gpu":
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+        monkeypatch.setattr(torch.cuda, "device_count", lambda: 4)
+    trainer = Trainer(**trainer_kwargs)
+    with pytest.deprecated_call(
+        match="`Trainer.devices` was deprecated in v1.6 and will be removed in v1.8."
+        " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
+    ):
+        trainer.devices == expected_devices
