@@ -165,7 +165,7 @@ jobs:
       matrix:
         # the config used in 'dockers/ipu-ci-runner/Dockerfile'
         include:
-          - {python_version: "3.9", pytorch_version: "1.7"}
+          - {python_version: "3.9", pytorch_version: "1.9"}
 
     steps:
       - name: Checkout
