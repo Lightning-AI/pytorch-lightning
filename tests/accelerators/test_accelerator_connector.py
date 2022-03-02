@@ -918,7 +918,7 @@ def test_unsupported_tpu_choice(mock_devices, mock_tpuacc_avail):
 
 
 @mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
-def test_unsupported_ipu_choice(mock_ipuacc_avail, monkeypatch):
+def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
     import pytorch_lightning.strategies.ipu as ipu
     import pytorch_lightning.utilities.imports as imports
 
