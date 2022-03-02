@@ -19,9 +19,9 @@ from tests.helpers.boring_model import BoringModel
 
 
 def test_tuner_with_distributed_strategies():
-    """Test that an error is raised when batch size finder is used with multi-device strategy."""
+    """Test that an error is raised when tuner is used with multi-device strategy."""
     trainer = Trainer(auto_scale_batch_size=True, devices=2, strategy="ddp", accelerator="cpu")
     model = BoringModel()
 
-    with pytest.raises(MisconfigurationException, match="not supported with a distributed strategy"):
+    with pytest.raises(MisconfigurationException, match=r"not supported with `Trainer\(strategy='ddp'\)`"):
         trainer.tune(model)
