@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -19,6 +20,7 @@ import torch
 from torch import Tensor
 from torch.optim import Optimizer
 
+import pytorch_lightning as pl
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops import Loop
@@ -33,8 +35,9 @@ from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation, WarningCache
 
 
 @dataclass
@@ -213,10 +216,39 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             self.optimizer_idx,
         )
         if result.loss is not None:
+            self._deprecate_output_format(result, self.trainer.lightning_module)
             # automatic optimization assumes a loss needs to be returned for extras to be considered as the batch
             # would be skipped otherwise
             self._outputs[self.optimizer_idx] = result.get()
         self.optim_progress.optimizer_position += 1
+
+    # FIXME: remove in v1.8
+    @staticmethod
+    def _deprecate_output_format(result: ClosureResult, lightning_module: "pl.LightningModule") -> None:
+        if result.was_dict:
+            return
+        message = ""
+        if is_overridden("training_step_end", lightning_module) and not _v1_8_output_format(
+            lightning_module.training_step_end
+        ):
+            message = (
+                "You returned a tensor from `training_step`. The current format of `training_step_end(step_output)` is"
+                " a dictionary, however, this has been deprecated and will change in version v1.8 to be a tensor."
+                " You can update your code by adding the following parameter to your hook signature:"
+                " `training_step_end(step_output, new_format=True)`."
+            )
+        if is_overridden("training_epoch_end", lightning_module) and not _v1_8_output_format(
+            lightning_module.training_epoch_end
+        ):
+            message = (
+                "You returned a tensor from `training_step`. The current format of `training_epoch_end(outputs)` is"
+                " a list of dictionaries, however, this has been deprecated and will change in version v1.8 to be a"
+                " list of tensors. You can update your code by adding the following parameter to your hook signature:"
+                " `training_epoch_end(outputs, new_format=True)`."
+            )
+        if message:
+            rank_zero_deprecation(message)
+            result.was_dict = True
 
     def on_run_end(self) -> _OUTPUTS_TYPE:
         outputs, self._outputs = self._outputs, {}  # free memory
@@ -447,3 +479,9 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             self.trainer._results.cpu()
 
         return result
+
+
+# TODO: remove in v1.8
+def _v1_8_output_format(fx: Callable) -> bool:
+    parameters = inspect.signature(fx).parameters
+    return "new_format" in parameters and parameters["new_format"].default is True
