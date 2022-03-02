@@ -386,7 +386,7 @@ def _check_precision_plugin_checkpoint_hooks(trainer: "pl.Trainer") -> None:
             " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
         )
 
-        
+
 def _check_datamodule_checkpoint_hooks(trainer: "pl.Trainer") -> None:
     if is_overridden(method_name="on_save_checkpoint", instance=trainer.datamodule):
         rank_zero_deprecation(

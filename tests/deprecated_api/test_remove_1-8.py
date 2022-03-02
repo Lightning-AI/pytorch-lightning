@@ -689,7 +689,7 @@ def test_v1_8_0_precision_plugin_checkpoint_hooks(tmpdir):
     ):
         trainer.fit(model)
 
-        
+
 def test_v1_8_0_datamodule_checkpointhooks(tmpdir):
     class CustomBoringDataModuleSave(BoringDataModule):
         def on_save_checkpoint(self, checkpoint):
