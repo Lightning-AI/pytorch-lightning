@@ -30,9 +30,10 @@ from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import PossibleUserWarning, rank_zero_deprecation
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 
 def check_finite_loss(loss: Optional[torch.Tensor]) -> None:
@@ -240,16 +241,6 @@ def _deprecate_output_format(
 ) -> None:
     if result.was_dict:
         return
-    message = ""
-    if is_overridden("training_step_end", lightning_module) and not _v1_8_output_format(
-        lightning_module.training_step_end
-    ):
-        message = (
-            "You returned a tensor from `training_step`. The current format of `training_step_end(step_output)` is"
-            " a dictionary, however, this has been deprecated and will change in version v1.8 to be a tensor."
-            " You can update your code by adding the following parameter to your hook signature:"
-            " `training_step_end(step_output, new_format=True)`."
-        )
     if is_overridden("training_epoch_end", lightning_module) and not _v1_8_output_format(
         lightning_module.training_epoch_end
     ):
@@ -259,6 +250,5 @@ def _deprecate_output_format(
             " list of tensors. You can update your code by adding the following parameter to your hook signature:"
             " `training_epoch_end(outputs, new_format=True)`."
         )
-    if message:
         rank_zero_deprecation(message)
         result.was_dict = True

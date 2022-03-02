@@ -107,7 +107,7 @@ def test__training_step__epoch_end__flow_scalar(tmpdir):
             self.training_step_called = True
             return acc
 
-        def training_epoch_end(self, outputs):
+        def training_epoch_end(self, outputs, new_format=True):
             self.training_epoch_end_called = True
             # verify we saw the current num of batches
             assert len(outputs) == 2
@@ -173,7 +173,7 @@ def test__training_step__step_end__epoch_end__flow_scalar(tmpdir):
             self.training_step_end_called = True
             return tr_step_output
 
-        def training_epoch_end(self, outputs):
+        def training_epoch_end(self, outputs, new_format=True):
             self.training_epoch_end_called = True
 
             # verify we saw the current num of batches
@@ -274,7 +274,7 @@ def test_training_step_no_return_when_even(tmpdir):
             self.log("a", loss, on_step=True, on_epoch=True)
             return loss if batch_idx % 2 else None
 
-        def training_epoch_end(self, outputs) -> None:
+        def training_epoch_end(self, outputs, new_format=True) -> None:
             torch.stack(outputs).mean()
 
     model = TestModel()
