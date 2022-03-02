@@ -64,6 +64,6 @@ class CPUAccelerator(Accelerator):
         return True
 
     @staticmethod
-    def hardware_name() -> str:
+    def accelerator_name() -> str:
         """Name of the hardware."""
-        return "CPU"
+        return "cpu"

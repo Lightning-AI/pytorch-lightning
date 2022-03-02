@@ -48,6 +48,6 @@ class IPUAccelerator(Accelerator):
         return _IPU_AVAILABLE
 
     @staticmethod
-    def hardware_name() -> str:
+    def accelerator_name() -> str:
         """Name of the hardware."""
-        return "IPU"
+        return "ipu"
