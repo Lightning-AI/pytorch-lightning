@@ -10,8 +10,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pathlib import Path
+
 from pytorch_lightning.accelerators.accelerator import Accelerator  # noqa: F401
 from pytorch_lightning.accelerators.cpu import CPUAccelerator  # noqa: F401
 from pytorch_lightning.accelerators.gpu import GPUAccelerator  # noqa: F401
 from pytorch_lightning.accelerators.ipu import IPUAccelerator  # noqa: F401
+from pytorch_lightning.accelerators.registry import AcceleratorRegistry, register_accelerators  # noqa: F401
 from pytorch_lightning.accelerators.tpu import TPUAccelerator  # noqa: F401
+
+FILE_ROOT = Path(__file__).parent
+ACCELERATORS_BASE_MODULE = "pytorch_lightning.accelerators"
+
+register_accelerators(FILE_ROOT, ACCELERATORS_BASE_MODULE)
