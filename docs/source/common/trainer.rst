@@ -959,7 +959,7 @@ min_steps
 
 |
 
-Force training for at least these number of :ref:`global steps <common/trainer:global_step>`.
+Force training for at least this number of :ref:`global steps <common/trainer:global_step>`.
 Trainer will train model for at least min_steps or min_epochs (latest).
 
 .. testcode::
