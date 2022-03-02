@@ -2600,9 +2600,9 @@ class Trainer(
             return self.loggers[0]
         else:
             rank_zero_warn(
-                "You are using `trainer.logger` when the Trainer is configured to use multiple loggers."
-                " This behavior will change in v1.8 such that `trainer.logger` will return the first"
-                " logger in `trainer.loggers`."
+                "Using trainer.logger when Trainer is configured to use multiple loggers."
+                " This behavior will change in v1.8 when LoggerCollection is removed, and"
+                " trainer.logger will return the first logger in trainer.loggers"
             )
             return LoggerCollection(self.loggers)
 
