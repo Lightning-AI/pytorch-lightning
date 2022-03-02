@@ -1095,5 +1095,5 @@ def test_deepspeed_multi_save_same_filepath(tmpdir):
     )
     trainer.fit(model)
     ckpt_path = os.path.join(trainer.checkpoint_callback.dirpath, "last.ckpt")
-    expected = ["latest", "zero_to_fp32.py", "global_step1"]
+    expected = ["latest", "zero_to_fp32.py", "global_step2"]
     assert set(expected) == set(os.listdir(ckpt_path))
