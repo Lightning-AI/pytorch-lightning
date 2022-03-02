@@ -447,7 +447,7 @@ class WandbLogger(LightningLoggerBase):
             The name of the experiment if the experiment exists else the name given to the constructor.
         """
         # don't create an experiment if we don't have one
-        return self._experiment.project_name() if self._experiment else self._name
+        return self._experiment.name if self._experiment else self._name
 
     @property
     def version(self) -> Optional[str]:
