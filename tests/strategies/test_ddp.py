@@ -112,6 +112,8 @@ def test_ddp_torch_dist_is_available_in_setup(
         trainer.fit(model)
 
 
+# TODO(akihironitta): Remove the warning filter in a fix PR for #5558.
+@pytest.mark.filterwarnings(r"ignore:Detected call of `lr_scheduler.step\(\)` before `optimizer.step\(\)`:UserWarning")
 @RunIf(min_gpus=2, min_torch="1.8.1", standalone=True)
 @pytest.mark.parametrize("precision", (16, 32))
 def test_ddp_wrapper(tmpdir, precision):
