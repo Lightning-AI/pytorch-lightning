@@ -15,7 +15,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from copy import deepcopy
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Sized, Tuple
 
 import torch
 from torch.utils.data.dataloader import DataLoader
@@ -30,6 +30,7 @@ from pytorch_lightning.utilities.auto_restart import (
     MergedIteratorState,
     patch_dataloader_iterator,
 )
+from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
@@ -79,6 +80,8 @@ class AbstractDataFetcher(ABC):
     def setup(self, dataloader: Iterable, **kwargs: Any) -> None:
         self._add_capture_metadata_collate(dataloader)
         self._dataloader = dataloader
+        _patch_dataloader_get_iterators()
+        self._attach_data_fetcher()
 
     @property
     def dataloader(self) -> Iterable:
@@ -172,8 +175,6 @@ class AbstractDataFetcher(ABC):
 
     def __iter__(self) -> "AbstractDataFetcher":
         self.reset()
-        self._attach_data_fetcher()
-        _patch_dataloader_get_iterators()
         self.dataloader_iter = iter(self.dataloader)
         self._apply_patch()
         self.prefetching()
@@ -205,7 +206,7 @@ class DataFetcher(AbstractDataFetcher):
 
     Args:
         prefetch_batches: Number of batches to pre-fetch. Pre-fetching at least 1 batch is necessary to properly track
-            whether a batch is the last one (available with :attr:`self.done`).
+            whether a batch is the last one (available with :attr:`self.done`) under any training setup.
         store_on_device: Whether to store the pre-fetched batches on device.
     """
 
@@ -214,11 +215,13 @@ class DataFetcher(AbstractDataFetcher):
         self.store_on_device = store_on_device
         self.batch_to_device: Callable[[Any], Any] = _no_op_batch_to_device
         self.batches: List[Any] = []
+        self._has_len = False
 
     def setup(  # type: ignore[override]
         self, dataloader: Iterable, batch_to_device: Optional[Callable[[Any], Any]] = None
     ) -> None:
         super().setup(dataloader)
+        self._has_len = has_len(dataloader)
         if batch_to_device is not None:
             self.batch_to_device = batch_to_device
 
@@ -233,9 +236,12 @@ class DataFetcher(AbstractDataFetcher):
             try:
                 self._fetch_next_batch(iterator)
             except StopIteration:
+                # this would only happen when prefetch_batches > the number of batches available and makes
+                # `fetching_function` jump directly to the empty iterator case without trying to fetch again
+                self.done = True
                 break
 
-    def fetching_function(self) -> Tuple[Any, bool]:
+    def fetching_function(self) -> Any:
         assert self.dataloader_iter is not None
         if self.batches:
             # there are pre-fetched batches already from a previous `prefetching` call.
@@ -260,12 +266,17 @@ class DataFetcher(AbstractDataFetcher):
             # the iterator is empty
             raise StopIteration
         self.wait()
-        return self.move_to_device(batch), self.done
+        return self.move_to_device(batch)
 
     def _fetch_next_batch(self, iterator: Iterator) -> None:
         start_output = self.on_fetch_start()
         batch = next(iterator)
         self.fetched += 1
+        if not self.prefetch_batches and self._has_len:
+            # when we don't prefetch but the dataloader is sized, we use the length for `done`
+            dataloader = self.dataloader
+            assert isinstance(dataloader, Sized)  # `_has_len` is True
+            self.done = self.fetched >= len(dataloader)
         self.on_fetch_end(batch, start_output)
 
     def move_to_device(self, batch: Any) -> Any:
@@ -360,7 +371,8 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
                 ...
     """
 
-    def __init__(self) -> None:
+    def __init__(self, prefetch_batches: int = 0) -> None:
+        # prefetch batches is not used for this class
         super().__init__()
         self.store_on_device = False
 
@@ -369,7 +381,7 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
         assert iterator is not None
         self.iterator = iter(StepFuncDataLoaderIter(iterator, self))
 
-    def fetching_function(self) -> Tuple[int, Tuple[Iterator, bool]]:
+    def fetching_function(self) -> Tuple[int, Iterator]:
         if not self.done:
-            return self.fetched, (self.iterator, self.done)
+            return self.fetched, self.iterator
         raise StopIteration

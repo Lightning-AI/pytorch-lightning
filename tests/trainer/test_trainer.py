@@ -2063,7 +2063,6 @@ def test_detect_anomaly_nan(tmpdir):
         ({"strategy": None}, SingleDeviceStrategy, "single_device", CPUAccelerator, 0),
         ({"strategy": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 0),
         ({"strategy": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"strategy": "ddp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
         ({"strategy": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
         ({"strategy": "ddp2"}, DDPStrategy, "ddp", CPUAccelerator, 0),
         ({"strategy": None, "gpus": 1}, SingleDeviceStrategy, "single_device", GPUAccelerator, 1),
@@ -2101,6 +2100,23 @@ def test_detect_anomaly_nan(tmpdir):
             2,
         ),
         ({"strategy": DDPShardedStrategy(), "gpus": 2}, DDPShardedStrategy, "ddp_sharded", GPUAccelerator, 2),
+        ({"strategy": "ddp2", "gpus": 2, "num_nodes": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
+        ({"strategy": "ddp_spawn", "gpus": 2, "num_nodes": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
+        (
+            {"strategy": "ddp_fully_sharded", "gpus": 1, "num_nodes": 2},
+            DDPFullyShardedStrategy,
+            "ddp_fully_sharded",
+            GPUAccelerator,
+            1,
+        ),
+        ({"strategy": "ddp_sharded", "gpus": 2, "num_nodes": 2}, DDPShardedStrategy, "ddp_sharded", GPUAccelerator, 2),
+        (
+            {"strategy": "ddp_sharded_spawn", "gpus": 2, "num_nodes": 2},
+            DDPSpawnShardedStrategy,
+            "ddp_sharded_spawn",
+            GPUAccelerator,
+            2,
+        ),
     ],
 )
 def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, strategy_name, accelerator_cls, num_gpus):
@@ -2114,6 +2130,7 @@ def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, stra
     assert strategy_cls.strategy_name == strategy_name
     assert isinstance(trainer.accelerator, accelerator_cls)
     assert trainer.num_gpus == num_gpus
+    assert trainer.num_nodes == trainer_kwargs.get("num_nodes", 1)
 
 
 @pytest.mark.parametrize(
