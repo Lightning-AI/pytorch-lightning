@@ -736,6 +736,11 @@ class DeepSpeedStrategy(DDPStrategy):
             checkpoint: The checkpoint state dictionary
             filepath: write-target file's path
         """
+        # since deepspeed creates subfolders instead of checkpoint files at the filepath
+        # it's better to remove the filepath completely before saving a new one to avoid
+        # creating multiple sub-folders (more info: #11687)
+        self.remove_checkpoint(filepath)
+
         if self.zero_stage_3 and self._multi_device and self.is_global_zero:
             warning_cache.warn(
                 "When saving the DeepSpeed Stage 3 checkpoint, "
