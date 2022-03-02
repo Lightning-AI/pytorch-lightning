@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import timedelta
 from functools import lru_cache
-from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -23,14 +24,17 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops import Loop
+from pytorch_lightning.loops.optimization.manual_loop import ManualResult
+from pytorch_lightning.loops.optimization.optimizer_loop import ClosureResult
 from pytorch_lightning.strategies import ParallelStrategy, Strategy
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import PossibleUserWarning
+from pytorch_lightning.utilities.warnings import PossibleUserWarning, rank_zero_deprecation
 
 
 def check_finite_loss(loss: Optional[torch.Tensor]) -> None:
@@ -221,3 +225,39 @@ def _reset_progress(loop: Loop) -> None:
             v.reset()
         elif isinstance(v, Loop):
             _reset_progress(v)
+
+
+# TODO: remove in v1.8
+def _v1_8_output_format(fx: Callable) -> bool:
+    parameters = inspect.signature(fx).parameters
+    return "new_format" in parameters and parameters["new_format"].default is True
+
+
+# FIXME: remove in v1.8
+def _deprecate_output_format(
+    result: Union[ClosureResult, ManualResult], lightning_module: "pl.LightningModule"
+) -> None:
+    if result.was_dict:
+        return
+    message = ""
+    if is_overridden("training_step_end", lightning_module) and not _v1_8_output_format(
+        lightning_module.training_step_end
+    ):
+        message = (
+            "You returned a tensor from `training_step`. The current format of `training_step_end(step_output)` is"
+            " a dictionary, however, this has been deprecated and will change in version v1.8 to be a tensor."
+            " You can update your code by adding the following parameter to your hook signature:"
+            " `training_step_end(step_output, new_format=True)`."
+        )
+    if is_overridden("training_epoch_end", lightning_module) and not _v1_8_output_format(
+        lightning_module.training_epoch_end
+    ):
+        message = (
+            "You returned a tensor from `training_step`. The current format of `training_epoch_end(outputs)` is"
+            " a list of dictionaries, however, this has been deprecated and will change in version v1.8 to be a"
+            " list of tensors. You can update your code by adding the following parameter to your hook signature:"
+            " `training_epoch_end(outputs, new_format=True)`."
+        )
+    if message:
+        rank_zero_deprecation(message)
+        result.was_dict = True

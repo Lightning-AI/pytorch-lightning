@@ -19,7 +19,7 @@ from torch import Tensor
 from pytorch_lightning.core.optimizer import do_nothing_closure
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.optimization.closure import OutputResult
-from pytorch_lightning.loops.utilities import _build_training_step_kwargs, _extract_hiddens
+from pytorch_lightning.loops.utilities import _build_training_step_kwargs, _deprecate_output_format, _extract_hiddens
 from pytorch_lightning.trainer.progress import Progress, ReadyCompletedTracker
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -137,6 +137,7 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
             self.trainer._results.cpu()
 
         self._done = True
+        _deprecate_output_format(result, self.trainer.lightning_module)
         self._output = result.get()
 
     def on_run_end(self) -> _OUTPUTS_TYPE:
