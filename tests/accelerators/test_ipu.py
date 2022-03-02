@@ -54,14 +54,9 @@ class IPUModel(BoringModel):
         loss = self.loss(batch, output)
         return loss
 
-    def training_epoch_end(self, outputs) -> None:
-        pass
-
-    def validation_epoch_end(self, outputs) -> None:
-        pass
-
-    def test_epoch_end(self, outputs) -> None:
-        pass
+    training_epoch_end = None
+    validation_epoch_end = None
+    test_epoch_end = None
 
 
 class IPUClassificationModel(ClassificationModel):
