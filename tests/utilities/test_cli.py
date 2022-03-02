@@ -50,7 +50,7 @@ from pytorch_lightning.utilities.cli import (
     SaveConfigCallback,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import no_warning_call
@@ -75,7 +75,7 @@ def test_default_args(mock_argparse):
     assert trainer.max_epochs == 5
 
 
-@pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], ["--weights_save_path=./"], []])
+@pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], []])
 def test_add_argparse_args_redefined(cli_args):
     """Redefines some default Trainer arguments via the cli and tests the Trainer initialization correctness."""
     parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
@@ -139,7 +139,6 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
                 # interface.
                 min_steps=None,
                 accelerator=None,
-                weights_save_path=None,
                 profiler=None,
             ),
         ),
@@ -211,7 +210,7 @@ def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
 def test_init_from_argparse_args(cli_args, extra_args):
     unknown_args = dict(unknown_arg=0)
 
-    # unkown args in the argparser/namespace should be ignored
+    # unknown args in the argparser/namespace should be ignored
     with mock.patch("pytorch_lightning.Trainer.__init__", autospec=True, return_value=None) as init:
         trainer = Trainer.from_argparse_args(Namespace(**cli_args, **unknown_args), **extra_args)
         expected = dict(cli_args)
@@ -324,7 +323,7 @@ def test_lightning_cli_args_cluster_environments(tmpdir):
     class TestModel(BoringModel):
         def on_fit_start(self):
             # Ensure SLURMEnvironment is set, instead of default LightningEnvironment
-            assert isinstance(self.trainer._accelerator_connector._cluster_environment, SLURMEnvironment)
+            assert isinstance(self.trainer._accelerator_connector.cluster_environment, SLURMEnvironment)
             self.trainer.ran_asserts = True
 
     with mock.patch("sys.argv", ["any.py", "fit", f"--trainer.plugins={json.dumps(plugins)}"]):
@@ -576,18 +575,17 @@ class EarlyExitTestModel(BoringModel):
         raise MisconfigurationException("Error on fit start")
 
 
+@RunIf(skip_windows=True)
 @pytest.mark.parametrize("logger", (False, True))
-@pytest.mark.parametrize(
-    "trainer_kwargs",
-    (
-        dict(strategy="ddp_spawn"),
-        dict(strategy="ddp"),
-        pytest.param({"tpu_cores": 1}, marks=RunIf(tpu=True)),
-    ),
-)
-def test_cli_distributed_save_config_callback(tmpdir, logger, trainer_kwargs):
+@pytest.mark.parametrize("strategy", ("ddp_spawn", "ddp"))
+def test_cli_distributed_save_config_callback(tmpdir, logger, strategy):
+    if _TORCH_GREATER_EQUAL_1_8:
+        from torch.multiprocessing import ProcessRaisedException
+    else:
+        ProcessRaisedException = Exception
+
     with mock.patch("sys.argv", ["any.py", "fit"]), pytest.raises(
-        MisconfigurationException, match=r"Error on fit start"
+        (MisconfigurationException, ProcessRaisedException), match=r"Error on fit start"
     ):
         LightningCLI(
             EarlyExitTestModel,
@@ -596,7 +594,9 @@ def test_cli_distributed_save_config_callback(tmpdir, logger, trainer_kwargs):
                 "logger": logger,
                 "max_steps": 1,
                 "max_epochs": 1,
-                **trainer_kwargs,
+                "strategy": strategy,
+                "accelerator": "auto",
+                "devices": 1,
             },
         )
     if logger:
@@ -1376,6 +1376,25 @@ def test_lightning_cli_parse_kwargs_with_subcommands(tmpdir):
     validate_mock.assert_called()
     assert cli.trainer.limit_train_batches == 1.0
     assert cli.trainer.limit_val_batches == 3
+
+
+def test_lightning_cli_subcommands_common_default_config_files(tmpdir):
+    class Model(BoringModel):
+        def __init__(self, foo: int, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.foo = foo
+
+    config = {"fit": {"model": {"foo": 123}}}
+    config_path = tmpdir / "default.yaml"
+    config_path.write_text(str(config), "utf8")
+    parser_kwargs = {"default_config_files": [str(config_path)]}
+
+    with mock.patch("sys.argv", ["any.py", "fit"]), mock.patch(
+        "pytorch_lightning.Trainer.fit", autospec=True
+    ) as fit_mock:
+        cli = LightningCLI(Model, parser_kwargs=parser_kwargs)
+    fit_mock.assert_called()
+    assert cli.model.foo == 123
 
 
 def test_lightning_cli_reinstantiate_trainer():

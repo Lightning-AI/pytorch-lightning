@@ -166,7 +166,7 @@ def test_model_checkpoint_score_and_ckpt(
 
         expected_filename = f"{monitor}={score:.4f}-epoch={epoch}.ckpt"
         chk = pl_load(os.path.join(checkpoint.dirpath, expected_filename))
-        assert chk["epoch"] == epoch + 1
+        assert chk["epoch"] == epoch
         assert chk["global_step"] == limit_train_batches * (epoch + 1)
 
         mc_specific_data = chk["callbacks"][
@@ -266,7 +266,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
         assert math.isclose(score, expected_score, rel_tol=1e-4)
 
         chk = pl_load(os.path.join(checkpoint.dirpath, expected_filename))
-        assert chk["epoch"] == epoch + 1
+        assert chk["epoch"] == epoch
         expected_global_step = per_val_train_batches * (global_ix + 1) + (leftover_train_batches * epoch)
         assert chk["global_step"] == expected_global_step
 
@@ -821,7 +821,9 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
     ckpt_last_epoch = torch.load(path_last_epoch)
     ckpt_last = torch.load(path_last)
 
-    assert ckpt_last_epoch["epoch"] == ckpt_last["epoch"]
+    # `-1` because this checkpoint is saved `on_train_epoch_end` which is considered part of the epoch so the
+    # `current_epoch` count has not been increased yet
+    assert ckpt_last_epoch["epoch"] == ckpt_last["epoch"] - 1
     assert ckpt_last_epoch["global_step"] == ckpt_last["global_step"]
 
     ckpt_id = (
@@ -923,7 +925,9 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
 
     def assert_checkpoint_content(ckpt_dir):
         chk = pl_load(get_last_checkpoint(ckpt_dir))
-        assert chk["epoch"] == epochs
+        # `-1` because this checkpoint is saved `on_train_epoch_end` which is considered part of the epoch so the
+        # `current_epoch` count has not been increased yet
+        assert chk["epoch"] == epochs - 1
         assert chk["global_step"] == 4
 
     def assert_checkpoint_log_dir(idx):
@@ -951,15 +955,15 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
     model = ExtendedBoringModel()
     trainer.fit(model)
     assert trainer.global_step == epochs * limit_train_batches
-    assert trainer.current_epoch == epochs - 1
+    assert trainer.current_epoch == epochs
     assert_checkpoint_log_dir(0)
     assert_checkpoint_content(ckpt_dir)
 
     trainer.validate(model)
-    assert trainer.current_epoch == epochs - 1
+    assert trainer.current_epoch == epochs
 
     trainer.test(model)
-    assert trainer.current_epoch == epochs - 1
+    assert trainer.current_epoch == epochs
 
     for idx in range(1, 5):
         chk = get_last_checkpoint(ckpt_dir)
@@ -977,14 +981,17 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
         trainer.fit(model, ckpt_path=chk)
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
+        assert trainer.fit_loop.epoch_progress.current.processed == epochs
 
         trainer.validate(model)
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
+        assert trainer.fit_loop.epoch_progress.current.processed == epochs
 
         trainer.fit(model)
         assert trainer.global_step == epochs * limit_train_batches
         assert trainer.current_epoch == epochs
+        assert trainer.fit_loop.epoch_progress.current.processed == epochs
         assert_checkpoint_log_dir(idx)
 
 
@@ -1171,7 +1178,7 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
     trainer.fit_loop.max_epochs = 4
     trainer.fit(BoringModel())
 
-    ckpt_range = range(mc.STARTING_VERSION, trainer.max_epochs + mc.STARTING_VERSION)
+    ckpt_range = range(mc.STARTING_VERSION, trainer.max_epochs + mc.STARTING_VERSION - 1)
     expected = {"test.ckpt", *(f"test-v{i}.ckpt" for i in ckpt_range)}
     # check best_k_models state
     assert {Path(f).name for f in mc.best_k_models} == expected
@@ -1203,12 +1210,30 @@ def test_check_val_every_n_epochs_top_k_integration(tmpdir):
 
 
 def test_model_checkpoint_saveload_ckpt(tmpdir):
+    def make_assertions(cb_restore, written_ckpt):
+        expected_keys = {
+            "dirpath": False,
+            "best_model_score": False,
+            "kth_best_model_path": False,
+            "kth_value": False,
+            "best_k_models": False,
+            "best_model_path": True,
+            "last_model_path": True,
+        }
+        for key, should_match in expected_keys.items():
+            if should_match:
+                assert getattr(cb_restore, key) == written_ckpt[key]
+            else:
+                assert getattr(cb_restore, key) != written_ckpt[key]
+
+    class CustomModelCheckpoint(ModelCheckpoint):
+        def on_load_checkpoint(self, *args, **kwargs):
+            assert self.dirpath is not None
+            return super().on_load_checkpoint(*args, **kwargs)
+
     ckpt = {
-        "monitor": "random_value",
         "best_model_path": "epoch=10-step=1436.ckpt",
         "best_model_score": torch.tensor(2.246),
-        "current_score": torch.tensor(1.5),
-        "dirpath": tmpdir,
         "best_k_models": {"epoch=10-step=1436.ckpt": torch.tensor(2.246)},
         "kth_best_model_path": "epoch=10-step=1436.ckpt",
         "kth_value": torch.tensor(2.246),
@@ -1216,24 +1241,33 @@ def test_model_checkpoint_saveload_ckpt(tmpdir):
     }
 
     # test on_save_checkpoint
-    cb_write = ModelCheckpoint(dirpath=tmpdir, monitor="random_value", save_top_k=-1, save_last=True)
+    cb_write = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, save_last=True)
     for key, val in ckpt.items():
         setattr(cb_write, key, val)
     written_ckpt = cb_write.on_save_checkpoint("", "", "")
     for state in ckpt:
         assert ckpt[state] == written_ckpt[state]
 
+    # Case - 1
     # test on_load_checkpoint
-    # Note: "current_score", "dirpath" and "monitor" are currently not restored by on_load_checkpoint.
-    # We therefore set "dirpath" and "monitor" to something different than for ckpt/cb_write so we can assert them.
-    # "current_score" is left as initialized, i.e. None, and can therefore also be asserted
-    cb_restore = ModelCheckpoint(dirpath=tmpdir + "restore", monitor=None, save_top_k=-1, save_last=True)
-    cb_restore.on_load_checkpoint("", "", written_ckpt)
-    for key, val in written_ckpt.items():
-        if key not in ("current_score", "dirpath", "monitor"):
-            assert getattr(cb_restore, key) == val
-        else:
-            assert getattr(cb_restore, key) != val
+    # Notes:
+    # 1. "current_score", "dirpath" and "monitor" are currently not restored by on_load_checkpoint.
+    #    We therefore set "dirpath" and "monitor" to something different than for ckpt/cb_write so we can assert them.
+    # 2. "current_score" is left as initialized, i.e. None, and can therefore also be asserted
+    # 3. When a different `dirpath` is passed to `ModelCheckpoint` to resume training, only
+    #    `best_model_path` and `last_model_path` are reloaded (reloading for others is stopped).
+    cb_restore = ModelCheckpoint(dirpath=tmpdir + "/restore", monitor=None, save_top_k=-1, save_last=True)
+    with pytest.warns(UserWarning, match="The dirpath has changed from*"):
+        cb_restore.on_load_checkpoint("", "", written_ckpt)
+    make_assertions(cb_restore, written_ckpt)
+
+    # Case - 2
+    # Make sure that everything runs when dirpath is not initialized explicitly
+    cb_restore = CustomModelCheckpoint()
+    cb_restore.setup(Trainer(), BoringModel())
+    with pytest.warns(UserWarning, match="The dirpath has changed from*"):
+        cb_restore.on_load_checkpoint("", "", written_ckpt)
+    make_assertions(cb_restore, written_ckpt)
 
 
 def test_save_last_saves_correct_last_model_path(tmpdir):
@@ -1261,3 +1295,12 @@ def test_none_monitor_saves_correct_best_model_path(tmpdir):
     full_path = str(tmpdir / expected)
     ckpt = torch.load(full_path)
     assert ckpt["callbacks"][mc.state_key]["best_model_path"] == full_path
+
+
+def test_last_global_step_saved():
+    # this should not save anything
+    model_checkpoint = ModelCheckpoint(save_top_k=0, save_last=False, monitor="foo")
+    trainer = MagicMock()
+    trainer.callback_metrics = {"foo": 123}
+    model_checkpoint.save_checkpoint(trainer)
+    assert model_checkpoint._last_global_step_saved == -1

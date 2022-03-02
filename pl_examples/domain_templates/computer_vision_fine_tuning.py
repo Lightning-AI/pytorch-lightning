@@ -84,7 +84,7 @@ class MilestonesFinetuning(BaseFinetuning):
             )
 
         elif epoch == self.milestones[1]:
-            # unfreeze remaing layers
+            # unfreeze remaining layers
             self.unfreeze_and_add_param_group(
                 modules=pl_module.feature_extractor[:-5], optimizer=optimizer, train_bn=self.train_bn
             )

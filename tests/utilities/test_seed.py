@@ -1,10 +1,13 @@
 import os
+import random
 from unittest import mock
 
+import numpy as np
 import pytest
 import torch
 
 import pytorch_lightning.utilities.seed as seed_utils
+from pytorch_lightning.utilities.seed import isolate_rng
 
 
 @mock.patch.dict(os.environ, {}, clear=True)
@@ -72,3 +75,24 @@ def test_reset_seed_everything(workers):
     assert os.environ["PL_GLOBAL_SEED"] == "123"
     assert os.environ["PL_SEED_WORKERS"] == str(int(workers))
     assert torch.allclose(before, after)
+
+
+def test_isolate_rng():
+    """Test that the isolate_rng context manager isolates the random state from the outer scope."""
+    # torch
+    torch.rand(1)
+    with isolate_rng():
+        generated = [torch.rand(2) for _ in range(3)]
+    assert torch.equal(torch.rand(2), generated[0])
+
+    # numpy
+    np.random.rand(1)
+    with isolate_rng():
+        generated = [np.random.rand(2) for _ in range(3)]
+    assert np.equal(np.random.rand(2), generated[0]).all()
+
+    # python
+    random.random()
+    with isolate_rng():
+        generated = [random.random() for _ in range(3)]
+    assert random.random() == generated[0]
