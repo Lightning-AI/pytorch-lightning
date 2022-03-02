@@ -388,6 +388,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `TrainerOptimizersMixin` and moved functionality to `core/optimizer.py`([#11155](https://github.com/PyTorchLightning/pytorch-lightning/pull/11155))
 
 
+- Deprecated the `on_train_batch_end(outputs)` format when multiple optimizers are used and TBPTT is enabled ([#12182](https://github.com/PyTorchLightning/pytorch-lightning/pull/12182))
+
+
+- Deprecated the `training_epoch_end(outputs)` format when multiple optimizers are used and TBPTT is enabled ([#12182](https://github.com/PyTorchLightning/pytorch-lightning/pull/12182))
+
+
 - Deprecated `TrainerCallbackHookMixin` ([#11148](https://github.com/PyTorchLightning/pytorch-lightning/pull/11148))
 
 
