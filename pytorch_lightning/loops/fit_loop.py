@@ -289,7 +289,7 @@ class FitLoop(Loop[None]):
         if is_overridden("training_epoch_end", model) and self._outputs:
             epoch_end_outputs = self.epoch_loop._prepare_outputs_training_epoch_end(
                 self._outputs,
-                automatic=model.automatic_optimization,
+                lightning_module=model,
                 num_optimizers=len(self.trainer.optimizers),
             )
             # run lightning module hook training_epoch_end

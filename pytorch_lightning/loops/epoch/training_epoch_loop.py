@@ -11,13 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 import math
 from collections import defaultdict
-from typing import Any, Dict, Generator, List, Optional, overload, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, overload, Tuple, Union
 
 import numpy as np
 import torch
 
+import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE
@@ -209,7 +211,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         batch_end_outputs = self._prepare_outputs_training_batch_end(
             batch_output,
-            automatic=self.trainer.lightning_module.trainer.lightning_module.automatic_optimization,
+            lightning_module=self.trainer.lightning_module,
             num_optimizers=len(self.trainer.optimizers),
         )
 
@@ -333,26 +335,38 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     @staticmethod
     def _prepare_outputs_training_batch_end(
         batch_output: _BATCH_OUTPUTS_TYPE,
-        automatic: bool,
+        lightning_module: "pl.LightningModule",
         num_optimizers: int,
     ) -> Union[List[List[Dict[str, Any]]], List[Dict[str, Any]]]:
-        """Processes the outputs from the batch loop into the format passed to the ``training_batch_end`` hook.
-
-        ``(tbptt_steps, n_opt) -> (n_opt, tbptt_steps)``. The optimizer dimension might have been squeezed.
-        """
+        """Processes the outputs from the batch loop into the format passed to the ``on_train_batch_end`` hook."""
         if not batch_output:
             return []
 
         # convert optimizer dicts to list
-        if automatic:
+        if lightning_module.automatic_optimization:
             batch_output = apply_to_collection(
                 batch_output, dtype=dict, function=_convert_optim_dict, num_optimizers=num_optimizers
             )
-        array = np.array(batch_output, dtype=object)
-        if array.ndim == 1:
-            array = np.expand_dims(array, 1)
 
-        array = array.transpose((1, 0))
+        array = np.array(batch_output, dtype=object)
+        # TODO: remove in v1.8
+        if (
+            num_optimizers > 1
+            and lightning_module.truncated_bptt_steps > 0
+            and not _v1_8_output_format(lightning_module.on_train_batch_end)
+        ):
+            rank_zero_deprecation(
+                "You are training with multiple optimizers AND truncated backpropagation through time enabled."
+                " The current format of the `on_train_batch_end(outputs, ...)` is a 2d list with sizes"
+                " (n_optimizers, tbptt_steps), however, this has been deprecated and will change in version v1.8 to"
+                " (tbptt_steps, n_optimizers). You can update your code by adding the following parameter to your"
+                " hook signature: `on_train_batch_end(outputs, ..., new_format=True)`."
+            )
+            # (tbptt_steps, n_opt) -> (n_opt, tbptt_steps)
+            if array.ndim == 1:
+                array = np.expand_dims(array, 1)
+            array = array.transpose((1, 0))
+        # squeeze all single-element dimensions
         array = array.squeeze()
         array = array.tolist()
         array = _recursive_unpad(array)
@@ -361,35 +375,42 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     @staticmethod
     def _prepare_outputs_training_epoch_end(
         batch_outputs: _OUTPUTS_TYPE,
-        automatic: bool,
+        lightning_module: "pl.LightningModule",
         num_optimizers: int,
     ) -> Union[List[List[List[Dict[str, Any]]]], List[List[Dict[str, Any]]], List[Dict[str, Any]]]:
-        """Processes the outputs from the batch loop into the format passed to the ``training_epoch_end`` hook.
-
-        ``(n_batches, tbptt_steps, n_opt) -> (n_opt, n_batches, tbptt_steps)``.
-        All single-element dimensions might have been squeezed.
-
-        This processing is necessary because the format of the inputs to the ``training_epoch_end`` hook does not
-        match the loop structure and because empty dimensions are squeezed. This could break with loop customization.
-        """
+        """Processes the outputs from the batch loop into the format passed to the ``training_epoch_end`` hook."""
         # `batch_outputs` (plural) is the same as `epoch_end_output` (singular)
         if not batch_outputs:
             return []
 
         # convert optimizer dicts to list
-        if automatic:
+        if lightning_module.automatic_optimization:
             batch_outputs = apply_to_collection(
                 batch_outputs, dtype=dict, function=_convert_optim_dict, num_optimizers=num_optimizers
             )
 
         array = _recursive_pad(batch_outputs)
-        if array.ndim == 2:
-            array = np.expand_dims(array, 2)
-        array = array.transpose((2, 0, 1))
+        # TODO: remove in v1.8
+        if (
+            num_optimizers > 1
+            and lightning_module.truncated_bptt_steps > 0
+            and not _v1_8_output_format(lightning_module.on_train_epoch_end)
+        ):
+            rank_zero_deprecation(
+                "You are training with multiple optimizers AND truncated backpropagation through time enabled."
+                " The current format of the `training_epoch_end(outputs)` is a 3d list with sizes"
+                " (n_optimizers, n_batches, tbptt_steps), however, this has been deprecated and will change in version"
+                " v1.8 to (n_batches, tbptt_steps, n_optimizers). You can update your code by adding the following"
+                " parameter to your hook signature: `training_epoch_end(outputs, new_format=True)`."
+            )
+            # (n_batches, tbptt_steps, n_opt) -> (n_opt, n_batches, tbptt_steps)
+            if array.ndim == 2:
+                array = np.expand_dims(array, 2)
+            array = array.transpose((2, 0, 1))
+        # squeeze all single-element dimensions
         array = array.squeeze()
         array = array.tolist()
         array = _recursive_unpad(array)
-
         # in case we squeezed from 1-element array to a 0-dim array
         array = array if isinstance(array, list) else [array]
         # remove residual empty lists
@@ -515,7 +536,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             self._dataloader_state_dict = None
 
 
-def _convert_optim_dict(outs: Dict[int, Dict[str, Any]], num_optimizers: int) -> List[Dict[str, Any]]:
+def _convert_optim_dict(outs: Dict[int, Dict[str, Any]], num_optimizers: int) -> List[Optional[Dict[str, Any]]]:
     """Converts an optimizer dict to a list in which the key of the dict determines the position of the element.
 
     Example::
@@ -592,3 +613,9 @@ def _iterate_nested_array(array: List[Any], index: Tuple = ()) -> Generator:
             yield from _iterate_nested_array(row, (*index, idx))
     else:  # final level
         yield (*index, slice(len(array))), array
+
+
+# TODO: remove in v1.8
+def _v1_8_output_format(fx: Callable) -> bool:
+    parameters = inspect.signature(fx).parameters
+    return "new_format" in parameters and parameters["new_format"].default is True

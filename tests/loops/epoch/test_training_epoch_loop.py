@@ -11,12 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import patch
+from unittest import mock
+from unittest.mock import Mock, patch
 
 import pytest
 
 from pytorch_lightning.loops import TrainingEpochLoop
+from pytorch_lightning.loops.epoch.training_epoch_loop import _v1_8_output_format
 from pytorch_lightning.trainer.trainer import Trainer
+from tests.deprecated_api import no_deprecated_call
 from tests.helpers.boring_model import BoringModel
 
 _out00 = {"loss": 0.0}
@@ -30,46 +33,56 @@ _out13 = {"loss": 1.3}
 
 
 @pytest.mark.parametrize(
-    "num_optimizers,batch_outputs,expected",
+    "num_optimizers,tbptt_splits,batch_outputs,expected",
     [
-        (1, [], []),
-        (1, [[]], []),
+        (1, 0, [], []),
+        (1, 0, [[]], []),
         # 1 batch
-        (1, [[{0: _out00}]], [_out00]),
+        (1, 0, [[{0: _out00}]], [_out00]),
         # 2 batches
-        (1, [[{0: _out00}], [{0: _out01}]], [_out00, _out01]),
+        (1, 0, [[{0: _out00}], [{0: _out01}]], [_out00, _out01]),
         # 1 batch, 2 optimizers
-        (2, [[{0: _out00, 1: _out01}]], [_out00, _out01]),
+        (2, 0, [[{0: _out00, 1: _out01}]], [_out00, _out01]),
         # 2 batches, 2 optimizers
         (
             2,
+            0,
             [[{0: _out00, 1: _out01}], [{0: _out10, 1: _out11}]],
-            [[_out00, _out10], [_out01, _out11]],
+            [[_out00, _out01], [_out10, _out11]],
         ),
         # 4 batches, 2 optimizers, different frequency
         (
             2,
-            [[{0: _out00}], [{1: _out10}], [{1: _out11}], [{0: _out01}]],
-            [[_out00, _out01], [_out10, _out11]],
+            0,
+            [[{0: _out00}], [{1: _out01}], [{1: _out11}], [{0: _out10}]],
+            [[_out00], [_out01], [_out11], [_out10]],
         ),
         # 1 batch, tbptt with 2 splits (uneven)
-        (1, [[{0: _out00}, {0: _out01}], [{0: _out03}]], [[_out00, _out01], [_out03]]),
+        (1, 2, [[{0: _out00}, {0: _out01}], [{0: _out03}]], [[_out00, _out01], [_out03]]),
         # 3 batches, tbptt with 2 splits, 2 optimizers alternating
         (
+            2,
             2,
             [[{0: _out00}, {0: _out01}], [{1: _out10}, {1: _out11}], [{0: _out02}, {0: _out03}]],
             [[[_out00, _out01], [], [_out02, _out03]], [[], [_out10, _out11], []]],
         ),
     ],
 )
-def test_prepare_outputs_training_epoch_end_automatic(num_optimizers, batch_outputs, expected):
+def test_prepare_outputs_training_epoch_end_automatic_old_format(num_optimizers, tbptt_splits, batch_outputs, expected):
     """Test that the loop converts the nested lists of outputs to the format that the `training_epoch_end` hook
     currently expects in the case of automatic optimization."""
-    prepared = TrainingEpochLoop._prepare_outputs_training_epoch_end(
-        batch_outputs,
-        automatic=True,
-        num_optimizers=num_optimizers,
-    )
+    lightning_module = Mock()
+    lightning_module.automatic_optimization = True
+    lightning_module.truncated_bptt_steps = tbptt_splits
+    match = "will change in version v1.8.*new_format=True"
+    ctx_manager = pytest.deprecated_call if tbptt_splits and num_optimizers > 1 else no_deprecated_call
+    with ctx_manager(match=match):
+        with mock.patch("pytorch_lightning.loops.epoch.training_epoch_loop._v1_8_output_format", return_value=False):
+            prepared = TrainingEpochLoop._prepare_outputs_training_epoch_end(
+                batch_outputs,
+                lightning_module=lightning_module,
+                num_optimizers=num_optimizers,  # does not matter for manual optimization
+            )
     assert prepared == expected
 
 
@@ -91,37 +104,45 @@ def test_prepare_outputs_training_epoch_end_automatic(num_optimizers, batch_outp
 def test_prepare_outputs_training_epoch_end_manual(batch_outputs, expected):
     """Test that the loop converts the nested lists of outputs to the format that the `training_epoch_end` hook
     currently expects in the case of manual optimization."""
-    prepared = TrainingEpochLoop._prepare_outputs_training_epoch_end(
-        batch_outputs,
-        automatic=False,
-        num_optimizers=-1,  # does not matter for manual optimization
-    )
+    lightning_module = Mock()
+    lightning_module.automatic_optimization = False
+    with mock.patch("pytorch_lightning.loops.epoch.training_epoch_loop._v1_8_output_format", return_value=False):
+        prepared = TrainingEpochLoop._prepare_outputs_training_epoch_end(
+            batch_outputs,
+            lightning_module=lightning_module,
+            num_optimizers=-1,  # does not matter for manual optimization
+        )
     assert prepared == expected
 
 
 @pytest.mark.parametrize(
-    "num_optimizers,batch_end_outputs,expected",
+    "num_optimizers,tbptt_splits,batch_end_outputs,expected",
     [
-        (1, [], []),
-        (1, [[]], []),
-        # 1 optimizer
-        (1, [{0: _out00}], _out00),
-        # 2 optimizers
-        (2, [{0: _out00, 1: _out01}], [_out00, _out01]),
-        # tbptt with 2 splits
-        (1, [{0: _out00}, {0: _out01}], [_out00, _out01]),
-        # 2 optimizers, tbptt with 2 splits
-        (2, [{0: _out00, 1: _out01}, {0: _out10, 1: _out11}], [[_out00, _out10], [_out01, _out11]]),
+        (1, 0, [], []),
+        (1, 0, [[]], []),
+        (1, 0, [{0: _out00}], _out00),
+        (2, 0, [{0: _out00, 1: _out01}], [_out00, _out01]),
+        (1, 2, [{0: _out00}, {0: _out01}], [_out00, _out01]),
+        (2, 2, [{0: _out00, 1: _out01}, {0: _out10, 1: _out11}], [[_out00, _out10], [_out01, _out11]]),
     ],
 )
-def test_prepare_outputs_training_batch_end_automatic(num_optimizers, batch_end_outputs, expected):
+def test_prepare_outputs_training_batch_end_automatic_old_format(
+    num_optimizers, tbptt_splits, batch_end_outputs, expected
+):
     """Test that the loop converts the nested lists of outputs to the format that the `on_train_batch_end` hook
     currently expects in the case of automatic optimization."""
-    prepared = TrainingEpochLoop._prepare_outputs_training_batch_end(
-        batch_end_outputs,
-        automatic=True,
-        num_optimizers=num_optimizers,
-    )
+    lightning_module = Mock()
+    lightning_module.automatic_optimization = True
+    lightning_module.truncated_bptt_steps = tbptt_splits
+    match = "will change in version v1.8.*new_format=True"
+    ctx_manager = pytest.deprecated_call if tbptt_splits and num_optimizers > 1 else no_deprecated_call
+    with ctx_manager(match=match):
+        with mock.patch("pytorch_lightning.loops.epoch.training_epoch_loop._v1_8_output_format", return_value=False):
+            prepared = TrainingEpochLoop._prepare_outputs_training_batch_end(
+                batch_end_outputs,
+                lightning_module=lightning_module,
+                num_optimizers=num_optimizers,
+            )
     assert prepared == expected
 
 
@@ -139,11 +160,14 @@ def test_prepare_outputs_training_batch_end_automatic(num_optimizers, batch_end_
 def test_prepare_outputs_training_batch_end_manual(batch_end_outputs, expected):
     """Test that the loop converts the nested lists of outputs to the format that the `on_train_batch_end` hook
     currently expects in the case of manual optimization."""
-    prepared = TrainingEpochLoop._prepare_outputs_training_batch_end(
-        batch_end_outputs,
-        automatic=False,
-        num_optimizers=-1,  # does not matter for manual optimization
-    )
+    lightning_module = Mock()
+    lightning_module.automatic_optimization = False
+    with mock.patch("pytorch_lightning.loops.epoch.training_epoch_loop._v1_8_output_format", return_value=False):
+        prepared = TrainingEpochLoop._prepare_outputs_training_batch_end(
+            batch_end_outputs,
+            lightning_module=lightning_module,
+            num_optimizers=-1,  # does not matter for manual optimization
+        )
     assert prepared == expected
 
 
@@ -170,3 +194,27 @@ def test_no_val_on_train_epoch_loop_restart(tmpdir):
     ) as advance_mocked:
         trainer.fit(model, ckpt_path=ckpt_path)
         assert advance_mocked.call_count == 1
+
+
+def test_v1_8_output_format():
+    # old format
+    def training_epoch_end(outputs):
+        ...
+
+    assert not _v1_8_output_format(training_epoch_end)
+
+    def training_epoch_end(outputs, new_format=1):
+        ...
+
+    assert not _v1_8_output_format(training_epoch_end)
+
+    def training_epoch_end(outputs, new_format=False):
+        ...
+
+    assert not _v1_8_output_format(training_epoch_end)
+
+    # new format
+    def training_epoch_end(outputs, new_format=True):
+        ...
+
+    assert _v1_8_output_format(training_epoch_end)
