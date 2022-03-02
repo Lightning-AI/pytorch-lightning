@@ -1238,7 +1238,7 @@ def test_dataloaders_load_only_once_passed_loaders(tmpdir):
 
     assert tracker.mock_calls == [
         call.reset_val_dataloader(),
-        call.reset_train_dataloader(model=model),
+        call.reset_train_dataloader(model),
         call.reset_test_dataloader(),
     ]
 
