@@ -934,7 +934,7 @@ max_steps
 
 |
 
-Stop training after this number of steps
+Stop training after this number of :ref:`global steps <common/trainer:global_step>`.
 Training will stop if max_steps or max_epochs have reached (earliest).
 
 .. testcode::
@@ -959,7 +959,7 @@ min_steps
 
 |
 
-Force training for at least these number of steps.
+Force training for at least these number of :ref:`global steps <common/trainer:global_step>`.
 Trainer will train model for at least min_steps or min_epochs (latest).
 
 .. testcode::
@@ -1829,4 +1829,4 @@ The metrics sent to the progress bar.
 estimated_stepping_batches
 **************************
 
-Check out :paramref:`~pytorch_lightning.trainer.trainer.Trainer.estimated_stepping_batches`.
+Check out :meth:`~pytorch_lightning.trainer.trainer.Trainer.estimated_stepping_batches`.
