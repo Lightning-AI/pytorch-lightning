@@ -16,6 +16,11 @@ if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
 
 
+pytestmark = pytest.mark.filterwarnings(
+    r"ignore:Detected call of `lr_scheduler.step\(\)` before `optimizer.step\(\)`:UserWarning"
+)
+
+
 @pytest.mark.parametrize("clip_val", [0, 10])
 @RunIf(min_gpus=1, skip_windows=True, fairscale=True)
 @mock.patch("fairscale.optim.oss.OSS.clip_grad_norm")
