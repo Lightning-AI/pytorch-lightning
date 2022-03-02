@@ -63,7 +63,7 @@ class EvaluationLoop(DataLoaderLoop):
     @property
     def num_dataloaders(self) -> int:
         """Returns the total number of dataloaders."""
-        # case where user does:
+        # case where user does:_get_max_batches
         # return dl1, dl2
         dataloaders = self.dataloaders
         if dataloaders is None:
@@ -153,6 +153,7 @@ class EvaluationLoop(DataLoaderLoop):
         if self.num_dataloaders > 1:
             kwargs["dataloader_idx"] = dataloader_idx
         dl_outputs = self.epoch_loop.run(self._data_fetcher, dl_max_batches, kwargs)
+        self.epoch_loop._increment_batch_idx_tracker(dataloader_idx, dl_max_batches)
 
         # store batch level output per dataloader
         self._outputs.append(dl_outputs)
@@ -221,10 +222,17 @@ class EvaluationLoop(DataLoaderLoop):
 
     def _reload_evaluation_dataloaders(self) -> None:
         """Reloads dataloaders if necessary."""
+        dataloaders = None
+
         if self.trainer.testing:
             self.trainer.reset_test_dataloader()
+            dataloaders = self.trainer.test_dataloaders
         elif self.trainer.val_dataloaders is None or self.trainer._data_connector._should_reload_val_dl:
             self.trainer.reset_val_dataloader()
+            dataloaders = self.trainer.val_dataloaders
+
+        if dataloaders:
+            self.epoch_loop._initialize_batch_idx_tracker(len(dataloaders))
 
     def _on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_start`` hooks."""

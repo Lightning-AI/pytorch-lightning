@@ -14,7 +14,7 @@
 
 from collections import OrderedDict
 from functools import lru_cache
-from typing import Any, cast, Dict, Optional
+from typing import Any, cast, Dict, List, Optional
 
 from deprecate import void
 from torch.utils.data import DataLoader
@@ -49,6 +49,7 @@ class EvaluationEpochLoop(Loop):
         self._dl_max_batches = 0
         self._data_fetcher: Optional[AbstractDataFetcher] = None
         self._dataloader_state_dict: Dict[str, Any] = {}
+        self._seen_batches: List[int] = []
 
     @property
     def done(self) -> bool:
@@ -135,7 +136,10 @@ class EvaluationEpochLoop(Loop):
         self.batch_progress.increment_completed()
 
         # log batch metrics
-        self.trainer.logger_connector.update_eval_step_metrics()
+        if not self.trainer.sanity_checking:
+            dl_idx = kwargs.get("dataloader_idx", 0)
+            dl_eval_step = self._seen_batches[dl_idx] + self.batch_progress.current.completed - 1
+            self.trainer.logger_connector.update_eval_step_metrics(dl_eval_step)
 
         # track epoch level outputs
         if self._should_track_batch_outputs_for_epoch_end() and output is not None:
@@ -287,3 +291,10 @@ class EvaluationEpochLoop(Loop):
         if self.trainer.testing:
             return is_overridden("test_epoch_end", model)
         return is_overridden("validation_epoch_end", model)
+
+    def _initialize_batch_idx_tracker(self, num_dataloaders):
+        self._seen_batches = [0] * num_dataloaders
+
+    def _increment_batch_idx_tracker(self, dataloader_idx, max_batches):
+        if not self.trainer.sanity_checking:
+            self._seen_batches[dataloader_idx] = max_batches

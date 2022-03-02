@@ -20,7 +20,6 @@ from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.loggers import LightningLoggerBase, TensorBoardLogger
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
-from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import memory
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
@@ -37,8 +36,6 @@ class LoggerConnector:
                 "Please monitor GPU stats with the `DeviceStatsMonitor` callback directly instead."
             )
         self.log_gpu_memory = log_gpu_memory
-        self._val_log_step: int = 0
-        self._test_log_step: int = 0
         self._progress_bar_metrics: _PBAR_DICT = {}
         self._logged_metrics: _OUT_DICT = {}
         self._callback_metrics: _OUT_DICT = {}
@@ -137,35 +134,15 @@ class LoggerConnector:
     Evaluation metric updates
     """
 
-    @property
-    def _eval_log_step(self) -> Optional[int]:
-        if self.trainer.state.stage is RunningStage.VALIDATING:
-            return self._val_log_step
-        if self.trainer.state.stage is RunningStage.TESTING:
-            return self._test_log_step
-        return None
-
-    def _increment_eval_log_step(self) -> None:
-        if self.trainer.state.stage is RunningStage.VALIDATING:
-            self._val_log_step += 1
-        elif self.trainer.state.stage is RunningStage.TESTING:
-            self._test_log_step += 1
-
     def _evaluation_epoch_end(self) -> None:
         results = self.trainer._results
         assert results is not None
         results.dataloader_idx = None
 
-    def update_eval_step_metrics(self) -> None:
+    def update_eval_step_metrics(self, step) -> None:
         assert not self._epoch_end_reached
-        if self.trainer.sanity_checking:
-            return
-
         # logs user requested information to logger
-        self.log_metrics(self.metrics["log"], step=self._eval_log_step)
-
-        # increment the step even if nothing was logged
-        self._increment_eval_log_step()
+        self.log_metrics(self.metrics["log"], step=step)
 
     def update_eval_epoch_metrics(self) -> _OUT_DICT:
         assert self._epoch_end_reached
