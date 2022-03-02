@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import inspect
 import math
 from collections import defaultdict
-from typing import Any, Callable, Dict, Generator, List, Optional, overload, Tuple, Union
+from typing import Any, Dict, Generator, List, Optional, overload, Tuple, Union
 
 import numpy as np
 import torch
@@ -23,7 +22,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import loops  # import as loops to avoid circular imports
 from pytorch_lightning.loops.batch import TrainingBatchLoop
 from pytorch_lightning.loops.batch.training_batch_loop import _OUTPUTS_TYPE as _BATCH_OUTPUTS_TYPE
-from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached
+from pytorch_lightning.loops.utilities import _get_active_optimizers, _is_max_limit_reached, _v1_8_output_format
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import BatchProgress, SchedulerProgress
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -613,9 +612,3 @@ def _iterate_nested_array(array: List[Any], index: Tuple = ()) -> Generator:
             yield from _iterate_nested_array(row, (*index, idx))
     else:  # final level
         yield (*index, slice(len(array))), array
-
-
-# TODO: remove in v1.8
-def _v1_8_output_format(fx: Callable) -> bool:
-    parameters = inspect.signature(fx).parameters
-    return "new_format" in parameters and parameters["new_format"].default is True

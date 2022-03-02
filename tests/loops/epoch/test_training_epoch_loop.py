@@ -17,7 +17,6 @@ from unittest.mock import Mock, patch
 import pytest
 
 from pytorch_lightning.loops import TrainingEpochLoop
-from pytorch_lightning.loops.epoch.training_epoch_loop import _v1_8_output_format
 from pytorch_lightning.trainer.trainer import Trainer
 from tests.deprecated_api import no_deprecated_call
 from tests.helpers.boring_model import BoringModel
@@ -264,27 +263,3 @@ def test_no_val_on_train_epoch_loop_restart(tmpdir):
     ) as advance_mocked:
         trainer.fit(model, ckpt_path=ckpt_path)
         assert advance_mocked.call_count == 1
-
-
-def test_v1_8_output_format():
-    # old format
-    def training_epoch_end(outputs):
-        ...
-
-    assert not _v1_8_output_format(training_epoch_end)
-
-    def training_epoch_end(outputs, new_format=1):
-        ...
-
-    assert not _v1_8_output_format(training_epoch_end)
-
-    def training_epoch_end(outputs, new_format=False):
-        ...
-
-    assert not _v1_8_output_format(training_epoch_end)
-
-    # new format
-    def training_epoch_end(outputs, new_format=True):
-        ...
-
-    assert _v1_8_output_format(training_epoch_end)
