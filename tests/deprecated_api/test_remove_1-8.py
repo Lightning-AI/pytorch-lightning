@@ -22,6 +22,7 @@ from torch import optim
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import CSVLogger, LightningLoggerBase
+from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
@@ -590,7 +591,7 @@ def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
         default_root_dir=tmpdir,
     )
     with pytest.deprecated_call(
-        match="The `Callback.on_pretrain_routine_start` hook has been deprecated in v1.6" " and will be removed in v1.8"
+        match="The `Callback.on_pretrain_routine_start` hook has been deprecated in v1.6 and will be removed in v1.8"
     ):
         trainer.fit(model)
 
@@ -607,9 +608,16 @@ def test_v1_8_0_callback_on_pretrain_routine_start_end(tmpdir):
         default_root_dir=tmpdir,
     )
     with pytest.deprecated_call(
-        match="The `Callback.on_pretrain_routine_end` hook has been deprecated in v1.6" " and will be removed in v1.8"
+        match="The `Callback.on_pretrain_routine_end` hook has been deprecated in v1.6 and will be removed in v1.8"
     ):
         trainer.fit(model)
+
+
+def test_v1_8_0_weights_save_path(tmpdir):
+    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
+        trainer = Trainer(weights_save_path=tmpdir)
+    with pytest.deprecated_call(match=r"`Trainer.weights_save_path` has been deprecated in v1.6"):
+        _ = trainer.weights_save_path
 
 
 @pytest.mark.flaky(reruns=3)
@@ -653,7 +661,35 @@ def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list)
     expected_total_duration = np.sum(expected)
     np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
 
+    
+def test_v1_8_0_precision_plugin_checkpoint_hooks(tmpdir):
+    class PrecisionPluginSaveHook(PrecisionPlugin):
+        def on_save_checkpoint(self, checkpoint):
+            print("override on_save_checkpoint")
 
+    class PrecisionPluginLoadHook(PrecisionPlugin):
+        def on_load_checkpoint(self, checkpoint):
+            print("override on_load_checkpoint")
+
+    model = BoringModel()
+
+    precplugin_save = PrecisionPluginSaveHook()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, plugins=[precplugin_save])
+    with pytest.deprecated_call(
+        match="`PrecisionPlugin.on_save_checkpoint` was deprecated in"
+        " v1.6 and will be removed in v1.8. Use `state_dict` instead."
+    ):
+        trainer.fit(model)
+
+    precplugin_load = PrecisionPluginLoadHook()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, plugins=[precplugin_load])
+    with pytest.deprecated_call(
+        match="`PrecisionPlugin.on_load_checkpoint` was deprecated in"
+        " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
+    ):
+        trainer.fit(model)
+
+        
 def test_v1_8_0_callback_on_load_checkpoint_hook(tmpdir):
     class TestCallbackLoadHook(Callback):
         def on_load_checkpoint(self, trainer, pl_module, callback_state):
@@ -700,7 +736,7 @@ def test_v1_8_0_callback_on_save_checkpoint_hook(tmpdir):
         " and will be removed in v1.8. Please override `Callback.state_dict`"
         " to return state to be saved."
     ):
-        trainer.save_checkpoint(tmpdir + "path.ckpt")
+        trainer.save_checkpoint(tmpdir + "/path.ckpt")
 
     trainer.callbacks = [TestCallbackSaveHookOverride()]
-    trainer.save_checkpoint(tmpdir + "pathok.ckpt")
+    trainer.save_checkpoint(tmpdir + "/pathok.ckpt")
