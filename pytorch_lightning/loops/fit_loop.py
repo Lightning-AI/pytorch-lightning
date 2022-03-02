@@ -218,7 +218,7 @@ class FitLoop(Loop[None]):
     def on_run_start(self) -> None:  # type: ignore[override]
         """Calls the ``on_train_start`` hook."""
         # reset train dataloader and val dataloader
-        self.trainer.reset_train_val_dataloaders(self.trainer.lightning_module)
+        self.trainer.reset_train_dataloader(self.trainer.lightning_module)
 
         data_fetcher_cls = _select_data_fetcher(self.trainer)
         self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)

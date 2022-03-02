@@ -811,7 +811,8 @@ def test_hooks_with_different_argument_names(tmpdir):
     assert all(len(x) == 5 for x in preds)
 
 
-def test_trainer_datamodule_hook_system(tmpdir):
+@pytest.mark.parametrize("num_sanity_val_steps", (0, 2))
+def test_trainer_datamodule_hook_system(tmpdir, num_sanity_val_steps):
     """Test the LightningDataModule hook system."""
 
     class HookedDataModule(BoringDataModule):
@@ -839,6 +840,7 @@ def test_trainer_datamodule_hook_system(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
+        num_sanity_val_steps=num_sanity_val_steps,
         limit_train_batches=batches,
         limit_val_batches=batches,
         limit_test_batches=batches,
@@ -848,14 +850,16 @@ def test_trainer_datamodule_hook_system(tmpdir):
         reload_dataloaders_every_n_epochs=1,
     )
 
+    dl_hooks = [dict(name="train_dataloader"), dict(name="val_dataloader")]
+    dl_hooks = reversed(dl_hooks) if num_sanity_val_steps != 0 else dl_hooks
+
     called = []
     dm = HookedDataModule(called)
     trainer.fit(model, datamodule=dm)
     expected = [
         dict(name="prepare_data"),
         dict(name="setup", kwargs=dict(stage="fit")),
-        dict(name="val_dataloader"),
-        dict(name="train_dataloader"),
+        *dl_hooks,
         dict(name="state_dict"),
         dict(name="on_save_checkpoint", args=(ANY,)),
         dict(name="teardown", kwargs=dict(stage="fit")),
