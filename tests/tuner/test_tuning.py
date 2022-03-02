@@ -23,5 +23,5 @@ def test_tuner_with_distributed_strategies():
     trainer = Trainer(auto_scale_batch_size=True, devices=2, strategy="ddp", accelerator="cpu")
     model = BoringModel()
 
-    with pytest.raises(MisconfigurationException, match="`Tuner` is not supported with distributed strategies."):
+    with pytest.raises(MisconfigurationException, match="not supported with a distributed strategy"):
         trainer.tune(model)
