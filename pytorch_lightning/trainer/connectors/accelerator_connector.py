@@ -23,6 +23,7 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
+from pytorch_lightning.accelerators.registry import AcceleratorRegistry
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
@@ -486,27 +487,24 @@ class AcceleratorConnector:
         return "cpu"
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
-        ACCELERATORS = {
-            "cpu": CPUAccelerator,
-            "gpu": GPUAccelerator,
-            "tpu": TPUAccelerator,
-            "ipu": IPUAccelerator,
-        }
         if isinstance(self._accelerator_flag, Accelerator):
             self.accelerator: Accelerator = self._accelerator_flag
         else:
             assert self._accelerator_flag is not None
             self._accelerator_flag = self._accelerator_flag.lower()
-            if self._accelerator_flag not in ACCELERATORS:
+            if self._accelerator_flag not in AcceleratorRegistry:
                 raise MisconfigurationException(
                     "When passing string value for the `accelerator` argument of `Trainer`,"
-                    f" it can only be one of {list(ACCELERATORS)}."
+                    f" it can only be one of {AcceleratorRegistry.available_accelerators()}."
                 )
-            accelerator_class = ACCELERATORS[self._accelerator_flag]
-            self.accelerator = accelerator_class()  # type: ignore[abstract]
+            self.accelerator = AcceleratorRegistry.get(self._accelerator_flag)
 
         if not self.accelerator.is_available():
-            available_accelerator = [acc_str for acc_str in list(ACCELERATORS) if ACCELERATORS[acc_str].is_available()]
+            available_accelerator = [
+                acc_str
+                for acc_str in AcceleratorRegistry.available_accelerators()
+                if AcceleratorRegistry[acc_str].is_available()
+            ]
             raise MisconfigurationException(
                 f"{self.accelerator.__class__.__qualname__} can not run on your system"
                 f" since {self.accelerator.name().upper()}s are not available."
