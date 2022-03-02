@@ -115,6 +115,7 @@ def test_optimizer_frequencies(tmpdir, frequencies, expected):
             return {"optimizer": opt0, "frequency": frequencies[0]}, {"optimizer": opt1, "frequency": frequencies[1]}
 
     model = CurrentModel()
+    model.training_epoch_end = None
     model.optimizer_step = Mock(wraps=model.optimizer_step)
     trainer = Trainer(
         default_root_dir=tmpdir,
