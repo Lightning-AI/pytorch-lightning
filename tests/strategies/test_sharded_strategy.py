@@ -246,7 +246,7 @@ def test_custom_kwargs_sharded(_tmpdir):
     assert kwargs["reduce_fp16"]
 
 
-# TODO (edward-io): merge test_custom_kwargs_sharded and test_custom_kwargs_sharded_spawn 
+# TODO (edward-io): merge test_custom_kwargs_sharded and test_custom_kwargs_sharded_spawn
 # into one test after sharded_spawn is refactored
 @RunIf(skip_windows=True, fairscale=True)
 @mock.patch("pytorch_lightning.strategies.DDPShardedStrategy._wrap_optimizers", autospec=True)
