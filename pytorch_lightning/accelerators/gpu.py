@@ -94,8 +94,8 @@ class GPUAccelerator(Accelerator):
         return torch.cuda.device_count() > 0
 
     @staticmethod
-    def accelerator_name() -> str:
-        """Name of the hardware."""
+    def name() -> str:
+        """Name of the Accelerator."""
         return "gpu"
 
 

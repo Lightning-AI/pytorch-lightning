@@ -358,7 +358,7 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
             return True
 
         @staticmethod
-        def accelerator_name() -> str:
+        def name() -> str:
             return "custom_acc_name"
 
     class Prec(PrecisionPlugin):

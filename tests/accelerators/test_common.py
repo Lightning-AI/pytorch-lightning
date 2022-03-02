@@ -45,7 +45,7 @@ def test_pluggable_accelerator():
             return True
 
         @staticmethod
-        def accelerator_name():
+        def name():
             return "custom_acc_name"
 
     trainer = Trainer(accelerator=TestAccelerator(), devices=2, strategy="ddp")

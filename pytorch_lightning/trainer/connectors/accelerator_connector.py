@@ -475,12 +475,12 @@ class AcceleratorConnector:
             self.accelerator = accelerator_class()  # type: ignore[abstract]
 
         if not self.accelerator.is_available():
-            available_hardware = [acc_str for acc_str in list(ACCELERATORS) if ACCELERATORS[acc_str].is_available()]
+            available_accelerator = [acc_str for acc_str in list(ACCELERATORS) if ACCELERATORS[acc_str].is_available()]
             raise MisconfigurationException(
-                f"{self.accelerator.__class__.__qualname__} can not run on this hardware"
-                f" since {self.accelerator.accelerator_name().upper()}s are not available."
-                " The following hardware is available and can be passed into"
-                f" `accelerator` argument of `Trainer`: {available_hardware}."
+                f"{self.accelerator.__class__.__qualname__} can not run on your system"
+                f" since {self.accelerator.name().upper()}s are not available."
+                " The following accelerator(s) is available and can be passed into"
+                f" `accelerator` argument of `Trainer`: {available_accelerator}."
             )
 
         self._set_devices_flag_if_auto_passed()
