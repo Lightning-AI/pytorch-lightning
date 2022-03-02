@@ -44,33 +44,44 @@ _out13 = {"loss": 1.3}
         # 1 batch, 2 optimizers
         (2, 0, [[{0: _out00, 1: _out01}]], [_out00, _out01]),
         # 2 batches, 2 optimizers
-        (
-            2,
-            0,
-            [[{0: _out00, 1: _out01}], [{0: _out10, 1: _out11}]],
-            [[_out00, _out01], [_out10, _out11]],
-        ),
+        (2, 0, [[{0: _out00, 1: _out01}], [{0: _out10, 1: _out11}]], [[_out00, _out01], [_out10, _out11]]),
         # 4 batches, 2 optimizers, different frequency
-        (
-            2,
-            0,
-            [[{0: _out00}], [{1: _out01}], [{1: _out11}], [{0: _out10}]],
-            [[_out00], [_out01], [_out11], [_out10]],
-        ),
+        (2, 0, [[{0: _out00}], [{1: _out01}], [{1: _out11}], [{0: _out10}]], [[_out00], [_out01], [_out11], [_out10]]),
         # 1 batch, tbptt with 2 splits (uneven)
         (1, 2, [[{0: _out00}, {0: _out01}], [{0: _out03}]], [[_out00, _out01], [_out03]]),
+    ],
+)
+@pytest.mark.parametrize("new_format", (False, True))
+def test_prepare_outputs_training_epoch_end_automatic(
+    num_optimizers, tbptt_splits, batch_outputs, expected, new_format
+):
+    """Test that the loop converts the nested lists of outputs to the format that the `training_epoch_end` hook
+    currently expects in the case of automatic optimization."""
+    lightning_module = Mock()
+    lightning_module.automatic_optimization = True
+    lightning_module.truncated_bptt_steps = tbptt_splits
+    with mock.patch("pytorch_lightning.loops.epoch.training_epoch_loop._v1_8_output_format", return_value=new_format):
+        prepared = TrainingEpochLoop._prepare_outputs_training_epoch_end(
+            batch_outputs,
+            lightning_module=lightning_module,
+            num_optimizers=num_optimizers,  # does not matter for manual optimization
+        )
+    assert prepared == expected
+
+
+@pytest.mark.parametrize(
+    "num_optimizers,tbptt_splits,batch_outputs,expected",
+    [
         # 3 batches, tbptt with 2 splits, 2 optimizers alternating
         (
             2,
             2,
             [[{0: _out00}, {0: _out01}], [{1: _out10}, {1: _out11}], [{0: _out02}, {0: _out03}]],
             [[[_out00, _out01], [], [_out02, _out03]], [[], [_out10, _out11], []]],
-        ),
+        )
     ],
 )
 def test_prepare_outputs_training_epoch_end_automatic_old_format(num_optimizers, tbptt_splits, batch_outputs, expected):
-    """Test that the loop converts the nested lists of outputs to the format that the `training_epoch_end` hook
-    currently expects in the case of automatic optimization."""
     lightning_module = Mock()
     lightning_module.automatic_optimization = True
     lightning_module.truncated_bptt_steps = tbptt_splits
@@ -83,6 +94,33 @@ def test_prepare_outputs_training_epoch_end_automatic_old_format(num_optimizers,
                 lightning_module=lightning_module,
                 num_optimizers=num_optimizers,  # does not matter for manual optimization
             )
+    assert prepared == expected
+
+
+@pytest.mark.parametrize(
+    "num_optimizers,tbptt_splits,batch_outputs,expected",
+    [
+        # 3 batches, tbptt with 2 splits, 2 optimizers alternating
+        (
+            2,
+            2,
+            [[{0: _out00}, {0: _out01}], [{1: _out10}, {1: _out11}], [{0: _out02}, {0: _out03}]],
+            [[[_out00], [_out01]], [[_out10], [_out11]], [[_out02], [_out03]]],
+        )
+    ],
+)
+def test_prepare_outputs_training_epoch_end_automatic_new_format(num_optimizers, tbptt_splits, batch_outputs, expected):
+    """Test that the loop converts the nested lists of outputs to the format that the `training_epoch_end` hook
+    currently expects in the case of automatic optimization."""
+    lightning_module = Mock()
+    lightning_module.automatic_optimization = True
+    lightning_module.truncated_bptt_steps = tbptt_splits
+    with mock.patch("pytorch_lightning.loops.epoch.training_epoch_loop._v1_8_output_format", return_value=True):
+        prepared = TrainingEpochLoop._prepare_outputs_training_epoch_end(
+            batch_outputs,
+            lightning_module=lightning_module,
+            num_optimizers=num_optimizers,  # does not matter for manual optimization
+        )
     assert prepared == expected
 
 
@@ -101,12 +139,13 @@ def test_prepare_outputs_training_epoch_end_automatic_old_format(num_optimizers,
         ([[_out00, _out01], [_out02, _out03], [], [_out10]], [[_out00, _out01], [_out02, _out03], [_out10]]),
     ],
 )
-def test_prepare_outputs_training_epoch_end_manual(batch_outputs, expected):
+@pytest.mark.parametrize("new_format", (False, True))
+def test_prepare_outputs_training_epoch_end_manual(batch_outputs, expected, new_format):
     """Test that the loop converts the nested lists of outputs to the format that the `training_epoch_end` hook
     currently expects in the case of manual optimization."""
     lightning_module = Mock()
     lightning_module.automatic_optimization = False
-    with mock.patch("pytorch_lightning.loops.epoch.training_epoch_loop._v1_8_output_format", return_value=False):
+    with mock.patch("pytorch_lightning.loops.epoch.training_epoch_loop._v1_8_output_format", return_value=new_format):
         prepared = TrainingEpochLoop._prepare_outputs_training_epoch_end(
             batch_outputs,
             lightning_module=lightning_module,
@@ -123,8 +162,32 @@ def test_prepare_outputs_training_epoch_end_manual(batch_outputs, expected):
         (1, 0, [{0: _out00}], _out00),
         (2, 0, [{0: _out00, 1: _out01}], [_out00, _out01]),
         (1, 2, [{0: _out00}, {0: _out01}], [_out00, _out01]),
-        (2, 2, [{0: _out00, 1: _out01}, {0: _out10, 1: _out11}], [[_out00, _out10], [_out01, _out11]]),
     ],
+)
+@pytest.mark.parametrize("new_format", (False, True))
+def test_prepare_outputs_training_batch_end_automatic(
+    num_optimizers, tbptt_splits, batch_end_outputs, expected, new_format
+):
+    """Test that the loop converts the nested lists of outputs to the format that the `on_train_batch_end` hook
+    currently expects in the case of automatic optimization."""
+    lightning_module = Mock()
+    lightning_module.automatic_optimization = True
+    lightning_module.truncated_bptt_steps = tbptt_splits
+    match = "will change in version v1.8.*new_format=True"
+    ctx_manager = pytest.deprecated_call if tbptt_splits and num_optimizers > 1 else no_deprecated_call
+    with ctx_manager(match=match):
+        with mock.patch(
+            "pytorch_lightning.loops.epoch.training_epoch_loop._v1_8_output_format", return_value=new_format
+        ):
+            prepared = TrainingEpochLoop._prepare_outputs_training_batch_end(
+                batch_end_outputs, lightning_module=lightning_module, num_optimizers=num_optimizers
+            )
+    assert prepared == expected
+
+
+@pytest.mark.parametrize(
+    "num_optimizers,tbptt_splits,batch_end_outputs,expected",
+    [(2, 2, [{0: _out00, 1: _out01}, {0: _out10, 1: _out11}], [[_out00, _out10], [_out01, _out11]])],
 )
 def test_prepare_outputs_training_batch_end_automatic_old_format(
     num_optimizers, tbptt_splits, batch_end_outputs, expected
@@ -139,10 +202,27 @@ def test_prepare_outputs_training_batch_end_automatic_old_format(
     with ctx_manager(match=match):
         with mock.patch("pytorch_lightning.loops.epoch.training_epoch_loop._v1_8_output_format", return_value=False):
             prepared = TrainingEpochLoop._prepare_outputs_training_batch_end(
-                batch_end_outputs,
-                lightning_module=lightning_module,
-                num_optimizers=num_optimizers,
+                batch_end_outputs, lightning_module=lightning_module, num_optimizers=num_optimizers
             )
+    assert prepared == expected
+
+
+@pytest.mark.parametrize(
+    "num_optimizers,tbptt_splits,batch_end_outputs,expected",
+    [(2, 2, [{0: _out00, 1: _out01}, {0: _out10, 1: _out11}], [[_out00, _out01], [_out10, _out11]])],
+)
+def test_prepare_outputs_training_batch_end_automatic_new_format(
+    num_optimizers, tbptt_splits, batch_end_outputs, expected
+):
+    """Test that the loop converts the nested lists of outputs to the format that the `on_train_batch_end` hook
+    currently expects in the case of automatic optimization."""
+    lightning_module = Mock()
+    lightning_module.automatic_optimization = True
+    lightning_module.truncated_bptt_steps = tbptt_splits
+    with mock.patch("pytorch_lightning.loops.epoch.training_epoch_loop._v1_8_output_format", return_value=True):
+        prepared = TrainingEpochLoop._prepare_outputs_training_batch_end(
+            batch_end_outputs, lightning_module=lightning_module, num_optimizers=num_optimizers
+        )
     assert prepared == expected
 
 
