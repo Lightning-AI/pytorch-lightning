@@ -32,6 +32,7 @@ def test_v2_0_0_deprecated_gpus(tmpdir):
     with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
         _ = Trainer(default_root_dir=tmpdir, gpus=2)
 
+
 @RunIf(tpu=True)
 def test_v2_0_0_deprecated_tpu_cores(tmpdir):
     with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
