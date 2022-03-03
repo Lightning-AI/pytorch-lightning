@@ -2024,7 +2024,7 @@ class Trainer(
 
     @property
     def num_devices(self) -> int:
-        """Number of devices per node."""
+        """Number of devices the trainer uses per node."""
         return len(self.strategy.parallel_devices) if isinstance(self.strategy, ParallelStrategy) else 1
 
     @property
