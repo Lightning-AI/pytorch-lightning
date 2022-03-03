@@ -330,8 +330,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Disable loading dataloades if corresponding `limit_batches=0` ([#11576](https://github.com/PyTorchLightning/pytorch-lightning/pull/11576))
 
 
-- Check if trainerFn == FITTING before configuring `sync_batchnorm` ([#11919](https://github.com/PyTorchLightning/pytorch-lightning/pull/11919/files))
+- Removed `is_global_zero` check in `training_epoch_loop` before `logger.save`. If you have a custom logger that implements `save` the Trainer will now call `save` on all ranks by default. To change this behavior add `@rank_zero_only` to your `save` implementation ([#12134](https://github.com/PyTorchLightning/pytorch-lightning/pull/12134))
 
+
+- Check if trainerFn == FITTING before configuring `sync_batchnorm` ([#11919](https://github.com/PyTorchLightning/pytorch-lightning/pull/11919/files))
 
 
 ### Deprecated
@@ -454,6 +456,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Deprecated `BaseProfiler.profile_iterable` ([#12102](https://github.com/PyTorchLightning/pytorch-lightning/pull/12102))
+
+
+- Deprecated `PrecisionPlugin.on_{save,load}_checkpoint` in favor of `PrecisionPlugin.{state_dict,load_state_dict}` ([#11978](https://github.com/PyTorchLightning/pytorch-lightning/pull/11978))
 
 
 ### Removed
