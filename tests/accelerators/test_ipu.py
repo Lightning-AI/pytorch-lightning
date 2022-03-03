@@ -288,7 +288,7 @@ def test_stages_correct(tmpdir):
 
     class TestCallback(Callback):
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx) -> None:
-            assert outputs["loss"].item() == 1
+            assert outputs.item() == 1
 
         def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
             assert outputs.item() == 2
