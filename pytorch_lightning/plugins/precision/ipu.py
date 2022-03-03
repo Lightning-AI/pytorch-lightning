@@ -27,13 +27,19 @@ warning_cache = WarningCache()
 
 
 class IPUPrecisionPlugin(PrecisionPlugin):
-    """Precision plugin for IPU integration."""
+    """Precision plugin for IPU integration.
+
+    Raises:
+        MisconfigurationException:
+            If the precision is neither 16 nor 32.
+    """
 
     def __init__(self, precision: int) -> None:
         supported_precision_values = (16, 32)
         if precision not in supported_precision_values:
             raise MisconfigurationException(
-                f"`Trainer(accelerator='ipu', precision={precision!r})` is not supported. `precision` must be one of: {supported_precision_values}."
+                f"`Trainer(accelerator='ipu', precision={precision!r})` is not supported."
+                f" `precision` must be one of: {supported_precision_values}."
             )
         super().__init__()
         self.precision = precision
