@@ -20,7 +20,6 @@ import pytest
 import torch
 from torch import optim
 
-import pytorch_lightning
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import CSVLogger, LightningLoggerBase, LoggerCollection
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
@@ -743,36 +742,10 @@ def test_v1_8_0_abstract_profiler():
     assert "`AbstractProfiler` was deprecated in v1.6" in AbstractProfiler.__doc__
 
 
-@pytest.mark.parametrize(
-    ["trainer_kwargs", "expected_devices"],
-    [
-        ({}, 1),
-        ({"devices": 1}, 1),
-        ({"devices": 1}, 1),
-        ({"devices": "1"}, 1),
-        ({"devices": 2}, 2),
-        ({"accelerator": "gpu", "devices": 1}, 1),
-        ({"accelerator": "gpu", "devices": 2}, 2),
-        ({"accelerator": "gpu", "devices": "2"}, 2),
-        ({"accelerator": "gpu", "devices": [2]}, 1),
-        ({"accelerator": "gpu", "devices": "2,"}, 1),
-        ({"accelerator": "gpu", "devices": [0, 2]}, 2),
-        ({"accelerator": "gpu", "devices": "0, 2"}, 2),
-        ({"accelerator": "ipu", "devices": 1}, 1),
-        ({"accelerator": "ipu", "devices": 2}, 2),
-    ],
-)
-def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_devices):
-    if trainer_kwargs.get("accelerator") == "gpu":
-        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-        monkeypatch.setattr(torch.cuda, "device_count", lambda: 4)
-    elif trainer_kwargs.get("accelerator") == "ipu":
-        monkeypatch.setattr(pytorch_lightning.accelerators.ipu.IPUAccelerator, "is_available", lambda _: True)
-        monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
-
-    trainer = Trainer(**trainer_kwargs)
+def test_trainer_config_device_ids():
+    trainer = Trainer(devices=2)
     with pytest.deprecated_call(
         match="`Trainer.devices` was deprecated in v1.6 and will be removed in v1.8."
         " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
     ):
-        trainer.devices == expected_devices
+        trainer.devices == 2
