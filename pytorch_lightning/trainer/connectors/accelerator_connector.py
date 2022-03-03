@@ -465,16 +465,15 @@ class AcceleratorConnector:
         return "cpu"
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
-        # TODO add device availability check
+        ACCELERATORS = {
+            "cpu": CPUAccelerator,
+            "gpu": GPUAccelerator,
+            "tpu": TPUAccelerator,
+            "ipu": IPUAccelerator,
+        }
         if isinstance(self._accelerator_flag, Accelerator):
             self.accelerator: Accelerator = self._accelerator_flag
         else:
-            ACCELERATORS = {
-                "cpu": CPUAccelerator,
-                "gpu": GPUAccelerator,
-                "tpu": TPUAccelerator,
-                "ipu": IPUAccelerator,
-            }
             assert self._accelerator_flag is not None
             self._accelerator_flag = self._accelerator_flag.lower()
             if self._accelerator_flag not in ACCELERATORS:
@@ -484,6 +483,15 @@ class AcceleratorConnector:
                 )
             accelerator_class = ACCELERATORS[self._accelerator_flag]
             self.accelerator = accelerator_class()  # type: ignore[abstract]
+
+        if not self.accelerator.is_available():
+            available_accelerator = [acc_str for acc_str in list(ACCELERATORS) if ACCELERATORS[acc_str].is_available()]
+            raise MisconfigurationException(
+                f"{self.accelerator.__class__.__qualname__} can not run on your system"
+                f" since {self.accelerator.name().upper()}s are not available."
+                " The following accelerator(s) is available and can be passed into"
+                f" `accelerator` argument of `Trainer`: {available_accelerator}."
+            )
 
         self._set_devices_flag_if_auto_passed()
 
