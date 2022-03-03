@@ -178,14 +178,6 @@ class BaguaStrategy(DDPStrategy):
             gradient_as_bucket_view=self._bagua_flatten,
         )
 
-    @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register(
-            cls.strategy_name,
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )
-
     def teardown(self) -> None:
         # abort the background communication for async algorithm
         if self.lightning_module.trainer.training and self._bagua_algorithm == "async":

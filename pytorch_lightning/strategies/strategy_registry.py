@@ -17,6 +17,7 @@ from inspect import getmembers, isclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
+from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -130,8 +131,26 @@ def is_register_strategies_overridden(strategy: type) -> bool:
     return strategy_attr.__code__ is not super_attr.__code__
 
 
+@classmethod
+def register_strategies(cls, strategy_registry: Dict) -> None:
+    strategy_registry.register(
+        cls.strategy_name,
+        cls,
+        description=f"{cls.__class__.__name__}",
+    )
+
+
+def should_call_register_strategies(strategy: type) -> bool:
+    if strategy in [Strategy, ParallelStrategy]:
+        return False
+    if is_register_strategies_overridden(strategy):
+        return True
+    strategy.register_strategies = register_strategies
+    return True
+
+
 def call_register_strategies(root: Path, base_module: str) -> None:
     module = importlib.import_module(base_module)
     for _, mod in getmembers(module, isclass):
-        if issubclass(mod, Strategy) and is_register_strategies_overridden(mod):
+        if issubclass(mod, Strategy) and should_call_register_strategies(mod):
             mod.register_strategies(StrategyRegistry)

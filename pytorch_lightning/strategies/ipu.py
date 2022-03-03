@@ -13,7 +13,7 @@
 # limitations under the License.
 import json
 import os
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
 import torch
 from torch.utils.data import DataLoader
@@ -363,11 +363,3 @@ class IPUStrategy(ParallelStrategy):
 
     def broadcast(self, obj: object, src: int = 0) -> object:
         return obj
-
-    @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register(
-            cls.strategy_name,
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )

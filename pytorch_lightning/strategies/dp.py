@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 import torch
 from torch.nn import DataParallel, Module
@@ -147,14 +147,6 @@ class DataParallelStrategy(ParallelStrategy):
             output = self.reduce(output)
 
         return output
-
-    @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register(
-            cls.strategy_name,
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )
 
     def teardown(self) -> None:
         super().teardown()

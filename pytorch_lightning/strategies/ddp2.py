@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Dict
-
 import torch
 
 from pytorch_lightning.strategies.ddp import DDPStrategy
@@ -74,11 +72,3 @@ class DDP2Strategy(DDPStrategy):
             return
         self.cluster_environment.set_global_rank(self.node_rank)
         self.cluster_environment.set_world_size(self.num_nodes)
-
-    @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register(
-            cls.strategy_name,
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )

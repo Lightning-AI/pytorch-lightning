@@ -81,14 +81,6 @@ class SingleDeviceStrategy(Strategy):
     def broadcast(self, obj: object, src: int = 0) -> object:
         return obj
 
-    @classmethod
-    def register_strategies(cls, strategy_registry: dict) -> None:
-        strategy_registry.register(
-            cls.strategy_name,
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )
-
     def teardown(self) -> None:
         super().teardown()
         if self.root_device.type == "cuda":

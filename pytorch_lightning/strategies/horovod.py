@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -212,14 +212,6 @@ class HorovodStrategy(ParallelStrategy):
     def _filter_named_parameters(model: nn.Module, optimizer: Optimizer) -> List[Tuple[str, nn.Parameter]]:
         opt_params = {p for group in optimizer.param_groups for p in group.get("params", [])}
         return [(name, p) for name, p in model.named_parameters() if p in opt_params]
-
-    @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register(
-            cls.strategy_name,
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )
 
     def teardown(self) -> None:
         super().teardown()
