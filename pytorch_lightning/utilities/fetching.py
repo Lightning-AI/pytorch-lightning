@@ -35,6 +35,10 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
+def profile_nothing(action_name: str) -> None:
+    pass
+
+
 class AbstractDataFetcher(ABC):
 
     """This base class should be used to implement a fault tolerant ``DataFetcher``. It is required to override the
@@ -76,6 +80,9 @@ class AbstractDataFetcher(ABC):
         self.dataloader_iter: Optional[Iterator] = None
         self.fetched: int = 0
         self.done: bool = False
+        self._start_profiler = profile_nothing
+        self._stop_profiler = profile_nothing
+        self._profiler_action_name = ""
 
     def setup(self, dataloader: Iterable, **kwargs: Any) -> None:
         self._add_capture_metadata_collate(dataloader)
@@ -225,8 +232,12 @@ class DataFetcher(AbstractDataFetcher):
         if batch_to_device is not None:
             self.batch_to_device = batch_to_device
 
+    def on_fetch_start(self) -> None:
+        self._start_profiler(self._profiler_action_name)
+
     def on_fetch_end(self, batch: Any, start_output: Any) -> None:
         """Hook to extend which handles the logic after fetching a batch."""
+        self._stop_profiler(self._profiler_action_name)
         self.batches.append(batch)
 
     def prefetching(self) -> None:
@@ -320,9 +331,11 @@ class InterBatchParallelDataFetcher(DataFetcher):
 
     def on_fetch_start(self) -> "torch.cuda.Event":
         # create a cuda event used to record the async stream of data to device.
+        self._start_profiler(self._profiler_action_name)
         return torch.cuda.Event()
 
     def on_fetch_end(self, batch: Any, event: torch.cuda.Event) -> None:
+        self._stop_profiler(self._profiler_action_name)
         self.batches.append(batch)
         event.record()
         self.events.append(event)
@@ -385,3 +398,9 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
         if not self.done:
             return self.fetched, self.iterator
         raise StopIteration
+
+    def on_fetch_start(self) -> None:
+        self._start_profiler(self._profiler_action_name)
+
+    def on_fetch_end(self, batch: Any, start_output: Any) -> None:
+        self._stop_profiler(self._profiler_action_name)
