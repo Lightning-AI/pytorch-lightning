@@ -314,16 +314,16 @@ def test_warning_if_tpus_not_used():
 
 @RunIf(tpu=True)
 @pytest.mark.parametrize(
-    ["trainer_kwargs", "expected_device_ids"],
+    ["devices", "expected_device_ids"],
     [
-        ({"accelerator": "tpu", "devices": 1}, [0]),
-        ({"accelerator": "tpu", "devices": 8}, list(range(8))),
-        ({"accelerator": "tpu", "devices": "8"}, list(range(8))),
-        ({"accelerator": "tpu", "devices": [2]}, [2]),
-        ({"accelerator": "tpu", "devices": "2,"}, [2]),
+        (1, [0]),
+        (8, list(range(8))),
+        ("8", list(range(8))),
+        ([2], [2]),
+        ("2,", [2]),
     ],
 )
-def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_ids):
-    trainer = Trainer(**trainer_kwargs)
+def test_trainer_config_device_ids(devices, expected_device_ids):
+    trainer = Trainer(accelerator="tpu", devices=devices)
     assert trainer.device_ids == expected_device_ids
     assert trainer.num_devices == len(expected_device_ids)
