@@ -192,3 +192,5 @@ class ManualOptimBoringModel(BoringModel):
         self.manual_backward(loss)
         opt.step()
         return loss
+
+    training_epoch_end = None

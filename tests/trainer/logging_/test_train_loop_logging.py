@@ -70,6 +70,8 @@ def test__training_step__log(tmpdir):
 
             return loss
 
+        training_epoch_end = None
+
     model = TestModel()
     model.val_dataloader = None
 
@@ -105,11 +107,11 @@ def test__training_step__epoch_end__log(tmpdir):
             loss = out["loss"]
             self.log("a", loss, on_step=True, on_epoch=True)
             self.log_dict({"a1": loss, "a2": loss})
-            return out
+            return loss
 
-        def training_epoch_end(self, outputs):
-            self.log("b1", outputs[0]["loss"])
-            self.log("b", outputs[0]["loss"], on_epoch=True, prog_bar=True, logger=True)
+        def training_epoch_end(self, outputs, new_format=True):
+            self.log("b1", outputs[0])
+            self.log("b", outputs[0], on_epoch=True, prog_bar=True, logger=True)
 
     model = TestModel()
     model.val_dataloader = None
@@ -150,8 +152,8 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
             self.log("b", out, on_step=True, on_epoch=True, prog_bar=True, logger=True)
             return out
 
-        def training_epoch_end(self, outputs):
-            self.log("c", outputs[0]["loss"], on_epoch=True, prog_bar=True, logger=True)
+        def training_epoch_end(self, outputs, new_format=True):
+            self.log("c", outputs[0], on_epoch=True, prog_bar=True, logger=True)
             self.log("d/e/f", 2)
 
     model = TestModel()
@@ -198,6 +200,8 @@ def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
             self.log("bar", torch.tensor(batch_idx).float(), on_step=False, on_epoch=True, reduce_fx=fx)
             return {"x": loss}
 
+        training_epoch_end = None
+
     model = TestModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -229,6 +233,8 @@ def test_different_batch_types_for_sizing(tmpdir):
             loss = self.loss(batch, output)
             self.log("n", {"d3": 2, "d4": torch.tensor(1)}, on_step=True, on_epoch=True)
             return {"x": loss}
+
+        training_epoch_end = None
 
         def train_dataloader(self):
             return torch.utils.data.DataLoader(RandomDictDataset(32, 64), batch_size=32)

@@ -239,7 +239,11 @@ def _deprecate_output_format(
     ],
     lightning_module: "pl.LightningModule",
 ) -> None:
-    if result.was_dict:
+    if (
+        result.was_dict
+        or (isinstance(result, pl.loops.optimization.optimizer_loop.ClosureResult) and result.loss is None)
+        or (isinstance(result, pl.loops.optimization.manual_loop.ManualResult) and result.extra.get("loss") is None)
+    ):
         return
     if is_overridden("training_epoch_end", lightning_module) and not _v1_8_output_format(
         lightning_module.training_epoch_end

@@ -344,5 +344,6 @@ def test_params_groups_and_state_are_accessible(tmpdir):
             assert loss == self.__loss
 
     model = TestModel()
+    model.training_epoch_end = None
     trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=0)
     trainer.fit(model)

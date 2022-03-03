@@ -126,7 +126,7 @@ def test_multiple_optimizers_multiple_dataloaders(tmpdir):
             loss = self.step(batch[0])
             return loss
 
-        def training_epoch_end(self, outputs) -> None:
+        def training_epoch_end(self, outputs, new_format=True) -> None:
             # outputs should be an array with an entry per optimizer
             assert len(outputs) == 2
 

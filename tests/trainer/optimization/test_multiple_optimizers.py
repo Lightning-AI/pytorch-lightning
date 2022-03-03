@@ -162,7 +162,7 @@ def test_custom_optimizer_step_with_multiple_optimizers(tmpdir):
             loss = torch.nn.functional.mse_loss(x, torch.ones_like(x))
             return loss
 
-        def training_epoch_end(self, outputs) -> None:
+        def training_epoch_end(self, outputs, new_format=True) -> None:
             # outputs should be an array with an entry per optimizer
             assert len(outputs) == 2
 
