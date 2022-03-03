@@ -132,8 +132,14 @@ class DDPFullyShardedStrategy(ParallelStrategy):
         self.min_num_params = min_num_params
         self.state_dict_device = torch.device("cpu") if state_dict_to_cpu else None
         self._process_group = None
+        self._pids: Optional[List[int]] = None
+        self._sync_dir: Optional[str] = None
         self._rank_0_will_call_children_scripts: bool = False
         self.set_world_ranks()
+
+    @property
+    def is_distributed(self) -> bool:
+        return True
 
     @property
     def process_group(self):
@@ -168,8 +174,6 @@ class DDPFullyShardedStrategy(ParallelStrategy):
         log.detail(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
 
-        if self._layer_sync:
-            self.model = self._layer_sync.apply(self.model)
         # determine which process we are and world size
         self.set_world_ranks()
 
