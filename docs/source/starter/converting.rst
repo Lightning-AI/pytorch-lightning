@@ -193,9 +193,9 @@ and all the :class:`~torch.nn.Module` instances initialized inside ``LightningMo
             super().__init__()
             self.register_buffer("running_mean", torch.zeros(num_features))
 
-If you still need to access the current device, you can use ``self.device`` anywhere in ``LightningModule`` except ``__init__`` method. You are initializing a
-:class:`~torch.Tensor` within ``LightningModule.__init__`` method and want it to be moved to the device automatically you must :meth:`~torch.nn.Module.register_buffer`
-to register it as a parameter.
+If you still need to access the current device, you can use ``self.device`` anywhere in ``LightningModule`` except ``__init__`` and ``setup`` methods.
+You are initializing a :class:`~torch.Tensor` within ``LightningModule.__init__`` method and want it to be moved to the device automatically you must
+:meth:`~torch.nn.Module.register_buffer` to register it as a parameter.
 
 .. testcode::
 
