@@ -142,7 +142,6 @@ class Trainer(
         devices: Optional[Union[List[int], str, int]] = None,
         gpus: Optional[Union[List[int], str, int]] = None,
         auto_select_gpus: bool = False,
-        hpus: Optional[int] = None,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
         ipus: Optional[int] = None,
         log_gpu_memory: Optional[str] = None,  # TODO: Remove in 1.7
@@ -421,9 +420,6 @@ class Trainer(
                 Default: ``None``.
 
             ipus: How many IPUs to train on.
-                Default: ``None``.
-
-            hpus: How many HPUs to train on.
                 Default: ``None``.
 
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm. If using
@@ -1794,7 +1790,7 @@ class Trainer(
         num_ipus = self.ipus if self.ipus is not None else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
-        num_hpus = self.hpus if self.hpus is not None else 0
+        num_hpus = self.devices if self.devices is not None else 0
         rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
 
         if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):

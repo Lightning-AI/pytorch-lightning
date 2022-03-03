@@ -124,7 +124,16 @@ def test_no_warning_plugin(tmpdir):
 @RunIf(hpu=True)
 def test_all_stages(tmpdir):
     model = HPUModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="hpu", devices=1)
+    parallel_devices = 1
+    hpustrat_1 = HPUStrategy(
+        device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=None)
+    )
+    hpustrat_8 = HPUParallelStrategy(
+        parallel_devices=[torch.device("hpu")] * parallel_devices,
+        precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=None),
+    )
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="hpu", devices=parallel_devices,
+                      strategy=hpustrat_8 if (parallel_devices == 8) else hpustrat_1)
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
