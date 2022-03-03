@@ -232,7 +232,7 @@ def _v1_8_output_format(fx: Callable) -> bool:
     return "new_format" in parameters and parameters["new_format"].default is True
 
 
-# FIXME: remove in v1.8
+# TODO: remove in v1.8
 def _deprecate_output_format(
     result: Union[
         "pl.loops.optimization.optimizer_loop.ClosureResult", "pl.loops.optimization.manual_loop.ManualResult"

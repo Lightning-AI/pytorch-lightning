@@ -1513,6 +1513,8 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
                 losses.append(super().training_step(b, batch_idx)["loss"])
             return torch.stack(losses).mean()
 
+        training_epoch_end = None
+
         def validation_step(self, batch, batch_idx, dataloader_idx=0):
             pass
 
