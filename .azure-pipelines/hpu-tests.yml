@@ -35,13 +35,13 @@ jobs:
         pip install . --requirement requirements/hpu.txt
       displayName: 'Install dependencies'
       continueOnError: true
-      
+
     - bash: |
          echo "Run Hpu tests in parallel"
          python ".azure-pipelines/run_hpu_tests.py"
       displayName: 'HPU Tests in parallel'
       continueOnError: true
-      
+
     - bash: |
         echo "Coverage report:"
         python -m coverage report
