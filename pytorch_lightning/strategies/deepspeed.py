@@ -326,6 +326,8 @@ class DeepSpeedStrategy(ParallelStrategy):
         self.remote_device = remote_device
         self.load_full_weights = load_full_weights
         self._num_nodes: int = 1
+        self._pids: Optional[List[int]] = None
+        self._sync_dir: Optional[str] = None
         self._rank_0_will_call_children_scripts: bool = False
 
         # default FP16 parameters.
@@ -956,6 +958,16 @@ class DeepSpeedStrategy(ParallelStrategy):
             offload_optimizer_device="nvme",
         )
 
+    def _should_run_deadlock_detection(self) -> bool:
+        """Determines whether the plugin will perform process reconciliation in case of errors.
+
+        If the environment variable `PL_RECONCILE_PROCESS` is set, run detection regardless of the cluster environment.
+        By default this is disabled. Otherwise, if the cluster environment creates the processes, allow the scheduler /
+        parent process to perform the process termination, external to Lightning.
+        """
+        return os.getenv("PL_RECONCILE_PROCESS", "0") == "1" or self._rank_0_will_call_children_scripts
+
+
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
             return self.model(*args, **kwargs)
@@ -967,3 +979,38 @@ class DeepSpeedStrategy(ParallelStrategy):
     def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
         with self.precision_plugin.predict_step_context():
             return self.model(*args, **kwargs)
+
+    def reconciliate_processes(self, trace: str) -> None:
+        if self.world_size < 2:
+            return
+
+        if not self._should_run_deadlock_detection():
+            return
+
+        sync_dir = self._sync_dir
+
+        if not sync_dir:
+            rank_zero_warn("Error handling mechanism for deadlock detection is uninitialized. Skipping check.")
+            return
+
+        # The cluster may be configured to periodically purge the `/tmp`
+        # directory, in which case `sync_dir` may not exist anymore at this
+        # point. Idempotently create it to ensure its existence.
+        Path(sync_dir).mkdir(parents=True, exist_ok=True)
+
+        # save a file locally.
+        torch.save(True, os.path.join(sync_dir, f"{self.global_rank}.pl"))
+
+        # sleep for a short time
+        time.sleep(3)
+
+        # return if all processes wrote a file in the `sync_dir`.
+        # todo (tchaton) Add support for non-shared file-system which will fail.
+        if len(os.listdir(sync_dir)) == (self.world_size // self.num_nodes):
+            return
+
+        for pid in self._pids:
+            if pid != os.getpid():
+                os.kill(pid, signal.SIGKILL)
+        shutil.rmtree(sync_dir)
+        raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
