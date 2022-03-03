@@ -15,9 +15,9 @@
 
 import inspect
 import os
-from ast import literal_eval
 from abc import ABC
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
+from ast import literal_eval
 from contextlib import suppress
 from functools import wraps
 from typing import Any, Callable, cast, Dict, List, Tuple, Type, TypeVar, Union
