@@ -14,7 +14,14 @@
 from unittest import mock
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import Accelerator, CPUAccelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator, HPUAccelerator
+from pytorch_lightning.accelerators import (
+    Accelerator,
+    CPUAccelerator,
+    GPUAccelerator,
+    HPUAccelerator,
+    IPUAccelerator,
+    TPUAccelerator,
+)
 from pytorch_lightning.strategies import DDPStrategy
 
 

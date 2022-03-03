@@ -18,9 +18,9 @@ import os
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
-from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.distributed import Backend, get_backend
 from torch.nn import Module
+from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.imports import (
