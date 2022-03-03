@@ -17,7 +17,6 @@ from inspect import getmembers, isclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -141,7 +140,7 @@ def register_strategies(cls, strategy_registry: Dict) -> None:
 
 
 def should_call_register_strategies(strategy: type) -> bool:
-    if strategy in [Strategy, ParallelStrategy]:
+    if inspect.isabstract(strategy):
         return False
     if is_register_strategies_overridden(strategy):
         return True
