@@ -2012,7 +2012,7 @@ class Trainer(
 
     @property
     def device_ids(self) -> List[int]:
-        """List of device indexes."""
+        """List of device indexes per node."""
         devices = getattr(self.strategy, "parallel_devices", [self.strategy.root_device])
         device_ids = []
         for idx, device in enumerate(devices):
@@ -2024,6 +2024,7 @@ class Trainer(
 
     @property
     def num_devices(self) -> int:
+        """Number of devices per node."""
         return len(self.strategy.parallel_devices) if isinstance(self.strategy, ParallelStrategy) else 1
 
     @property
