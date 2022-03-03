@@ -39,13 +39,13 @@ from pytorch_lightning.plugins import (
 )
 from pytorch_lightning.plugins.environments import (
     BaguaEnvironment,
+    cluster_environment,
     ClusterEnvironment,
     KubeflowEnvironment,
     LightningEnvironment,
     LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
-    cluster_environment,
 )
 from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
 from pytorch_lightning.strategies import (
