@@ -16,14 +16,19 @@ Welcome to PyTorch Lightning
 .. customcalloutitem::
    :description: Learn how to leverage the PyTorch Lightning APIs and features for your ML projects with ease in this quickstart guide.
    :header: Introduction
-   :button_link:  starter/new-project.html
+   :button_link:  starter/introduction.html
    :button_text: Get started with PyTorch Lightning
 
 .. customcalloutitem::
-   :description: Guide to restructure your PyTorch code to Lightning and help you focus more on research rather than the tricky engineering aspects.
-   :header: PyTorch to Lightning
+   :description: Guide to restructure your PyTorch code to PyTorch Lightning and help you focus more on research rather than the tricky engineering aspects.
+   :header: PyTorch to PyTorch Lightning
    :button_link: starter/converting.html
-   :button_text: Organize PyTorch to Lightning
+   :button_text: Organize PyTorch to PyTorch Lightning
+
+.. raw:: html
+
+        </div>
+    </div>
 
 .. End of callout item section
 
