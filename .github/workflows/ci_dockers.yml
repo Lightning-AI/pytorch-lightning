@@ -122,9 +122,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # the config used in 'dockers/ipu-ci-runner/Dockerfile'
-          - {python_version: "3.9", pytorch_version: "1.9"}
+        # the config used in 'dockers/ipu-ci-runner/Dockerfile'
+        python_version: ["3.9"]  # latest
+        pytorch_version: ["1.9"]
 
     steps:
       - name: Checkout
