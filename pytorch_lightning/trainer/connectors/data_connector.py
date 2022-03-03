@@ -210,10 +210,6 @@ class DataConnector:
         self.trainer.datamodule = datamodule
         datamodule.trainer = self.trainer
 
-        # experimental feature for Flash
-        if hasattr(datamodule, "data_pipeline"):
-            model.data_pipeline = datamodule.data_pipeline
-
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
         if not isinstance(dataloader, DataLoader):
             return
