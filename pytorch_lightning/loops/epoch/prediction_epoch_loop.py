@@ -103,6 +103,14 @@ class PredictionEpochLoop(Loop):
 
         self._predict_step(batch, batch_idx, dataloader_idx)
 
+    def on_advance_start(self) -> None:  # type: ignore[override]
+        if self.trainer.test_dataloader is not None and callable(
+            getattr(self.trainer.test_dataloader.sampler, "set_epoch", None)
+        ):
+            # TODO: raise a warning here
+            # set seed for distributed sampler (enables shuffling for each epoch)
+            self.trainer.test_dataloader.sampler.set_epoch(self.current_epoch)
+
     def on_run_end(self) -> Tuple[List[Any], List[List[int]]]:
         """Returns the predictions and the corresponding batch indices."""
         predictions, all_batch_indices = self.predictions, self._seen_batch_indices
