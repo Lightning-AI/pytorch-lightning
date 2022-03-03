@@ -15,6 +15,7 @@
 import os
 from typing import Optional
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
@@ -25,7 +26,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
-from pytorch_lightning.plugins import PrecisionPlugin
+from pytorch_lightning.plugins import LayerSync, NativeSyncBatchNorm, PrecisionPlugin
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -357,6 +358,10 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
         def is_available() -> bool:
             return True
 
+        @staticmethod
+        def name() -> str:
+            return "custom_acc_name"
+
     class Prec(PrecisionPlugin):
         pass
 
@@ -428,8 +433,9 @@ def test_ipython_compatible_dp_strategy_gpu(_, monkeypatch):
     assert trainer.strategy.launcher is None or trainer.strategy.launcher.is_interactive_compatible
 
 
+@mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
 @mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.parse_devices", return_value=8)
-def test_ipython_compatible_strategy_tpu(_, monkeypatch):
+def test_ipython_compatible_strategy_tpu(mock_devices, mock_tpu_acc_avail, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     trainer = Trainer(accelerator="tpu")
     assert trainer.strategy.launcher is None or trainer.strategy.launcher.is_interactive_compatible
@@ -479,9 +485,10 @@ def test_accelerator_cpu(_):
 
     with pytest.raises(MisconfigurationException, match="You requested gpu:"):
         trainer = Trainer(gpus=1)
-    # TODO enable this test when add device availability check
-    # with pytest.raises(MisconfigurationException, match="You requested gpu, but gpu is not available"):
-    #     trainer = Trainer(accelerator="gpu")
+    with pytest.raises(
+        MisconfigurationException, match="GPUAccelerator can not run on your system since GPUs are not available."
+    ):
+        trainer = Trainer(accelerator="gpu")
     with pytest.raises(MisconfigurationException, match="You requested gpu:"):
         trainer = Trainer(accelerator="cpu", gpus=1)
 
@@ -898,8 +905,9 @@ def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock
     assert trainer.strategy.local_rank == 0
 
 
+@mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
 @mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.parse_devices", return_value=8)
-def test_unsupported_tpu_choice(mock_devices):
+def test_unsupported_tpu_choice(mock_devices, mock_tpu_acc_avail):
 
     with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         Trainer(accelerator="tpu", precision=64)
@@ -914,7 +922,8 @@ def test_unsupported_tpu_choice(mock_devices):
             Trainer(accelerator="tpu", precision=16, amp_backend="apex", strategy="single_device")
 
 
-def test_unsupported_ipu_choice(monkeypatch):
+@mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
+def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
     import pytorch_lightning.strategies.ipu as ipu
     import pytorch_lightning.utilities.imports as imports
 
@@ -943,6 +952,15 @@ def test_devices_auto_choice_gpu(is_gpu_available_mock, device_count_mock):
     assert trainer.gpus == 2
 
 
+@pytest.mark.parametrize(
+    ["parallel_devices", "accelerator"],
+    [([torch.device("cpu")], "gpu"), ([torch.device("cuda", i) for i in range(8)], ("tpu"))],
+)
+def test_parallel_devices_in_strategy_confilict_with_accelerator(parallel_devices, accelerator):
+    with pytest.raises(MisconfigurationException, match=r"parallel_devices set through"):
+        Trainer(strategy=DDPStrategy(parallel_devices=parallel_devices), accelerator=accelerator)
+
+
 def test_passing_zero_and_empty_list_to_devices_flag():
     with pytest.warns(UserWarning, match=r"switching to `cpu` accelerator"):
         Trainer(accelerator="gpu", devices=0)
@@ -958,3 +976,46 @@ def test_deterministic_init(deterministic):
     if deterministic:
         assert os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8"
         assert os.environ.get("HOROVOD_FUSION_THRESHOLD") == "0"
+
+
+@pytest.mark.parametrize(
+    "sync_batchnorm,plugins,expected",
+    [
+        (False, [], type(None)),
+        (True, [], NativeSyncBatchNorm),
+        (False, [NativeSyncBatchNorm()], NativeSyncBatchNorm),
+        (True, [NativeSyncBatchNorm()], NativeSyncBatchNorm),
+        (False, [Mock(spec=LayerSync)], LayerSync),
+    ],
+)
+def test_sync_batchnorm_set(tmpdir, sync_batchnorm, plugins, expected):
+    """Test valid combinations of the sync_batchnorm Trainer flag and the plugins list of layer-sync plugins."""
+    trainer = Trainer(sync_batchnorm=sync_batchnorm, plugins=plugins, strategy="ddp")
+    assert isinstance(trainer._accelerator_connector._layer_sync, expected)
+    assert isinstance(trainer.strategy._layer_sync, expected)
+
+
+def test_sync_batchnorm_invalid_choice(tmpdir):
+    """Test that a conflicting specification of enabled sync batchnorm and a custom plugin leads to an error."""
+    custom = Mock(spec=LayerSync)
+    with pytest.raises(
+        MisconfigurationException,
+        match=r"You set `Trainer\(sync_batchnorm=True\)` and provided a `LayerSync` plugin, but this is not allowed",
+    ):
+        Trainer(sync_batchnorm=True, plugins=[custom])
+
+
+@RunIf(skip_windows=True)
+def test_sync_batchnorm_set_in_custom_strategy(tmpdir):
+    """Tests if layer_sync is automatically set for custom strategy."""
+
+    class CustomParallelStrategy(DDPStrategy):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            # Set to None so it will be overwritten by the accelerator connector.
+            self._layer_sync = None
+
+    strategy = CustomParallelStrategy()
+    assert strategy._layer_sync is None
+    Trainer(strategy=strategy, sync_batchnorm=True)
+    assert isinstance(strategy._layer_sync, NativeSyncBatchNorm)

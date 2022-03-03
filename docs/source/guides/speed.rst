@@ -8,7 +8,7 @@
 
 
 #######################
-Speed up Model Training
+Speed Up Model Training
 #######################
 
 When you are limited with the resources, it becomes hard to speed up model training and reduce the training time
@@ -26,7 +26,7 @@ With Lightning, running on GPUs, TPUs, IPUs on multiple nodes is a simple switch
 GPU Training
 ============
 
-Lightning supports a variety of plugins to further speed up distributed GPU training. Most notably:
+Lightning supports a variety of plugins to speed up distributed GPU training. Most notably:
 
 * :class:`~pytorch_lightning.strategies.DDPStrategy`
 * :class:`~pytorch_lightning.strategies.DDPShardedStrategy`
@@ -48,11 +48,11 @@ GPU Training Speedup Tips
 -------------------------
 
 When training on single or multiple GPU machines, Lightning offers a host of advanced optimizations to improve throughput, memory efficiency, and model scaling.
-Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/advanced_gpu>`.
+Refer to :doc:`Advanced GPU Optimized Training for more details <../advanced/model_parallel>`.
 
-Prefer DDP over DP
+Prefer DDP Over DP
 ^^^^^^^^^^^^^^^^^^
-:class:`~pytorch_lightning.strategies.dp.DataParallelStrategy` performs 3 GPU transfers for EVERY batch:
+:class:`~pytorch_lightning.strategies.dp.DataParallelStrategy` performs three GPU transfers for EVERY batch:
 
 1. Copy the model to the device.
 2. Copy the data to the device.
@@ -65,7 +65,7 @@ Prefer DDP over DP
 
 |
 
-Whereas :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs 2 transfer operations, making DDP much faster than DP:
+Whereas :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs two transfer operations, making DDP much faster than DP:
 
 1. Moving data to the device.
 2. Transfer and sync gradients.
@@ -78,11 +78,11 @@ Whereas :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs 2 t
 |
 
 
-When using DDP Plugins, set find_unused_parameters=False
+When Using DDP Plugins, Set find_unused_parameters=False
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-By default, we have set ``find_unused_parameters=True`` for compatibility reasons that have been observed in the past (see the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
-When enabled, it can result in a performance hit, and can be disabled in most cases. Read more about it `here <https://pytorch.org/docs/stable/notes/ddp.html#internal-design>`_.
+By default, we have set ``find_unused_parameters=True`` for compatibility reasons that have been observed in the past (refer to the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
+When enabled, it can result in a performance hit and can be disabled in most cases. Read more about it `here <https://pytorch.org/docs/stable/notes/ddp.html#internal-design>`_.
 
 .. tip::
     It applies to all DDP strategies that support ``find_unused_parameters`` as input.
@@ -105,10 +105,10 @@ When enabled, it can result in a performance hit, and can be disabled in most ca
         strategy=DDPSpawnStrategy(find_unused_parameters=False),
     )
 
-When using DDP on a Multi-node Cluster, set NCCL Parameters
+When Using DDP on a Multi-node Cluster, Set NCCL Parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`NCCL <https://developer.nvidia.com/nccl>`__ is the NVIDIA Collective Communications Library which is used under the hood by PyTorch to handle communication across nodes and GPUs. There are reported benefits in terms of speedups when adjusting NCCL parameters as seen in this `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues/7179>`__. In the issue we see a 30% speed improvement when training the Transformer XLM-RoBERTa and a 15% improvement in training with Detectron2.
+`NCCL <https://developer.nvidia.com/nccl>`__ is the NVIDIA Collective Communications Library that is used by PyTorch to handle communication across nodes and GPUs. There are reported benefits in terms of speedups when adjusting NCCL parameters as seen in this `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues/7179>`__. In the issue, we see a 30% speed improvement when training the Transformer XLM-RoBERTa and a 15% improvement in training with Detectron2.
 
 NCCL parameters can be adjusted via environment variables.
 
@@ -125,7 +125,7 @@ NCCL parameters can be adjusted via environment variables.
     export NCCL_NSOCKS_PERTHREAD=4
     export NCCL_SOCKET_NTHREADS=2
 
-Dataloaders
+DataLoaders
 ^^^^^^^^^^^
 
 When building your DataLoader set ``num_workers>0`` and ``pin_memory=True`` (only for GPUs).
@@ -140,13 +140,13 @@ num_workers
 The question of how many workers to specify in ``num_workers`` is tricky. Here's a summary of `some references <https://discuss.pytorch.org/t/guidelines-for-assigning-num-workers-to-dataloader/813>`_, and our suggestions:
 
 1. ``num_workers=0`` means ONLY the main process will load batches (that can be a bottleneck).
-2. ``num_workers=1`` means ONLY one worker (just not the main process) will load data but it will still be slow.
+2. ``num_workers=1`` means ONLY one worker (just not the main process) will load data, but it will still be slow.
 3. The performance of high ``num_workers`` depends on the batch size and your machine.
 4. A general place to start is to set ``num_workers`` equal to the number of CPU cores on that machine. You can get the number of CPU cores in python using ``os.cpu_count()``, but note that depending on your batch size, you may overflow RAM memory.
 
 .. warning:: Increasing ``num_workers`` will ALSO increase your CPU memory consumption.
 
-The best thing to do is to increase the ``num_workers`` slowly and stop once you see no more improvement in your training speed.
+The best thing to do is to increase the ``num_workers`` slowly and stop once there is no more improvement in your training speed.
 
 For debugging purposes or for dataloaders that load very small datasets, it is desirable to set ``num_workers=0``. However, this will always log a warning for every dataloader with ``num_workers <= min(2, os.cpu_count())``. In such cases, you can specifically filter this warning by using:
 
@@ -156,7 +156,7 @@ For debugging purposes or for dataloaders that load very small datasets, it is d
 
     warnings.filterwarnings("ignore", ".*Consider increasing the value of the `num_workers` argument*")
 
-    # or to ignore all warnings which could be false positives
+    # or to ignore all warnings that could be false positives
     from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
     warnings.filterwarnings("ignore", category=PossibleUserWarning)
@@ -186,7 +186,7 @@ This is a limitation of Python ``.spawn()`` and PyTorch.
 TPU Training
 ============
 
-You can set the ``tpu_cores`` trainer flag to 1, [7] (specific core) or 8 cores.
+You can set the ``tpu_cores`` trainer flag to 1, [7] (specific core) or eight cores.
 
 .. code-block:: python
 
@@ -199,7 +199,7 @@ You can set the ``tpu_cores`` trainer flag to 1, [7] (specific core) or 8 cores.
     # train on 8 TPU cores
     trainer = Trainer(tpu_cores=8)
 
-To train on more than 8 cores (ie: a POD),
+To train on more than eight cores (a POD),
 submit this script using the xla_dist script.
 
 Example::
@@ -239,7 +239,7 @@ less memory bandwidth and run match operations much faster on GPUs that support 
 **Use when:**
 
 * You want to optimize for memory usage on a GPU.
-* You have a GPU that supports 16 bit precision (NVIDIA pascal architecture or newer).
+* You have a GPU that supports 16-bit precision (NVIDIA pascal architecture or newer).
 * Your optimization algorithm (training_step) is numerically stable.
 * You want to be the cool person in the lab :p
 
@@ -251,7 +251,7 @@ less memory bandwidth and run match operations much faster on GPUs that support 
 
 |
 
-Mixed precision combines the use of both 32 and 16 bit floating points to reduce memory footprint during model training, resulting in improved performance, achieving +3X speedups on modern GPUs.
+Mixed precision combines the use of both 32 and 16-bit floating points to reduce memory footprint during model training, resulting in improved performance, achieving upto +3X speedups on modern GPUs.
 
 Lightning offers mixed precision training for GPUs and CPUs, as well as bfloat16 mixed precision training for TPUs.
 
@@ -286,7 +286,7 @@ Setting ``min_epochs=N`` makes sure that the training will run for at least ``N`
     trainer = Trainer(min_epochs=1, max_epochs=1000)
 
 
-If running iteration based training, i.e. infinite / iterable dataloader, you can also control the number of steps with the ``min_steps`` and  ``max_steps`` flags:
+If running iteration based training, i.e., infinite / iterable DataLoader, you can also control the number of steps with the ``min_steps`` and  ``max_steps`` flags:
 
 .. testcode::
 
@@ -313,10 +313,10 @@ Learn more in our :ref:`trainer_flags` guide.
 Control Validation Frequency
 ****************************
 
-Check validation every n epochs
+Check Validation Every n Epochs
 ===============================
 
-**Use when:** You have a small dataset, and want to run less validation checks.
+**Use when:** You have a small dataset and want to run fewer validation checks.
 
 You can limit validation check to only run every n epochs using the ``check_val_every_n_epoch`` Trainer flag.
 
@@ -329,13 +329,13 @@ You can limit validation check to only run every n epochs using the ``check_val_
     trainer = Trainer(check_val_every_n_epoch=7)
 
 
-Validation within Training Epoch
+Validation Within Training Epoch
 ================================
 
-**Use when:** You have a large training dataset, and want to run mid-epoch validation checks.
+**Use when:** You have a large training dataset and want to run mid-epoch validation checks.
 
 For large datasets, it's often desirable to check validation multiple times within a training epoch.
-Pass in a float to check that often within 1 training epoch. Pass in an int ``K`` to check every ``K`` training batches.
+Pass in a float to check that often within one training epoch. Pass in an int ``K`` to check every ``K`` training batch.
 Must use an ``int`` if using an :class:`~torch.utils.data.IterableDataset`.
 
 .. testcode::
@@ -362,12 +362,12 @@ Preload Data Into RAM
 When your training or preprocessing requires many operations to be performed on entire dataset(s), it can
 sometimes be beneficial to store all data in RAM given there is enough space.
 However, loading all data at the beginning of the training script has the disadvantage that it can take a long
-time and hence it slows down the development process. Another downside is that in multiprocessing (e.g. DDP)
+time, and hence, it slows down the development process. Another downside is that in multiprocessing (e.g., DDP)
 the data would get copied in each process.
 One can overcome these problems by copying the data into RAM in advance.
 Most UNIX-based operating systems provide direct access to tmpfs through a mount point typically named ``/dev/shm``.
 
-0.  Increase shared memory if necessary. Refer to the documentation of your OS how to do this.
+Increase shared memory if necessary. Refer to the documentation of your OS on how to do this.
 
 1.  Copy training data to shared memory:
 
@@ -375,7 +375,7 @@ Most UNIX-based operating systems provide direct access to tmpfs through a mount
 
         cp -r /path/to/data/on/disk /dev/shm/
 
-2.  Refer to the new data root in your script or command line arguments:
+2.  Refer to the new data root in your script or command-line arguments:
 
     .. code-block:: python
 
@@ -393,8 +393,8 @@ distributed setting.
 Here is an explanation of what it does:
 
 * Considering the current optimizer as A and all other optimizers as B.
-* Toggling means that all parameters from B exclusive to A will have their ``requires_grad`` attribute set to ``False``.
-* Their original state will be restored when exiting the context manager.
+* Toggling, which means all parameters from B exclusive to A will have their ``requires_grad`` attribute set to ``False``.
+* Restoring their original state when exiting the context manager.
 
 When performing gradient accumulation, there is no need to perform grad synchronization during the accumulation phase.
 Setting ``sync_grad`` to ``False`` will block this synchronization and improve your training speed.
@@ -403,11 +403,11 @@ Setting ``sync_grad`` to ``False`` will block this synchronization and improve y
 :meth:`~pytorch_lightning.core.optimizer.LightningOptimizer.toggle_model` function as a
 :func:`contextlib.contextmanager` for advanced users.
 
-Here is an example for advanced use-case:
+Here is an example of an advanced use case:
 
 .. testcode::
 
-    # Scenario for a GAN with gradient accumulation every 2 batches and optimized for multiple gpus.
+    # Scenario for a GAN with gradient accumulation every two batches and optimized for multiple gpus.
     class SimpleGAN(LightningModule):
         def __init__(self):
             super().__init__()
@@ -469,9 +469,9 @@ Here is an example for advanced use-case:
 Set Grads to None
 *****************
 
-In order to modestly improve performance, you can override :meth:`~pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad`.
+In order to improve performance, you can override :meth:`~pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad`.
 
-For a more detailed explanation of pros / cons of this technique,
+For a more detailed explanation of the pros / cons of this technique,
 read the documentation for :meth:`~torch.optim.Optimizer.zero_grad` by the PyTorch team.
 
 .. testcode::
@@ -484,7 +484,7 @@ read the documentation for :meth:`~torch.optim.Optimizer.zero_grad` by the PyTor
 -----
 
 ***************
-Things to avoid
+Things to Avoid
 ***************
 
 .item(), .numpy(), .cpu()
@@ -496,9 +496,9 @@ takes a great deal of care to be optimized for this.
 Clear Cache
 ===========
 
-Don't call :func:`torch.cuda.empty_cache` unnecessarily! Every time you call this ALL your GPUs have to wait to sync.
+Don't call :func:`torch.cuda.empty_cache` unnecessarily! Every time you call this, ALL your GPUs have to wait to sync.
 
-Transferring tensors to device
+Transferring Tensors to Device
 ==============================
 
 LightningModules know what device they are on! Construct tensors on the device directly to avoid CPU->Device transfer.
@@ -512,7 +512,7 @@ LightningModules know what device they are on! Construct tensors on the device d
     t = torch.rand(2, 2, device=self.device)
 
 
-For tensors that need to be model attributes, it is best practice to register them as buffers in the modules's
+For tensors that need to be model attributes, it is best practice to register them as buffers in the module's
 ``__init__`` method:
 
 .. code-block:: python

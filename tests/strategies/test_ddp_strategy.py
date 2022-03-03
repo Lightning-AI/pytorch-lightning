@@ -115,6 +115,7 @@ def test_ddp_configure_ddp():
     # in DDPStrategy configure_ddp(), model wrapped by DistributedDataParallel
     assert isinstance(trainer.model, DistributedDataParallel)
 
+    ddp_strategy = DDPStrategy()
     trainer = Trainer(
         max_epochs=1,
         strategy=ddp_strategy,
