@@ -14,7 +14,7 @@ pr:
   - "release/*"
 
 jobs:
-  - job: HpuTests
+  - job: Hpu
 
     # how long to run the job before automatically cancelling
     timeoutInMinutes: "5"
@@ -29,7 +29,6 @@ jobs:
     steps:
 
     - bash: |
-        echo "Installing pytorch_lightning and required dependencies"
         python setup.py bdist_wheel
         pip install -U ./dist/pytorch_lightning*
         pip install . --requirement requirements/hpu.txt
@@ -37,17 +36,15 @@ jobs:
       continueOnError: true
 
     - bash: |
-         echo "Run Hpu tests in parallel"
          python ".azure-pipelines/run_hpu_tests.py"
       displayName: 'HPU Tests in parallel'
       continueOnError: true
 
     - bash: |
-        echo "Coverage report:"
         python -m coverage report
         python -m coverage xml
         python -m coverage html
-        python -m codecov --token=$(CODECOV_TOKEN) --commit=$(Build.SourceVersion) --flags=pytest --name="HPU Test Coverage"
+        python -m codecov --token=$(CODECOV_TOKEN) --commit=$(Build.SourceVersion) --flags=pytest,hpu --name="HPU Test Coverage"
       displayName: 'Statistics'
       continueOnError: true
 
