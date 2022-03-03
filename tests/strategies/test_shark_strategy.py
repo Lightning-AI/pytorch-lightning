@@ -41,6 +41,7 @@ def test_single_gpu():
 
     trainer.fit(model)
 
+
 class MockOptimizer:
     ...
 
