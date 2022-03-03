@@ -45,6 +45,7 @@ from pytorch_lightning.plugins.environments import (
     LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
+    cluster_environment,
 )
 from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
 from pytorch_lightning.strategies import (
@@ -711,25 +712,16 @@ class AcceleratorConnector:
 
     def _lazy_init_strategy(self) -> None:
         """Lazily set missing attributes on the previously instantiated strategy."""
-        self.strategy.accelerator = self.accelerator
-        if self.precision_plugin:
-            self.strategy.precision_plugin = self.precision_plugin
-        if self.checkpoint_io:
-            self.strategy.checkpoint_io = self.checkpoint_io
-        if hasattr(self.strategy, "cluster_environment"):
-            self.strategy.cluster_environment = self.cluster_environment
-        if hasattr(self.strategy, "parallel_devices"):
-            if self.strategy.parallel_devices:
-                self._parallel_devices = self.strategy.parallel_devices
-            else:
-                self.strategy.parallel_devices = self._parallel_devices
-        if hasattr(self.strategy, "num_nodes"):
-            self.strategy._num_nodes = self._num_nodes_flag
-        if hasattr(self.strategy, "_layer_sync"):
-            self.strategy._layer_sync = self._layer_sync
-        if hasattr(self.strategy, "set_world_ranks"):
-            self.strategy.set_world_ranks()
-        self.strategy._configure_launcher()
+        self.strategy.lazy_init(
+            accelerator=self.accelerator,
+            precision_plugin=self._precision_plugin,
+            checkpoint_io=self.checkpoint_io,
+            cluster_environment=self.cluster_environment,
+            parallel_devices=self._parallel_devices,
+            num_nodes=self._num_nodes_flag,
+            layer_sync=self._layer_sync,
+        )
+        self._parallel_devices = self.strategy.parallel_devices
 
         from pytorch_lightning.utilities import _IS_INTERACTIVE
 

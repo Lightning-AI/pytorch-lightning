@@ -125,6 +125,19 @@ class DDPStrategy(ParallelStrategy):
     def _is_single_process_single_device(self) -> bool:
         return True
 
+    def lazy_init(self, **kwargs: Any) -> None:
+        self.accelerator = kwargs.get("accelerator")
+        self.precision_plugin = kwargs.get("precision_plugin", self.precision_plugin)
+        self.checkpoint_io = kwargs.get("checkpoint_io", self.checkpoint_io)
+        self.cluster_environment = kwargs.get("cluster_environment", self.cluster_environment)
+        if not self.parallel_devices:
+            self.parallel_devices = kwargs.get("parallel_devices", None)
+        self.num_nodes = kwargs.get("num_nodes", self.num_nodes)
+        self._layer_sync = kwargs.get("layer_sync")
+
+        self.set_world_ranks()
+        self._configure_launcher()
+
     def _configure_launcher(self) -> None:
         self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
         if not self.cluster_environment.creates_processes_externally:

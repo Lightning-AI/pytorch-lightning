@@ -103,6 +103,9 @@ class Strategy(ABC):
             idx: LightningOptimizer._to_lightning_optimizer(opt, self, idx) for idx, opt in enumerate(self.optimizers)
         }
 
+    def lazy_init(self, **kwargs: Any) -> None:
+        """Called by the accelerator connector so user doesn't need to provide them during initialization."""
+
     def connect(self, model: Module) -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
         self.model = model
