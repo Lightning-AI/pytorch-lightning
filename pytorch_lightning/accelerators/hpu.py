@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Union
 
 import torch
 
@@ -23,9 +23,24 @@ from pytorch_lightning.utilities import _HPU_AVAILABLE
 class HPUAccelerator(Accelerator):
     """Accelerator for HPU devices."""
 
+    @staticmethod
+    def name() -> str:
+        """Name of the Accelerator."""
+        return "hpu"
+
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """HPU device stats aren't supported yet."""
         return {}
+
+    @staticmethod
+    def parse_devices(devices: int) -> int:
+        """Accelerator device parsing logic."""
+        return devices
+
+    @staticmethod
+    def get_parallel_devices(devices: int) -> List[int]:
+        """Gets parallel devices for the Accelerator."""
+        return list(range(devices))
 
     @staticmethod
     def auto_device_count() -> int:
