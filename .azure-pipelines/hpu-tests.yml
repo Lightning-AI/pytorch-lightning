@@ -30,3 +30,30 @@ jobs:
     - bash: |
         hwinfo --short
       displayName: 'Instance HW info'
+
+    - bash: |
+        python setup.py bdist_wheel
+        pip install -U ./dist/pytorch_lightning*
+        pip install . --requirement requirements/hpu.txt
+      displayName: 'Install dependencies'
+      continueOnError: true
+
+    - bash: |
+         python ".azure-pipelines/run_hpu_tests.py"
+      displayName: 'HPU Tests in parallel'
+      continueOnError: true
+
+    - bash: |
+        python -m coverage report
+        python -m coverage xml
+        python -m coverage html
+        python -m codecov --token=$(CODECOV_TOKEN) --commit=$(Build.SourceVersion) --flags=pytest,hpu --name="HPU Test Coverage"
+      displayName: 'Statistics'
+      continueOnError: true
+
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFiles: 'hpu*_test-results.xml'
+        testRunTitle: '$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)'
+      condition: succeededOrFailed()
+      displayName: 'Publish test results'
