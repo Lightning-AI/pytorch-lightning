@@ -58,7 +58,7 @@ from pytorch_lightning.profiler import (
     SimpleProfiler,
     XLAProfiler,
 )
-from pytorch_lightning.strategies import ParallelStrategy, SingleDeviceStrategy, Strategy
+from pytorch_lightning.strategies import ParallelStrategy, Strategy
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
@@ -2012,7 +2012,7 @@ class Trainer(
 
     @property
     def device_ids(self) -> List[int]:
-        """List of device indexes per node."""
+        """List of device indexes."""
         devices = getattr(self.strategy, "parallel_devices", [self.strategy.root_device])
         device_ids = []
         for idx, device in enumerate(devices):
@@ -2024,12 +2024,7 @@ class Trainer(
 
     @property
     def num_devices(self) -> int:
-        """Number of devices per node."""
-        if isinstance(self.strategy, SingleDeviceStrategy):
-            return 1
-        elif isinstance(self.strategy, ParallelStrategy):
-            return len(self.strategy.parallel_devices)
-        return 0
+        return len(self.strategy.parallel_devices) if isinstance(self.strategy, ParallelStrategy) else 1
 
     @property
     def num_processes(self) -> int:
