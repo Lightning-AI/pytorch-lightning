@@ -310,3 +310,20 @@ def test_mp_device_dataloader_attribute(_):
 def test_warning_if_tpus_not_used():
     with pytest.warns(UserWarning, match="TPU available but not used. Set `accelerator` and `devices`"):
         Trainer()
+
+
+@RunIf(tpu=True)
+@pytest.mark.parametrize(
+    ["trainer_kwargs", "expected_device_ids"],
+    [
+        ({"accelerator": "tpu", "devices": 1}, [0]),
+        ({"accelerator": "tpu", "devices": 8}, list(range(8))),
+        ({"accelerator": "tpu", "devices": "8"}, list(range(8))),
+        ({"accelerator": "tpu", "devices": [2]}, [2]),
+        ({"accelerator": "tpu", "devices": "2,"}, [2]),
+    ],
+)
+def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_ids):
+    trainer = Trainer(**trainer_kwargs)
+    assert trainer.device_ids == expected_device_ids
+    assert trainer.num_devices == len(expected_device_ids)
