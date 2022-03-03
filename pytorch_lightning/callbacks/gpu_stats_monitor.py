@@ -150,7 +150,7 @@ class GPUStatsMonitor(Callback):
         if self._log_stats.intra_step_time:
             self._snap_intra_step_time = time.time()
 
-        if not trainer.logger_connector.should_update_logs:
+        if not trainer._logger_connector.should_update_logs:
             return
 
         gpu_stat_keys = self._get_gpu_stat_keys()
@@ -176,7 +176,7 @@ class GPUStatsMonitor(Callback):
         if self._log_stats.inter_step_time:
             self._snap_inter_step_time = time.time()
 
-        if not trainer.logger_connector.should_update_logs:
+        if not trainer._logger_connector.should_update_logs:
             return
 
         gpu_stat_keys = self._get_gpu_stat_keys() + self._get_gpu_device_stat_keys()

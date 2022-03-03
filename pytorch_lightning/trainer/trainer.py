@@ -500,7 +500,7 @@ class Trainer(
             amp_level=amp_level,
             plugins=plugins,
         )
-        self.logger_connector = LoggerConnector(self, log_gpu_memory)
+        self._logger_connector = LoggerConnector(self, log_gpu_memory)
         self._callback_connector = CallbackConnector(self)
         self._checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
         self._signal_connector = SignalConnector(self)
@@ -614,7 +614,7 @@ class Trainer(
 
         # init logger flags
         self._loggers: List[LightningLoggerBase]
-        self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
+        self._logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
         self.val_check_interval: Union[int, float]
@@ -1210,8 +1210,8 @@ class Trainer(
         # ----------------------------
 
         # reset logger connector
-        self.logger_connector.reset_results()
-        self.logger_connector.reset_metrics()
+        self._logger_connector.reset_results()
+        self._logger_connector.reset_metrics()
 
         # strategy will configure model and move it to the device
         self.strategy.setup(self)
@@ -1302,7 +1302,7 @@ class Trainer(
         # loop should never be `None` here but it can because we don't know the trainer stage with `ddp_spawn`
         if loop is not None:
             loop.teardown()
-        self.logger_connector.teardown()
+        self._logger_connector.teardown()
         self._signal_connector.teardown()
 
     def run_stage(self) -> None:
@@ -1397,8 +1397,8 @@ class Trainer(
             self.sanity_checking = True
 
             # reset logger connector
-            self.logger_connector.reset_results()
-            self.logger_connector.reset_metrics()
+            self._logger_connector.reset_results()
+            self._logger_connector.reset_metrics()
 
             self._call_callback_hooks("on_sanity_check_start")
 
@@ -1415,8 +1415,8 @@ class Trainer(
             self._call_callback_hooks("on_sanity_check_end")
 
             # reset logger connector
-            self.logger_connector.reset_results()
-            self.logger_connector.reset_metrics()
+            self._logger_connector.reset_results()
+            self._logger_connector.reset_metrics()
 
             # reset the progress tracking state after sanity checking. we don't need to set the state before
             # because sanity check only runs when we are not restarting
@@ -2644,15 +2644,15 @@ class Trainer(
 
     @property
     def callback_metrics(self) -> dict:
-        return self.logger_connector.callback_metrics
+        return self._logger_connector.callback_metrics
 
     @property
     def logged_metrics(self) -> dict:
-        return self.logger_connector.logged_metrics
+        return self._logger_connector.logged_metrics
 
     @property
     def progress_bar_metrics(self) -> dict:
-        return self.logger_connector.progress_bar_metrics
+        return self._logger_connector.progress_bar_metrics
 
     @property
     def _results(self) -> Optional[_ResultCollection]:
