@@ -12,44 +12,45 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import os
+
+import habana_frameworks.torch.core as htcore
 import torch
 from torch.nn import functional as F
 
 import pytorch_lightning as pl
-
 from pl_examples.basic_examples.mnist_datamodule import MNISTDataModule
-
-import habana_frameworks.torch.core as htcore
 from pytorch_lightning.callbacks import HPUStatsMonitor
 from pytorch_lightning.plugins import HPUPrecisionPlugin
 from pytorch_lightning.strategies.hpu import HPUStrategy
 from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
-import argparse
+
 
 def parse_args():
     import argparse
-    parser = argparse.ArgumentParser(description='PyTorch Classification Training')
 
-    parser.add_argument('-b', '--batch-size', default=32, type=int)
-    parser.add_argument('--epochs', default=1, type=int, metavar='N',
-                        help='number of total epochs to run')
-    parser.add_argument('--hpus', default=1, type=int, metavar='N',
-                        help='number of habana accelerator for training (default: 1)')
-    parser.add_argument('--hmp', dest='is_hmp', action='store_true', help='enable habana mixed precision mode')
-    parser.add_argument('--hmp-bf16', default='', help='path to bf16 ops list in hmp O1 mode')
-    parser.add_argument('--hmp-fp32', default='', help='path to fp32 ops list in hmp O1 mode')
-    parser.add_argument('--hmp-opt-level', default='O1', help='choose optimization level for hmp')
-    parser.add_argument('--hmp-verbose', action='store_true', help='enable verbose mode for hmp')
+    parser = argparse.ArgumentParser(description="PyTorch Classification Training")
+
+    parser.add_argument("-b", "--batch-size", default=32, type=int)
+    parser.add_argument("--epochs", default=1, type=int, metavar="N", help="number of total epochs to run")
+    parser.add_argument(
+        "--hpus", default=1, type=int, metavar="N", help="number of habana accelerator for training (default: 1)"
+    )
+    parser.add_argument("--hmp", dest="is_hmp", action="store_true", help="enable habana mixed precision mode")
+    parser.add_argument("--hmp-bf16", default="", help="path to bf16 ops list in hmp O1 mode")
+    parser.add_argument("--hmp-fp32", default="", help="path to fp32 ops list in hmp O1 mode")
+    parser.add_argument("--hmp-opt-level", default="O1", help="choose optimization level for hmp")
+    parser.add_argument("--hmp-verbose", action="store_true", help="enable verbose mode for hmp")
 
     args = parser.parse_args()
 
     return args
 
-class LitClassifier(pl.LightningModule):
 
+class LitClassifier(pl.LightningModule):
     def __init__(self):
-        super(LitClassifier, self).__init__()
+        super().__init__()
 
         self.l1 = torch.nn.Linear(28 * 28, 10)
 
@@ -86,6 +87,7 @@ class LitClassifier(pl.LightningModule):
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.02)
 
+
 if __name__ == "__main__":
 
     args = parse_args()
@@ -101,8 +103,8 @@ if __name__ == "__main__":
     hmp_params = dict.fromkeys(hmp_keys)
     hmp_params["level"] = args.hmp_opt_level
     hmp_params["verbose"] = args.hmp_verbose
-    hmp_params["bf16_ops"] = args.hmp_bf16 #"./pl_examples/hpu_examples/simple_mnist/ops_bf16_mnist.txt"
-    hmp_params["fp32_ops"] = args.hmp_fp32 #"./pl_examples/hpu_examples/simple_mnist/ops_fp32_mnist.txt"
+    hmp_params["bf16_ops"] = args.hmp_bf16  # "./pl_examples/hpu_examples/simple_mnist/ops_bf16_mnist.txt"
+    hmp_params["fp32_ops"] = args.hmp_fp32  # "./pl_examples/hpu_examples/simple_mnist/ops_fp32_mnist.txt"
 
     hpu_stats = HPUStatsMonitor(log_save_dir="habana_ptl_log", exp_name="mnist")
 
@@ -124,7 +126,6 @@ if __name__ == "__main__":
         default_root_dir=os.getcwd(),
         accelerator="hpu",
     )
-
 
     # Train the model ⚡
     trainer.fit(model, datamodule=dm)

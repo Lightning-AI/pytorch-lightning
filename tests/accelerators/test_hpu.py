@@ -132,8 +132,13 @@ def test_all_stages(tmpdir):
         parallel_devices=[torch.device("hpu")] * parallel_devices,
         precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=None),
     )
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="hpu", devices=parallel_devices,
-                      strategy=hpustrat_8 if (parallel_devices == 8) else hpustrat_1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        accelerator="hpu",
+        devices=parallel_devices,
+        strategy=hpustrat_8 if (parallel_devices == 8) else hpustrat_1,
+    )
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
