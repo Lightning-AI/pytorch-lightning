@@ -130,18 +130,16 @@ def test_ddp_configure_ddp():
 
 
 @RunIf(min_gpus=1)
-def test_ddp_sync_batchnorm():
+def test_ddp_dont_configure_sync_batchnorm():
     model = BoringModelGPU()
     model.layer = torch.nn.BatchNorm1d(10)
     ddp_strategy = DDPStrategy()
     trainer = Trainer(gpus=1, strategy=ddp_strategy, sync_batchnorm=True)
-    trainer.state.fn = TrainerFn.FITTING
+    trainer.state.fn = TrainerFn.VALIDATING
     trainer.strategy.connect(model)
     trainer.lightning_module.trainer = trainer
     trainer.strategy.setup_environment()
     assert isinstance(trainer.model, LightningModule)
     trainer.strategy.setup(trainer)
-    # in DDPStrategy setup(), model wrapped by SyncBatchNorm
-    assert isinstance(trainer.strategy.model.module.module.layer, torch.nn.modules.batchnorm.SyncBatchNorm)
-    trainer.strategy.teardown()
+    # because TrainerFn is not FITTING, model is not configured with sync batchnorm
     assert not isinstance(trainer.strategy.model.layer, torch.nn.modules.batchnorm.SyncBatchNorm)
