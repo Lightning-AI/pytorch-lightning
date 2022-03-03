@@ -967,7 +967,6 @@ class DeepSpeedStrategy(ParallelStrategy):
         """
         return os.getenv("PL_RECONCILE_PROCESS", "0") == "1" or self._rank_0_will_call_children_scripts
 
-
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
             return self.model(*args, **kwargs)
