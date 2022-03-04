@@ -223,6 +223,7 @@ class CheckpointConnector:
             return
 
         self.trainer._call_callbacks_on_load_checkpoint(self._loaded_checkpoint)
+        self.trainer._call_callbacks_load_state_dict(self._loaded_checkpoint)
 
     def restore_loops(self) -> None:
         """Restores the loop progress from the pre-loaded checkpoint.
@@ -315,7 +316,8 @@ class CheckpointConnector:
                 'epoch':                     training epoch
                 'global_step':               training global step
                 'pytorch-lightning_version': The version of PyTorch Lightning that produced this checkpoint
-                'callbacks':                 "callback specific state"[] # if not weights_only
+                'callbacks':                                  # if not weights_only
+                    {callback.state_key: callback.on_save_checkpoint or callback.state_dict}
                 'optimizer_states':          "PT optim's state_dict"[]   # if not weights_only
                 'lr_schedulers':             "PT sched's state_dict"[]   # if not weights_only
                 'state_dict':                Model's state_dict (e.g. network weights)
@@ -340,7 +342,7 @@ class CheckpointConnector:
 
         if not weights_only:
             # dump callbacks
-            checkpoint["callbacks"] = self.trainer._call_callbacks_on_save_checkpoint(checkpoint)
+            checkpoint["callbacks"] = self.trainer._call_callbacks_state_dict()
 
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
@@ -382,6 +384,8 @@ class CheckpointConnector:
                 checkpoint[datamodule.__class__.__qualname__] = datamodule_state_dict
 
         # on_save_checkpoint hooks
+        if not weights_only:
+            self.trainer._call_callbacks_on_save_checkpoint(checkpoint)
         model.on_save_checkpoint(checkpoint)
         if datamodule is not None:
             datamodule.on_save_checkpoint(checkpoint)
