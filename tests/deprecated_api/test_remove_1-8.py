@@ -700,8 +700,6 @@ def test_v1_8_0_datamodule_checkpointhooks(tmpdir):
         def on_load_checkpoint(self, checkpoint):
             print("override on_load_checkpoint")
 
-    dm_save = CustomBoringDataModuleSave()
-    dm_load = CustomBoringDataModuleLoad()
     trainer = Mock()
 
     trainer.datamodule = CustomBoringDataModuleSave()
