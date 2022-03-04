@@ -1814,7 +1814,8 @@ class Trainer(
 
         if _HPU_AVAILABLE and not isinstance(self.accelerator, HPUAccelerator):
             rank_zero_warn(
-                "HPU available but not used. Set the `devices` flag in your trainer" " `Trainer(devices=8)`."
+                "HPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='hpu', devices={HPUAccelerator.auto_device_count()})`."
             )
 
     """

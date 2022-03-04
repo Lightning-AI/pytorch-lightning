@@ -94,6 +94,7 @@ class HPUClassificationModel(ClassificationModel):
         self.log("test_acc", torch.stack(outputs).mean())
 
 
+@RunIf(hpu=True)
 def test_availability():
     assert HPUAccelerator.is_available()
 
@@ -109,7 +110,6 @@ def test_fail_if_no_hpus(tmpdir):
 
 @RunIf(hpu=True)
 def test_accelerator_selected(tmpdir):
-    assert HPUAccelerator.is_available()
     trainer = Trainer(default_root_dir=tmpdir, accelerator="hpu", devices=1)
     assert isinstance(trainer.accelerator, HPUAccelerator)
 
@@ -122,9 +122,9 @@ def test_no_warning_plugin(tmpdir):
 
 
 @RunIf(hpu=True)
-def test_all_stages(tmpdir):
+def test_all_stages(tmpdir, hpus):
     model = HPUModel()
-    parallel_devices = 1
+    parallel_devices = hpus
     hpustrat_1 = HPUStrategy(
         device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=None)
     )

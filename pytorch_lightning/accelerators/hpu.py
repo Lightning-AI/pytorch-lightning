@@ -45,7 +45,7 @@ class HPUAccelerator(Accelerator):
     @staticmethod
     def auto_device_count() -> int:
         """Get the devices when set to auto."""
-        # TBD: make this configurable
+        # TODO: Update this when api is exposed by the Habana team
         return 8
 
     @staticmethod
