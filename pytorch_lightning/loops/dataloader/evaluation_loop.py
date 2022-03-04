@@ -162,9 +162,9 @@ class EvaluationLoop(DataLoaderLoop):
             self._has_run = True
 
     def on_advance_start(self) -> None:  # type: ignore[override]
-        dataloaders = self.trainer.test_dataloaders if self.trainer.testing else self.trainer.val_dataloaders
-        for dataloader in dataloaders:
-            if dataloader is not None and callable(getattr(dataloader.sampler, "set_epoch", None)):
+        dataloader = self.dataloaders[self.current_dataloader_idx]
+        if dataloader is not None and getattr(dataloader, "sampler", None):
+            if callable(getattr(dataloader.sampler, "set_epoch", None)):
                 # set seed for distributed sampler (enables shuffling for each epoch)
                 dataloader.sampler.set_epoch(self.current_epoch)
 
