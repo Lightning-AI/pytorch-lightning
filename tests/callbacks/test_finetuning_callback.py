@@ -21,6 +21,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import BackboneFinetuning, BaseFinetuning, ModelCheckpoint
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from tests.helpers import BoringModel, RandomDataset
 
 
@@ -357,7 +358,7 @@ def test_callbacks_restore(tmpdir):
     assert len(callback._internal_optimizer_metadata[0]) == 2
 
     # original parameters
-    assert callback._internal_optimizer_metadata[0][0] == {
+    expected_ = {
         "lr": 0.1,
         "momentum": 0,
         "dampening": 0,
@@ -365,6 +366,9 @@ def test_callbacks_restore(tmpdir):
         "nesterov": False,
         "params": ["layer.3.weight", "layer.3.bias"],
     }
+    if _TORCH_GREATER_EQUAL_1_11:
+        expected_.update({"maximize": False})
+    assert callback._internal_optimizer_metadata[0][0] == expected_
 
     # new param group
     assert callback._internal_optimizer_metadata[0][1] == {
