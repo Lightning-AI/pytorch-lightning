@@ -305,7 +305,7 @@ class AcceleratorConnector:
             self._precision_flag = precision
 
         if plugins:
-            plugins_flags_types_list = []
+            plugins_flags_types = Counter()
             for plugin in plugins:
                 if isinstance(plugin, Strategy) or isinstance(plugin, str) and plugin in self._registered_strategies:
                     self._strategy_flag = plugin
@@ -313,17 +313,17 @@ class AcceleratorConnector:
                         f"Passing {plugin} `strategy` to the `plugins` flag in Trainer has been deprecated"
                         f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={plugin})` instead."
                     )
-                    plugins_flags_types_list.append(Strategy.__name__)
+                    plugins_flags_types[Strategy.__name__] += 1
 
                 elif isinstance(plugin, PrecisionPlugin):
                     self._precision_plugin_flag = plugin
-                    plugins_flags_types_list.append(PrecisionPlugin.__name__)
+                    plugins_flags_types[PrecisionPlugin.__name__] += 1
                 elif isinstance(plugin, CheckpointIO):
                     self.checkpoint_io = plugin
-                    plugins_flags_types_list.append(CheckpointIO.__name__)
+                    plugins_flags_types[CheckpointIO.__name__] += 1
                 elif isinstance(plugin, ClusterEnvironment):
                     self._cluster_environment_flag = plugin
-                    plugins_flags_types_list.append("ClusterEnvironment")
+                    plugins_flags_types[ClusterEnvironment.__name__] += 1
                 elif isinstance(plugin, LayerSync):
                     if sync_batchnorm and not isinstance(plugin, NativeSyncBatchNorm):
                         raise MisconfigurationException(
@@ -331,14 +331,14 @@ class AcceleratorConnector:
                             " plugin, but this is not allowed. Choose one or the other."
                         )
                     self._layer_sync = plugin
-                    plugins_flags_types_list.append(ClusterEnvironment.__name__)
+                    plugins_flags_types[NativeSyncBatchNorm.__name__] += 1
                 else:
                     raise MisconfigurationException(
                         f"Found invalid type for plugin {plugin}. Expected PrecisionPlugin, "
                         "CheckpointIO plugin, ClusterEnviroment plugin or a Strategy."
                     )
 
-            duplicated_plugin_key = [k for k, v in Counter(plugins_flags_types_list).items() if v > 1]
+            duplicated_plugin_key = [k for k, v in plugins_flags_types.items() if v > 1]
             if duplicated_plugin_key:
                 raise MisconfigurationException(
                     f"Received multiple values for {', '.join(duplicated_plugin_key)} flags in `plugins`."
