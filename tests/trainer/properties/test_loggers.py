@@ -67,8 +67,7 @@ def test_trainer_loggers_setters():
     assert trainer.loggers == [logger1]
 
     trainer.logger = logger_collection
-    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
-        assert trainer.logger._logger_iterable == logger_collection._logger_iterable
+    assert trainer.logger._logger_iterable == logger_collection._logger_iterable
     assert trainer.loggers == [logger1, logger2]
 
     # LoggerCollection of size 1 should result in trainer.logger becoming the contained logger.
@@ -83,8 +82,7 @@ def test_trainer_loggers_setters():
     # Test setters for trainer.loggers
     trainer.loggers = [logger1, logger2]
     assert trainer.loggers == [logger1, logger2]
-    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
-        assert trainer.logger._logger_iterable == logger_collection._logger_iterable
+    assert trainer.logger._logger_iterable == logger_collection._logger_iterable
 
     trainer.loggers = [logger1]
     assert trainer.loggers == [logger1]
