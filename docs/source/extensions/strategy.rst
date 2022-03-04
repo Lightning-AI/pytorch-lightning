@@ -10,7 +10,7 @@ strategy with aliases (``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"`` and so on) as
 The Strategy in Lightning handles the following responsibilities:
 
 * Launching and teardown of training processes (if applicable)
-* Setup communication between processes (NCCL, GLOO, MPI and so on.)
+* Setup communication between processes (NCCL, GLOO, MPI, and so on).
 * Provide a unified communication interface for reduction, broadcast and so on.
 * Owns the LightningModule
 * Handles/owns optimizers and schedulers
