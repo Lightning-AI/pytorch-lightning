@@ -36,6 +36,7 @@ from pytorch_lightning.plugins.training_type.single_device import SingleDevicePl
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.profiler import AdvancedProfiler, SimpleProfiler
+from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
@@ -701,22 +702,18 @@ def test_v1_8_0_datamodule_checkpointhooks(tmpdir):
 
     dm_save = CustomBoringDataModuleSave()
     dm_load = CustomBoringDataModuleLoad()
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=2,
-        limit_val_batches=1,
-        enable_model_summary=False,
-    )
+    trainer = Mock()
 
+    trainer.datamodule = CustomBoringDataModuleSave()
     with pytest.deprecated_call(
         match="`LightningDataModule.on_save_checkpoint` was deprecated in"
         " v1.6 and will be removed in v1.8. Use `state_dict` instead."
     ):
-        trainer.fit(model, datamodule=dm_save)
+        _check_datamodule_checkpoint_hooks(trainer)
+
+    trainer.datamodule = CustomBoringDataModuleLoad()
     with pytest.deprecated_call(
         match="`LightningDataModule.on_load_checkpoint` was deprecated in"
         " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
     ):
-        trainer.fit(model, datamodule=dm_load)
+        _check_datamodule_checkpoint_hooks(trainer)
