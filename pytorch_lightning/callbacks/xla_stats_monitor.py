@@ -105,7 +105,10 @@ class XLAStatsMonitor(Callback):
         prefix = f"{self.__class__.__qualname__}{trainer.logger.group_separator}"
         for logger in trainer.loggers:
             logger.log_metrics(
-                {f"{prefix}avg. free memory (MB)": float(free_memory), f"{prefix}avg. peak memory (MB)": float(peak_memory)},
+                {
+                    f"{prefix}avg. free memory (MB)": float(free_memory),
+                    f"{prefix}avg. peak memory (MB)": float(peak_memory),
+                },
                 step=trainer.current_epoch,
             )
 
