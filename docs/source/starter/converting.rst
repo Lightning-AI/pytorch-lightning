@@ -6,12 +6,11 @@
 
 .. _converting:
 
-
 ######################################
-How to organize PyTorch into Lightning
+How to Organize PyTorch Into Lightning
 ######################################
 
-To enable your code to work with Lightning, here's how to organize PyTorch into Lightning:
+To enable your code to work with Lightning, perform the following to organize PyTorch into Lightning.
 
 --------
 

@@ -42,7 +42,7 @@ from pytorch_lightning.utilities import (
     _TORCH_GREATER_EQUAL_1_9,
     _TORCH_GREATER_EQUAL_1_10,
 )
-from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
+from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
@@ -86,7 +86,6 @@ class DDPStrategy(ParallelStrategy):
         )
         log.detail(f"{self.__class__.__name__}: initializing DDP plugin")
         self._num_nodes = 1
-        self.sync_batchnorm = False
         self._ddp_kwargs = kwargs
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
@@ -145,8 +144,8 @@ class DDPStrategy(ParallelStrategy):
         # move the model to the correct device
         self.model_to_device()
 
-        if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
+        if self._layer_sync:
+            self.model = self._layer_sync.apply(self.model)
 
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = trainer.state.fn
@@ -422,8 +421,8 @@ class DDPStrategy(ParallelStrategy):
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
 
-        if self.sync_batchnorm:
-            self.model = _revert_sync_batchnorm(self.model)
+        if self._layer_sync:
+            self.model = self._layer_sync.revert(self.model)
 
         if self.root_device.type == "cuda":
             # GPU teardown

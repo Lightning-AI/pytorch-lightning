@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from typing import Optional
+from unittest import mock
 
 import pytest
 import torch
@@ -97,7 +98,8 @@ class IPUClassificationModel(ClassificationModel):
 
 
 @pytest.mark.skipif(_IPU_AVAILABLE, reason="test requires non-IPU machine")
-def test_fail_if_no_ipus(tmpdir):
+@mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
+def test_fail_if_no_ipus(mock_ipu_acc_avail, tmpdir):
     with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
         Trainer(default_root_dir=tmpdir, ipus=1)
 

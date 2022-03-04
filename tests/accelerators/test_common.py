@@ -44,6 +44,10 @@ def test_pluggable_accelerator():
         def is_available():
             return True
 
+        @staticmethod
+        def name():
+            return "custom_acc_name"
+
     trainer = Trainer(accelerator=TestAccelerator(), devices=2, strategy="ddp")
     assert isinstance(trainer.accelerator, TestAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
