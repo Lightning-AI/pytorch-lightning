@@ -268,7 +268,7 @@ Advanced GPU Optimizations
 **************************
 
 When training on single or multiple GPU machines, Lightning offers a host of advanced optimizations to improve throughput, memory efficiency, and model scaling.
-Refer to :doc:`Advanced GPU Optimized Training <../advanced/advanced_gpu>` for more details.
+Refer to :doc:`Advanced GPU Optimized Training <../advanced/model_parallel>` for more details.
 
 ----------
 
