@@ -102,8 +102,8 @@ class XLAStatsMonitor(Callback):
         peak_memory = trainer.strategy.reduce(peak_memory) * 0.001
         epoch_time = trainer.strategy.reduce(epoch_time)
 
-        prefix = f"{self.__class__.__qualname__}{trainer.logger.group_separator}"
         for logger in trainer.loggers:
+            prefix = f"{self.__class__.__qualname__}{logger.group_separator}"
             logger.log_metrics(
                 {
                     f"{prefix}avg. free memory (MB)": float(free_memory),
