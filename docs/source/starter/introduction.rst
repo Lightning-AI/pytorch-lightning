@@ -633,9 +633,9 @@ Once you define and train your first Lightning model, you might want to try othe
 - :ref:`Load checkpoints directly from S3 <common/checkpointing:Checkpoint Loading>`
 - :doc:`Scale to massive compute clusters <../clouds/cluster>`
 - :doc:`Use multiple dataloaders per train/val/test/predict loop <../guides/data>`
-- :ref:`Use multiple optimizers to do reinforcement learning or even GANs <common/optimizers:Use multiple optimizers (like GANs)>`
+- :ref:`Use multiple optimizers to do reinforcement learning or even GANs <common/optimization:Use multiple optimizers (like GANs)>`
 
-Read our :doc:`Guide <../starter/introduction_guide>` to learn more with a step-by-step walk-through!
+Read our :doc:`Guide <../starter/core_guide>` to learn more with a step-by-step walk-through!
 
 
 -------------

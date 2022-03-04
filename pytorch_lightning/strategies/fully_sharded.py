@@ -139,8 +139,8 @@ class DDPFullyShardedStrategy(DDPStrategy):
         self.setup_precision_plugin()
         optimizers_to_device(self.optimizers, self.root_device)
 
-        if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
+        if self._layer_sync:
+            self.model = self._layer_sync.apply(self.model)
 
         self.configure_ddp()
         self.barrier()

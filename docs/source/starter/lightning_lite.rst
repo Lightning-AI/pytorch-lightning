@@ -29,7 +29,7 @@ Learn by example
 ****************
 
 
-My existing PyTorch code
+My Existing PyTorch Code
 ========================
 
 The ``run`` function contains custom training loop used to train ``MyModel`` on ``MyDataset`` for ``num_epochs`` epochs.
@@ -129,13 +129,13 @@ That's all. You can now train on any kind of device and scale your training.
 :class:`~pytorch_lightning.lite.LightningLite` takes care of device management, so you don't have to.
 You should remove any device-specific logic within your code.
 
-Here is how to train on 8 GPUs with `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision:
+Here is how to train on eight GPUs with `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision:
 
 .. code-block:: python
 
     Lite(strategy="ddp", devices=8, accelerator="gpu", precision="bf16").run(10)
 
-Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`_ with 8 GPUs and precision 16:
+Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`_ with eight GPUs and precision 16:
 
 .. code-block:: python
 
@@ -148,7 +148,7 @@ Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/ze
     Lite(devices="auto", accelerator="auto", precision=16).run(10)
 
 You can also easily use distributed collectives if required.
-Here is an example while running on 256 GPUs (8 GPUs times 32 nodes).
+Here is an example while running on 256 GPUs (eight GPUs times 32 nodes).
 
 .. code-block:: python
 
@@ -199,7 +199,7 @@ utility to move an object to the current device.
 .. tip::
 
     If you have hundreds or thousands of lines within your :meth:`~pytorch_lightning.lite.LightningLite.run` function
-    and you are feeling weird about it then this is right feeling.
+    and you are feeling unsure about them, then that is the correct feeling.
     In 2019, our :class:`~pytorch_lightning.core.lightning.LightningModule` was getting larger
     and we got the same feeling, so we started to organize our code for simplicity, interoperability and standardization.
     This is definitely a good sign that you should consider refactoring your code and / or switching to
@@ -235,7 +235,7 @@ but there are several major challenges ahead of you now:
 
 
 If you are facing one of those challenges, then you are already meeting the limit of :class:`~pytorch_lightning.lite.LightningLite`.
-We recommend you to convert to :doc:`Lightning <../starter/new-project>`, so you never have to worry about those.
+We recommend you to convert to :doc:`Lightning <../starter/introduction>`, so you never have to worry about those.
 
 ----------
 

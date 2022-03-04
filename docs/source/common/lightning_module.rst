@@ -1060,7 +1060,7 @@ automatic_optimization
 When set to ``False``, Lightning does not automate the optimization process. This means you are responsible for handling
 your optimizers. However, we do take care of precision and any accelerators used.
 
-See :ref:`manual optimization<common/optimizers:Manual optimization>` for details.
+See :ref:`manual optimization<common/optimization:Manual optimization>` for details.
 
 .. code-block:: python
 

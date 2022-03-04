@@ -1331,7 +1331,7 @@ class LightningModule(
         """Call this directly from your :meth:`training_step` when doing optimizations manually. By using this,
         Lightning can ensure that all the proper scaling gets applied when using mixed precision.
 
-        See :ref:`manual optimization<common/optimizers:Manual optimization>` for more examples.
+        See :ref:`manual optimization<common/optimization:Manual optimization>` for more examples.
 
         Example::
 

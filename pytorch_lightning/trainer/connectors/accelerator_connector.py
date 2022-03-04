@@ -46,6 +46,7 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
+from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
 from pytorch_lightning.strategies import (
     DDP2Strategy,
     DDPFullyShardedStrategy,
@@ -150,7 +151,6 @@ class AcceleratorConnector:
         # TODO: move to gpu accelerator
         torch.backends.cudnn.benchmark = self.benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
-        self.sync_batchnorm = sync_batchnorm
         self._init_deterministic(deterministic)
 
         # 1. Parsing flags
@@ -169,6 +169,7 @@ class AcceleratorConnector:
         self._precision_plugin_flag: Optional[PrecisionPlugin] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
         self._parallel_devices: List[Union[int, torch.device]] = []
+        self._layer_sync: Optional[LayerSync] = NativeSyncBatchNorm() if sync_batchnorm else None
         self.checkpoint_io: Optional[CheckpointIO] = None
         self._amp_type_flag: Optional[LightningEnum] = None
         self._amp_level_flag: Optional[str] = amp_level
@@ -180,6 +181,7 @@ class AcceleratorConnector:
             plugins=plugins,
             amp_type=amp_type,
             amp_level=amp_level,
+            sync_batchnorm=sync_batchnorm,
         )
         self._check_device_config_and_set_final_flags(
             devices=devices, num_nodes=num_nodes, num_processes=num_processes, gpus=gpus, ipus=ipus, tpu_cores=tpu_cores
@@ -230,6 +232,7 @@ class AcceleratorConnector:
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]],
         amp_type: str,
         amp_level: Optional[str],
+        sync_batchnorm: bool,
     ) -> None:
         """This method checks:
 
@@ -317,6 +320,13 @@ class AcceleratorConnector:
                     self.checkpoint_io = plugin
                 elif isinstance(plugin, ClusterEnvironment):
                     self._cluster_environment_flag = plugin
+                elif isinstance(plugin, LayerSync):
+                    if sync_batchnorm and not isinstance(plugin, NativeSyncBatchNorm):
+                        raise MisconfigurationException(
+                            f"You set `Trainer(sync_batchnorm=True)` and provided a `{plugin.__class__.__name__}`"
+                            " plugin, but this is not allowed. Choose one or the other."
+                        )
+                    self._layer_sync = plugin
                 else:
                     raise MisconfigurationException(
                         f"Found invalid type for plugin {plugin}. Expected a precision plugin or training strategy."
@@ -354,13 +364,21 @@ class AcceleratorConnector:
                 else:
                     self._cluster_environment_flag = getattr(self._strategy_flag, "cluster_environment")
 
-            # TODO: RFC existing accel_conn doesn't handle this, should we add conflict check?
-            #   eg: parallel_device is torch.device(cpu) but accelerator=gpu
             if hasattr(self._strategy_flag, "parallel_devices"):
                 if self._strategy_flag.parallel_devices:
                     if self._strategy_flag.parallel_devices[0].type == "cpu":
+                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "cpu"):
+                            raise MisconfigurationException(
+                                f"CPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                            )
                         self._accelerator_flag = "cpu"
                     if self._strategy_flag.parallel_devices[0].type == "cuda":
+                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "gpu"):
+                            raise MisconfigurationException(
+                                f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                            )
                         self._accelerator_flag = "gpu"
                     self._parallel_devices = self._strategy_flag.parallel_devices
 
@@ -455,16 +473,15 @@ class AcceleratorConnector:
         return "cpu"
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
-        # TODO add device availability check
+        ACCELERATORS = {
+            "cpu": CPUAccelerator,
+            "gpu": GPUAccelerator,
+            "tpu": TPUAccelerator,
+            "ipu": IPUAccelerator,
+        }
         if isinstance(self._accelerator_flag, Accelerator):
             self.accelerator: Accelerator = self._accelerator_flag
         else:
-            ACCELERATORS = {
-                "cpu": CPUAccelerator,
-                "gpu": GPUAccelerator,
-                "tpu": TPUAccelerator,
-                "ipu": IPUAccelerator,
-            }
             assert self._accelerator_flag is not None
             self._accelerator_flag = self._accelerator_flag.lower()
             if self._accelerator_flag not in ACCELERATORS:
@@ -474,6 +491,15 @@ class AcceleratorConnector:
                 )
             accelerator_class = ACCELERATORS[self._accelerator_flag]
             self.accelerator = accelerator_class()  # type: ignore[abstract]
+
+        if not self.accelerator.is_available():
+            available_accelerator = [acc_str for acc_str in list(ACCELERATORS) if ACCELERATORS[acc_str].is_available()]
+            raise MisconfigurationException(
+                f"{self.accelerator.__class__.__qualname__} can not run on your system"
+                f" since {self.accelerator.name().upper()}s are not available."
+                " The following accelerator(s) is available and can be passed into"
+                f" `accelerator` argument of `Trainer`: {available_accelerator}."
+            )
 
         self._set_devices_flag_if_auto_passed()
 
@@ -715,8 +741,8 @@ class AcceleratorConnector:
                 self.strategy.parallel_devices = self._parallel_devices
         if hasattr(self.strategy, "num_nodes"):
             self.strategy._num_nodes = self._num_nodes_flag
-        if hasattr(self.strategy, "sync_batchnorm"):
-            self.strategy.sync_batchnorm = self.sync_batchnorm
+        if hasattr(self.strategy, "_layer_sync"):
+            self.strategy._layer_sync = self._layer_sync
         if hasattr(self.strategy, "set_world_ranks"):
             self.strategy.set_world_ranks()
         self.strategy._configure_launcher()
