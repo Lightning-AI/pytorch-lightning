@@ -22,9 +22,8 @@ from torch.distributed import Backend, get_backend
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
-from pytorch_lightning.utilities import rank_zero_warn
-
 import pytorch_lightning as pl
+from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.imports import (
     _HPU_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_8,
