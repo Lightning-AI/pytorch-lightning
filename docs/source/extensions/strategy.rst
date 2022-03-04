@@ -5,7 +5,7 @@ Strategy
 ########
 
 Strategy controls the model distribution across training, evaluation, and prediction to be used by the :doc:`Trainer <../common/trainer>`. It can be controlled by passing different
-strategy with aliases (``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"`` and so on.) as well as custom strategy to the ``strategy`` parameter for Trainer.
+strategy with aliases (``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"`` and so on) as well as a custom strategy to the ``strategy`` parameter for Trainer.
 
 The Strategy in Lightning handles the following responsibilities:
 
