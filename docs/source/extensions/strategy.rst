@@ -69,7 +69,7 @@ Expert users may choose to extend an existing strategy by overriding its methods
             )
 
 or by subclassing the base class :class:`~pytorch_lightning.strategies.Strategy` to create new ones. These custom strategies
-can then be passed into the Trainer directly via the ``strategy`` parameter.
+can then be passed into the ``Trainer`` directly via the ``strategy`` parameter.
 
 .. code-block:: python
 
