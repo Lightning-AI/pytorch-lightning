@@ -23,7 +23,6 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 
 
@@ -100,9 +99,7 @@ def test_trainer_save_checkpoint_storage_options(tmpdir):
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=1,
-        limit_val_batches=0,
+        fast_dev_run=True,
         enable_checkpointing=False,
     )
     trainer.fit(model)
@@ -125,7 +122,7 @@ def test_trainer_save_checkpoint_storage_options(tmpdir):
 
     torch_checkpoint_io = TorchCheckpointIO()
     with pytest.raises(
-        MisconfigurationException,
+        TypeError,
         match=r"`Trainer.save_checkpoint\(..., storage_options=...\)` with `storage_options` arg"
         f" is not supported for `{torch_checkpoint_io.__class__.__name__}`. Please implement your custom `CheckpointIO`"
         " to define how you'd like to use `storage_options`.",
@@ -133,7 +130,7 @@ def test_trainer_save_checkpoint_storage_options(tmpdir):
         torch_checkpoint_io.save_checkpoint({}, instance_path, storage_options=instance_storage_options)
     xla_checkpoint_io = XLACheckpointIO()
     with pytest.raises(
-        MisconfigurationException,
+        TypeError,
         match=r"`Trainer.save_checkpoint\(..., storage_options=...\)` with `storage_options` arg"
         f" is not supported for `{xla_checkpoint_io.__class__.__name__}`. Please implement your custom `CheckpointIO`"
         " to define how you'd like to use `storage_options`.",
