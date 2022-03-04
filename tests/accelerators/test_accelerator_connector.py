@@ -26,7 +26,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
-from pytorch_lightning.plugins import LayerSync, DoublePrecisionPlugin, NativeSyncBatchNorm, PrecisionPlugin
+from pytorch_lightning.plugins import DoublePrecisionPlugin, LayerSync, NativeSyncBatchNorm, PrecisionPlugin
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -1020,6 +1020,7 @@ def test_sync_batchnorm_set_in_custom_strategy(tmpdir):
     assert strategy._layer_sync is None
     Trainer(strategy=strategy, sync_batchnorm=True)
     assert isinstance(strategy._layer_sync, NativeSyncBatchNorm)
+
 
 @pytest.mark.parametrize(
     ["plugins", "expected"],
