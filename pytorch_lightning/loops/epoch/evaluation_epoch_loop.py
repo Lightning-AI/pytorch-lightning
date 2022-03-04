@@ -150,14 +150,6 @@ class EvaluationEpochLoop(Loop):
             # if fault tolerant is enabled and process has been notified, exit.
             self.trainer._exit_gracefully_on_signal()
 
-    def on_advance_start(self) -> None:  # type: ignore[override]
-        if self.trainer.val_dataloader is not None and callable(
-            getattr(self.trainer.val_dataloader.sampler, "set_epoch", None)
-        ):
-            # TODO: Raise a warning here
-            # set seed for distributed sampler (enables shuffling for each epoch)
-            self.trainer.val_dataloader.sampler.set_epoch(self.current_epoch)
-
     def on_run_end(self) -> EPOCH_OUTPUT:
         """Returns the outputs of the whole run."""
         outputs, self._outputs = self._outputs, []  # free memory
