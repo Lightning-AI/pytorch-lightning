@@ -12,7 +12,7 @@ The Strategy in PyTorch Lightning handles the following responsibilities:
 * Launch and teardown of training processes (if applicable).
 * Setup communication between processes (NCCL, GLOO, MPI, and so on).
 * Provide a unified communication interface for reduction, broadcast, and so on.
-* Owns the LightningModule
+* Owns the :class:`~pytorch_lightning.core.lightning.LightningModule`
 * Handles/owns optimizers and schedulers.
 
 
