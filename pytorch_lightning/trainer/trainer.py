@@ -2025,7 +2025,7 @@ class Trainer(
     @property
     def num_devices(self) -> int:
         """Number of devices the trainer uses per node."""
-        return len(self.strategy.parallel_devices) if isinstance(self.strategy, ParallelStrategy) else 1
+        return len(self.device_ids)
 
     @property
     def num_processes(self) -> int:
@@ -2048,7 +2048,7 @@ class Trainer(
         return self._accelerator_connector.num_gpus
 
     @property
-    def devices(self) -> Optional[Union[List[int], str, int]]:
+    def devices(self) -> int:
         rank_zero_deprecation(
             "`Trainer.devices` was deprecated in v1.6 and will be removed in v1.8."
             " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
