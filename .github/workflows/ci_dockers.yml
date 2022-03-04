@@ -125,7 +125,6 @@ jobs:
         # the config used in 'dockers/ipu-ci-runner/Dockerfile'
         python_version: ["3.9"]  # latest
         pytorch_version: ["1.9"]
-
     steps:
       - name: Checkout
         uses: actions/checkout@v2
