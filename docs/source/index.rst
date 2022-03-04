@@ -14,7 +14,7 @@ Welcome to PyTorch Lightning
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Learn how to leverage the PyTorch Lightning features for your ML projects with ease in this quickstart guide.
+   :description: Learn how to leverage the PyTorch Lightning features for your Machine Learning projects with ease in this quickstart guide.
    :header: Introduction
    :button_link:  starter/introduction.html
    :button_text: Get started with PyTorch Lightning
