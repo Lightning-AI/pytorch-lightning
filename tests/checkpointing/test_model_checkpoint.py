@@ -1217,8 +1217,8 @@ def test_model_checkpoint_saveload_ckpt(tmpdir):
             "kth_best_model_path": False,
             "kth_value": False,
             "best_k_models": False,
+            "last_model_path": False,
             "best_model_path": True,
-            "last_model_path": True,
         }
         for key, should_match in expected_keys.items():
             if should_match:
