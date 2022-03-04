@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from tests.loggers.test_base import CustomLogger
@@ -50,8 +52,10 @@ def test_trainer_loggers_setters():
     """Test the behavior of setters for trainer.logger and trainer.loggers."""
     logger1 = CustomLogger()
     logger2 = CustomLogger()
-    logger_collection = LoggerCollection([logger1, logger2])
-    logger_collection_2 = LoggerCollection([logger2])
+    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
+        logger_collection = LoggerCollection([logger1, logger2])
+    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
+        logger_collection_2 = LoggerCollection([logger2])
 
     trainer = Trainer()
     assert type(trainer.logger) == TensorBoardLogger
