@@ -2623,7 +2623,9 @@ class Trainer(
                 " This behavior will change in v1.8 when LoggerCollection is removed, and"
                 " trainer.logger will return the first logger in trainer.loggers"
             )
-            return LoggerCollection(self.loggers)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                return LoggerCollection(self.loggers)
 
     @logger.setter
     def logger(self, logger: Optional[LightningLoggerBase]) -> None:
