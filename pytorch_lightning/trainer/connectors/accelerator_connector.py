@@ -15,7 +15,7 @@
 import logging
 import os
 from collections import Counter
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import torch
 
@@ -305,7 +305,7 @@ class AcceleratorConnector:
             self._precision_flag = precision
 
         if plugins:
-            plugins_flags_types = Counter()
+            plugins_flags_types: Dict[str, int] = Counter()
             for plugin in plugins:
                 if isinstance(plugin, Strategy) or isinstance(plugin, str) and plugin in self._registered_strategies:
                     self._strategy_flag = plugin
