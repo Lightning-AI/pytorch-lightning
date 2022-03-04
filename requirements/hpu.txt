@@ -1,0 +1,5 @@
+sklearn
+pytest
+coverage
+pytest-forked
+codecov
