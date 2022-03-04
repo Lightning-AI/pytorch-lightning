@@ -96,12 +96,12 @@ class PredictionLoop(DataLoaderLoop):
         self.predictions.append(dl_predictions)
         self.epoch_batch_indices.append(dl_batch_indices)
 
-    def on_advance_start(self) -> None:
-        if self.trainer.predict_dataloader is not None and callable(
-            getattr(self.trainer.predict_dataloader, "set_epoch", None)
-        ):
-            # set seed for distributed sampler (enables shuffling for each epoch)
-            self.trainer.predict_dataloader.sampler.set_epoch(self.current_epoch)
+    def on_advance_start(self) -> None:  # type: ignore[override]
+        dataloaders = self.trainer.predict_dataloaders
+        for _dataloader in dataloaders:
+            if _dataloader is not None and callable(getattr(_dataloader, "set_epoch", None)):
+                # set seed for distributed sampler (enables shuffling for each epoch)
+                _dataloader.sampler.set_epoch(self.current_epoch)
 
     def on_run_end(self) -> Optional[_PREDICT_OUTPUT]:
         """Calls ``on_predict_epoch_end`` and ``on_predict_end`` hooks and returns results from all dataloaders."""
