@@ -16,7 +16,7 @@ The Strategy in PyTorch Lightning handles the following responsibilities:
 * Handles/owns optimizers and schedulers.
 
 
-:class:`~pytorch_lightning.strategies.strategy.Strategy` also manages the accelerator, precision and the checkpointing plugins.
+:class:`~pytorch_lightning.strategies.strategy.Strategy` also manages the accelerator, precision, and checkpointing plugins.
 
 
 ****************************************
