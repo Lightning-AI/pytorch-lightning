@@ -29,7 +29,7 @@ dependencies:
     - python>=3.7
     - pip>20.1
     - numpy>=1.17.2
-    - pytorch>=1.7.*
+    - pytorch>=1.8.*
     - future>=0.17.1
     - PyYAML>=5.1
     - tqdm>=4.41.0
@@ -44,7 +44,7 @@ dependencies:
     - torchtext>=0.8.*
 
     # Examples
-    - torchvision>=0.8.*
+    - torchvision>=0.9.*
 
     - pip:
         - test-tube>=0.7.5
