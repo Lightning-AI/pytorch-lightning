@@ -9,7 +9,7 @@ strategy with aliases (``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"`` and so on) as
 
 The Strategy in PyTorch Lightning handles the following responsibilities:
 
-* Launching and teardown of training processes (if applicable)
+* Launch and teardown of training processes (if applicable).
 * Setup communication between processes (NCCL, GLOO, MPI, and so on).
 * Provide a unified communication interface for reduction, broadcast and so on.
 * Owns the LightningModule
