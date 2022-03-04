@@ -21,7 +21,7 @@ import torch
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.loggers import CSVLogger, LightningLoggerBase
+from pytorch_lightning.loggers import CSVLogger, LightningLoggerBase, LoggerCollection
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
@@ -660,6 +660,23 @@ def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list)
     recorded_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
     expected_total_duration = np.sum(expected)
     np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
+
+
+def test_v1_8_0_logger_collection(tmpdir):
+    logger1 = CSVLogger(tmpdir)
+    logger2 = CSVLogger(tmpdir)
+
+    trainer1 = Trainer(logger=logger1)
+    trainer2 = Trainer(logger=[logger1, logger2])
+
+    # Should have no deprecation warning
+    trainer1.logger
+    trainer1.loggers
+    trainer2.loggers
+    trainer2.logger
+
+    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
+        LoggerCollection([logger1, logger2])
 
 
 def test_v1_8_0_precision_plugin_checkpoint_hooks(tmpdir):
