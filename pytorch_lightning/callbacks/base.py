@@ -294,6 +294,22 @@ class Callback:
     def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
         """Called when any trainer execution is interrupted by an exception."""
 
+    def state_dict(self) -> Dict[str, Any]:
+        """Called when saving a checkpoint, implement to generate callback's ``state_dict``.
+
+        Returns:
+            A dictionary containing callback state.
+        """
+        return {}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        """Called when loading a checkpoint, implement to reload callback state given callback's ``state_dict``.
+
+        Args:
+            state_dict: the callback state returned by ``state_dict``.
+        """
+        pass
+
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
     ) -> dict:
