@@ -23,7 +23,6 @@ from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.imports import (
     _HPU_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_8,
@@ -139,7 +138,7 @@ def sync_ddp(
         is_hpu_backend = group_backend == torch.distributed.Backend(str(dist_backend))
         if is_hpu_backend:
             if (result.type() == "torch.LongTensor") or (result.type() == "torch.hpu.LongTensor"):
-                rank_zero_warn("Long tensor unsupported, downcasting to float")
+                new_rank_zero_info("Long tensor unsupported, casting to float")
                 result = result.float()
 
     # sync all processes before reduction
