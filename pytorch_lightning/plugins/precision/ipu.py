@@ -30,7 +30,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
     """Precision plugin for IPU integration.
 
     Raises:
-        MisconfigurationException:
+        ValueError:
             If the precision is neither 16 nor 32.
     """
 
