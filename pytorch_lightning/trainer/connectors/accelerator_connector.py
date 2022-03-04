@@ -335,7 +335,7 @@ class AcceleratorConnector:
                 else:
                     raise MisconfigurationException(
                         f"Found invalid type for plugin {plugin}. Expected PrecisionPlugin, "
-                        "CheckpointIO plugin, ClusterEnviroment plugin or a training strategy."
+                        "CheckpointIO plugin, ClusterEnviroment plugin or a Strategy."
                     )
 
             duplicated_plugin_key = [k for k, v in Counter(plugins_flags_types_list).items() if v > 1]
