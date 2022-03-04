@@ -51,10 +51,12 @@ def test_fx_validator(tmpdir):
         "on_keyboard_interrupt",
         "on_exception",
         "on_load_checkpoint",
+        "load_state_dict",
         "on_pretrain_routine_end",
         "on_pretrain_routine_start",
         "on_sanity_check_end",
         "on_sanity_check_start",
+        "state_dict",
         "on_save_checkpoint",
         "on_test_batch_end",
         "on_test_batch_start",
@@ -94,6 +96,7 @@ def test_fx_validator(tmpdir):
         "on_keyboard_interrupt",
         "on_exception",
         "on_load_checkpoint",
+        "load_state_dict",
         "on_pretrain_routine_end",
         "on_pretrain_routine_start",
         "on_sanity_check_end",
@@ -104,6 +107,7 @@ def test_fx_validator(tmpdir):
         "on_predict_epoch_end",
         "on_predict_epoch_start",
         "on_predict_start",
+        "state_dict",
         "on_save_checkpoint",
         "on_test_end",
         "on_train_end",
@@ -155,7 +159,12 @@ def test_fx_validator(tmpdir):
 
 class HookedCallback(Callback):
     def __init__(self, not_supported):
-        def call(hook, trainer, model=None, *_, **__):
+        def call(hook, trainer=None, model=None, *_, **__):
+            if trainer is None:
+                # `state_dict`, `load_state_dict` do not have the `Trainer` available
+                assert hook in ("state_dict", "load_state_dict")
+                return
+
             lightning_module = trainer.lightning_module or model
             if lightning_module is None:
                 # `on_init_{start,end}` do not have the `LightningModule` available
