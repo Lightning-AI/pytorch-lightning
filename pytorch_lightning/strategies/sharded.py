@@ -25,6 +25,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE
+from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 if _FAIRSCALE_AVAILABLE:
@@ -56,6 +57,11 @@ class DDPShardedStrategy(DDPStrategy):
         trainer_fn = trainer.state.fn
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
+
+        self.accelerator.setup(trainer)
+        self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
+        optimizers_to_device(self.optimizers, self.root_device)
 
     def configure_ddp(self) -> None:
         trainer = self.lightning_module.trainer
