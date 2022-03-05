@@ -52,6 +52,7 @@ from pytorch_lightning.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_11,
 )
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -151,6 +152,8 @@ class DDPStrategy(ParallelStrategy):
         if self._should_run_deadlock_detection():
             self._share_information_to_prevent_deadlock()
 
+        self.accelerator.setup(trainer)
+
         # move the model to the correct device
         self.model_to_device()
 
@@ -165,7 +168,10 @@ class DDPStrategy(ParallelStrategy):
         self.configure_ddp()
 
         # set up optimizers after the wrapped module has been moved to the device
-        super().setup(trainer)
+        self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
+        optimizers_to_device(self.optimizers, self.root_device)
+
         if _TORCH_GREATER_EQUAL_1_10 and trainer.state.fn == TrainerFn.FITTING:
             import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
@@ -276,6 +282,7 @@ class DDPStrategy(ParallelStrategy):
             optimizers[x] = post_localSGD_optimizer
             del optimizer
         self.optimizers = optimizers
+        optimizers_to_device(self.optimizers, self.root_device)
 
     def configure_ddp(self) -> None:
         log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")

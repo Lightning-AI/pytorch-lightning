@@ -47,6 +47,8 @@ class DDPShardedStrategy(DDPStrategy):
         if self._should_run_deadlock_detection():
             self._share_information_to_prevent_deadlock()
 
+        self.accelerator.setup(trainer)
+
         # move the model to the correct device
         self.model_to_device()
 
@@ -58,7 +60,6 @@ class DDPShardedStrategy(DDPStrategy):
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
 
-        self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
         optimizers_to_device(self.optimizers, self.root_device)
