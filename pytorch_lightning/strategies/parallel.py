@@ -116,13 +116,6 @@ class ParallelStrategy(Strategy, ABC):
         decision = bool(decision == self.world_size)
         return decision
 
-    @property
-    def torch_distributed_backend(self):
-        torch_backend = os.getenv("PL_TORCH_DISTRIBUTED_BACKEND")
-        if torch_backend is None:
-            torch_backend = "nccl" if self.root_device.type == "cuda" else "gloo"
-        return torch_backend
-
     @contextmanager
     def block_backward_sync(self):
         """Blocks ddp sync gradients behaviour on backwards pass.

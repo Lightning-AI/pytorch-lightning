@@ -44,7 +44,6 @@ from pytorch_lightning.utilities import (
 )
 from pytorch_lightning.utilities.distributed import (
     _get_process_group_backend_from_env,
-    _revert_sync_batchnorm,
     distributed_available,
     get_default_process_group_backend_for_device,
 )
