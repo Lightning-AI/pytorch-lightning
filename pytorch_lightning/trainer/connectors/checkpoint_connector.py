@@ -27,7 +27,6 @@ from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
 from pytorch_lightning.utilities.types import _PATH
@@ -408,11 +407,7 @@ class CheckpointConnector:
         self.trainer.strategy.save_checkpoint(_checkpoint, filepath)
 
     def _get_lightning_module_state_dict(self) -> Dict[str, torch.Tensor]:
-        metrics = (
-            [m for m in self.trainer.lightning_module.modules() if isinstance(m, Metric)]
-            if _fault_tolerant_training()
-            else []
-        )
+        metrics = [m for m in self.trainer.lightning_module.modules() if isinstance(m, Metric)]
 
         for metric in metrics:
             metric.persistent(True)

@@ -17,12 +17,14 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+from torchmetrics import Metric
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 
 # TODO: remove HPCHookedModel in v1.8
@@ -191,3 +193,46 @@ def test_loops_restore(tmpdir):
             if fn2 not in (fn, TrainerFn.TUNING):
                 trainer_loop2 = getattr(trainer, f"{fn2}_loop")
                 trainer_loop2.load_state_dict.assert_not_called()
+
+
+class DummyMetric(Metric):
+    def __init__(self):
+        super().__init__()
+        self.add_state("x", torch.tensor(0))
+
+    def update(self, x):
+        self.x += x
+
+    def compute(self):
+        return self.x
+
+
+class BoringModelWithMetric(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.dummy_metric = DummyMetric()
+
+    def training_step(self, batch, batch_idx):
+        self.dummy_metric.update(batch_idx)
+        return super().training_step(batch, batch_idx)
+
+
+@RunIf(min_gpus=2)
+def test_metric_load_and_save(tmpdir):
+    model = BoringModelWithMetric()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=1,
+        accelerator="gpu",
+        devices=2,
+        logger=False,
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_weights_only=True)],
+    )
+    trainer.fit(model)
+    checkpoint_path = trainer.checkpoint_callback.best_model_path
+    rank_0_local_state = model.dummy_metric.x
+    restored_model = BoringModelWithMetric.load_from_checkpoint(checkpoint_path)
+
+    # Rank 0 should restore from synced state, which is a stacked tensor across process
+    assert torch.equal(restored_model.dummy_metric.x, torch.tensor([0, 0]))
+    assert torch.equal(rank_0_local_state, torch.tensor(0))
