@@ -612,24 +612,16 @@ def test_dp_resume(tmpdir):
             super().__init__()
             self.on_train_start_called = False
 
-        # set the epoch start hook so we can predict before the model does the full training
-        def on_train_start(self):
+        def on_validation_start(self):
             assert self.trainer.current_epoch == real_global_epoch and self.trainer.current_epoch > 0
-
-            # if model and state loaded correctly, predictions will be good even though we
-            # haven't trained with the new loaded model
-            # new_trainer.state.stage = RunningStage.VALIDATING
-
-            # dataloader = dm.train_dataloader()
-            # tpipes.run_model_prediction(self.trainer.lightning_module, dataloader=dataloader)
-            self.on_train_start_called = True
+            dataloader = dm.val_dataloader()
+            tpipes.run_model_prediction(self.trainer.lightning_module, dataloader=dataloader)
 
     # new model
     model = CustomModel()
 
-    # fit new model which should load hpc weights
-    new_trainer.fit(model, datamodule=dm)
-    assert model.on_train_start_called
+    # validate new model which should load hpc weights
+    new_trainer.validate(model, datamodule=dm, ckpt_path=hpc_save_path)
 
     # test freeze on gpu
     model.freeze()
