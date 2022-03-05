@@ -16,6 +16,7 @@ from typing import Callable, Union
 
 import pytest
 import torch
+from torchmetrics import Metric
 from torchmetrics.functional import mean_absolute_percentage_error as mape
 
 from pytorch_lightning import seed_everything, Trainer
@@ -243,5 +244,8 @@ def test_quantization_val_test_predict(tmpdir):
 
     expected_state_dict = expected_qmodel.state_dict()
     for key, value in val_test_predict_qmodel.state_dict().items():
-        expected_value = expected_state_dict[key]
-        assert torch.allclose(value, expected_value)
+        # validate and test will affect metric module state, other modules should be comparable.
+        submodule = getattr(val_test_predict_qmodel, key.split(".")[0])
+        if not isinstance(submodule, Metric):
+            expected_value = expected_state_dict[key]
+            assert torch.allclose(value, expected_value)

@@ -755,6 +755,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed to avoid common hook warning if no hook is overridden ([#12131](https://github.com/PyTorchLightning/pytorch-lightning/pull/12131))
 
 
+- Fixed an issue that metric states are incorretly saved and restored on checkpointing when `_fault_tolerant_training() = False` ([#12236](https://github.com/PyTorchLightning/pytorch-lightning/pull/12236))
+
+
 ## [1.5.10] - 2022-02-08
 
 ### Fixed
