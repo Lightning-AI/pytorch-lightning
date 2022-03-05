@@ -27,9 +27,8 @@ jobs:
         exclude:
           # Skip if torch<1.8 and py3.9 on Linux: https://github.com/pytorch/pytorch/issues/50014
           - {os: ubuntu-20.04, python-version: "3.9", requires: "oldest"}
-        #include:
-          # nightly: add when there's a release candidate
-          #- {os: ubuntu-20.04, python-version: "3.10", requires: "latest", release: "pre"}
+        include:
+          - {os: ubuntu-20.04, python-version: "3.10", requires: "latest", release: "pre"}
 
     timeout-minutes: 40
 
