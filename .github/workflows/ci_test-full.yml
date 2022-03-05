@@ -93,7 +93,7 @@ jobs:
     - name: Install dependencies
       run: |
         flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
-        pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade $flag
+        pip install --requirement requirements.txt --upgrade $flag --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --find-links https://download.pytorch.org/whl/test/cpu/torch_test.html
         # adjust versions according installed Torch version
         python ./requirements/adjust_versions.py requirements/examples.txt
         pip install --requirement requirements/examples.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
