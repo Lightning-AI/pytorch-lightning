@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.8.0."""
-import time
 import os
+import time
 from unittest import mock
 from unittest.mock import Mock
 
@@ -839,3 +839,35 @@ def test_v1_8_0_torch_distributed_backend_env():
         " was deprecated in v1.6 and will be removed in v1.8."
     ):
         _get_process_group_backend_from_env()
+
+
+def test_parallel_strategy_torch_distributed_backend():
+    class CustomParallel(ParallelStrategy):
+        @property
+        def root_device(self) -> torch.device:
+            return torch.device("cpu")
+
+        def model_to_device(self):
+            pass
+
+        @property
+        def is_global_zero(self):
+            return True
+
+        def broadcast(self, obj):
+            return obj
+
+        def reduce(self, tensor):
+            return tensor
+
+        def barrier(self):
+            return
+
+        def all_gather(self, tensor):
+            return tensor
+
+    strategy = CustomParallel()
+    with pytest.deprecated_call(
+        match="ParallelStrategy.torch_distributed_backend was deprecated" " in v1.6 and will be removed in v1.8."
+    ):
+        strategy.torch_distributed_backend
