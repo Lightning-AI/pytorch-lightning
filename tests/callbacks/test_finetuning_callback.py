@@ -358,7 +358,7 @@ def test_callbacks_restore(tmpdir):
     assert len(callback._internal_optimizer_metadata[0]) == 2
 
     # original parameters
-    expected_ = {
+    expected = {
         "lr": 0.1,
         "momentum": 0,
         "dampening": 0,
@@ -367,11 +367,11 @@ def test_callbacks_restore(tmpdir):
         "params": ["layer.3.weight", "layer.3.bias"],
     }
     if _TORCH_GREATER_EQUAL_1_11:
-        expected_["maximize"] = False
-    assert callback._internal_optimizer_metadata[0][0] == expected_
+        expected["maximize"] = False
+    assert callback._internal_optimizer_metadata[0][0] == expected
 
     # new param group
-    expected_ = {
+    expected = {
         "lr": 0.01,
         "momentum": 0,
         "dampening": 0,
@@ -380,8 +380,8 @@ def test_callbacks_restore(tmpdir):
         "params": ["layer.0.weight", "layer.0.bias"],
     }
     if _TORCH_GREATER_EQUAL_1_11:
-        expected_["maximize"] = False
-    assert callback._internal_optimizer_metadata[0][1] == expected_
+        expected["maximize"] = False
+    assert callback._internal_optimizer_metadata[0][1] == expected
 
     trainer_kwargs["max_epochs"] = 3
 
