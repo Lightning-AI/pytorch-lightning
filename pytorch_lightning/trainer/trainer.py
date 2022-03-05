@@ -1560,22 +1560,6 @@ class Trainer(
             if callable(model_fx):
                 output = model_fx(*args, **kwargs)
 
-            # *Bad code alert*
-            # The `Accelerator` mostly calls the `Strategy` but some of those calls are deprecated.
-            # The following logic selectively chooses which hooks are called on each object.
-            # In the case of `setup` and `teardown`, the hooks on the `LightningModule` should not call the hooks of the
-            # same name in these objects as they are meant to be managed outside of the `LightningModule` lifecycle.
-            # All of this should be fixed by #8506
-
-            # call the accelerator hook
-            if hook_name in ("on_train_start",) and hasattr(self.accelerator, hook_name):
-                accelerator_hook = getattr(self.accelerator, hook_name)
-                accelerator_output = accelerator_hook(*args, **kwargs)
-                # Rely on the accelerator output if lightningModule hook returns nothing
-                # Required for cases such as DataParallel where we reduce the output for the user
-                # todo: move this data parallel logic into the data parallel strategy
-                output = accelerator_output if output is None else output
-
             # call the strategy hook
             if hook_name not in ("setup", "teardown", "on_train_start") and hasattr(self.strategy, hook_name):
                 strategy_hook = getattr(self.strategy, hook_name)
