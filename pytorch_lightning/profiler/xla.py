@@ -78,6 +78,3 @@ class XLAProfiler(BaseProfiler):
         else:
             self._step_recoding_map[action_name] += 1
         return self._step_recoding_map[action_name]
-
-    def summary(self) -> str:
-        return ""
