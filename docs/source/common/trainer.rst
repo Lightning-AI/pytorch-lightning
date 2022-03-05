@@ -1433,7 +1433,7 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
 
 See Also:
     - :ref:`accelerators/gpu:Multi GPU Training`.
-    - :doc:`Model Parallel GPU training guide <../advanced/advanced_gpu>`.
+    - :doc:`Model Parallel GPU training guide <../advanced/model_parallel>`.
     - :doc:`TPU training guide <../accelerators/tpu>`.
 
 sync_batchnorm
@@ -1583,6 +1583,12 @@ Can specify as float or int.
 
 weights_save_path
 ^^^^^^^^^^^^^^^^^
+
+
+.. warning:: `weights_save_path` has been deprecated in v1.6 and will be removed in v1.8. Please pass
+   ``dirpath`` directly to the :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+   callback.
+
 
 .. raw:: html
 
