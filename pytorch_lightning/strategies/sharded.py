@@ -61,8 +61,8 @@ class DDPShardedStrategy(DDPStrategy):
             self.configure_ddp()
 
         self.setup_optimizers(trainer)
-        self.setup_precision_plugin()
         optimizers_to_device(self.optimizers, self.root_device)
+        self.setup_precision_plugin()
 
     def configure_ddp(self) -> None:
         trainer = self.lightning_module.trainer

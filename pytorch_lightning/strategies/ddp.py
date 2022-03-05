@@ -169,14 +169,14 @@ class DDPStrategy(ParallelStrategy):
 
         # set up optimizers after the wrapped module has been moved to the device
         self.setup_optimizers(trainer)
-        self.setup_precision_plugin()
         optimizers_to_device(self.optimizers, self.root_device)
-
         if _TORCH_GREATER_EQUAL_1_10 and trainer.state.fn == TrainerFn.FITTING:
             import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
             if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
                 self._reinit_optimizers_with_post_localSGD(self._ddp_comm_state.start_localSGD_iter)
+
+        self.setup_precision_plugin()
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""

@@ -37,6 +37,7 @@ from pytorch_lightning.utilities.distributed import (
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_11
+from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -121,6 +122,8 @@ class DDPSpawnStrategy(ParallelStrategy):
     def setup(self, trainer: "pl.Trainer") -> None:
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
 
+        self.accelerator.setup(trainer)
+
         # move the model to the correct device
         self.model_to_device()
 
@@ -135,7 +138,11 @@ class DDPSpawnStrategy(ParallelStrategy):
         trainer_fn = trainer.state.fn
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
-        super().setup(trainer)
+
+        # set up optimizers after the wrapped module has been moved to the device
+        self.setup_optimizers(trainer)
+        optimizers_to_device(self.optimizers, self.root_device)
+        self.setup_precision_plugin()
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""

@@ -126,9 +126,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
     def setup(self, trainer: "pl.Trainer") -> None:
         self.start_method = "fork"
         self.accelerator.setup(trainer)
-        self.setup_optimizers(trainer)
-        self.setup_precision_plugin()
-        optimizers_to_device(self.optimizers, self.root_device)
 
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
@@ -141,7 +138,8 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             set_shared_parameters(self.model.module, shared_params)
 
         self.setup_optimizers(trainer)
-        self.precision_plugin.connect(self.model, None, None)
+        optimizers_to_device(self.optimizers, self.root_device)
+        self.setup_precision_plugin()
 
     def _setup_model(self, model: Module) -> Module:
         return model
