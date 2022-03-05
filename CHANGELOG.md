@@ -512,6 +512,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated specifying the process group backend through the environment variable `PL_TORCH_DISTRIBUTED_BACKEND` ([#11745](https://github.com/PyTorchLightning/pytorch-lightning/pull/11745))
 
 
+- Deprecated `ParallelPlugin.torch_distributed_backend` in favor of `DDPStrategy.process_group_backend` property ([#11745](https://github.com/PyTorchLightning/pytorch-lightning/pull/11745))
+
+
 ### Removed
 
 - Removed deprecated parameter `method` in `pytorch_lightning.utilities.model_helpers.is_overridden` ([#10507](https://github.com/PyTorchLightning/pytorch-lightning/pull/10507))

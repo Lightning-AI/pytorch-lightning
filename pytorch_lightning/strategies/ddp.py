@@ -131,6 +131,10 @@ class DDPStrategy(ParallelStrategy):
     def _is_single_process_single_device(self) -> bool:
         return True
 
+    @property
+    def process_group_backend(self) -> Optional[str]:
+        return self._pg_backend
+
     def _configure_launcher(self) -> None:
         self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
         if not self.cluster_environment.creates_processes_externally:
