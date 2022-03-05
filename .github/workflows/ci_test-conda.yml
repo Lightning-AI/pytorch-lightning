@@ -32,8 +32,6 @@ jobs:
       run: |
         conda info
         conda list
-        # TODO: temporary bypass, need to resolve horovod instalation
-        python .github/prune-packages.py requirements/extra.txt "horovod"
         # adjust versions according installed Torch version
         python ./requirements/adjust_versions.py requirements/extra.txt
         python ./requirements/adjust_versions.py requirements/examples.txt
