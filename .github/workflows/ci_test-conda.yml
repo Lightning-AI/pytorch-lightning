@@ -22,7 +22,6 @@ jobs:
         pytorch-version: ["1.8", "1.9", "1.10"]
         # nightly: add when there's a release candidate
         include:
-          # nightly: add when there's a release candidate
           - {python-version: "3.9", pytorch-version: "1.11"}
 
     timeout-minutes: 30
