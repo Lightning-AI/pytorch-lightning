@@ -79,7 +79,7 @@ class DDPStrategy(ParallelStrategy):
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
         model_averaging_period: Optional[int] = None,
-        pg_backend: Optional[str] = None,
+        process_group_backend: Optional[str] = None,
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
         super().__init__(
@@ -99,7 +99,7 @@ class DDPStrategy(ParallelStrategy):
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
         self._rank_0_will_call_children_scripts: bool = False
-        self._pg_backend: Optional[str] = pg_backend
+        self._process_group_backend: Optional[str] = process_group_backend
 
     @property
     def is_distributed(self) -> bool:
@@ -133,7 +133,7 @@ class DDPStrategy(ParallelStrategy):
 
     @property
     def process_group_backend(self) -> Optional[str]:
-        return self._pg_backend
+        return self._process_group_backend
 
     def _configure_launcher(self) -> None:
         self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
@@ -180,12 +180,12 @@ class DDPStrategy(ParallelStrategy):
         # set warning rank
         rank_zero_only.rank = self.global_rank
 
-        self._pg_backend = self._get_process_group_backend()
-        init_dist_connection(self.cluster_environment, self._pg_backend)
+        self._process_group_backend = self._get_process_group_backend()
+        init_dist_connection(self.cluster_environment, self._process_group_backend)
 
     def _get_process_group_backend(self) -> str:
         return (
-            self._pg_backend
+            self._process_group_backend
             or _get_process_group_backend_from_env()
             or get_default_process_group_backend_for_device(self.root_device)
         )

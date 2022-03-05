@@ -135,7 +135,7 @@ class DeepSpeedStrategy(DDPStrategy):
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
         precision_plugin: Optional[PrecisionPlugin] = None,
-        pg_backend: Optional[str] = None,
+        process_group_backend: Optional[str] = None,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models. `For more information: https://pytorch-
@@ -276,7 +276,7 @@ class DeepSpeedStrategy(DDPStrategy):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             precision_plugin=precision_plugin,
-            pg_backend=pg_backend,
+            process_group_backend=process_group_backend,
         )
 
         self.config = self._load_config(config)
@@ -369,12 +369,12 @@ class DeepSpeedStrategy(DDPStrategy):
                 f"GLOBAL_RANK: {self.global_rank}, "
                 f"MEMBER: {self.global_rank + 1}/{self.world_size}"
             )
-        self._pg_backend = self._get_process_group_backend()
-        deepspeed.init_distributed(self._pg_backend, distributed_port=self.cluster_environment.main_port)
+        self._process_group_backend = self._get_process_group_backend()
+        deepspeed.init_distributed(self._process_group_backend, distributed_port=self.cluster_environment.main_port)
 
     def _get_process_group_backend(self):
         return (
-            self._pg_backend
+            self._process_group_backend
             or _get_process_group_backend_from_env()
             or get_default_process_group_backend_for_device(self.root_device)
         )
