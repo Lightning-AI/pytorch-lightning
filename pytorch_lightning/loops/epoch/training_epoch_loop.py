@@ -174,7 +174,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
         self.batch_progress.increment_ready()
 
-        self.trainer.logger_connector.on_batch_start(batch, batch_idx)
+        self.trainer._logger_connector.on_batch_start(batch, batch_idx)
 
         if batch is None:
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
@@ -232,7 +232,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             "on_train_batch_end", batch_end_outputs, batch, batch_idx, **extra_kwargs
         )
         self.trainer._call_callback_hooks("on_batch_end")
-        self.trainer.logger_connector.on_batch_end()
+        self.trainer._logger_connector.on_batch_end()
 
         self.batch_progress.increment_completed()
 
@@ -242,7 +242,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # -----------------------------------------
         # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
         # -----------------------------------------
-        self.trainer.logger_connector.update_train_step_metrics()
+        self.trainer._logger_connector.update_train_step_metrics()
 
     def on_advance_end(self) -> None:
         # -----------------------------------------
@@ -507,8 +507,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def _save_loggers_on_train_batch_end(self) -> None:
         """Flushes loggers to disk."""
-        if self.trainer.logger is None:
-            return
         # this assumes that `batches_that_stepped` was increased before
         should_flush = self._batches_that_stepped % self.trainer.flush_logs_every_n_steps == 0
         if should_flush or self.trainer.should_stop:

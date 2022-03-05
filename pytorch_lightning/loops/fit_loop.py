@@ -245,7 +245,7 @@ class FitLoop(Loop[None]):
 
         self.epoch_progress.increment_ready()
 
-        self.trainer.logger_connector.on_epoch_start()
+        self.trainer._logger_connector.on_epoch_start()
 
         self.trainer._call_callback_hooks("on_epoch_start")
         self.trainer._call_lightning_module_hook("on_epoch_start")
@@ -269,7 +269,7 @@ class FitLoop(Loop[None]):
 
     def on_advance_end(self) -> None:
         # inform logger the batch loop has finished
-        self.trainer.logger_connector.epoch_end_reached()
+        self.trainer._logger_connector.epoch_end_reached()
 
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
@@ -299,7 +299,7 @@ class FitLoop(Loop[None]):
         self.trainer._call_callback_hooks("on_epoch_end")
         self.trainer._call_lightning_module_hook("on_epoch_end")
 
-        self.trainer.logger_connector.on_epoch_end()
+        self.trainer._logger_connector.on_epoch_end()
 
         if self.epoch_loop._num_ready_batches_reached():
             self.epoch_loop.update_lr_schedulers("epoch", update_plateau_schedulers=True)
@@ -310,7 +310,7 @@ class FitLoop(Loop[None]):
         # even when the batch loop has finished
         self.epoch_loop._batches_that_stepped -= 1
         # log epoch metrics
-        self.trainer.logger_connector.update_train_epoch_metrics()
+        self.trainer._logger_connector.update_train_epoch_metrics()
         self.epoch_loop._batches_that_stepped += 1
 
         # if fault tolerant is enabled and process has been notified, exit.
