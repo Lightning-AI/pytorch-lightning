@@ -28,7 +28,7 @@ import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
@@ -618,10 +618,10 @@ def test_dp_resume(tmpdir):
 
             # if model and state loaded correctly, predictions will be good even though we
             # haven't trained with the new loaded model
-            new_trainer.state.stage = RunningStage.VALIDATING
+            # new_trainer.state.stage = RunningStage.VALIDATING
 
-            dataloader = dm.train_dataloader()
-            tpipes.run_model_prediction(self.trainer.lightning_module, dataloader=dataloader)
+            # dataloader = dm.train_dataloader()
+            # tpipes.run_model_prediction(self.trainer.lightning_module, dataloader=dataloader)
             self.on_train_start_called = True
 
     # new model
