@@ -334,8 +334,8 @@ class AcceleratorConnector:
                     plugins_flags_types[NativeSyncBatchNorm.__name__] += 1
                 else:
                     raise MisconfigurationException(
-                        f"Found invalid type for plugin {plugin}. Expected PrecisionPlugin, "
-                        "CheckpointIO plugin, ClusterEnviroment plugin or a Strategy."
+                        f"Found invalid type for plugin {plugin}. Expected one of: PrecisionPlugin, "
+                        "CheckpointIO, ClusterEnviroment, LayerSync, or Strategy."
                     )
 
             duplicated_plugin_key = [k for k, v in plugins_flags_types.items() if v > 1]
