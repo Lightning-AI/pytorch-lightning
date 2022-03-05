@@ -99,7 +99,7 @@ class DDPStrategy(ParallelStrategy):
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
         self._rank_0_will_call_children_scripts: bool = False
-        self._pg_backend: Optional[str] = None
+        self._pg_backend: Optional[str] = pg_backend
 
     @property
     def is_distributed(self) -> bool:
