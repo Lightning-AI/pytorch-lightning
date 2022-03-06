@@ -61,7 +61,7 @@ ENV \
     MKL_THREADING_LAYER=GNU \
     MAKEFLAGS="-j$(nproc)" \
     # MAKEFLAGS="-j1" \
-    TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5" \
+    TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5;8.0" \
     CONDA_ENV=lightning
 
 COPY environment.yml environment.yml
