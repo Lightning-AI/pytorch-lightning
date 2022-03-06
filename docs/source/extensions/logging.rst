@@ -233,7 +233,7 @@ Use the :func:`~pytorch_lightning.loggers.base.rank_zero_experiment` and :func:`
         @rank_zero_only
         def save(self):
             # Optional. Any code necessary to save logger data goes here
-            super().save()
+            pass
 
         @rank_zero_only
         def finalize(self, status):
