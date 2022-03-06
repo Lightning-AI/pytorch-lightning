@@ -365,6 +365,16 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
+def test_none_logger(tmpdir):
+    """Tests the case where logger=None is passed to Trainer."""
+    model = BoringModel()
+    trainer = Trainer(
+        logger=None,
+        max_steps=1,
+    )
+    trainer.fit(model)
+
+
 def test_logger_with_prefix_all(tmpdir, monkeypatch):
     """Test that prefix is added at the beginning of the metric keys."""
     prefix = "tmp"
