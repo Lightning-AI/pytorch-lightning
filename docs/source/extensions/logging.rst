@@ -134,11 +134,9 @@ The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method has a f
     :class:`~pytorch_lightning.trainer.trainer.Trainer` (Default: ``True``).
 * ``reduce_fx``: Reduction function over step values for end of epoch. Uses :meth:`torch.mean` by default.
 * ``enable_graph``: If True, will not auto detach the graph.
-* ``sync_dist``: If True, reduces the metric across devices. Use with care as this may lead to a significant
-    communication overhead.
+* ``sync_dist``: If True, reduces the metric across devices. Use with care as this may lead to a significant communication overhead.
 * ``sync_dist_group``: The DDP group to sync across.
-* ``add_dataloader_idx``: If True, appends the index of the current dataloader to the name
-    (when using multiple dataloaders). If False, user needs to give unique names for each dataloader to not mix the values.
+* ``add_dataloader_idx``: If True, appends the index of the current dataloader to the name (when using multiple dataloaders). If False, user needs to give unique names for each dataloader to not mix the values.
 * ``batch_size``: Current batch_size used for accumulating logs logged with ``on_epoch=True``.
     This will be directly inferred from the loaded batch, but for some data structures you might need to explicitly provide it.
 * ``rank_zero_only``: Whether the value will be logged only on rank 0. This will prevent synchronization which
@@ -169,7 +167,7 @@ The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method has a f
 
 .. note::
 
-    - The above config for ``val`` applies for ``test`` hooks as well.
+    - The above config for ``validation`` applies for ``test`` hooks as well.
 
     -   Setting ``on_epoch=True`` will cache all your logged values during the full training epoch and perform a
         reduction in ``on_train_epoch_end``. We recommend using `TorchMetrics <https://torchmetrics.readthedocs.io/>`_, when working with custom reduction.
@@ -272,21 +270,6 @@ To change this behaviour, set the ``log_every_n_steps`` :class:`~pytorch_lightni
    trainer = Trainer(log_every_n_steps=k)
 
 
-Log Writing Frequency
-=====================
-
-Writing to a logger can be expensive, so by default Lightning writes logs to disk or to the given logger every 100 training steps.
-If wish to flush logs to the filesystem at a different step rate, use the ``flush_logs_every_n_steps`` :class:`~pytorch_lightning.trainer.trainer.Trainer` flag.
-
-.. testcode::
-
-    k = 100
-    trainer = Trainer(flush_logs_every_n_steps=k)
-
-Unlike the ``log_every_n_steps``, this argument does not apply to all loggers.
-The example shown here works with :class:`~pytorch_lightning.loggers.tensorboard.TensorBoardLogger`,
-which is the default logger in Lightning.
-
 ----------
 
 ************
@@ -331,7 +314,7 @@ Configure Console Logging
 *************************
 
 Lightning logs useful information about the training process and user warnings to the console.
-You can retrieve the Lightning logger and change it to your liking. For example, adjust the logging level
+You can retrieve the Lightning console logger and change it to your liking. For example, adjust the logging level
 or redirect output for certain modules to log files:
 
 .. testcode::
@@ -367,7 +350,7 @@ when using the ``TensorBoardLogger``, all hyperparams will show
 in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter.add_hparams>`_.
 
 .. note::
-    If you want to track a metric in the tensorboard hparams tab, log scalars to the key ``hp_metric``. If tracking multiple metrics, initialize ``TensorBoardLogger`` with ``default_hp_metric=False`` and call ``log_hyperparams`` only once with your metric keys and initial values. Subsequent updates can simply be logged to the metric keys. Refer to the following for examples on how to setup proper hyperparams metrics tracking within :doc:`LightningModule <../common/lightning_module>`.
+    If you want to track a metric in the tensorboard hparams tab, log scalars to the key ``hp_metric``. If tracking multiple metrics, initialize ``TensorBoardLogger`` with ``default_hp_metric=False`` and call ``log_hyperparams`` only once with your metric keys and initial values. Subsequent updates can simply be logged to the metric keys. Refer to the examples below for how to set up proper hyperparams metrics tracking within the :doc:`LightningModule <../common/lightning_module>`.
 
     .. code-block:: python
 
@@ -395,4 +378,4 @@ Managing Remote Filesystems
 
 Lightning supports saving logs to a variety of filesystems, including local filesystems and several cloud storage providers.
 
-Check out :ref:`Remote Filesystems <remote_fs>` document for more info.
+Check out the :ref:`Remote Filesystems <remote_fs>` doc for more info.
