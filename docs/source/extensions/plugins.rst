@@ -6,8 +6,7 @@ Plugins
 
 .. include:: ../links.rst
 
-Plugins allow custom integrations to the internals of the Trainer such as a custom precision or
-distributed implementation.
+Plugins allow custom integrations to the internals of the Trainer such as a custom precision types, checkpoint IO, or multi-node clusters.
 
 Under the hood, the Lightning Trainer is using plugins in the training routine, added automatically
 depending on the provided Trainer arguments. For example:
@@ -16,40 +15,41 @@ depending on the provided Trainer arguments. For example:
 
     # accelerator: GPUAccelerator
     # training strategy: DDPStrategy
-    # precision: NativeMixedPrecisionPlugin
+    # precision plugin: NativeMixedPrecisionPlugin
     trainer = Trainer(gpus=4, precision=16)
 
+You can force a specific plugin by adding it to the ``plugins`` Trainer argument like so:
 
-We expose Accelerators and Plugins mainly for expert users that want to extend Lightning for:
+.. code-block:: python
 
-- New hardware (like TPU plugin)
-- Distributed backends (e.g. a backend not yet supported by
-  `PyTorch <https://pytorch.org/docs/stable/distributed.html#backends>`_ itself)
-- Clusters (e.g. customized access to the cluster's environment interface)
+    # pass in one or multiple plugins
+    trainer = Trainer(plugins=[my_plugin], ...)
 
-There are two types of Plugins in Lightning with different responsibilities:
+The complete list of built-in plugins you can select from is listed below.
+There are three categories currently available:
 
-Strategy
---------
+- Precision:
+- Checkpoint IO:
+- Cluster Environment
 
-- Launching and teardown of training processes (if applicable)
-- Setup communication between processes (NCCL, GLOO, MPI, ...)
-- Provide a unified communication interface for reduction, broadcast, etc.
-- Provide access to the wrapped LightningModule
+For each type there is a base class of the same name that you can extend to create new custom plugins, for example:
+
+.. code-block:: python
+
+    from pytorch_lightning.strategies import DDPStrategy, StrategyRegistry, CheckpointIO
+
+    class MyCheckpointIO(CheckpointIO):
+
+        def save_checkpoint(self, checkpoint):
+            ...
+
+        def load_checkpoint(self, path):
+            ...
 
 
-Furthermore, for multi-node training Lightning provides cluster environment plugins that allow the advanced user
-to configure Lightning to integrate with a :ref:`custom-cluster`.
+    my_checkpoint_io = MyCheckpointIO()
+    trainer = Trainer(plugins=[my_checkpoint_io])
 
-
-.. image:: ../_static/images/accelerator/overview.svg
-
-
-The full list of built-in plugins is listed below.
-
-
-.. warning:: The Plugin API is in beta and subject to change.
-    For help setting up custom plugins/accelerators, please reach out to us at **support@pytorchlightning.ai**
 
 
 Precision Plugins
@@ -72,6 +72,19 @@ Precision Plugins
     DoublePrecisionPlugin
     FullyShardedNativeMixedPrecisionPlugin
     IPUPrecisionPlugin
+
+Checkpoint IO Plugins
+---------------------
+
+.. currentmodule:: pytorch_lightning.plugins.io
+
+.. autosummary::
+    :nosignatures:
+    :template: classtemplate.rst
+
+    CheckpointIO
+    TorchCheckpointIO
+    XLACheckpointIO
 
 
 Cluster Environments

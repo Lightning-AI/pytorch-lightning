@@ -4,8 +4,8 @@
 Strategy
 ########
 
-Strategy controls the model distribution across training, evaluation, and prediction to be used by the :doc:`Trainer <../common/trainer>`. It can be controlled by passing different
-strategy with aliases (``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"`` and so on) as well as a custom strategy to the ``strategy`` parameter for Trainer.
+A Strategy controls the model distribution across training, evaluation, and prediction to be used by the :doc:`Trainer <../common/trainer>`.
+It can be controlled by passing different strategy with aliases (``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"`` and so on) as well as a custom strategy to the ``strategy`` parameter for Trainer.
 
 The Strategy in PyTorch Lightning handles the following responsibilities:
 
@@ -14,6 +14,13 @@ The Strategy in PyTorch Lightning handles the following responsibilities:
 * Provide a unified communication interface for reduction, broadcast, and so on.
 * Owns the :class:`~pytorch_lightning.core.lightning.LightningModule`
 * Handles/owns optimizers and schedulers.
+
+We expose Strategies mainly for expert users that want to extend Lightning for new hardware support or new distributed backends (e.g. a backend not yet supported by `PyTorch <https://pytorch.org/docs/stable/distributed.html#backends>`_ itself).
+
+
+There are two types of Plugins in Lightning with different responsibilities:
+
+.. image:: ../_static/images/accelerator/overview.svg
 
 
 :class:`~pytorch_lightning.strategies.strategy.Strategy` also manages the accelerator, precision, and checkpointing plugins.
