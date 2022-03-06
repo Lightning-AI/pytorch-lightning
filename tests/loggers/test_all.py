@@ -367,12 +367,38 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
 
 def test_none_logger(tmpdir):
     """Tests the case where logger=None is passed to Trainer."""
-    model = BoringModel()
     trainer = Trainer(
         logger=None,
+        default_root_dir=tmpdir,
         max_steps=1,
     )
-    trainer.fit(model)
+    assert trainer.logger is None
+    assert trainer.loggers == []
+    assert trainer.log_dir == tmpdir
+
+
+def test_false_logger(tmpdir):
+    """Tests the case where logger=False is passed to Trainer."""
+    trainer = Trainer(
+        logger=False,
+        default_root_dir=tmpdir,
+        max_steps=1,
+    )
+    assert trainer.logger is None
+    assert trainer.loggers == []
+    assert trainer.log_dir == tmpdir
+
+
+def test_empty_list_logger(tmpdir):
+    """Tests the case where logger=[] is passed to Trainer."""
+    trainer = Trainer(
+        logger=[],
+        default_root_dir=tmpdir,
+        max_steps=1,
+    )
+    assert trainer.logger is None
+    assert trainer.loggers == []
+    assert trainer.log_dir == tmpdir
 
 
 def test_logger_with_prefix_all(tmpdir, monkeypatch):
