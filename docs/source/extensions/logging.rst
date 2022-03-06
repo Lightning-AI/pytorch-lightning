@@ -136,7 +136,7 @@ The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method has a f
 * ``sync_dist``: If True, reduces the metric across devices. Use with care as this may lead to a significant communication overhead.
 * ``sync_dist_group``: The DDP group to sync across.
 * ``add_dataloader_idx``: If True, appends the index of the current dataloader to the name (when using multiple dataloaders). If False, user needs to give unique names for each dataloader to not mix the values.
-* ``batch_size``: Current batch_size used for accumulating logs logged with ``on_epoch=True``. This will be directly inferred from the loaded batch, but for some data structures you might need to explicitly provide it.
+* ``batch_size``: Current batch size used for accumulating logs logged with ``on_epoch=True``. This will be directly inferred from the loaded batch, but for some data structures you might need to explicitly provide it.
 * ``rank_zero_only``: Whether the value will be logged only on rank 0. This will prevent synchronization which would produce a deadlock as not all processes would perform this log call.
 
 .. list-table:: Default behavior of logging in Callback or LightningModule
@@ -233,8 +233,6 @@ Use the :func:`~pytorch_lightning.loggers.base.rank_zero_experiment` and :func:`
         @rank_zero_only
         def save(self):
             # Optional. Any code necessary to save logger data goes here
-            # If you implement this, remember to call `super().save()`
-            # at the start of the method (important for aggregation of metrics)
             super().save()
 
         @rank_zero_only
@@ -347,7 +345,7 @@ when using the ``TensorBoardLogger``, all hyperparams will show
 in the `hparams tab <https://pytorch.org/docs/stable/tensorboard.html#torch.utils.tensorboard.writer.SummaryWriter.add_hparams>`_.
 
 .. note::
-    If you want to track a metric in the tensorboard hparams tab, log scalars to the key ``hp_metric``. If tracking multiple metrics, initialize ``TensorBoardLogger`` with ``default_hp_metric=False`` and call ``log_hyperparams`` only once with your metric keys and initial values. Subsequent updates can simply be logged to the metric keys. Refer to the examples below for how to set up proper hyperparams metrics tracking within the :doc:`LightningModule <../common/lightning_module>`.
+    If you want to track a metric in the tensorboard hparams tab, log scalars to the key ``hp_metric``. If tracking multiple metrics, initialize ``TensorBoardLogger`` with ``default_hp_metric=False`` and call ``log_hyperparams`` only once with your metric keys and initial values. Subsequent updates can simply be logged to the metric keys. Refer to the examples below for setting up proper hyperparams metrics tracking within the :doc:`LightningModule <../common/lightning_module>`.
 
     .. code-block:: python
 
