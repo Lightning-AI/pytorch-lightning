@@ -98,7 +98,6 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         amp.load_state_dict(state_dict)
 
-
     def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """``ApexMixedPrecisionPlugin.on_load_checkpoint`` is deprecated in v1.6.
 
@@ -119,4 +118,3 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             " Please switch to `isinstance(X, ApexMixedPrecisionPlugin)` check instead."
         )
         return AMPType.APEX
-
