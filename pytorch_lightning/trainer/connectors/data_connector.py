@@ -314,6 +314,8 @@ class DataConnector:
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
             dataloader = _update_dataloader(dataloader, sampler, mode=mode)
 
+        self.trainer.strategy.process_dataloader(dataloader)
+
         if cycle_iterator is not None:
             cycle_iterator.loader = dataloader
             return cycle_iterator
