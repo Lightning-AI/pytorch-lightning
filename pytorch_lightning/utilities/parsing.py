@@ -259,7 +259,6 @@ def save_hyperparameters(
             hp = {arg: init_args[arg] for arg in args if isinstance(arg, str)}
             obj._hparams_name = "kwargs"
 
-    hp = obj._to_hparams_dict(hp)
     # `hparams` are expected here
     obj._set_hparams(hp)
     # make deep copy so there is not other runtime changes reflected
