@@ -2486,7 +2486,11 @@ class Trainer(
 
     @property
     def global_step(self) -> int:
-        return self.fit_loop.global_step
+        """The number of optimizer steps taken (does not reset each epoch).
+
+        This includes multiple optimizers and TBPTT steps (if enabled).
+        """
+        return self.fit_loop.epoch_loop.global_step
 
     @property
     def current_epoch(self) -> int:
