@@ -369,13 +369,21 @@ class AcceleratorConnector:
                 else:
                     self._cluster_environment_flag = getattr(self._strategy_flag, "cluster_environment")
 
-            # TODO: RFC existing accel_conn doesn't handle this, should we add conflict check?
-            #   eg: parallel_device is torch.device(cpu) but accelerator=gpu
             if hasattr(self._strategy_flag, "parallel_devices"):
                 if self._strategy_flag.parallel_devices:
                     if self._strategy_flag.parallel_devices[0].type == "cpu":
+                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "cpu"):
+                            raise MisconfigurationException(
+                                f"CPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                            )
                         self._accelerator_flag = "cpu"
                     if self._strategy_flag.parallel_devices[0].type == "cuda":
+                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "gpu"):
+                            raise MisconfigurationException(
+                                f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                            )
                         self._accelerator_flag = "gpu"
                     self._parallel_devices = self._strategy_flag.parallel_devices
 
@@ -696,17 +704,6 @@ class AcceleratorConnector:
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, AMP type, and accelerator."""
-        # TODO: change exception type to ImpactableConfigurationException
-        if isinstance(self.accelerator, IPUAccelerator):
-            if self._precision_flag not in (16, 32):
-                raise MisconfigurationException(
-                    f"`Trainer(accelerator='ipu', precision={self._precision_flag!r})` is not supported."
-                )
-        if isinstance(self.accelerator, HPUAccelerator):
-            if self._precision_flag not in (16, "bf16", 32):
-                raise MisconfigurationException(
-                    f"`Trainer(accelerator='hpu', precision={self._precision_flag!r})` is not supported."
-                )
         if isinstance(self.accelerator, TPUAccelerator):
             if self._precision_flag == 64:
                 raise MisconfigurationException(
@@ -720,6 +717,11 @@ class AcceleratorConnector:
                 raise ValueError(
                     f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
                     f" found: {self._precision_plugin_flag}."
+                )
+        if isinstance(self.accelerator, HPUAccelerator):
+            if self._precision_flag not in (16, "bf16", 32):
+                raise MisconfigurationException(
+                    f"`Trainer(accelerator='hpu', precision={self._precision_flag!r})` is not supported."
                 )
         if (
             self._precision_flag == 16

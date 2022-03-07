@@ -26,7 +26,14 @@ log = logging.getLogger(__name__)
 
 
 class AbstractProfiler(ABC):
-    """Specification of a profiler."""
+    """Specification of a profiler.
+
+    See deprecation warning below
+
+    .. deprecated:: v1.6
+        `AbstractProfiler` was deprecated in v1.6 and will be removed in v1.8.
+        Please use `BaseProfiler` instead
+    """
 
     @abstractmethod
     def start(self, action_name: str) -> None:
@@ -49,7 +56,7 @@ class AbstractProfiler(ABC):
         """Execute arbitrary post-profiling tear-down steps as defined by subclass."""
 
 
-class BaseProfiler(AbstractProfiler):
+class BaseProfiler(ABC):
     """If you wish to write a custom profiler, you should inherit from this class."""
 
     def __init__(
@@ -64,6 +71,17 @@ class BaseProfiler(AbstractProfiler):
         self._write_stream: Optional[Callable] = None
         self._local_rank: Optional[int] = None
         self._stage: Optional[str] = None
+
+    @abstractmethod
+    def start(self, action_name: str) -> None:
+        """Defines how to start recording an action."""
+
+    @abstractmethod
+    def stop(self, action_name: str) -> None:
+        """Defines how to record the duration once an action is complete."""
+
+    def summary(self) -> str:
+        return ""
 
     @contextmanager
     def profile(self, action_name: str) -> Generator:
@@ -180,15 +198,6 @@ class BaseProfiler(AbstractProfiler):
     def __del__(self) -> None:
         self.teardown(stage=self._stage)
 
-    def start(self, action_name: str) -> None:
-        raise NotImplementedError
-
-    def stop(self, action_name: str) -> None:
-        raise NotImplementedError
-
-    def summary(self) -> str:
-        raise NotImplementedError
-
     @property
     def local_rank(self) -> int:
         return 0 if self._local_rank is None else self._local_rank
@@ -205,6 +214,3 @@ class PassThroughProfiler(BaseProfiler):
 
     def stop(self, action_name: str) -> None:
         pass
-
-    def summary(self) -> str:
-        return ""
