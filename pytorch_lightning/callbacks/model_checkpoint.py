@@ -36,7 +36,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.logger import _name, _version
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import _METRIC, _PATH, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -589,22 +588,20 @@ class ModelCheckpoint(Callback):
             return  # short circuit
 
         # TODO: Remove weights_save_path logic here in v1.8
-        if trainer.loggers:
-            if trainer._weights_save_path_internal != trainer.default_root_dir:
-                # the user has changed weights_save_path, it overrides anything
-                save_dir = trainer._weights_save_path_internal
-            elif len(trainer.loggers) == 1:
-                save_dir = trainer.logger.save_dir or trainer.default_root_dir
-            else:
-                save_dir = trainer.default_root_dir
+        if trainer._weights_save_path_internal != trainer.default_root_dir:
+            # the user has changed weights_save_path
+            ckpt_path = os.path.join(trainer._weights_save_path_internal, "checkpoints")
+        elif len(trainer.loggers) == 1:
+            save_dir = trainer.logger.save_dir or trainer.default_root_dir
 
-            name = _name(trainer.loggers)
-            version = _version(trainer.loggers)
+            name = trainer.logger.name
+            version = trainer.logger.version
             version = version if isinstance(version, str) else f"version_{version}"
 
             ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
         else:
-            ckpt_path = os.path.join(trainer._weights_save_path_internal, "checkpoints")
+            # no loggers or multiple loggers
+            ckpt_path = os.path.join(trainer.default_root_dir, "checkpoints")
 
         ckpt_path = trainer.strategy.broadcast(ckpt_path)
 
