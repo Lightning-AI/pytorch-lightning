@@ -264,7 +264,7 @@ Select torch distributed backend
 By default, Lightning will select the ``nccl`` backend over ``gloo`` when running on GPUs.
 Find more information about PyTorch's supported backends `here <https://pytorch.org/docs/stable/distributed.html>`__.
 
-Lightning allows explicitly specifying the backend via the `process_group_backend` constructor argument on the relevant Strategy classes.
+Lightning allows explicitly specifying the backend via the `process_group_backend` constructor argument on the relevant Strategy classes. By default, Lightning will select the appropriate process group backend based on the hardware used.
 
 .. code-block:: python
 
