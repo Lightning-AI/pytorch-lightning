@@ -17,6 +17,7 @@ import inspect
 import os
 from abc import ABC
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
+from ast import literal_eval
 from contextlib import suppress
 from functools import wraps
 from typing import Any, Callable, cast, Dict, List, Tuple, Type, TypeVar, Union
@@ -121,7 +122,7 @@ def parse_env_variables(cls: Type["pl.Trainer"], template: str = "PL_%(cls_name)
             # todo: specify the possible exception
             with suppress(Exception):
                 # converting to native types like int/float/bool
-                val = eval(val)
+                val = literal_eval(val)
             env_args[arg_name] = val
     return Namespace(**env_args)
 

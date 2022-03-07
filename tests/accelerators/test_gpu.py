@@ -13,6 +13,7 @@
 # limitations under the License.
 from unittest import mock
 
+import pytest
 import torch
 
 from pytorch_lightning import Trainer
@@ -65,3 +66,9 @@ def test_set_cuda_device(set_device_mock, tmpdir):
 @RunIf(min_gpus=1)
 def test_gpu_availability():
     assert GPUAccelerator.is_available()
+
+
+@RunIf(min_gpus=1)
+def test_warning_if_gpus_not_used():
+    with pytest.warns(UserWarning, match="GPU available but not used. Set `accelerator` and `devices`"):
+        Trainer()

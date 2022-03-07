@@ -34,7 +34,8 @@ class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Modu
         self.module = pl_module
 
         # set the parameters_to_ignore from LightningModule.
-        self._ddp_params_and_buffers_to_ignore = getattr(pl_module, "_ddp_params_and_buffers_to_ignore", [])
+        _ddp_params_and_buffers_to_ignore = getattr(pl_module, "_ddp_params_and_buffers_to_ignore", [])
+        self._ddp_params_and_buffers_to_ignore = [f"module.{p}" for p in _ddp_params_and_buffers_to_ignore]
 
     def training_step(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
@@ -72,7 +73,8 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         self.module = pl_module
 
         # set the parameters_to_ignore from LightningModule.
-        self._ddp_params_and_buffers_to_ignore = getattr(pl_module, "_ddp_params_and_buffers_to_ignore", [])
+        _ddp_params_and_buffers_to_ignore = getattr(pl_module, "_ddp_params_and_buffers_to_ignore", [])
+        self._ddp_params_and_buffers_to_ignore = [f"module.{p}" for p in _ddp_params_and_buffers_to_ignore]
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
         lightning_module = unwrap_lightning_module(self.module)

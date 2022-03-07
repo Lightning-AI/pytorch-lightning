@@ -267,7 +267,7 @@ def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_sto
     # Use special lr logger callback
     trainer.callbacks = [_LRCallback(num_training, early_stop_threshold, progress_bar_refresh_rate=1)]
     # No logging
-    trainer.logger = DummyLogger() if trainer.logger is not None else None
+    trainer.loggers = [DummyLogger()] if trainer.loggers else []
     # Max step set to number of iterations
     trainer.fit_loop.max_steps = num_training
 

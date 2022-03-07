@@ -55,11 +55,12 @@ class CheckpointConnector:
 
     @property
     def _hpc_resume_path(self) -> Optional[str]:
-        weights_save_path = self.trainer.weights_save_path
-        fs = get_filesystem(weights_save_path)
-        if not fs.isdir(weights_save_path):
+        # TODO: in v1.8 set this equal to self.trainer.default_root_dir
+        dir_path_hpc = self.trainer._weights_save_path_internal
+        fs = get_filesystem(dir_path_hpc)
+        if not fs.isdir(dir_path_hpc):
             return None
-        dir_path_hpc = str(weights_save_path)
+        dir_path_hpc = str(dir_path_hpc)
         max_version = self.__max_ckpt_version_in_folder(dir_path_hpc, "hpc_ckpt_")
         if max_version is not None:
             return os.path.join(dir_path_hpc, f"hpc_ckpt_{max_version}.ckpt")

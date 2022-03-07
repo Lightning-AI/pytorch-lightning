@@ -57,6 +57,16 @@ class Accelerator(ABC):
 
     @staticmethod
     @abstractmethod
+    def parse_devices(devices: Any) -> Any:
+        """Accelerator device parsing logic."""
+
+    @staticmethod
+    @abstractmethod
+    def get_parallel_devices(devices: Any) -> Any:
+        """Gets parallel devices for the Accelerator."""
+
+    @staticmethod
+    @abstractmethod
     def auto_device_count() -> int:
         """Get the device count when set to auto."""
 
@@ -64,3 +74,8 @@ class Accelerator(ABC):
     @abstractmethod
     def is_available() -> bool:
         """Detect if the hardware is available."""
+
+    @staticmethod
+    @abstractmethod
+    def name() -> str:
+        """Name of the Accelerator."""
