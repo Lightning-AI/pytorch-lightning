@@ -21,7 +21,8 @@ import torch
 from torch import optim
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.loggers import CSVLogger, LightningLoggerBase
+from pytorch_lightning.loggers import CSVLogger, LightningLoggerBase, LoggerCollection
+from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
 from pytorch_lightning.plugins.training_type.ddp_spawn import DDPSpawnPlugin
@@ -34,7 +35,7 @@ from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnSharde
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
-from pytorch_lightning.profiler import AdvancedProfiler, SimpleProfiler
+from pytorch_lightning.profiler import AbstractProfiler, AdvancedProfiler, SimpleProfiler
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
@@ -450,6 +451,37 @@ def test_v1_8_0_remove_on_epoch_start_end_lightning_module(tmpdir):
         trainer.fit(model)
 
 
+def test_v1_8_0_remove_on_pretrain_routine_start_end_lightning_module(tmpdir):
+    class CustomModel(BoringModel):
+        def on_pretrain_routine_start(self, *args, **kwargs):
+            print("foo")
+
+    model = CustomModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="The `LightningModule.on_pretrain_routine_start` hook was deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+    class CustomModel(BoringModel):
+        def on_pretrain_routine_end(self, *args, **kwargs):
+            print("foo")
+
+    trainer = Trainer(
+        fast_dev_run=True,
+        default_root_dir=tmpdir,
+    )
+
+    model = CustomModel()
+    with pytest.deprecated_call(
+        match="The `LightningModule.on_pretrain_routine_end` hook was deprecated in v1.6 and will be removed in v1.8"
+    ):
+        trainer.fit(model)
+
+
 def test_v1_8_0_rank_zero_imports():
 
     import warnings
@@ -660,4 +692,51 @@ def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list)
     expected_total_duration = np.sum(expected)
     np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
 
-# asdf
+
+def test_v1_8_0_logger_collection(tmpdir):
+    logger1 = CSVLogger(tmpdir)
+    logger2 = CSVLogger(tmpdir)
+
+    trainer1 = Trainer(logger=logger1)
+    trainer2 = Trainer(logger=[logger1, logger2])
+
+    # Should have no deprecation warning
+    trainer1.logger
+    trainer1.loggers
+    trainer2.loggers
+    trainer2.logger
+
+    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
+        LoggerCollection([logger1, logger2])
+
+
+def test_v1_8_0_precision_plugin_checkpoint_hooks(tmpdir):
+    class PrecisionPluginSaveHook(PrecisionPlugin):
+        def on_save_checkpoint(self, checkpoint):
+            print("override on_save_checkpoint")
+
+    class PrecisionPluginLoadHook(PrecisionPlugin):
+        def on_load_checkpoint(self, checkpoint):
+            print("override on_load_checkpoint")
+
+    model = BoringModel()
+
+    precplugin_save = PrecisionPluginSaveHook()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, plugins=[precplugin_save])
+    with pytest.deprecated_call(
+        match="`PrecisionPlugin.on_save_checkpoint` was deprecated in"
+        " v1.6 and will be removed in v1.8. Use `state_dict` instead."
+    ):
+        trainer.fit(model)
+
+    precplugin_load = PrecisionPluginLoadHook()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, plugins=[precplugin_load])
+    with pytest.deprecated_call(
+        match="`PrecisionPlugin.on_load_checkpoint` was deprecated in"
+        " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
+    ):
+        trainer.fit(model)
+
+
+def test_v1_8_0_abstract_profiler():
+    assert "`AbstractProfiler` was deprecated in v1.6" in AbstractProfiler.__doc__
