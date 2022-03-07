@@ -334,7 +334,7 @@ class RichProgressBar(ProgressBarBase):
 
     def on_train_epoch_start(self, trainer, pl_module):
         total_train_batches = self.total_train_batches
-        total_val_batches = self.total_val_batches_current_epoch
+        total_val_batches = self.total_val_batches
         if total_train_batches != float("inf"):
             # val can be checked multiple times per epoch
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
@@ -365,7 +365,7 @@ class RichProgressBar(ProgressBarBase):
                 self.progress.update(self.val_sanity_progress_bar_id, advance=0, visible=False)
 
             self.val_sanity_progress_bar_id = self._add_task(
-                self.total_val_batches, self.sanity_check_description, visible=False
+                self.total_val_batches_current_dataloader, self.sanity_check_description, visible=False
             )
         else:
             if self.val_progress_bar_id is not None:
@@ -373,7 +373,7 @@ class RichProgressBar(ProgressBarBase):
 
             # TODO: remove old tasks when new onces are created
             self.val_progress_bar_id = self._add_task(
-                self.total_val_batches, self.validation_description, visible=False
+                self.total_val_batches_current_dataloader, self.validation_description, visible=False
             )
 
         self.refresh()
@@ -418,7 +418,7 @@ class RichProgressBar(ProgressBarBase):
 
         if self.test_progress_bar_id is not None:
             self.progress.update(self.test_progress_bar_id, advance=0, visible=False)
-        self.test_progress_bar_id = self._add_task(self.total_test_batches, self.test_description)
+        self.test_progress_bar_id = self._add_task(self.total_test_batches_current_dataloader, self.test_description)
         self.refresh()
 
     def on_predict_batch_start(
@@ -429,7 +429,9 @@ class RichProgressBar(ProgressBarBase):
 
         if self.predict_progress_bar_id is not None:
             self.progress.update(self.predict_progress_bar_id, advance=0, visible=False)
-        self.predict_progress_bar_id = self._add_task(self.total_predict_batches, self.predict_description)
+        self.predict_progress_bar_id = self._add_task(
+            self.total_predict_batches_current_dataloader, self.predict_description
+        )
         self.refresh()
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
@@ -442,21 +444,23 @@ class RichProgressBar(ProgressBarBase):
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if trainer.sanity_checking:
-            self._update(self.val_sanity_progress_bar_id, self.val_batch_idx, self.total_val_batches)
+            self._update(self.val_sanity_progress_bar_id, self.val_batch_idx, self.total_val_batches_current_dataloader)
         elif self.val_progress_bar_id is not None:
             # check to see if we should update the main training progress bar
             if self.main_progress_bar_id is not None:
                 # TODO: Use total val_processed here just like TQDM in a follow-up
-                self._update(self.main_progress_bar_id, self.val_batch_idx, self.total_val_batches)
-            self._update(self.val_progress_bar_id, self.val_batch_idx, self.total_val_batches)
+                self._update(self.main_progress_bar_id, self.val_batch_idx, self.total_val_batches_current_dataloader)
+            self._update(self.val_progress_bar_id, self.val_batch_idx, self.total_val_batches_current_dataloader)
         self.refresh()
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        self._update(self.test_progress_bar_id, self.test_batch_idx, self.total_test_batches)
+        self._update(self.test_progress_bar_id, self.test_batch_idx, self.total_test_batches_current_dataloader)
         self.refresh()
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        self._update(self.predict_progress_bar_id, self.predict_batch_idx, self.total_predict_batches)
+        self._update(
+            self.predict_progress_bar_id, self.predict_batch_idx, self.total_predict_batches_current_dataloader
+        )
         self.refresh()
 
     def _get_train_description(self, current_epoch: int) -> str:
