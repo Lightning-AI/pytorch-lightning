@@ -151,7 +151,7 @@ def test_ddp_wrapper(tmpdir, precision):
 
 
 @pytest.mark.parametrize(
-    ["pg_backend", "env_var", "device_str", "expected_pg_backend"],
+    ["process_group_backend", "env_var", "device_str", "expected_process_group_backend"],
     [
         pytest.param("foo", None, "cpu", "foo"),
         pytest.param("foo", "BAR", "cpu", "foo"),
@@ -161,24 +161,24 @@ def test_ddp_wrapper(tmpdir, precision):
         pytest.param(None, None, "cpu", "gloo"),
     ],
 )
-def test_ddp_pg_backend(pg_backend, env_var, device_str, expected_pg_backend):
+def test_ddp_process_group_backend(process_group_backend, env_var, device_str, expected_process_group_backend):
     """Test settings for process group backend."""
 
     class MockDDPStrategy(DDPStrategy):
-        def __init__(self, root_device, pg_backend):
+        def __init__(self, root_device, process_group_backend):
             self._root_device = root_device
-            super().__init__(pg_backend=pg_backend)
+            super().__init__(process_group_backend=process_group_backend)
 
         @property
         def root_device(self):
             return self._root_device
 
-    strategy = MockDDPStrategy(pg_backend=pg_backend, root_device=torch.device(device_str))
-    if not pg_backend and env_var:
+    strategy = MockDDPStrategy(process_group_backend=process_group_backend, root_device=torch.device(device_str))
+    if not process_group_backend and env_var:
         with mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": env_var}):
             with pytest.deprecated_call(
                 match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND` was deprecated in v1.6"
             ):
-                assert strategy._get_process_group_backend() == expected_pg_backend
+                assert strategy._get_process_group_backend() == expected_process_group_backend
     else:
-        assert strategy._get_process_group_backend() == expected_pg_backend
+        assert strategy._get_process_group_backend() == expected_process_group_backend
