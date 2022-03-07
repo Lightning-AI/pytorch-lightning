@@ -39,7 +39,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
-from tests.helpers import BoringModel
+from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
@@ -1270,23 +1270,61 @@ def test_model_checkpoint_saveload_ckpt(tmpdir):
     make_assertions(cb_restore, written_ckpt)
 
 
-def test_resume_training_preserves_old_ckpt_last(tmpdir):
-    # Tests that old checkpoint (last) is not deleted from the file-system after resumed training
-    # with a new dirpath
-    old_ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
-    old_ckpt.CHECKPOINT_NAME_LAST = "{foo}-last"
-    trainer = Trainer(callbacks=old_ckpt)
-    trainer.strategy.connect(BoringModel())
-    old_ckpt._save_last_checkpoint(trainer, {"foo": 1})
-    expected = "foo=1-last.ckpt"
-    assert os.listdir(tmpdir) == [expected]
+def test_last_global_step_saved():
+    # this should not save anything
+    model_checkpoint = ModelCheckpoint(save_top_k=0, save_last=False, monitor="foo")
+    trainer = MagicMock()
+    trainer.callback_metrics = {"foo": 123}
+    model_checkpoint.save_checkpoint(trainer)
+    assert model_checkpoint._last_global_step_saved == -1
 
-    new_ckpt = ModelCheckpoint(dirpath=tmpdir + "/new_dir/", save_last=True)
-    new_ckpt.CHECKPOINT_NAME_LAST = "{foo}-last"
-    trainer = Trainer(callbacks=new_ckpt)
-    trainer.strategy.connect(BoringModel())
-    new_ckpt._save_last_checkpoint(trainer, {"foo": 2})
-    assert expected in os.listdir(tmpdir)
+
+def test_resume_training_preserves_old_ckpt_last(tmpdir):
+    # This test ensures that the last checkpoint when saved is not deleted from the previous folder
+    # (when training is resumed from the old checkpoint)
+
+    from torch.utils.data import DataLoader
+    from pytorch_lightning import LightningModule
+
+    class BoringModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(8, 2)
+
+        def forward(self, x):
+            return self.layer(x)
+
+        def training_step(self, batch, batch_idx):
+            loss = self(batch).sum()
+            self.log("latest_is_best", self.global_step)
+            return {"loss": loss}
+
+        def configure_optimizers(self):
+            return torch.optim.SGD(self.layer.parameters(), lr=0.1)
+
+    train_data = DataLoader(RandomDataset(8, 16), batch_size=2)
+    model = BoringModel()
+
+    old_ckpt = ModelCheckpoint(
+        dirpath = tmpdir, monitor='latest_is_best', mode="max", save_last = True, filename = '{epoch}-{step}-{latest_is_best}', save_top_k=3, every_n_train_steps=1,
+    )
+    trainer = Trainer(default_root_dir=os.getcwd(), max_epochs=1, limit_train_batches=5, enable_model_summary=False, callbacks=[old_ckpt])
+    trainer.fit(model, train_dataloaders=train_data)
+
+    # Make sure that the last checkpoint file exists in the dirpath passed (`tmpdir`)
+    assert os.path.isfile(f"{tmpdir}/last.ckpt")
+
+    new_ckpt = ModelCheckpoint(
+        dirpath=str(tmpdir / "after-reload"), monitor='latest_is_best', mode="max", save_last=True, filename = '{epoch}-{step}-{latest_is_best}', save_top_k=3, every_n_train_steps=1
+    )
+    # Training it for 2 epochs for extra surity, that nothing gets deleted after multiple epochs
+    trainer = Trainer(
+        default_root_dir=os.getcwd(), limit_train_batches=5, max_epochs=2, enable_model_summary=False, callbacks=[new_ckpt]
+    )
+    trainer.fit(model, train_dataloaders=train_data, ckpt_path=f"{tmpdir}/epoch=0-step=3-latest_is_best=3.0.ckpt")
+
+    # Ensure that the file is not deleted from the old folder
+    assert os.path.isfile(f"{tmpdir}/last.ckpt")
 
 
 def test_save_last_saves_correct_last_model_path(tmpdir):
