@@ -1375,4 +1375,3 @@ def test_none_monitor_saves_correct_best_model_path(tmpdir):
     full_path = str(tmpdir / expected)
     ckpt = torch.load(full_path)
     assert ckpt["callbacks"][mc.state_key]["best_model_path"] == full_path
-
