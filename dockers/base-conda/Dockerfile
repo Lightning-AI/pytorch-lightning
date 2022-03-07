@@ -80,11 +80,30 @@ RUN conda update -n base -c defaults conda && \
 
 ENV \
     PATH=/root/miniconda3/envs/${CONDA_ENV}/bin:$PATH \
-    LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH" \
+    LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH"
+
+COPY ./requirements/extra.txt requirements-extra.txt
+COPY ./requirements/examples.txt requirements-examples.txt
+COPY ./requirements/test.txt requirements-test.txt
+COPY ./requirements/adjust_versions.py requirements_adjust_versions.py
+COPY ./.github/prune-packages.py requirements_prune_packages.py
+
+RUN \
+    pip list | grep torch && \
+    python -c "import torch; print(torch.__version__)" && \
+    python requirements_adjust_versions.py requirements-extra.txt && \
+    python -c "print(' '.join([ln for ln in open('requirements-extra.txt').readlines() if 'horovod' in ln]))" > requirements_horovod.txt && \
+    python requirements_prune_packages.py requirements-extra.txt "horovod" && \
+    python requirements_adjust_versions.py requirements-examples.txt && \
+    # Install remaining requirements
+    pip install -r requirements-extra.txt --no-cache-dir && \
+    pip install -r requirements-examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
+    pip install -r requirements-test.txt --no-cache-dir
+
+ENV \
     # if you want this environment to be the default o \ne, uncomment the following line:
     CONDA_DEFAULT_ENV=${CONDA_ENV} \
     HOROVOD_CUDA_HOME=$CUDA_TOOLKIT_ROOT_DIR \
-    HOROVOD_BUILD_CUDA_CC_LIST=$TORCH_CUDA_ARCH_LIST \
     HOROVOD_GPU_OPERATIONS=NCCL \
     HOROVOD_WITH_PYTORCH=1 \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
@@ -92,21 +111,11 @@ ENV \
     HOROVOD_WITH_GLOO=1 \
     HOROVOD_WITHOUT_MPI=1
 
-COPY ./requirements/extra.txt requirements-extra.txt
-COPY ./requirements/examples.txt requirements-examples.txt
-COPY ./requirements/test.txt requirements-test.txt
-COPY ./requirements/adjust_versions.py requirements_adjust_versions.py
-
 RUN \
-    pip list | grep torch && \
-    python -c "import torch; print(torch.__version__)" && \
-    python requirements_adjust_versions.py requirements-extra.txt && \
-    python requirements_adjust_versions.py requirements-examples.txt && \
-    # Install remaining requirements
-    pip install -r requirements-extra.txt --no-cache-dir --global-option="-fPIC" && \
-    pip install -r requirements-examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
-    pip install -r requirements-test.txt --no-cache-dir && \
-    rm requirements*
+   export HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
+   cat ./requirements/horovod.txt && \
+   pip install --no-cache-dir -r requirements_horovod.txt && \
+   rm requirements*
 
 RUN \
     CUDA_VERSION_MAJOR=$(python -c "import torch ; print(torch.version.cuda.split('.')[0])") && \
