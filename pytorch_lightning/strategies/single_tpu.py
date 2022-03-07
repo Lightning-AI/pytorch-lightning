@@ -49,10 +49,15 @@ class SingleTPUStrategy(SingleDeviceStrategy):
         self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
+        self._device_id = device
 
     @property
     def is_distributed(self) -> bool:
         return False
+
+    @property
+    def device_id(self) -> int:
+        return self._device_id
 
     def setup(self, trainer: "pl.Trainer") -> None:
         shared_params = find_shared_parameters(self.model)
