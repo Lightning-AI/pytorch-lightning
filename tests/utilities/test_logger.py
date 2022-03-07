@@ -17,12 +17,14 @@ import numpy as np
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.utilities.logger import (
     _add_prefix,
     _convert_params,
     _flatten_dict,
     _sanitize_callable_params,
     _sanitize_params,
+    _version,
 )
 
 
@@ -172,3 +174,20 @@ def test_add_prefix():
     assert "prefix-metric2" not in metrics
     assert metrics["prefix2_prefix-metric1"] == 1
     assert metrics["prefix2_prefix-metric2"] == 2
+
+
+def test_version(tmpdir):
+    """Verify versions of loggers are concatenated properly."""
+    logger1 = CSVLogger(tmpdir, version=0)
+    logger2 = CSVLogger(tmpdir, version=2)
+    logger3 = CSVLogger(tmpdir, version=1)
+    logger4 = CSVLogger(tmpdir, version=0)
+    loggers = [logger1, logger2, logger3, logger4]
+    version = _version([])
+    assert version == ""
+    version = _version([logger3])
+    assert version == 1
+    version = _version(loggers)
+    assert version == "0_2_1"
+    version = _version(loggers, "-")
+    assert version == "0-2-1"
