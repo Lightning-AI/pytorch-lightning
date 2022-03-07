@@ -214,12 +214,13 @@ class IPUStrategy(ParallelStrategy):
     def _convert_to_poptorch_loader(
         self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None
     ) -> "poptorch.DataLoader":
-        dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler)
-        # Override to drop last uneven batch, as IPUs does not support uneven inputs.
-        dl_kwargs["drop_last"] = True
+        if isinstance(dataloader, poptorch.DataLoader):
+            # the user is returning the `poptorch.DataLoader` directly, don't change anything.
+            return dataloader
 
+        dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler)
         opts = self.training_opts if mode == RunningStage.TRAINING else self.inference_opts
-        dataloader = poptorch.DataLoader(**dl_kwargs, options=opts)
+        dataloader = poptorch.DataLoader(opts, **dl_kwargs)
         return dataloader
 
     def _handle_gradient_accumulation_steps(self) -> None:

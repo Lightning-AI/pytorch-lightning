@@ -13,7 +13,7 @@
 # limitations under the License.
 import math
 from collections import defaultdict
-from typing import Any, Dict, Generator, Iterator, List, Optional, overload, Tuple, Union
+from typing import Any, Dict, Generator, List, Optional, overload, Tuple, Union
 
 import numpy as np
 import torch
@@ -70,7 +70,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self._results = _ResultCollection(training=True)
         self._outputs: _OUTPUTS_TYPE = []
         self._warning_cache = WarningCache()
-        self._dataloader_iter: Optional[Iterator] = None
         # caches the loaded dataloader state until dataloader objects are available
         self._dataloader_state_dict: Dict[str, Any] = {}
 
@@ -143,7 +142,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
         self._reload_dataloader_state_dict(data_fetcher)
-        self._dataloader_iter = iter(data_fetcher)
+        _ = iter(data_fetcher)  # creates the iterator inside the fetcher
+        # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
+        data_fetcher.fetched += self.batch_progress.current.ready
 
     def advance(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
         """Runs a single training batch.
@@ -157,16 +158,16 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
 
-        assert self._dataloader_iter is not None
         if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
             batch_idx = self.batch_idx + 1
-            batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
+            batch = next(data_fetcher)
         else:
-            batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
+            batch_idx, batch = next(data_fetcher)
+        self.batch_progress.is_last_batch = data_fetcher.done
 
         self.batch_progress.increment_ready()
 
-        self.trainer.logger_connector.on_batch_start(batch, batch_idx)
+        self.trainer._logger_connector.on_batch_start(batch, batch_idx)
 
         if batch is None:
             self._warning_cache.warn("train_dataloader yielded None. If this was on purpose, ignore this warning...")
@@ -224,7 +225,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             "on_train_batch_end", batch_end_outputs, batch, batch_idx, **extra_kwargs
         )
         self.trainer._call_callback_hooks("on_batch_end")
-        self.trainer.logger_connector.on_batch_end()
+        self.trainer._logger_connector.on_batch_end()
 
         self.batch_progress.increment_completed()
 
@@ -234,7 +235,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # -----------------------------------------
         # SAVE METRICS TO LOGGERS AND PROGRESS_BAR
         # -----------------------------------------
-        self.trainer.logger_connector.update_train_step_metrics()
+        self.trainer._logger_connector.update_train_step_metrics()
 
     def on_advance_end(self) -> None:
         # -----------------------------------------
@@ -503,9 +504,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def _save_loggers_on_train_batch_end(self) -> None:
         """Flushes loggers to disk."""
         # when loggers should save to disk
-        should_flush_logs = self.trainer.logger_connector.should_flush_logs
-        # TODO: is_global_zero check should be moved to logger.save() implementation
-        if should_flush_logs and self.trainer.is_global_zero:
+        should_flush_logs = self.trainer._logger_connector.should_flush_logs
+        if should_flush_logs:
             for logger in self.trainer.loggers:
                 logger.save()
 

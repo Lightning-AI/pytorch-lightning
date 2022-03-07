@@ -14,6 +14,7 @@
 """Trainer to automate the training."""
 import inspect
 import logging
+import math
 import os
 import traceback
 import warnings
@@ -99,7 +100,7 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
-from pytorch_lightning.utilities.seed import reset_seed
+from pytorch_lightning.utilities.seed import isolate_rng
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
     _EVALUATE_OUTPUT,
@@ -168,7 +169,7 @@ class Trainer(
         precision: Union[int, str] = 32,
         enable_model_summary: bool = True,
         weights_summary: Optional[str] = "top",
-        weights_save_path: Optional[str] = None,
+        weights_save_path: Optional[str] = None,  # TODO: Remove in 1.8
         num_sanity_val_steps: int = 2,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, str]] = None,
@@ -446,6 +447,11 @@ class Trainer(
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
                 Defaults to `default_root_dir`.
 
+                .. deprecated:: v1.6
+                    ``weights_save_path`` has been deprecated in v1.6 and will be removed in v1.8. Please pass
+                    ``dirpath`` directly to the :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+                    callback.
+
             move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
                 This can save some gpu memory, but can make training slower. Use with attention.
                 Default: ``False``.
@@ -494,7 +500,7 @@ class Trainer(
             amp_level=amp_level,
             plugins=plugins,
         )
-        self.logger_connector = LoggerConnector(self, log_gpu_memory)
+        self._logger_connector = LoggerConnector(self, log_gpu_memory)
         self._callback_connector = CallbackConnector(self)
         self._checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
         self._signal_connector = SignalConnector(self)
@@ -608,7 +614,7 @@ class Trainer(
 
         # init logger flags
         self._loggers: List[LightningLoggerBase]
-        self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
+        self._logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
         self.val_check_interval: Union[int, float]
@@ -1119,7 +1125,10 @@ class Trainer(
             model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
-        result = self.tuner._tune(model, scale_batch_size_kwargs=scale_batch_size_kwargs, lr_find_kwargs=lr_find_kwargs)
+        with isolate_rng():
+            result = self.tuner._tune(
+                model, scale_batch_size_kwargs=scale_batch_size_kwargs, lr_find_kwargs=lr_find_kwargs
+            )
 
         assert self.state.stopped
         self.tuning = False
@@ -1201,8 +1210,8 @@ class Trainer(
         # ----------------------------
 
         # reset logger connector
-        self.logger_connector.reset_results()
-        self.logger_connector.reset_metrics()
+        self._logger_connector.reset_results()
+        self._logger_connector.reset_metrics()
 
         # strategy will configure model and move it to the device
         self.strategy.setup(self)
@@ -1293,7 +1302,7 @@ class Trainer(
         # loop should never be `None` here but it can because we don't know the trainer stage with `ddp_spawn`
         if loop is not None:
             loop.teardown()
-        self.logger_connector.teardown()
+        self._logger_connector.teardown()
         self._signal_connector.teardown()
 
     def run_stage(self) -> None:
@@ -1332,7 +1341,8 @@ class Trainer(
     def _run_train(self) -> None:
         self._pre_training_routine()
 
-        self._run_sanity_check()
+        with isolate_rng():
+            self._run_sanity_check()
 
         # enable train mode
         self.model.train()
@@ -1387,8 +1397,8 @@ class Trainer(
             self.sanity_checking = True
 
             # reset logger connector
-            self.logger_connector.reset_results()
-            self.logger_connector.reset_metrics()
+            self._logger_connector.reset_results()
+            self._logger_connector.reset_metrics()
 
             self._call_callback_hooks("on_sanity_check_start")
 
@@ -1405,16 +1415,12 @@ class Trainer(
             self._call_callback_hooks("on_sanity_check_end")
 
             # reset logger connector
-            self.logger_connector.reset_results()
-            self.logger_connector.reset_metrics()
+            self._logger_connector.reset_results()
+            self._logger_connector.reset_metrics()
 
             # reset the progress tracking state after sanity checking. we don't need to set the state before
             # because sanity check only runs when we are not restarting
             _reset_progress(val_loop)
-
-            # reset the seed to what it was before sanity check
-            # prevents sanity check to affect random sampling in training
-            reset_seed()
 
             # restore the previous stage when the sanity check if finished
             self.state.stage = stage
@@ -1553,22 +1559,6 @@ class Trainer(
             model_fx = getattr(pl_module, hook_name, None)
             if callable(model_fx):
                 output = model_fx(*args, **kwargs)
-
-            # *Bad code alert*
-            # The `Accelerator` mostly calls the `Strategy` but some of those calls are deprecated.
-            # The following logic selectively chooses which hooks are called on each object.
-            # In the case of `setup` and `teardown`, the hooks on the `LightningModule` should not call the hooks of the
-            # same name in these objects as they are meant to be managed outside of the `LightningModule` lifecycle.
-            # All of this should be fixed by #8506
-
-            # call the accelerator hook
-            if hook_name in ("on_train_start",) and hasattr(self.accelerator, hook_name):
-                accelerator_hook = getattr(self.accelerator, hook_name)
-                accelerator_output = accelerator_hook(*args, **kwargs)
-                # Rely on the accelerator output if lightningModule hook returns nothing
-                # Required for cases such as DataParallel where we reduce the output for the user
-                # todo: move this data parallel logic into the data parallel strategy
-                output = accelerator_output if output is None else output
 
             # call the strategy hook
             if hook_name not in ("setup", "teardown", "on_train_start") and hasattr(self.strategy, hook_name):
@@ -2018,7 +2008,7 @@ class Trainer(
 
     @property
     def num_nodes(self) -> int:
-        return self._accelerator_connector.num_nodes
+        return getattr(self.strategy, "num_nodes", 1)
 
     @property
     def num_processes(self) -> int:
@@ -2213,6 +2203,20 @@ class Trainer(
         """
         The default root location to save weights (checkpoints), e.g., when the
         :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` does not define a file path.
+
+        .. deprecated:: v1.6
+            `Trainer.weights_save_path` has been deprecated in v1.6 and will be removed in v1.8.
+        """
+        rank_zero_deprecation("`Trainer.weights_save_path` has been deprecated in v1.6 and will be removed in v1.8.")
+        return self._weights_save_path_internal
+
+    # TODO: Remove _weights_save_path_internal in v1.8
+    @property
+    def _weights_save_path_internal(self) -> str:
+        """This is an internal implementation of weights_save_path which allows weights_save_path to be used
+        internally by the framework without emitting a deprecation warning.
+
+        To be removed in v1.8.
         """
         if get_filesystem(self._weights_save_path).protocol == "file":
             return os.path.normpath(self._weights_save_path)
@@ -2607,7 +2611,9 @@ class Trainer(
                 " This behavior will change in v1.8 when LoggerCollection is removed, and"
                 " trainer.logger will return the first logger in trainer.loggers"
             )
-            return LoggerCollection(self.loggers)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                return LoggerCollection(self.loggers)
 
     @logger.setter
     def logger(self, logger: Optional[LightningLoggerBase]) -> None:
@@ -2628,15 +2634,15 @@ class Trainer(
 
     @property
     def callback_metrics(self) -> dict:
-        return self.logger_connector.callback_metrics
+        return self._logger_connector.callback_metrics
 
     @property
     def logged_metrics(self) -> dict:
-        return self.logger_connector.logged_metrics
+        return self._logger_connector.logged_metrics
 
     @property
     def progress_bar_metrics(self) -> dict:
-        return self.logger_connector.progress_bar_metrics
+        return self._logger_connector.progress_bar_metrics
 
     @property
     def _results(self) -> Optional[_ResultCollection]:
@@ -2666,6 +2672,51 @@ class Trainer(
     """
     Other
     """
+
+    @property
+    def estimated_stepping_batches(self) -> Union[int, float]:
+        r"""
+        Estimated stepping batches for the complete training inferred from DataLoaders, gradient
+        accumulation factor and distributed setup.
+
+        Examples::
+
+            def configure_optimizers(self):
+                optimizer = ...
+                scheduler = torch.optim.lr_scheduler.OneCycleLR(
+                    optimizer, max_lr=1e-3, total_steps=self.trainer.estimated_stepping_batches
+                )
+                return [optimizer], [scheduler]
+
+        """
+        accumulation_scheduler = self.accumulation_scheduler
+
+        if accumulation_scheduler.epochs != [0]:
+            raise MisconfigurationException(
+                "Estimated stepping batches cannot be computed with different"
+                " `accumulate_grad_batches` at different epochs."
+            )
+
+        # infinite training
+        if self.max_epochs == -1 and self.max_steps == -1:
+            return float("inf")
+
+        if self.train_dataloader is None:
+            rank_zero_info("Loading `train_dataloader` to estimate number of stepping batches.")
+            self.reset_train_dataloader()
+
+        total_batches = self.num_training_batches
+
+        # iterable dataset
+        if total_batches == float("inf"):
+            return self.max_steps
+
+        self.accumulate_grad_batches = accumulation_scheduler.get_accumulate_grad_batches(self.current_epoch)
+        effective_batch_size = self.accumulate_grad_batches
+        max_estimated_steps = math.ceil(total_batches / effective_batch_size) * max(self.max_epochs, 1)
+
+        max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
+        return max_estimated_steps
 
     @property
     def terminate_on_nan(self) -> bool:

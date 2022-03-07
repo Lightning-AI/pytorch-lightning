@@ -380,7 +380,7 @@ class LightningModule(
 
         value = apply_to_collection(value, numbers.Number, self.__to_tensor)
 
-        if self.trainer.logger_connector.should_reset_tensors(self._current_fx_name):
+        if self.trainer._logger_connector.should_reset_tensors(self._current_fx_name):
             # if we started a new epoch (running its first batch) the hook name has changed
             # reset any tensors for the new hook name
             results.reset(metrics=False, fx=self._current_fx_name)
@@ -433,7 +433,7 @@ class LightningModule(
             rank_zero_only=rank_zero_only,
         )
 
-        self.trainer.logger_connector._current_fx = self._current_fx_name
+        self.trainer._logger_connector._current_fx = self._current_fx_name
 
     def log_dict(
         self,
@@ -1331,7 +1331,7 @@ class LightningModule(
         """Call this directly from your :meth:`training_step` when doing optimizations manually. By using this,
         Lightning can ensure that all the proper scaling gets applied when using mixed precision.
 
-        See :ref:`manual optimization<common/optimizers:Manual optimization>` for more examples.
+        See :ref:`manual optimization<common/optimization:Manual optimization>` for more examples.
 
         Example::
 
@@ -1384,7 +1384,7 @@ class LightningModule(
         # Iterate over all optimizer parameters to preserve their `requires_grad` information
         # in case these are pre-defined during `configure_optimizers`
         param_requires_grad_state = {}
-        for opt in self.optimizers(use_pl_optimizer=False):
+        for opt in self.trainer.optimizers:
             for group in opt.param_groups:
                 for param in group["params"]:
                     # If a param already appear in param_requires_grad_state, continue
@@ -1408,7 +1408,7 @@ class LightningModule(
         Args:
             optimizer_idx: The index of the optimizer to untoggle.
         """
-        for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):
+        for opt_idx, opt in enumerate(self.trainer.optimizers):
             if optimizer_idx != opt_idx:
                 for group in opt.param_groups:
                     for param in group["params"]:

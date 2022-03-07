@@ -150,6 +150,12 @@ class FitLoop(Loop[None]):
         Loop.restarting.fset(self, restarting)  # call the parent setter
 
     @property
+    def prefetch_batches(self) -> int:
+        is_unsized = self.trainer.num_training_batches == float("inf")
+        inter_batch_parallelism = os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1"
+        return 1 if is_unsized or inter_batch_parallelism else 0
+
+    @property
     def _skip_backward(self) -> bool:
         """Determines whether the loop will skip backward during automatic optimization."""
         return self.epoch_loop.batch_loop.optimizer_loop._skip_backward
@@ -213,8 +219,9 @@ class FitLoop(Loop[None]):
         """Calls the ``on_train_start`` hook."""
         # reset train dataloader and val dataloader
         self.trainer.reset_train_val_dataloaders(self.trainer.lightning_module)
+
         data_fetcher_cls = _select_data_fetcher(self.trainer)
-        self._data_fetcher = data_fetcher_cls()
+        self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)
 
         self._is_fresh_start_epoch = True
         self._results.to(device=self.trainer.lightning_module.device)
@@ -251,7 +258,7 @@ class FitLoop(Loop[None]):
 
         self.epoch_progress.increment_ready()
 
-        self.trainer.logger_connector.on_epoch_start()
+        self.trainer._logger_connector.on_epoch_start()
 
         self.trainer._call_callback_hooks("on_epoch_start")
         self.trainer._call_lightning_module_hook("on_epoch_start")
@@ -275,7 +282,7 @@ class FitLoop(Loop[None]):
 
     def on_advance_end(self) -> None:
         # inform logger the batch loop has finished
-        self.trainer.logger_connector.epoch_end_reached()
+        self.trainer._logger_connector.epoch_end_reached()
 
         # get the model and call model.training_epoch_end
         model = self.trainer.lightning_module
@@ -305,7 +312,7 @@ class FitLoop(Loop[None]):
         self.trainer._call_callback_hooks("on_epoch_end")
         self.trainer._call_lightning_module_hook("on_epoch_end")
 
-        self.trainer.logger_connector.on_epoch_end()
+        self.trainer._logger_connector.on_epoch_end()
 
         if self.epoch_loop._num_ready_batches_reached():
             self.epoch_loop.update_lr_schedulers("epoch", update_plateau_schedulers=True)
@@ -318,7 +325,7 @@ class FitLoop(Loop[None]):
         # TODO(@carmocca): deprecate and rename so users don't get confused
         self.global_step -= 1
         # log epoch metrics
-        self.trainer.logger_connector.update_train_epoch_metrics()
+        self.trainer._logger_connector.update_train_epoch_metrics()
         self.global_step += 1
 
         # if fault tolerant is enabled and process has been notified, exit.

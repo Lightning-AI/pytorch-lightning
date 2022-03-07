@@ -516,20 +516,16 @@ def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
     assert len(trainer.test_dataloaders) == 1
 
 
-def test_error_on_zero_len_dataloader(tmpdir):
-    """Test that error is raised if a zero-length dataloader is defined."""
-
-    class CustomBoringModel(BoringModel):
-        def train_dataloader(self):
-            return DataLoader(RandomDataset(32, 0))
-
-    model = CustomBoringModel()
+def test_warning_on_zero_len_dataloader(tmpdir):
+    """Test that a warning is raised if a zero-length dataloader is defined."""
+    model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=1,
     )
-    with pytest.raises(ValueError, match="returned 0 length. .* at least 1 batch"):
-        trainer.fit(model)
+    dataloader = DataLoader(RandomDataset(32, 0))
+    with pytest.warns(UserWarning, match="returned 0 length"):
+        trainer.fit(model, dataloader)
 
 
 @RunIf(skip_windows=True)
