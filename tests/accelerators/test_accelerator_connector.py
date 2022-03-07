@@ -929,9 +929,9 @@ def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
 
     monkeypatch.setattr(imports, "_IPU_AVAILABLE", True)
     monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
-    with pytest.raises(MisconfigurationException, match=r"accelerator='ipu', precision='bf16'\)` is not supported"):
+    with pytest.raises(ValueError, match=r"accelerator='ipu', precision='bf16'\)` is not supported"):
         Trainer(accelerator="ipu", precision="bf16")
-    with pytest.raises(MisconfigurationException, match=r"accelerator='ipu', precision=64\)` is not supported"):
+    with pytest.raises(ValueError, match=r"accelerator='ipu', precision=64\)` is not supported"):
         Trainer(accelerator="ipu", precision=64)
 
 

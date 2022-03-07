@@ -32,7 +32,7 @@ class AbstractProfiler(ABC):
 
     .. deprecated:: v1.6
         `AbstractProfiler` was deprecated in v1.6 and will be removed in v1.8.
-        Please use `Profiler` instead
+        Please use `Profiler` instead.
     """
 
     @abstractmethod
@@ -210,12 +210,12 @@ class BaseProfiler(Profiler):
 
     .. deprecated:: v1.6
         `BaseProfiler` was deprecated in v1.6 and will be removed in v1.8.
-        Please use `Profiler` instead
+        Please use `Profiler` instead.
     """
 
     def __init__(self, *args, **kwargs):
         rank_zero_deprecation(
-            "`BaseProfiler` was deprecated in v1.6 and will be removed in v1.8. Please use `Profiler instead."
+            "`BaseProfiler` was deprecated in v1.6 and will be removed in v1.8. Please use `Profiler` instead."
         )
         super().__init__(*args, **kwargs)
 
