@@ -13,7 +13,7 @@ pr:
 
 variables:
 - name: poplar_sdk
-  value: "poplar_sdk-ubuntu_20_04-2.1.0+617-6bb5f5b742"
+  value: "poplar_sdk-ubuntu_20_04-2.3.1+793-89796d462d"
 
 jobs:
   - job: ipu
