@@ -367,8 +367,8 @@ class ModelCheckpoint(Callback):
         else:
             warnings.warn(
                 f"The dirpath has changed from {dirpath_from_ckpt!r} to {self.dirpath!r},"
-                " therefore `best_model_score`, `kth_best_model_path`, `kth_value`, `last_model_path` and `best_k_models`"
-                " won't be reloaded. Only `best_model_path` will be reloaded."
+                " therefore `best_model_score`, `kth_best_model_path`, `kth_value`, `last_model_path` and"
+                " `best_k_models` won't be reloaded. Only `best_model_path` will be reloaded."
             )
         self.best_model_path = callback_state["best_model_path"]
 
