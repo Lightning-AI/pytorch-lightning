@@ -161,7 +161,7 @@ class EvaluationLoop(DataLoaderLoop):
             # indicate the loop has run
             self._has_run = True
 
-    def on_advance_start(self) -> None:  # type: ignore[override]
+    def on_advance_start(self, **kwargs: Any) -> None:
         dataloader = self.dataloaders[self.current_dataloader_idx]
         if (
             dataloader is not None
@@ -171,7 +171,7 @@ class EvaluationLoop(DataLoaderLoop):
             # set seed for distributed sampler (enables shuffling for each epoch)
             dataloader.sampler.set_epoch(self.trainer.fit_loop.epoch_progress.current.processed)
 
-        super().on_advance_start()
+        super().on_advance_start(**kwargs)
 
     def on_advance_end(self) -> None:
         self.trainer.logger_connector.epoch_end_reached()
