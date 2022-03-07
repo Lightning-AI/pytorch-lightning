@@ -29,7 +29,7 @@ ENV \
     CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
     TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5;8.0" \
     MKL_THREADING_LAYER=GNU \
-    MAKEFLAGS="-j$(nproc) -fPIC"
+    MAKEFLAGS="-j$(nproc)"
     # MAKEFLAGS="-j1"
 
 RUN apt-get update -qq --fix-missing  && \
@@ -90,7 +90,7 @@ RUN \
     python ./requirements/adjust_versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust_versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     # Install all requirements
-    pip install -r requirements/devel.txt --no-cache-dir && \
+    pip install -r requirements/devel.txt --no-cache-dir --compile_args="-fPIC" && \
     rm -rf requirements.* requirements/
 
 RUN \

@@ -59,7 +59,7 @@ ENV \
     LD_LIBRARY_PATH="/root/miniconda3/lib:$LD_LIBRARY_PATH" \
     CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
     MKL_THREADING_LAYER=GNU \
-    MAKEFLAGS="-j$(nproc) -fPIC" \
+    MAKEFLAGS="-j$(nproc)" \
     # MAKEFLAGS="-j1" \
     TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5;8.0" \
     CONDA_ENV=lightning
@@ -103,8 +103,8 @@ RUN \
     python requirements_adjust_versions.py requirements-extra.txt && \
     python requirements_adjust_versions.py requirements-examples.txt && \
     # Install remaining requirements
-    pip install -r requirements-extra.txt --no-cache-dir && \
-    pip install -r requirements-examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/nightly/torch_nightly.html && \
+    pip install -r requirements-extra.txt --no-cache-dir --compile_args="-fPIC" && \
+    pip install -r requirements-examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
     pip install -r requirements-test.txt --no-cache-dir && \
     rm requirements*
 
