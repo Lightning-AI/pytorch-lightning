@@ -330,8 +330,9 @@ class InterBatchParallelDataFetcher(DataFetcher):
 
     def on_fetch_start(self) -> "torch.cuda.Event":
         # create a cuda event used to record the async stream of data to device.
+        event = torch.cuda.Event()
         self._start_profiler()
-        return torch.cuda.Event()
+        return event
 
     def on_fetch_end(self, batch: Any, event: torch.cuda.Event) -> None:
         self._stop_profiler()
