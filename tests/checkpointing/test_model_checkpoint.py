@@ -1286,8 +1286,7 @@ def test_resume_training_preserves_old_ckpt_last(tmpdir):
     trainer = Trainer(callbacks=new_ckpt)
     trainer.strategy.connect(BoringModel())
     new_ckpt._save_last_checkpoint(trainer, {"foo": 2})
-    expected = "foo=2-last.ckpt"
-    assert os.listdir(tmpdir + "/new_dir/") == [expected]
+    assert expected in os.listdir(tmpdir)
 
 
 def test_save_last_saves_correct_last_model_path(tmpdir):
