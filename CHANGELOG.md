@@ -335,6 +335,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Marked `trainer.logger_connector` as protected ([#12195](https://github.com/PyTorchLightning/pytorch-lightning/pull/12195))
 
+
+- Changed checkpoints save path in the case of multiple loggers from `default_dir/name1_name2/version1_version2/checkpoints` to `default_dir/checkpoints` ([#12255](https://github.com/PyTorchLightning/pytorch-lightning/pull/12255))
+
+
+- Changed checkpoints save path in the case of one logger from `weights_save_path/name/version/checkpoints` to `weights_save_path/checkpoints` ([#12255](https://github.com/PyTorchLightning/pytorch-lightning/pull/12255))
+
+
+- Changed checkpoints save path in the case of multiple loggers from `weights_save_path/name1_name2/version1_version2/checkpoints` to `weights_save_path/checkpoints` ([#12255](https://github.com/PyTorchLightning/pytorch-lightning/pull/12255))
+
 ### Deprecated
 
 - Deprecated `training_type_plugin` property in favor of `strategy` in `Trainer` and updated the references ([#11141](https://github.com/PyTorchLightning/pytorch-lightning/pull/11141))
