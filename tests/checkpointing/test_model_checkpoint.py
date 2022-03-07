@@ -1270,6 +1270,26 @@ def test_model_checkpoint_saveload_ckpt(tmpdir):
     make_assertions(cb_restore, written_ckpt)
 
 
+def test_resume_training_preserves_old_ckpt_last(tmpdir):
+    # Tests that old checkpoint (last) is not deleted from the file-system after resumed training
+    # with a new dirpath
+    old_ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+    old_ckpt.CHECKPOINT_NAME_LAST = "{foo}-last"
+    trainer = Trainer(callbacks=old_ckpt)
+    trainer.strategy.connect(BoringModel())
+    old_ckpt._save_last_checkpoint(trainer, {"foo": 1})
+    expected = "foo=1-last.ckpt"
+    assert os.listdir(tmpdir) == [expected]
+
+    new_ckpt = ModelCheckpoint(dirpath=tmpdir + "/new_dir/", save_last=True)
+    new_ckpt.CHECKPOINT_NAME_LAST = "{foo}-last"
+    trainer = Trainer(callbacks=new_ckpt)
+    trainer.strategy.connect(BoringModel())
+    new_ckpt._save_last_checkpoint(trainer, {"foo": 2})
+    expected = "foo=2-last.ckpt"
+    assert os.listdir(tmpdir + "/new_dir/") == [expected]
+
+
 def test_save_last_saves_correct_last_model_path(tmpdir):
     mc = ModelCheckpoint(dirpath=tmpdir, save_last=True)
     mc.CHECKPOINT_NAME_LAST = "{foo}-last"
