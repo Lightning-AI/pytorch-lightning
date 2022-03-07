@@ -1060,7 +1060,7 @@ automatic_optimization
 When set to ``False``, Lightning does not automate the optimization process. This means you are responsible for handling
 your optimizers. However, we do take care of precision and any accelerators used.
 
-See :ref:`manual optimization<common/optimizers:Manual optimization>` for details.
+See :ref:`manual optimization<common/optimization:Manual optimization>` for details.
 
 .. code-block:: python
 
@@ -1225,9 +1225,6 @@ for more information.
         setup("fit")
         configure_optimizers()
 
-        on_pretrain_routine_start()
-        on_pretrain_routine_end()
-
         # the sanity check runs here
 
         on_train_start()
@@ -1389,18 +1386,6 @@ on_validation_end
 ~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.on_validation_end
-    :noindex:
-
-on_pretrain_routine_start
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_pretrain_routine_start
-    :noindex:
-
-on_pretrain_routine_end
-~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_pretrain_routine_end
     :noindex:
 
 on_test_batch_start

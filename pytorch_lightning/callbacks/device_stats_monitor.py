@@ -58,7 +58,7 @@ class DeviceStatsMonitor(Callback):
         if not trainer.loggers:
             raise MisconfigurationException("Cannot use `DeviceStatsMonitor` callback with `Trainer(logger=False)`.")
 
-        if not trainer.logger_connector.should_update_logs:
+        if not trainer._logger_connector.should_update_logs:
             return
 
         device = trainer.strategy.root_device
@@ -80,7 +80,7 @@ class DeviceStatsMonitor(Callback):
         if not trainer.loggers:
             raise MisconfigurationException("Cannot use `DeviceStatsMonitor` callback with `Trainer(logger=False)`.")
 
-        if not trainer.logger_connector.should_update_logs:
+        if not trainer._logger_connector.should_update_logs:
             return
 
         device = trainer.strategy.root_device
