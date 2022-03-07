@@ -204,10 +204,7 @@ class Profiler(ABC):
 
 
 class BaseProfiler(Profiler):
-    """If you wish to write a custom profiler, you should inherit from this class.
-
-    See deprecation warning below
-
+    """
     .. deprecated:: v1.6
         `BaseProfiler` was deprecated in v1.6 and will be removed in v1.8.
         Please use `Profiler` instead.
