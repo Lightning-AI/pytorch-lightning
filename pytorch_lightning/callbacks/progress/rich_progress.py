@@ -262,22 +262,6 @@ class RichProgressBar(ProgressBarBase):
     def is_disabled(self) -> bool:
         return not self.is_enabled
 
-    @property
-    def sanity_check_description(self) -> str:
-        return "Sanity Checking"
-
-    @property
-    def validation_description(self) -> str:
-        return "Validation"
-
-    @property
-    def test_description(self) -> str:
-        return "Testing"
-
-    @property
-    def predict_description(self) -> str:
-        return "Predicting"
-
     def _update_for_light_colab_theme(self) -> None:
         if _detect_light_colab_theme():
             attributes = ["description", "batch_progress", "metrics"]

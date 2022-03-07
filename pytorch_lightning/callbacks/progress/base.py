@@ -58,6 +58,26 @@ class ProgressBarBase(Callback):
         return self._trainer
 
     @property
+    def sanity_check_description(self) -> str:
+        return "Sanity Checking"
+
+    @property
+    def train_description(self) -> str:
+        return "Training"
+
+    @property
+    def validation_description(self) -> str:
+        return "Validation"
+
+    @property
+    def test_description(self) -> str:
+        return "Testing"
+
+    @property
+    def predict_description(self) -> str:
+        return "Predicting"
+
+    @property
     def train_batch_idx(self) -> int:
         """The number of batches processed during training.
 

@@ -116,26 +116,6 @@ class TQDMProgressBar(ProgressBarBase):
         return {k: v if not isinstance(v, _tqdm) else None for k, v in vars(self).items()}
 
     @property
-    def sanity_check_description(self) -> str:
-        return "Sanity Checking"
-
-    @property
-    def train_description(self) -> str:
-        return "Training"
-
-    @property
-    def validation_description(self) -> str:
-        return "Validation"
-
-    @property
-    def test_description(self) -> str:
-        return "Testing"
-
-    @property
-    def predict_description(self) -> str:
-        return "Predicting"
-
-    @property
     def main_progress_bar(self) -> _tqdm:
         if self._main_progress_bar is None:
             raise TypeError(f"The `{self.__class__.__name__}._main_progress_bar` reference has not been set yet.")
