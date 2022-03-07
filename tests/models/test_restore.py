@@ -28,7 +28,7 @@ import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.trainer.states import RunningStage, TrainerFn
+from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
@@ -253,7 +253,7 @@ def test_correct_step_and_epoch(tmpdir):
     assert trainer.global_step == 0
 
     class TestModel(BoringModel):
-        def on_pretrain_routine_end(self) -> None:
+        def on_train_start(self) -> None:
             assert self.trainer.current_epoch == first_max_epochs
             # TODO(@carmocca): should not need `+1`
             assert self.trainer.global_step == first_max_epochs * train_batches + 1
@@ -610,26 +610,18 @@ def test_dp_resume(tmpdir):
     class CustomModel(CustomClassificationModelDP):
         def __init__(self):
             super().__init__()
-            self.on_pretrain_routine_end_called = False
+            self.on_train_start_called = False
 
-        # set the epoch start hook so we can predict before the model does the full training
-        def on_pretrain_routine_end(self):
+        def on_validation_start(self):
             assert self.trainer.current_epoch == real_global_epoch and self.trainer.current_epoch > 0
-
-            # if model and state loaded correctly, predictions will be good even though we
-            # haven't trained with the new loaded model
-            new_trainer.state.stage = RunningStage.VALIDATING
-
-            dataloader = dm.train_dataloader()
+            dataloader = dm.val_dataloader()
             tpipes.run_model_prediction(self.trainer.lightning_module, dataloader=dataloader)
-            self.on_pretrain_routine_end_called = True
 
     # new model
     model = CustomModel()
 
-    # fit new model which should load hpc weights
-    new_trainer.fit(model, datamodule=dm)
-    assert model.on_pretrain_routine_end_called
+    # validate new model which should load hpc weights
+    new_trainer.validate(model, datamodule=dm, ckpt_path=hpc_save_path)
 
     # test freeze on gpu
     model.freeze()

@@ -17,6 +17,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.trainer.states import TrainerStatus
 from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
 from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
 
@@ -42,6 +43,13 @@ class Tuner:
         result = {}
 
         self.trainer.strategy.connect(model)
+
+        is_tuning = self.trainer.auto_scale_batch_size or self.trainer.auto_lr_find
+        if self.trainer._accelerator_connector.is_distributed and is_tuning:
+            raise MisconfigurationException(
+                "`trainer.tune()` is currently not supported with"
+                f" `Trainer(strategy={self.trainer.strategy.strategy_name!r})`."
+            )
 
         # Run auto batch size scaling
         if self.trainer.auto_scale_batch_size:

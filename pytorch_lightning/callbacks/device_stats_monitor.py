@@ -53,12 +53,12 @@ class DeviceStatsMonitor(Callback):
         pl_module: "pl.LightningModule",
         batch: Any,
         batch_idx: int,
-        unused: Optional[int] = 0,
+        unused: int = 0,
     ) -> None:
         if not trainer.loggers:
             raise MisconfigurationException("Cannot use `DeviceStatsMonitor` callback with `Trainer(logger=False)`.")
 
-        if not trainer.logger_connector.should_update_logs:
+        if not trainer._logger_connector.should_update_logs:
             return
 
         device = trainer.strategy.root_device
@@ -75,12 +75,12 @@ class DeviceStatsMonitor(Callback):
         outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
-        unused: Optional[int] = 0,
+        unused: int = 0,
     ) -> None:
         if not trainer.loggers:
             raise MisconfigurationException("Cannot use `DeviceStatsMonitor` callback with `Trainer(logger=False)`.")
 
-        if not trainer.logger_connector.should_update_logs:
+        if not trainer._logger_connector.should_update_logs:
             return
 
         device = trainer.strategy.root_device
