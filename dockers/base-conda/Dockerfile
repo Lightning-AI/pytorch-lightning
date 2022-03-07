@@ -103,7 +103,7 @@ RUN \
     python requirements_adjust_versions.py requirements-extra.txt && \
     python requirements_adjust_versions.py requirements-examples.txt && \
     # Install remaining requirements
-    pip install -r requirements-extra.txt --no-cache-dir --compile_args="-fPIC" && \
+    pip install -r requirements-extra.txt --no-cache-dir --global-option="-fPIC" && \
     pip install -r requirements-examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
     pip install -r requirements-test.txt --no-cache-dir && \
     rm requirements*
