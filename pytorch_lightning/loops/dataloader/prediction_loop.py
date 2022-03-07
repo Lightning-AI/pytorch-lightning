@@ -101,7 +101,7 @@ class PredictionLoop(DataLoaderLoop):
         if (
             dataloader is not None
             and getattr(dataloader, "sampler", None)
-            and callable(getattr(dataloader, "set_epoch", None))
+            and callable(getattr(dataloader.sampler, "set_epoch", None))
         ):
             # set seed for distributed sampler (enables shuffling for each epoch)
             dataloader.sampler.set_epoch(self.trainer.fit_loop.epoch_progress.current.processed)
