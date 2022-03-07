@@ -231,7 +231,7 @@ class DataFetcher(AbstractDataFetcher):
         if batch_to_device is not None:
             self.batch_to_device = batch_to_device
 
-    def on_fetch_start(self) -> None:
+    def on_fetch_start(self) -> Any:
         self._start_profiler()
 
     def on_fetch_end(self, batch: Any, start_output: Any) -> None:
