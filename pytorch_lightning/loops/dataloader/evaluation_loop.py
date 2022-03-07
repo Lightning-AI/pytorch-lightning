@@ -139,7 +139,6 @@ class EvaluationLoop(DataLoaderLoop):
         void(*args, **kwargs)
 
         dataloader_idx = self.current_dataloader_idx
-        # dataloader = self.trainer.strategy.process_dataloader(self.current_dataloader)
         dataloader = self.current_dataloader
         assert self._data_fetcher is not None
         self._data_fetcher.setup(
