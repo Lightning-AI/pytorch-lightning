@@ -185,17 +185,7 @@ Your :doc:`LightningModule <../common/lightning_module>` can automatically run o
 
 If you have any explicit calls to ``.cuda()`` or ``.to(device)``, you can remove them since Lightning makes sure that the data coming from :class:`~torch.utils.data.DataLoader`
 and all the :class:`~torch.nn.Module` instances initialized inside ``LightningModule.__init__`` are moved to the respective devices automatically.
-
-.. testcode::
-
-    class LitModel(LightningModule):
-        def __init__(self):
-            super().__init__()
-            self.register_buffer("running_mean", torch.zeros(num_features))
-
-If you still need to access the current device, you can use ``self.device`` anywhere in ``LightningModule`` except ``__init__`` and ``setup`` methods.
-You are initializing a :class:`~torch.Tensor` within ``LightningModule.__init__`` method and want it to be moved to the device automatically you must
-:meth:`~torch.nn.Module.register_buffer` to register it as a parameter.
+If you still need to access the current device, you can use ``self.device`` anywhere in your ``LightningModule`` except in the ``__init__`` and ``setup`` methods.
 
 .. testcode::
 
@@ -203,6 +193,16 @@ You are initializing a :class:`~torch.Tensor` within ``LightningModule.__init__`
         def training_step(self, batch, batch_idx):
             z = torch.randn(4, 5, device=self.device)
             ...
+
+Hint: If you are initializing a :class:`~torch.Tensor` within the ``LightningModule.__init__`` method and want it to be moved to the device automatically you should call
+:meth:`~torch.nn.Module.register_buffer` to register it as a parameter.
+
+.. testcode::
+
+    class LitModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.register_buffer("running_mean", torch.zeros(num_features))
 
 --------
 
