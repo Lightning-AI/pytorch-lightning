@@ -62,7 +62,7 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     _check_precision_plugin_checkpoint_hooks(trainer)
     # TODO: Delete on_pretrain_routine_start/end hooks in v1.8
     _check_on_pretrain_routine(model)
-     # TODO: Delete CheckpointHooks off LightningDataModule in v1.8
+    # TODO: Delete CheckpointHooks off LightningDataModule in v1.8
     _check_datamodule_checkpoint_hooks(trainer)
 
 

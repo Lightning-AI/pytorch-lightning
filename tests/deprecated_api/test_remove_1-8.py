@@ -742,7 +742,7 @@ def test_v1_8_0_precision_plugin_checkpoint_hooks(tmpdir):
 def test_v1_8_0_abstract_profiler():
     assert "`AbstractProfiler` was deprecated in v1.6" in AbstractProfiler.__doc__
 
-    
+
 def test_v1_8_0_datamodule_checkpointhooks():
     class CustomBoringDataModuleSave(BoringDataModule):
         def on_save_checkpoint(self, checkpoint):
