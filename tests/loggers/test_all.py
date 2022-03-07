@@ -365,34 +365,18 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-def test_none_logger(tmpdir):
-    """Tests the case where logger=None is passed to Trainer."""
+@pytest.mark.parametrize(
+    "logger_value",
+    [
+        None,
+        False,
+        [],
+    ],
+)
+def test_no_logger(tmpdir, logger_value):
+    """Test the cases where logger=None, logger=False, logger=[] are passed to Trainer."""
     trainer = Trainer(
-        logger=None,
-        default_root_dir=tmpdir,
-        max_steps=1,
-    )
-    assert trainer.logger is None
-    assert trainer.loggers == []
-    assert trainer.log_dir == tmpdir
-
-
-def test_false_logger(tmpdir):
-    """Tests the case where logger=False is passed to Trainer."""
-    trainer = Trainer(
-        logger=False,
-        default_root_dir=tmpdir,
-        max_steps=1,
-    )
-    assert trainer.logger is None
-    assert trainer.loggers == []
-    assert trainer.log_dir == tmpdir
-
-
-def test_empty_list_logger(tmpdir):
-    """Tests the case where logger=[] is passed to Trainer."""
-    trainer = Trainer(
-        logger=[],
+        logger=logger_value,
         default_root_dir=tmpdir,
         max_steps=1,
     )
