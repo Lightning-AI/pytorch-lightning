@@ -916,7 +916,7 @@ These are properties available in a LightningModule.
 current_epoch
 ~~~~~~~~~~~~~
 
-The current epoch
+The number of epochs run.
 
 .. code-block:: python
 
@@ -946,12 +946,13 @@ usually do not need to use this property, but it is useful to know how to access
     def training_step(self, batch, batch_idx):
         if self.global_rank == 0:
             # do something only once across all the nodes
-            self.log("global_step", self.trainer.global_step)
+            ...
 
 global_step
 ~~~~~~~~~~~
 
-The current step (does not reset each epoch)
+The number of optimizer steps taken (does not reset each epoch).
+This includes multiple optimizers and TBPTT steps (if enabled).
 
 .. code-block:: python
 
@@ -1003,16 +1004,16 @@ The list of loggers currently being used by the Trainer.
 local_rank
 ~~~~~~~~~~~
 
-The ``global_rank`` is the index of the current process across all the devices for the current node.
+The ``local_rank`` is the index of the current process across all the devices for the current node.
 You usually do not need to use this property, but it is useful to know how to access it if needed.
 For example, if using 10 machines (or nodes), the GPU at index 0 on each machine has local_rank = 0.
 
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        if self.global_rank == 0:
+        if self.local_rank == 0:
             # do something only once across each node
-            self.log("global_step", self.trainer.global_step)
+            ...
 
 precision
 ~~~~~~~~~
