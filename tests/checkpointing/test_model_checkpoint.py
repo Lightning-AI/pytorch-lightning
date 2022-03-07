@@ -1284,6 +1284,7 @@ def test_resume_training_preserves_old_ckpt_last(tmpdir):
     # (when training is resumed from the old checkpoint)
 
     from torch.utils.data import DataLoader
+
     from pytorch_lightning import LightningModule
 
     class BoringModel(LightningModule):
@@ -1306,20 +1307,42 @@ def test_resume_training_preserves_old_ckpt_last(tmpdir):
     model = BoringModel()
 
     old_ckpt = ModelCheckpoint(
-        dirpath = tmpdir, monitor='latest_is_best', mode="max", save_last = True, filename = '{epoch}-{step}-{latest_is_best}', save_top_k=3, every_n_train_steps=1,
+        dirpath=tmpdir,
+        monitor="latest_is_best",
+        mode="max",
+        save_last=True,
+        filename="{epoch}-{step}-{latest_is_best}",
+        save_top_k=3,
+        every_n_train_steps=1,
     )
-    trainer = Trainer(default_root_dir=os.getcwd(), max_epochs=1, limit_train_batches=5, enable_model_summary=False, callbacks=[old_ckpt])
+    trainer = Trainer(
+        default_root_dir=os.getcwd(),
+        max_epochs=1,
+        limit_train_batches=5,
+        enable_model_summary=False,
+        callbacks=[old_ckpt],
+    )
     trainer.fit(model, train_dataloaders=train_data)
 
     # Make sure that the last checkpoint file exists in the dirpath passed (`tmpdir`)
     assert os.path.isfile(f"{tmpdir}/last.ckpt")
 
     new_ckpt = ModelCheckpoint(
-        dirpath=str(tmpdir / "after-reload"), monitor='latest_is_best', mode="max", save_last=True, filename = '{epoch}-{step}-{latest_is_best}', save_top_k=3, every_n_train_steps=1
+        dirpath=str(tmpdir / "after-reload"),
+        monitor="latest_is_best",
+        mode="max",
+        save_last=True,
+        filename="{epoch}-{step}-{latest_is_best}",
+        save_top_k=3,
+        every_n_train_steps=1,
     )
     # Training it for 2 epochs for extra surity, that nothing gets deleted after multiple epochs
     trainer = Trainer(
-        default_root_dir=os.getcwd(), limit_train_batches=5, max_epochs=2, enable_model_summary=False, callbacks=[new_ckpt]
+        default_root_dir=os.getcwd(),
+        limit_train_batches=5,
+        max_epochs=2,
+        enable_model_summary=False,
+        callbacks=[new_ckpt],
     )
     trainer.fit(model, train_dataloaders=train_data, ckpt_path=f"{tmpdir}/epoch=0-step=3-latest_is_best=3.0.ckpt")
 
