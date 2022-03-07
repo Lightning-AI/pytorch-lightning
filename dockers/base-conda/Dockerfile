@@ -59,7 +59,7 @@ ENV \
     LD_LIBRARY_PATH="/root/miniconda3/lib:$LD_LIBRARY_PATH" \
     CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
     MKL_THREADING_LAYER=GNU \
-    MAKEFLAGS="-j$(nproc)" \
+    MAKEFLAGS="-j$(nproc) -fPIC" \
     # MAKEFLAGS="-j1" \
     TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5;8.0" \
     CONDA_ENV=lightning
