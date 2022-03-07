@@ -118,33 +118,6 @@ def test_trainer_num_gpu_0(mocked_device_count_0, gpus, expected_num_gpus, strat
     assert Trainer(gpus=gpus, strategy=strategy).num_gpus == expected_num_gpus
 
 
-@pytest.mark.parametrize(
-    ["gpus", "expected_root_gpu", "strategy"],
-    [
-        pytest.param(None, None, "ddp", id="None is None"),
-        pytest.param(0, None, "ddp", id="O gpus, expect gpu root device to be None."),
-        pytest.param(1, 0, "ddp", id="1 gpu, expect gpu root device to be 0."),
-        pytest.param(-1, 0, "ddp", id="-1 - use all gpus, expect gpu root device to be 0."),
-        pytest.param("-1", 0, "ddp", id="'-1' - use all gpus, expect gpu root device to be 0."),
-        pytest.param(3, 0, "ddp", id="3 gpus, expect gpu root device to be 0.(backend:ddp)"),
-    ],
-)
-def test_root_gpu_property(mocked_device_count, gpus, expected_root_gpu, strategy):
-    assert Trainer(gpus=gpus, strategy=strategy).root_gpu == expected_root_gpu
-
-
-@pytest.mark.parametrize(
-    ["gpus", "expected_root_gpu", "strategy"],
-    [
-        pytest.param(None, None, None, id="None is None"),
-        pytest.param(None, None, "ddp", id="None is None"),
-        pytest.param(0, None, "ddp", id="None is None"),
-    ],
-)
-def test_root_gpu_property_0_passing(mocked_device_count_0, gpus, expected_root_gpu, strategy):
-    assert Trainer(gpus=gpus, strategy=strategy).root_gpu == expected_root_gpu
-
-
 # Asking for a gpu when non are available will result in a MisconfigurationException
 @pytest.mark.parametrize(
     ["gpus", "expected_root_gpu", "strategy"],
