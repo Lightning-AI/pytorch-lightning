@@ -77,7 +77,7 @@ def test_finetuning_with_ckpt_path(tmpdir):
         else:
             assert f"epoch={idx + 1}" in best_model_path
 
-            
+
 def test_trainer_save_checkpoint_storage_options(tmpdir):
     """This test validates that storage_options argument is properly passed to ``CheckpointIO``"""
     model = BoringModel()
