@@ -38,6 +38,7 @@ from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import (
+    _populate_registries,
     CALLBACK_REGISTRY,
     DATAMODULE_REGISTRY,
     instantiate_class,
@@ -880,27 +881,38 @@ def test_lightning_cli_run():
     assert isinstance(cli.model, LightningModule)
 
 
-@OPTIMIZER_REGISTRY
-class CustomAdam(torch.optim.Adam):
-    pass
-
-
-@LR_SCHEDULER_REGISTRY
-class CustomCosineAnnealingLR(torch.optim.lr_scheduler.CosineAnnealingLR):
-    pass
-
-
-@CALLBACK_REGISTRY
-class CustomCallback(Callback):
-    pass
-
-
-@LOGGER_REGISTRY
-class CustomLogger(LightningLoggerBase):
-    pass
+@pytest.fixture(autouse=True)
+def clear_registries():
+    # since the registries are global, it's good to clear them after each test to avoid unwanted interactions
+    yield
+    OPTIMIZER_REGISTRY.clear()
+    LR_SCHEDULER_REGISTRY.clear()
+    CALLBACK_REGISTRY.clear()
+    MODEL_REGISTRY.clear()
+    DATAMODULE_REGISTRY.clear()
+    LOGGER_REGISTRY.clear()
 
 
 def test_registries():
+    # the registries are global so this is only necessary when this test is run standalone
+    _populate_registries(False)
+
+    @OPTIMIZER_REGISTRY
+    class CustomAdam(torch.optim.Adam):
+        pass
+
+    @LR_SCHEDULER_REGISTRY
+    class CustomCosineAnnealingLR(torch.optim.lr_scheduler.CosineAnnealingLR):
+        pass
+
+    @CALLBACK_REGISTRY
+    class CustomCallback(Callback):
+        pass
+
+    @LOGGER_REGISTRY
+    class CustomLogger(LightningLoggerBase):
+        pass
+
     assert "SGD" in OPTIMIZER_REGISTRY.names
     assert "RMSprop" in OPTIMIZER_REGISTRY.names
     assert "CustomAdam" in OPTIMIZER_REGISTRY.names
@@ -913,9 +925,13 @@ def test_registries():
     assert "EarlyStopping" in CALLBACK_REGISTRY.names
     assert "CustomCallback" in CALLBACK_REGISTRY.names
 
-    with pytest.raises(MisconfigurationException, match="is already present in the registry"):
-        OPTIMIZER_REGISTRY.register_classes(torch.optim, torch.optim.Optimizer)
-    OPTIMIZER_REGISTRY.register_classes(torch.optim, torch.optim.Optimizer, override=True)
+    class Foo:
+        ...
+
+    OPTIMIZER_REGISTRY(Foo, key="SGD")  # not overridden by default
+    assert OPTIMIZER_REGISTRY["SGD"] is torch.optim.SGD
+    OPTIMIZER_REGISTRY(Foo, key="SGD", override=True)
+    assert OPTIMIZER_REGISTRY["SGD"] is Foo
 
     # test `_Registry.__call__` returns the class
     assert isinstance(CustomCallback(), CustomCallback)
@@ -924,7 +940,13 @@ def test_registries():
     assert "CustomLogger" in LOGGER_REGISTRY
 
 
-@MODEL_REGISTRY
+def test_registries_register_automatically():
+    assert "SaveConfigCallback" not in CALLBACK_REGISTRY
+    with mock.patch("sys.argv", ["any.py"]):
+        LightningCLI(BoringModel, run=False, auto_registry=True)
+    assert "SaveConfigCallback" in CALLBACK_REGISTRY
+
+
 class TestModel(BoringModel):
     def __init__(self, foo, bar=5):
         super().__init__()
@@ -932,10 +954,10 @@ class TestModel(BoringModel):
         self.bar = bar
 
 
-MODEL_REGISTRY(cls=BoringModel)
-
-
 def test_lightning_cli_model_choices():
+    MODEL_REGISTRY(cls=TestModel)
+    MODEL_REGISTRY(cls=BoringModel)
+
     with mock.patch("sys.argv", ["any.py", "fit", "--model=BoringModel"]), mock.patch(
         "pytorch_lightning.Trainer._fit_impl"
     ) as run:
@@ -950,7 +972,6 @@ def test_lightning_cli_model_choices():
         assert cli.model.bar == 5
 
 
-@DATAMODULE_REGISTRY
 class MyDataModule(BoringDataModule):
     def __init__(self, foo, bar=5):
         super().__init__()
@@ -958,10 +979,11 @@ class MyDataModule(BoringDataModule):
         self.bar = bar
 
 
-DATAMODULE_REGISTRY(cls=BoringDataModule)
-
-
 def test_lightning_cli_datamodule_choices():
+    MODEL_REGISTRY(cls=BoringModel)
+    DATAMODULE_REGISTRY(cls=MyDataModule)
+    DATAMODULE_REGISTRY(cls=BoringDataModule)
+
     # with set model
     with mock.patch("sys.argv", ["any.py", "fit", "--data=BoringDataModule"]), mock.patch(
         "pytorch_lightning.Trainer._fit_impl"
@@ -998,7 +1020,7 @@ def test_lightning_cli_datamodule_choices():
         assert not hasattr(cli.parser.groups["data"], "group_class")
 
     with mock.patch("sys.argv", ["any.py"]), mock.patch.dict(DATAMODULE_REGISTRY, clear=True):
-        cli = LightningCLI(BoringModel, run=False)
+        cli = LightningCLI(BoringModel, run=False, auto_registry=False)
         # no registered classes so not added automatically
         assert "data" not in cli.parser.groups
     assert len(DATAMODULE_REGISTRY)  # check state was not modified
@@ -1011,6 +1033,8 @@ def test_lightning_cli_datamodule_choices():
 
 @pytest.mark.parametrize("use_class_path_callbacks", [False, True])
 def test_registries_resolution(use_class_path_callbacks):
+    MODEL_REGISTRY(cls=BoringModel)
+
     """This test validates registries are used when simplified command line are being used."""
     cli_args = [
         "--optimizer",
@@ -1067,6 +1091,7 @@ def test_argv_transformation_single_callback():
         }
     ]
     expected = base + ["--trainer.callbacks", str(callbacks)]
+    _populate_registries(False)
     argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, "trainer.callbacks", input)
     assert argv == expected
 
@@ -1090,6 +1115,7 @@ def test_argv_transformation_multiple_callbacks():
         },
     ]
     expected = base + ["--trainer.callbacks", str(callbacks)]
+    _populate_registries(False)
     argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, "trainer.callbacks", input)
     assert argv == expected
 
@@ -1117,6 +1143,7 @@ def test_argv_transformation_multiple_callbacks_with_config():
     ]
     expected = base + ["--trainer.callbacks", str(callbacks)]
     nested_key = "trainer.callbacks"
+    _populate_registries(False)
     argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, nested_key, input)
     assert argv == expected
 
@@ -1153,6 +1180,7 @@ def test_argv_transformation_multiple_callbacks_with_config():
 def test_argv_transformations_with_optimizers_and_lr_schedulers(args, expected, nested_key, registry):
     base = ["any.py", "--trainer.max_epochs=1"]
     argv = base + args
+    _populate_registries(False)
     new_argv = LightningArgumentParser._convert_argv_issue_84(registry.classes, nested_key, argv)
     assert new_argv == base + [f"--{nested_key}", str(expected)]
 
