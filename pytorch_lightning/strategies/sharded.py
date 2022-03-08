@@ -52,8 +52,8 @@ class DDPShardedStrategy(DDPStrategy):
         # move the model to the correct device
         self.model_to_device()
 
-        if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
+        if self._layer_sync:
+            self.model = self._layer_sync.apply(self.model)
 
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = trainer.state.fn
