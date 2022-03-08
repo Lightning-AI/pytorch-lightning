@@ -707,7 +707,7 @@ class LightningModule(
         Args:
             outputs: List of outputs you defined in :meth:`training_step`. If there are multiple optimizers or when
                 using ``truncated_bptt_steps > 0``, the lists have the dimensions
-                (n_batches, tbptt_steps, n_optimizers. Dimensions of length 1 are squeezed.
+                (n_batches, tbptt_steps, n_optimizers). Dimensions of length 1 are squeezed.
 
         Return:
             None
