@@ -43,7 +43,7 @@ class DDPShardedStrategy(DDPStrategy):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         # share ddp pids to all processes
-        self._rank_0_has_called_call_children_scripts = self.broadcast(self._rank_0_has_called_call_children_scripts)
+        self._rank_0_will_call_children_scripts = self.broadcast(self._rank_0_will_call_children_scripts)
         if self._should_run_deadlock_detection():
             self._share_information_to_prevent_deadlock()
 
