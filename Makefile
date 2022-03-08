@@ -31,3 +31,6 @@ test: clean
 docs: clean
 	pip install --quiet -r requirements/docs.txt
 	python -m sphinx -b html -W --keep-going docs/source docs/build
+
+update:
+	git submodule update --init --recursive --remote

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 
 import pytest
 
@@ -66,3 +67,23 @@ def test_eval_limit_batches(stage, mode, limit_batches):
     expected_batches = int(limit_batches * len(eval_loader)) if isinstance(limit_batches, float) else limit_batches
     assert loader_num_batches[0] == expected_batches
     assert len(dataloaders[0]) == len(eval_loader)
+
+
+@pytest.mark.parametrize(
+    "argument",
+    ("limit_train_batches", "limit_val_batches", "limit_test_batches", "limit_predict_batches", "overfit_batches"),
+)
+@pytest.mark.parametrize("value", (1, 1.0))
+def test_limit_batches_info_message(caplog, argument, value):
+    with caplog.at_level(logging.INFO):
+        Trainer(**{argument: value})
+    assert f"`Trainer({argument}={value})` was configured" in caplog.text
+    message = f"configured so {'1' if isinstance(value, int) else '100%'}"
+    assert message in caplog.text
+
+    caplog.clear()
+
+    # the message should not appear by default
+    with caplog.at_level(logging.INFO):
+        Trainer()
+    assert message not in caplog.text

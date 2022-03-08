@@ -21,9 +21,9 @@ from torch.optim import Optimizer
 import pytorch_lightning as pl
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, rank_zero_only
-from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -35,15 +35,12 @@ if _FAIRSCALE_AVAILABLE:
 class DDPSpawnShardedStrategy(DDPSpawnStrategy):
     """Optimizer sharded training provided by FairScale."""
 
-    distributed_backend = _StrategyType.DDP_SHARDED_SPAWN
+    strategy_name = "ddp_sharded_spawn"
 
     def configure_ddp(self) -> None:
-        trainer = self.lightning_module.trainer
-        self.model, optimizers = self._setup_model_and_optimizers(
-            model=LightningShardedDataParallel(self.model),
-            optimizers=trainer.optimizers,
+        self.model, self.optimizers = self._setup_model_and_optimizers(
+            model=LightningShardedDataParallel(self.model), optimizers=self.optimizers
         )
-        trainer.optimizers = optimizers
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Wraps the model and optimizers with fairscale components.
@@ -119,4 +116,9 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             cls,
             description="DDP Spawn Sharded Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
+        )
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
         )

@@ -14,37 +14,15 @@
 """Test deprecated functionality which will be removed in vX.Y.Z."""
 import sys
 from contextlib import contextmanager
-from typing import Optional, Type
+from typing import Optional
 
-import pytest
+from tests.helpers.utils import no_warning_call
 
 
 def _soft_unimport_module(str_module):
     # once the module is imported  e.g with parsing with pytest it lives in memory
     if str_module in sys.modules:
         del sys.modules[str_module]
-
-
-@contextmanager
-def no_warning_call(expected_warning: Type[Warning] = UserWarning, match: Optional[str] = None):
-    with pytest.warns(None) as record:
-        yield
-
-    if match is None:
-        try:
-            w = record.pop(expected_warning)
-        except AssertionError:
-            # no warning raised
-            return
-    else:
-        for w in record.list:
-            if w.category is expected_warning and match in w.message.args[0]:
-                break
-        else:
-            return
-
-    msg = "A warning" if expected_warning is None else f"`{expected_warning.__name__}`"
-    raise AssertionError(f"{msg} was raised: {w}")
 
 
 @contextmanager

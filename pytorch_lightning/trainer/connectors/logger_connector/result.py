@@ -21,12 +21,12 @@ from torchmetrics import Metric
 from typing_extensions import TypedDict
 
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
 from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.warnings import WarningCache
 
 _IN_METRIC = Union[Metric, torch.Tensor]  # Do not include scalars as they were converted to tensors
@@ -216,6 +216,7 @@ class _ResultMetric(Metric, DeviceDtypeModuleMixin):
             # do not set a dtype in case the default dtype was changed
             self.add_state("value", torch.tensor(default), dist_reduce_fx=torch.sum)
             if self.meta.is_mean_reduction:
+                self.cumulated_batch_size: torch.Tensor
                 self.add_state("cumulated_batch_size", torch.tensor(0), dist_reduce_fx=torch.sum)
         # this is defined here only because upstream is missing the type annotation
         self._forward_cache: Optional[Any] = None
@@ -241,14 +242,13 @@ class _ResultMetric(Metric, DeviceDtypeModuleMixin):
 
             # perform accumulation with reduction
             if self.meta.is_mean_reduction:
-                self.value += value.mean() * batch_size
-                # `Metric.add_state` does not work well with mypy, mypy doesn't know this is a `Tensor`
-                # we could add an assertion, but this is a hot code path
-                self.cumulated_batch_size += batch_size  # type: ignore[operator]
+                # do not use `+=` as it doesn't do type promotion
+                self.value = self.value + value.mean() * batch_size
+                self.cumulated_batch_size = self.cumulated_batch_size + batch_size
             elif self.meta.is_max_reduction or self.meta.is_min_reduction:
                 self.value = self.meta.reduce_fx(self.value, value.mean())
             elif self.meta.is_sum_reduction:
-                self.value += value.mean()
+                self.value = self.value + value.mean()
         else:
             value = cast(Metric, value)
             self.value = value

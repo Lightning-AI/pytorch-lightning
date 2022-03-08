@@ -26,12 +26,13 @@ from warnings import warn
 import torch
 import yaml
 
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict, rank_zero_warn
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
 PRIMITIVE_TYPES = (bool, int, float, str)
@@ -95,28 +96,32 @@ class ModelIO:
                 hyperparameter values.
 
         Return:
-            :class:`LightningModule` with loaded weights and hyperparameters (if available).
+            :class:`LightningModule` instance with loaded weights and hyperparameters (if available).
+
+        Note:
+            ``load_from_checkpoint`` is a **class** method. You should use your :class:`LightningModule`
+            **class** to call it instead of the :class:`LightningModule` instance.
 
         Example::
 
             # load weights without mapping ...
-            MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
+            model = MyLightningModule.load_from_checkpoint('path/to/checkpoint.ckpt')
 
             # or load weights mapping all weights from GPU 1 to GPU 0 ...
             map_location = {'cuda:1':'cuda:0'}
-            MyLightningModule.load_from_checkpoint(
+            model = MyLightningModule.load_from_checkpoint(
                 'path/to/checkpoint.ckpt',
                 map_location=map_location
             )
 
             # or load weights and hyperparameters from separate files.
-            MyLightningModule.load_from_checkpoint(
+            model = MyLightningModule.load_from_checkpoint(
                 'path/to/checkpoint.ckpt',
                 hparams_file='/path/to/hparams_file.yaml'
             )
 
             # override some of the params with new values
-            MyLightningModule.load_from_checkpoint(
+            model = MyLightningModule.load_from_checkpoint(
                 PATH,
                 num_layers=128,
                 pretrained_ckpt_path=NEW_PATH,
@@ -390,7 +395,7 @@ def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace], use_omega
         raise TypeError("hparams must be dictionary")
 
     hparams_allowed = {}
-    # drop paramaters which contain some strange datatypes as fsspec
+    # drop parameters which contain some strange datatypes as fsspec
     for k, v in hparams.items():
         try:
             v = v.name if isinstance(v, Enum) else v

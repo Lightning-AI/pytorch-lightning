@@ -17,11 +17,11 @@ from argparse import ArgumentParser, Namespace
 from unittest import mock
 
 import pytest
+import torch
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import argparse
-from tests.helpers.runif import RunIf
 
 
 @mock.patch("argparse.ArgumentParser.parse_args")
@@ -43,7 +43,7 @@ def test_default_args(mock_argparse, tmpdir):
     assert trainer.max_epochs == 5
 
 
-@pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], ["--weights_save_path=./"], []])
+@pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], []])
 def test_add_argparse_args_redefined(cli_args: list):
     """Redefines some default Trainer arguments via the cli and tests the Trainer initialization correctness."""
     parser = ArgumentParser(add_help=False)
@@ -64,7 +64,7 @@ def test_add_argparse_args_redefined(cli_args: list):
     assert isinstance(trainer, Trainer)
 
 
-@pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], ["--weights_save_path=./"], []])
+@pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], []])
 def test_add_argparse_args(cli_args: list):
     """Simple test ensuring Trainer.add_argparse_args works."""
     parser = ArgumentParser(add_help=False)
@@ -128,7 +128,6 @@ def test_add_argparse_args_redefined_error(cli_args: list, monkeypatch):
                 # They should not be changed by the argparse interface.
                 "min_steps": None,
                 "accelerator": None,
-                "weights_save_path": None,
                 "profiler": None,
             },
         ),
@@ -163,18 +162,21 @@ def test_argparse_args_parsing_fast_dev_run(cli_args, expected):
 
 @pytest.mark.parametrize(
     ["cli_args", "expected_parsed", "expected_device_ids"],
-    [("", None, None), ("--gpus 1", 1, [0]), ("--gpus 0,", "0,", [0])],
+    [("", None, None), ("--accelerator gpu --devices 1", "1", [0]), ("--accelerator gpu --devices 0,", "0,", [0])],
 )
-@RunIf(min_gpus=1)
-def test_argparse_args_parsing_gpus(cli_args, expected_parsed, expected_device_ids):
+def test_argparse_args_parsing_devices(cli_args, expected_parsed, expected_device_ids, monkeypatch):
     """Test multi type argument with bool."""
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
+
     cli_args = cli_args.split(" ") if cli_args else []
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
         parser = ArgumentParser(add_help=False)
         parser = Trainer.add_argparse_args(parent_parser=parser)
         args = Trainer.parse_argparser(parser)
 
-    assert args.gpus == expected_parsed
+    assert args.devices == expected_parsed
     trainer = Trainer.from_argparse_args(args)
     assert trainer.data_parallel_device_ids == expected_device_ids
 
@@ -191,7 +193,7 @@ def test_argparse_args_parsing_gpus(cli_args, expected_parsed, expected_device_i
 def test_init_from_argparse_args(cli_args, extra_args):
     unknown_args = dict(unknown_arg=0)
 
-    # unkown args in the argparser/namespace should be ignored
+    # unknown args in the argparser/namespace should be ignored
     with mock.patch("pytorch_lightning.Trainer.__init__", autospec=True, return_value=None) as init:
         trainer = Trainer.from_argparse_args(Namespace(**cli_args, **unknown_args), **extra_args)
         expected = dict(cli_args)

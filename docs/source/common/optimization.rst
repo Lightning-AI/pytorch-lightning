@@ -358,8 +358,15 @@ and ``loss.backward()`` for the optimization. This mechanism is in place to supp
 output of the closure (e.g. the loss) or need to call the closure several times (e.g. :class:`~torch.optim.LBFGS`).
 
 .. warning::
+
    Before v1.2.2, Lightning internally calls ``backward``, ``step`` and ``zero_grad`` in the order.
    From v1.2.2, the order is changed to ``zero_grad``, ``backward`` and ``step``.
+
+
+Gradient Accumulation
+=====================
+
+.. include:: ../common/gradient_accumulation.rst
 
 
 Use Multiple Optimizers (like GANs)
@@ -517,10 +524,36 @@ to perform a step, Lightning won't be able to support accelerators, precision an
         optimizer = optimizer.optimizer
         optimizer.step(closure=optimizer_closure)
 
+-----
 
-***************************
+
+Bring your own Custom Learning Rate Schedulers
+==============================================
+
+Lightning allows using custom learning rate schedulers that aren't available in `PyTorch natively <https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate>`_.
+One good example is `Timm Schedulers <https://github.com/rwightman/pytorch-image-models/blob/master/timm/scheduler/scheduler.py>`_. When using custom learning rate schedulers
+relying on a different API from Native PyTorch ones, you should override the :meth:`~pytorch_lightning.core.lightning.LightningModule.lr_scheduler_step` with your desired logic.
+If you are using native PyTorch schedulers, there is no need to override this hook since Lightning will handle it automatically by default.
+
+.. code-block:: python
+
+    from timm.scheduler import TanhLRScheduler
+
+
+    def configure_optimizers(self):
+        optimizer = ...
+        scheduler = TanhLRScheduler(optimizer, ...)
+        return [optimizer], [{"scheduler": scheduler, "interval": "epoch"}]
+
+
+    def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+        scheduler.step(epoch=self.current_epoch)  # timm's scheduler need the epoch value
+
+
+.. _configure_gradient_clipping:
+
 Configure Gradient Clipping
-***************************
+===========================
 
 To configure custom gradient clipping, consider overriding
 the :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_gradient_clipping` method.
@@ -560,3 +593,21 @@ Here we configure gradient clipping differently for optimizer B.
             self.clip_gradients(
                 optimizer, gradient_clip_val=gradient_clip_val * 2, gradient_clip_algorithm=gradient_clip_algorithm
             )
+
+
+Total Stepping Batches
+======================
+
+You can use built-in trainer property :paramref:`~pytorch_lightning.trainer.trainer.Trainer.estimated_stepping_batches` to compute
+total number of stepping batches for the complete training. The property is computed considering gradient accumulation factor and
+distributed setting into consideration so you don't have to derive it manually. One good example where this can be helpful is while using
+:class:`~torch.optim.lr_scheduler.OneCycleLR` scheduler, which requires pre-computed ``total_steps`` during initialization.
+
+.. code-block:: python
+
+    def configure_optimizers(self):
+        optimizer = ...
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer, max_lr=1e-3, total_steps=self.trainer.estimated_stepping_batches
+        )
+        return [optimizer], [scheduler]

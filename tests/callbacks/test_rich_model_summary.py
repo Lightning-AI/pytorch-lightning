@@ -19,7 +19,6 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import RichModelSummary, RichProgressBar
-from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 from pytorch_lightning.utilities.model_summary import summarize
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -33,10 +32,12 @@ def test_rich_model_summary_callback():
     assert isinstance(trainer.progress_bar_callback, RichProgressBar)
 
 
-def test_rich_progress_bar_import_error():
-    if not _RICH_AVAILABLE:
-        with pytest.raises(ImportError, match="`RichModelSummary` requires `rich` to be installed."):
-            Trainer(callbacks=RichModelSummary())
+def test_rich_progress_bar_import_error(monkeypatch):
+    import pytorch_lightning.callbacks.rich_model_summary as imports
+
+    monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
+    with pytest.raises(ModuleNotFoundError, match="`RichModelSummary` requires `rich` to be installed."):
+        RichModelSummary()
 
 
 @RunIf(rich=True)

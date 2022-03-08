@@ -20,7 +20,7 @@ from packaging.version import Version
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -117,7 +117,7 @@ class TrainerCallbackHookMixin(ABC):
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_fit_start` was deprecated in v1.6 and will be removed in v1.8.
 
-        Called when the trainer initialization begins, model has not yet been set.
+        Called when fit begins.
         """
         rank_zero_deprecation(
             "`TrainerCallbackHookMixin.on_fit_start` was deprecated in v1.6 and will be removed in v1.8."
@@ -130,7 +130,7 @@ class TrainerCallbackHookMixin(ABC):
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_fit_end` was deprecated in v1.6 and will be removed in v1.8.
 
-        Called when the trainer initialization begins, model has not yet been set.
+        Called when fit ends.
         """
         rank_zero_deprecation(
             "`TrainerCallbackHookMixin.on_fit_end` was deprecated in v1.6 and will be removed in v1.8."

@@ -35,7 +35,7 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
         self.accumulated_loss = TensorRunningAccum(window_length=20)
         self.running_loss = TensorRunningAccum(window_length=20)
         # the current split index when the batch gets split into chunks in truncated backprop through time
-        self.split_idx: Optional[int] = None
+        self.split_idx: int = 0
         self.optimizer_loop = OptimizerLoop()
         self.manual_loop = ManualOptimization()
 
@@ -79,7 +79,7 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
         void(batch)
         self.split_idx, split_batch = self._remaining_splits.pop(0)
 
-        self.trainer.logger_connector.on_train_split_start(self.split_idx)
+        self.trainer._logger_connector.on_train_split_start(self.split_idx)
 
         outputs: Optional[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_OUTPUTS_TYPE]] = None  # for mypy
         # choose which loop will run the optimization

@@ -26,7 +26,7 @@ from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.strategies import TPUSpawnStrategy
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
-from pytorch_lightning.utilities import _AcceleratorType, _TPU_AVAILABLE
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
@@ -469,8 +469,6 @@ def test_tpu_host_world_size(tmpdir):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_device_type_when_training_plugin_tpu_passed(tmpdir):
-
     trainer = Trainer(strategy=TPUSpawnStrategy(), tpu_cores=8)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
-    assert trainer._device_type == _AcceleratorType.TPU
     assert isinstance(trainer.accelerator, TPUAccelerator)

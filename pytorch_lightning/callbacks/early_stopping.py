@@ -26,8 +26,8 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
 

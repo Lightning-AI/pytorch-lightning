@@ -81,8 +81,8 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
     trainer.fit(model)
 
     if save_last:
-        # last epochs are saved every step (so double the save calls) and once `on_train_end`
-        expected = expected * 2 + 1
+        # last epochs are saved every step (so double the save calls)
+        expected = expected * 2
     assert save_mock.call_count == expected
 
 
@@ -115,7 +115,8 @@ def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
         enable_model_summary=False,
         val_check_interval=val_check_interval,
         strategy="ddp",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         limit_train_batches=64,
         limit_val_batches=32,
     )

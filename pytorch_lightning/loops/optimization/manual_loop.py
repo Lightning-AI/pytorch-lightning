@@ -16,9 +16,11 @@ from typing import Any, Dict, Optional
 
 from torch import Tensor
 
+from pytorch_lightning.core.optimizer import do_nothing_closure
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.optimization.closure import OutputResult
 from pytorch_lightning.loops.utilities import _build_training_step_kwargs, _extract_hiddens
+from pytorch_lightning.trainer.progress import Progress, ReadyCompletedTracker
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -74,6 +76,10 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
 
     def __init__(self) -> None:
         super().__init__()
+        # since manual optimization does not track lr scheduler or optimizer frequencies, we use a simpler progress than
+        # `OptimizationProgress`
+        self.optim_step_progress = Progress.from_defaults(ReadyCompletedTracker)
+
         self._done: bool = False
         self._hiddens: Optional[Any] = None
         self._output: _OUTPUTS_TYPE = {}
@@ -85,6 +91,12 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
     def reset(self) -> None:
         self._done = False
 
+    def on_run_start(self, *_: Any, **__: Any) -> None:
+        # inject logic around the optimizer step
+        for i, lightning_optimizer in self.trainer.strategy._lightning_optimizers.items():
+            lightning_optimizer._on_before_step = self._on_before_step
+            lightning_optimizer._on_after_step = self._on_after_step
+
     def advance(self, batch: Any, batch_idx: int) -> None:  # type: ignore[override]
         """Performs the training step for manual optimization.
 
@@ -95,30 +107,28 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
         assert self.trainer is not None
         lightning_module = self.trainer.lightning_module
 
-        with self.trainer.profiler.profile("model_forward"):
+        step_kwargs = _build_training_step_kwargs(
+            lightning_module, self.trainer.optimizers, batch, batch_idx, opt_idx=None, hiddens=self._hiddens
+        )
 
-            step_kwargs = _build_training_step_kwargs(
-                lightning_module, self.trainer.optimizers, batch, batch_idx, opt_idx=None, hiddens=self._hiddens
-            )
+        # manually capture logged metrics
+        training_step_output = self.trainer._call_strategy_hook("training_step", *step_kwargs.values())
+        self.trainer.strategy.post_training_step()
 
-            # manually capture logged metrics
-            training_step_output = self.trainer._call_strategy_hook("training_step", *step_kwargs.values())
-            self.trainer.strategy.post_training_step()
+        del step_kwargs
 
-            del step_kwargs
+        model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
+        strategy_output = self.trainer._call_strategy_hook("training_step_end", training_step_output)
+        training_step_output = strategy_output if model_output is None else model_output
+        self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 
-            model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
-            strategy_output = self.trainer._call_strategy_hook("training_step_end", training_step_output)
-            training_step_output = strategy_output if model_output is None else model_output
-            self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
+        result = self.output_result_cls.from_training_step_output(training_step_output)
 
-            result = self.output_result_cls.from_training_step_output(training_step_output)
-
-            if self.trainer.move_metrics_to_cpu:
-                # hiddens and the training step output are not moved as they are not considered "metrics"
-                # the user might need them on the correct device for an operation in `training_epoch_end`
-                assert self.trainer._results is not None
-                self.trainer._results.cpu()
+        if self.trainer.move_metrics_to_cpu:
+            # hiddens and the training step output are not moved as they are not considered "metrics"
+            # the user might need them on the correct device for an operation in `training_epoch_end`
+            assert self.trainer._results is not None
+            self.trainer._results.cpu()
 
         self._done = True
         self._output = result.asdict()
@@ -126,4 +136,16 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
     def on_run_end(self) -> _OUTPUTS_TYPE:
         """Returns the result of this loop, i.e., the post-processed outputs from the training step."""
         output, self._output = self._output, {}  # free memory
+        # reset logic around the optimizer step
+        for i, lightning_optimizer in self.trainer.strategy._lightning_optimizers.items():
+            lightning_optimizer._on_before_step = do_nothing_closure
+            lightning_optimizer._on_after_step = do_nothing_closure
         return output
+
+    def _on_before_step(self) -> None:
+        self.optim_step_progress.increment_ready()
+        self.trainer.profiler.start("optimizer_step")
+
+    def _on_after_step(self) -> None:
+        self.trainer.profiler.stop("optimizer_step")
+        self.optim_step_progress.increment_completed()

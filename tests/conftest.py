@@ -35,7 +35,7 @@ def datadir():
 @pytest.fixture(scope="function", autouse=True)
 def preserve_global_rank_variable():
     """Ensures that the rank_zero_only.rank global variable gets reset in each test."""
-    from pytorch_lightning.utilities.distributed import rank_zero_only
+    from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
     rank = getattr(rank_zero_only, "rank", None)
     yield
@@ -77,6 +77,7 @@ def restore_env_variables():
         "XRT_HOST_WORLD_SIZE",
         "XRT_SHARD_ORDINAL",
         "XRT_SHARD_LOCAL_ORDINAL",
+        "TF_CPP_MIN_LOG_LEVEL",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"

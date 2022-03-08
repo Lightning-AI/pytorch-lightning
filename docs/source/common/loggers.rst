@@ -52,7 +52,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
         save_dir=".",  # Optional
         project_name="default_project",  # Optional
         rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
-        experiment_name="default",  # Optional
+        experiment_name="lightning_logs",  # Optional
     )
     trainer = Trainer(logger=comet_logger)
 
@@ -88,7 +88,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 
     from pytorch_lightning.loggers import MLFlowLogger
 
-    mlf_logger = MLFlowLogger(experiment_name="default", tracking_uri="file:./ml-runs")
+    mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
     trainer = Trainer(logger=mlf_logger)
 
 .. seealso::
@@ -212,7 +212,10 @@ The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
             some_img = fake_image()
-            self.log({"generated_images": [wandb.Image(some_img, caption="...")]})
+            # Option 1
+            self.logger.experiment.log({"generated_images": [wandb.Image(some_img, caption="...")]})
+            # Option 2 for specifically logging images
+            self.logger.log_image(key="generated_images", images=[some_img])
 
 .. seealso::
     - :class:`~pytorch_lightning.loggers.WandbLogger` docs.

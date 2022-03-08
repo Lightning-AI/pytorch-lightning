@@ -14,7 +14,6 @@
 
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
-from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
@@ -357,9 +356,9 @@ class CombinedLoader:
         self._iterator = None  # assigned in __iter__
 
     @staticmethod
-    def _state_dict_fn(dataloader: DataLoader, iterator: Optional[Iterator], has_completed: int) -> Dict:
-        if isinstance(dataloader, CycleIterator):
-            iterator = dataloader._loader_iter
+    def _state_dict_fn(iterator: Optional[Iterator], has_completed: int) -> Dict:
+        if isinstance(iterator, CycleIterator):
+            iterator = iterator._loader_iter
 
         # There is currently 2 dataloader states being tracked: (batch_n - 1, state_n - 1), (batch_n, state_n)
         # where `n` is the current batch. If the batch was processed, it should be saved to reproduce the next batch.
@@ -382,11 +381,11 @@ class CombinedLoader:
         if not _fault_tolerant_training() or self._iterator is None:
             return {}
 
-        return apply_to_collections(
-            self.loaders,
+        return apply_to_collection(
             self._iterator.loader_iters,
-            (Iterator, DataLoader),
-            partial(self._state_dict_fn, has_completed=has_completed),
+            Iterator,
+            self._state_dict_fn,
+            has_completed=has_completed,
         )
 
     def load_state_dict(self, state_dict) -> None:
@@ -527,7 +526,7 @@ class CombinedLoader:
 
 
 class CombinedLoaderIterator:
-    """Custom Iterator returning data from multple loaders, and allows sampling in parallel."""
+    """Custom Iterator returning data from multiple loaders, and allows sampling in parallel."""
 
     def __init__(self, loaders: Any):
         """

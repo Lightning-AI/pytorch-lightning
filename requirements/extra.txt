@@ -1,10 +1,10 @@
 # extended list of package dependencies to reach full functionality
 
 matplotlib>3.1
-horovod>=0.21.2  # no need to install with [pytorch] as pytorch is already installed
+horovod>=0.21.2,<0.24  # no need to install with [pytorch] as pytorch is already installed
 torchtext>=0.8.*
 omegaconf>=2.0.5
 hydra-core>=1.0.5
-jsonargparse[signatures]>=4.0.4
+jsonargparse[signatures]>=4.3.0
 gcsfs>=2021.5.0
 rich>=10.2.2

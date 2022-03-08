@@ -22,6 +22,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.runif import RunIf
 
 
+# TODO: add pytest.deprecated_call @daniellepintz
 @RunIf(min_gpus=2)
 @pytest.mark.parametrize(
     ["auto_select_gpus", "gpus", "expected_error"],

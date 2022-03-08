@@ -27,6 +27,8 @@ if _XLA_AVAILABLE:
 
 
 class TPUPrecisionPlugin(PrecisionPlugin):
+    """Precision plugin for TPU integration."""
+
     def optimizer_step(
         self,
         model: Union["pl.LightningModule", Module],
@@ -34,7 +36,7 @@ class TPUPrecisionPlugin(PrecisionPlugin):
         optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any
-    ) -> None:
+    ) -> Any:
         if isinstance(model, pl.LightningModule):
             closure = partial(self._wrap_closure, model, optimizer, optimizer_idx, closure)
         closure_result = xm.optimizer_step(optimizer, optimizer_args={"closure": closure, **kwargs})
@@ -47,3 +49,4 @@ class TPUPrecisionPlugin(PrecisionPlugin):
                 " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`"
                 " requesting this feature."
             )
+        return closure_result

@@ -21,11 +21,11 @@ from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import unwrap_lightning_module
+from pytorch_lightning.plugins import LayerSync
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.strategy import Strategy
-from pytorch_lightning.utilities import _XLA_AVAILABLE
 from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
 
 
@@ -43,19 +43,12 @@ class ParallelStrategy(Strategy, ABC):
         super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
         self.parallel_devices = parallel_devices
         self.cluster_environment = cluster_environment
+        self._layer_sync: Optional[LayerSync] = None
 
     @property
     @abstractmethod
     def root_device(self) -> torch.device:
         """Return the root device."""
-
-    @property
-    def on_gpu(self) -> bool:
-        return self.root_device.type == "cuda" and torch.cuda.is_available()
-
-    @property
-    def on_tpu(self) -> bool:
-        return self.root_device.type == "xla" and _XLA_AVAILABLE
 
     @property
     def lightning_module(self) -> Optional["pl.LightningModule"]:
@@ -82,6 +75,14 @@ class ParallelStrategy(Strategy, ABC):
         return self.global_rank == 0
 
     @property
+    def parallel_devices(self):
+        return self._parallel_devices
+
+    @parallel_devices.setter
+    def parallel_devices(self, parallel_devices):
+        self._parallel_devices = parallel_devices
+
+    @property
     def distributed_sampler_kwargs(self):
         distributed_sampler_kwargs = dict(num_replicas=len(self.parallel_devices), rank=self.global_rank)
         return distributed_sampler_kwargs
@@ -94,7 +95,7 @@ class ParallelStrategy(Strategy, ABC):
         return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
-        decision = torch.tensor(int(decision), device=self.lightning_module.device)
+        decision = torch.tensor(int(decision), device=self.root_device)
         decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
         decision = bool(decision == self.world_size)
         return decision
@@ -103,23 +104,8 @@ class ParallelStrategy(Strategy, ABC):
     def torch_distributed_backend(self):
         torch_backend = os.getenv("PL_TORCH_DISTRIBUTED_BACKEND")
         if torch_backend is None:
-            torch_backend = "nccl" if self.on_gpu else "gloo"
+            torch_backend = "nccl" if self.root_device.type == "cuda" else "gloo"
         return torch_backend
-
-    @staticmethod
-    def configure_sync_batchnorm(model: "pl.LightningModule") -> "pl.LightningModule":
-        """Add global batchnorm for a model spread across multiple GPUs and nodes.
-
-        Override to synchronize batchnorm between specific process groups instead
-        of the whole world or use a different sync_bn like `apex`'s version.
-
-        Args:
-            model: pointer to current :class:`LightningModule`.
-
-        Return:
-            LightningModule with batchnorm layers synchronized between process groups
-        """
-        return torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
     @contextmanager
     def block_backward_sync(self):

@@ -127,8 +127,9 @@ def test_distributed_sampler_with_overfit_batches():
     model = BoringModel()
     trainer = Trainer(
         overfit_batches=1,
+        accelerator="cpu",
+        devices=2,
         strategy="ddp_spawn",
-        num_processes=2,
     )
     model.trainer = trainer
     trainer.model = model

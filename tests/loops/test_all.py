@@ -82,7 +82,8 @@ def test_callback_batch_on_device(tmpdir):
         limit_val_batches=1,
         limit_test_batches=1,
         limit_predict_batches=1,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
         callbacks=[batch_callback],
     )
     trainer.fit(model)

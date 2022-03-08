@@ -15,12 +15,10 @@
 from abc import ABC
 from typing import List, Optional, Tuple
 
+from torch.optim import Optimizer
+
 import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import (
-    _convert_to_lightning_optimizers,
-    _init_optimizers_and_lr_schedulers,
-    LightningOptimizer,
-)
+from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
 from pytorch_lightning.utilities import rank_zero_deprecation
 
 
@@ -29,8 +27,6 @@ class TrainerOptimizersMixin(ABC):
     .. deprecated:: v1.6
         The `TrainerOptimizersMixin` was deprecated in v1.6 and will be removed in v1.8.
     """
-
-    _lightning_optimizers: Optional[List[LightningOptimizer]]
 
     def init_optimizers(self, model: Optional["pl.LightningModule"]) -> Tuple[List, List, List]:
         r"""
@@ -52,4 +48,17 @@ class TrainerOptimizersMixin(ABC):
             "`TrainerOptimizersMixin.convert_to_lightning_optimizers` was deprecated in v1.6 and will be removed in "
             "v1.8."
         )
-        _convert_to_lightning_optimizers(self)
+
+        def _convert_to_lightning_optimizer(optimizer: Optimizer) -> LightningOptimizer:
+            if not isinstance(optimizer, LightningOptimizer):
+                optimizer = LightningOptimizer(optimizer)  # type: ignore [assignment]
+            optimizer._trainer = self
+            for opt_idx, opt in enumerate(self.optimizers):
+                if opt == optimizer._optimizer:
+                    optimizer._optimizer_idx = opt_idx
+                    break
+            return optimizer  # type: ignore [return-value]
+
+        self.strategy._cached_lightning_optimizers = {  # type: ignore [assignment]
+            idx: _convert_to_lightning_optimizer(opt) for idx, opt in enumerate(self.optimizers)
+        }

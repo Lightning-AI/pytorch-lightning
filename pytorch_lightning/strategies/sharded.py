@@ -19,12 +19,13 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.optimizer import _convert_to_lightning_optimizers, LightningOptimizer
+from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE, rank_zero_only
-from pytorch_lightning.utilities.enums import _StrategyType, PrecisionType
+from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -36,7 +37,7 @@ if _FAIRSCALE_AVAILABLE:
 class DDPShardedStrategy(DDPStrategy):
     """Optimizer and gradient sharded training provided by FairScale."""
 
-    distributed_backend = _StrategyType.DDP_SHARDED
+    strategy_name = "ddp_sharded"
     _REDUCE_BUFFER_SIZE_DEFAULT: int = 2 ** 23  # 8M
 
     def configure_ddp(self) -> None:
@@ -45,12 +46,10 @@ class DDPShardedStrategy(DDPStrategy):
             # For multi-node training, enabling bucketing will improve performance.
             self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
 
-        self.model, optimizers = self._setup_model_and_optimizers(
+        self.model, self.optimizers = self._setup_model_and_optimizers(
             model=LightningShardedDataParallel(self.model),
             optimizers=trainer.optimizers,
         )
-        trainer.optimizers = optimizers
-        _convert_to_lightning_optimizers(trainer)
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Wraps the model and optimizers with fairscale components.
@@ -135,4 +134,9 @@ class DDPShardedStrategy(DDPStrategy):
             cls,
             description="DDP Sharded Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
+        )
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
         )

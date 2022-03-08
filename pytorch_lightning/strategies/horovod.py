@@ -12,23 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import ExitStack
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
-from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as dist_group
-from pytorch_lightning.utilities.distributed import rank_zero_only, ReduceOp
-from pytorch_lightning.utilities.enums import _StrategyType
+from pytorch_lightning.utilities.distributed import ReduceOp
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
@@ -37,7 +37,7 @@ if _HOROVOD_AVAILABLE:
 class HorovodStrategy(ParallelStrategy):
     """Plugin for Horovod distributed training integration."""
 
-    distributed_backend = _StrategyType.HOROVOD
+    strategy_name = "horovod"
 
     def __init__(
         self,
@@ -77,6 +77,11 @@ class HorovodStrategy(ParallelStrategy):
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 
+    @property
+    def handles_gradient_accumulation(self) -> bool:
+        """Whether the plugin handles gradient accumulation internally."""
+        return True
+
     def setup(self, trainer: "pl.Trainer") -> None:
         self.model_to_device()
 
@@ -85,7 +90,7 @@ class HorovodStrategy(ParallelStrategy):
         self._exit_stack = ExitStack()
         self._exit_stack.__enter__()
 
-        if not self.lightning_module.trainer.training:
+        if not trainer.training:
             # no need to setup optimizers
             return
 
@@ -102,18 +107,23 @@ class HorovodStrategy(ParallelStrategy):
                 param_group["lr"] *= self.world_size
 
         # Horovod: adjust base LR used by schedulers to match scaled optimizer initial LR
-        lr_schedulers = self.lightning_module.trainer.lr_schedulers
-        for scheduler in lr_schedulers:
-            scheduler = scheduler["scheduler"]
-            if isinstance(scheduler, _LRScheduler):
-                scheduler.base_lrs = [lr * self.world_size for lr in scheduler.base_lrs]
+        lr_scheduler_configs = self.lr_scheduler_configs
+        for config in lr_scheduler_configs:
+            scheduler = config.scheduler
+            scheduler.base_lrs = [lr * self.world_size for lr in scheduler.base_lrs]
 
         # Horovod: broadcast parameters & optimizer state to ensure consistent initialization
         hvd.broadcast_parameters(self.lightning_module.state_dict(), root_rank=0)
         for optimizer in optimizers:
             hvd.broadcast_optimizer_state(optimizer, root_rank=0)
 
-        self.optimizers = self._wrap_optimizers(optimizers)
+        accumulation_scheduler = trainer.accumulation_scheduler
+        if accumulation_scheduler.epochs != [0]:
+            raise MisconfigurationException(
+                "Horovod currently does not support different `accumulate_grad_batches` at different epochs."
+            )
+
+        self.optimizers = self._wrap_optimizers(optimizers, trainer.accumulate_grad_batches)
         for optimizer in self.optimizers:
             # Synchronization will be performed explicitly following backward()
             self._exit_stack.enter_context(optimizer.skip_synchronize())
@@ -127,13 +137,13 @@ class HorovodStrategy(ParallelStrategy):
         return obj
 
     def model_to_device(self):
-        if self.on_gpu:
+        if self.root_device.type == "cuda":
             # this can potentially be removed after #8312. Not done due to lack of horovod testing
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
     def join(self):
-        if self.on_gpu:
+        if self.root_device.type == "cuda":
             hvd.join(self.local_rank)
         else:
             hvd.join()
@@ -180,13 +190,19 @@ class HorovodStrategy(ParallelStrategy):
 
     def post_backward(self, closure_loss: torch.Tensor) -> None:
         # synchronize all horovod optimizers.
-        for optimizer in self.lightning_module.trainer.optimizers:
+        for optimizer in self.optimizers:
             optimizer.synchronize()
 
-    def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["hvd.DistributedOptimizer"]:
+    def _wrap_optimizers(
+        self, optimizers: List[Optimizer], accumulate_grad_batches: int
+    ) -> List["hvd.DistributedOptimizer"]:
         """Wraps optimizers to perform gradient aggregation via allreduce."""
         return [
-            hvd.DistributedOptimizer(opt, named_parameters=self._filter_named_parameters(self.lightning_module, opt))
+            hvd.DistributedOptimizer(
+                opt,
+                backward_passes_per_step=accumulate_grad_batches,
+                named_parameters=self._filter_named_parameters(self.lightning_module, opt),
+            )
             if "horovod" not in str(opt.__class__)
             else opt
             for opt in optimizers
@@ -197,13 +213,23 @@ class HorovodStrategy(ParallelStrategy):
         opt_params = {p for group in optimizer.param_groups for p in group.get("params", [])}
         return [(name, p) for name, p in model.named_parameters() if p in opt_params]
 
+    @classmethod
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )
+
     def teardown(self) -> None:
         super().teardown()
-        self._exit_stack.__exit__(None, None, None)
-        self._exit_stack = None
+        # teardown may be called before `_exit_stack` is set
+        if self._exit_stack:
+            self._exit_stack.__exit__(None, None, None)
+            self._exit_stack = None
         # Make sure all workers have finished training before returning to the user
         self.join()
-        if self.on_gpu:
+        if self.root_device.type == "cuda":
             # GPU teardown
             self.lightning_module.cpu()
             # clean up memory

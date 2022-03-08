@@ -155,7 +155,9 @@ def test_lite_optimizer_steps():
     """Test that the LiteOptimizer forwards the step() and zero_grad() calls to the wrapped optimizer."""
     optimizer = Mock()
     strategy = Mock()
+    strategy.optimizer_step.return_value = 123
     lite_optimizer = _LiteOptimizer(optimizer=optimizer, strategy=strategy)
-    lite_optimizer.step()
+    step_output = lite_optimizer.step()
+    assert step_output == 123
     strategy.optimizer_step.assert_called_once()
     strategy.optimizer_step.assert_called_with(optimizer, opt_idx=0, closure=ANY, model=strategy.model)

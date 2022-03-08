@@ -30,8 +30,8 @@ sys.path.append(os.path.join(PATH_RAW_NB, ".actions"))
 _SHOULD_COPY_NOTEBOOKS = True
 
 try:
-    from helpers import HelperCLI
-except Exception:
+    from assistant import AssistantCLI
+except ImportError:
     _SHOULD_COPY_NOTEBOOKS = False
     warnings.warn("To build the code, please run: `git submodule update --init --recursive`", stacklevel=2)
 
@@ -46,7 +46,9 @@ spec.loader.exec_module(about)
 
 # -- Project documents -------------------------------------------------------
 if _SHOULD_COPY_NOTEBOOKS:
-    HelperCLI.copy_notebooks(PATH_RAW_NB, PATH_HERE, "notebooks", patterns=[".", "course_UvA-DL", "lightning_examples"])
+    AssistantCLI.copy_notebooks(
+        PATH_RAW_NB, PATH_HERE, "notebooks", patterns=[".", "course_UvA-DL", "lightning_examples"]
+    )
 
 
 def _transform_changelog(path_in: str, path_out: str) -> None:

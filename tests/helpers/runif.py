@@ -22,6 +22,7 @@ from pkg_resources import get_distribution
 
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
+    _BAGUA_AVAILABLE,
     _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
@@ -33,13 +34,18 @@ from pytorch_lightning.utilities import (
     _TPU_AVAILABLE,
 )
 
-try:
-    from horovod.common.util import nccl_built
+_HOROVOD_NCCL_AVAILABLE = False
+if _HOROVOD_AVAILABLE:
+    import horovod
 
-    nccl_built()
-    _HOROVOD_NCCL_AVAILABLE = True
-except (ImportError, ModuleNotFoundError, AttributeError):
-    _HOROVOD_NCCL_AVAILABLE = False
+    try:
+
+        # `nccl_built` returns an integer
+        _HOROVOD_NCCL_AVAILABLE = bool(horovod.torch.nccl_built())
+    except AttributeError:
+        # AttributeError can be raised if MPI is not available:
+        # https://github.com/horovod/horovod/blob/v0.23.0/horovod/torch/__init__.py#L33-L34
+        pass
 
 
 class RunIf:
@@ -74,6 +80,7 @@ class RunIf:
         skip_hanging_spawn: bool = False,
         omegaconf: bool = False,
         slow: bool = False,
+        bagua: bool = False,
         **kwargs,
     ):
         """
@@ -99,6 +106,7 @@ class RunIf:
             skip_hanging_spawn: Skip the test as it's impacted by hanging loggers on spawn.
             omegaconf: Require that omry/omegaconf is installed.
             slow: Mark the test as slow, our CI will run it in a separate job.
+            bagua: Require that BaguaSys/bagua is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
@@ -203,6 +211,10 @@ class RunIf:
             reasons.append("Slow test")
             # used in tests/conftest.py::pytest_collection_modifyitems
             kwargs["slow"] = True
+
+        if bagua:
+            conditions.append(not _BAGUA_AVAILABLE or sys.platform in ("win32", "darwin"))
+            reasons.append("Bagua")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(

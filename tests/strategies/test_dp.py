@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
+
 import pytest
 import torch
 import torch.nn.functional as F
@@ -134,13 +136,30 @@ class ReductionTestModel(BoringModel):
 
     def training_epoch_end(self, outputs):
         assert outputs[0]["loss"].shape == torch.Size([])
-        assert outputs[0]["reduce_int"].item() == 0  # mean([0, 1]) = 0
-        assert outputs[0]["reduce_float"].item() == 0.5  # mean([0., 1.]) = 0.5
+        self._assert_extra_outputs(outputs)
+
+    def validation_epoch_end(self, outputs):
+        assert outputs[0]["x"].shape == torch.Size([2])
+        self._assert_extra_outputs(outputs)
+
+    def test_epoch_end(self, outputs):
+        assert outputs[0]["y"].shape == torch.Size([2])
+        self._assert_extra_outputs(outputs)
+
+    def _assert_extra_outputs(self, outputs):
+        out = outputs[0]["reduce_int"]
+        assert torch.eq(out, torch.tensor([0, 1], device="cuda:0")).all()
+        assert out.dtype is torch.int
+
+        out = outputs[0]["reduce_float"]
+        assert torch.eq(out, torch.tensor([0.0, 1.0], device="cuda:0")).all()
+        assert out.dtype is torch.float
 
 
-def test_dp_raise_exception_with_batch_transfer_hooks(tmpdir, monkeypatch):
+@mock.patch("torch.cuda.device_count", return_value=2)
+@mock.patch("torch.cuda.is_available", return_value=True)
+def test_dp_raise_exception_with_batch_transfer_hooks(mock_is_available, mock_device_count, tmpdir):
     """Test that an exception is raised when overriding batch_transfer_hooks in DP model."""
-    monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
 
     class CustomModel(BoringModel):
         def transfer_batch_to_device(self, batch, device, dataloader_idx):
@@ -188,11 +207,32 @@ def test_dp_training_step_dict(tmpdir):
 
     trainer = pl.Trainer(
         default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=1,
-        limit_val_batches=1,
-        limit_test_batches=1,
+        fast_dev_run=True,
         gpus=2,
         strategy="dp",
     )
     trainer.fit(model)
+    trainer.test(model)
+
+
+@RunIf(min_gpus=2)
+def test_dp_batch_not_moved_to_device_explicitly(tmpdir):
+    """Test that with DP, batch is not moved to the device explicitly."""
+
+    class CustomModel(BoringModel):
+        def on_train_batch_start(self, batch, *args, **kargs):
+            assert not batch.is_cuda
+
+        def training_step(self, batch, batch_idx):
+            assert batch.is_cuda
+            return super().training_step(batch, batch_idx)
+
+    trainer = pl.Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        accelerator="gpu",
+        devices=2,
+        strategy="dp",
+    )
+
+    trainer.fit(CustomModel())

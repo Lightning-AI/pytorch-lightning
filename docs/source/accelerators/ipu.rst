@@ -1,7 +1,7 @@
 .. _ipu:
 
-IPU support
-===========
+Intelligence Processing Unit (IPU)
+==================================
 
 Lightning supports the Graphcore `Intelligence Processing Unit (IPU) <https://www.graphcore.ai/products/ipu>`__, built for Artificial Intelligence and Machine Learning.
 

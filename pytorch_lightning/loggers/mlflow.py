@@ -23,7 +23,9 @@ from time import time
 from typing import Any, Dict, Optional, Union
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import _module_available, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.imports import _module_available
+from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
+from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
@@ -66,7 +68,7 @@ class MLFlowLogger(LightningLoggerBase):
         from pytorch_lightning import Trainer
         from pytorch_lightning.loggers import MLFlowLogger
 
-        mlf_logger = MLFlowLogger(experiment_name="default", tracking_uri="file:./ml-runs")
+        mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
         trainer = Trainer(logger=mlf_logger)
 
     Use the logger anywhere in your :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
@@ -108,7 +110,7 @@ class MLFlowLogger(LightningLoggerBase):
 
     def __init__(
         self,
-        experiment_name: str = "default",
+        experiment_name: str = "lightning_logs",
         run_name: Optional[str] = None,
         tracking_uri: Optional[str] = os.getenv("MLFLOW_TRACKING_URI"),
         tags: Optional[Dict[str, Any]] = None,
@@ -191,8 +193,8 @@ class MLFlowLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
-        params = self._convert_params(params)
-        params = self._flatten_dict(params)
+        params = _convert_params(params)
+        params = _flatten_dict(params)
         for k, v in params.items():
             if len(str(v)) > 250:
                 rank_zero_warn(
@@ -206,7 +208,7 @@ class MLFlowLogger(LightningLoggerBase):
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
-        metrics = self._add_prefix(metrics)
+        metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
@@ -238,7 +240,7 @@ class MLFlowLogger(LightningLoggerBase):
 
         Return:
             Local path to the root experiment directory if the tracking uri is local.
-            Otherwhise returns `None`.
+            Otherwise returns `None`.
         """
         if self._tracking_uri.startswith(LOCAL_FILE_URI_PREFIX):
             return self._tracking_uri.lstrip(LOCAL_FILE_URI_PREFIX)

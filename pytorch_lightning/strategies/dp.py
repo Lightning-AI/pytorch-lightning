@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import torch
 from torch.nn import DataParallel, Module
@@ -21,8 +21,7 @@ from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
-from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
-from pytorch_lightning.utilities.enums import _StrategyType
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, STEP_OUTPUT
 
@@ -31,7 +30,7 @@ class DataParallelStrategy(ParallelStrategy):
     """Implements data-parallel training in a single process, i.e., the model gets replicated to each device and
     each gets a split of the data."""
 
-    distributed_backend = _StrategyType.DP
+    strategy_name = "dp"
 
     def __init__(
         self,
@@ -80,7 +79,8 @@ class DataParallelStrategy(ParallelStrategy):
             device: The target device
             dataloader_idx: The index of the dataloader to which the batch belongs.
         """
-        return move_data_to_device(batch, device=device or self.root_device)
+        # DataParallel handles the transfer of batch to the device
+        return batch
 
     def _setup_model(self, model: Module) -> DataParallel:
         """Wraps the given model into a :class:`~torch.nn.parallel.DataParallel` module."""
@@ -137,23 +137,28 @@ class DataParallelStrategy(ParallelStrategy):
             return self.model(*args, **kwargs)
 
     def training_step_end(self, output):
-        if not is_overridden("training_step_end", self.lightning_module):
-            return self.reduce(output)
+        if is_overridden("training_step_end", self.lightning_module):
+            return output
+
+        if isinstance(output, dict) and "loss" in output:
+            output["loss"] = self.reduce(output["loss"])
+
+        elif isinstance(output, torch.Tensor):
+            output = self.reduce(output)
+
         return output
 
-    def validation_step_end(self, output):
-        if not is_overridden("validation_step_end", self.lightning_module):
-            return self.reduce(output)
-        return output
-
-    def test_step_end(self, output):
-        if not is_overridden("test_step_end", self.lightning_module):
-            return self.reduce(output)
-        return output
+    @classmethod
+    def register_strategies(cls, strategy_registry: Dict) -> None:
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )
 
     def teardown(self) -> None:
         super().teardown()
-        if self.on_gpu:
+        if self.root_device.type == "cuda":
             # GPU teardown
             self.lightning_module.cpu()
             # clean up memory

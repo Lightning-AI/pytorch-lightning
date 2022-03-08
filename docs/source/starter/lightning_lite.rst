@@ -29,7 +29,7 @@ Learn by example
 ****************
 
 
-My existing PyTorch code
+My Existing PyTorch Code
 ========================
 
 The ``run`` function contains custom training loop used to train ``MyModel`` on ``MyDataset`` for ``num_epochs`` epochs.
@@ -76,7 +76,7 @@ The ``run`` function contains custom training loop used to train ``MyModel`` on 
 Convert to LightningLite
 ========================
 
-Here are 5 required steps to convert to :class:`~pytorch_lightning.lite.LightningLite`.
+Here are five required steps to convert to :class:`~pytorch_lightning.lite.LightningLite`.
 
 1. Subclass :class:`~pytorch_lightning.lite.LightningLite` and override its :meth:`~pytorch_lightning.lite.LightningLite.run` method.
 2. Move the body of your existing ``run`` function into :class:`~pytorch_lightning.lite.LightningLite` ``run`` method.
@@ -127,15 +127,15 @@ Here are 5 required steps to convert to :class:`~pytorch_lightning.lite.Lightnin
 That's all. You can now train on any kind of device and scale your training.
 
 :class:`~pytorch_lightning.lite.LightningLite` takes care of device management, so you don't have to.
-You should remove any device specific logic within your code.
+You should remove any device-specific logic within your code.
 
-Here is how to train on 8 GPUs with `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision:
+Here is how to train on eight GPUs with `torch.bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_ precision:
 
 .. code-block:: python
 
     Lite(strategy="ddp", devices=8, accelerator="gpu", precision="bf16").run(10)
 
-Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`_ with 8 GPUs and precision 16:
+Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/zero3-offload.html>`_ with eight GPUs and precision 16:
 
 .. code-block:: python
 
@@ -148,7 +148,7 @@ Here is how to use `DeepSpeed Zero3 <https://www.deepspeed.ai/news/2021/03/07/ze
     Lite(devices="auto", accelerator="auto", precision=16).run(10)
 
 You can also easily use distributed collectives if required.
-Here is an example while running on 256 GPUs (8 GPUs times 32 nodes).
+Here is an example while running on 256 GPUs (eight GPUs times 32 nodes).
 
 .. code-block:: python
 
@@ -189,7 +189,7 @@ If you require custom data or model device placement, you can deactivate
 :class:`~pytorch_lightning.lite.LightningLite` automatic placement by doing
 ``self.setup_dataloaders(..., move_to_device=False)`` for the data and
 ``self.setup(..., move_to_device=False)`` for the model.
-Futhermore, you can access the current device from ``self.device`` or
+Furthermore, you can access the current device from ``self.device`` or
 rely on :meth:`~pytorch_lightning.lite.LightningLite.to_device`
 utility to move an object to the current device.
 
@@ -198,11 +198,11 @@ utility to move an object to the current device.
 
 .. tip::
 
-    If you have hundreds or thousands of line within your :meth:`~pytorch_lightning.lite.LightningLite.run` function
-    and you are feeling weird about it then this is right feeling.
-    Back in 2019, our :class:`~pytorch_lightning.core.lightning.LightningModule` was getting larger
-    and we got the same feeling. So we started to organize our code for simplicity, interoperability and standardization.
-    This is definitely a good sign that you should consider refactoring your code and / or switch to
+    If you have hundreds or thousands of lines within your :meth:`~pytorch_lightning.lite.LightningLite.run` function
+    and you are feeling unsure about them, then that is the correct feeling.
+    In 2019, our :class:`~pytorch_lightning.core.lightning.LightningModule` was getting larger
+    and we got the same feeling, so we started to organize our code for simplicity, interoperability and standardization.
+    This is definitely a good sign that you should consider refactoring your code and / or switching to
     :class:`~pytorch_lightning.core.lightning.LightningModule` ultimately.
 
 
@@ -221,28 +221,28 @@ but there are several major challenges ahead of you now:
    :header-rows: 0
 
    * - Processes divergence
-     - This happens when processes execute a different section of the code due to different if/else conditions, race condition on existing files, etc., resulting in hanging.
+     - This happens when processes execute a different section of the code due to different if/else conditions, race conditions on existing files and so on, resulting in hanging.
    * - Cross processes reduction
      - Miscalculated metrics or gradients due to errors in their reduction.
    * - Large sharded models
      - Instantiation, materialization and state management of large models.
    * - Rank 0 only actions
-     - Logging, profiling, etc.
+     - Logging, profiling, and so on.
    * - Checkpointing / Early stopping / Callbacks / Logging
-     - Ability to easily customize your training behaviour and make it stateful.
+     - Ability to customize your training behavior easily and make it stateful.
    * - Fault-tolerant training
      - Ability to resume from a failure as if it never happened.
 
 
-If you are facing one of those challenges then you are already meeting the limit of :class:`~pytorch_lightning.lite.LightningLite`.
-We recommend you to convert to :doc:`Lightning <../starter/new-project>`, so you never have to worry about those.
+If you are facing one of those challenges, then you are already meeting the limit of :class:`~pytorch_lightning.lite.LightningLite`.
+We recommend you to convert to :doc:`Lightning <../starter/introduction>`, so you never have to worry about those.
 
 ----------
 
 Convert to Lightning
 ====================
 
-:class:`~pytorch_lightning.lite.LightningLite` is a stepping stone to fully transition to the Lightning API and benefit
+:class:`~pytorch_lightning.lite.LightningLite` is a stepping stone to transition fully to the Lightning API and benefit
 from its hundreds of features.
 
 You can see our :class:`~pytorch_lightning.lite.LightningLite` class as a
@@ -333,7 +333,7 @@ Finally, change the :meth:`~pytorch_lightning.lite.LightningLite.run` into a
     trainer.fit(LightningModel(), datamodule=BoringDataModule())
 
 
-You have successfully converted to PyTorch Lightning and can now benefit from its hundred of features!
+You have successfully converted to PyTorch Lightning, and can now benefit from its hundred of features!
 
 ----------
 
@@ -342,7 +342,7 @@ Lightning Lite Flags
 ********************
 
 Lite is specialized in accelerated distributed training and inference. It offers you convenient ways to configure
-your device and communication strategy, and to seamlessly switch from one to the other. The terminology and usage is
+your device and communication strategy and to switch seamlessly from one to the other. The terminology and usage are
 identical to Lightning, which means minimum effort for you to convert when you decide to do so.
 
 
@@ -365,7 +365,7 @@ Choose one of ``"cpu"``, ``"gpu"``, ``"tpu"``, ``"auto"`` (IPU support is coming
     # Running with GPU Accelerator using the DistributedDataParallel strategy
     lite = Lite(devices=4, accelerator="gpu", strategy="ddp")
 
-The ``"auto"`` option recognizes the machine you are on, and selects the available accelerator.
+The ``"auto"`` option recognizes the machine you are on and selects the available accelerator.
 
 .. code-block:: python
 
@@ -416,7 +416,7 @@ Configure the devices to run on. Can be of type:
     # equivalent
     lite = Lite(devices=0)
 
-    # int: run on 2 GPUs
+    # int: run on two GPUs
     lite = Lite(devices=2, accelerator="gpu")
 
     # list: run on GPUs 1, 4 (by bus ordering)
@@ -436,7 +436,7 @@ Shorthand for setting ``devices=X`` and ``accelerator="gpu"``.
 
 .. code-block:: python
 
-    # Run on 2 GPUs
+    # Run on two GPUs
     lite = Lite(gpus=2)
 
     # Equivalent
@@ -450,7 +450,7 @@ Shorthand for ``devices=X`` and ``accelerator="tpu"``.
 
 .. code-block:: python
 
-    # Run on 8 TPUs
+    # Run on eight TPUs
     lite = Lite(tpu_cores=8)
 
     # Equivalent
@@ -479,7 +479,7 @@ precision
 =========
 
 Lightning Lite supports double precision (64), full precision (32), or half precision (16) operation (including `bfloat16 <https://pytorch.org/docs/1.10.0/generated/torch.Tensor.bfloat16.html>`_).
-Half precision, or mixed precision, is the combined use of 32 and 16 bit floating points to reduce the memory footprint during model training.
+Half precision, or mixed precision, is the combined use of 32 and 16-bit floating points to reduce the memory footprint during model training.
 This can result in improved performance, achieving significant speedups on modern GPUs.
 
 .. code-block:: python
@@ -536,7 +536,7 @@ Lightning Lite Methods
 run
 ===
 
-The run method servers two purposes:
+The run method serves two purposes:
 
 1.  Override this method from the :class:`~pytorch_lightning.lite.lite.LightningLite` class and put your
     training (or inference) code inside.
@@ -551,7 +551,7 @@ You can optionally pass arguments to the run method. For example, the hyperparam
 
     class Lite(LightningLite):
 
-        # Input arguments are optional, put whatever you need
+        # Input arguments are optional; put whatever you need
         def run(self, learning_rate, num_layers):
             """Here goes your training loop"""
 
@@ -563,7 +563,7 @@ You can optionally pass arguments to the run method. For example, the hyperparam
 setup
 =====
 
-Setup a model and corresponding optimizer(s). If you need to setup multiple models, call ``setup()`` on each of them.
+Set up a model and corresponding optimizer(s). If you need to set up multiple models, call ``setup()`` on each of them.
 Moves the model and optimizer to the correct device automatically.
 
 .. code-block:: python
@@ -571,7 +571,7 @@ Moves the model and optimizer to the correct device automatically.
     model = nn.Linear(32, 64)
     optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
 
-    # Setup model and optimizer for accelerated training
+    # Set up model and optimizer for accelerated training
     model, optimizer = self.setup(model, optimizer)
 
     # If you don't want Lite to set the device
@@ -584,8 +584,8 @@ cast automatically.
 setup_dataloaders
 =================
 
-Setup one or multiple dataloaders for accelerated operation. If you are running a distributed strategy (e.g., DDP), Lite
-will replace the sampler automatically for you. In addition, the dataloader will be configured to move the returned
+Set up one or multiple dataloaders for accelerated operation. If you are running a distributed strategy (e.g., DDP), Lite
+replaces the sampler automatically for you. In addition, the dataloader will be configured to move the returned
 data tensors to the correct device automatically.
 
 .. code-block:: python
@@ -605,7 +605,7 @@ data tensors to the correct device automatically.
 backward
 ========
 
-This replaces any occurences of ``loss.backward()`` and will make your code accelerator and precision agnostic.
+This replaces any occurrences of ``loss.backward()`` and makes your code accelerator and precision agnostic.
 
 .. code-block:: python
 
@@ -683,7 +683,7 @@ save
 ====
 
 Save contents to a checkpoint. Replaces all occurrences of ``torch.save(...)`` in your code. Lite will take care of
-handling the saving part correctly, no matter if you are running single device, multi-device or multi-node.
+handling the saving part correctly, no matter if you are running a single device, multi-devices or multi-nodes.
 
 .. code-block:: python
 
@@ -694,8 +694,8 @@ handling the saving part correctly, no matter if you are running single device, 
 load
 ====
 
-Load checkpoint contents from a file. Replaces all occurences of ``torch.load(...)`` in your code. Lite will take care of
-handling the loading part correctly, no matter if you are running single device, multi-device or multi-node.
+Load checkpoint contents from a file. Replaces all occurrences of ``torch.load(...)`` in your code. Lite will take care of
+handling the loading part correctly, no matter if you are running a single device, multi-device, or multi-node.
 
 .. code-block:: python
 

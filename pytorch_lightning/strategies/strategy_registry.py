@@ -75,7 +75,7 @@ class _StrategyRegistry(dict):
 
         def do_register(strategy: Callable) -> Callable:
             data["strategy"] = strategy
-            data["distributed_backend"] = strategy.distributed_backend
+            data["strategy_name"] = strategy.strategy_name
             self[name] = data
             return strategy
 
