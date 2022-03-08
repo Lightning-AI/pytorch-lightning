@@ -68,6 +68,10 @@ class ModelHooks:
         - pretrain_routine start
         - pretrain_routine end
         - training_start
+
+        .. deprecated:: v1.6
+            :meth:`on_pretrain_routine_start` has been deprecated in v1.6 and will be removed in v1.8.
+            Use ``on_fit_start`` instead.
         """
 
     def on_pretrain_routine_end(self) -> None:
@@ -77,6 +81,10 @@ class ModelHooks:
         - pretrain_routine start
         - pretrain_routine end
         - training_start
+
+        .. deprecated:: v1.6
+            :meth:`on_pretrain_routine_end` has been deprecated in v1.6 and will be removed in v1.8.
+            Use ``on_fit_start`` instead.
         """
 
     def on_train_batch_start(self, batch: Any, batch_idx: int, unused: int = 0) -> Optional[int]:
