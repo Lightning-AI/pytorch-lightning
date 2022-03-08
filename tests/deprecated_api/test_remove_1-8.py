@@ -36,6 +36,7 @@ from pytorch_lightning.plugins.training_type.single_device import SingleDevicePl
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.profiler import AbstractProfiler, AdvancedProfiler, SimpleProfiler
+from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
@@ -740,3 +741,29 @@ def test_v1_8_0_precision_plugin_checkpoint_hooks(tmpdir):
 
 def test_v1_8_0_abstract_profiler():
     assert "`AbstractProfiler` was deprecated in v1.6" in AbstractProfiler.__doc__
+
+
+def test_v1_8_0_datamodule_checkpointhooks():
+    class CustomBoringDataModuleSave(BoringDataModule):
+        def on_save_checkpoint(self, checkpoint):
+            print("override on_save_checkpoint")
+
+    class CustomBoringDataModuleLoad(BoringDataModule):
+        def on_load_checkpoint(self, checkpoint):
+            print("override on_load_checkpoint")
+
+    trainer = Mock()
+
+    trainer.datamodule = CustomBoringDataModuleSave()
+    with pytest.deprecated_call(
+        match="`LightningDataModule.on_save_checkpoint` was deprecated in"
+        " v1.6 and will be removed in v1.8. Use `state_dict` instead."
+    ):
+        _check_datamodule_checkpoint_hooks(trainer)
+
+    trainer.datamodule = CustomBoringDataModuleLoad()
+    with pytest.deprecated_call(
+        match="`LightningDataModule.on_load_checkpoint` was deprecated in"
+        " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
+    ):
+        _check_datamodule_checkpoint_hooks(trainer)
