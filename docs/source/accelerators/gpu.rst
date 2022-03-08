@@ -270,8 +270,8 @@ Lightning allows explicitly specifying the backend via the `process_group_backen
 
     from pytorch_lightning.strategies import DDPStrategy
 
-    # Specify the process group backend
-    ddp = DDPStrategy(process_group_backend="gloo")
+    # Explicitly specify the process group backend if you choose to
+    ddp = DDPStrategy(process_group_backend="nccl")
 
     # Configure the strategy on the Trainer
     trainer = Trainer(strategy=ddp, accelerator="gpu", devices=8)
