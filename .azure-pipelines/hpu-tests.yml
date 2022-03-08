@@ -27,6 +27,9 @@ jobs:
       clean: all
 
     steps:
+    - bash: |
+        hwinfo --short
+      displayName: 'Instance HW info'
 
     - bash: |
         pip install . --requirement requirements/hpu.txt
