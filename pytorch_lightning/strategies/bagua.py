@@ -160,7 +160,7 @@ class BaguaStrategy(DDPStrategy):
         # move the model to the correct device
         self.model_to_device()
 
-        if self._layer_sync:
+        if self._layer_sync and self.model:
             self.model = self._layer_sync.apply(self.model)
 
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
