@@ -85,9 +85,9 @@ def test_configuration(algorithm, tmpdir):
     ), mock.patch("bagua.torch_api.communication.is_initialized", return_value=True):
         if algorithm == "qadam":
             with pytest.raises(MisconfigurationException, match="Bagua QAdam can only accept one QAdamOptimizer"):
-                trainer.strategy.configure_ddp()
+                trainer.strategy._configure_bagua_model()
         else:
-            trainer.strategy.configure_ddp()
+            trainer.strategy._configure_bagua_model()
 
 
 @RunIf(bagua=True, min_gpus=1)
