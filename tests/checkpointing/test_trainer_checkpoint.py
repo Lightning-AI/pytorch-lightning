@@ -77,23 +77,7 @@ def test_finetuning_with_ckpt_path(tmpdir):
         else:
             assert f"epoch={idx + 1}" in best_model_path
 
-
-def test_accumulated_gradient_batches_with_ckpt_path(tmpdir):
-    """This test validates that accumulated gradient is properly recomputed and reset on the trainer."""
-
-    ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
-    model = BoringModel()
-    trainer_kwargs = dict(
-        max_epochs=1, accumulate_grad_batches={0: 2}, callbacks=ckpt, limit_train_batches=1, limit_val_batches=0
-    )
-    trainer = Trainer(**trainer_kwargs)
-    trainer.fit(model)
-
-    trainer_kwargs["max_epochs"] = 2
-    trainer = Trainer(**trainer_kwargs)
-    trainer.fit(model, ckpt_path=ckpt.last_model_path)
-
-
+            
 def test_trainer_save_checkpoint_storage_options(tmpdir):
     """This test validates that storage_options argument is properly passed to ``CheckpointIO``"""
     model = BoringModel()
