@@ -22,7 +22,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.hooks import CheckpointHooks
-from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType
+from pytorch_lightning.utilities import AMPType, grad_norm, GradClipAlgorithmType
 from pytorch_lightning.utilities.types import _PARAMETERS
 
 
@@ -31,8 +31,6 @@ class PrecisionPlugin(CheckpointHooks):
 
     The class attribute precision must be overwritten in child classes. The default value reflects fp32 training.
     """
-
-    precision: Union[str, int] = 32
 
     def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
         """The main params of the model.
@@ -275,3 +273,15 @@ class PrecisionPlugin(CheckpointHooks):
 
         Use ``load_state_dict`` instead.
         """
+
+    @property
+    def precision(self) -> Union[str, int]:
+        return 32
+
+    @property
+    def amp_backend(self) -> Optional[AMPType]:
+        return None
+
+    @property
+    def amp_level(self) -> Optional[str]:
+        return None

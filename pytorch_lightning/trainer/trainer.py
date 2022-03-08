@@ -43,12 +43,7 @@ from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.loops.utilities import _parse_loop_limits, _reset_progress
-from pytorch_lightning.plugins import (
-    ApexMixedPrecisionPlugin,
-    NativeMixedPrecisionPlugin,
-    PLUGIN_INPUT,
-    PrecisionPlugin,
-)
+from pytorch_lightning.plugins import PLUGIN_INPUT, PrecisionPlugin
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
@@ -2085,11 +2080,7 @@ class Trainer(
 
     @property
     def amp_backend(self) -> Optional[AMPType]:
-        if isinstance(self.precision_plugin, ApexMixedPrecisionPlugin):
-            return AMPType.APEX
-        if isinstance(self.precision_plugin, NativeMixedPrecisionPlugin):
-            return AMPType.NATIVE
-        return None
+        return self.strategy.precision_plugin.amp_backend
 
     @property
     def precision(self) -> Union[str, int]:

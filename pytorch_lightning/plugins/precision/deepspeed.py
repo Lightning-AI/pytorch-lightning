@@ -36,9 +36,9 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def __init__(self, precision: Union[str, int], amp_type: str, amp_level: Optional[str] = None) -> None:
         super().__init__()
-        self.precision = precision
+        self._precision = precision
         self.amp_type = amp_type
-        self.amp_level = amp_level
+        self._amp_level = amp_level
 
     def backward(self, model: "pl.LightningModule", closure_loss: Tensor, *args: Any, **kwargs: Any) -> None:
         if is_overridden("backward", model):
@@ -94,3 +94,11 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
             f"You set `Trainer(track_grad_norm={trainer.track_grad_norm!r})' but this is not supported for DeepSpeed."
             " The setting will be ignored."
         )
+
+    @property
+    def amp_level(self) -> Optional[str]:
+        return self._amp_level
+
+    @property
+    def precision(self) -> Optional[str]:
+        return self._precision

@@ -53,7 +53,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             scaler = torch.cuda.amp.GradScaler()
         if scaler is not None and precision == "bf16":
             raise MisconfigurationException(f"`precision='bf16'` does not use a scaler, found {scaler}.")
-        self.precision = precision
+        self._precision = precision
         self.device = device
         self.scaler = scaler
 
@@ -116,3 +116,11 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         if self.scaler is not None:
             self.scaler.load_state_dict(state_dict)
+
+    @property
+    def amp_backend(self) -> Optional[AMPType]:
+        return AMPType.NATIVE
+
+    @property
+    def precision(self) -> Optional[str]:
+        return self._precision

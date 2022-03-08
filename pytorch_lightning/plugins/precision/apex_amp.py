@@ -39,7 +39,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
                 " Install `apex` using this guide: https://github.com/NVIDIA/apex"
             )
         super().__init__()
-        self.amp_level = amp_level
+        self._amp_level = amp_level
         self._connected = False
 
     def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
@@ -98,3 +98,11 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         amp.load_state_dict(state_dict)
+
+    @property
+    def amp_backend(self) -> Optional[AMPType]:
+        return AMPType.APEX
+
+    @property
+    def amp_level(self) -> Optional[str]:
+        return self._amp_level
