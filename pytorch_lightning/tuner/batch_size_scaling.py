@@ -126,7 +126,7 @@ def _run_power_scaling(
 ) -> int:
     """Batch scaling mode where the size is doubled at each iteration until an OOM error is encountered."""
     for _ in range(max_trials):
-        trainer.reset_train_dataloader(model) # FORCE RELOADING DATASET
+        trainer.reset_train_dataloader(model)  # FORCE RELOADING DATASET
         garbage_collection_cuda()
         trainer.fit_loop.global_step = 0  # reset after each try
         try:
@@ -165,7 +165,7 @@ def _run_binsearch_scaling(
     high = None
     count = 0
     while True:
-        trainer.reset_train_dataloader(model) # FORCE RELOADING DATASET
+        trainer.reset_train_dataloader(model)  # FORCE RELOADING DATASET
         garbage_collection_cuda()
         trainer.fit_loop.global_step = 0  # reset after each try
         try:
