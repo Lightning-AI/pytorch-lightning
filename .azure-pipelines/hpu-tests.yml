@@ -1,0 +1,32 @@
+# Pipeline to run the HPU tests in DL1 Instance
+
+trigger:
+  tags:
+    include:
+      - '*'
+  branches:
+    include:
+      - "master"
+      - "release/*"
+      - "refs/tags/*"
+pr:
+  - "master"
+  - "release/*"
+
+jobs:
+  - job: hpu
+
+    # how long to run the job before automatically cancelling
+    timeoutInMinutes: "5"
+    # how much time to give 'run always even if cancelled tasks' before stopping them
+    cancelTimeoutInMinutes: "2"
+
+    pool: intel-hpus
+
+    workspace:
+      clean: all
+
+    steps:
+    - bash: |
+        hwinfo --short
+      displayName: 'Instance HW info'
