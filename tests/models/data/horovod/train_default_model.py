@@ -20,7 +20,6 @@ import json
 import os
 import sys
 
-import pytest
 import torch
 
 # this is needed because Conda does not use `PYTHONPATH` env var while pip and virtualenv do
@@ -102,13 +101,8 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
 
     if on_gpu:
         trainer = Trainer(gpus=1, strategy="horovod", max_epochs=1)
-        # Test the root_gpu property
-        with pytest.deprecated_call(
-            match="`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. Please use "
-            r"`Trainer.strategy.root_device.index if isinstance\(Trainer.accelerator, GPUAccelerator\) else None`"
-            " instead."
-        ):
-            assert trainer.root_gpu == hvd.local_rank()
+        # test root gpu index
+        assert trainer.strategy.root_device.index == hvd.local_rank()
 
 
 if __name__ == "__main__":
