@@ -143,6 +143,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `LayerSync` and `NativeSyncBatchNorm` plugins ([#11754](https://github.com/PyTorchLightning/pytorch-lightning/pull/11754))
 
 
+- Add `precision`, `amp_backend`, and `amp_level` as properties of `PrecisionPlugin` ([#12265](https://github.com/PyTorchLightning/pytorch-lightning/pull/12265))
+
 
 ### Changed
 
