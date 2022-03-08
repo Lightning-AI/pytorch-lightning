@@ -34,12 +34,10 @@ jobs:
     - bash: |
         pip install . --requirement requirements/hpu.txt
       displayName: 'Install dependencies'
-      continueOnError: true
 
     - bash: |
          python ".azure-pipelines/run_hpu_tests.py"
       displayName: 'HPU Tests in parallel'
-      continueOnError: true
 
     - task: PublishTestResults@2
       inputs:
