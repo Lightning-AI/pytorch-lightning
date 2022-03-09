@@ -23,4 +23,7 @@ class MixedPrecisionPlugin(PrecisionPlugin):
     """Base Class for mixed precision."""
 
     backend: "AMPType"
-    precision: Union[str, int] = "mixed"
+
+    @property
+    def precision(self) -> Union[str, int]:
+        return "mixed"

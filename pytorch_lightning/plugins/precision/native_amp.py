@@ -122,5 +122,5 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         return AMPType.NATIVE
 
     @property
-    def precision(self) -> Optional[str]:
+    def precision(self) -> Union[str, int]:
         return self._precision

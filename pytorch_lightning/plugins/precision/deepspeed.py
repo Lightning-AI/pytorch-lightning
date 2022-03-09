@@ -100,5 +100,5 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         return self._amp_level
 
     @property
-    def precision(self) -> Optional[str]:
+    def precision(self) -> Union[str, int]:
         return self._precision
