@@ -30,8 +30,8 @@ or show all options you can change:
 """
 from pl_examples import cli_lightning_logo
 from pl_examples.domain_templates.imagenet import ImageNetLightningModel
-from pytorch_lightning.utilities.cli import LightningCLI
 from pytorch_lightning.callbacks.intel_compressor import INCQuantization
+from pytorch_lightning.utilities.cli import LightningCLI
 
 
 def run_cli():
@@ -47,11 +47,7 @@ def run_cli():
         save_config_overwrite=True,
         run=False,
         trainer_defaults={
-            "callbacks": INCQuantization(
-                "config/quantization.yaml",
-                monitor="val_acc1",
-                module_name_to_quant="model"
-            ),
+            "callbacks": INCQuantization("config/quantization.yaml", monitor="val_acc1", module_name_to_quant="model"),
         },
     )
     if cli.config["evaluate"]:
