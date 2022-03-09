@@ -365,13 +365,21 @@ class AcceleratorConnector:
                 else:
                     self._cluster_environment_flag = getattr(self._strategy_flag, "cluster_environment")
 
-            # TODO: RFC existing accel_conn doesn't handle this, should we add conflict check?
-            #   eg: parallel_device is torch.device(cpu) but accelerator=gpu
             if hasattr(self._strategy_flag, "parallel_devices"):
                 if self._strategy_flag.parallel_devices:
                     if self._strategy_flag.parallel_devices[0].type == "cpu":
+                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "cpu"):
+                            raise MisconfigurationException(
+                                f"CPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                            )
                         self._accelerator_flag = "cpu"
                     if self._strategy_flag.parallel_devices[0].type == "cuda":
+                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "gpu"):
+                            raise MisconfigurationException(
+                                f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                            )
                         self._accelerator_flag = "gpu"
                     self._parallel_devices = self._strategy_flag.parallel_devices
 
@@ -466,16 +474,15 @@ class AcceleratorConnector:
         return "cpu"
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
-        # TODO add device availability check
+        ACCELERATORS = {
+            "cpu": CPUAccelerator,
+            "gpu": GPUAccelerator,
+            "tpu": TPUAccelerator,
+            "ipu": IPUAccelerator,
+        }
         if isinstance(self._accelerator_flag, Accelerator):
             self.accelerator: Accelerator = self._accelerator_flag
         else:
-            ACCELERATORS = {
-                "cpu": CPUAccelerator,
-                "gpu": GPUAccelerator,
-                "tpu": TPUAccelerator,
-                "ipu": IPUAccelerator,
-            }
             assert self._accelerator_flag is not None
             self._accelerator_flag = self._accelerator_flag.lower()
             if self._accelerator_flag not in ACCELERATORS:
@@ -485,6 +492,15 @@ class AcceleratorConnector:
                 )
             accelerator_class = ACCELERATORS[self._accelerator_flag]
             self.accelerator = accelerator_class()  # type: ignore[abstract]
+
+        if not self.accelerator.is_available():
+            available_accelerator = [acc_str for acc_str in list(ACCELERATORS) if ACCELERATORS[acc_str].is_available()]
+            raise MisconfigurationException(
+                f"{self.accelerator.__class__.__qualname__} can not run on your system"
+                f" since {self.accelerator.name().upper()}s are not available."
+                " The following accelerator(s) is available and can be passed into"
+                f" `accelerator` argument of `Trainer`: {available_accelerator}."
+            )
 
         self._set_devices_flag_if_auto_passed()
 
@@ -670,12 +686,6 @@ class AcceleratorConnector:
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, AMP type, and accelerator."""
-        # TODO: change exception type to ImpactableConfigurationException
-        if isinstance(self.accelerator, IPUAccelerator):
-            if self._precision_flag not in (16, 32):
-                raise MisconfigurationException(
-                    f"`Trainer(accelerator='ipu', precision={self._precision_flag!r})` is not supported."
-                )
         if isinstance(self.accelerator, TPUAccelerator):
             if self._precision_flag == 64:
                 raise MisconfigurationException(

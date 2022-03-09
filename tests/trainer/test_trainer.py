@@ -332,7 +332,8 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses, 1):
-        trainer.fit_loop.global_step = i
+        # sets `trainer.global_step`
+        trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = i
         trainer.callback_metrics.update({"checkpoint_on": torch.tensor(loss)})
         checkpoint_callback.on_validation_end(trainer, trainer.lightning_module)
         trainer.fit_loop.epoch_progress.current.completed = i  # sets `trainer.current_epoch`
@@ -1719,36 +1720,6 @@ def test_check_val_every_n_epoch_exception(tmpdir):
 
     with pytest.raises(MisconfigurationException, match="should be an integer."):
         Trainer(default_root_dir=tmpdir, max_epochs=1, check_val_every_n_epoch=1.2)
-
-
-def test_trainer_attach_data_pipeline_to_model(tmpdir):
-    class DataPipeline:
-
-        pass
-
-    class TestDataModule(LightningDataModule):
-
-        data_pipeline = DataPipeline()
-
-        def train_dataloader(self):
-            return DataLoader(RandomDataset(32, 64))
-
-        def val_dataloader(self):
-            return DataLoader(RandomDataset(32, 64))
-
-        def test_dataloader(self):
-            return DataLoader(RandomDataset(32, 64))
-
-    class TestCallback(Callback):
-        def on_fit_start(self, trainer, pl_module: LightningModule) -> None:
-            """Called when fit begins."""
-            assert isinstance(pl_module.data_pipeline, DataPipeline)
-
-    model = BoringModel()
-    dm = TestDataModule()
-
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=[TestCallback()])
-    trainer.fit(model, datamodule=dm)
 
 
 def test_exception_when_testing_or_validating_with_fast_dev_run():
