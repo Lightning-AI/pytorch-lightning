@@ -12,15 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from argparse import ArgumentParser
 from typing import Optional
 
 import pytest
 import torch
-import torch.nn.functional as F
 
 from pytorch_lightning import Callback, seed_everything, Trainer
-from pytorch_lightning.accelerators import CPUAccelerator, HPUAccelerator
+from pytorch_lightning.accelerators import HPUAccelerator
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import HPUPrecisionPlugin
 from pytorch_lightning.strategies.hpu import HPUStrategy
@@ -33,7 +31,7 @@ from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 
 if _HPU_AVAILABLE:
-    import habana_frameworks.torch.core as htcore
+    import habana_frameworks.torch.core as htcore  # noqa: F401
 
     os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "hccl"
 

@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
 import os
 
-import habana_frameworks.torch.core as htcore
+import habana_frameworks.torch.core as htcore  # noqa: F401
 import torch
 from torch.nn import functional as F
 

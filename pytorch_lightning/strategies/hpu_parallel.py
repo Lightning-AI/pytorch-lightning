@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
-import __main__
 import torch
 import torch.distributed
 
@@ -54,7 +53,7 @@ class HPUParallelStrategy(DDPStrategy):
 
     def setup_environment(self) -> None:
 
-        import habana_frameworks.torch.core.hccl
+        import habana_frameworks.torch.core.hccl  # noqa: F401
 
         os.environ["ID"] = str(self.local_rank)
         os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "hccl"

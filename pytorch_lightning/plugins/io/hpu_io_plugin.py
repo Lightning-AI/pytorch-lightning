@@ -17,12 +17,10 @@ from typing import Any, Callable, Dict, Optional
 
 import torch
 
-import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
-from pytorch_lightning.utilities import _HPU_AVAILABLE, rank_zero_warn
-from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
 from pytorch_lightning.utilities.types import _PATH
 
 

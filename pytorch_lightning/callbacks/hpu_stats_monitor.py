@@ -28,13 +28,12 @@ hpu Stats Monitor
 Monitor and logs hpu stats during training.
 
 """
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Optional
 
 import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_only
 
 
 class HPUStatsMonitor(Callback):

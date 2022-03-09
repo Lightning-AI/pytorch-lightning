@@ -2045,7 +2045,7 @@ class Trainer(
         return self._accelerator_connector.num_gpus
 
     @property
-    def hpus(self) -> int:
+    def num_hpus(self) -> int:
         return self._accelerator_connector.num_hpus
 
     @property

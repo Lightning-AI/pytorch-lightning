@@ -199,7 +199,7 @@ class DDPStrategy(ParallelStrategy):
         if self.root_device.type == "hpu":
             self._static_graph = False
             static_graph = self._ddp_kwargs.get("static_graph")
-            if static_graph == True:
+            if static_graph:
                 # when _set_static_graph() is called find_unused_parameters does not have any significance.
                 # Resetting the value of find_unused_parameters to False which is the default value to DDP
                 self._ddp_kwargs["find_unused_parameters"] = False
@@ -274,7 +274,7 @@ class DDPStrategy(ParallelStrategy):
         log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
         self.pre_configure_ddp()
         self.model = self._setup_model(LightningDistributedModule(self.model))
-        if self.root_device.type == "hpu" and self._static_graph == True:
+        if self.root_device.type == "hpu" and self._static_graph:
             self._model._set_static_graph()
         self._register_ddp_hooks()
 

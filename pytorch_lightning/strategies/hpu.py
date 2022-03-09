@@ -12,20 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.hpu_io_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.plugins.precision.hpu_precision import HPUPrecisionPlugin
 from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
-from pytorch_lightning.utilities import _HPU_AVAILABLE
-from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import _PATH
 
 
 class HPUStrategy(SingleDeviceStrategy):
