@@ -41,6 +41,7 @@ __all__ = [
     "CheckpointIO",
     "TorchCheckpointIO",
     "XLACheckpointIO",
+    "HPUCheckpointIO",
     "ApexMixedPrecisionPlugin",
     "DataParallelPlugin",
     "DDP2Plugin",

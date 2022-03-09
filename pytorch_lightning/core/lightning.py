@@ -224,14 +224,6 @@ class LightningModule(
         return self.device.type == "cuda"
 
     @property
-    def on_hpu(self):
-        """True if your model is currently running on HPUs.
-
-        Useful to set flags around the LightningModule for different CPU vs GPU vs HPU behavior.
-        """
-        return self.device.type == "hpu"
-
-    @property
     def automatic_optimization(self) -> bool:
         """If set to ``False`` you are responsible for calling ``.backward()``, ``.step()``, ``.zero_grad()``."""
         return self._automatic_optimization

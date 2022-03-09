@@ -65,10 +65,6 @@ class HPUStrategy(SingleDeviceStrategy):
     def model_to_device(self) -> None:
         self.model.to(self.root_device)
 
-    @property
-    def on_hpu(self) -> bool:
-        return True
-
     def pre_dispatch(self) -> None:
         if isinstance(self.device, int):
             self.device = torch.device(self.device)

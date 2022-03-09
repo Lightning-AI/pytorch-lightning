@@ -221,7 +221,7 @@ def test_pure_half_precision(tmpdir, hmp_params):
     model = model.half()
     trainer = Trainer(
         strategy=HPUStrategy(
-            device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=None)
+            device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=hmp_params)
         ),
         default_root_dir=tmpdir,
         fast_dev_run=True,

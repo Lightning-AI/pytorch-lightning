@@ -135,9 +135,9 @@ else:
     _IPU_AVAILABLE = False
 
 if _HABANA_FRAMEWORK_AVAILABLE:
-    from habana_frameworks.torch.utils.library_loader import is_habana_available
+    from habana_frameworks.torch.utils.library_loader import is_habana_avaialble
 
-    _HPU_AVAILABLE = is_habana_available()
+    _HPU_AVAILABLE = is_habana_avaialble()
 else:
     _HPU_AVAILABLE = False
 

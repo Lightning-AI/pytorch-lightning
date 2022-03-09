@@ -96,6 +96,7 @@ class RunIf:
             amp_apex: Require that NVIDIA/apex is installed.
             tpu: Require that TPU is available.
             ipu: Require that IPU is available.
+            hpu: Require that HPU is available.
             horovod: Require that Horovod is installed.
             horovod_nccl: Require that Horovod is installed with NCCL support.
             skip_windows: Skip for Windows platform.
