@@ -36,11 +36,13 @@ from pytorch_lightning.plugins.training_type.single_device import SingleDevicePl
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.profiler import AbstractProfiler, AdvancedProfiler, SimpleProfiler
+from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from tests.deprecated_api import no_deprecated_call
 from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
@@ -651,6 +653,55 @@ def test_v1_8_0_weights_save_path(tmpdir):
         _ = trainer.weights_save_path
 
 
+def test_deprecated_epoch_outputs_format(tmpdir):
+    class DeprecationModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.truncated_bptt_steps = 1
+
+        def training_step(self, batch, batch_idx, optimizer_idx, hiddens):
+            output = super().training_step(batch, batch_idx)
+            output["hiddens"] = hiddens
+            return output
+
+        def tbptt_split_batch(self, batch, split_size):
+            return [batch, batch]
+
+        def training_epoch_end(self, outputs):
+            ...
+
+        def on_train_batch_end(self, outputs, batch, batch_idx) -> None:
+            ...
+
+        def configure_optimizers(self):
+            return [torch.optim.Adam(self.parameters()), torch.optim.Adam(self.parameters())]
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    model = DeprecationModel()
+    batch_match = r"on_train_batch_end.*will change in version v1.8 to \(tbptt_steps, n_optimizers\)"
+    with pytest.deprecated_call(match=batch_match):
+        trainer.fit(model)
+
+    class DeprecationModel2(DeprecationModel):
+        def on_train_batch_end(self, *args, new_format=True):
+            ...
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    model = DeprecationModel()
+    epoch_match = r"training_epoch_end.*will change in version v1.8 to \(n_batches, tbptt_steps, n_optimizers\)"
+    with pytest.deprecated_call(match=epoch_match):
+        trainer.fit(model)
+
+    class NoDeprecationModel(DeprecationModel2):
+        def training_epoch_end(self, outputs, new_format=True):
+            ...
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    model = NoDeprecationModel()
+    with no_deprecated_call(match="will change in version v1.8.*new_format=True"):
+        trainer.fit(model)
+
+
 @pytest.mark.flaky(reruns=3)
 @pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
 def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list):
@@ -740,3 +791,29 @@ def test_v1_8_0_precision_plugin_checkpoint_hooks(tmpdir):
 
 def test_v1_8_0_abstract_profiler():
     assert "`AbstractProfiler` was deprecated in v1.6" in AbstractProfiler.__doc__
+
+
+def test_v1_8_0_datamodule_checkpointhooks():
+    class CustomBoringDataModuleSave(BoringDataModule):
+        def on_save_checkpoint(self, checkpoint):
+            print("override on_save_checkpoint")
+
+    class CustomBoringDataModuleLoad(BoringDataModule):
+        def on_load_checkpoint(self, checkpoint):
+            print("override on_load_checkpoint")
+
+    trainer = Mock()
+
+    trainer.datamodule = CustomBoringDataModuleSave()
+    with pytest.deprecated_call(
+        match="`LightningDataModule.on_save_checkpoint` was deprecated in"
+        " v1.6 and will be removed in v1.8. Use `state_dict` instead."
+    ):
+        _check_datamodule_checkpoint_hooks(trainer)
+
+    trainer.datamodule = CustomBoringDataModuleLoad()
+    with pytest.deprecated_call(
+        match="`LightningDataModule.on_load_checkpoint` was deprecated in"
+        " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
+    ):
+        _check_datamodule_checkpoint_hooks(trainer)
