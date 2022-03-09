@@ -87,7 +87,8 @@ class MLFlowLogger(LightningLoggerBase):
                 self.logger.experiment.whatever_ml_flow_supports(...)
 
     Args:
-        experiment_name: The name of the experiment
+        run_id: The run identifier of the experiment. If not provided, a new run is started.
+        experiment_name: The name of the experiment.
         run_name: Name of the new run. The `run_name` is internally stored as a ``mlflow.runName`` tag.
             If the ``mlflow.runName`` tag has already been set in `tags`, the value is overridden by the `run_name`.
         tracking_uri: Address of local or remote tracking server.
@@ -110,6 +111,7 @@ class MLFlowLogger(LightningLoggerBase):
 
     def __init__(
         self,
+        run_id: Optional[str] = None,
         experiment_name: str = "lightning_logs",
         run_name: Optional[str] = None,
         tracking_uri: Optional[str] = os.getenv("MLFLOW_TRACKING_URI"),
@@ -130,7 +132,7 @@ class MLFlowLogger(LightningLoggerBase):
         self._experiment_id = None
         self._tracking_uri = tracking_uri
         self._run_name = run_name
-        self._run_id = None
+        self._run_id = run_id
         self.tags = tags
         self._prefix = prefix
         self._artifact_location = artifact_location
@@ -149,6 +151,15 @@ class MLFlowLogger(LightningLoggerBase):
             self.logger.experiment.some_mlflow_function()
 
         """
+
+        if self._run_id:
+            try:
+                self._mlflow_client.get_run(self._run_id)
+                return self._mlflow_client
+            except mlflow.exceptions.MlflowException:
+                log.warning(f"Run id with name {self._run_id} not found. Creating a new one.")
+                self._run_id = None
+
         if self._experiment_id is None:
             expt = self._mlflow_client.get_experiment_by_name(self._experiment_name)
             if expt is not None:
