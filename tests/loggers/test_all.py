@@ -365,26 +365,6 @@ def _test_logger_created_on_rank_zero_only(tmpdir, logger_class):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@pytest.mark.parametrize(
-    "logger_value",
-    [
-        None,
-        False,
-        [],
-    ],
-)
-def test_no_logger(tmpdir, logger_value):
-    """Test the cases where logger=None, logger=False, logger=[] are passed to Trainer."""
-    trainer = Trainer(
-        logger=logger_value,
-        default_root_dir=tmpdir,
-        max_steps=1,
-    )
-    assert trainer.logger is None
-    assert trainer.loggers == []
-    assert trainer.log_dir == tmpdir
-
-
 def test_logger_with_prefix_all(tmpdir, monkeypatch):
     """Test that prefix is added at the beginning of the metric keys."""
     prefix = "tmp"
