@@ -116,12 +116,14 @@ class DDPSpawnStrategy(ParallelStrategy):
         self.model_to_device()
 
         trainer_fn = self.lightning_module.trainer.state.fn
-        if trainer_fn == TrainerFn.FITTING:
-            if self._layer_sync:
-                self.model = self._layer_sync.apply(self.model)
+        if trainer_fn != TrainerFn.FITTING:
+            return
 
-            # skip wrapping the model if we are not fitting as no gradients need to be exchanged
-            self.configure_ddp()
+        if self._layer_sync:
+            self.model = self._layer_sync.apply(self.model)
+
+        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
+        self.configure_ddp()
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""

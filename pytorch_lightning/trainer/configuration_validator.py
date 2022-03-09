@@ -60,6 +60,10 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     _check_on_epoch_start_end(model)
     # TODO: Delete CheckpointHooks off PrecisionPlugin in v1.8
     _check_precision_plugin_checkpoint_hooks(trainer)
+    # TODO: Delete on_pretrain_routine_start/end hooks in v1.8
+    _check_on_pretrain_routine(model)
+    # TODO: Delete CheckpointHooks off LightningDataModule in v1.8
+    _check_datamodule_checkpoint_hooks(trainer)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -294,10 +298,20 @@ def _check_on_hpc_hooks(model: "pl.LightningModule") -> None:
 # TODO: Remove on_epoch_start/on_epoch_end hooks in v1.8
 def _check_on_epoch_start_end(model: "pl.LightningModule") -> None:
     hooks = (
-        ["on_epoch_start", "on_<train/validation/test>_epoch_start"],
-        ["on_epoch_end", "on_<train/validation/test>_epoch_end"],
+        ("on_epoch_start", "on_<train/validation/test>_epoch_start"),
+        ("on_epoch_end", "on_<train/validation/test>_epoch_end"),
     )
 
+    for hook, alternative_hook in hooks:
+        if is_overridden(hook, model):
+            rank_zero_deprecation(
+                f"The `LightningModule.{hook}` hook was deprecated in v1.6 and"
+                f" will be removed in v1.8. Please use `LightningModule.{alternative_hook}` instead."
+            )
+
+
+def _check_on_pretrain_routine(model: "pl.LightningModule") -> None:
+    hooks = (("on_pretrain_routine_start", "on_fit_start"), ("on_pretrain_routine_end", "on_fit_start"))
     for hook, alternative_hook in hooks:
         if is_overridden(hook, model):
             rank_zero_deprecation(
@@ -381,5 +395,18 @@ def _check_precision_plugin_checkpoint_hooks(trainer: "pl.Trainer") -> None:
     if is_overridden(method_name="on_load_checkpoint", instance=trainer.precision_plugin, parent=PrecisionPlugin):
         rank_zero_deprecation(
             "`PrecisionPlugin.on_load_checkpoint` was deprecated in"
+            " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
+        )
+
+
+def _check_datamodule_checkpoint_hooks(trainer: "pl.Trainer") -> None:
+    if is_overridden(method_name="on_save_checkpoint", instance=trainer.datamodule):
+        rank_zero_deprecation(
+            "`LightningDataModule.on_save_checkpoint` was deprecated in"
+            " v1.6 and will be removed in v1.8. Use `state_dict` instead."
+        )
+    if is_overridden(method_name="on_load_checkpoint", instance=trainer.datamodule):
+        rank_zero_deprecation(
+            "`LightningDataModule.on_load_checkpoint` was deprecated in"
             " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
         )
