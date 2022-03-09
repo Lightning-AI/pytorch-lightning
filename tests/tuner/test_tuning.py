@@ -11,19 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
 
-from tests.models.data.horovod.train_default_model import run_test_from_config
+from pytorch_lightning import Trainer
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.helpers.boring_model import BoringModel
 
 
-def test_horovod_model_script(tmpdir):
-    """This just for testing/debugging horovod script without horovod..."""
-    trainer_options = dict(
-        default_root_dir=str(tmpdir),
-        gradient_clip_val=1.0,
-        enable_progress_bar=False,
-        max_epochs=1,
-        limit_train_batches=0.4,
-        limit_val_batches=0.2,
-        deterministic=True,
-    )
-    run_test_from_config(trainer_options, check_size=False, on_gpu=False)
+def test_tuner_with_distributed_strategies():
+    """Test that an error is raised when tuner is used with multi-device strategy."""
+    trainer = Trainer(auto_scale_batch_size=True, devices=2, strategy="ddp", accelerator="cpu")
+    model = BoringModel()
+
+    with pytest.raises(MisconfigurationException, match=r"not supported with `Trainer\(strategy='ddp'\)`"):
+        trainer.tune(model)

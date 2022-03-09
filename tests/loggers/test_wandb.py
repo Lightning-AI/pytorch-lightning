@@ -156,7 +156,7 @@ def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == str(tmpdir / "project" / version / "checkpoints")
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {"epoch=0-step=2.ckpt"}
+    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {"epoch=0-step=3.ckpt"}
     assert trainer.log_dir == logger.save_dir
 
 
@@ -212,7 +212,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
         type="model",
         metadata={
             "score": None,
-            "original_filename": "epoch=1-step=5-v3.ckpt",
+            "original_filename": "epoch=1-step=6-v3.ckpt",
             "ModelCheckpoint": {
                 "monitor": None,
                 "mode": "min",

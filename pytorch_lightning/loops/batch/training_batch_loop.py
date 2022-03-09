@@ -79,7 +79,7 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
         void(batch)
         self.split_idx, split_batch = self._remaining_splits.pop(0)
 
-        self.trainer.logger_connector.on_train_split_start(self.split_idx)
+        self.trainer._logger_connector.on_train_split_start(self.split_idx)
 
         outputs: Optional[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_OUTPUTS_TYPE]] = None  # for mypy
         # choose which loop will run the optimization
