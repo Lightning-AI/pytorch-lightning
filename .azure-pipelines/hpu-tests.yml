@@ -28,6 +28,7 @@ jobs:
 
     steps:
     - bash: |
+        apt-get install hwinfo
         hwinfo --short
       displayName: 'Instance HW info'
 
