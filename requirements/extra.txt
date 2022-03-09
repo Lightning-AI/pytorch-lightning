@@ -2,7 +2,7 @@
 
 matplotlib>3.1
 horovod>=0.21.2,<0.24  # no need to install with [pytorch] as pytorch is already installed
-torchtext>=0.8.*
+torchtext>=0.9.*
 omegaconf>=2.0.5
 hydra-core>=1.0.5
 jsonargparse[signatures]>=4.3.0

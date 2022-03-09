@@ -705,10 +705,9 @@ class LightningModule(
             training_epoch_end(train_outs)
 
         Args:
-            outputs: List of outputs you defined in :meth:`training_step`.
-                If there are multiple optimizers, it is a list containing a list of outputs for each optimizer.
-                If using ``truncated_bptt_steps > 1``, each element is a list of outputs corresponding to the outputs
-                of each processed split batch.
+            outputs: List of outputs you defined in :meth:`training_step`. If there are multiple optimizers or when
+                using ``truncated_bptt_steps > 0``, the lists have the dimensions
+                (n_batches, tbptt_steps, n_optimizers). Dimensions of length 1 are squeezed.
 
         Return:
             None

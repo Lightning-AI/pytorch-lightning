@@ -729,13 +729,23 @@ class DeepSpeedStrategy(DDPStrategy):
     def _multi_device(self) -> bool:
         return self.num_processes > 1 or self.num_nodes > 1
 
-    def save_checkpoint(self, checkpoint: Dict, filepath: _PATH) -> None:
+    def save_checkpoint(self, checkpoint: Dict, filepath: _PATH, storage_options: Optional[Any] = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
             checkpoint: The checkpoint state dictionary
             filepath: write-target file's path
+            storage_options: not used for ``DeepSpeedStrategy`` as ``CheckpointIO`` is not used
+
+        Raises:
+            TypeError:
+                If ``storage_options`` arg is passed in
         """
+        if storage_options is not None:
+            raise TypeError(
+                "`Trainer.save_checkpoint(..., storage_options=...)` with `storage_options` arg"
+                f" is not supported for `{self.__class__.__name__}` as `CheckpointIO` is not used."
+            )
         if self.zero_stage_3 and self._multi_device and self.is_global_zero:
             warning_cache.warn(
                 "When saving the DeepSpeed Stage 3 checkpoint, "
