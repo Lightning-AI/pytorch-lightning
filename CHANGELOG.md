@@ -146,6 +146,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `LayerSync` and `NativeSyncBatchNorm` plugins ([#11754](https://github.com/PyTorchLightning/pytorch-lightning/pull/11754))
 
 
+- Added `lazy_init` method to `Strategy` ([#12203](https://github.com/PyTorchLightning/pytorch-lightning/pull/12203))
+
+
 
 ### Changed
 
