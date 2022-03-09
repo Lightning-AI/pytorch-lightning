@@ -32,7 +32,7 @@ jobs:
       displayName: 'Instance HW info'
 
     - bash: |
-        pip install . --requirement requirements/hpu.txt
+        pip install . --requirement requirements/test.txt
       displayName: 'Install dependencies'
 
     - bash: |
