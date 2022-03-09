@@ -42,16 +42,6 @@ class HPUStatsMonitor(Callback):
     Args:
         save_dir: directory to save the logs.
         exp_name: name of the experiment.
-
-    Example::
-
-        >>> from pytorch_lightning import Trainer
-        >>> from pytorch_lightning.callbacks import HPUStatsMonitor
-        >>> hpu_stats = HPUStatsMonitor()
-        >>> trainer = Trainer(accelerator="hpu", callbacks=[hpu_stats])
-
-    you can also optionally provide save_dir and exp_name in HPUStatsMonitor.
-    No need to provide logger in Trainer.
     """
 
     def __init__(self, log_save_dir: str = "habana_ptl_logs", exp_name: str = "default"):

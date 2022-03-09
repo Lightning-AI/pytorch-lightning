@@ -86,20 +86,6 @@ def _broadcast_object_list(object_list, src=0, group=None, device=None):
         is known to be insecure. It is possible to construct malicious pickle
         data which will execute arbitrary code during unpickling. Only call this
         function with data you trust.
-
-    Example::
-        >>> # Note: Process group initialization omitted on each rank.
-        >>> import torch.distributed as dist
-        >>> if dist.get_rank() == 0:
-        >>>     # Assumes world_size of 3.
-        >>>     objects = ["foo", 12, {1: 2}] # any picklable object
-        >>> else:
-        >>>     objects = [None, None, None]
-        >>> # Assumes backend is not NCCL
-        >>> device = torch.device("cpu")
-        >>> dist.broadcast_object_list(objects, src=0, device=device)
-        >>> broadcast_objects
-        ['foo', 12, {1: 2}]
     """
     if _rank_not_in_group(group):
         return
