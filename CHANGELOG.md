@@ -501,7 +501,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Deprecated `LightningDataModule.on_save/load_checkpoint` in favor of `state_dict/load_state_dict` ([#11893](https://github.com/PyTorchLightning/pytorch-lightning/pull/11893))
 
-  
+
 - Deprecated `Callback.on_save_checkpoint -> dict` in favor of `Callback.on_save_checkpoint -> None` and `Callback.state_dict` ([#11887](https://github.com/PyTorchLightning/pytorch-lightning/pull/11887))
 
 
