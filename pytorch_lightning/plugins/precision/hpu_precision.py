@@ -21,22 +21,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Optional, Sequence, Tuple
-
-import torch.nn as nn
-from habana_frameworks.torch.hpex import hmp
-from torch.optim import Optimizer
+from typing import Any, Optional, Sequence
 
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
 
 
 class HPUPrecisionPlugin(PrecisionPlugin):
     """Plugin that enables bfloats/floats on HPUs."""
 
     def __init__(self, precision: int, hmp_params: Optional[Sequence[Any]] = None) -> None:
+        if not _HPU_AVAILABLE:
+            raise MisconfigurationException("HPU precision plugin requires HPU support")
         super().__init__()
         self.precision = precision
         if hmp_params is not None:
+
+            from habana_frameworks.torch.hpex import hmp
+
             hmp_opt_level = hmp_params["level"]
             hmp_bf16 = hmp_params["bf16_ops"]
             hmp_fp32 = hmp_params["fp32_ops"]
