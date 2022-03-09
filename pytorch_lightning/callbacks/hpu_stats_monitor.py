@@ -49,7 +49,7 @@ class HPUStatsMonitor(Callback):
         >>> from pytorch_lightning import Trainer
         >>> from pytorch_lightning.callbacks import HPUStatsMonitor
         >>> hpu_stats = HPUStatsMonitor()
-        >>> trainer = Trainer(hpus=1, callbacks=[hpu_stats])
+        >>> trainer = Trainer(accelerator="hpu", callbacks=[hpu_stats])
 
     you can also optionally provide save_dir and exp_name in HPUStatsMonitor.
     No need to provide logger in Trainer.
