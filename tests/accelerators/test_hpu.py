@@ -38,62 +38,6 @@ if _HPU_AVAILABLE:
     os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "hccl"
 
 
-class HPUModel(BoringModel):
-    def training_step(self, batch, batch_idx):
-        output = self(batch)
-        loss = self.loss(batch, output)
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        output = self(batch)
-        loss = self.loss(batch, output)
-        return loss
-
-    def test_step(self, batch, batch_idx):
-        output = self(batch)
-        loss = self.loss(batch, output)
-        return loss
-
-    def training_epoch_end(self, outputs) -> None:
-        pass
-
-    def validation_epoch_end(self, outputs) -> None:
-        pass
-
-    def test_epoch_end(self, outputs) -> None:
-        pass
-
-
-class HPUClassificationModel(ClassificationModel):
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x)
-        loss = F.cross_entropy(logits, y)
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x)
-        acc = self.accuracy(logits, y)
-        return acc
-
-    def test_step(self, batch, batch_idx):
-        x, y = batch
-        logits = self(x)
-        acc = self.accuracy(logits, y)
-        return acc
-
-    def accuracy(self, logits, y):
-        acc = torch.sum(torch.eq(torch.argmax(logits, -1), y).to(torch.float32)) / len(y)
-        return acc
-
-    def validation_epoch_end(self, outputs) -> None:
-        self.log("val_acc", torch.stack(outputs).mean())
-
-    def test_epoch_end(self, outputs) -> None:
-        self.log("test_acc", torch.stack(outputs).mean())
-
-
 @RunIf(hpu=True)
 def test_availability():
     assert HPUAccelerator.is_available()
@@ -123,7 +67,7 @@ def test_no_warning_plugin(tmpdir):
 
 @RunIf(hpu=True)
 def test_all_stages(tmpdir, hpus):
-    model = HPUModel()
+    model = BoringModel()
     parallel_devices = hpus
     hpustrat_1 = HPUStrategy(
         device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=None)
@@ -150,7 +94,7 @@ def test_optimization(tmpdir):
     seed_everything(42)
 
     dm = ClassifDataModule(length=1024)
-    model = HPUClassificationModel()
+    model = ClassificationModel()
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, accelerator="hpu", devices=1)
 
@@ -174,7 +118,7 @@ def test_optimization(tmpdir):
     model_path = os.path.join(tmpdir, "model.pt")
     trainer.save_checkpoint(model_path)
 
-    model = HPUClassificationModel.load_from_checkpoint(model_path)
+    model = ClassificationModel.load_from_checkpoint(model_path)
 
     trainer = Trainer(default_root_dir=tmpdir, accelerator="hpu", devices=1)
 
@@ -190,7 +134,7 @@ def test_mixed_precision(tmpdir, hmp_params):
             assert trainer.strategy.model.precision == "bf16"
             raise SystemExit
 
-    model = HPUModel()
+    model = BoringModel()
     trainer = Trainer(
         strategy=HPUStrategy(
             device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision="bf16", hmp_params=hmp_params)
@@ -217,7 +161,7 @@ def test_pure_half_precision(tmpdir, hmp_params):
                 assert param.dtype == torch.float16
             raise SystemExit
 
-    model = HPUModel()
+    model = BoringModel()
     model = model.half()
     trainer = Trainer(
         strategy=HPUStrategy(
@@ -242,20 +186,26 @@ def test_pure_half_precision(tmpdir, hmp_params):
 def test_stages_correct(tmpdir):
     """Ensure all stages correctly are traced correctly by asserting the output for each stage."""
 
-    class StageModel(HPUModel):
+    class StageModel(BoringModel):
         def training_step(self, batch, batch_idx):
             loss = super().training_step(batch, batch_idx)
+            loss = loss.get("loss")
             # tracing requires a loss value that depends on the model.
             # force it to be a value but ensure we use the loss.
-            return (loss - loss) + torch.tensor(1)
+            loss = (loss - loss) + torch.tensor(1)
+            return {"loss": loss}
 
         def validation_step(self, batch, batch_idx):
             loss = super().validation_step(batch, batch_idx)
-            return (loss - loss) + torch.tensor(2)
+            x = loss.get("x")
+            x = (x - x) + torch.tensor(2)
+            return {"x": x}
 
         def test_step(self, batch, batch_idx):
-            loss = super().validation_step(batch, batch_idx)
-            return (loss - loss) + torch.tensor(3)
+            loss = super().test_step(batch, batch_idx)
+            y = loss.get("y")
+            y = (y - y) + torch.tensor(3)
+            return {"y": y}
 
         def predict_step(self, batch, batch_idx, dataloader_idx=None):
             output = super().predict_step(batch, batch_idx)
@@ -266,10 +216,10 @@ def test_stages_correct(tmpdir):
             assert outputs["loss"].item() == 1
 
         def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
-            assert outputs.item() == 2
+            assert outputs["x"].item() == 2
 
         def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
-            assert outputs.item() == 3
+            assert outputs["y"].item() == 3
 
         def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx) -> None:
             assert torch.all(outputs == 4).item()
@@ -367,7 +317,7 @@ def test_devices_auto_choice_hpu():
 @RunIf(hpu=True)
 @pytest.mark.parametrize("hpus", [1])
 def test_inference_only(tmpdir, hpus):
-    model = HPUModel()
+    model = BoringModel()
 
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="hpu", devices=hpus)
     trainer.validate(model)
