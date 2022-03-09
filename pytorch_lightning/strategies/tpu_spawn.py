@@ -47,7 +47,8 @@ else:
 
 
 class TPUSpawnStrategy(DDPSpawnStrategy):
-    """Strategy for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method."""
+    """Strategy for training multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn`
+    method."""
 
     strategy_name = "tpu_spawn"
 
@@ -287,7 +288,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
     def teardown(self) -> None:
         super().teardown()
         os.environ.pop("PT_XLA_DEBUG", None)
-        self.accelerator.teardown()
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

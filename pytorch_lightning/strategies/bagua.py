@@ -198,8 +198,8 @@ class BaguaStrategy(DDPStrategy):
             # GPU teardown
             log.detail(f"{self.__class__.__name__}: moving model to CPU")
             self.lightning_module.cpu()
-
-        self.accelerator.teardown()
+            # clean up memory
+            torch.cuda.empty_cache()
 
     def barrier(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
         if is_initialized():
