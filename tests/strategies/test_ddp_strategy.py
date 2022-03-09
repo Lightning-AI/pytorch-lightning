@@ -131,12 +131,15 @@ def test_ddp_configure_ddp():
 
 
 @RunIf(min_gpus=1)
-def test_ddp_dont_configure_sync_batchnorm():
+@pytest.mark.parametrize(
+    "trainer_fn", (TrainerFn.VALIDATING, TrainerFn.TUNING, TrainerFn.TESTING, TrainerFn.PREDICTING)
+)
+def test_ddp_dont_configure_sync_batchnorm(trainer_fn):
     model = BoringModelGPU()
     model.layer = torch.nn.BatchNorm1d(10)
     ddp_strategy = DDPStrategy()
     trainer = Trainer(gpus=1, strategy=ddp_strategy, sync_batchnorm=True)
-    trainer.state.fn = TrainerFn.VALIDATING
+    trainer.state.fn = trainer_fn
     trainer.strategy.connect(model)
     trainer.lightning_module.trainer = trainer
     trainer.strategy.setup_environment()
