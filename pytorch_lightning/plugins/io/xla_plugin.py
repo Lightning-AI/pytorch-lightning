@@ -36,8 +36,18 @@ class XLACheckpointIO(TorchCheckpointIO):
         Args:
             checkpoint: dict containing model and trainer state
             path: write-target path
-            storage_options: Optional parameters when saving the model/training states.
+            storage_options: not used in ``XLACheckpointIO.save_checkpoint``
+
+        Raises:
+            TypeError:
+                If ``storage_options`` arg is passed in
         """
+        if storage_options is not None:
+            raise TypeError(
+                "`Trainer.save_checkpoint(..., storage_options=...)` with `storage_options` arg"
+                f" is not supported for `{self.__class__.__name__}`. Please implement your custom `CheckpointIO`"
+                " to define how you'd like to use `storage_options`."
+            )
         fs = get_filesystem(path)
         fs.makedirs(os.path.dirname(path), exist_ok=True)
         # Todo: TypeError: 'mappingproxy' object does not support item assignment

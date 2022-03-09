@@ -685,12 +685,6 @@ class AcceleratorConnector:
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, AMP type, and accelerator."""
-        # TODO: change exception type to ImpactableConfigurationException
-        if isinstance(self.accelerator, IPUAccelerator):
-            if self._precision_flag not in (16, 32):
-                raise MisconfigurationException(
-                    f"`Trainer(accelerator='ipu', precision={self._precision_flag!r})` is not supported."
-                )
         if isinstance(self.accelerator, TPUAccelerator):
             if self._precision_flag == 64:
                 raise MisconfigurationException(

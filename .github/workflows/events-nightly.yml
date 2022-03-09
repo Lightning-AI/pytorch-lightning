@@ -125,7 +125,7 @@ jobs:
       matrix:
         # the config used in '.github/workflows/ci_test-conda.yml'
         python_version: ["3.8"]
-        pytorch_version: ["1.7", "1.8", "1.9", "1.10"]
+        pytorch_version: ["1.8", "1.9", "1.10"]
 
     steps:
       - name: Checkout
@@ -165,7 +165,7 @@ jobs:
       matrix:
         # the config used in 'dockers/ipu-ci-runner/Dockerfile'
         include:
-          - {python_version: "3.9", pytorch_version: "1.7"}
+          - {python_version: "3.9", pytorch_version: "1.9"}
 
     steps:
       - name: Checkout
