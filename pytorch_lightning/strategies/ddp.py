@@ -423,7 +423,13 @@ class DDPStrategy(ParallelStrategy):
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
 
-        if self.lightning_module.trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
+        if (
+            self.lightning_module.trainer is not None
+            and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+            and self._layer_sync
+        ):
+            # `self.lightning_module.trainer` can be None if teardown gets called on an exception before
+            # the trainer gets set on the LightningModule
             self.model = self._layer_sync.revert(self.model)
 
         if self.root_device.type == "cuda":
