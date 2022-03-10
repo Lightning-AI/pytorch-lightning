@@ -34,6 +34,14 @@ TBroadcast = TypeVar("TBroadcast")
 
 
 class ManualParallelStrategy(ParallelStrategy):
+    """Strategy to support user-defined model distribution.
+
+    It is expected that the user manually configures the model distribution
+    within their LightningModule in order to minimally plug into
+    the existing loop structures offered by the Lightning Trainer.
+
+    This strategy relies on torch.distributed for coommunication across processes.
+    """
 
     strategy_name = "manual"
 
