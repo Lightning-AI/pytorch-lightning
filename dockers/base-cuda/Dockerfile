@@ -106,7 +106,8 @@ RUN \
    cmake  --version
 
 RUN \
-   export HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
+   HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
+   export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
    cat ./requirements/horovod.txt && \
    cmake --version && \
    pip install --no-cache-dir -r ./requirements/horovod.txt && \
