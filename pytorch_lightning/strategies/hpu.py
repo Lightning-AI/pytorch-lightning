@@ -20,6 +20,7 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
 from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import _DEVICE
 
 
 class HPUStrategy(SingleDeviceStrategy):
@@ -29,20 +30,21 @@ class HPUStrategy(SingleDeviceStrategy):
 
     def __init__(
         self,
-        device: int,
+        device: _DEVICE = "hpu",
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         checkpoint_io: Optional[HPUCheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         hmp_params: Optional[str] = None,
     ):
 
+        if not _HPU_AVAILABLE:
+            raise MisconfigurationException("HPU Accelerator requires HPU devices to run")
+
         device = device
         checkpoint_io = checkpoint_io or HPUCheckpointIO()
         super().__init__(
             accelerator=accelerator, device=device, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin
         )
-        if not _HPU_AVAILABLE:
-            raise MisconfigurationException("HPU Accelerator requires HPU devices to run")
 
     @property
     def is_distributed(self) -> bool:
