@@ -140,6 +140,10 @@ class DDPFullyShardedStrategy(DDPStrategy):
             self.model = self._layer_sync.apply(self.model)
 
         self.configure_ddp()
+        self.barrier()
+        self.setup_optimizers(trainer)
+        optimizers_to_device(self.optimizers, self.root_device)
+        self.setup_precision_plugin()
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
@@ -166,9 +170,6 @@ class DDPFullyShardedStrategy(DDPStrategy):
             yield
 
         log.detail(f"{self.__class__.__name__}: exiting model_sharded_context.")
-        self.setup_optimizers(self.lightning_module.trainer)
-        optimizers_to_device(self.optimizers, self.root_device)
-        self.setup_precision_plugin()
 
     def configure_ddp(self) -> None:
         log.detail(f"{self.__class__.__name__}: configuring FSDP... (cpu_offload: [{self.cpu_offload}])")
