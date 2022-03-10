@@ -311,7 +311,7 @@ def _get_process_group_backend_from_env() -> Optional[str]:
         rank_zero_deprecation(
             "Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"
             " was deprecated in v1.6 and will be removed in v1.8."
-            " Specify `pg_backend` directly on the strategy constructor."
+            " Specify `process_group_backend` directly on the strategy constructor."
         )
     return torch_backend
 
