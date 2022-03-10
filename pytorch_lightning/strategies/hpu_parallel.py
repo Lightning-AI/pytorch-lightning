@@ -23,9 +23,9 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.hpu_io_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
+from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.enums import _StrategyType
-from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -59,9 +59,10 @@ class HPUParallelStrategy(DDPStrategy):
             raise MisconfigurationException("HPU Accelerator requires HPU devices to run")
 
         from habana_frameworks.torch.utils.library_loader import load_habana_module
+
         load_habana_module()
-        import habana_frameworks.torch.core # noqa: F401
-        import habana_frameworks.torch.core.hccl # noqa: F401
+        import habana_frameworks.torch.core
+        import habana_frameworks.torch.core.hccl  # noqa: F401
 
         os.environ["ID"] = str(self.local_rank)
         os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "hccl"
