@@ -341,7 +341,7 @@ class DDPStrategy(ParallelStrategy):
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
-            if isinstance(self.model, DistributedDataParallel):
+            if isinstance(self.model, LightningDistributedModule):
                 # used when calling `trainer.fit`
                 return self.model(*args, **kwargs)
             else:
