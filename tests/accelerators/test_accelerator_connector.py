@@ -935,8 +935,9 @@ def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
         Trainer(accelerator="ipu", precision=64)
 
 
+@mock.patch("pytorch_lightning.accelerators.hpu.HPUAccelerator.is_available", return_value=True)
 def test_unsupported_hpu_choice(monkeypatch):
-    import pytorch_lightning.plugins.training_type.hpu as hpu
+    import pytorch_lightning.strategies.hpu as hpu
     import pytorch_lightning.utilities.imports as imports
     from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 
