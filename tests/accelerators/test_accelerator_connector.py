@@ -943,8 +943,10 @@ def test_unsupported_hpu_choice(monkeypatch):
 
     monkeypatch.setattr(imports, "_HPU_AVAILABLE", True)
     monkeypatch.setattr(hpu, "_HPU_AVAILABLE", True)
-    monkeypatch.setattr(AcceleratorConnector, "has_hpu", True)
-    with pytest.raises(MisconfigurationException, match=r"accelerator='hpu', precision=64\)` is not supported"):
+    monkeypatch.setattr(AcceleratorConnector, "_HPU_AVAILABLE", True)
+    with pytest.raises(
+        MisconfigurationException, match=r"accelerator='hpu', precision=64\)` is not supported|HPU Accelerator requires HPU devices to run"
+        ):
         Trainer(accelerator="hpu", precision=64)
 
 

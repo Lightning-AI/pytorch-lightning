@@ -556,7 +556,7 @@ class AcceleratorConnector:
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return HPUParallelStrategy(parallel_devices=self.parallel_devices)  # type: ignore
             else:
-                return HPUStrategy(device=torch.device("hpu"))  # type: ignore
+                return HPUStrategy(device=torch.device("hpu"))
         if self._accelerator_flag == "tpu":
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return TPUSpawnStrategy.strategy_name
