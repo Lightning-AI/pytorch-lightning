@@ -63,16 +63,18 @@ class DDPShardedStrategy(DDPStrategy):
         self.setup_precision_plugin()
 
     def _configure_sdp(self, trainer: "pl.Trainer") -> None:
-        if "reduce_buffer_size" not in self._ddp_kwargs:
-            # For multi-node training, enabling bucketing will improve performance.
-            self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
-
+        self._set_ddp_kwargs()
         self.setup_optimizers(trainer)
         self.model, self.optimizers = self._setup_model_and_optimizers(
             model=LightningShardedDataParallel(self.model),
             optimizers=self.optimizers,
         )
         optimizers_to_device(self.optimizers, self.root_device)
+
+    def _set_ddp_kwargs(self) -> None:
+        if "reduce_buffer_size" not in self._ddp_kwargs:
+            # For multi-node training, enabling bucketing will improve performance.
+            self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Wraps the model and optimizers with fairscale components.
