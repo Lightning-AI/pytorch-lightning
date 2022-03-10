@@ -14,8 +14,6 @@
 
 from typing import Dict, Optional
 
-import torch
-
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.hpu_io_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin

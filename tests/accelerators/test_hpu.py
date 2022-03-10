@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 from typing import Optional
+from unittest import mock
 
 import pytest
 import torch
@@ -42,6 +43,7 @@ def test_availability():
 
 
 @pytest.mark.skipif(_HPU_AVAILABLE, reason="test requires non-HPU machine")
+@mock.patch("pytorch_lightning.accelerators.hpu.HPUAccelerator.is_available", return_value=True)
 def test_fail_if_no_hpus(tmpdir):
     with pytest.raises(MisconfigurationException, match="HPU Accelerator requires HPU devices to run"):
         Trainer(default_root_dir=tmpdir, accelerator="hpu", devices=1)
@@ -261,6 +263,7 @@ def test_accelerator_hpu_with_single_device():
     assert isinstance(trainer.accelerator, HPUAccelerator)
 
 
+@RunIf(hpu=True)
 def test_accelerator_hpu_with_multiple_devices():
 
     trainer = Trainer(accelerator="hpu", devices=8)
