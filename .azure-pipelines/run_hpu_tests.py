@@ -1,4 +1,5 @@
 """This file is called from the hpu-tests.yml pipeline.
+
 The following script run the hpu tests in parallel.
 Tests run are:
 1. test_inference_only is run on four cards
@@ -50,6 +51,7 @@ TIMEOUT_EXIT_CODE = -9
 
 def run_hpu_tests_parallel(timeout=TIMEOUT):
     """This function is called to run the HPU tests in parallel.
+
     We run the tests in sub process to utilize all the eight cards available in the DL1 instance
     Considering the max time taken to run the HPU tests as 60 seconds, we kill the process if the time taken exceeds.
     Return of this function will be the list of exit status of the HPU tests that were run in the subprocess.
@@ -81,6 +83,7 @@ def run_hpu_tests_parallel(timeout=TIMEOUT):
 
 def zip_cmd_exitcode(exit_status):
     """This function is called to zip the tests that were executed with the exit status of the test.
+
     Return of this function will be list of hpu tests called and their exit status.
     Args:
         exit_status: The returned exit_status after executing run_hpu_tests_parallel().
@@ -95,6 +98,7 @@ def zip_cmd_exitcode(exit_status):
 
 def print_logs(filename):
     """This function is called to read the file and print the logs.
+
     Args:
         filename: Provide the log filename that need to be print on the console.
     """
@@ -105,6 +109,7 @@ def print_logs(filename):
 def print_subprocess_logs_and_return_status(exit_status):
     """This function is called to print the logs of subprocess stdout and stderror and return the status of test
     execution.
+
     Args:
         exit_status: The returned exit_status after executing run_hpu_tests_parallel().
     Return of this function will be the return to main().
