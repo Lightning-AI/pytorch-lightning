@@ -230,7 +230,10 @@ class MLFlowLogger(LightningLoggerBase):
     @rank_zero_only
     def finalize(self, status: str = "FINISHED") -> None:
         super().finalize(status)
-        status = "FINISHED" if status == "success" else status
+        if status == "success":
+            status = "FINISHED"
+        elif status == "failed":
+            status = "FAILED"
         if self.experiment.get_run(self.run_id):
             self.experiment.set_terminated(self.run_id, status)
 

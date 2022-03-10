@@ -238,3 +238,22 @@ def test_mlflow_logger_experiment_calls(client, mlflow, time, tmpdir):
     logger._mlflow_client.create_experiment.assert_called_once_with(
         name="test", artifact_location="my_artifact_location"
     )
+
+
+@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
+@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
+def test_mlflow_logger_run_status_failed(client, mlflow):
+    class CustomModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            super().training_step(batch, batch_idx)
+            raise BaseException
+    model = CustomModel()
+    logger = MLFlowLogger("test")
+    run = MagicMock()
+    run.info.run_id = "run_id"
+    logger._mlflow_client.create_run = MagicMock(return_value=run)
+    trainer = Trainer(logger=logger)
+
+    with pytest.raises(BaseException):
+        trainer.fit(model)
+    client.return_value.set_terminated.assert_called_once_with(logger.run_id, "FAILED")
