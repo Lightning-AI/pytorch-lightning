@@ -68,6 +68,10 @@ class ModelHooks:
         - pretrain_routine start
         - pretrain_routine end
         - training_start
+
+        .. deprecated:: v1.6
+            :meth:`on_pretrain_routine_start` has been deprecated in v1.6 and will be removed in v1.8.
+            Use ``on_fit_start`` instead.
         """
 
     def on_pretrain_routine_end(self) -> None:
@@ -77,6 +81,10 @@ class ModelHooks:
         - pretrain_routine start
         - pretrain_routine end
         - training_start
+
+        .. deprecated:: v1.6
+            :meth:`on_pretrain_routine_end` has been deprecated in v1.6 and will be removed in v1.8.
+            Use ``on_fit_start`` instead.
         """
 
     def on_train_batch_start(self, batch: Any, batch_idx: int, unused: int = 0) -> Optional[int]:
@@ -182,19 +190,19 @@ class ModelHooks:
         self.trainer.model.eval()
 
     def on_epoch_start(self) -> None:
-        r"""
-        .. deprecated:: v1.6 This hook was deprecated in v1.6 and will be removed in v1.8. Use
-            ``on_<train/validation/test>_epoch_start`` instead.
+        """Called when either of train/val/test epoch begins.
 
-        Called when either of train/val/test epoch begins.
+        .. deprecated:: v1.6
+            :meth:`on_epoch_start` has been deprecated in v1.6 and will be removed in v1.8.
+            Use ``on_<train/validation/test>_epoch_start`` instead.
         """
 
     def on_epoch_end(self) -> None:
-        r"""
-        .. deprecated:: v1.6 This hook was deprecated in v1.6 and will be removed in v1.8. Use
-            ``on_<train/validation/test>_epoch_end`` instead.
+        """Called when either of train/val/test epoch ends.
 
-        Called when either of train/val/test epoch ends.
+        .. deprecated:: v1.6
+            :meth:`on_epoch_end` has been deprecated in v1.6 and will be removed in v1.8.
+            Use ``on_<train/validation/test>_epoch_end`` instead.
         """
 
     def on_train_epoch_start(self) -> None:

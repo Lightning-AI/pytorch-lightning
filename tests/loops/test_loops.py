@@ -565,8 +565,6 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     trainer.fit_loop.epoch_loop.reset()
     trainer.fit_loop.epoch_loop.batch_loop.reset()
     trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.reset()
-    trainer.fit_loop.epoch_loop.val_loop.reset()
-    trainer.fit_loop.epoch_loop.val_loop.epoch_loop.reset()
 
     epoch_progress = trainer.fit_loop.epoch_progress
     assert epoch_progress.current.ready == stop_epoch
@@ -650,16 +648,12 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
                 "ready": n_epochs,
                 "started": n_epochs,
                 "processed": n_epochs,
-                # TODO: the following "-1" offset will be fixed by
-                #   https://github.com/PyTorchLightning/pytorch-lightning/pull/8578
                 "completed": n_epochs - 1,
             },
             "current": {
                 "ready": n_epochs,
                 "started": n_epochs,
                 "processed": n_epochs,
-                # TODO: the following "-1" offset will be fixed by
-                #   https://github.com/PyTorchLightning/pytorch-lightning/pull/8578
                 "completed": n_epochs - 1,
             },
         },
@@ -749,7 +743,7 @@ def test_fit_loop_reset(tmpdir):
     trainer.fit(model)
 
     # reset state loaded from a checkpoint from mid-epoch
-    mid_epoch_ckpt = torch.load(str(tmpdir / "epoch=0-step=1.ckpt"))
+    mid_epoch_ckpt = torch.load(str(tmpdir / "epoch=0-step=2.ckpt"))
     fit_loop = trainer.fit_loop
     epoch_loop = fit_loop.epoch_loop
     optimizer_loop = epoch_loop.batch_loop.optimizer_loop
@@ -782,7 +776,7 @@ def test_fit_loop_reset(tmpdir):
     assert optimizer_loop.optim_progress.optimizer_position == 1
 
     # reset state loaded from a checkpoint from the end of an epoch
-    end_of_epoch_ckpt = torch.load(str(tmpdir / "epoch=0-step=3.ckpt"))
+    end_of_epoch_ckpt = torch.load(str(tmpdir / "epoch=0-step=4.ckpt"))
     fit_loop = trainer.fit_loop
     epoch_loop = fit_loop.epoch_loop
     fit_loop.restarting = False
@@ -949,8 +943,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
     )
     trainer.fit(model, ckpt_path=ckpt_path)
 
-    # TODO: -1 because there's a bug where global step is off by one on reload
-    assert trainer.global_step - 1 == expected_global_step
+    assert trainer.global_step == expected_global_step
 
     state_dict_after_restart = trainer.fit_loop.state_dict()
 
@@ -958,8 +951,6 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
     # totals are increased by 1 (the failed batch which never completed)
     expected = state_dict.copy()
 
-    # TODO: `is_last_batch` is not correct on reload, the next line should not be necessary
-    expected["epoch_loop.batch_progress"]["is_last_batch"] = val_check_interval == 1.0
     assert state_dict_after_restart["epoch_loop.batch_progress"] == expected["epoch_loop.batch_progress"]
 
     val_dl_progress = "epoch_loop.val_loop.dataloader_progress"

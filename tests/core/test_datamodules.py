@@ -26,7 +26,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
@@ -223,7 +222,11 @@ def test_dm_checkpoint_save_and_load(tmpdir):
     )
 
     # fit model
-    trainer.fit(model, datamodule=dm)
+    with pytest.deprecated_call(
+        match="`LightningDataModule.on_save_checkpoint` was deprecated in"
+        " v1.6 and will be removed in v1.8. Use `state_dict` instead."
+    ):
+        trainer.fit(model, datamodule=dm)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
     checkpoint = torch.load(checkpoint_path)
@@ -309,15 +312,11 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
     batch = CustomBatch((torch.zeros(5, 32), torch.ones(5, 1, dtype=torch.long)))
 
     trainer = Trainer(accelerator="gpu", devices=1)
+    model.trainer = trainer
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     get_module_mock.return_value = model
-    if is_overridden("transfer_batch_to_device", dm):
-        model.transfer_batch_to_device = dm.transfer_batch_to_device
 
-    model.on_before_batch_transfer = dm.on_before_batch_transfer
-    model.transfer_batch_to_device = dm.transfer_batch_to_device
-    model.on_after_batch_transfer = dm.on_after_batch_transfer
-
+    trainer._data_connector.attach_datamodule(model, datamodule=dm)
     batch_gpu = trainer.strategy.batch_to_device(batch, expected_device)
 
     assert dm.on_before_batch_transfer_hook_rank == 0

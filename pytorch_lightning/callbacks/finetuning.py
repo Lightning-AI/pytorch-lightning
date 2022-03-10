@@ -57,7 +57,7 @@ class BaseFinetuning(Callback):
         >>> class MyModel(pl.LightningModule):
         ...     def configure_optimizer(self):
         ...         # Make sure to filter the parameters based on `requires_grad`
-        ...         return Adam(filter(lambda p: p.requires_grad, self.parameters))
+        ...         return Adam(filter(lambda p: p.requires_grad, self.parameters()))
         ...
         >>> class FeatureExtractorFreezeUnfreeze(BaseFinetuning):
         ...     def __init__(self, unfreeze_at_epoch=10):

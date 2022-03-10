@@ -30,10 +30,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
     * Broadcast the `_terminate_gracefully` to all processes and add support for DDP ([#10638](https://github.com/PyTorchLightning/pytorch-lightning/pull/10638))
 
 
-- Added support for re-instantiation of custom (subclasses of) `DataLoaders` returned in the `*_dataloader()` methods, i.e., automatic replacement of samplers now works with custom types of `DataLoader` ([#10680](https://github.com/PyTorchLightning/pytorch-lightning/pull/10639))
+- Added support for re-instantiation of custom (subclasses of) `DataLoaders` returned in the `*_dataloader()` methods, i.e., automatic replacement of samplers now works with custom types of `DataLoader` ([#10680](https://github.com/PyTorchLightning/pytorch-lightning/pull/10680))
 
 
 - Added a function to validate if fault tolerant training is supported. ([#10465](https://github.com/PyTorchLightning/pytorch-lightning/pull/10465))
+
+
+- Added a private callback to manage the creation and deletion of fault-tolerance checkpoints ([#11862](https://github.com/PyTorchLightning/pytorch-lightning/pull/11862))
 
 
 - Show a better error message when a custom `DataLoader` implementation is not well implemented and we need to reconstruct it ([#10719](https://github.com/PyTorchLightning/pytorch-lightning/pull/10719))
@@ -52,6 +55,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Added `LightningCLI.configure_optimizers` to override the `configure_optimizers` return value ([#10860](https://github.com/PyTorchLightning/pytorch-lightning/pull/10860))
+
+
+- Added `LightningCLI(auto_registry)` flag to register all subclasses of the registerable components automatically ([#12108](https://github.com/PyTorchLightning/pytorch-lightning/pull/12108))
 
 
 - Added a warning that shows when `max_epochs` in the `Trainer` is not set ([#10700](https://github.com/PyTorchLightning/pytorch-lightning/pull/10700))
@@ -110,6 +116,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for `Bagua` training strategy ([#11146](https://github.com/PyTorchLightning/pytorch-lightning/pull/11146))
 
 
+- Added support for manually returning a `poptorch.DataLoader` in a `*_dataloader` hook ([#12116](https://github.com/PyTorchLightning/pytorch-lightning/pull/12116))
+
+
 - Added `rank_zero` module to centralize utilities ([#11747](https://github.com/PyTorchLightning/pytorch-lightning/pull/11747))
 
 
@@ -122,10 +131,31 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `Accelerator.is_available` to check device availability ([#11797](https://github.com/PyTorchLightning/pytorch-lightning/pull/11797))
 
 
+- Enabled static type-checking on the signature of `Trainer` ([#11888](https://github.com/PyTorchLightning/pytorch-lightning/pull/11888))
+
+
 - Added utility functions for moving optimizers to devices ([#11758](https://github.com/PyTorchLightning/pytorch-lightning/pull/11758))
 
 
+- Added `estimated_stepping_batches` property to `Trainer` ([#11599](https://github.com/PyTorchLightning/pytorch-lightning/pull/11599))
+
+
+- Added support for pluggable Accelerators ([#12030](https://github.com/PyTorchLightning/pytorch-lightning/pull/12030))
+
+
+- Added `LayerSync` and `NativeSyncBatchNorm` plugins ([#11754](https://github.com/PyTorchLightning/pytorch-lightning/pull/11754))
+
+
+- Added optional `storage_options` argument to `Trainer.save_checkpoint()` to pass to custom `CheckpointIO` implementations ([#11891](https://github.com/PyTorchLightning/pytorch-lightning/pull/11891))
+
+
 ### Changed
+
+- Drop PyTorch 1.7 support ([#12191](https://github.com/PyTorchLightning/pytorch-lightning/pull/12191))
+
+
+- Make `benchmark` flag optional and set its value based on the deterministic flag ([#11944](https://github.com/PyTorchLightning/pytorch-lightning/pull/11944))
+
 
 - Implemented a new native and rich format in `_print_results` method of the `EvaluationLoop` ([#11332](https://github.com/PyTorchLightning/pytorch-lightning/pull/11332))
 
@@ -281,6 +311,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The `trainer.current_epoch` value is now increased by 1 during and after `on_train_end` ([#8578](https://github.com/PyTorchLightning/pytorch-lightning/pull/8578))
 
 
+- The `trainer.global_step` value now accounts for multiple optimizers and TBPTT splits ([#11805](https://github.com/PyTorchLightning/pytorch-lightning/pull/11805))
+
+
+- The `trainer.global_step` value is now increased right after the `optimizer.step()` call which will impact users who access it during an intra-training validation hook ([#11805](https://github.com/PyTorchLightning/pytorch-lightning/pull/11805))
+
+
+- The filename of checkpoints created with `ModelCheckpoint(filename='{step}')` is different compared to previous versions. A checkpoint saved after 1 step will be named `step=1.ckpt` instead of `step=0.ckpt` ([#11805](https://github.com/PyTorchLightning/pytorch-lightning/pull/11805))
+
+
 - Inherit from `ABC` for `Accelerator`: Users need to implement `auto_device_count` ([#11521](https://github.com/PyTorchLightning/pytorch-lightning/pull/11521))
 
 
@@ -303,6 +342,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Rewrote `accelerator_connector` ([#11448](https://github.com/PyTorchLightning/pytorch-lightning/pull/11448))
+
+
+- Disable loading dataloades if corresponding `limit_batches=0` ([#11576](https://github.com/PyTorchLightning/pytorch-lightning/pull/11576))
+
+
+- Removed `is_global_zero` check in `training_epoch_loop` before `logger.save`. If you have a custom logger that implements `save` the Trainer will now call `save` on all ranks by default. To change this behavior add `@rank_zero_only` to your `save` implementation ([#12134](https://github.com/PyTorchLightning/pytorch-lightning/pull/12134))
+
+
+- Disabled tuner with distributed strategies ([#12179](https://github.com/PyTorchLightning/pytorch-lightning/pull/12179))
+
+
+- Marked `trainer.logger_connector` as protected ([#12195](https://github.com/PyTorchLightning/pytorch-lightning/pull/12195))
+
 
 ### Deprecated
 
@@ -360,6 +412,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `TrainerOptimizersMixin` and moved functionality to `core/optimizer.py`([#11155](https://github.com/PyTorchLightning/pytorch-lightning/pull/11155))
 
 
+- Deprecated the `on_train_batch_end(outputs)` format when multiple optimizers are used and TBPTT is enabled ([#12182](https://github.com/PyTorchLightning/pytorch-lightning/pull/12182))
+
+
+- Deprecated the `training_epoch_end(outputs)` format when multiple optimizers are used and TBPTT is enabled ([#12182](https://github.com/PyTorchLightning/pytorch-lightning/pull/12182))
+
+
 - Deprecated `TrainerCallbackHookMixin` ([#11148](https://github.com/PyTorchLightning/pytorch-lightning/pull/11148))
 
 
@@ -408,6 +466,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `pytorch_lightning.utilities.warnings.LightningDeprecationWarning` in favor of `pytorch_lightning.utilities.rank_zero.LightningDeprecationWarning`
 
 
+- Deprecated `on_pretrain_routine_start` and `on_pretrain_routine_end` callback hooks in favor of `on_fit_start` ([#11794](https://github.com/PyTorchLightning/pytorch-lightning/pull/11794))
+
+
+- Deprecated `LightningModule.on_pretrain_routine_start` and `LightningModule.on_pretrain_routine_end` hooks in favor of `on_fit_start` ([#12122](https://github.com/PyTorchLightning/pytorch-lightning/pull/12122))
+
+
 - Deprecated `agg_key_funcs` and `agg_default_func` parameters from `LightningLoggerBase` ([#11871](https://github.com/PyTorchLightning/pytorch-lightning/pull/11871))
 
 
@@ -415,6 +479,24 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Deprecated `LightningLoggerBase.agg_and_log_metrics` in favor of `LightningLoggerBase.log_metrics` ([#11832](https://github.com/PyTorchLightning/pytorch-lightning/pull/11832))
+
+
+- Deprecated passing `weights_save_path` to the `Trainer` constructor in favor of adding the `ModelCheckpoint` callback with `dirpath` directly to the list of callbacks ([#12084](https://github.com/PyTorchLightning/pytorch-lightning/pull/12084))
+
+
+- Deprecated `pytorch_lightning.profiler.AbstractProfiler` in favor of `pytorch_lightning.profiler.BaseProfiler` ([#12106](https://github.com/PyTorchLightning/pytorch-lightning/pull/12106))
+
+
+- Deprecated `BaseProfiler.profile_iterable` ([#12102](https://github.com/PyTorchLightning/pytorch-lightning/pull/12102))
+
+
+- Deprecated `LoggerCollection` in favor of `trainer.loggers` ([#12147](https://github.com/PyTorchLightning/pytorch-lightning/pull/12147))
+
+
+- Deprecated `PrecisionPlugin.on_{save,load}_checkpoint` in favor of `PrecisionPlugin.{state_dict,load_state_dict}` ([#11978](https://github.com/PyTorchLightning/pytorch-lightning/pull/11978))
+
+
+- Deprecated `LightningDataModule.on_save/load_checkpoint` in favor of `state_dict/load_state_dict` ([#11893](https://github.com/PyTorchLightning/pytorch-lightning/pull/11893))
 
 
 ### Removed
@@ -501,6 +583,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `DeepSpeedPlugin.{precision,amp_type,amp_level}` properties ([#10657](https://github.com/PyTorchLightning/pytorch-lightning/pull/10657))
 
 
+- Removed patching of `on_before_batch_transfer`, `transfer_batch_to_device` and `on_after_batch_transfer` hooks in `LightningModule` ([#10603](https://github.com/PyTorchLightning/pytorch-lightning/pull/10603))
+
+
 - Removed argument `return_result` from the `DDPSpawnPlugin.spawn()` method ([#10867](https://github.com/PyTorchLightning/pytorch-lightning/pull/10867))
 
 
@@ -569,11 +654,50 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed calls to `profile("model_forward")` in favor of profiling `training_step` ([#12032](https://github.com/PyTorchLightning/pytorch-lightning/pull/12032))
 
+
+- Removed `get_mp_spawn_kwargs` from `DDPSpawnStrategy` and `TPUSpawnStrategy` in favor of configuration in the `_SpawnLauncher` ([#11966](https://github.com/PyTorchLightning/pytorch-lightning/pull/11966))
+
+
+- Removed `_aggregate_metrics`, `_reduce_agg_metrics`, and `_finalize_agg_metrics` from `LightningLoggerBase` ([#12053](https://github.com/PyTorchLightning/pytorch-lightning/pull/12053))
+
+
+- Removed the `AcceleratorConnector.device_type` property ([#12081](https://github.com/PyTorchLightning/pytorch-lightning/pull/12081))
+
+
+- Removed `AcceleratorConnector.num_nodes` ([#12107](https://github.com/PyTorchLightning/pytorch-lightning/pull/12107))
+
+
+- Removed `AcceleratorConnector.has_ipu` property ([#12111](https://github.com/PyTorchLightning/pytorch-lightning/pull/12111))
+
+
+- Removed `AcceleratorConnector.use_ipu` property ([#12110](https://github.com/PyTorchLightning/pytorch-lightning/pull/12110))
+
+
+- Removed `AcceleratorConnector.has_tpu` property ([#12109](https://github.com/PyTorchLightning/pytorch-lightning/pull/12109))
+
+
+- Removed `AcceleratorConnector.use_dp` property ([#12112](https://github.com/PyTorchLightning/pytorch-lightning/pull/12112))
+
+
+
+- Removed `configure_sync_batchnorm` from `ParallelStrategy` and all other strategies that inherit from it ([#11754](https://github.com/PyTorchLightning/pytorch-lightning/pull/11754))
+
+
+- Removed public attribute `sync_batchnorm` from strategies ([#11754](https://github.com/PyTorchLightning/pytorch-lightning/pull/11754))
+
+
 ### Fixed
+
+- Fixed an issue where `ModelCheckpoint` could delete older checkpoints when `dirpath` has changed during resumed training ([#12045](https://github.com/PyTorchLightning/pytorch-lightning/pull/12045))
+
 
 - Fixed an issue where `HorovodStrategy.teardown()` did not complete gracefully if an exception was thrown during callback setup [#11752](https://github.com/PyTorchLightning/pytorch-lightning/pull/11752)
 
+
 - Fixed security vulnerabilities CVE-2020-1747 and CVE-2020-14343 caused by the `PyYAML` dependency ([#11099](https://github.com/PyTorchLightning/pytorch-lightning/pull/11099))
+
+
+- Fixed security vulnerability "CWE-94: Improper Control of Generation of Code (Code Injection)" ([#12212](https://github.com/PyTorchLightning/pytorch-lightning/pull/12212))
 
 
 - Fixed logging on `{test,validation}_epoch_end` with multiple dataloaders ([#11132](https://github.com/PyTorchLightning/pytorch-lightning/pull/11132))
@@ -603,10 +727,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `SimpleProfiler` summary ([#11414](https://github.com/PyTorchLightning/pytorch-lightning/pull/11414))
 
 
+- No longer set a `DistributedSampler` to the `poptorch.DataLoader` when IPUs are used ([#12114](https://github.com/PyTorchLightning/pytorch-lightning/pull/12114))
+
+
 - Fixed bug where progress bar was not being disabled when not in rank zero during predict ([#11377](https://github.com/PyTorchLightning/pytorch-lightning/pull/11377))
 
 
 - Fixed the mid-epoch warning call while resuming training ([#11556](https://github.com/PyTorchLightning/pytorch-lightning/pull/11556))
+
+
+- Fixed `LightningModule.{un,}toggle_model` when only 1 optimizer is used ([#12088](https://github.com/PyTorchLightning/pytorch-lightning/pull/12088))
 
 
 - Fixed an issue in `RichProgressbar` to display the metrics logged only on main progress bar ([#11690](https://github.com/PyTorchLightning/pytorch-lightning/pull/11690))
@@ -624,6 +754,24 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Update `RichProgressBarTheme` styles after detecting light theme on colab ([#10993](https://github.com/PyTorchLightning/pytorch-lightning/pull/10993))
 
 
+- Fixed passing `_ddp_params_and_buffers_to_ignore` ([#11949](https://github.com/PyTorchLightning/pytorch-lightning/pull/11949))
+
+
+- Fixed an `AttributeError` when calling `save_hyperparameters` and no parameters need saving ([#11827](https://github.com/PyTorchLightning/pytorch-lightning/pull/11827))
+
+
+- Fixed environment variable priority for global rank determination ([#11406](https://github.com/PyTorchLightning/pytorch-lightning/pull/11406))
+
+
+- Fixed an issue that caused the Trainer to produce identical results on subsequent runs without explicit re-seeding ([#11870](https://github.com/PyTorchLightning/pytorch-lightning/pull/11870))
+
+
+- Fixed an issue that caused the Tuner to affect the random state ([#11870](https://github.com/PyTorchLightning/pytorch-lightning/pull/11870))
+
+
+- Fixed to avoid common hook warning if no hook is overridden ([#12131](https://github.com/PyTorchLightning/pytorch-lightning/pull/12131))
+
+
 ## [1.5.10] - 2022-02-08
 
 ### Fixed
@@ -638,12 +786,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed check for available modules ([#11526](https://github.com/PyTorchLightning/pytorch-lightning/pull/11526))
 - Fixed bug where the path for "last" checkpoints was not getting saved correctly which caused newer runs to not remove the previous "last" checkpoint ([#11481](https://github.com/PyTorchLightning/pytorch-lightning/pull/11481))
 - Fixed bug where the path for best checkpoints was not getting saved correctly when no metric was monitored which caused newer runs to not use the best checkpoint ([#11481](https://github.com/PyTorchLightning/pytorch-lightning/pull/11481))
-
-
-- Fixed an `AttributeError` when calling `save_hyperparameters` and no parameters need saving ([#11827](https://github.com/PyTorchLightning/pytorch-lightning/pull/11827))
-
-
-- Fixed environment variable priority for global rank determination ([#11406](https://github.com/PyTorchLightning/pytorch-lightning/pull/11406))
 
 
 ## [1.5.9] - 2022-01-20

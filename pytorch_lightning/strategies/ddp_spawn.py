@@ -30,7 +30,7 @@ from pytorch_lightning.strategies.launchers.spawn import _SpawnLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8
-from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
+from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
@@ -69,7 +69,6 @@ class DDPSpawnStrategy(ParallelStrategy):
             precision_plugin=precision_plugin,
         )
         self._num_nodes = 1
-        self.sync_batchnorm = False
         self._ddp_kwargs = kwargs
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
@@ -116,8 +115,8 @@ class DDPSpawnStrategy(ParallelStrategy):
         # move the model to the correct device
         self.model_to_device()
 
-        if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
+        if self._layer_sync:
+            self.model = self._layer_sync.apply(self.model)
 
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = self.lightning_module.trainer.state.fn
@@ -135,9 +134,6 @@ class DDPSpawnStrategy(ParallelStrategy):
         self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
         self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
         rank_zero_only.rank = self.cluster_environment.global_rank()
-
-    def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
-        return {"nprocs": self.num_processes}
 
     def _worker_setup(self, process_idx: int):
         reset_seed()
@@ -272,8 +268,8 @@ class DDPSpawnStrategy(ParallelStrategy):
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
 
-        if self.sync_batchnorm:
-            self.model = _revert_sync_batchnorm(self.model)
+        if self._layer_sync:
+            self.model = self._layer_sync.revert(self.model)
 
         if self.root_device.type == "cuda":
             # GPU teardown

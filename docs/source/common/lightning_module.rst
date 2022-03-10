@@ -96,6 +96,8 @@ Here are the only required methods.
 .. code-block:: python
 
     import pytorch_lightning as pl
+    import torch.nn as nn
+    import torch.nn.functional as F
 
 
     class LitModel(pl.LightningModule):
@@ -398,7 +400,7 @@ Validation Epoch-level Metrics
 ==============================
 
 If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
-override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end` method.
+override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end` method. Note that this method is called before :meth:`~pytorch_lightning.core.lightning.LightningModule.training_epoch_end`.
 
 .. code-block:: python
 
@@ -914,7 +916,7 @@ These are properties available in a LightningModule.
 current_epoch
 ~~~~~~~~~~~~~
 
-The current epoch
+The number of epochs run.
 
 .. code-block:: python
 
@@ -944,12 +946,13 @@ usually do not need to use this property, but it is useful to know how to access
     def training_step(self, batch, batch_idx):
         if self.global_rank == 0:
             # do something only once across all the nodes
-            self.log("global_step", self.trainer.global_step)
+            ...
 
 global_step
 ~~~~~~~~~~~
 
-The current step (does not reset each epoch)
+The number of optimizer steps taken (does not reset each epoch).
+This includes multiple optimizers and TBPTT steps (if enabled).
 
 .. code-block:: python
 
@@ -1001,16 +1004,16 @@ The list of loggers currently being used by the Trainer.
 local_rank
 ~~~~~~~~~~~
 
-The ``global_rank`` is the index of the current process across all the devices for the current node.
+The ``local_rank`` is the index of the current process across all the devices for the current node.
 You usually do not need to use this property, but it is useful to know how to access it if needed.
 For example, if using 10 machines (or nodes), the GPU at index 0 on each machine has local_rank = 0.
 
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        if self.global_rank == 0:
+        if self.local_rank == 0:
             # do something only once across each node
-            self.log("global_step", self.trainer.global_step)
+            ...
 
 precision
 ~~~~~~~~~
@@ -1058,7 +1061,7 @@ automatic_optimization
 When set to ``False``, Lightning does not automate the optimization process. This means you are responsible for handling
 your optimizers. However, we do take care of precision and any accelerators used.
 
-See :ref:`manual optimization<common/optimizers:Manual optimization>` for details.
+See :ref:`manual optimization<common/optimization:Manual optimization>` for details.
 
 .. code-block:: python
 
@@ -1223,9 +1226,6 @@ for more information.
         setup("fit")
         configure_optimizers()
 
-        on_pretrain_routine_start()
-        on_pretrain_routine_end()
-
         # the sanity check runs here
 
         on_train_start()
@@ -1387,18 +1387,6 @@ on_validation_end
 ~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.on_validation_end
-    :noindex:
-
-on_pretrain_routine_start
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_pretrain_routine_start
-    :noindex:
-
-on_pretrain_routine_end
-~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_pretrain_routine_end
     :noindex:
 
 on_test_batch_start

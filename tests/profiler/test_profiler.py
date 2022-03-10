@@ -24,8 +24,7 @@ import torch
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, StochasticWeightAveraging
-from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
-from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction, warning_cache
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -65,19 +64,6 @@ def test_simple_profiler_durations(simple_profiler, action: str, expected: list)
     # different environments have different precision when it comes to time.sleep()
     # see: https://github.com/PyTorchLightning/pytorch-lightning/issues/796
     np.testing.assert_allclose(simple_profiler.recorded_durations[action], expected, rtol=0.2)
-
-
-@pytest.mark.flaky(reruns=3)
-@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
-def test_simple_profiler_iterable_durations(simple_profiler, action: str, expected: list):
-    """Ensure the reported durations are reasonably accurate."""
-    iterable = _sleep_generator(expected)
-
-    for _ in simple_profiler.profile_iterable(iterable, action):
-        pass
-
-    # we exclude the last item in the recorded durations since that's when StopIteration is raised
-    np.testing.assert_allclose(simple_profiler.recorded_durations[action][:-1], expected, rtol=0.2)
 
 
 def test_simple_profiler_overhead(simple_profiler, n_iter=5):
@@ -290,20 +276,6 @@ def test_advanced_profiler_durations(advanced_profiler, action: str, expected: l
 
 
 @pytest.mark.flaky(reruns=3)
-@pytest.mark.parametrize(["action", "expected"], [("a", [3, 1]), ("b", [2]), ("c", [1])])
-def test_advanced_profiler_iterable_durations(advanced_profiler, action: str, expected: list):
-    """Ensure the reported durations are reasonably accurate."""
-    iterable = _sleep_generator(expected)
-
-    for _ in advanced_profiler.profile_iterable(iterable, action):
-        pass
-
-    recorded_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
-    expected_total_duration = np.sum(expected)
-    np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
-
-
-@pytest.mark.flaky(reruns=3)
 def test_advanced_profiler_overhead(advanced_profiler, n_iter=5):
     """ensure that the profiler doesn't introduce too much overhead during training."""
     for _ in range(n_iter):
@@ -478,9 +450,9 @@ def test_pytorch_profiler_nested(tmpdir):
     assert events_name == expected, (events_name, torch.__version__, platform.system())
 
 
-def test_pytorch_profiler_logger_collection(tmpdir):
-    """Tests whether the PyTorch profiler is able to write its trace locally when the Trainer's logger is an
-    instance of LoggerCollection.
+def test_pytorch_profiler_multiple_loggers(tmpdir):
+    """Tests whether the PyTorch profiler is able to write its trace locally when the Trainer is configured with
+    multiple loggers.
 
     See issue #8157.
     """
@@ -493,10 +465,9 @@ def test_pytorch_profiler_logger_collection(tmpdir):
     assert not look_for_trace(tmpdir)
 
     model = BoringModel()
-    # Wrap the logger in a list so it becomes a LoggerCollection
-    logger = [TensorBoardLogger(save_dir=tmpdir), DummyLogger()]
-    trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", logger=logger, limit_train_batches=5, max_epochs=1)
-    assert isinstance(trainer.logger, LoggerCollection)
+    loggers = [TensorBoardLogger(save_dir=tmpdir), CSVLogger(tmpdir)]
+    trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", logger=loggers, limit_train_batches=5, max_epochs=1)
+    assert len(trainer.loggers) == 2
     trainer.fit(model)
     assert look_for_trace(tmpdir)
 

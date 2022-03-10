@@ -345,6 +345,29 @@ This can be useful to implement custom logic without having to subclass the CLI,
 and argument parsing capabilities.
 
 
+Subclass registration
+^^^^^^^^^^^^^^^^^^^^^
+
+To use shorthand notation, the options need to be registered beforehand. This can be easily done with:
+
+.. code-block::
+
+    LightningCLI(auto_registry=True)  # False by default
+
+which will register all subclasses of :class:`torch.optim.Optimizer`, :class:`torch.optim.lr_scheduler._LRScheduler`,
+:class:`~pytorch_lightning.core.lightning.LightningModule`,
+:class:`~pytorch_lightning.core.datamodule.LightningDataModule`, :class:`~pytorch_lightning.callbacks.Callback`, and
+:class:`~pytorch_lightning.loggers.LightningLoggerBase` across all imported modules. This includes those in your own
+code.
+
+Alternatively, if this is left unset, only the subclasses defined in PyTorch's :class:`torch.optim.Optimizer`,
+:class:`torch.optim.lr_scheduler._LRScheduler` and Lightning's :class:`~pytorch_lightning.callbacks.Callback` and
+:class:`~pytorch_lightning.loggers.LightningLoggerBase` subclassess will be registered.
+
+In subsequent sections, we will go over adding specific classes to specific registries as well as how to use
+shorthand notation.
+
+
 Trainer Callbacks and arguments with class type
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

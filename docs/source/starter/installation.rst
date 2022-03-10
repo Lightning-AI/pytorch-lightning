@@ -56,14 +56,14 @@ You can also use `Conda Environments <https://docs.conda.io/projects/conda/en/la
 Installation from Source
 ************************
 
-Install nightly from the source. Note that it contains all the bugfixes and newly released features that
-are not published yet. This is the bleeding edge so use it at your own discretion.
+Install nightly from the source. Note that it contains all the bug fixes and newly released features that
+are not published yet. This is the bleeding edge, so use it at your own discretion.
 
 .. code-block:: bash
 
     pip install https://github.com/PyTorchLightning/pytorch-lightning/archive/master.zip
 
-Install future patch release from the source. Note that patch release contains only the bugfixes for the recent major release.
+Install future patch releases from the source. Note that the patch release contains only the bug fixes for the recent major release.
 
 .. code-block:: bash
 

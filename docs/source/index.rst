@@ -3,9 +3,34 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-PyTorch Lightning
-=================
+Welcome to PyTorch Lightning
+============================
 
+.. raw:: html
+
+    <div class="tutorials-callout-container">
+        <div class="row">
+
+.. Add callout items below this line
+
+.. customcalloutitem::
+   :description: Learn how to leverage the PyTorch Lightning features for your Machine Learning projects with ease in this quickstart guide.
+   :header: Introduction
+   :button_link:  starter/introduction.html
+   :button_text: Get started with PyTorch Lightning
+
+.. customcalloutitem::
+   :description: Guide to restructure your PyTorch code to PyTorch Lightning and help you focus more on research rather than the tricky engineering aspects.
+   :header: PyTorch to PyTorch Lightning
+   :button_link: starter/converting.html
+   :button_text: Organize PyTorch to PyTorch Lightning
+
+.. raw:: html
+
+        </div>
+    </div>
+
+.. End of callout item section
 
 .. tutoriallist::
 
@@ -18,7 +43,7 @@ PyTorch Lightning
    :name: start
    :caption: Getting started
 
-   starter/new-project
+   starter/introduction
    starter/installation
    starter/converting
    starter/lightning_lite
@@ -52,6 +77,7 @@ PyTorch Lightning
    extensions/datamodules
    extensions/logging
    extensions/plugins
+   extensions/strategy
    extensions/loops
 
 .. toctree::
@@ -76,18 +102,18 @@ PyTorch Lightning
    common/production_inference
    common/lightning_cli
    common/loggers
-   advanced/advanced_gpu
-   advanced/mixed_precision
+   advanced/model_parallel
+   advanced/precision
    common/checkpointing
    advanced/fault_tolerant_training
-   common/optimizers
+   common/optimization
    advanced/profiler
    advanced/strategy_registry
    common/remote_fs
    advanced/training_tricks
    advanced/pruning_quantization
    advanced/transfer_learning
-   common/test_set
+   common/evaluation
 
 .. toctree::
    :maxdepth: 1
@@ -95,7 +121,7 @@ PyTorch Lightning
    :caption: Tutorials
    :glob:
 
-   starter/introduction_guide
+   starter/core_guide
    PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
    From PyTorch to PyTorch Lightning [Blog] <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
    From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
@@ -110,10 +136,14 @@ PyTorch Lightning
 
 .. toctree::
    :maxdepth: 1
-   :name: Bolts
-   :caption: Bolts
+   :name: Lightning Ecosystem
+   :caption: Lightning Ecosystem
 
+   ecosystem/metrics
+   ecosystem/flash
    ecosystem/bolts
+   ecosystem/transformers
+   ecosystem/ecosystem-ci
 
 .. toctree::
    :maxdepth: 1
