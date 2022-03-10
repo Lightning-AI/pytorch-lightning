@@ -60,7 +60,7 @@ class HPUParallelStrategy(DDPStrategy):
 
         super().setup_environment()
 
-    def broadcast(self, obj: object, src: int = 0) -> object:
+    def broadcast(self, obj: object, src: int = 0) -> object:  # type: ignore
         obj = [obj]
         if self.global_rank != src:
             obj = [None]

@@ -1,3 +1,5 @@
+# type: ignore
+
 import io
 import logging
 import os
@@ -34,7 +36,7 @@ def _rank_not_in_group(group: ProcessGroup):
 def _object_to_tensor(obj):
     f = io.BytesIO()
     _pickler(f).dump(obj)
-    byte_storage = torch.ByteStorage.from_buffer(f.getvalue())  # type: ignore[attr-defined]
+    byte_storage = torch.ByteStorage.from_buffer(f.getvalue())
     # Do not replace `torch.ByteTensor` or `torch.LongTensor` with torch.tensor and specifying dtype.
     # Otherwise, it will casue 100X slowdown.
     # See: https://github.com/pytorch/pytorch/issues/65696
@@ -140,7 +142,7 @@ def _broadcast_object_list(object_list, src=0, group=None, device=None):
         object_tensor = torch.cat(tensor_list)
     else:
         object_tensor = torch.empty(
-            torch.sum(object_sizes_tensor).int().item(),  # type: ignore[arg-type]
+            torch.sum(object_sizes_tensor).int().item(),
             dtype=torch.uint8,
         )
 

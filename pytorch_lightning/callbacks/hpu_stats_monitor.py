@@ -28,7 +28,6 @@ hpu Stats Monitor
 Monitor and logs hpu stats during training.
 
 """
-from typing import Optional
 
 import torch
 
@@ -58,10 +57,8 @@ class HPUStatsMonitor(Callback):
     def on_before_backward(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", loss: torch.Tensor) -> None:
         pl_module.log("Model_Loss", loss, on_step=True, on_epoch=True, enable_graph=False, logger=True)
 
-    def on_train_epoch_end(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", unused: Optional = None
-    ) -> None:
-        tensor_board = trainer.logger.experiment
+    def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        tensor_board = trainer.logger.experiment  # type: ignore
         dict = vars(pl_module)
         modules = dict["_modules"]
         for module_name in modules:

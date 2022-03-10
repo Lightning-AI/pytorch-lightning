@@ -58,11 +58,11 @@ class HPUStrategy(SingleDeviceStrategy):
             raise MisconfigurationException("HPUs currently support only one optimizer.")
 
     def model_to_device(self) -> None:
-        self.model.to(self.root_device)
+        self.model.to(self.root_device)  # type: ignore
 
     def pre_dispatch(self) -> None:
-        if isinstance(self.device, int):
-            self.device = torch.device(self.device)
+        if isinstance(self.device, int):  # type: ignore
+            self.device = torch.device(self.device)  # type: ignore
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
