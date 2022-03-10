@@ -60,10 +60,6 @@ class HPUStrategy(SingleDeviceStrategy):
     def model_to_device(self) -> None:
         self.model.to(self.root_device)  # type: ignore
 
-    def pre_dispatch(self) -> None:
-        if isinstance(self.device, int):  # type: ignore
-            self.device = torch.device(self.device)  # type: ignore
-
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(

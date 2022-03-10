@@ -20,7 +20,6 @@ from torch.nn import functional as F
 
 import pytorch_lightning as pl
 from pl_examples.basic_examples.mnist_datamodule import MNISTDataModule
-from pytorch_lightning.callbacks import HPUStatsMonitor
 from pytorch_lightning.plugins import HPUPrecisionPlugin
 from pytorch_lightning.strategies.hpu import HPUStrategy
 from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
@@ -105,8 +104,6 @@ if __name__ == "__main__":
     hmp_params["bf16_ops"] = args.hmp_bf16  # "./pl_examples/hpu_examples/simple_mnist/ops_bf16_mnist.txt"
     hmp_params["fp32_ops"] = args.hmp_fp32  # "./pl_examples/hpu_examples/simple_mnist/ops_fp32_mnist.txt"
 
-    hpu_stats = HPUStatsMonitor(log_save_dir="habana_ptl_log", exp_name="mnist")
-
     parallel_devices = args.hpus
     hpustrat_1 = HPUStrategy(
         device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=hmp_params)
@@ -120,7 +117,6 @@ if __name__ == "__main__":
     trainer = pl.Trainer(
         strategy=hpustrat_8 if (parallel_devices == 8) else hpustrat_1,
         devices=parallel_devices,
-        callbacks=[hpu_stats],
         max_epochs=args.epochs,
         default_root_dir=os.getcwd(),
         accelerator="hpu",
