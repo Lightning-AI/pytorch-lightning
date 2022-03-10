@@ -40,6 +40,11 @@ class HPUStrategy(SingleDeviceStrategy):
         if not _HPU_AVAILABLE:
             raise MisconfigurationException("HPU Accelerator requires HPU devices to run")
 
+        from habana_frameworks.torch.utils.library_loader import load_habana_module
+        load_habana_module()
+        import habana_frameworks.torch.core # noqa: F401
+        import habana_frameworks.torch.core.hccl # noqa: F401
+
         device = device
         checkpoint_io = checkpoint_io or HPUCheckpointIO()
         super().__init__(
