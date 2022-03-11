@@ -574,10 +574,7 @@ class PyTorchProfilerLegacy(BasePyTorchProfiler):
             self._parent_profiler.__enter__()
 
     def _stop_action(self, action_name: str) -> None:
-        if self.profiler is not None and (
-            any(action_name.endswith(func) for func in self.STEP_FUNCTIONS)
-            or action_name.startswith(self.STEP_FUNCTION_PREFIX)
-        ):
+        if self.profiler is not None and any(action_name.endswith(func) for func in self.STEP_FUNCTIONS):
             if self._schedule is not None:
                 self._schedule.pre_step(action_name)
 
@@ -788,10 +785,7 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
             self._transit_profiler(KinetoProfilerState.START)
 
     def _stop_action(self, action_name: str) -> None:
-        if self.profiler is not None and (
-            any(action_name.endswith(func) for func in self.STEP_FUNCTIONS)
-            or action_name.startswith(self.STEP_FUNCTION_PREFIX)
-        ):
+        if self.profiler is not None and any(action_name.endswith(func) for func in self.STEP_FUNCTIONS):
             # Save the first action name in order to save the profile data
             # when destroying profiler like what the original on_trace_ready did.
             if self._start_action_name is None:
@@ -837,11 +831,7 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
     def get_total_steps(self, action_name) -> int:
         trainer = self._lightning_module.trainer
 
-        # when the model is used in automatic optimization, we use `optimizer_step_with_closure` to step the model.
-        # this profiler event is generated in the `LightningOptimizer.step` method
-        if (
-            self._lightning_module.automatic_optimization and action_name.startswith("optimizer_step_with_closure_")
-        ) or (not self._lightning_module.automatic_optimization and action_name.endswith("training_step")):
+        if action_name.endswith("training_step"):
             return trainer.num_training_batches
         if action_name.endswith("validation_step"):
             return sum(trainer.num_val_batches) + sum(trainer.num_sanity_val_batches)
