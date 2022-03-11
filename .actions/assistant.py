@@ -40,6 +40,8 @@ class AssistantCLI:
         with open(req_file) as fp:
             lines = fp.readlines()
 
+        if isinstance(packages, str):
+            packages = [packages]
         for pkg in packages:
             lines = [ln for ln in lines if not ln.startswith(pkg)]
         pprint(lines)
