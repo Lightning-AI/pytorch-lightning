@@ -222,7 +222,9 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
     assert trainer.default_root_dir == tmpdir
 
 
-@pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE)  # WandbLogger and NeptuneLogger get tested separately
+@pytest.mark.parametrize(
+    "logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE
+)  # WandbLogger and NeptuneLogger get tested separately
 def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class):
     """Test that the logger objects can be pickled.
 

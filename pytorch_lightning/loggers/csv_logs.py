@@ -190,9 +190,7 @@ class CSVLogger(LightningLoggerBase):
         return self._experiment
 
     @rank_zero_only
-    def log_hyperparams(
-        self, params: Union[Dict[str, Any], Namespace]
-    ) -> None:
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         params = _convert_params(params)
         self.experiment.log_hparams(params)
 
