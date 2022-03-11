@@ -39,7 +39,7 @@ jobs:
     - name: Install dependencies
       env:
         # TORCH_VERSION: ${{ matrix.pytorch-version }}
-        TORCH_VERSION: 1.10
+        TORCH_VERSION: "1.10"
       run: |
         pip install "torch==$TORCH_VERSION" --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         # adjust versions according installed Torch version
