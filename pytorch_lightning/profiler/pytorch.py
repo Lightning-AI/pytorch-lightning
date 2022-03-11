@@ -28,7 +28,7 @@ from torch.autograd.profiler import record_function
 
 from pytorch_lightning.profiler.profiler import Profiler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE, _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9
+from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE, _TORCH_GREATER_EQUAL_1_9
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -751,6 +751,9 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
         if not _KINETO_AVAILABLE or self._emit_nvtx:
             self.profiler.__enter__()
         else:
+            if _TORCH_GREATER_EQUAL_1_9:
+                self.profiler.add_metadata("Framework", "pytorch-lightning")
+
             self._transit_profiler(KinetoProfilerState.START)
 
     def _start_action(self, action_name: str) -> None:
@@ -855,7 +858,7 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
             self._profiler_state = new_state
 
 
-if _TORCH_GREATER_EQUAL_1_8 and hasattr(torch.profiler, "_KinetoProfile"):
+if _TORCH_GREATER_EQUAL_1_9 and hasattr(torch.profiler, "_KinetoProfile"):
     PyTorchProfiler = PyTorchProfilerKineto
 else:
     PyTorchProfiler = PyTorchProfilerLegacy
