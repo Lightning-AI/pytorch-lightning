@@ -106,6 +106,7 @@ class LightningModule(
         self._example_input_array = None
         self._current_fx_name: Optional[str] = None
         self._automatic_optimization: bool = True
+        self._automatic_lr_schedule: bool = False
         self._truncated_bptt_steps: int = 0
         self._param_requires_grad_state = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
@@ -231,6 +232,15 @@ class LightningModule(
     @automatic_optimization.setter
     def automatic_optimization(self, automatic_optimization: bool) -> None:
         self._automatic_optimization = automatic_optimization
+
+    @property
+    def automatic_lr_schedule(self) -> bool:
+        """If set to ``False`` you are responsible for calling ``lr_schedulers.step()``."""
+        return self._automatic_lr_schedule
+
+    @automatic_lr_schedule.setter
+    def automatic_lr_schedule(self, automatic_lr_schedule: bool) -> None:
+        self._automatic_lr_schedule = automatic_lr_schedule
 
     @property
     def truncated_bptt_steps(self) -> int:

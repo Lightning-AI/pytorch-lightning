@@ -187,7 +187,7 @@ def _init_optimizers_and_lr_schedulers(
     optimizers, lr_schedulers, optimizer_frequencies, monitor = _configure_optimizers(optim_conf)
     lr_scheduler_configs = (
         _configure_schedulers_automatic_opt(lr_schedulers, monitor)
-        if model.automatic_optimization
+        if model.automatic_optimization or model.automatic_lr_schedule
         else _configure_schedulers_manual_opt(lr_schedulers)
     )
     _set_scheduler_opt_idx(optimizers, lr_scheduler_configs)

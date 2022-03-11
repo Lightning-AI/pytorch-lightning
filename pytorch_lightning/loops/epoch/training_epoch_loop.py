@@ -446,7 +446,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                 so they have to be updated separately.
             opt_indices: indices of the optimizers to update.
         """
-        if not self.trainer.lr_scheduler_configs or not self.trainer.lightning_module.automatic_optimization:
+        if not self.trainer.lr_schedulers or not self.trainer.lightning_module.automatic_optimization and \
+                not self.trainer.lightning_module.automatic_lr_schedule:
             return
 
         if opt_indices is None:
