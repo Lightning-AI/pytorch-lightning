@@ -44,13 +44,6 @@ jobs:
       run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
       id: times
 
-    - name: Upgrade pip
-      run: |
-        python --version
-        # needed for `pip cache` command
-        pip install --upgrade pip --user
-        pip --version
-
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
       if: runner.os == 'macOS'
@@ -96,7 +89,7 @@ jobs:
         url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
         pip install --requirement requirements.txt --upgrade $flag --find-links "https://download.pytorch.org/whl/${url}"
         # adjust versions according installed Torch version
-        python ./requirements/adjust_versions.py requirements/examples.txt
+        python ./requirements/adjust-versions.py requirements/examples.txt
         pip install --requirement requirements/examples.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip install --requirement requirements/test.txt --upgrade
         pip list
@@ -109,7 +102,7 @@ jobs:
         HOROVOD_WITHOUT_TENSORFLOW: 1
       run: |
         # adjust versions according installed Torch version
-        python ./requirements/adjust_versions.py requirements/extra.txt
+        python ./requirements/adjust-versions.py requirements/extra.txt
         pip install --requirement ./requirements/extra.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip list
       shell: bash
@@ -128,6 +121,7 @@ jobs:
           pip install --no-cache-dir -r requirements/horovod.txt
         fi
         horovodrun --check-build
+        python -c "import horovod.torch"
       shell: bash
 
     - name: Cache datasets
@@ -135,6 +129,10 @@ jobs:
       with:
         path: Datasets
         key: pl-dataset
+
+    - name: Sanity check
+      run: |
+        python requirements/check-avail-extras.py
 
     - name: Tests
       run: |
