@@ -34,13 +34,11 @@ jobs:
 
     - name: Update dependencies
       env:
-        HOROVOD_GPU_OPERATIONS: NCCL
-        HOROVOD_WITH_PYTORCH: 1
-        HOROVOD_WITHOUT_TENSORFLOW: 1
+        HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
         HOROVOD_WITHOUT_MXNET: 1
-        HOROVOD_WITH_GLOO: 1
-        HOROVOD_WITHOUT_MPI: 1
+        HOROVOD_WITHOUT_TENSORFLOW: 1
       run: |
+        set -e
         conda info
         conda list
         # adjust versions according installed Torch version
