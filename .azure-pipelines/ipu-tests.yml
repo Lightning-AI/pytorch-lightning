@@ -13,7 +13,7 @@ pr:
 
 variables:
 - name: poplar_sdk
-  value: "poplar_sdk-ubuntu_20_04-2.1.0+617-6bb5f5b742"
+  value: "poplar_sdk-ubuntu_20_04-2.3.1+793-89796d462d"
 
 jobs:
   - job: ipu
@@ -53,8 +53,8 @@ jobs:
         export GIT_TERMINAL_PROMPT=1
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)"
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
-        python ./requirements/adjust_versions.py requirements/extra.txt
-        python ./requirements/adjust_versions.py requirements/examples.txt
+        python ./requirements/adjust-versions.py requirements/extra.txt
+        python ./requirements/adjust-versions.py requirements/examples.txt
         pip install . --requirement requirements/devel.txt
         pip list
       displayName: 'Install dependencies'
