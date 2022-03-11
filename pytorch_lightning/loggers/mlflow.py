@@ -111,7 +111,6 @@ class MLFlowLogger(LightningLoggerBase):
 
     def __init__(
         self,
-        run_id: Optional[str] = None,
         experiment_name: str = "lightning_logs",
         run_name: Optional[str] = None,
         tracking_uri: Optional[str] = os.getenv("MLFLOW_TRACKING_URI"),
@@ -119,6 +118,7 @@ class MLFlowLogger(LightningLoggerBase):
         save_dir: Optional[str] = "./mlruns",
         prefix: str = "",
         artifact_location: Optional[str] = None,
+        run_id: Optional[str] = None,
     ):
         if mlflow is None:
             raise ModuleNotFoundError(
