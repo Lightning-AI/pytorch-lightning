@@ -44,21 +44,24 @@ jobs:
       run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
       id: times
 
+    - name: basic setup
+      run: |
+        pip --version
+        pip install -q fire
+
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
       if: runner.os == 'macOS'
       run: |
         brew install openmpi libuv  # Horovod on macOS requires OpenMPI, Gloo not currently supported
-
     - name: Setup Windows
       if: runner.os == 'windows'
       run: |
-        python .github/prune-packages.py requirements/extra.txt "horovod"
-
+        python .actions/assistant.py requirements_prune_pkgs requirements/extra.txt --packages horovod
     - name: Set min. dependencies
       if: matrix.requires == 'oldest'
       run: |
-        python .github/set-min-requirements.py
+        python .actions/assistant.py replace_oldest_ver
 
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
