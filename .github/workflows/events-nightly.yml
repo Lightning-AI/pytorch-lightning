@@ -29,7 +29,8 @@ jobs:
 
       - name: Build packages
         run: |
-          python .github/prepare-nightly_version.py
+          pip install -q fire
+          python .actions/assistant.py prepare-nightly-version
           python setup.py sdist bdist_wheel
           ls -lh dist/
 
