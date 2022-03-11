@@ -82,7 +82,7 @@ RUN \
     python ./requirements/adjust-versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     python -c "print(' '.join([ln for ln in open('requirements/extra.txt').readlines() if 'horovod' in ln]))" > ./requirements/horovod.txt && \
     pip install -q fire && \
-    python assistant.py requirements_prune_pkgs requirements-extra.txt "horovod" && \
+    python assistant.py requirements_prune_pkgs requirements/examples.txt "horovod" && \
     # Install all requirements
     pip install -r requirements/devel.txt --no-cache-dir && \
     rm -rf requirements.* && \
