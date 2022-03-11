@@ -26,10 +26,10 @@ or nightly version from Conda
 ```bash
 git clone <git-repository>
 docker image build \
-    -t pytorch-lightning:base-conda-py3.8-pt1.9 \
+    -t pytorch-lightning:base-conda-py3.9-pt1.11 \
     -f dockers/base-conda/Dockerfile \
-    --build-arg PYTHON_VERSION=3.8 \
-    --build-arg PYTORCH_VERSION=1.9 \
+    --build-arg PYTHON_VERSION=3.9 \
+    --build-arg PYTORCH_VERSION=1.11 \
     .
 ```
 
