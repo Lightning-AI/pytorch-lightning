@@ -95,6 +95,7 @@ RUN \
     python -c "import torch; print(torch.__version__)" && \
     python requirements_adjust_versions.py requirements-extra.txt && \
     python -c "print(' '.join([ln for ln in open('requirements-extra.txt').readlines() if 'horovod' in ln]))" > requirements_horovod.txt && \
+    pip install -q fire && \
     python assistant.py requirements_prune_pkgs requirements-extra.txt "horovod" && \
     python requirements_adjust_versions.py requirements-examples.txt && \
     # Install remaining requirements
