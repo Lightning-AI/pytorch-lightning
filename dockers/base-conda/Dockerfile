@@ -84,9 +84,9 @@ ENV \
     PATH=/root/miniconda3/envs/${CONDA_ENV}/bin:$PATH \
     LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH"
 
+COPY ./requirements.txt requirements.txt
 COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/examples.txt requirements-examples.txt
-COPY ./requirements/test.txt requirements-test.txt
 COPY ./requirements/adjust-versions.py requirements_adjust_versions.py
 COPY ./.actions/assistant.py assistant.py
 
@@ -99,9 +99,9 @@ RUN \
     python assistant.py requirements_prune_pkgs requirements-extra.txt "horovod" && \
     python requirements_adjust_versions.py requirements-examples.txt && \
     # Install remaining requirements
+    pip install -r requirements.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
     pip install -r requirements-extra.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
     pip install -r requirements-examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
-    pip install -r requirements-test.txt --no-cache-dir && \
     rm assistant.py
 
 ENV \

@@ -33,14 +33,21 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Update dependencies
+      env:
+        HOROVOD_GPU_OPERATIONS: NCCL
+        HOROVOD_WITH_PYTORCH: 1
+        HOROVOD_WITHOUT_TENSORFLOW: 1
+        HOROVOD_WITHOUT_MXNET: 1
+        HOROVOD_WITH_GLOO: 1
+        HOROVOD_WITHOUT_MPI: 1
       run: |
         conda info
         conda list
         # adjust versions according installed Torch version
         python ./requirements/adjust-versions.py requirements/extra.txt
         python ./requirements/adjust-versions.py requirements/examples.txt
-        pip install --requirement requirements/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-        # set a per-test timeout of 2.5 minutes to fail sooner. this aids with hanging tests
+        pip install -r requirements/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+        # set a per-test timeout of 2.5 minutes to fail sooner; this aids with hanging tests
         pip install pytest-timeout
         pip list
         # sanity check
