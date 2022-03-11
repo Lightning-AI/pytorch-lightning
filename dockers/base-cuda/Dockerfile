@@ -88,15 +88,6 @@ RUN \
     rm -rf requirements.* && \
     rm assistant.py
 
-ENV \
-    HOROVOD_CUDA_HOME=$CUDA_TOOLKIT_ROOT_DIR \
-    HOROVOD_GPU_OPERATIONS=NCCL \
-    HOROVOD_WITH_PYTORCH=1 \
-    HOROVOD_WITHOUT_TENSORFLOW=1 \
-    HOROVOD_WITHOUT_MXNET=1 \
-    HOROVOD_WITH_GLOO=1 \
-    HOROVOD_WITHOUT_MPI=1
-
 RUN \
    apt-get purge -y cmake && \
    wget -q https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2.tar.gz && \
@@ -106,6 +97,15 @@ RUN \
    make && \
    make install && \
    cmake  --version
+
+ENV \
+    HOROVOD_CUDA_HOME=$CUDA_TOOLKIT_ROOT_DIR \
+    HOROVOD_GPU_OPERATIONS=NCCL \
+    HOROVOD_WITH_PYTORCH=1 \
+    HOROVOD_WITHOUT_TENSORFLOW=1 \
+    HOROVOD_WITHOUT_MXNET=1 \
+    HOROVOD_WITH_GLOO=1 \
+    HOROVOD_WITHOUT_MPI=1
 
 RUN \
    HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
