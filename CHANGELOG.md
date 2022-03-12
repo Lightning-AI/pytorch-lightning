@@ -146,6 +146,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `LayerSync` and `NativeSyncBatchNorm` plugins ([#11754](https://github.com/PyTorchLightning/pytorch-lightning/pull/11754))
 
 
+- Added optional `storage_options` argument to `Trainer.save_checkpoint()` to pass to custom `CheckpointIO` implementations ([#11891](https://github.com/PyTorchLightning/pytorch-lightning/pull/11891))
+
 
 ### Changed
 
