@@ -14,7 +14,7 @@
 
 from collections import OrderedDict
 from functools import lru_cache
-from typing import Any, cast, Dict, Optional
+from typing import Any, Dict, Optional
 
 from deprecate import void
 from torch.utils.data import DataLoader
@@ -84,7 +84,7 @@ class EvaluationEpochLoop(Loop):
         self._dl_max_batches = dl_max_batches
         self._reload_dataloader_state_dict(data_fetcher)
         # creates the iterator inside the fetcher but returns `self`
-        self._data_fetcher = cast(AbstractDataFetcher, iter(data_fetcher))
+        self._data_fetcher = iter(data_fetcher)
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
 
