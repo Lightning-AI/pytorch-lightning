@@ -115,6 +115,50 @@ def test_mlflow_run_name_setting(client, mlflow, tmpdir):
 
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
+def test_mlflow_run_id_setting(client, mlflow, tmpdir):
+    """Test that the run_id argument uses the provided run_id."""
+
+    run = MagicMock()
+    run.info.run_id = "run-id"
+    run.info.experiment_id = "experiment-id"
+
+    # simulate existing run
+    client.return_value.get_run = MagicMock(return_value=run.info.run_id)
+
+    # run_id exists uses the existing run
+    logger = MLFlowLogger("test", run_id=run.info.run_id, save_dir=tmpdir)
+    _ = logger.experiment
+    client.return_value.get_run.assert_called_with(run.info.run_id)
+    assert logger.experiment_id == run.info.experiment_id
+    assert logger.run_id == run.info.run_id
+    client.reset_mock(return_value=True)
+
+    # simulate not existing run
+    client.return_value.create_experiment = MagicMock(return_value=run.info.experiment_id)
+    client.return_value.create_run = MagicMock(return_value=run)
+    client.return_value.get_run = MagicMock(side_effect=mlflow.exceptions.MlflowException)
+
+    # run_id doesn't exists create a new run
+    logger = MLFlowLogger("test", run_id="not-existing-run-id", save_dir=tmpdir)
+    _ = logger.experiment
+    assert logger.experiment_id == run.info.experiment_id
+    assert logger.run_id == run.info.run_id
+    client.reset_mock(return_value=True)
+
+    # simulate not run
+    client.return_value.create_experiment = MagicMock(return_value=run.info.experiment_id)
+    client.return_value.create_run = MagicMock(return_value=run)
+
+    # default run_id (= None) create a new run
+    logger = MLFlowLogger("test", save_dir=tmpdir)
+    _ = logger.experiment
+    assert logger.experiment_id == run.info.experiment_id
+    assert logger.run_id == run.info.run_id
+    client.reset_mock(return_value=True)
+
+
+@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
+@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
 def test_mlflow_log_dir(client, mlflow, tmpdir):
     """Test that the trainer saves checkpoints in the logger's save dir."""
 
