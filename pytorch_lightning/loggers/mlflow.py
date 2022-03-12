@@ -154,7 +154,8 @@ class MLFlowLogger(LightningLoggerBase):
 
         if self._run_id:
             try:
-                self._mlflow_client.get_run(self._run_id)
+                run = self._mlflow_client.get_run(self._run_id)
+                self._experiment_id = run.info.experiment_id
                 return self._mlflow_client
             except mlflow.exceptions.MlflowException:
                 log.warning(f"Run id with name {self._run_id} not found. Creating a new one.")
