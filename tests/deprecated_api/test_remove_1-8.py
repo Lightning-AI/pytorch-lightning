@@ -817,3 +817,10 @@ def test_v1_8_0_datamodule_checkpointhooks():
         " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
     ):
         _check_datamodule_checkpoint_hooks(trainer)
+
+
+def test_v1_8_0_use_amp(tmpdir):
+    trainer = Trainer()
+
+    with pytest.deprecated_call(match="`Trainer.use_amp` is deprecated in v1.6.0"):
+        _ = trainer.use_amp
