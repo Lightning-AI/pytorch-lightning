@@ -246,6 +246,7 @@ def test_dataloaders_passed_to_fit(tmpdir):
     ["tpu_cores", "expected_tpu_id"],
     [(1, None), (8, None), ([1], 1), ([8], 8)],
 )
+@pl_multi_process_test
 @RunIf(tpu=True)
 def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
     """Test if trainer.tpu_id is set as expected."""
@@ -267,6 +268,7 @@ def test_exception_when_no_tpu_found(tmpdir):
 
 
 @pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
+@pl_multi_process_test
 @RunIf(tpu=True)
 def test_accelerator_set_when_using_tpu(tmpdir, tpu_cores):
     """Test if the accelerator is set to `tpu` when tpu_cores is not None."""
