@@ -419,23 +419,6 @@ def test_ipython_incompatible_backend_error(_, monkeypatch):
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp2'\)`.*is not compatible"):
         Trainer(strategy="ddp2", accelerator="gpu", gpus=2)
 
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
-        Trainer(strategy="ddp_spawn")
-
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp_sharded_spawn'\)`.*is not compatible"):
-        Trainer(strategy="ddp_sharded_spawn")
-
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
-        # Edge case: AcceleratorConnector maps dp to ddp if accelerator != gpu
-        Trainer(strategy="dp")
-
-
-@mock.patch("torch.cuda.device_count", return_value=2)
-def test_ipython_compatible_dp_strategy_gpu(_, monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
-    trainer = Trainer(strategy="dp", accelerator="gpu")
-    assert trainer.strategy.launcher is None or trainer.strategy.launcher.is_interactive_compatible
-
 
 @mock.patch("pytorch_lightning.utilities._IS_INTERACTIVE", return_value=True)
 def test_ipython_compatible_backend(*_):
@@ -484,11 +467,7 @@ def test_accelerator_cpu(_):
     trainer = Trainer(accelerator="cpu")
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
-    with pytest.raises(MisconfigurationException, match="You requested gpu:"):
-        trainer = Trainer(gpus=1)
-    with pytest.raises(
-        MisconfigurationException, match="GPUAccelerator can not run on your system since GPUs are not available."
-    ):
+    with pytest.raises(MisconfigurationException, match="You passed `accelerator='gpu'`, but GPUs are not available"):
         trainer = Trainer(accelerator="gpu")
 
 
@@ -918,3 +897,11 @@ def test_devices_auto_choice_cpu(is_ipu_available_mock, is_tpu_available_mock, i
 def test_devices_auto_choice_gpu(is_gpu_available_mock, device_count_mock):
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.devices == 2
+
+
+def test_passing_zero_and_empty_list_to_devices_flag():
+    with pytest.warns(UserWarning, match=r"switching to `cpu` accelerator"):
+        Trainer(accelerator="gpu", devices=0)
+
+    with pytest.warns(UserWarning, match=r"switching to `cpu` accelerator"):
+        Trainer(accelerator="gpu", devices=[])

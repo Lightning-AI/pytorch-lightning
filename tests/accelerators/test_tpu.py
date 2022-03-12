@@ -115,14 +115,11 @@ def test_accelerator_tpu_with_auto():
 
 
 @RunIf(tpu=True)
-@pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", None)])
-def test_accelerator_tpu(accelerator, devices):
-    assert TPUAccelerator.is_available()
+def test_accelerator_auto_with_devices_tpu():
 
-    trainer = Trainer(accelerator=accelerator, devices=devices)
-    assert isinstance(trainer.accelerator, TPUAccelerator)
-    assert isinstance(trainer.strategy, TPUSpawnStrategy)
-    assert trainer.devices == 8
+    trainer = Trainer(accelerator="auto", devices=8)
+
+    assert trainer._device_type == "tpu"
     assert trainer.tpu_cores == 8
 
 
