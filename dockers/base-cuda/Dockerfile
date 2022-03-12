@@ -73,18 +73,19 @@ RUN \
     python${PYTHON_VERSION} get-pip.py && \
     rm get-pip.py && \
 
+    pip install -q fire && \
     # Disable cache \
-    export BAGUA_CUDA_VERSION=${CUDA_VERSION//"."/""} && \
+    CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
+    export BAGUA_CUDA_VERSION=$CUDA_VERSION_MM && \
     pip config set global.cache-dir false && \
     # set particular PyTorch version
     python ./requirements/adjust-versions.py requirements.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust-versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust-versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     python -c "print(' '.join([ln for ln in open('requirements/extra.txt').readlines() if 'horovod' in ln]))" > ./requirements/horovod.txt && \
-    pip install -q fire && \
     python assistant.py requirements_prune_pkgs requirements/examples.txt "horovod" && \
-    # Install all requirements
-    pip install -r requirements/devel.txt --no-cache-dir && \
+    # Install all requirements \
+    pip install -r requirements/devel.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
     rm -rf requirements.* && \
     rm assistant.py
 
