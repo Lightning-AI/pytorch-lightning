@@ -1,7 +1,7 @@
 # the default package dependencies
 
 numpy>=1.17.2
-torch>=1.7.*
+torch>=1.8.*
 tqdm>=4.41.0
 PyYAML>=5.4
 fsspec[http]>=2021.05.0, !=2021.06.0

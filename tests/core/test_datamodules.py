@@ -222,7 +222,11 @@ def test_dm_checkpoint_save_and_load(tmpdir):
     )
 
     # fit model
-    trainer.fit(model, datamodule=dm)
+    with pytest.deprecated_call(
+        match="`LightningDataModule.on_save_checkpoint` was deprecated in"
+        " v1.6 and will be removed in v1.8. Use `state_dict` instead."
+    ):
+        trainer.fit(model, datamodule=dm)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
     checkpoint = torch.load(checkpoint_path)
