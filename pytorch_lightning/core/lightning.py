@@ -97,7 +97,7 @@ class LightningModule(
         self.trainer = None
 
         # true if using amp
-        self.use_amp: bool = False
+        self._use_amp: bool = False
 
         # the precision used
         self.precision: int = 32
@@ -1965,6 +1965,23 @@ class LightningModule(
                 stacklevel=5,
             )
         return get_model_size_mb(self)
+
+    @property
+    def use_amp(self) -> bool:
+        """
+        .. deprecated:: v1.6
+            This property was deprecated in v1.6 and will be removed in v1.8.
+        """
+        rank_zero_deprecation(
+            "`LightningModule.use_amp` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.amp_backend`.",
+            stacklevel=5,
+        )
+        return self._use_amp
+
+    @use_amp.setter
+    def use_amp(self, use_amp: bool) -> None:
+        self._use_amp = use_amp
 
     def add_to_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
         """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory

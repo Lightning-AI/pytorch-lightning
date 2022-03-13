@@ -944,7 +944,7 @@ default implementation
 
 .. testcode::
 
-    def backward(self, use_amp, loss, optimizer):
+    def backward(self, loss, optimizer):
         loss.backward()
 
 With your own
@@ -952,7 +952,7 @@ With your own
 .. testcode::
 
     class LitMNIST(LightningModule):
-        def backward(self, use_amp, loss, optimizer, optimizer_idx):
+        def backward(self, loss, optimizer, optimizer_idx):
             # do a custom way of backward
             loss.backward(retain_graph=True)
 
