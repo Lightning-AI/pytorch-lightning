@@ -373,7 +373,7 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
         pass
 
     strategy = Strat(device=torch.device("cpu"), accelerator=Accel(), precision_plugin=Prec())
-    trainer = Trainer(strategy=strategy, fast_dev_run=True, accelerator="cpu", devices=2)
+    trainer = Trainer(strategy=strategy, fast_dev_run=True, num_processes=2)
     assert isinstance(trainer.accelerator, Accel)
     assert isinstance(trainer.strategy, Strat)
     assert isinstance(trainer.precision_plugin, Prec)
@@ -383,7 +383,7 @@ def test_custom_accelerator(device_count_mock, setup_distributed_mock):
         pass
 
     strategy = Strat(accelerator=Accel(), precision_plugin=Prec())
-    trainer = Trainer(strategy=strategy, fast_dev_run=True, accelerator="cpu", devices=2)
+    trainer = Trainer(strategy=strategy, fast_dev_run=True, num_processes=2)
     assert isinstance(trainer.accelerator, Accel)
     assert isinstance(trainer.strategy, Strat)
     assert isinstance(trainer.precision_plugin, Prec)
@@ -487,8 +487,14 @@ def test_accelerator_cpu(_):
     trainer = Trainer(accelerator="cpu")
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
-    with pytest.raises(MisconfigurationException, match="You passed `accelerator='gpu'`, but GPUs are not available"):
+    with pytest.raises(MisconfigurationException, match="You requested gpu:"):
+        trainer = Trainer(gpus=1)
+    with pytest.raises(
+        MisconfigurationException, match="GPUAccelerator can not run on your system since GPUs are not available."
+    ):
         trainer = Trainer(accelerator="gpu")
+    with pytest.raises(MisconfigurationException, match="You requested gpu:"):
+        trainer = Trainer(accelerator="cpu", gpus=1)
 
 
 @RunIf(min_gpus=1)
@@ -559,8 +565,7 @@ def test_devices_with_cpu_only_supports_integer():
 def test_unsupported_strategy_types_on_cpu(training_type):
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
         trainer = Trainer(accelerator=training_type, num_processes=2)
-
-    assert trainer._strategy_type == _StrategyType.DDP
+    assert isinstance(trainer.strategy, DDPStrategy)
 
 
 def test_accelerator_ddp_for_cpu(tmpdir):
