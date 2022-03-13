@@ -113,15 +113,6 @@ def test_accelerator_tpu_with_auto():
 
 
 @RunIf(tpu=True)
-def test_accelerator_auto_with_devices_tpu():
-
-    trainer = Trainer(accelerator="auto", devices=8)
-
-    assert trainer._device_type == "tpu"
-    assert trainer.tpu_cores == 8
-
-
-@RunIf(tpu=True)
 def test_manual_optimization_tpus(tmpdir):
     class ManualOptimizationModel(BoringModel):
 
