@@ -819,7 +819,7 @@ def test_v1_8_0_datamodule_checkpointhooks():
         _check_datamodule_checkpoint_hooks(trainer)
 
 
-def test_v1_8_0_use_amp(tmpdir):
+def test_v1_8_0_trainer_use_amp(tmpdir):
     trainer = Trainer()
 
     with pytest.deprecated_call(match="`Trainer.use_amp` is deprecated in v1.6.0"):
