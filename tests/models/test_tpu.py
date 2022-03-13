@@ -276,11 +276,11 @@ def test_exception_when_no_tpu_found(tmpdir):
         Trainer(tpu_cores=8)
 
 
-@pytest.mark.parametrize("devices", [1, 8, [1]])
+@pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
 @RunIf(tpu=True)
-def test_accelerator_set_when_using_tpu(tmpdir, devices):
+def test_accelerator_set_when_using_tpu(tmpdir, tpu_cores):
     """Test if the accelerator is set to `tpu` when tpu_cores is not None."""
-    assert isinstance(Trainer(accelerator="tpu", devices=devices).accelerator, TPUAccelerator)
+    assert isinstance(Trainer(tpu_cores=tpu_cores).accelerator, TPUAccelerator)
 
 
 @RunIf(tpu=True)
