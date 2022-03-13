@@ -96,7 +96,6 @@ class LightningModule(
         # pointer to the trainer object
         self.trainer = None
 
-        # true if using amp
         self._use_amp: bool = False
 
         # the precision used
@@ -1968,9 +1967,9 @@ class LightningModule(
 
     @property
     def use_amp(self) -> bool:
-        """
-        .. deprecated:: v1.6
-            This property was deprecated in v1.6 and will be removed in v1.8.
+        """Returns true if using AMP.
+
+        .. deprecated:: v1.6     This property was deprecated in v1.6 and will be removed in v1.8.
         """
         rank_zero_deprecation(
             "`LightningModule.use_amp` was deprecated in v1.6 and will be removed in v1.8."
