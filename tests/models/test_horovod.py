@@ -153,6 +153,22 @@ def test_horovod_multi_gpu(tmpdir):
     _run_horovod(trainer_options)
 
 
+@RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
+def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
+    trainer_options = dict(
+        default_root_dir=tmpdir,
+        enable_progress_bar=False,
+        max_epochs=1,
+        limit_train_batches=4,
+        limit_val_batches=0,
+        accumulate_grad_batches=2,
+        accelerator="gpu",
+        devices=2,
+        strategy="horovod",
+    )
+    _run_horovod(trainer_options)
+
+
 @RunIf(horovod=True, skip_windows=True)
 def test_horovod_raises_unsupported_accumulate_grad_batches(tmpdir):
     """Ensure MisConfigurationException for different `accumulate_grad_batches` at different epochs for Horovod
