@@ -272,8 +272,8 @@ def test_tpu_misconfiguration():
 def test_exception_when_no_tpu_found(tmpdir):
     """Test if exception is thrown when xla devices are not available."""
 
-    with pytest.raises(MisconfigurationException, match="but TPUs are not available."):
-        Trainer(accelerator="tpu", devices=8)
+    with pytest.raises(MisconfigurationException, match="No TPU devices were found."):
+        Trainer(tpu_cores=8)
 
 
 @pytest.mark.parametrize("devices", [1, 8, [1]])
