@@ -1681,6 +1681,8 @@ class Trainer(
         callback_states = {}
         for callback in self.callbacks:
             # TODO: Add profiling for on_save_checkpoint hook
+            # FIXME: the error raised is because this manual call does not set `_current_fx_name`
+            # we should also do `_call_callback_hook(...)` but need the output state
             state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
                 callback_states[callback.state_key] = state
