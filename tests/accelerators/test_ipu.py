@@ -97,14 +97,18 @@ class IPUClassificationModel(ClassificationModel):
         self.log("test_acc", torch.stack(outputs).mean())
 
 
-@pytest.mark.skipif(_IPU_AVAILABLE, reason="test requires non-IPU machine")
-def test_fail_if_no_ipus(tmpdir):
-    with pytest.raises(MisconfigurationException, match="but IPUs are not available"):
-        Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1)
+@mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
+def test_fail_if_no_ipus(mock_ipu_acc_avail, tmpdir):
+    with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
+        Trainer(default_root_dir=tmpdir, ipus=1)
+
+    with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
+        Trainer(default_root_dir=tmpdir, ipus=1, accelerator="ipu")
 
 
 @RunIf(ipu=True)
 def test_accelerator_selected(tmpdir):
+    assert IPUAccelerator.is_available()
     trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1)
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
@@ -123,10 +127,10 @@ def test_no_warning_plugin(tmpdir):
 
 
 @RunIf(ipu=True)
-@pytest.mark.parametrize("ipus", [1, 4])
-def test_all_stages(tmpdir, ipus):
+@pytest.mark.parametrize("devices", [1, 4])
+def test_all_stages(tmpdir, devices):
     model = IPUModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="ipu", devices=ipus)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="ipu", devices=devices)
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
@@ -134,11 +138,11 @@ def test_all_stages(tmpdir, ipus):
 
 
 @RunIf(ipu=True)
-@pytest.mark.parametrize("ipus", [1, 4])
-def test_inference_only(tmpdir, ipus):
+@pytest.mark.parametrize("devices", [1, 4])
+def test_inference_only(tmpdir, devices):
     model = IPUModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="ipu", devices=ipus)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="ipu", devices=devices)
     trainer.validate(model)
     trainer.test(model)
     trainer.predict(model)
@@ -393,8 +397,7 @@ def test_manual_poptorch_opts(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        accelerator="ipu",
-        devices=1,
+        ipus=2,
         fast_dev_run=True,
         strategy=IPUStrategy(inference_opts=inference_opts, training_opts=training_opts),
     )
@@ -547,18 +550,13 @@ def test_precision_plugin(tmpdir):
 
 @RunIf(ipu=True)
 def test_accelerator_ipu():
-
-    trainer = Trainer(accelerator="ipu", devices=1)
-
-    assert trainer._device_type == "ipu"
+    trainer = Trainer(accelerator="ipu", ipus=1)
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
     trainer = Trainer(accelerator="ipu")
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
-    trainer = Trainer(accelerator="auto", devices=8)
-
-    assert trainer._device_type == "ipu"
+    trainer = Trainer(accelerator="auto", ipus=8)
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
 
@@ -575,8 +573,25 @@ def test_accelerator_ipu_with_devices():
 @RunIf(ipu=True)
 def test_accelerator_auto_with_devices_ipu():
     trainer = Trainer(accelerator="auto", devices=8)
+    assert isinstance(trainer.accelerator, IPUAccelerator)
+    assert trainer.ipus == 8
 
-    assert trainer._device_type == "ipu"
+
+@RunIf(ipu=True)
+def test_accelerator_ipu_with_ipus_priority():
+    """Test for checking `ipus` flag takes priority over `devices`."""
+
+    ipus = 8
+    with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
+        trainer = Trainer(accelerator="ipu", devices=1, ipus=ipus)
+
+    assert trainer.ipus == ipus
+
+
+@RunIf(ipu=True)
+def test_set_devices_if_none_ipu():
+
+    trainer = Trainer(accelerator="ipu", ipus=8)
     assert trainer.devices == 8
 
 
@@ -588,7 +603,6 @@ def test_strategy_choice_ipu_plugin(tmpdir):
 
 @RunIf(ipu=True)
 def test_device_type_when_training_plugin_ipu_passed(tmpdir):
-
     trainer = Trainer(strategy=IPUStrategy(), accelerator="ipu", devices=8)
     assert isinstance(trainer.strategy, IPUStrategy)
     assert isinstance(trainer.accelerator, IPUAccelerator)
@@ -622,4 +636,4 @@ def test_poptorch_models_at_different_stages(tmpdir):
 def test_devices_auto_choice_ipu():
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.devices == 4
-    assert trainer.devices == 4
+    assert trainer.ipus == 4

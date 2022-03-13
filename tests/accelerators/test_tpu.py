@@ -82,17 +82,15 @@ def test_if_test_works_after_train(tmpdir):
 
 
 @RunIf(tpu=True)
-def test_accelerator_tpu():
+@pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", None)])
+def test_accelerator_tpu(accelerator, devices):
+    assert TPUAccelerator.is_available()
 
-    trainer = Trainer(accelerator="tpu", devices=8)
-
-    assert trainer._device_type == "tpu"
+    trainer = Trainer(accelerator=accelerator, devices=devices)
     assert isinstance(trainer.accelerator, TPUAccelerator)
-
-    with pytest.raises(
-        MisconfigurationException, match="You passed `accelerator='tpu'`, but you didn't pass `tpu_cores` to `Trainer`"
-    ):
-        trainer = Trainer(accelerator="tpu")
+    assert isinstance(trainer.strategy, TPUSpawnStrategy)
+    assert trainer.devices == 8
+    assert trainer.tpu_cores == 8
 
 
 @RunIf(tpu=True)
