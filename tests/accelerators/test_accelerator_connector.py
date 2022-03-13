@@ -937,69 +937,69 @@ def test_passing_zero_and_empty_list_to_devices_flag():
         Trainer(accelerator="gpu", devices=[])
 
 
-@pytest.mark.parametrize("deterministic", [True, False])	
-def test_deterministic_init(deterministic):	
-    trainer = Trainer(accelerator="auto", deterministic=deterministic)	
-    assert trainer._accelerator_connector.deterministic == deterministic	
-    if deterministic:	
-        assert os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8"	
-        assert os.environ.get("HOROVOD_FUSION_THRESHOLD") == "0"	
+@pytest.mark.parametrize("deterministic", [True, False])
+def test_deterministic_init(deterministic):
+    trainer = Trainer(accelerator="auto", deterministic=deterministic)
+    assert trainer._accelerator_connector.deterministic == deterministic
+    if deterministic:
+        assert os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8"
+        assert os.environ.get("HOROVOD_FUSION_THRESHOLD") == "0"
 
 
-@pytest.mark.parametrize(	
-    "sync_batchnorm,plugins,expected",	
-    [	
-        (False, [], type(None)),	
-        (True, [], NativeSyncBatchNorm),	
-        (False, [NativeSyncBatchNorm()], NativeSyncBatchNorm),	
-        (True, [NativeSyncBatchNorm()], NativeSyncBatchNorm),	
-        (False, [Mock(spec=LayerSync)], LayerSync),	
-    ],	
-)	
-def test_sync_batchnorm_set(tmpdir, sync_batchnorm, plugins, expected):	
-    """Test valid combinations of the sync_batchnorm Trainer flag and the plugins list of layer-sync plugins."""	
-    trainer = Trainer(sync_batchnorm=sync_batchnorm, plugins=plugins, strategy="ddp")	
-    assert isinstance(trainer._accelerator_connector._layer_sync, expected)	
-    assert isinstance(trainer.strategy._layer_sync, expected)	
+@pytest.mark.parametrize(
+    "sync_batchnorm,plugins,expected",
+    [
+        (False, [], type(None)),
+        (True, [], NativeSyncBatchNorm),
+        (False, [NativeSyncBatchNorm()], NativeSyncBatchNorm),
+        (True, [NativeSyncBatchNorm()], NativeSyncBatchNorm),
+        (False, [Mock(spec=LayerSync)], LayerSync),
+    ],
+)
+def test_sync_batchnorm_set(tmpdir, sync_batchnorm, plugins, expected):
+    """Test valid combinations of the sync_batchnorm Trainer flag and the plugins list of layer-sync plugins."""
+    trainer = Trainer(sync_batchnorm=sync_batchnorm, plugins=plugins, strategy="ddp")
+    assert isinstance(trainer._accelerator_connector._layer_sync, expected)
+    assert isinstance(trainer.strategy._layer_sync, expected)
 
 
-def test_sync_batchnorm_invalid_choice(tmpdir):	
-    """Test that a conflicting specification of enabled sync batchnorm and a custom plugin leads to an error."""	
-    custom = Mock(spec=LayerSync)	
-    with pytest.raises(	
-        MisconfigurationException,	
-        match=r"You set `Trainer\(sync_batchnorm=True\)` and provided a `LayerSync` plugin, but this is not allowed",	
-    ):	
-        Trainer(sync_batchnorm=True, plugins=[custom])	
+def test_sync_batchnorm_invalid_choice(tmpdir):
+    """Test that a conflicting specification of enabled sync batchnorm and a custom plugin leads to an error."""
+    custom = Mock(spec=LayerSync)
+    with pytest.raises(
+        MisconfigurationException,
+        match=r"You set `Trainer\(sync_batchnorm=True\)` and provided a `LayerSync` plugin, but this is not allowed",
+    ):
+        Trainer(sync_batchnorm=True, plugins=[custom])
 
 
-@RunIf(skip_windows=True)	
-def test_sync_batchnorm_set_in_custom_strategy(tmpdir):	
-    """Tests if layer_sync is automatically set for custom strategy."""	
+@RunIf(skip_windows=True)
+def test_sync_batchnorm_set_in_custom_strategy(tmpdir):
+    """Tests if layer_sync is automatically set for custom strategy."""
 
-    class CustomParallelStrategy(DDPStrategy):	
-        def __init__(self, **kwargs):	
-            super().__init__(**kwargs)	
-            # Set to None so it will be overwritten by the accelerator connector.	
-            self._layer_sync = None	
+    class CustomParallelStrategy(DDPStrategy):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            # Set to None so it will be overwritten by the accelerator connector.
+            self._layer_sync = None
 
-    strategy = CustomParallelStrategy()	
-    assert strategy._layer_sync is None	
-    Trainer(strategy=strategy, sync_batchnorm=True)	
-    assert isinstance(strategy._layer_sync, NativeSyncBatchNorm)	
+    strategy = CustomParallelStrategy()
+    assert strategy._layer_sync is None
+    Trainer(strategy=strategy, sync_batchnorm=True)
+    assert isinstance(strategy._layer_sync, NativeSyncBatchNorm)
 
 
-@pytest.mark.parametrize(	
-    ["plugins", "expected"],	
-    [	
-        ([LightningEnvironment(), SLURMEnvironment()], "ClusterEnvironment"),	
-        ([TorchCheckpointIO(), TorchCheckpointIO()], "CheckpointIO"),	
-        (	
-            [PrecisionPlugin(), DoublePrecisionPlugin(), LightningEnvironment(), SLURMEnvironment()],	
-            "PrecisionPlugin, ClusterEnvironment",	
-        ),	
-    ],	
-)	
-def test_plugin_only_one_instance_for_one_type(plugins, expected):	
-    with pytest.raises(MisconfigurationException, match=f"Received multiple values for {expected}"):	
-        Trainer(plugins=plugins)	
+@pytest.mark.parametrize(
+    ["plugins", "expected"],
+    [
+        ([LightningEnvironment(), SLURMEnvironment()], "ClusterEnvironment"),
+        ([TorchCheckpointIO(), TorchCheckpointIO()], "CheckpointIO"),
+        (
+            [PrecisionPlugin(), DoublePrecisionPlugin(), LightningEnvironment(), SLURMEnvironment()],
+            "PrecisionPlugin, ClusterEnvironment",
+        ),
+    ],
+)
+def test_plugin_only_one_instance_for_one_type(plugins, expected):
+    with pytest.raises(MisconfigurationException, match=f"Received multiple values for {expected}"):
+        Trainer(plugins=plugins)
