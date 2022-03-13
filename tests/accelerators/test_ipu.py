@@ -21,7 +21,7 @@ import torch.nn.functional as F
 from torch.utils.data import DistributedSampler
 
 from pytorch_lightning import Callback, seed_everything, Trainer
-from pytorch_lightning.accelerators import CPUAccelerator, IPUAccelerator
+from pytorch_lightning.accelerators import IPUAccelerator
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import IPUPrecisionPlugin
 from pytorch_lightning.strategies.ipu import IPUStrategy
@@ -97,6 +97,7 @@ class IPUClassificationModel(ClassificationModel):
         self.log("test_acc", torch.stack(outputs).mean())
 
 
+@pytest.mark.skipif(_IPU_AVAILABLE, reason="test requires non-IPU machine")
 @mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
 def test_fail_if_no_ipus(mock_ipu_acc_avail, tmpdir):
     with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):

@@ -72,8 +72,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
         max_epochs=50,
         limit_train_batches=10,
         limit_val_batches=10,
-        accelerator="gpu",
-        devices=[0, 1],
+        gpus=[0, 1],
         strategy="dp",
     )
 
@@ -89,8 +88,7 @@ def test_multi_gpu_model_dp(tmpdir):
         max_epochs=1,
         limit_train_batches=10,
         limit_val_batches=10,
-        accelerator="gpu",
-        devices=[0, 1],
+        gpus=[0, 1],
         strategy="dp",
         enable_progress_bar=False,
     )
@@ -162,15 +160,13 @@ class ReductionTestModel(BoringModel):
 @mock.patch("torch.cuda.is_available", return_value=True)
 def test_dp_raise_exception_with_batch_transfer_hooks(mock_is_available, mock_device_count, tmpdir):
     """Test that an exception is raised when overriding batch_transfer_hooks in DP model."""
-    monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
-    monkeypatch.setattr("torch.cuda.is_available", lambda: True)
 
     class CustomModel(BoringModel):
         def transfer_batch_to_device(self, batch, device, dataloader_idx):
             batch = batch.to(device)
             return batch
 
-    trainer_options = dict(default_root_dir=tmpdir, max_steps=7, accelerator="gpu", devices=[0, 1], strategy="dp")
+    trainer_options = dict(default_root_dir=tmpdir, max_steps=7, gpus=[0, 1], strategy="dp")
 
     trainer = Trainer(**trainer_options)
     model = CustomModel()
@@ -212,8 +208,7 @@ def test_dp_training_step_dict(tmpdir):
     trainer = pl.Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
-        accelerator="gpu",
-        devices=2,
+        gpus=2,
         strategy="dp",
     )
     trainer.fit(model)
