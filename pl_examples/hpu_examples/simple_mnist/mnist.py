@@ -20,7 +20,7 @@ from torch.nn import functional as F
 import pytorch_lightning as pl
 from pl_examples.basic_examples.mnist_datamodule import MNISTDataModule
 from pytorch_lightning.plugins import HPUPrecisionPlugin
-from pytorch_lightning.strategies.hpu import HPUStrategy
+from pytorch_lightning.strategies.hpu import SingleHPUStrategy
 from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
 
@@ -107,7 +107,7 @@ if __name__ == "__main__":
         hmp_params["fp32_ops"] = args.hmp_fp32  # "./pl_examples/hpu_examples/simple_mnist/ops_fp32_mnist.txt"
 
         parallel_devices = args.hpus
-        hpustrat_1 = HPUStrategy(
+        hpustrat_1 = SingleHPUStrategy(
             device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=hmp_params)
         )
         hpustrat_8 = HPUParallelStrategy(

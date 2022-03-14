@@ -23,7 +23,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _DEVICE
 
 
-class HPUStrategy(SingleDeviceStrategy):
+class SingleHPUStrategy(SingleDeviceStrategy):
     """Strategy for training on HPU devices."""
 
     strategy_name = "hpu_single"

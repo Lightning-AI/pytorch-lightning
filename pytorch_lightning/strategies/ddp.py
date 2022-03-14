@@ -279,7 +279,7 @@ class DDPStrategy(ParallelStrategy):
         self._register_ddp_hooks()
 
     def determine_ddp_device_ids(self):
-        if self.root_device.type == "cpu" or self.root_device.type == "hpu":
+        if self.root_device.type in ("cpu", "hpu"):
             return None
         return [self.root_device.index]
 

@@ -22,7 +22,7 @@ from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.accelerators import HPUAccelerator
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.plugins import HPUPrecisionPlugin
-from pytorch_lightning.strategies.hpu import HPUStrategy
+from pytorch_lightning.strategies.hpu import SingleHPUStrategy
 from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
 from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -61,7 +61,7 @@ def test_accelerator_selected(tmpdir):
 @RunIf(hpu=True)
 def test_no_warning_plugin(tmpdir):
     with pytest.warns(None) as record:
-        Trainer(default_root_dir=tmpdir, max_epochs=1, strategy=HPUStrategy(device=torch.device("hpu")))
+        Trainer(default_root_dir=tmpdir, max_epochs=1, strategy=SingleHPUStrategy(device=torch.device("hpu")))
     assert len(record) == 0
 
 
@@ -69,7 +69,7 @@ def test_no_warning_plugin(tmpdir):
 def test_all_stages(tmpdir, hpus):
     model = BoringModel()
     parallel_devices = hpus
-    hpustrat_1 = HPUStrategy(
+    hpustrat_1 = SingleHPUStrategy(
         device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=None)
     )
     hpustrat_8 = HPUParallelStrategy(
@@ -136,7 +136,7 @@ def test_mixed_precision(tmpdir, hmp_params):
 
     model = BoringModel()
     trainer = Trainer(
-        strategy=HPUStrategy(
+        strategy=SingleHPUStrategy(
             device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision="bf16", hmp_params=hmp_params)
         ),
         default_root_dir=tmpdir,
@@ -145,7 +145,7 @@ def test_mixed_precision(tmpdir, hmp_params):
         devices=1,
         callbacks=TestCallback(),
     )
-    assert isinstance(trainer.strategy, HPUStrategy)
+    assert isinstance(trainer.strategy, SingleHPUStrategy)
     assert isinstance(trainer.strategy.precision_plugin, HPUPrecisionPlugin)
     assert trainer.strategy.precision_plugin.precision == "bf16"
     with pytest.raises(SystemExit):
@@ -164,7 +164,7 @@ def test_pure_half_precision(tmpdir, hmp_params):
     model = BoringModel()
     model = model.half()
     trainer = Trainer(
-        strategy=HPUStrategy(
+        strategy=SingleHPUStrategy(
             device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=hmp_params)
         ),
         default_root_dir=tmpdir,
@@ -174,7 +174,7 @@ def test_pure_half_precision(tmpdir, hmp_params):
         callbacks=TestCallback(),
     )
 
-    assert isinstance(trainer.strategy, HPUStrategy)
+    assert isinstance(trainer.strategy, SingleHPUStrategy)
     assert isinstance(trainer.strategy.precision_plugin, HPUPrecisionPlugin)
     assert trainer.strategy.precision_plugin.precision == 16
 
@@ -259,7 +259,7 @@ def test_accelerator_hpu_with_single_device():
 
     trainer = Trainer(accelerator="hpu", devices=1)
 
-    assert isinstance(trainer.strategy, HPUStrategy)
+    assert isinstance(trainer.strategy, SingleHPUStrategy)
     assert isinstance(trainer.accelerator, HPUAccelerator)
 
 
@@ -289,8 +289,8 @@ def test_set_devices_if_none_hpu():
 
 @RunIf(hpu=True)
 def test_strategy_choice_hpu_plugin(tmpdir):
-    trainer = Trainer(strategy=HPUStrategy(device=torch.device("hpu")), accelerator="hpu", devices=1)
-    assert isinstance(trainer.strategy, HPUStrategy)
+    trainer = Trainer(strategy=SingleHPUStrategy(device=torch.device("hpu")), accelerator="hpu", devices=1)
+    assert isinstance(trainer.strategy, SingleHPUStrategy)
 
 
 @RunIf(hpu=True)
@@ -304,8 +304,8 @@ def test_strategy_choice_hpu_parallel_plugin(tmpdir):
 @RunIf(hpu=True)
 def test_device_type_when_training_plugin_hpu_passed(tmpdir):
 
-    trainer = Trainer(strategy=HPUStrategy(device=torch.device("hpu")), accelerator="hpu", devices=1)
-    assert isinstance(trainer.strategy, HPUStrategy)
+    trainer = Trainer(strategy=SingleHPUStrategy(device=torch.device("hpu")), accelerator="hpu", devices=1)
+    assert isinstance(trainer.strategy, SingleHPUStrategy)
     assert isinstance(trainer.accelerator, HPUAccelerator)
 
 

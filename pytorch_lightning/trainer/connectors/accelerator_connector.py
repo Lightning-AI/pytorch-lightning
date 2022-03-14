@@ -59,7 +59,7 @@ from pytorch_lightning.strategies import (
     DeepSpeedStrategy,
     HorovodStrategy,
     HPUParallelStrategy,
-    HPUStrategy,
+    SingleHPUStrategy,
     IPUStrategy,
     ParallelStrategy,
     SingleDeviceStrategy,
@@ -467,7 +467,7 @@ class AcceleratorConnector:
             self._accelerator_flag = "ipu"
 
     def _set_accelerator_if_hpu_strategy_is_passed(self) -> None:
-        if isinstance(self._strategy_flag, HPUStrategy):
+        if isinstance(self._strategy_flag, SingleHPUStrategy):
             self._accelerator_flag = "hpu"
 
     def _choose_accelerator(self) -> str:
@@ -556,7 +556,7 @@ class AcceleratorConnector:
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return HPUParallelStrategy(parallel_devices=self.parallel_devices)  # type: ignore
             else:
-                return HPUStrategy(device=torch.device("hpu"))
+                return SingleHPUStrategy(device=torch.device("hpu"))
         if self._accelerator_flag == "tpu":
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return TPUSpawnStrategy.strategy_name
@@ -791,10 +791,10 @@ class AcceleratorConnector:
             )
 
         if isinstance(self.accelerator, HPUAccelerator) and not isinstance(
-            self.strategy, (HPUStrategy, HPUParallelStrategy)
+            self.strategy, (SingleHPUStrategy, HPUParallelStrategy)
         ):
             raise ValueError(
-                "The `TPUAccelerator` can only be used with a `HPUStrategy` or `HPUParallelStrategy`,"
+                "The `HPUAccelerator` can only be used with a `SingleHPUStrategy` or `HPUParallelStrategy`,"
                 f" found {self.strategy}."
             )
 
