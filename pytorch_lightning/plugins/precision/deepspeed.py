@@ -18,7 +18,7 @@ from torch.nn import Module
 from torch.optim import LBFGS, Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
+from pytorch_lightning.plugins.precision.mixed import MixedPrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
@@ -31,7 +31,7 @@ if _DEEPSPEED_AVAILABLE:
 warning_cache = WarningCache()
 
 
-class DeepSpeedPrecisionPlugin(PrecisionPlugin):
+class DeepSpeedPrecisionPlugin(MixedPrecisionPlugin):
     """Precision plugin for DeepSpeed integration."""
 
     def __init__(self, precision: Union[str, int], amp_type: str, amp_level: Optional[str] = None) -> None:
