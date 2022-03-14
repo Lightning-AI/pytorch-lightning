@@ -38,6 +38,8 @@ if _IPU_AVAILABLE:
     import poptorch
 
 
+# TODO: Remove the warning filter. This is temporarily ignored because the warning seems always raised
+# when lr scheudlers used with IPUs.
 pytestmark = pytest.mark.filterwarnings(
     r"ignore:Detected call of `lr_scheduler.step\(\)` before `optimizer.step\(\)`:UserWarning"
 )
