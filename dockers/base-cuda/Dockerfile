@@ -90,14 +90,14 @@ RUN \
     rm assistant.py
 
 RUN \
-   apt-get purge -y cmake && \
-   wget -q https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2.tar.gz && \
-   tar -zxvf cmake-3.20.2.tar.gz && \
-   cd cmake-3.20.2 && \
-   ./bootstrap -- -DCMAKE_USE_OPENSSL=OFF && \
-   make && \
-   make install && \
-   cmake  --version
+    apt-get purge -y cmake && \
+    wget -q https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2.tar.gz && \
+    tar -zxvf cmake-3.20.2.tar.gz && \
+    cd cmake-3.20.2 && \
+    ./bootstrap -- -DCMAKE_USE_OPENSSL=OFF && \
+    make && \
+    make install && \
+    cmake  --version
 
 ENV \
     HOROVOD_CUDA_HOME=$CUDA_TOOLKIT_ROOT_DIR \
@@ -105,16 +105,16 @@ ENV \
     HOROVOD_WITH_PYTORCH=1 \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
     HOROVOD_WITHOUT_MXNET=1 \
-    HOROVOD_WITH_GLOO=1 \
-    HOROVOD_WITHOUT_MPI=1
+    HOROVOD_WITHOUT_GLOO=1 \
+    HOROVOD_WITH_MPI=1
 
 RUN \
-   HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
-   export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
-   cat ./requirements/horovod.txt && \
-   cmake --version && \
-   pip install --no-cache-dir -r ./requirements/horovod.txt && \
-   rm -rf requirements/
+    HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
+    export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
+    cat ./requirements/horovod.txt && \
+    cmake --version && \
+    pip install --no-cache-dir -r ./requirements/horovod.txt && \
+    rm -rf requirements/
 
 RUN \
     CUDA_VERSION_MAJOR=$(python -c "import torch; print(torch.version.cuda.split('.')[0])") && \
@@ -147,4 +147,5 @@ RUN \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
-    python -c "import horovod.torch"
+    python -c "import horovod.torch" && \
+    python -c "from horovod.torch.mpi_ops import nccl_built, ddl_built, ccl_built, cuda_built, rocm_built"
