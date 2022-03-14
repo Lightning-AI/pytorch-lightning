@@ -162,7 +162,7 @@ class EvaluationLoop(DataLoaderLoop):
             self._has_run = True
 
     def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
-        dataloader = self.dataloaders[self.current_dataloader_idx]
+        dataloader = self.current_dataloader
         if (
             dataloader is not None
             and getattr(dataloader, "sampler", None)
