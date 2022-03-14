@@ -100,7 +100,6 @@ def test_accelerator_choice_ddp_spawn(cuda_available_mock, device_count_mock):
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 @mock.patch("torch.cuda.is_available", return_value=True)
 def test_accelerator_choice_ddp_slurm(*_):
@@ -127,7 +126,6 @@ def test_accelerator_choice_ddp_slurm(*_):
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 @mock.patch("torch.cuda.is_available", return_value=True)
 def test_accelerator_choice_ddp2_slurm(*_):
@@ -478,7 +476,7 @@ def test_accelerator_choice_multi_node_gpu(
     mock_is_available, mock_device_count, tmpdir, accelerator: str, plugin: ParallelStrategy, devices: int
 ):
     with pytest.deprecated_call(match=r"accelerator=.*\)` has been deprecated"):
-        trainer = Trainer(default_root_dir=tmpdir, num_nodes=2, accelerator=accelerator, gpus=devices)
+        trainer = Trainer(default_root_dir=tmpdir, num_nodes=2, accelerator=accelerator, devices=devices)
     assert isinstance(trainer.strategy, plugin)
 
 
@@ -535,9 +533,8 @@ def test_accelerator_gpu_with_devices(devices, plugin):
 @RunIf(min_gpus=1)
 def test_accelerator_auto_with_devices_gpu():
     trainer = Trainer(accelerator="auto", devices=1)
-
-    assert trainer._device_type == "gpu"
-    assert trainer.devices == 1
+    assert isinstance(trainer.accelerator, GPUAccelerator)
+    assert trainer.gpus == 1
 
 
 def test_validate_accelerator_and_devices():
