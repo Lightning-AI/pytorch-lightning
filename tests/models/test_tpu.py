@@ -328,12 +328,12 @@ def test_tpu_choice(tmpdir, devices, expected_tpu_id, error_expected):
 
 @pytest.mark.parametrize(
     ["cli_args", "expected"],
-    [("--accelerator=gpu --devices=8", {"devices": 8}), ("--accelerator=gpu --devices=1,", {"devices": "1,"})],
+    [("--tpu_cores=8", {"tpu_cores": 8}), ("--tpu_cores=1,", {"tpu_cores": "1,"})],
 )
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_devices_with_argparse(cli_args, expected):
-    """Test passing devices in command line."""
+def test_tpu_cores_with_argparse(cli_args, expected):
+    """Test passing tpu_cores in command line."""
     cli_args = cli_args.split(" ") if cli_args else []
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
         parser = ArgumentParser(add_help=False)
