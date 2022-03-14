@@ -17,7 +17,6 @@ import torch
 
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
-from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _DEVICE
 
@@ -132,8 +131,8 @@ def parse_tpu_cores(tpu_cores: Optional[Union[int, str, List[int]]]) -> Optional
     if not _tpu_cores_valid(tpu_cores):
         raise MisconfigurationException("`tpu_cores` can only be 1, 8 or [<1-8>]")
 
-    if tpu_cores is not None and not _TPU_AVAILABLE:
-        raise MisconfigurationException("No TPU devices were found.")
+    if tpu_cores is not None:
+        raise MisconfigurationException(f"No TPU devices for {tpu_cores} were found.")
 
     return tpu_cores
 
