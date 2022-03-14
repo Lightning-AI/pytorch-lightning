@@ -300,15 +300,15 @@ def test_broadcast_on_tpu():
 
 
 @pytest.mark.parametrize(
-    ["devices", "expected_tpu_id", "error_expected"],
+    ["tpu_cores", "expected_tpu_id", "error_expected"],
     [
         (1, None, False),
         (8, None, False),
         ([1], 1, False),
         ([8], 8, False),
-        (1, 1, False),
-        (1, None, False),
-        (9, 9, True),
+        ("1,", 1, False),
+        ("1", None, False),
+        ("9, ", 9, True),
         ([9], 9, True),
         ([0], 0, True),
         (2, None, True),
@@ -317,18 +317,18 @@ def test_broadcast_on_tpu():
 )
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_tpu_choice(tmpdir, devices, expected_tpu_id, error_expected):
+def test_tpu_choice(tmpdir, tpu_cores, expected_tpu_id, error_expected):
     if error_expected:
         with pytest.raises(MisconfigurationException, match=r".*tpu_cores` can only be 1, 8 or [<1-8>]*"):
-            Trainer(default_root_dir=tmpdir, accelerator="tpu", devices=devices)
+            Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores)
     else:
-        trainer = Trainer(default_root_dir=tmpdir, accelerator="tpu", devices=devices)
+        trainer = Trainer(default_root_dir=tmpdir, tpu_cores=tpu_cores)
         assert trainer._accelerator_connector.tpu_id == expected_tpu_id
 
 
 @pytest.mark.parametrize(
     ["cli_args", "expected"],
-    [("--accelerator=tpu --devices=8", {"devices": 8}), ("--accelerator=tpu --devices=1,", {"devices": 1})],
+    [("--tpu_cores=8", {"tpu_cores": 8}), ("--tpu_cores=1,", {"tpu_cores": "1,"})],
 )
 @RunIf(tpu=True)
 @pl_multi_process_test
