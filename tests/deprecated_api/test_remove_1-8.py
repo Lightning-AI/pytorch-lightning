@@ -823,3 +823,4 @@ def test_v1_8_0_lightning_module_use_amp():
     model = BoringModel()
     with pytest.deprecated_call(match="`LightningModule.use_amp` was deprecated in v1.6"):
         _ = model.use_amp
+        model.use_amp = False

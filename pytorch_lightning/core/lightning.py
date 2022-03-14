@@ -81,6 +81,7 @@ class LightningModule(
             "model_size",
             "automatic_optimization",
             "truncated_bptt_steps",
+            "use_amp",
         ]
         + DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -1967,9 +1968,9 @@ class LightningModule(
 
     @property
     def use_amp(self) -> bool:
-        """Returns true if using AMP.
-
-        .. deprecated:: v1.6     This property was deprecated in v1.6 and will be removed in v1.8.
+        """
+        .. deprecated:: v1.6
+            This property was deprecated in v1.6 and will be removed in v1.8.
         """
         rank_zero_deprecation(
             "`LightningModule.use_amp` was deprecated in v1.6 and will be removed in v1.8."
@@ -1980,6 +1981,15 @@ class LightningModule(
 
     @use_amp.setter
     def use_amp(self, use_amp: bool) -> None:
+        """
+        .. deprecated:: v1.6
+            This property was deprecated in v1.6 and will be removed in v1.8.
+        """
+        rank_zero_deprecation(
+            "`LightningModule.use_amp` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.amp_backend`.",
+            stacklevel=5,
+        )
         self._use_amp = use_amp
 
     def add_to_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
