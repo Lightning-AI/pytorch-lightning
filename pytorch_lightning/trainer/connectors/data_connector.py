@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampl
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import IPUAccelerator
+from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSampler
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
@@ -209,10 +209,6 @@ class DataConnector:
 
         self.trainer.datamodule = datamodule
         datamodule.trainer = self.trainer
-
-        # experimental feature for Flash
-        if hasattr(datamodule, "data_pipeline"):
-            model.data_pipeline = datamodule.data_pipeline
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
         if not isinstance(dataloader, DataLoader):
@@ -599,8 +595,9 @@ class _DataHookSelector:
                 )
             return getattr(self.datamodule, hook_name)
 
-        warning_cache.warn(
-            f"You have overridden `{hook_name}` in `LightningModule` but have passed in a"
-            " `LightningDataModule`. It will use the implementation from `LightningModule` instance."
-        )
+        if is_overridden(hook_name, self.model):
+            warning_cache.warn(
+                f"You have overridden `{hook_name}` in `LightningModule` but have passed in a"
+                " `LightningDataModule`. It will use the implementation from `LightningModule` instance."
+            )
         return getattr(self.model, hook_name)

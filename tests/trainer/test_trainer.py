@@ -332,7 +332,8 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses, 1):
-        trainer.fit_loop.global_step = i
+        # sets `trainer.global_step`
+        trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = i
         trainer.callback_metrics.update({"checkpoint_on": torch.tensor(loss)})
         checkpoint_callback.on_validation_end(trainer, trainer.lightning_module)
         trainer.fit_loop.epoch_progress.current.completed = i  # sets `trainer.current_epoch`
@@ -1721,36 +1722,6 @@ def test_check_val_every_n_epoch_exception(tmpdir):
         Trainer(default_root_dir=tmpdir, max_epochs=1, check_val_every_n_epoch=1.2)
 
 
-def test_trainer_attach_data_pipeline_to_model(tmpdir):
-    class DataPipeline:
-
-        pass
-
-    class TestDataModule(LightningDataModule):
-
-        data_pipeline = DataPipeline()
-
-        def train_dataloader(self):
-            return DataLoader(RandomDataset(32, 64))
-
-        def val_dataloader(self):
-            return DataLoader(RandomDataset(32, 64))
-
-        def test_dataloader(self):
-            return DataLoader(RandomDataset(32, 64))
-
-    class TestCallback(Callback):
-        def on_fit_start(self, trainer, pl_module: LightningModule) -> None:
-            """Called when fit begins."""
-            assert isinstance(pl_module.data_pipeline, DataPipeline)
-
-    model = BoringModel()
-    dm = TestDataModule()
-
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=[TestCallback()])
-    trainer.fit(model, datamodule=dm)
-
-
 def test_exception_when_testing_or_validating_with_fast_dev_run():
     trainer = Trainer(fast_dev_run=True)
     trainer.state.fn = TrainerFn.TESTING
@@ -2059,7 +2030,6 @@ def test_detect_anomaly_nan(tmpdir):
         ({"strategy": None}, SingleDeviceStrategy, "single_device", CPUAccelerator, 0),
         ({"strategy": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 0),
         ({"strategy": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"strategy": "ddp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
         ({"strategy": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
         ({"strategy": "ddp2"}, DDPStrategy, "ddp", CPUAccelerator, 0),
         ({"strategy": None, "gpus": 1}, SingleDeviceStrategy, "single_device", GPUAccelerator, 1),
@@ -2097,6 +2067,23 @@ def test_detect_anomaly_nan(tmpdir):
             2,
         ),
         ({"strategy": DDPShardedStrategy(), "gpus": 2}, DDPShardedStrategy, "ddp_sharded", GPUAccelerator, 2),
+        ({"strategy": "ddp2", "gpus": 2, "num_nodes": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
+        ({"strategy": "ddp_spawn", "gpus": 2, "num_nodes": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
+        (
+            {"strategy": "ddp_fully_sharded", "gpus": 1, "num_nodes": 2},
+            DDPFullyShardedStrategy,
+            "ddp_fully_sharded",
+            GPUAccelerator,
+            1,
+        ),
+        ({"strategy": "ddp_sharded", "gpus": 2, "num_nodes": 2}, DDPShardedStrategy, "ddp_sharded", GPUAccelerator, 2),
+        (
+            {"strategy": "ddp_sharded_spawn", "gpus": 2, "num_nodes": 2},
+            DDPSpawnShardedStrategy,
+            "ddp_sharded_spawn",
+            GPUAccelerator,
+            2,
+        ),
     ],
 )
 def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, strategy_name, accelerator_cls, num_gpus):
@@ -2110,6 +2097,7 @@ def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, stra
     assert strategy_cls.strategy_name == strategy_name
     assert isinstance(trainer.accelerator, accelerator_cls)
     assert trainer.num_gpus == num_gpus
+    assert trainer.num_nodes == trainer_kwargs.get("num_nodes", 1)
 
 
 @pytest.mark.parametrize(

@@ -22,6 +22,7 @@ import logging
 import os
 import re
 import time
+import warnings
 from copy import deepcopy
 from datetime import timedelta
 from typing import Any, Dict, Optional
@@ -144,6 +145,9 @@ class ModelCheckpoint(Callback):
         If you want to checkpoint every N hours, every M train batches, and/or every K val epochs,
         then you should create multiple ``ModelCheckpoint`` callbacks.
 
+        If the checkpoint's ``dirpath`` changed from what it was before while resuming the training,
+        only ``last_model_path`` and ``best_model_path`` will be reloaded and a warning will be issued.
+
     Raises:
         MisconfigurationException:
             If ``save_top_k`` is smaller than ``-1``,
@@ -223,7 +227,7 @@ class ModelCheckpoint(Callback):
         self.save_weights_only = save_weights_only
         self.auto_insert_metric_name = auto_insert_metric_name
         self._save_on_train_epoch_end = save_on_train_epoch_end
-        self._last_global_step_saved = -1
+        self._last_global_step_saved = 0  # no need to save when no steps were taken
         self._last_time_checked: Optional[float] = None
         self.current_score = None
         self.best_k_models = {}
@@ -274,8 +278,7 @@ class ModelCheckpoint(Callback):
         """Save checkpoint on train batch end if we meet the criteria for `every_n_train_steps`"""
         if self._should_skip_saving_checkpoint(trainer):
             return
-        step = trainer.global_step
-        skip_batch = self._every_n_train_steps < 1 or ((step + 1) % self._every_n_train_steps != 0)
+        skip_batch = self._every_n_train_steps < 1 or (trainer.global_step % self._every_n_train_steps != 0)
 
         train_time_interval = self._train_time_interval
         skip_time = True
@@ -296,8 +299,6 @@ class ModelCheckpoint(Callback):
 
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the training epoch."""
-        # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
-        trainer.fit_loop.global_step -= 1
         if (
             not self._should_skip_saving_checkpoint(trainer)
             and self._save_on_train_epoch_end
@@ -305,7 +306,6 @@ class ModelCheckpoint(Callback):
             and (trainer.current_epoch + 1) % self._every_n_epochs == 0
         ):
             self.save_checkpoint(trainer)
-        trainer.fit_loop.global_step += 1
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the validation stage."""
@@ -317,22 +317,6 @@ class ModelCheckpoint(Callback):
         ):
             return
         self.save_checkpoint(trainer)
-
-    def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Save a checkpoint when training stops.
-
-        This will only save a checkpoint if `save_last` is also enabled as the monitor metrics logged during
-        training/validation steps or end of epochs are not guaranteed to be available at this stage.
-        """
-        if self._should_skip_saving_checkpoint(trainer) or not self.save_last:
-            return
-        if self.verbose:
-            rank_zero_info("Saving latest checkpoint...")
-        # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
-        monitor_candidates = self._monitor_candidates(trainer, trainer.current_epoch, trainer.global_step - 1)
-        trainer.fit_loop.global_step -= 1
-        self._save_last_checkpoint(trainer, monitor_candidates)
-        trainer.fit_loop.global_step += 1
 
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
@@ -352,12 +336,21 @@ class ModelCheckpoint(Callback):
     def on_load_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
     ) -> None:
-        self.best_model_score = callback_state["best_model_score"]
-        self.best_model_path = callback_state["best_model_path"]
-        self.best_k_models = callback_state.get("best_k_models", self.best_k_models)
-        self.kth_best_model_path = callback_state.get("kth_best_model_path", self.kth_best_model_path)
-        self.kth_value = callback_state.get("kth_value", self.kth_value)
+        dirpath_from_ckpt = callback_state.get("dirpath", self.dirpath)
+
+        if self.dirpath == dirpath_from_ckpt:
+            self.best_model_score = callback_state["best_model_score"]
+            self.kth_best_model_path = callback_state.get("kth_best_model_path", self.kth_best_model_path)
+            self.kth_value = callback_state.get("kth_value", self.kth_value)
+            self.best_k_models = callback_state.get("best_k_models", self.best_k_models)
+        else:
+            warnings.warn(
+                f"The dirpath has changed from {dirpath_from_ckpt!r} to {self.dirpath!r},"
+                " therefore `best_model_score`, `kth_best_model_path`, `kth_value` and `best_k_models`"
+                " won't be reloaded. Only `last_model_path` and `best_model_path` will be reloaded."
+            )
         self.last_model_path = callback_state.get("last_model_path", self.last_model_path)
+        self.best_model_path = callback_state["best_model_path"]
 
     def save_checkpoint(self, trainer: "pl.Trainer") -> None:
         """Performs the main logic around saving a checkpoint.
@@ -566,7 +559,7 @@ class ModelCheckpoint(Callback):
 
         1.  Checkpoint callback's path (if passed in)
         2.  The default_root_dir from trainer if trainer has no logger
-        3.  The weights_save_path from trainer, if user provides it
+        3.  The weights_save_path from trainer, if user provides it (deprecated)
         4.  User provided weights_saved_path
 
         The base path gets extended with logger name and version (if these are available)
@@ -574,10 +567,12 @@ class ModelCheckpoint(Callback):
         """
         if self.dirpath is not None:
             return  # short circuit
+
+        # TODO: Remove weights_save_path logic here in v1.8
         if trainer.loggers:
-            if trainer.weights_save_path != trainer.default_root_dir:
+            if trainer._weights_save_path_internal != trainer.default_root_dir:
                 # the user has changed weights_save_path, it overrides anything
-                save_dir = trainer.weights_save_path
+                save_dir = trainer._weights_save_path_internal
             elif len(trainer.loggers) == 1:
                 save_dir = trainer.logger.save_dir or trainer.default_root_dir
             else:
@@ -589,7 +584,7 @@ class ModelCheckpoint(Callback):
 
             ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
         else:
-            ckpt_path = os.path.join(trainer.weights_save_path, "checkpoints")
+            ckpt_path = os.path.join(trainer._weights_save_path_internal, "checkpoints")
 
         ckpt_path = trainer.strategy.broadcast(ckpt_path)
 

@@ -22,6 +22,7 @@ from pytorch_lightning.plugins.environments.cluster_environment import ClusterEn
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -139,8 +140,8 @@ class DDPFullyShardedStrategy(DDPStrategy):
         self.setup_precision_plugin()
         optimizers_to_device(self.optimizers, self.root_device)
 
-        if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
+        if trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
+            self.model = self._layer_sync.apply(self.model)
 
         self.configure_ddp()
         self.barrier()
