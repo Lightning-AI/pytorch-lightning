@@ -1675,7 +1675,7 @@ class Trainer(
         """Called when saving a model checkpoint, calls every callback's `on_save_checkpoint` hook.
 
         Will be removed in v1.8: If state is returned, we insert the callback state into
-        checkpoint["callbacks"][`Callback.state_key`]. It overrides `state_dict` if already present.
+        ``checkpoint["callbacks"][Callback.state_key]``. It overrides ``state_dict`` if already present.
         """
         for callback in self.callbacks:
             # TODO: Add profiling for on_save_checkpoint hook
