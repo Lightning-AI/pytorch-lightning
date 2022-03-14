@@ -1678,6 +1678,11 @@ class Trainer(
         Calls every callback's `on_save_checkpoint` hook. We have a dedicated function for this rather than using
         `_call_callback_hooks` because we have special logic for returning callback_states.
         """
+        pl_module = self.lightning_module
+        if pl_module:
+            prev_fx_name = pl_module._current_fx_name
+            pl_module._current_fx_name = "on_save_checkpoint"
+
         callback_states = {}
         for callback in self.callbacks:
             # TODO: Add profiling for on_save_checkpoint hook
@@ -1686,6 +1691,10 @@ class Trainer(
             state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
                 callback_states[callback.state_key] = state
+
+        if pl_module:
+            # restore current_fx when nested context
+            pl_module._current_fx_name = prev_fx_name
         return callback_states
 
     def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
@@ -1694,6 +1703,11 @@ class Trainer(
         Calls every callback's `on_load_checkpoint` hook. We have a dedicated function for this rather than using
         `_call_callback_hooks` because we have special logic for getting callback_states.
         """
+        pl_module = self.lightning_module
+        if pl_module:
+            prev_fx_name = pl_module._current_fx_name
+            pl_module._current_fx_name = "on_load_checkpoint"
+
         callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
 
         if callback_states is None:
@@ -1715,6 +1729,10 @@ class Trainer(
                 state = deepcopy(state)
                 # TODO: Add profiling for on_load_checkpoint hook
                 callback.on_load_checkpoint(self, self.lightning_module, state)
+
+        if pl_module:
+            # restore current_fx when nested context
+            pl_module._current_fx_name = prev_fx_name
 
     def _call_strategy_hook(
         self,
