@@ -1,5 +1,6 @@
 from typing import Any, List, Optional, Sequence
 
+from deprecate.utils import void
 from torch.utils.data import DataLoader
 
 from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
@@ -84,18 +85,7 @@ class PredictionLoop(DataLoaderLoop):
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Predicts one entire dataloader."""
-        self.on_advance_start(*args, **kwargs)
-        dataloader = self.trainer.strategy.process_dataloader(self.current_dataloader)
-        dataloader_iter = enumerate(dataloader)
-        dl_max_batches = self.max_batches[self.current_dataloader_idx]
-
-        dl_predictions, dl_batch_indices = self.epoch_loop.run(
-            dataloader_iter, self.current_dataloader_idx, dl_max_batches, self.num_dataloaders, self.return_predictions
-        )
-        self.predictions.append(dl_predictions)
-        self.epoch_batch_indices.append(dl_batch_indices)
-
-    def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
+        void(*args, **kwargs)
         dataloader = self.current_dataloader
         if (
             dataloader is not None
@@ -104,6 +94,15 @@ class PredictionLoop(DataLoaderLoop):
         ):
             # set seed for distributed sampler (enables shuffling for each epoch)
             dataloader.sampler.set_epoch(self.trainer.fit_loop.epoch_progress.current.processed)
+        dataloader = self.trainer.strategy.process_dataloader(dataloader)
+        dataloader_iter = enumerate(dataloader)
+        dl_max_batches = self.max_batches[self.current_dataloader_idx]
+
+        dl_predictions, dl_batch_indices = self.epoch_loop.run(
+            dataloader_iter, self.current_dataloader_idx, dl_max_batches, self.num_dataloaders, self.return_predictions
+        )
+        self.predictions.append(dl_predictions)
+        self.epoch_batch_indices.append(dl_batch_indices)
 
     def on_run_end(self) -> Optional[_PREDICT_OUTPUT]:
         """Calls ``on_predict_epoch_end`` and ``on_predict_end`` hooks and returns results from all dataloaders."""
