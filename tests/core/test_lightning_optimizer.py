@@ -195,6 +195,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
     assert sgd_zero_grad.call_count == 10
 
 
+# Note: Ignore the lr scheduler warning because its optimizer's step is never been called since it's mocked.
 @pytest.mark.filterwarnings(r"ignore:Detected call of `lr_scheduler.step\(\)` before `optimizer.step\(\)`:UserWarning")
 def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
     """Test overriding step works in automatic_optimization."""
