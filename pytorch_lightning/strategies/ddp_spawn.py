@@ -115,13 +115,15 @@ class DDPSpawnStrategy(ParallelStrategy):
         # move the model to the correct device
         self.model_to_device()
 
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn != TrainerFn.FITTING:
+            return
+
         if self._layer_sync:
             self.model = self._layer_sync.apply(self.model)
 
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
-        trainer_fn = self.lightning_module.trainer.state.fn
-        if trainer_fn == TrainerFn.FITTING:
-            self.configure_ddp()
+        self.configure_ddp()
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
@@ -268,7 +270,11 @@ class DDPSpawnStrategy(ParallelStrategy):
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
 
-        if self._layer_sync:
+        if (
+            self.lightning_module.trainer is not None
+            and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+            and self._layer_sync
+        ):
             self.model = self._layer_sync.revert(self.model)
 
         if self.root_device.type == "cuda":
