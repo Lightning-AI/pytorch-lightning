@@ -247,6 +247,7 @@ def test_mlflow_logger_run_status_failed(client, mlflow):
         def training_step(self, batch, batch_idx):
             super().training_step(batch, batch_idx)
             raise BaseException
+
     model = CustomModel()
     logger = MLFlowLogger("test")
     run = MagicMock()
