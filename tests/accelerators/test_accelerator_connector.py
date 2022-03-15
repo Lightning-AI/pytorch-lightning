@@ -455,7 +455,7 @@ def test_plugin_accelerator_choice(accelerator: Optional[str], plugin: str):
     assert isinstance(trainer.strategy, DDPShardedStrategy)
 
     with pytest.deprecated_call(match="Passing .* `strategy` to the `plugins`"):
-        trainer = Trainer(plugins=plugin, accelerator="cpu", num_processes=2)
+        trainer = Trainer(plugins=plugin, accelerator="cpu", devices=2)
     assert isinstance(trainer.strategy, DDPShardedStrategy)
 
 
@@ -777,7 +777,6 @@ def test_strategy_choice_ddp_te(*_):
 )
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
 @mock.patch("torch.cuda.is_available", return_value=True)
