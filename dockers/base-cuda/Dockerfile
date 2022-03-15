@@ -42,6 +42,7 @@ RUN apt-get update -qq --fix-missing  && \
         unzip \
         ca-certificates \
         software-properties-common \
+        openmpi-bin \
         libopenmpi-dev \
     && \
 
