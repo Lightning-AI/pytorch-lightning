@@ -74,7 +74,8 @@ Enabling Lightning with Single Gaudi HPU
 
 The below snippet shows an example model using MNIST with single Habana Gaudi.
 
-.. testcode::
+.. code-block:: python
+
     import habana_frameworks.torch.core as htcore
 
 
@@ -99,7 +100,7 @@ The below snippet shows an example model using MNIST with single Habana Gaudi.
     hpustrat_1 = SingleHPUStrategy(device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16))
 
     # Initialize a trainer with 1 HPU accelerator
-    trainer = pl.Trainer(accelerator="hpu", devices=num_hpus, strategy=hpustrat_1, ...)
+    trainer = pl.Trainer(accelerator="hpu", devices=num_hpus, strategy=hpustrat_1)
 
     # Train the model ⚡
     trainer.fit(model, datamodule=dm)
@@ -110,7 +111,8 @@ Enabling Lightning with 8 Gaudi HPUs (distributed)
 
 The below snippet shows an example model using MNIST with 8 Habana Gaudis.
 
-.. testcode::
+.. code-block:: python
+
     import habana_frameworks.torch.core as htcore
 
 
@@ -138,7 +140,7 @@ The below snippet shows an example model using MNIST with 8 Habana Gaudis.
     )
 
     # Initialize a trainer with 1 HPU accelerator
-    trainer = pl.Trainer(accelerator="hpu", devices=num_hpus, strategy=hpustrat_8, ...)
+    trainer = pl.Trainer(accelerator="hpu", devices=num_hpus, strategy=hpustrat_8)
 
     # Train the model ⚡
     trainer.fit(model, datamodule=dm)
@@ -150,7 +152,8 @@ Enabling Mixed Precision Options
 The below snippet shows an example model using MNIST with single Habana Gaudi and making use of HMP by overriding the default parameters.
 This enables advanced users to provide their own bf16 and fp32 operator list instead of using the HMP defaults.
 
-.. testcode::
+.. code-block:: python
+
     import habana_frameworks.torch.core as htcore
 
 
@@ -185,7 +188,7 @@ This enables advanced users to provide their own bf16 and fp32 operator list ins
     )
 
     # Initialize a trainer with 1 HPU accelerator
-    trainer = pl.Trainer(accelerator="hpu", devices=num_hpus, strategy=hpustrat_1, ...)
+    trainer = pl.Trainer(accelerator="hpu", devices=num_hpus, strategy=hpustrat_1)
 
     # Train the model ⚡
     trainer.fit(model, datamodule=dm)
