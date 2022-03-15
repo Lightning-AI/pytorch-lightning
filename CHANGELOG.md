@@ -140,6 +140,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for pluggable Accelerators ([#12030](https://github.com/PyTorchLightning/pytorch-lightning/pull/12030))
 
 
+- Added profiling for `on_load_checkpoint`/`on_save_checkpoint` callback and LM hooks ([#12149](https://github.com/PyTorchLightning/pytorch-lightning/pull/12149))
+
 ### Changed
 
 - Make `benchmark` flag optional and set its value based on the deterministic flag ([#11944](https://github.com/PyTorchLightning/pytorch-lightning/pull/11944))
