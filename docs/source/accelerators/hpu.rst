@@ -194,7 +194,7 @@ This enables advanced users to provide their own bf16 and fp32 operator list ins
     trainer.fit(model, datamodule=dm)
 
 
-.. _known-limitations:
+.. _known-limitations_hpu:
 
 Known limitations
 -----------------
