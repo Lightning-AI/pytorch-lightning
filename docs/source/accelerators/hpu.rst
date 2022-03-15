@@ -77,12 +77,12 @@ The below snippet shows an example model using MNIST with single Habana Gaudi.
 .. testcode::
     import habana_frameworks.torch.core as htcore
 
+
     class LitClassifier(pl.LightningModule):
+        def __init__(self):
+            super(LitClassifier, self).__init__()
 
-            def __init__(self):
-                super(LitClassifier, self).__init__()
-
-            ...
+        ...
 
 
     # Init our model
@@ -96,17 +96,10 @@ The below snippet shows an example model using MNIST with single Habana Gaudi.
     num_hpus = 1
 
     # enable HPU strategy for single device, with mixed precision using default HMP settings
-    hpustrat_1 = SingleHPUStrategy(
-        device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16)
-    )
+    hpustrat_1 = SingleHPUStrategy(device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16))
 
     # Initialize a trainer with 1 HPU accelerator
-    trainer = pl.Trainer(
-        accelerator="hpu",
-        devices=num_hpus,
-        strategy=hpustrat_1,
-        ...
-    )
+    trainer = pl.Trainer(accelerator="hpu", devices=num_hpus, strategy=hpustrat_1, ...)
 
     # Train the model ⚡
     trainer.fit(model, datamodule=dm)
@@ -120,12 +113,12 @@ The below snippet shows an example model using MNIST with 8 Habana Gaudis.
 .. testcode::
     import habana_frameworks.torch.core as htcore
 
+
     class LitClassifier(pl.LightningModule):
+        def __init__(self):
+            super(LitClassifier, self).__init__()
 
-            def __init__(self):
-                super(LitClassifier, self).__init__()
-
-            ...
+        ...
 
 
     # Init our model
@@ -145,12 +138,7 @@ The below snippet shows an example model using MNIST with 8 Habana Gaudis.
     )
 
     # Initialize a trainer with 1 HPU accelerator
-    trainer = pl.Trainer(
-        accelerator="hpu",
-        devices=num_hpus,
-        strategy=hpustrat_8,
-        ...
-    )
+    trainer = pl.Trainer(accelerator="hpu", devices=num_hpus, strategy=hpustrat_8, ...)
 
     # Train the model ⚡
     trainer.fit(model, datamodule=dm)
@@ -165,12 +153,12 @@ This enables advanced users to provide their own bf16 and fp32 operator list ins
 .. testcode::
     import habana_frameworks.torch.core as htcore
 
+
     class LitClassifier(pl.LightningModule):
+        def __init__(self):
+            super(LitClassifier, self).__init__()
 
-            def __init__(self):
-                super(LitClassifier, self).__init__()
-
-            ...
+        ...
 
 
     # Init our model
@@ -197,12 +185,7 @@ This enables advanced users to provide their own bf16 and fp32 operator list ins
     )
 
     # Initialize a trainer with 1 HPU accelerator
-    trainer = pl.Trainer(
-        accelerator="hpu",
-        devices=num_hpus,
-        strategy=hpustrat_1,
-        ...
-    )
+    trainer = pl.Trainer(accelerator="hpu", devices=num_hpus, strategy=hpustrat_1, ...)
 
     # Train the model ⚡
     trainer.fit(model, datamodule=dm)
@@ -215,5 +198,3 @@ Known limitations
 
 * Habana dataloader is not supported
 * Device stats monitoring is not supported
-
-
