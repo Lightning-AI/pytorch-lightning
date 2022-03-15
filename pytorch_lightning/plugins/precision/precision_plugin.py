@@ -263,3 +263,15 @@ class PrecisionPlugin(CheckpointHooks):
             state_dict: the precision plugin state returned by ``state_dict``.
         """
         pass
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """``PrecisionPlugin.on_save_checkpoint`` was deprecated in v1.6 and will be removed in v1.8.
+
+        Use ``state_dict`` instead.
+        """
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """``PrecisionPlugin.on_load_checkpoint`` was deprecated in v1.6 and will be removed in v1.8.
+
+        Use ``load_state_dict`` instead.
+        """

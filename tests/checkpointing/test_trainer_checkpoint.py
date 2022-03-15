@@ -12,12 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+from unittest import mock
+from unittest.mock import ANY
 
+import pytest
 import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
+from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from tests.helpers import BoringModel
 
 
@@ -73,17 +78,45 @@ def test_finetuning_with_ckpt_path(tmpdir):
             assert f"epoch={idx + 1}" in best_model_path
 
 
-def test_accumulated_gradient_batches_with_ckpt_path(tmpdir):
-    """This test validates that accumulated gradient is properly recomputed and reset on the trainer."""
-
-    ckpt = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+def test_trainer_save_checkpoint_storage_options(tmpdir):
+    """This test validates that storage_options argument is properly passed to ``CheckpointIO``"""
     model = BoringModel()
-    trainer_kwargs = dict(
-        max_epochs=1, accumulate_grad_batches={0: 2}, callbacks=ckpt, limit_train_batches=1, limit_val_batches=0
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        enable_checkpointing=False,
     )
-    trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
+    instance_path = tmpdir + "/path.ckpt"
+    instance_storage_options = "my instance storage options"
 
-    trainer_kwargs["max_epochs"] = 2
-    trainer = Trainer(**trainer_kwargs)
-    trainer.fit(model, ckpt_path=ckpt.last_model_path)
+    with mock.patch("pytorch_lightning.plugins.io.torch_plugin.TorchCheckpointIO.save_checkpoint") as io_mock:
+        trainer.save_checkpoint(instance_path, storage_options=instance_storage_options)
+        io_mock.assert_called_with(ANY, instance_path, storage_options=instance_storage_options)
+        trainer.save_checkpoint(instance_path)
+        io_mock.assert_called_with(ANY, instance_path, storage_options=None)
+
+    with mock.patch(
+        "pytorch_lightning.trainer.connectors.checkpoint_connector.CheckpointConnector.save_checkpoint"
+    ) as cc_mock:
+        trainer.save_checkpoint(instance_path, True)
+        cc_mock.assert_called_with(instance_path, weights_only=True, storage_options=None)
+        trainer.save_checkpoint(instance_path, False, instance_storage_options)
+        cc_mock.assert_called_with(instance_path, weights_only=False, storage_options=instance_storage_options)
+
+    torch_checkpoint_io = TorchCheckpointIO()
+    with pytest.raises(
+        TypeError,
+        match=r"`Trainer.save_checkpoint\(..., storage_options=...\)` with `storage_options` arg"
+        f" is not supported for `{torch_checkpoint_io.__class__.__name__}`. Please implement your custom `CheckpointIO`"
+        " to define how you'd like to use `storage_options`.",
+    ):
+        torch_checkpoint_io.save_checkpoint({}, instance_path, storage_options=instance_storage_options)
+    xla_checkpoint_io = XLACheckpointIO()
+    with pytest.raises(
+        TypeError,
+        match=r"`Trainer.save_checkpoint\(..., storage_options=...\)` with `storage_options` arg"
+        f" is not supported for `{xla_checkpoint_io.__class__.__name__}`. Please implement your custom `CheckpointIO`"
+        " to define how you'd like to use `storage_options`.",
+    ):
+        xla_checkpoint_io.save_checkpoint({}, instance_path, storage_options=instance_storage_options)
