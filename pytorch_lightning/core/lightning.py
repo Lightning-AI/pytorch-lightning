@@ -38,6 +38,7 @@ from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, Hyperparameter
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
 from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
@@ -94,7 +95,7 @@ class LightningModule(
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
         # pointer to the trainer object
-        self.trainer = None
+        self.trainer: Optional[Trainer] = None
 
         # true if using amp
         self.use_amp: bool = False
