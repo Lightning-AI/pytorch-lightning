@@ -67,10 +67,10 @@ def test_model_devices_1(tmpdir):
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
 
-@pytest.mark.parametrize("tpu_core", [1, 5])
+@pytest.mark.parametrize("devices", [1, 5])
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_model_tpu_index(tmpdir, tpu_core):
+def test_model_tpu_index(tmpdir, devices):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
     trainer_options = dict(
@@ -78,7 +78,7 @@ def test_model_tpu_index(tmpdir, tpu_core):
         enable_progress_bar=False,
         max_epochs=2,
         accelerator="tpu",
-        devices=[tpu_core],
+        devices=[devices],
         limit_train_batches=4,
         limit_val_batches=4,
     )
@@ -128,10 +128,10 @@ def test_model_16bit_devices_1(tmpdir):
     tpipes.run_model_test(trainer_options, model, on_gpu=False)
 
 
-@pytest.mark.parametrize("tpu_core", [1, 5])
+@pytest.mark.parametrize("devices", [1, 5])
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_model_16bit_tpu_index(tmpdir, tpu_core):
+def test_model_16bit_tpu_index(tmpdir, devices):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
     trainer_options = dict(
@@ -140,7 +140,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
         enable_progress_bar=False,
         max_epochs=2,
         accelerator="tpu",
-        devices=[tpu_core],
+        devices=[devices],
         limit_train_batches=4,
         limit_val_batches=2,
     )
