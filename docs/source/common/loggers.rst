@@ -217,11 +217,29 @@ The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except
             # Option 2 for specifically logging images
             self.logger.log_image(key="generated_images", images=[some_img])
 
-To visualize using wandb in a jupyter notebook environment use the following magic line command
+To visualize using wandb in a jupyter notebook environment use the following magic line command:
 
 .. code-block:: shell
 
     %%wandb
+
+    # Your training loop here
+
+To display any existing dashboards, sweeps or reports directly in your notebook using the %wandb magic:
+
+.. code-block:: shell
+    # Display a project workspace
+    %wandb USERNAME/PROJECT
+    # Display a single run
+    %wandb USERNAME/PROJECT/runs/RUN_ID
+    # Display a sweep
+    %wandb USERNAME/PROJECT/sweeps/SWEEP_ID
+    # Display a report
+    %wandb USERNAME/PROJECT/reports/REPORT_ID
+    # Specify the height of embedded iframe
+    %wandb USERNAME/PROJECT -h 2048
+
+More information is available `here https://docs.wandb.ai/guides/track/jupyter` __.
 
 .. seealso::
     - :class:`~pytorch_lightning.loggers.WandbLogger` docs.
