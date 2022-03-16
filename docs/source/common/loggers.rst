@@ -240,7 +240,7 @@ To display any existing dashboards, sweeps or reports directly in your notebook 
     # Specify the height of embedded iframe
     %wandb USERNAME/PROJECT -h 2048
 
-More information is available `here https://docs.wandb.ai/guides/track/jupyter` __.
+More information is available `here https://docs.wandb.ai/guides/track/jupyter`__.
 
 .. seealso::
     - :class:`~pytorch_lightning.loggers.WandbLogger` docs.
