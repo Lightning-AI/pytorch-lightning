@@ -110,7 +110,7 @@ class LightningModule(
         self._param_requires_grad_state = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
-        # TODO: remove after the 1.6 release
+        # TODO: remove in 1.8
         self._running_torchscript = False
 
         self._register_sharded_tensor_state_dict_hooks_if_available()
@@ -1972,11 +1972,12 @@ class LightningModule(
         .. deprecated:: v1.6
             This property was deprecated in v1.6 and will be removed in v1.8.
         """
-        rank_zero_deprecation(
-            "`LightningModule.use_amp` was deprecated in v1.6 and will be removed in v1.8."
-            " Please use `Trainer.amp_backend`.",
-            stacklevel=5,
-        )
+        if not self._running_torchscript:  # remove with the deprecation removal
+            rank_zero_deprecation(
+                "`LightningModule.use_amp` was deprecated in v1.6 and will be removed in v1.8."
+                " Please use `Trainer.amp_backend`.",
+                stacklevel=5,
+            )
         return self._use_amp
 
     @use_amp.setter
@@ -1985,11 +1986,12 @@ class LightningModule(
         .. deprecated:: v1.6
             This property was deprecated in v1.6 and will be removed in v1.8.
         """
-        rank_zero_deprecation(
-            "`LightningModule.use_amp` was deprecated in v1.6 and will be removed in v1.8."
-            " Please use `Trainer.amp_backend`.",
-            stacklevel=5,
-        )
+        if not self._running_torchscript:  # remove with the deprecation removal
+            rank_zero_deprecation(
+                "`LightningModule.use_amp` was deprecated in v1.6 and will be removed in v1.8."
+                " Please use `Trainer.amp_backend`.",
+                stacklevel=5,
+            )
         self._use_amp = use_amp
 
     def add_to_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
