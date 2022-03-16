@@ -1968,9 +1968,10 @@ class LightningModule(
 
     @property
     def use_amp(self) -> bool:
-        """
-        .. deprecated:: v1.6
-          This property was deprecated in v1.6 and will be removed in v1.8.
+        r"""
+        .. deprecated:: v1.6.
+
+            This property was deprecated in v1.6 and will be removed in v1.8.
         """
         if not self._running_torchscript:  # remove with the deprecation removal
             rank_zero_deprecation(
@@ -1982,9 +1983,10 @@ class LightningModule(
 
     @use_amp.setter
     def use_amp(self, use_amp: bool) -> None:
-        """
-        .. deprecated:: v1.6
-          This property was deprecated in v1.6 and will be removed in v1.8.
+        r"""
+        .. deprecated:: v1.6.
+
+            This property was deprecated in v1.6 and will be removed in v1.8.
         """
         if not self._running_torchscript:  # remove with the deprecation removal
             rank_zero_deprecation(
