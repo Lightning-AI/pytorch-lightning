@@ -221,6 +221,7 @@ class CheckpointConnector:
         """Restores all callbacks from the pre-loaded checkpoint."""
         if not self._loaded_checkpoint:
             return
+
         self.trainer._call_callbacks_on_load_checkpoint(self._loaded_checkpoint)
         self.trainer._call_callbacks_load_state_dict(self._loaded_checkpoint)
 
@@ -319,8 +320,7 @@ class CheckpointConnector:
                 'epoch':                     training epoch
                 'global_step':               training global step
                 'pytorch-lightning_version': The version of PyTorch Lightning that produced this checkpoint
-                'callbacks':                                  # if not weights_only
-                    {callback.state_key: callback.on_save_checkpoint or callback.state_dict}
+                'callbacks':                 "callback specific state"[] # if not weights_only
                 'optimizer_states':          "PT optim's state_dict"[]   # if not weights_only
                 'lr_schedulers':             "PT sched's state_dict"[]   # if not weights_only
                 'state_dict':                Model's state_dict (e.g. network weights)
@@ -388,6 +388,10 @@ class CheckpointConnector:
 
         # on_save_checkpoint hooks
         if not weights_only:
+            # if state is returned from callback's on_save_checkpoint
+            # it overrides the returned state from callback's state_dict
+            # support for returning state in on_save_checkpoint
+            # will be removed in v1.8
             self.trainer._call_callbacks_on_save_checkpoint(checkpoint)
         model.on_save_checkpoint(checkpoint)
         if datamodule is not None:
