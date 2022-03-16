@@ -146,9 +146,7 @@ def _broadcast_object_list(object_list, src=0, group=None, device=None):
             dtype=torch.uint8,
         )
 
-    if is_nccl_backend:
-        object_tensor = object_tensor.to(current_device)
-    elif is_hpu_backend:
+    if is_nccl_backend or is_hpu_backend:
         object_tensor = object_tensor.to(current_device)
 
     broadcast(object_tensor, src=src, group=group)
