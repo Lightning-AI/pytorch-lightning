@@ -217,6 +217,12 @@ The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except
             # Option 2 for specifically logging images
             self.logger.log_image(key="generated_images", images=[some_img])
 
+To visualize using wandb in a jupyter notebook environment use the following magic line command
+
+.. code-block:: shell
+
+    %%wandb
+
 .. seealso::
     - :class:`~pytorch_lightning.loggers.WandbLogger` docs.
     - `W&B Documentation <https://docs.wandb.ai/integrations/lightning>`__
