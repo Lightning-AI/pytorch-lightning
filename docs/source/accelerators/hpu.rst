@@ -9,13 +9,14 @@ Gaudi offers substantial price/performance advantage -- so you get to do more de
 You can use either the Gaudi-based AWS EC2 DL1 instances `<https://aws.amazon.com/ec2/instance-types/dl1/>` or the Supermicro X12 Gaudi server `< https://www.supermicro.com/en/solutions/habana-gaudi>`
 
 Habana’s SynapseAI® software suite is optimized for building and training deep learning models using TensorFlow and PyTorch frameworks.  Gaudi is referred to as the Habana Processing Unit (HPU).
-With SynapseAI, we aim to make training workloads on Gaudi easy, whether you're developing from scratch or migrating existing workloads.  Lightning supports running on HPUs.
+With SynapseAI, we aim to make training workloads on Gaudi easy, whether you're developing from scratch or migrating existing workloads.
+
 For more information, check out `<https://developer.habana.ai>` and `<https://habana.ai/>`_.
 
 PyTorch Lightning With Gaudi HPU
 ================================
 
-Lightning supports training on a single HPU device or 8 HPU devices with the following plugins
+Lightning supports training on a single HPU device or 8 HPU devices with the plugins described in the following sections
 
 
 .. _hpu_accelerator:
@@ -55,9 +56,9 @@ The :code:`precision=16` and a :code:`hmp_params` parameter in the trainer class
 You can execute the ops in FP32 or BF16 precision. The HMP package modifies the python operators to add the appropriate cast operations for the arguments before execution.
 The default settings enable users to easily enable mixed precision training with minimal code.
 
-In addition to the default settings in HMP,  users also have the option of overriding these defaults and providing your own BF16 and FP32 operator lists
+In addition to the default settings in HMP,  users also have the option of overriding these defaults and providing their own BF16 and FP32 operator lists.
 
-For more details, please refer `<https://docs.habana.ai/en/master/PyTorch/PyTorch_User_Guide/PT_Mixed_Precision.html#pytorch-mixed-precision-training>`_.
+For more details, please refer `<https://docs.habana.ai/en/latest/PyTorch_User_Guide/PyTorch_User_Guide.html#pytorch-mixed-precision-training-on-gaudi>`_.
 
 
 .. _pytorch_lightning_examples:
@@ -65,14 +66,14 @@ For more details, please refer `<https://docs.habana.ai/en/master/PyTorch/PyTorc
 Getting Started with Lightning on Gaudi
 =======================================
 
-This section describes how to train models using Habana PyTorch with Gaudi.
+This section describes how to train models using PyTorch Lightning with Habana Gaudi.
 
 More Lightning HPU examples can be found in  pl_examples (`<https://github.com/PyTorchLightning/pytorch-lightning/pl_examples/hpu_examples/ >`)
 
 Enabling Lightning with Single Gaudi HPU
 ----------------------------------------
 
-The below snippet shows an example model using MNIST with single Habana Gaudi.
+The below snippet shows an example model using MNIST with single Habana Gaudi device:
 
 .. code-block:: python
 
@@ -109,7 +110,7 @@ The below snippet shows an example model using MNIST with single Habana Gaudi.
 Enabling Lightning with 8 Gaudi HPUs (distributed)
 --------------------------------------------------
 
-The below snippet shows an example model using MNIST with 8 Habana Gaudis.
+The below snippet shows an example model using MNIST with 8 Habana Gaudi devices:
 
 .. code-block:: python
 
@@ -150,7 +151,7 @@ Enabling Mixed Precision Options
 --------------------------------
 
 The below snippet shows an example model using MNIST with single Habana Gaudi and making use of HMP by overriding the default parameters.
-This enables advanced users to provide their own bf16 and fp32 operator list instead of using the HMP defaults.
+This enables advanced users to provide their own BF16 and FP32 operator list instead of using the HMP defaults.
 
 .. code-block:: python
 
@@ -199,5 +200,5 @@ This enables advanced users to provide their own bf16 and fp32 operator list ins
 Known limitations
 -----------------
 
-* Habana dataloader is not supported
-* Device stats monitoring is not supported
+* Habana dataloader is not supported.
+* Device stats monitoring is not supported.

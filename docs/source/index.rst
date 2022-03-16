@@ -88,6 +88,7 @@ Welcome to PyTorch Lightning
    accelerators/gpu
    accelerators/tpu
    accelerators/ipu
+   accelerators/hpu
 
 .. toctree::
    :maxdepth: 1
