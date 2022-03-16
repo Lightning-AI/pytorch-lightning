@@ -228,6 +228,7 @@ To visualize using wandb in a jupyter notebook environment use the following mag
 To display any existing dashboards, sweeps or reports directly in your notebook using the %wandb magic:
 
 .. code-block:: shell
+
     # Display a project workspace
     %wandb USERNAME/PROJECT
     # Display a single run
