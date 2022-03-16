@@ -1969,6 +1969,7 @@ class LightningModule(
     @property
     def use_amp(self) -> bool:
         """
+
         .. deprecated:: v1.6
             This property was deprecated in v1.6 and will be removed in v1.8.
         """
@@ -1983,6 +1984,7 @@ class LightningModule(
     @use_amp.setter
     def use_amp(self, use_amp: bool) -> None:
         """
+
         .. deprecated:: v1.6
             This property was deprecated in v1.6 and will be removed in v1.8.
         """
