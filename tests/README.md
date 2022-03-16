@@ -35,13 +35,6 @@ make test
 
 Note: if your computer does not have multi-GPU nor TPU these tests are skipped.
 
-To test models that require GPU make sure to run the above command on a GPU machine.
-The GPU machine must have at least 2 GPUs to run distributed tests.
-
-Note that this setup will not run tests that require specific packages installed
-such as Horovod, FairScale, NVIDIA/apex, NVIDIA/DALI, etc.
-You can rely on our CI to make sure all these tests pass.
-
 **GitHub Actions:** For convenience, you can also use your own GHActions building which will be triggered with each commit.
 This is useful if you do not test against all required dependency versions.
 
@@ -55,6 +48,23 @@ You can also run a single test as follows:
 
 ```bash
 python -m pytest -v tests/trainer/test_trainer_cli.py::test_default_args
+```
+
+### Conditional Tests
+
+To test models that require GPU make sure to run the above command on a GPU machine.
+The GPU machine must have at least 2 GPUs to run distributed tests.
+
+Note that this setup will not run tests that require specific packages installed
+such as Horovod, FairScale, NVIDIA/apex, NVIDIA/DALI, etc.
+You can rely on our CI to make sure all these tests pass.
+
+### Standalone Tests
+
+There are certain standalone tests, which you can run using:
+
+```bash
+PL_RUN_STANDALONE_TESTS=1 python -m pytest -v tests/trainer/
 ```
 
 ## Running Coverage

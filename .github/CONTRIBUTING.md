@@ -130,11 +130,11 @@ In case you adding new dependencies, make sure that they are compatible with the
 
 ### Documentation
 
-To learn about development of docs, check out the docs [README.md](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/README.md)
+To learn about development of docs, check out the docs [README.md](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/README.md).
 
 ### Testing
 
-To learn about tests, check out the tests [README.md](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/tests/README.md)
+To learn about tests, check out the tests [README.md](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/tests/README.md).
 
 ### Pull Request
 
