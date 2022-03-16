@@ -61,7 +61,6 @@ class HPUParallelStrategy(DDPStrategy):
         from habana_frameworks.torch.utils.library_loader import load_habana_module
 
         load_habana_module()
-        import habana_frameworks.torch.core
         import habana_frameworks.torch.core.hccl  # noqa: F401
 
         os.environ["ID"] = str(self.local_rank)
@@ -73,11 +72,8 @@ class HPUParallelStrategy(DDPStrategy):
         obj = [obj]
         if self.global_rank != src:
             obj = [None]
-        if self.root_device.type == "hpu":
-            broadcast_object_list(obj, src, group=_group.WORLD)
-        else:
-            torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
-
+            
+        broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
     @classmethod
