@@ -628,7 +628,7 @@ def test_lr_scheduler_state_updated_before_saving(tmpdir, every_n_train_steps, e
         def on_save_checkpoint(self, checkpoint):
             lr_scheduler_config = checkpoint["lr_schedulers"][0]
             # 2 batches ran. since the lr_scheduler_config interval is `step`, the step count should be 2
-            assert self.trainer.global_step + 1 == batches  # the global step hasn't been increased yet
+            assert self.trainer.global_step == batches
             compare_to = max_epochs if epoch_interval else batches
             assert lr_scheduler_config["_step_count"] - 1 == compare_to  # step count starts at 1
             assert lr_scheduler_config["_last_lr"] == [lr * gamma ** compare_to]

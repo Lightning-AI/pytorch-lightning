@@ -26,13 +26,14 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
-from pytorch_lightning.plugins import LayerSync, NativeSyncBatchNorm, PrecisionPlugin
+from pytorch_lightning.plugins import DoublePrecisionPlugin, LayerSync, NativeSyncBatchNorm, PrecisionPlugin
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
+from pytorch_lightning.plugins.io import TorchCheckpointIO
 from pytorch_lightning.strategies import (
     DataParallelStrategy,
     DDP2Strategy,
@@ -929,9 +930,9 @@ def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
 
     monkeypatch.setattr(imports, "_IPU_AVAILABLE", True)
     monkeypatch.setattr(ipu, "_IPU_AVAILABLE", True)
-    with pytest.raises(MisconfigurationException, match=r"accelerator='ipu', precision='bf16'\)` is not supported"):
+    with pytest.raises(ValueError, match=r"accelerator='ipu', precision='bf16'\)` is not supported"):
         Trainer(accelerator="ipu", precision="bf16")
-    with pytest.raises(MisconfigurationException, match=r"accelerator='ipu', precision=64\)` is not supported"):
+    with pytest.raises(ValueError, match=r"accelerator='ipu', precision=64\)` is not supported"):
         Trainer(accelerator="ipu", precision=64)
 
 
@@ -950,6 +951,15 @@ def test_devices_auto_choice_gpu(is_gpu_available_mock, device_count_mock):
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.devices == 2
     assert trainer.gpus == 2
+
+
+@pytest.mark.parametrize(
+    ["parallel_devices", "accelerator"],
+    [([torch.device("cpu")], "gpu"), ([torch.device("cuda", i) for i in range(8)], ("tpu"))],
+)
+def test_parallel_devices_in_strategy_confilict_with_accelerator(parallel_devices, accelerator):
+    with pytest.raises(MisconfigurationException, match=r"parallel_devices set through"):
+        Trainer(strategy=DDPStrategy(parallel_devices=parallel_devices), accelerator=accelerator)
 
 
 def test_passing_zero_and_empty_list_to_devices_flag():
@@ -1010,3 +1020,19 @@ def test_sync_batchnorm_set_in_custom_strategy(tmpdir):
     assert strategy._layer_sync is None
     Trainer(strategy=strategy, sync_batchnorm=True)
     assert isinstance(strategy._layer_sync, NativeSyncBatchNorm)
+
+
+@pytest.mark.parametrize(
+    ["plugins", "expected"],
+    [
+        ([LightningEnvironment(), SLURMEnvironment()], "ClusterEnvironment"),
+        ([TorchCheckpointIO(), TorchCheckpointIO()], "CheckpointIO"),
+        (
+            [PrecisionPlugin(), DoublePrecisionPlugin(), LightningEnvironment(), SLURMEnvironment()],
+            "PrecisionPlugin, ClusterEnvironment",
+        ),
+    ],
+)
+def test_plugin_only_one_instance_for_one_type(plugins, expected):
+    with pytest.raises(MisconfigurationException, match=f"Received multiple values for {expected}"):
+        Trainer(plugins=plugins)

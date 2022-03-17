@@ -24,7 +24,7 @@ import torch
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, StochasticWeightAveraging
-from pytorch_lightning.loggers import CSVLogger, LoggerCollection, TensorBoardLogger
+from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction, warning_cache
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -450,9 +450,9 @@ def test_pytorch_profiler_nested(tmpdir):
     assert events_name == expected, (events_name, torch.__version__, platform.system())
 
 
-def test_pytorch_profiler_logger_collection(tmpdir):
-    """Tests whether the PyTorch profiler is able to write its trace locally when the Trainer's logger is an
-    instance of LoggerCollection.
+def test_pytorch_profiler_multiple_loggers(tmpdir):
+    """Tests whether the PyTorch profiler is able to write its trace locally when the Trainer is configured with
+    multiple loggers.
 
     See issue #8157.
     """
@@ -465,10 +465,9 @@ def test_pytorch_profiler_logger_collection(tmpdir):
     assert not look_for_trace(tmpdir)
 
     model = BoringModel()
-    # Wrap the logger in a list so it becomes a LoggerCollection
-    logger = [TensorBoardLogger(save_dir=tmpdir), CSVLogger(tmpdir)]
-    trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", logger=logger, limit_train_batches=5, max_epochs=1)
-    assert isinstance(trainer.logger, LoggerCollection)
+    loggers = [TensorBoardLogger(save_dir=tmpdir), CSVLogger(tmpdir)]
+    trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", logger=loggers, limit_train_batches=5, max_epochs=1)
+    assert len(trainer.loggers) == 2
     trainer.fit(model)
     assert look_for_trace(tmpdir)
 
