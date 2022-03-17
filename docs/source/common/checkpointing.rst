@@ -44,7 +44,7 @@ For details on implementing your own stateful callbacks and datamodules, referen
 Operating on Global Checkpoint Component States
 ===============================================
 
-If you need to operate on the global component state (i.e. the entire checkpoint dictionary), you can add/delete/modify custom states in your checkpoints before they are being saved or loaded.
+If you need to operate on the global component state (i.e. the entire checkpoint dictionary), you can read/add/delete/modify custom states in your checkpoints before they are being saved or loaded.
 For this you can override :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint` and :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint` in your ``LightningModule``
 or :meth:`~pytorch_lightning.callbacks.base.Callback.on_save_checkpoint` and :meth:`~pytorch_lightning.callbacks.base.Callback.on_load_checkpoint` methods in your ``Callback``.
 
