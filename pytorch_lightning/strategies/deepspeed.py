@@ -739,7 +739,7 @@ class DeepSpeedStrategy(DDPStrategy):
         # since deepspeed creates subfolders instead of checkpoint files at the filepath
         # it's better to remove the filepath completely before saving a new one to avoid
         # creating multiple sub-folders (more info: #11687)
-        self.remove_checkpoint(filepath)
+        # self.remove_checkpoint(filepath)
 
         if self.zero_stage_3 and self._multi_device and self.is_global_zero:
             warning_cache.warn(
@@ -753,7 +753,7 @@ class DeepSpeedStrategy(DDPStrategy):
         # dump states as a checkpoint dictionary object
         _exclude_keys = ["state_dict", "optimizer_states"]
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
-        self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint)
+        self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint, tag="checkpoint")
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         if self.load_full_weights and self.zero_stage_3:

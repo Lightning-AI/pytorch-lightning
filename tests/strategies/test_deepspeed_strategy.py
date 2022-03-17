@@ -1079,8 +1079,10 @@ def test_deepspeed_with_meta_device(tmpdir):
     assert model.layer.weight.device.type == "cpu"
 
 
-@RunIf(min_gpus=2, deepspeed=True, standalone=True)
+@RunIf(min_gpus=2, deepspeed=True)
 def test_deepspeed_multi_save_same_filepath(tmpdir):
+    """Test that verifies that deepspeed saves only latest checkpoint in the specified path and deletes the old
+    sharded checkpoints."""
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -1095,5 +1097,5 @@ def test_deepspeed_multi_save_same_filepath(tmpdir):
     )
     trainer.fit(model)
     ckpt_path = os.path.join(trainer.checkpoint_callback.dirpath, "last.ckpt")
-    expected = ["latest", "zero_to_fp32.py", "global_step2"]
+    expected = ["latest", "zero_to_fp32.py", "checkpoint"]
     assert set(expected) == set(os.listdir(ckpt_path))
