@@ -114,6 +114,7 @@ RUN \
    cat ./requirements/horovod.txt && \
    cmake --version && \
    pip install --no-cache-dir -r ./requirements/horovod.txt && \
+   horovodrun --check-build && \
    rm -rf requirements/
 
 RUN \
