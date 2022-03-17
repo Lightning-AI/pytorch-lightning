@@ -348,8 +348,8 @@ class Callback:
 
         .. deprecated:: v1.6
             This callback hook will change its signature and behavior in v1.8.
-            If you wish to load the state of the callback, use ``load_state_dict`` instead.
-            In v1.8 ``on_load_checkpoint(checkpoint)`` will receive the entire loaded
+            If you wish to load the state of the callback, use ``Callback.load_state_dict`` instead.
+            In v1.8 ``Callback.on_load_checkpoint(checkpoint)`` will receive the entire loaded
             checkpoint dictionary instead of only the callback state from the checkpoint.
         """
 
