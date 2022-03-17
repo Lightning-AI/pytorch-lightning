@@ -343,7 +343,7 @@ def test_autoreport(tmpdir):
     )
     trainer.fit(model)
     assert os.path.exists(autoreport_path)
-    assert os.path.isfile(autoreport_path + "profile.pop")
+    assert os.path.isfile(autoreport_path + "training/profile.pop")
 
 
 @RunIf(ipu=True)
