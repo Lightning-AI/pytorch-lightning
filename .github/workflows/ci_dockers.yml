@@ -44,7 +44,7 @@ jobs:
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/release/Dockerfile
           push: false
-        timeout-minutes: 50
+        timeout-minutes: 70  # FIXME
 
   build-XLA:
     runs-on: ubuntu-20.04
