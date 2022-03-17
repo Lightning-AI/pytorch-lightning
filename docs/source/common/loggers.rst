@@ -174,7 +174,7 @@ The :class:`~pytorch_lightning.loggers.TensorBoardLogger` is available anywhere 
         def any_lightning_module_function_or_hook(self):
             some_img = fake_image()
             self.logger.experiment.add_image("generated_images", some_img, 0)
-            
+
 To see your logs in terminal, run the following command:
 
 .. code-block:: bash
