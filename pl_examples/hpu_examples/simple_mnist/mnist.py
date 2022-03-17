@@ -20,8 +20,8 @@ from torch.nn import functional as F
 import pytorch_lightning as pl
 from pl_examples.basic_examples.mnist_datamodule import MNISTDataModule
 from pytorch_lightning.plugins import HPUPrecisionPlugin
-from pytorch_lightning.strategies.hpu import SingleHPUStrategy
 from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
+from pytorch_lightning.strategies.single_hpu import SingleHPUStrategy
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
 
 
