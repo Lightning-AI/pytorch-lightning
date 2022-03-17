@@ -155,10 +155,6 @@ class EarlyStopping(Callback):
         return self.mode_dict[self.mode]
 
     def state_dict(self) -> Dict[str, Any]:
-        """Note ``EarlyStopping.on_save_checkpoint`` is deprecated in v1.6.
-
-        Lightning will auto-save EarlyStopping state with ``EarlyStopping.state_dict`` instead
-        """
         return {
             "wait_count": self.wait_count,
             "stopped_epoch": self.stopped_epoch,
@@ -167,10 +163,6 @@ class EarlyStopping(Callback):
         }
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        """Note ``EarlyStopping.on_load_checkpoint`` is deprecated in v1.6.
-
-        Lightning will auto-restore EarlyStopping state with ``EarlyStopping.load_state_dict`` instead
-        """
         self.wait_count = state_dict["wait_count"]
         self.stopped_epoch = state_dict["stopped_epoch"]
         self.best_score = state_dict["best_score"]

@@ -319,10 +319,6 @@ class ModelCheckpoint(Callback):
         self.save_checkpoint(trainer)
 
     def state_dict(self) -> Dict[str, Any]:
-        """Note ``ModelCheckpoint.on_save_checkpoint`` is deprecated in v1.6.
-
-        Lightning will auto-save ModelCheckpoint state with ``ModelCheckpoint.state_dict`` instead
-        """
         return {
             "monitor": self.monitor,
             "best_model_score": self.best_model_score,
@@ -336,10 +332,6 @@ class ModelCheckpoint(Callback):
         }
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        """Note ``ModelCheckpoint.on_load_checkpoint`` is deprecated in v1.6.
-
-        Lightning will auto-restore ModelCheckpoint state with ``ModelCheckpoint.load_state_dict`` instead
-        """
         dirpath_from_ckpt = state_dict.get("dirpath", self.dirpath)
 
         if self.dirpath == dirpath_from_ckpt:

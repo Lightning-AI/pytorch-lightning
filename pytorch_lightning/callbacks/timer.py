@@ -160,17 +160,9 @@ class Timer(Callback):
         self._check_time_remaining(trainer)
 
     def state_dict(self) -> Dict[str, Any]:
-        """Note ``Timer.on_save_checkpoint`` is deprecated in v1.6.
-
-        Lightning will auto-save Timer state with ``Timer.state_dict`` instead
-        """
         return {"time_elapsed": {stage.value: self.time_elapsed(stage) for stage in list(RunningStage)}}
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        """Note ``Timer.on_load_checkpoint`` is deprecated in v1.6.
-
-        Lightning will auto-restore Timer state with ``Timer.load_state_dict`` instead
-        """
         time_elapsed = state_dict.get("time_elapsed", {})
         self._offset = time_elapsed.get(RunningStage.TRAINING.value, 0)
 

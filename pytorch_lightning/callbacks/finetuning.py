@@ -357,20 +357,12 @@ class BackboneFinetuning(BaseFinetuning):
         self.previous_backbone_lr: Optional[float] = None
 
     def state_dict(self) -> Dict[str, Any]:
-        """Note ``BackboneFinetuning.on_save_checkpoint`` is deprecated in v1.6.
-
-        Lightning will auto-save BackboneFinetuning state with ``BackboneFinetuning.state_dict`` instead
-        """
         return {
             "internal_optimizer_metadata": self._internal_optimizer_metadata,
             "previous_backbone_lr": self.previous_backbone_lr,
         }
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        """Note ``BackboneFinetuning.on_load_checkpoint`` is deprecated in v1.6.
-
-        Lightning will auto-restore BackboneFinetuning state with ``BackboneFinetuning.load_state_dict`` instead
-        """
         self.previous_backbone_lr = state_dict["previous_backbone_lr"]
         super().load_state_dict(state_dict)
 
