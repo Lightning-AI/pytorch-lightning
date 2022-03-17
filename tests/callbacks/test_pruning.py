@@ -174,6 +174,7 @@ def test_pruning_callback_ddp(tmpdir, parameters_to_prune, use_global_unstructur
     )
 
 
+@pytest.mark.skip(reason="TODO: Possible cause of segfaults in CI")
 @RunIf(min_gpus=2, skip_windows=True)
 def test_pruning_callback_ddp_spawn(tmpdir):
     train_with_pruning_callback(
