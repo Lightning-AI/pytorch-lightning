@@ -325,7 +325,7 @@ class Callback:
             None or the callback state. Support for returning callback state will be removed in v1.8.
 
         .. deprecated:: v1.6
-            Returning state in this callback hook was deprecated in v1.6 and will be removed in v1.8.
+            Returning a value from this method was deprecated in v1.6 and will be removed in v1.8.
             Use ``state_dict`` instead to return state. In v1.8 ``on_save_checkpoint`` can only return None.
         """
 
