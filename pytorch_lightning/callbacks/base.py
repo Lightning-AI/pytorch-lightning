@@ -349,7 +349,7 @@ class Callback:
             This callback hook will change its signature and behavior in v1.8.
             If you wish to load the state of the callback, use ``load_state_dict`` instead.
             In v1.8 ``on_load_checkpoint(checkpoint)`` will receive the entire loaded
-            checkpoint dictionary instead of callback state.
+            checkpoint dictionary instead of only the callback state from the checkpoint.
         """
 
     def on_before_backward(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", loss: torch.Tensor) -> None:
