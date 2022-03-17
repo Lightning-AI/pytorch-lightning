@@ -38,7 +38,7 @@ class SingleHPUStrategy(SingleDeviceStrategy):
     ):
 
         if not _HPU_AVAILABLE:
-            raise MisconfigurationException("HPU Accelerator requires HPU devices to run")
+            raise MisconfigurationException("`SingleHPUStrategy` requires HPU devices to run")
 
         from habana_frameworks.torch.utils.library_loader import load_habana_module
 

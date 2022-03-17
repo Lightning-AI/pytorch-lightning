@@ -274,12 +274,10 @@ class DDPStrategy(ParallelStrategy):
         log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
         self.pre_configure_ddp()
         self.model = self._setup_model(LightningDistributedModule(self.model))
-        if self.root_device.type == "hpu" and self._static_graph:
-            self._model._set_static_graph()
         self._register_ddp_hooks()
 
     def determine_ddp_device_ids(self):
-        if self.root_device.type in ("cpu", "hpu"):
+        if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]
 

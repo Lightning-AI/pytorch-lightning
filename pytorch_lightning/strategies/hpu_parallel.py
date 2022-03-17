@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 from typing import Dict, List, Optional
 
@@ -18,6 +19,7 @@ import torch
 import torch.distributed
 
 import pytorch_lightning as pl
+from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.hpu_io_plugin import HPUCheckpointIO
@@ -25,8 +27,9 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+
+log = logging.getLogger(__name__)
 
 
 class HPUParallelStrategy(DDPStrategy):
@@ -36,7 +39,6 @@ class HPUParallelStrategy(DDPStrategy):
     devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.launch` launches processes.
     """
 
-    distributed_backend = _StrategyType.HPU_PARALLEL
     strategy_name = "hpu_parallel"
 
     def __init__(
@@ -46,6 +48,10 @@ class HPUParallelStrategy(DDPStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
+
+        if not _HPU_AVAILABLE:
+            raise MisconfigurationException("`HPUParallelStrategy` requires HPU devices to run")
+
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
@@ -54,9 +60,6 @@ class HPUParallelStrategy(DDPStrategy):
         )
 
     def setup_environment(self) -> None:
-
-        if not _HPU_AVAILABLE:
-            raise MisconfigurationException("HPU Accelerator requires HPU devices to run")
 
         from habana_frameworks.torch.utils.library_loader import load_habana_module
 
@@ -67,6 +70,17 @@ class HPUParallelStrategy(DDPStrategy):
         os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "hccl"
 
         super().setup_environment()
+
+    def determine_ddp_device_ids(self) -> None:
+        return None
+
+    def configure_ddp(self) -> None:
+        log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
+        self.pre_configure_ddp()
+        self.model = self._setup_model(LightningDistributedModule(self.model))
+        if self.root_device.type == "hpu" and self._static_graph:
+            self._model._set_static_graph()
+        self._register_ddp_hooks()
 
     def broadcast(self, obj: object, src: int = 0) -> object:  # type: ignore
         obj = [obj]
