@@ -12,103 +12,58 @@
 
 .. _new_project:
 
-############
-Introduction
-############
 
-**************************
-What is PyTorch Lightning?
-**************************
+####################
+Lightning in 2 steps
+####################
 
-PyTorch Lightning provides you with the APIs required to build models, datasets, and so on. PyTorch has all you need to train your models; however, there’s much more to deep learning than attaching layers. When it comes to the actual training, there’s a lot of boilerplate code that you need to write, and if you need to scale your training/inferencing on multiple devices/machines, there’s another set of integrations you might need to do.
+**In this guide we'll show you how to organize your PyTorch code into Lightning in 2 steps.**
 
-PyTorch Lightning solves these for you. All you need is to restructure some of your existing code, set certain flags, and then you are done.
-Now you can train your models on different accelerators like GPU/TPU/IPU, to do distributed training across multiple machines/nodes without code changes using state-of-the-art distributed training mechanisms.
+Organizing your code with PyTorch Lightning makes your code:
 
-Code organization is the core of Lightning. It leaves the research logic to you and automates the rest.
-
-----------
-
-********************
-Lightning Philosophy
-********************
-
-Organizing your code with Lightning makes your code:
-
-* Flexible (this is all pure PyTorch), but removes a ton of boilerplate
+* Keep all the flexibility (this is all pure PyTorch), but removes a ton of boilerplate
 * More readable by decoupling the research code from the engineering
 * Easier to reproduce
 * Less error-prone by automating most of the training loop and tricky engineering
 * Scalable to any hardware without changing your model
 
-Lightning is built for:
-
-* Researchers who want to focus on research without worrying about the engineering aspects of it
-* ML Engineers who want to build reproducible pipelines
-* Data Scientists who want to try out different models for their tasks and build-in ML techniques
-* Educators who seek to study and teach Deep Learning with PyTorch
-
-The team makes sure that all the latest techniques are already integrated and well maintained.
-
 
 ----------
 
-
-*****************
-Starter Templates
-*****************
-
-Before installing anything, use the following templates to try it out live:
-
-.. list-table::
-   :widths: 18 15 25
-   :header-rows: 1
-
-   * - Use case
-     - Description
-     - link
-   * - Scratch model
-     - To prototype quickly / debug with random data
-     -
-        .. raw:: html
-
-            <div style='width:150px;height:auto'>
-                <a href="https://colab.research.google.com/drive/1rHBxrtopwtF8iLpmC_e7yl3TeDGrseJL?usp=sharing>">
-                    <img alt="open in colab" src="http://bit.ly/pl_colab">
-                </a>
-            </div>
-   * - Scratch model with manual optimization
-     - To prototype quickly / debug with random data
-     -
-        .. raw:: html
-
-            <div style='width:150px;height:auto'>
-                <a href="https://colab.research.google.com/drive/1nGtvBFirIvtNQdppe2xBes6aJnZMjvl8?usp=sharing">
-                    <img alt="open in colab" src="http://bit.ly/pl_colab">
-                </a>
-            </div>
-
-
-----------
-
-************
-Installation
-************
-
-Follow the :ref:`Installation Guide <installation>` to install PyTorch Lightning.
-
-----------
-
-********************
-Lightning Components
-********************
-
-Here's a 3-minute conversion guide for PyTorch projects:
+Here's a 3 minute conversion guide for PyTorch projects:
 
 .. raw:: html
 
     <video width="100%" max-width="800px" controls autoplay muted playsinline
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_docs_animation_final.m4v"></video>
+
+----------
+
+*********************************
+Step 0: Install PyTorch Lightning
+*********************************
+
+
+You can install using `pip <https://pypi.org/project/pytorch-lightning/>`_
+
+.. code-block:: bash
+
+    pip install pytorch-lightning
+
+Or with `conda <https://anaconda.org/conda-forge/pytorch-lightning>`_ (see how to install conda `here <https://docs.conda.io/projects/conda/en/latest/user-guide/install/>`_):
+
+.. code-block:: bash
+
+    conda install pytorch-lightning -c conda-forge
+
+You could also use conda environments
+
+.. code-block:: bash
+
+    conda activate my_env
+    pip install pytorch-lightning
+
+----------
 
 Import the following:
 
@@ -639,6 +594,44 @@ Read our :doc:`Guide <../starter/core_guide>` to learn more with a step-by-step 
 
 
 -------------
+
+
+*****************
+Starter Templates
+*****************
+
+Before installing anything, use the following templates to try it out live:
+
+.. list-table::
+   :widths: 18 15 25
+   :header-rows: 1
+
+   * - Use case
+     - Description
+     - link
+   * - Scratch model
+     - To prototype quickly / debug with random data
+     -
+        .. raw:: html
+
+            <div style='width:150px;height:auto'>
+                <a href="https://colab.research.google.com/drive/1rHBxrtopwtF8iLpmC_e7yl3TeDGrseJL?usp=sharing>">
+                    <img alt="open in colab" src="http://bit.ly/pl_colab">
+                </a>
+            </div>
+   * - Scratch model with manual optimization
+     - To prototype quickly / debug with random data
+     -
+        .. raw:: html
+
+            <div style='width:150px;height:auto'>
+                <a href="https://colab.research.google.com/drive/1nGtvBFirIvtNQdppe2xBes6aJnZMjvl8?usp=sharing">
+                    <img alt="open in colab" src="http://bit.ly/pl_colab">
+                </a>
+            </div>
+
+
+------------
 
 
 *******
