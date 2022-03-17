@@ -326,7 +326,8 @@ class Callback:
 
         .. deprecated:: v1.6
             Returning a value from this method was deprecated in v1.6 and will be removed in v1.8.
-            Implement ``Callback.state_dict`` instead to return state. In v1.8 ``on_save_checkpoint`` can only return None.
+            Implement ``Callback.state_dict`` instead to return state.
+            In v1.8 ``Callback.on_save_checkpoint`` can only return None.
         """
 
     def on_load_checkpoint(

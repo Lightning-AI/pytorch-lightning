@@ -84,19 +84,11 @@ class BaseFinetuning(Callback):
         self._restarting = False
 
     def state_dict(self) -> Dict[str, Any]:
-        """Note ``BaseFinetuning.on_save_checkpoint`` is deprecated in v1.6.
-
-        Lightning will auto-save BaseFinetuning state with ``BaseFinetuning.state_dict`` instead
-        """
         return {
             "internal_optimizer_metadata": self._internal_optimizer_metadata,
         }
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
-        """Note ``BaseFinetuning.on_load_checkpoint`` is deprecated in v1.6.
-
-        Lightning will auto-restore BaseFinetuning state with ``BaseFinetuning.load_state_dict`` instead
-        """
         self._restarting = True
         self._internal_optimizer_metadata = state_dict["internal_optimizer_metadata"]
 
