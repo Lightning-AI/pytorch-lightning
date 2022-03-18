@@ -122,31 +122,6 @@ RUN \
    rm -rf requirements/
 
 RUN \
-    CUDA_VERSION_MAJOR=$(python -c "import torch; print(torch.version.cuda.split('.')[0])") && \
-    py_ver=$(python -c "print(int('$PYTHON_VERSION'.split('.') >= '3.9'.split('.')))") && \
-    # install DALI, needed for examples
-    # todo: waiting for 1.4 - https://github.com/NVIDIA/DALI/issues/3144#issuecomment-877386691
-    if [ $py_ver -eq "0" ]; then \
-        pip install --extra-index-url https://developer.download.nvidia.com/compute/redist "nvidia-dali-cuda${CUDA_VERSION_MAJOR}0>1.0" ; \
-        python -c 'from nvidia.dali.pipeline import Pipeline' ; \
-    fi
-
-RUN \
-    # install NVIDIA apex
-    pip install -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip && \
-    python -c "from apex import amp"
-
-RUN \
-    # install FairScale
-    pip install fairscale==0.4.0 && \
-    python -c "import fairscale; print(fairscale.__version__)"
-
-RUN \
-    # install DeepSpeed
-    pip install deepspeed==0.5.7 && \
-    python -c "import deepspeed; print(deepspeed.__version__)"
-
-RUN \
     # Show what we have
     pip --version && \
     pip list && \
