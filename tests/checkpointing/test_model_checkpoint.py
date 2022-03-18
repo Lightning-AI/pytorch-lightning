@@ -34,7 +34,7 @@ import pytorch_lightning as pl
 import tests.helpers.utils as tutils
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import MLFlowLogger, TensorBoardLogger, WandbLogger
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
@@ -1286,7 +1286,11 @@ def test_last_global_step_saved():
 # TODO: remove test_dirpath_weights_save_path in v1.8
 @pytest.mark.parametrize(
     "logger_setting",
-    [False, WandbLogger(), [WandbLogger(), MLFlowLogger()]],
+    [
+        False,
+        TensorBoardLogger(save_dir="logger1"),
+        [TensorBoardLogger(save_dir="logger1"), TensorBoardLogger(save_dir="logger2")],
+    ],
 )
 def test_dirpath_weights_save_path(tmpdir, logger_setting):
     """Tests that the ModelCheckpoint.dirpath is set correctly when user specifies weights_save_path with no
