@@ -118,6 +118,7 @@ RUN \
    pip uninstall -y horovod && \
    pip install --no-cache-dir -r ./requirements/horovod.txt && \
    horovodrun --check-build && \
+   python -c "from horovod.torch import nccl_built; nccl_built()"
    rm -rf requirements/
 
 RUN \
@@ -151,4 +152,3 @@ RUN \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
-    python -c "import horovod.torch"
