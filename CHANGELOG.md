@@ -505,6 +505,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Deprecated `Trainer.use_amp` in favor of `Trainer.amp_backend` ([#12312](https://github.com/PyTorchLightning/pytorch-lightning/pull/12312))
 
+
+- Deprecated `LightingModule.use_amp` in favor of `Trainer.amp_backend` ([#12315](https://github.com/PyTorchLightning/pytorch-lightning/pull/12315))
+
 ### Removed
 
 - Removed deprecated parameter `method` in `pytorch_lightning.utilities.model_helpers.is_overridden` ([#10507](https://github.com/PyTorchLightning/pytorch-lightning/pull/10507))
@@ -776,6 +779,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed to avoid common hook warning if no hook is overridden ([#12131](https://github.com/PyTorchLightning/pytorch-lightning/pull/12131))
+
+
+- Fixed the case where logger=None is passed to the Trainer ([#12249](https://github.com/PyTorchLightning/pytorch-lightning/pull/12249))
 
 
 ## [1.5.10] - 2022-02-08
