@@ -35,12 +35,6 @@ def test_trainer_loggers_property():
     assert trainer.logger == logger1
     assert trainer.loggers == [logger1]
 
-    # trainer.loggers should be an empty list
-    trainer = Trainer(logger=False)
-
-    assert trainer.logger is None
-    assert trainer.loggers == []
-
     # trainer.loggers should be a list of size 1 holding the default logger
     trainer = Trainer(logger=True)
 
@@ -95,3 +89,23 @@ def test_trainer_loggers_setters():
     trainer.loggers = None
     assert trainer.loggers == []
     assert trainer.logger is None
+
+
+@pytest.mark.parametrize(
+    "logger_value",
+    [
+        None,
+        False,
+        [],
+    ],
+)
+def test_no_logger(tmpdir, logger_value):
+    """Test the cases where logger=None, logger=False, logger=[] are passed to Trainer."""
+    trainer = Trainer(
+        logger=logger_value,
+        default_root_dir=tmpdir,
+        max_steps=1,
+    )
+    assert trainer.logger is None
+    assert trainer.loggers == []
+    assert trainer.log_dir == tmpdir
