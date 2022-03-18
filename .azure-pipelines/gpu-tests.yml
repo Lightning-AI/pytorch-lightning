@@ -29,7 +29,8 @@ jobs:
     container:
       # base ML image: mcr.microsoft.com/azureml/openmpi3.1.2-cuda10.2-cudnn8-ubuntu18.04
       # run on torch 1.8 as it's the LTS version
-      image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8"
+      # TODO: Unpin sha256
+      image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8@sha256:b75de74d4c7c820f442f246be8500c93f8b5797b84aa8531847e5fb317ed3dda"
       # default shm size is 64m. Increase it to avoid:
       # 'Error while creating shared memory: unhandled system error, NCCL version 2.7.8'
       options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=512m"
@@ -59,8 +60,11 @@ jobs:
       displayName: 'Install dependencies'
 
     - bash: |
+        set -e
         python requirements/collect_env_details.py
         python -c "import torch ; mgpu = torch.cuda.device_count() ; assert mgpu >= 2, f'GPU: {mgpu}'"
+        python requirements/check-avail-strategies.py
+        python requirements/check-avail-extras.py
       displayName: 'Env details'
 
     - bash: |

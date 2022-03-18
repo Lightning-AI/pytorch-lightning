@@ -30,7 +30,11 @@ from pytorch_lightning.strategies.launchers.spawn import _SpawnLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8
-from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.distributed import (
+    _get_process_group_backend_from_env,
+    distributed_available,
+    get_default_process_group_backend_for_device,
+)
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
@@ -59,6 +63,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
+        process_group_backend: Optional[str] = None,
         **kwargs: Any,
     ):
         super().__init__(
@@ -74,6 +79,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._local_rank = 0
+        self._process_group_backend: Optional[str] = process_group_backend
 
     @property
     def num_nodes(self) -> int:
@@ -105,6 +111,10 @@ class DDPSpawnStrategy(ParallelStrategy):
     def _is_single_process_single_device(self):
         return True
 
+    @property
+    def process_group_backend(self) -> Optional[str]:
+        return self._process_group_backend
+
     def _configure_launcher(self):
         self._launcher = _SpawnLauncher(self)
 
@@ -115,13 +125,15 @@ class DDPSpawnStrategy(ParallelStrategy):
         # move the model to the correct device
         self.model_to_device()
 
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn != TrainerFn.FITTING:
+            return
+
         if self._layer_sync:
             self.model = self._layer_sync.apply(self.model)
 
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
-        trainer_fn = self.lightning_module.trainer.state.fn
-        if trainer_fn == TrainerFn.FITTING:
-            self.configure_ddp()
+        self.configure_ddp()
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
@@ -139,8 +151,14 @@ class DDPSpawnStrategy(ParallelStrategy):
         reset_seed()
         self.set_world_ranks(process_idx)
         rank_zero_only.rank = self.global_rank
-        init_dist_connection(
-            self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size
+        self._process_group_backend = self._get_process_group_backend()
+        init_dist_connection(self.cluster_environment, self._process_group_backend, self.global_rank, self.world_size)
+
+    def _get_process_group_backend(self) -> str:
+        return (
+            self._process_group_backend
+            or _get_process_group_backend_from_env()
+            or get_default_process_group_backend_for_device(self.root_device)
         )
 
     def pre_configure_ddp(self):
@@ -268,7 +286,11 @@ class DDPSpawnStrategy(ParallelStrategy):
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
 
-        if self._layer_sync:
+        if (
+            self.lightning_module.trainer is not None
+            and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+            and self._layer_sync
+        ):
             self.model = self._layer_sync.revert(self.model)
 
         if self.root_device.type == "cuda":

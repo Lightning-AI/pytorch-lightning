@@ -29,7 +29,8 @@ jobs:
 
       - name: Build packages
         run: |
-          python .github/prepare-nightly_version.py
+          pip install -q fire
+          python .actions/assistant.py prepare-nightly-version
           python setup.py sdist bdist_wheel
           ls -lh dist/
 
@@ -92,7 +93,7 @@ jobs:
           # the config used in '.azure-pipelines/gpu-tests.yml'
           - {python_version: "3.7", pytorch_version: "1.8"}
           # latest (not used)
-          - {python_version: "3.9", pytorch_version: "1.10"}
+          - {python_version: "3.9", pytorch_version: "1.11"}
 
     steps:
       - name: Checkout
