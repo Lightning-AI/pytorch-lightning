@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG CUDA_VERSION=10.2
+ARG CUDA_VERSION=11.1
 
-FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
 
 ARG PYTHON_VERSION=3.9
 ARG PYTORCH_VERSION=1.8
@@ -28,8 +28,8 @@ ENV \
     CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
     TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5;8.0" \
     MKL_THREADING_LAYER=GNU \
-    MAKEFLAGS="-j$(nproc)"
-    # MAKEFLAGS="-j1"
+    # MAKEFLAGS="-j$(nproc)"
+    MAKEFLAGS="-j2"
 
 RUN apt-get update -qq --fix-missing  && \
     apt-get install -y --no-install-recommends \
@@ -64,7 +64,7 @@ RUN apt-get update -qq --fix-missing  && \
 
 COPY ./requirements.txt requirements.txt
 COPY ./requirements/ ./requirements/
-COPY ./.github/prune-packages.py requirements/prune_packages.py
+COPY ./.actions/assistant.py assistant.py
 
 ENV PYTHONPATH=/usr/lib/python${PYTHON_VERSION}/site-packages
 
@@ -73,27 +73,21 @@ RUN \
     python${PYTHON_VERSION} get-pip.py && \
     rm get-pip.py && \
 
+    pip install -q fire && \
     # Disable cache \
-    export BAGUA_CUDA_VERSION=${CUDA_VERSION//"."/""} && \
+    CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
+    export BAGUA_CUDA_VERSION=$CUDA_VERSION_MM && \
     pip config set global.cache-dir false && \
     # set particular PyTorch version
     python ./requirements/adjust-versions.py requirements.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust-versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust-versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     python -c "print(' '.join([ln for ln in open('requirements/extra.txt').readlines() if 'horovod' in ln]))" > ./requirements/horovod.txt && \
-    python requirements/prune_packages.py requirements/extra.txt "horovod" && \
-    # Install all requirements
-    pip install -r requirements/devel.txt --no-cache-dir && \
-    rm -rf requirements.*
-
-ENV \
-    HOROVOD_CUDA_HOME=$CUDA_TOOLKIT_ROOT_DIR \
-    HOROVOD_GPU_OPERATIONS=NCCL \
-    HOROVOD_WITH_PYTORCH=1 \
-    HOROVOD_WITHOUT_TENSORFLOW=1 \
-    HOROVOD_WITHOUT_MXNET=1 \
-    HOROVOD_WITH_GLOO=1 \
-    HOROVOD_WITHOUT_MPI=1
+    python assistant.py requirements_prune_pkgs requirements/examples.txt "horovod" && \
+    # Install all requirements \
+    pip install -r requirements/devel.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
+    rm -rf requirements.* && \
+    rm assistant.py
 
 RUN \
    apt-get purge -y cmake && \
@@ -104,6 +98,15 @@ RUN \
    make && \
    make install && \
    cmake  --version
+
+ENV \
+    HOROVOD_CUDA_HOME=$CUDA_TOOLKIT_ROOT_DIR \
+    HOROVOD_GPU_OPERATIONS=NCCL \
+    HOROVOD_WITH_PYTORCH=1 \
+    HOROVOD_WITHOUT_TENSORFLOW=1 \
+    HOROVOD_WITHOUT_MXNET=1 \
+    HOROVOD_WITH_GLOO=1 \
+    HOROVOD_WITHOUT_MPI=1
 
 RUN \
    HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
