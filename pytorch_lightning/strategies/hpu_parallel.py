@@ -28,16 +28,19 @@ from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.imports import _TORCH_LESSER_EQUAL_1_10_2
 
 log = logging.getLogger(__name__)
 
 
 class HPUParallelStrategy(DDPStrategy):
-    """Plugin for multi-process single-device training on one or multiple nodes.
+    """ Strategy for distributed training on multiple HPU devices """
 
-    The main process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
-    devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.launch` launches processes.
-    """
+    # The main process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
+    # devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.launch` launches processes.
+
+    # Multi-device per process is not supported with habana
 
     strategy_name = "hpu_parallel"
 
@@ -74,13 +77,45 @@ class HPUParallelStrategy(DDPStrategy):
     def determine_ddp_device_ids(self) -> None:
         return None
 
+    def pre_configure_ddp(self): # type: ignore
+        # if unset, default `find_unused_parameters` `True`
+        # Many models require setting this parameter to True, as there are corner cases
+        # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
+        # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
+        self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
+        if not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get(
+            "find_unused_parameters", False
+        ):
+            # TODO: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
+            rank_zero_warn(
+                "From PyTorch 1.7.0, Lightning `manual_optimization` needs to set `find_unused_parameters=True` to"
+                " properly work with DDP. Using `find_unused_parameters=True`."
+            )
+            self._ddp_kwargs["find_unused_parameters"] = True
+
+        if self.root_device.type == "hpu":
+            self._static_graph = False
+            static_graph = self._ddp_kwargs.get("static_graph")
+            if static_graph:
+                # when _set_static_graph() is called find_unused_parameters does not have any significance.
+                # Resetting the value of find_unused_parameters to False which is the default value to DDP
+                self._ddp_kwargs["find_unused_parameters"] = False
+                self._static_graph = True
+            if static_graph is not None:
+                # DDP does not accept static_graph as a parameter, hence removing it from the list
+                del self._ddp_kwargs["static_graph"]
+
     def configure_ddp(self) -> None:
-        log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
-        self.pre_configure_ddp()
-        self.model = self._setup_model(LightningDistributedModule(self.model))
-        if self.root_device.type == "hpu" and self._static_graph:
-            self._model._set_static_graph()
-        self._register_ddp_hooks()
+        # DDP does not accept static graph as param with torch < 1.11
+        if _TORCH_LESSER_EQUAL_1_10_2:
+            log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
+            self.pre_configure_ddp()
+            self.model = self._setup_model(LightningDistributedModule(self.model)) # type: ignore
+            if self.root_device.type == "hpu" and self._static_graph:
+                self._model._set_static_graph() # type: ignore
+            self._register_ddp_hooks()
+        else:
+            self.configure_ddp()
 
     def broadcast(self, obj: object, src: int = 0) -> object:  # type: ignore
         obj = [obj]

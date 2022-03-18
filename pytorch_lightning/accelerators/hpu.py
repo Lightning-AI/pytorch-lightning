@@ -18,6 +18,7 @@ import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities import _HPU_AVAILABLE
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 
 
 class HPUAccelerator(Accelerator):
@@ -30,6 +31,7 @@ class HPUAccelerator(Accelerator):
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """HPU device stats aren't supported yet."""
+        rank_zero_debug("HPU device stats aren't supported yet.")
         return {}
 
     @staticmethod
