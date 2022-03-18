@@ -28,7 +28,6 @@ jobs:
     cancelTimeoutInMinutes: "2"
     pool: gridai-spot-pool
     container:
-      # TODO: Unpin sha256
       image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8"
       options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=32g"
     workspace:
