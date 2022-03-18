@@ -149,6 +149,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added optional `storage_options` argument to `Trainer.save_checkpoint()` to pass to custom `CheckpointIO` implementations ([#11891](https://github.com/PyTorchLightning/pytorch-lightning/pull/11891))
 
 
+- Added support to explicitly specify the process group backend for parallel strategies ([#11745](https://github.com/PyTorchLightning/pytorch-lightning/pull/11745))
+
+
 ### Changed
 
 - Drop PyTorch 1.7 support ([#12191](https://github.com/PyTorchLightning/pytorch-lightning/pull/12191))
@@ -507,6 +510,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Deprecated `LightingModule.use_amp` in favor of `Trainer.amp_backend` ([#12315](https://github.com/PyTorchLightning/pytorch-lightning/pull/12315))
+
+
+- Deprecated specifying the process group backend through the environment variable `PL_TORCH_DISTRIBUTED_BACKEND` ([#11745](https://github.com/PyTorchLightning/pytorch-lightning/pull/11745))
+
+
+- Deprecated `ParallelPlugin.torch_distributed_backend` in favor of `DDPStrategy.process_group_backend` property ([#11745](https://github.com/PyTorchLightning/pytorch-lightning/pull/11745))
+
 
 ### Removed
 
