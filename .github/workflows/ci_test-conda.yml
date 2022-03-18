@@ -11,6 +11,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
+defaults:
+  run:
+    shell: bash -l {0}
+
 jobs:
   conda:
     runs-on: ubuntu-20.04
@@ -19,23 +23,33 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.8"]  # previous to last Python version as that one is already used in test-full
-        pytorch-version: ["1.7", "1.8", "1.9", "1.10"]  # nightly: add when there's a release candidate
+        pytorch-version: ["1.8", "1.9", "1.10"]
+        # nightly: add when there's a release candidate
+        include:
+          - {python-version: "3.9", pytorch-version: "1.11"}
 
     timeout-minutes: 30
     steps:
     - uses: actions/checkout@v2
 
     - name: Update dependencies
+      env:
+        HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
+        HOROVOD_WITHOUT_MXNET: 1
+        HOROVOD_WITHOUT_TENSORFLOW: 1
       run: |
+        set -e
         conda info
         conda list
         # adjust versions according installed Torch version
-        python ./requirements/adjust_versions.py requirements/extra.txt
-        python ./requirements/adjust_versions.py requirements/examples.txt
-        pip install --requirement requirements/devel.txt --find-links https://download.pytorch.org/whl/nightly/torch_nightly.html
-        # set a per-test timeout of 2.5 minutes to fail sooner. this aids with hanging tests
+        python ./requirements/adjust-versions.py requirements/extra.txt
+        python ./requirements/adjust-versions.py requirements/examples.txt
+        pip install -r requirements/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+        # set a per-test timeout of 2.5 minutes to fail sooner; this aids with hanging tests
         pip install pytest-timeout
         pip list
+        # sanity check
+        python requirements/check-avail-extras.py
 
     - name: Pull checkpoints from S3
       working-directory: ./legacy
@@ -48,7 +62,6 @@ jobs:
     - name: Tests
       run: |
         coverage run --source pytorch_lightning -m pytest --timeout 150 pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
-      shell: bash -l {0}
 
     - name: Upload pytest results
       uses: actions/upload-artifact@v2
