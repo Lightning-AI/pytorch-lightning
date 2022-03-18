@@ -36,6 +36,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.logger import _name, _version
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import _METRIC, _PATH, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -554,33 +555,35 @@ class ModelCheckpoint(Callback):
 
     def __resolve_ckpt_dir(self, trainer: "pl.Trainer") -> None:
         """Determines model checkpoint save directory at runtime. References attributes from the trainer's logger
-        to determine where to save checkpoints. The base path for saving weights is set in this priority:
+        to determine where to save checkpoints. The path for saving weights is set in this priority:
 
-        1.  Checkpoint callback's path (if passed in)
-        2.  The default_root_dir from trainer if trainer has no logger
-        3.  The weights_save_path from trainer, if user provides it (deprecated)
-        4.  User provided weights_saved_path
+        1.  The ModelCheckpoint's dirpath if passed in
+        2.  The Trainer's weights_saved_path if passed in (deprecated)
+        3.  The Logger's log_dir if the trainer has loggers
+        4.  The Trainer's default_root_dir if the trainer has no loggers
 
-        The base path gets extended with logger name and version (if these are available)
-        and subfolder "checkpoints".
+        The path gets extended with subdirectory "checkpoints".
         """
         if self.dirpath is not None:
-            return  # short circuit
+            return  # short circuit if ModelCheckpoint's dirpath was passed in
 
         # TODO: Remove weights_save_path logic here in v1.8
         if trainer._weights_save_path_internal != trainer.default_root_dir:
             # the user has changed weights_save_path
             ckpt_path = os.path.join(trainer._weights_save_path_internal, "checkpoints")
-        elif len(trainer.loggers) == 1:
-            save_dir = trainer.logger.save_dir or trainer.default_root_dir
+        elif trainer.loggers:
+            if len(trainer.loggers) == 1:
+                save_dir = trainer.logger.save_dir or trainer.default_root_dir
+            else:
+                save_dir = trainer.default_root_dir
 
-            name = trainer.logger.name
-            version = trainer.logger.version
+            name = _name(trainer.loggers)
+            version = _version(trainer.loggers)
             version = version if isinstance(version, str) else f"version_{version}"
 
             ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
         else:
-            # no loggers or multiple loggers
+            # if no loggers use default_root_dir
             ckpt_path = os.path.join(trainer.default_root_dir, "checkpoints")
 
         ckpt_path = trainer.strategy.broadcast(ckpt_path)
