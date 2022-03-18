@@ -113,7 +113,7 @@ RUN \
    export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
    cat ./requirements/horovod.txt && \
    cmake --version && \
-   pip install --no-cache-dir "horovod==0.24.2" && \
+   pip install --no-cache-dir "horovod==0.24.1" && \
    PYTHONUNBUFFERED=1 horovodrun --check-build && \
    # pip uninstall -y horovod && \
    # pip install --no-cache-dir -r ./requirements/horovod.txt && \
