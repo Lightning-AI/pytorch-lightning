@@ -147,7 +147,7 @@ else:
 
 
 # https://stackoverflow.com/a/63851681/9201239
-def get_all_subclasses(cls: Type[nn.Module]) -> Set[nn.Module]:
+def get_all_subclasses(cls: Type) -> Set[Type]:
     subclass_list = []
 
     def recurse(cl):
