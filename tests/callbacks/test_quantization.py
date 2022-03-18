@@ -35,7 +35,6 @@ else:
     from torch.quantization import FakeQuantize as FakeQuantizeBase
 
 
-@pytest.mark.skip(reason="TODO: Possible cause of segfaults in CI")
 @pytest.mark.parametrize("observe", ["average", "histogram"])
 @pytest.mark.parametrize("fuse", [True, False])
 @pytest.mark.parametrize("convert", [True, False])
