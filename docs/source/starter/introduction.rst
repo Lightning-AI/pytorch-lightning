@@ -14,7 +14,7 @@
 
 
 ####################
-Lightning in 2 steps
+Lightning in 2 Steps
 ####################
 
 **In this guide we'll show you how to organize your PyTorch code into Lightning in 2 steps.**
