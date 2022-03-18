@@ -52,7 +52,6 @@ def test_mlflow_logger_exists(client, mlflow, tmpdir):
     client.return_value.get_experiment_by_name = MagicMock(return_value=None)
     client.return_value.create_experiment = MagicMock(return_value="exp-id-1")  # experiment_id
     client.return_value.create_run = MagicMock(return_value=run1)
-    # client.return_value.get_run = MagicMock(return_value=run1)
 
     logger = MLFlowLogger("test", save_dir=tmpdir)
     assert logger._experiment_id is None
