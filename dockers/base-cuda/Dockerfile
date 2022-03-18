@@ -83,7 +83,7 @@ RUN \
     python ./requirements/adjust-versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust-versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     python -c "print(' '.join([ln for ln in open('requirements/extra.txt').readlines() if 'horovod' in ln]))" > ./requirements/horovod.txt && \
-    python assistant.py requirements_prune_pkgs requirements/examples.txt "horovod" && \
+    python assistant.py requirements_prune_pkgs requirements/extra.txt "horovod" && \
     # Install all requirements \
     pip install -r requirements/devel.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
     rm -rf requirements.* && \
@@ -106,7 +106,7 @@ ENV \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
     HOROVOD_WITHOUT_MXNET=1 \
     HOROVOD_WITH_GLOO=1 \
-    HOROVOD_WITHout_MPI=1
+    HOROVOD_WITH_MPI=1
 
 RUN \
     HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \

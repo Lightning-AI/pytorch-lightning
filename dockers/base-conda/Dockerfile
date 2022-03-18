@@ -155,4 +155,4 @@ RUN \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
     python -c "import horovod.torch" && \
-    python -c "from horovod.torch.mpi_ops import *"
+    python -c "from horovod.torch import nccl_built; nccl_built()"
