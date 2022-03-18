@@ -565,7 +565,8 @@ class ModelCheckpoint(Callback):
         The path gets extended with subdirectory "checkpoints".
         """
         if self.dirpath is not None:
-            return  # short circuit if ModelCheckpoint's dirpath was passed in
+            # short circuit if dirpath was passed to ModelCheckpoint
+            return
 
         # TODO: Remove weights_save_path logic here in v1.8
         if trainer._weights_save_path_internal != trainer.default_root_dir:
@@ -583,7 +584,7 @@ class ModelCheckpoint(Callback):
 
             ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
         else:
-            # if no loggers use default_root_dir
+            # if no loggers, use default_root_dir
             ckpt_path = os.path.join(trainer.default_root_dir, "checkpoints")
 
         ckpt_path = trainer.strategy.broadcast(ckpt_path)

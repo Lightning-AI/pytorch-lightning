@@ -34,7 +34,7 @@ import pytorch_lightning as pl
 import tests.helpers.utils as tutils
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import MLFlowLogger, TensorBoardLogger, WandbLogger
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
@@ -1281,3 +1281,30 @@ def test_last_global_step_saved():
     trainer.callback_metrics = {"foo": 123}
     model_checkpoint.save_checkpoint(trainer)
     assert model_checkpoint._last_global_step_saved == 0
+
+
+# TODO: remove test_dirpath_weights_save_path in v1.8
+@pytest.mark.parametrize(
+    "logger_setting",
+    [False, WandbLogger(), [WandbLogger(), MLFlowLogger()]],
+)
+def test_dirpath_weights_save_path(tmpdir, logger_setting):
+    """Tests that the ModelCheckpoint.dirpath is set correctly when user specifies weights_save_path with no
+    loggers, one logger, and multiple loggers."""
+    model = BoringModel()
+    mc = ModelCheckpoint(monitor="epoch", save_top_k=-1)
+    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            weights_save_path=tmpdir / "weights_save_path",
+            limit_train_batches=1,
+            limit_val_batches=1,
+            num_sanity_val_steps=0,
+            max_epochs=5,
+            check_val_every_n_epoch=2,
+            callbacks=mc,
+            enable_model_summary=False,
+            logger=logger_setting,
+        )
+    trainer.fit(model)
+    assert mc.dirpath == tmpdir / "weights_save_path" / "checkpoints"
