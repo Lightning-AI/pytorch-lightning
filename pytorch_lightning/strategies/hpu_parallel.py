@@ -28,14 +28,14 @@ from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.imports import _TORCH_LESSER_EQUAL_1_10_2
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
 
 
 class HPUParallelStrategy(DDPStrategy):
-    """ Strategy for distributed training on multiple HPU devices """
+    """Strategy for distributed training on multiple HPU devices."""
 
     # The main process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
     # devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.launch` launches processes.
@@ -79,7 +79,7 @@ class HPUParallelStrategy(DDPStrategy):
     def determine_ddp_device_ids(self) -> None:
         return None
 
-    def pre_configure_ddp(self): # type: ignore
+    def pre_configure_ddp(self):  # type: ignore
         # if unset, default `find_unused_parameters` `True`
         # Many models require setting this parameter to True, as there are corner cases
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
@@ -112,9 +112,9 @@ class HPUParallelStrategy(DDPStrategy):
         if _TORCH_LESSER_EQUAL_1_10_2:
             log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
             self.pre_configure_ddp()
-            self.model = self._setup_model(LightningDistributedModule(self.model)) # type: ignore
+            self.model = self._setup_model(LightningDistributedModule(self.model))  # type: ignore
             if self.root_device.type == "hpu" and self._static_graph:
-                self._model._set_static_graph() # type: ignore
+                self._model._set_static_graph()  # type: ignore
             self._register_ddp_hooks()
         else:
             self.configure_ddp()

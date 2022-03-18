@@ -24,7 +24,7 @@ from pytorch_lightning.utilities.types import _DEVICE
 
 
 class SingleHPUStrategy(SingleDeviceStrategy):
-    """ Strategy for training on single HPU device """
+    """Strategy for training on single HPU device."""
 
     strategy_name = "hpu_single"
 
