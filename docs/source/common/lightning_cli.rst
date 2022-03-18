@@ -891,6 +891,7 @@ If you need to customize the learning rate scheduler configuration, you can do s
 .. testcode::
 
     class MyLightningCLI(LightningCLI):
+        @staticmethod
         def configure_optimizers(lightning_module, optimizer, lr_scheduler=None):
             return ...
 

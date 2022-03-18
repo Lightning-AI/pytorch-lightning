@@ -152,6 +152,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added optional `storage_options` argument to `Trainer.save_checkpoint()` to pass to custom `CheckpointIO` implementations ([#11891](https://github.com/PyTorchLightning/pytorch-lightning/pull/11891))
 
 
+- Added support to explicitly specify the process group backend for parallel strategies ([#11745](https://github.com/PyTorchLightning/pytorch-lightning/pull/11745))
+
+
 ### Changed
 
 - Drop PyTorch 1.7 support ([#12191](https://github.com/PyTorchLightning/pytorch-lightning/pull/12191))
@@ -506,6 +509,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `LightningDataModule.on_save/load_checkpoint` in favor of `state_dict/load_state_dict` ([#11893](https://github.com/PyTorchLightning/pytorch-lightning/pull/11893))
 
 
+- Deprecated `Trainer.use_amp` in favor of `Trainer.amp_backend` ([#12312](https://github.com/PyTorchLightning/pytorch-lightning/pull/12312))
+
+
+- Deprecated `LightingModule.use_amp` in favor of `Trainer.amp_backend` ([#12315](https://github.com/PyTorchLightning/pytorch-lightning/pull/12315))
+
+
+- Deprecated specifying the process group backend through the environment variable `PL_TORCH_DISTRIBUTED_BACKEND` ([#11745](https://github.com/PyTorchLightning/pytorch-lightning/pull/11745))
+
+
+- Deprecated `ParallelPlugin.torch_distributed_backend` in favor of `DDPStrategy.process_group_backend` property ([#11745](https://github.com/PyTorchLightning/pytorch-lightning/pull/11745))
+
+
 ### Removed
 
 - Removed deprecated parameter `method` in `pytorch_lightning.utilities.model_helpers.is_overridden` ([#10507](https://github.com/PyTorchLightning/pytorch-lightning/pull/10507))
@@ -777,6 +792,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed to avoid common hook warning if no hook is overridden ([#12131](https://github.com/PyTorchLightning/pytorch-lightning/pull/12131))
+
+
+- Fixed the case where logger=None is passed to the Trainer ([#12249](https://github.com/PyTorchLightning/pytorch-lightning/pull/12249))
 
 
 ## [1.5.10] - 2022-02-08
