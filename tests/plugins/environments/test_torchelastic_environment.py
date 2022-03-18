@@ -78,10 +78,7 @@ def test_detect():
     with mock.patch.dict(
         os.environ,
         {
-            "RANK": "",
-            "GROUP_RANK": "",
-            "LOCAL_RANK": "",
-            "LOCAL_WORLD_SIZE": "",
+            "TORCHELASTIC_RUN_ID": "",
         },
     ):
         assert TorchElasticEnvironment.detect()
