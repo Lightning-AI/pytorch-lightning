@@ -40,6 +40,7 @@ def test_mlflow_logger_exists(client, mlflow, tmpdir):
 
     run1 = MagicMock()
     run1.info.run_id = "run-id-1"
+    run1.info.experiment_id = "exp-id-1"
 
     run2 = MagicMock()
     run2.info.run_id = "run-id-2"
@@ -51,6 +52,7 @@ def test_mlflow_logger_exists(client, mlflow, tmpdir):
     client.return_value.get_experiment_by_name = MagicMock(return_value=None)
     client.return_value.create_experiment = MagicMock(return_value="exp-id-1")  # experiment_id
     client.return_value.create_run = MagicMock(return_value=run1)
+    #client.return_value.get_run = MagicMock(return_value=run1)
 
     logger = MLFlowLogger("test", save_dir=tmpdir)
     assert logger._experiment_id is None
@@ -123,35 +125,12 @@ def test_mlflow_run_id_setting(client, mlflow, tmpdir):
     run.info.experiment_id = "experiment-id"
 
     # simulate existing run
-    client.return_value.get_run = MagicMock(return_value=run.info.run_id)
+    client.return_value.get_run = MagicMock(return_value=run)
 
     # run_id exists uses the existing run
     logger = MLFlowLogger("test", run_id=run.info.run_id, save_dir=tmpdir)
     _ = logger.experiment
     client.return_value.get_run.assert_called_with(run.info.run_id)
-    assert logger.experiment_id == run.info.experiment_id
-    assert logger.run_id == run.info.run_id
-    client.reset_mock(return_value=True)
-
-    # simulate not existing run
-    client.return_value.create_experiment = MagicMock(return_value=run.info.experiment_id)
-    client.return_value.create_run = MagicMock(return_value=run)
-    client.return_value.get_run = MagicMock(side_effect=mlflow.exceptions.MlflowException)
-
-    # run_id doesn't exists create a new run
-    logger = MLFlowLogger("test", run_id="not-existing-run-id", save_dir=tmpdir)
-    _ = logger.experiment
-    assert logger.experiment_id == run.info.experiment_id
-    assert logger.run_id == run.info.run_id
-    client.reset_mock(return_value=True)
-
-    # simulate not run
-    client.return_value.create_experiment = MagicMock(return_value=run.info.experiment_id)
-    client.return_value.create_run = MagicMock(return_value=run)
-
-    # default run_id (= None) create a new run
-    logger = MLFlowLogger("test", save_dir=tmpdir)
-    _ = logger.experiment
     assert logger.experiment_id == run.info.experiment_id
     assert logger.run_id == run.info.run_id
     client.reset_mock(return_value=True)

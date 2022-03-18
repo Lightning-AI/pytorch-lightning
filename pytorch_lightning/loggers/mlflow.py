@@ -137,6 +137,8 @@ class MLFlowLogger(LightningLoggerBase):
         self._prefix = prefix
         self._artifact_location = artifact_location
 
+        self._initialized = False
+
         self._mlflow_client = MlflowClient(tracking_uri)
 
     @property
@@ -152,14 +154,14 @@ class MLFlowLogger(LightningLoggerBase):
 
         """
 
-        if self._run_id:
-            try:
-                run = self._mlflow_client.get_run(self._run_id)
-                self._experiment_id = run.info.experiment_id
-                return self._mlflow_client
-            except mlflow.exceptions.MlflowException:
-                log.warning(f"Run id with name {self._run_id} not found. Creating a new one.")
-                self._run_id = None
+        if self._initialized:
+            return self._mlflow_client
+
+        if self._run_id is not None:
+            run = self._mlflow_client.get_run(self._run_id)
+            self._experiment_id = run.info.experiment_id
+            self._initialized = True
+            return self._mlflow_client
 
         if self._experiment_id is None:
             expt = self._mlflow_client.get_experiment_by_name(self._experiment_name)
@@ -181,6 +183,7 @@ class MLFlowLogger(LightningLoggerBase):
                 self.tags[MLFLOW_RUN_NAME] = self._run_name
             run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=resolve_tags(self.tags))
             self._run_id = run.info.run_id
+        self._initialized = True
         return self._mlflow_client
 
     @property
