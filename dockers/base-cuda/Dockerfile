@@ -118,7 +118,7 @@ RUN \
    pip uninstall -y horovod && \
    pip install --no-cache-dir -r ./requirements/horovod.txt && \
    horovodrun --check-build && \
-   python -c "from horovod.torch import nccl_built; nccl_built()"
+   python -c "from horovod.torch import nccl_built; nccl_built()" && \
    rm -rf requirements/
 
 RUN \
