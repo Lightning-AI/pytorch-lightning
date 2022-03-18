@@ -878,3 +878,12 @@ def test_parallel_strategy_torch_distributed_backend():
         match="ParallelStrategy.torch_distributed_backend was deprecated" " in v1.6 and will be removed in v1.8."
     ):
         strategy.torch_distributed_backend
+
+
+def test_trainer_config_device_ids():
+    trainer = Trainer(devices=2)
+    with pytest.deprecated_call(
+        match="`Trainer.devices` was deprecated in v1.6 and will be removed in v1.8."
+        " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
+    ):
+        trainer.devices == 2
