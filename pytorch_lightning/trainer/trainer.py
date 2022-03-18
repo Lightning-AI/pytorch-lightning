@@ -2160,6 +2160,10 @@ class Trainer(
 
     @property
     def use_amp(self) -> bool:
+        rank_zero_deprecation(
+            "`Trainer.use_amp` is deprecated in v1.6.0 and will be removed in v1.8.0."
+            " Please use `Trainer.amp_backend` instead."
+        )
         return self.precision == 16
 
     @property

@@ -64,6 +64,8 @@ def restore_env_variables():
         "PL_GLOBAL_SEED",
         "PL_SEED_WORKERS",
         "WANDB_MODE",
+        "WANDB_REQUIRE_SERVICE",
+        "WANDB_SERVICE",
         "HOROVOD_FUSION_THRESHOLD",
         "RANK",  # set by DeepSpeed
         "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy

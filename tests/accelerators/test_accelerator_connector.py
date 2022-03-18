@@ -26,13 +26,14 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
-from pytorch_lightning.plugins import LayerSync, NativeSyncBatchNorm, PrecisionPlugin
+from pytorch_lightning.plugins import DoublePrecisionPlugin, LayerSync, NativeSyncBatchNorm, PrecisionPlugin
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
+from pytorch_lightning.plugins.io import TorchCheckpointIO
 from pytorch_lightning.strategies import (
     DataParallelStrategy,
     DDP2Strategy,
@@ -1038,3 +1039,19 @@ def test_sync_batchnorm_set_in_custom_strategy(tmpdir):
     assert strategy._layer_sync is None
     Trainer(strategy=strategy, sync_batchnorm=True)
     assert isinstance(strategy._layer_sync, NativeSyncBatchNorm)
+
+
+@pytest.mark.parametrize(
+    ["plugins", "expected"],
+    [
+        ([LightningEnvironment(), SLURMEnvironment()], "ClusterEnvironment"),
+        ([TorchCheckpointIO(), TorchCheckpointIO()], "CheckpointIO"),
+        (
+            [PrecisionPlugin(), DoublePrecisionPlugin(), LightningEnvironment(), SLURMEnvironment()],
+            "PrecisionPlugin, ClusterEnvironment",
+        ),
+    ],
+)
+def test_plugin_only_one_instance_for_one_type(plugins, expected):
+    with pytest.raises(MisconfigurationException, match=f"Received multiple values for {expected}"):
+        Trainer(plugins=plugins)

@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.8.0."""
+import os
 import time
+from unittest import mock
 from unittest.mock import Mock
 
 import numpy as np
@@ -36,6 +38,7 @@ from pytorch_lightning.plugins.training_type.single_device import SingleDevicePl
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.profiler import AbstractProfiler, AdvancedProfiler, SimpleProfiler
+from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.apply_func import move_data_to_device
@@ -817,3 +820,61 @@ def test_v1_8_0_datamodule_checkpointhooks():
         " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
     ):
         _check_datamodule_checkpoint_hooks(trainer)
+
+
+def test_v1_8_0_trainer_use_amp(tmpdir):
+    trainer = Trainer()
+
+    with pytest.deprecated_call(match="`Trainer.use_amp` is deprecated in v1.6.0"):
+        _ = trainer.use_amp
+
+
+def test_v1_8_0_lightning_module_use_amp():
+    model = BoringModel()
+    with pytest.deprecated_call(match="`LightningModule.use_amp` was deprecated in v1.6"):
+        _ = model.use_amp
+    with pytest.deprecated_call(match="`LightningModule.use_amp` was deprecated in v1.6"):
+        model.use_amp = False
+
+
+@mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": "foo"})
+def test_v1_8_0_torch_distributed_backend_env():
+    from pytorch_lightning.utilities.distributed import _get_process_group_backend_from_env
+
+    with pytest.deprecated_call(
+        match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"
+        " was deprecated in v1.6 and will be removed in v1.8."
+    ):
+        _get_process_group_backend_from_env()
+
+
+def test_parallel_strategy_torch_distributed_backend():
+    class CustomParallel(ParallelStrategy):
+        @property
+        def root_device(self) -> torch.device:
+            return torch.device("cpu")
+
+        def model_to_device(self):
+            pass
+
+        @property
+        def is_global_zero(self):
+            return True
+
+        def broadcast(self, obj):
+            return obj
+
+        def reduce(self, tensor):
+            return tensor
+
+        def barrier(self):
+            return
+
+        def all_gather(self, tensor):
+            return tensor
+
+    strategy = CustomParallel()
+    with pytest.deprecated_call(
+        match="ParallelStrategy.torch_distributed_backend was deprecated" " in v1.6 and will be removed in v1.8."
+    ):
+        strategy.torch_distributed_backend

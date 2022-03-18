@@ -50,6 +50,7 @@ class HPUParallelStrategy(DDPStrategy):
         parallel_devices: Optional[List[torch.device]] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
+        process_group_backend: Optional[str] = "hccl",
     ) -> None:
 
         if not _HPU_AVAILABLE:
@@ -60,6 +61,7 @@ class HPUParallelStrategy(DDPStrategy):
             parallel_devices=parallel_devices,
             checkpoint_io=checkpoint_io or HPUCheckpointIO(),
             precision_plugin=precision_plugin,
+            process_group_backend=process_group_backend,
         )
 
     def setup_environment(self) -> None:
