@@ -799,6 +799,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed the case where logger=None is passed to the Trainer ([#12249](https://github.com/PyTorchLightning/pytorch-lightning/pull/12249))
 
+- Fixed check for horovod module ([#12377](https://github.com/PyTorchLightning/pytorch-lightning/pull/12377))
 
 ## [1.5.10] - 2022-02-08
 

@@ -53,13 +53,9 @@ def _module_available(module_path: str) -> bool:
     if not _package_available(module_names[0]):
         return False
     try:
-        module = importlib.import_module(module_names[0])
-    except ImportError:
+        importlib.import_module(module_path)
+    except ModuleNotFoundError:
         return False
-    for name in module_names[1:]:
-        if not hasattr(module, name):
-            return False
-        module = getattr(module, name)
     return True
 
 
