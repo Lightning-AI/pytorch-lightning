@@ -232,6 +232,7 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
         "RANK": "3",
         "WORLD_SIZE": "4",
         "LOCAL_WORLD_SIZE": "2",
+        "TORCHELASTIC_RUN_ID": "1",
     },
 )
 @mock.patch("torch.cuda.device_count", return_value=1)
