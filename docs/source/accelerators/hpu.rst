@@ -1,7 +1,7 @@
 .. _hpu:
 
-Habana Gaudi AI Processor
-=========================
+Habana Gaudi AI Processor (HPU)
+===============================
 
 Habana® Gaudi® AI training processors have been architected from the ground up and optimized for deep learning training efficiency.
 Gaudi offers substantial price/performance advantage -- so you get to do more deep learning training while spending less.
@@ -14,7 +14,7 @@ With SynapseAI, we aim to make training workloads on Gaudi easy, whether you're 
 For more information, check out `<https://developer.habana.ai>` and `<https://habana.ai/>`_.
 
 PyTorch Lightning With Gaudi HPU
-================================
+--------------------------------
 
 Lightning supports training on a single HPU device or 8 HPU devices with the plugins described in the following sections
 
@@ -64,7 +64,7 @@ For more details, please refer `<https://docs.habana.ai/en/latest/PyTorch_User_G
 .. _pytorch_lightning_examples:
 
 Getting Started with Lightning on Gaudi
-=======================================
+---------------------------------------
 
 This section describes how to train models using PyTorch Lightning with Habana Gaudi.
 
