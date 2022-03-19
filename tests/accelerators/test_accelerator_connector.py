@@ -147,7 +147,7 @@ def test_accelerator_choice_ddp2_slurm(*_):
         "RANK": "1",
         "LOCAL_RANK": "1",
         "GROUP_RANK": "0",
-        "TORCHELASTIC_RUN_ID": "1",
+        "TORCHELASTIC_RUN_ID": "1",  # present for torch >= 1.9.1
     },
 )
 @mock.patch("torch.cuda.set_device")
