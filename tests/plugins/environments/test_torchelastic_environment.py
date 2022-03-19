@@ -71,9 +71,9 @@ def test_attributes_from_environment_variables(caplog):
     assert "setting world size is not allowed" in caplog.text
 
 
-@RunIf(max_torch="1.8.9")
-def test_detect_before_1_9():
-    """Test the detection of a torchelastic environment configuration before 1.9."""
+@RunIf(max_torch="1.9.0")
+def test_detect_before_1_9_1():
+    """Test the detection of a torchelastic environment configuration before 1.9.1."""
     with mock.patch.dict(os.environ, {}):
         assert not TorchElasticEnvironment.detect()
 
@@ -89,9 +89,9 @@ def test_detect_before_1_9():
         assert TorchElasticEnvironment.detect()
 
 
-@RunIf(min_torch="1.9.0")
-def test_detect_after_1_9():
-    """Test the detection of a torchelastic environment configuration after 1.9."""
+@RunIf(min_torch="1.9.1")
+def test_detect_after_1_9_1():
+    """Test the detection of a torchelastic environment configuration after 1.9.1."""
     with mock.patch.dict(os.environ, {}):
         assert not TorchElasticEnvironment.detect()
 
