@@ -301,6 +301,21 @@ def tpu_distributed() -> bool:
     return _TPU_AVAILABLE and xm.xrt_world_size() > 1
 
 
+def get_default_process_group_backend_for_device(device: torch.device) -> str:
+    return "nccl" if device.type == "cuda" else "gloo"
+
+
+def _get_process_group_backend_from_env() -> Optional[str]:
+    torch_backend = os.getenv("PL_TORCH_DISTRIBUTED_BACKEND")
+    if torch_backend is not None:
+        rank_zero_deprecation(
+            "Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"
+            " was deprecated in v1.6 and will be removed in v1.8."
+            " Specify `process_group_backend` directly on the strategy constructor."
+        )
+    return torch_backend
+
+
 def init_dist_connection(
     cluster_environment: "pl.plugins.environments.ClusterEnvironment",
     torch_distributed_backend: str,
