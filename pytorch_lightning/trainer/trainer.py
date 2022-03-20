@@ -1694,7 +1694,6 @@ class Trainer(
             # restore current_fx when nested context
             pl_module._current_fx_name = prev_fx_name
 
-
     def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint.
 
