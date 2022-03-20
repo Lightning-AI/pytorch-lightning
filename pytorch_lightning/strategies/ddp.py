@@ -282,7 +282,7 @@ class DDPStrategy(ParallelStrategy):
             model: reference to the model, optionally defining optimizer step related hooks
             **kwargs: Any extra arguments to ``optimizer.step``
         """
-        super().optimizer_step(optimizer, opt_idx, closure, model, kwargs)
+        super().optimizer_step(optimizer, opt_idx, closure, model, **kwargs)
 
         if _TORCH_GREATER_EQUAL_1_10 and self._model_averager is not None:
             for opt in self.optimizers():
