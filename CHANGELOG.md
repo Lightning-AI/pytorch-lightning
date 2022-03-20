@@ -525,7 +525,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Deprecated `LightningDataModule.on_save/load_checkpoint` in favor of `state_dict/load_state_dict` ([#11893](https://github.com/PyTorchLightning/pytorch-lightning/pull/11893))
 
-  
+
 - Deprecated `Trainer.use_amp` in favor of `Trainer.amp_backend` ([#12312](https://github.com/PyTorchLightning/pytorch-lightning/pull/12312))
 
 
@@ -543,7 +543,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Deprecated `Trainer.root_gpu` in favor of `Trainer.strategy.root_device.index` when GPU is used. ([#12262](https://github.com/PyTorchLightning/pytorch-lightning/pull/12262))
 
-  
+
 - Deprecated returning state from `Callback.on_save_checkpoint` in favor of returning state in `Callback.state_dict` for checkpointing ([#11887](https://github.com/PyTorchLightning/pytorch-lightning/pull/11887))
 
 
