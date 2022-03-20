@@ -42,9 +42,10 @@ from tests.helpers.utils import reset_seed, set_random_main_port  # noqa: E402
 parser = argparse.ArgumentParser()
 parser.add_argument("--trainer-options", required=True)
 parser.add_argument("--on-gpu", action="store_true", default=False)
+parser.add_argument("--check-size", action="store_true", default=False)
 
 
-def run_test_from_config(trainer_options, on_gpu, check_size=True):
+def run_test_from_config(trainer_options, on_gpu, check_size):
     """Trains the default model with the given config."""
     set_random_main_port()
     reset_seed()
@@ -107,4 +108,4 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    run_test_from_config(json.loads(args.trainer_options), args.on_gpu)
+    run_test_from_config(json.loads(args.trainer_options), args.on_gpu, args.check_size)
