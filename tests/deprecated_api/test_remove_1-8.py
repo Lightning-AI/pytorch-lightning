@@ -967,21 +967,21 @@ def test_trainer_num_gpu_0(monkeypatch, gpus, expected_num_gpus, strategy):
 @pytest.mark.parametrize(
     ["trainer_kwargs", "expected_data_parallel_device_ids"],
     [
-        ({}, []),
-        ({"devices": 1}, []),
-        ({"devices": "1"}, []),
+        ({}, None),
+        ({"devices": 1}, None),
+        ({"devices": "1"}, None),
         ({"accelerator": "gpu", "devices": 1}, [0]),
         ({"accelerator": "gpu", "devices": 2}, [0, 1]),
         ({"accelerator": "gpu", "devices": [1]}, [1]),
-        ({"accelerator": "gpu", "devices": "0"}, []),
+        ({"accelerator": "gpu", "devices": "0"}, None),
         ({"accelerator": "gpu", "devices": "0,"}, [0]),
     ],
 )
 def test_trainer_data_parallel_device_ids(monkeypatch, trainer_kwargs, expected_data_parallel_device_ids):
     """Test multi type argument with bool."""
-
-    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-    monkeypatch.setattr(torch.cuda, "device_count", lambda: 2)
+    if trainer_kwargs.get("accelerator") == "gpu":
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+        monkeypatch.setattr(torch.cuda, "device_count", lambda: 2)
 
     trainer = Trainer(**trainer_kwargs)
     with pytest.deprecated_call(
