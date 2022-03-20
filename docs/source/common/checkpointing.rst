@@ -38,7 +38,7 @@ Individual Component States
 ===========================
 
 Each component can save and load its state by implementing the PyTorch ``state_dict``, ``load_state_dict`` stateful protocol.
-For details on implementing your own stateful callbacks and datamodules, reference their docs pages at :doc:`callbacks <../extensions/callbacks>` and :doc:`datamodules <../extensions/datamodules>`.
+For details on implementing your own stateful callbacks and datamodules, refer to the individual docs pages at :doc:`callbacks <../extensions/callbacks>` and :doc:`datamodules <../extensions/datamodules>`.
 
 
 Operating on Global Checkpoint Component States
