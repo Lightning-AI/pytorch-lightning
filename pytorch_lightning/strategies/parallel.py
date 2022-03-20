@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from typing import Any, List, Optional
@@ -26,7 +25,13 @@ from pytorch_lightning.plugins.environments.cluster_environment import ClusterEn
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.strategy import Strategy
-from pytorch_lightning.utilities.distributed import all_gather_ddp_if_available, ReduceOp
+from pytorch_lightning.utilities.distributed import (
+    _get_process_group_backend_from_env,
+    all_gather_ddp_if_available,
+    get_default_process_group_backend_for_device,
+    ReduceOp,
+)
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
 class ParallelStrategy(Strategy, ABC):
@@ -87,6 +92,17 @@ class ParallelStrategy(Strategy, ABC):
         distributed_sampler_kwargs = dict(num_replicas=len(self.parallel_devices), rank=self.global_rank)
         return distributed_sampler_kwargs
 
+    @property
+    def torch_distributed_backend(self) -> str:
+        """Deprecated property."""
+        rank_zero_deprecation(
+            "ParallelStrategy.torch_distributed_backend was deprecated in v1.6 and will be removed in v1.8."
+        )
+        pg_backend = _get_process_group_backend_from_env()
+        if pg_backend:
+            return pg_backend
+        return get_default_process_group_backend_for_device(self.root_device)
+
     def reconciliate_processes(self, trace: str):
         """Function to re-conciliate processes on failure."""
 
@@ -99,13 +115,6 @@ class ParallelStrategy(Strategy, ABC):
         decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
         decision = bool(decision == self.world_size)
         return decision
-
-    @property
-    def torch_distributed_backend(self):
-        torch_backend = os.getenv("PL_TORCH_DISTRIBUTED_BACKEND")
-        if torch_backend is None:
-            torch_backend = "nccl" if self.root_device.type == "cuda" else "gloo"
-        return torch_backend
 
     @contextmanager
     def block_backward_sync(self):

@@ -400,7 +400,7 @@ def test_manual_poptorch_opts(tmpdir):
     dataloader = trainer.train_dataloader.loaders
     assert isinstance(dataloader, poptorch.DataLoader)
     assert dataloader.options == training_opts
-    assert trainer.devices > 1  # testing this only makes sense in a distributed setting
+    assert trainer.num_devices > 1  # testing this only makes sense in a distributed setting
     assert not isinstance(dataloader.sampler, DistributedSampler)
 
 
@@ -588,7 +588,7 @@ def test_accelerator_ipu_with_ipus_priority():
 def test_set_devices_if_none_ipu():
 
     trainer = Trainer(accelerator="ipu", ipus=8)
-    assert trainer.devices == 8
+    assert trainer.num_devices == 8
 
 
 @RunIf(ipu=True)
@@ -631,5 +631,5 @@ def test_poptorch_models_at_different_stages(tmpdir):
 @RunIf(ipu=True)
 def test_devices_auto_choice_ipu():
     trainer = Trainer(accelerator="auto", devices="auto")
-    assert trainer.devices == 4
+    assert trainer.num_devices == 4
     assert trainer.ipus == 4

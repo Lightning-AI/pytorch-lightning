@@ -14,7 +14,7 @@
 
 ARG CUDA_VERSION=11.3.1
 
-FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
 
 ARG PYTHON_VERSION=3.9
 ARG PYTORCH_VERSION=1.8
@@ -59,8 +59,8 @@ ENV \
     LD_LIBRARY_PATH="/root/miniconda3/lib:$LD_LIBRARY_PATH" \
     CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
     MKL_THREADING_LAYER=GNU \
-    MAKEFLAGS="-j$(nproc)" \
-    # MAKEFLAGS="-j1" \
+    # MAKEFLAGS="-j$(nproc)" \
+    MAKEFLAGS="-j2" \
     TORCH_CUDA_ARCH_LIST="3.7;5.0;6.0;7.0;7.5;8.0" \
     CONDA_ENV=lightning
 
@@ -84,23 +84,35 @@ ENV \
     PATH=/root/miniconda3/envs/${CONDA_ENV}/bin:$PATH \
     LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH"
 
+COPY ./requirements.txt requirements.txt
 COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/examples.txt requirements-examples.txt
-COPY ./requirements/test.txt requirements-test.txt
-COPY ./requirements/adjust_versions.py requirements_adjust_versions.py
-COPY ./.github/prune-packages.py requirements_prune_packages.py
+COPY ./requirements/adjust-versions.py requirements_adjust_versions.py
+COPY ./.actions/assistant.py assistant.py
 
 RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
     python requirements_adjust_versions.py requirements-extra.txt && \
     python -c "print(' '.join([ln for ln in open('requirements-extra.txt').readlines() if 'horovod' in ln]))" > requirements_horovod.txt && \
-    python requirements_prune_packages.py requirements-extra.txt "horovod" && \
+    pip install -q fire && \
+    python assistant.py requirements_prune_pkgs requirements-extra.txt "horovod" && \
     python requirements_adjust_versions.py requirements-examples.txt && \
     # Install remaining requirements
+    pip install -r requirements.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
     pip install -r requirements-extra.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
     pip install -r requirements-examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
-    pip install -r requirements-test.txt --no-cache-dir
+    rm assistant.py
+
+RUN \
+   apt-get purge -y cmake && \
+   wget -q https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2.tar.gz && \
+   tar -zxvf cmake-3.20.2.tar.gz && \
+   cd cmake-3.20.2 && \
+   ./bootstrap -- -DCMAKE_USE_OPENSSL=OFF && \
+   make && \
+   make install && \
+   cmake  --version
 
 ENV \
     # if you want this environment to be the default o \ne, uncomment the following line:
@@ -111,7 +123,7 @@ ENV \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
     HOROVOD_WITHOUT_MXNET=1 \
     HOROVOD_WITH_GLOO=1 \
-    HOROVOD_WITHOUT_MPI=1
+    HOROVOD_WITH_MPI=1
 
 RUN \
    HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
@@ -142,4 +154,5 @@ RUN \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
-    python -c "import horovod.torch"
+    python -c "import horovod.torch" && \
+    python -c "from horovod.torch import nccl_built; nccl_built()"
