@@ -149,6 +149,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added optional `storage_options` argument to `Trainer.save_checkpoint()` to pass to custom `CheckpointIO` implementations ([#11891](https://github.com/PyTorchLightning/pytorch-lightning/pull/11891))
 
 
+- Added support to explicitly specify the process group backend for parallel strategies ([#11745](https://github.com/PyTorchLightning/pytorch-lightning/pull/11745))
+
+
+- Added `device_ids` and `num_devices` property to `Trainer` ([#12151](https://github.com/PyTorchLightning/pytorch-lightning/pull/12151))
+
+
 - Added `Callback.state_dict()` and `Callback.load_state_dict()` methods ([#12232](https://github.com/PyTorchLightning/pytorch-lightning/pull/12232))
 
 
@@ -519,7 +525,25 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Deprecated `LightningDataModule.on_save/load_checkpoint` in favor of `state_dict/load_state_dict` ([#11893](https://github.com/PyTorchLightning/pytorch-lightning/pull/11893))
 
+  
+- Deprecated `Trainer.use_amp` in favor of `Trainer.amp_backend` ([#12312](https://github.com/PyTorchLightning/pytorch-lightning/pull/12312))
 
+
+- Deprecated `LightingModule.use_amp` in favor of `Trainer.amp_backend` ([#12315](https://github.com/PyTorchLightning/pytorch-lightning/pull/12315))
+
+
+- Deprecated specifying the process group backend through the environment variable `PL_TORCH_DISTRIBUTED_BACKEND` ([#11745](https://github.com/PyTorchLightning/pytorch-lightning/pull/11745))
+
+
+- Deprecated `ParallelPlugin.torch_distributed_backend` in favor of `DDPStrategy.process_group_backend` property ([#11745](https://github.com/PyTorchLightning/pytorch-lightning/pull/11745))
+
+
+- Deprecated `Trainer.devices` in favor of `Trainer.num_devices` and `Trainer.device_ids` ([#12151](https://github.com/PyTorchLightning/pytorch-lightning/pull/12151))
+
+
+- Deprecated `Trainer.root_gpu` in favor of `Trainer.strategy.root_device.index` when GPU is used. ([#12262](https://github.com/PyTorchLightning/pytorch-lightning/pull/12262))
+
+  
 - Deprecated returning state from `Callback.on_save_checkpoint` in favor of returning state in `Callback.state_dict` for checkpointing ([#11887](https://github.com/PyTorchLightning/pytorch-lightning/pull/11887))
 
 
@@ -713,6 +737,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed public attribute `sync_batchnorm` from strategies ([#11754](https://github.com/PyTorchLightning/pytorch-lightning/pull/11754))
 
 
+- Removed `AcceleratorConnector.root_gpu` property ([#12262](https://github.com/PyTorchLightning/pytorch-lightning/pull/12262))
+
+
 ### Fixed
 
 - Fixed an issue where `ModelCheckpoint` could delete older checkpoints when `dirpath` has changed during resumed training ([#12045](https://github.com/PyTorchLightning/pytorch-lightning/pull/12045))
@@ -797,6 +824,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed to avoid common hook warning if no hook is overridden ([#12131](https://github.com/PyTorchLightning/pytorch-lightning/pull/12131))
+
+
+- Fixed the case where logger=None is passed to the Trainer ([#12249](https://github.com/PyTorchLightning/pytorch-lightning/pull/12249))
 
 
 ## [1.5.10] - 2022-02-08

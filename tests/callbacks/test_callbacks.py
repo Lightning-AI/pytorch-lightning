@@ -154,8 +154,8 @@ class OldStatefulCallbackHooks(Callback):
 
 
 def test_resume_callback_state_saved_by_type_hooks(tmpdir):
-    """Test that a legacy checkpoint that didn't use a state key before can still be loaded, using
-    on_save/load_checkpoint."""
+    """Test that a legacy checkpoint that didn't use a state key before can still be loaded, using deprecated
+    on_save/load_checkpoint signatures."""
     # TODO: remove old on_save/load_checkpoint signature support in v1.8
     # in favor of Stateful and new on_save/load_checkpoint signatures
     # on_save_checkpoint() -> dict, on_load_checkpoint(callback_state)

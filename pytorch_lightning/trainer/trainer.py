@@ -1675,7 +1675,7 @@ class Trainer(
         """Called when saving a model checkpoint, calls every callback's `on_save_checkpoint` hook.
 
         Will be removed in v1.8: If state is returned, we insert the callback state into
-        checkpoint["callbacks"][`Callback.state_key`]. It overrides `state_dict` if already present.
+        ``checkpoint["callbacks"][Callback.state_key]``. It overrides ``state_dict`` if already present.
         """
         for callback in self.callbacks:
             # TODO: Add profiling for on_save_checkpoint hook
@@ -2037,12 +2037,33 @@ class Trainer(
         return getattr(self.strategy, "num_nodes", 1)
 
     @property
+    def device_ids(self) -> List[int]:
+        """List of device indexes per node."""
+        devices = getattr(self.strategy, "parallel_devices", [self.strategy.root_device])
+        device_ids = []
+        for idx, device in enumerate(devices):
+            if isinstance(device, torch.device):
+                device_ids.append(device.index or idx)
+            elif isinstance(device, int):
+                device_ids.append(device)
+        return device_ids
+
+    @property
+    def num_devices(self) -> int:
+        """Number of devices the trainer uses per node."""
+        return len(self.device_ids)
+
+    @property
     def num_processes(self) -> int:
         return self._accelerator_connector.num_processes
 
     @property
     def root_gpu(self) -> Optional[int]:
-        return self._accelerator_connector.root_gpu
+        rank_zero_deprecation(
+            "`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
+            "Please use `Trainer.strategy.root_device.index` instead."
+        )
+        return self.strategy.root_device.index if isinstance(self.accelerator, GPUAccelerator) else None
 
     @property
     def tpu_cores(self) -> int:
@@ -2057,8 +2078,12 @@ class Trainer(
         return self._accelerator_connector.num_gpus
 
     @property
-    def devices(self) -> Optional[Union[List[int], str, int]]:
-        return self._accelerator_connector.devices
+    def devices(self) -> int:
+        rank_zero_deprecation(
+            "`Trainer.devices` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
+        )
+        return self.num_devices
 
     @property
     def data_parallel_device_ids(self) -> Optional[List[int]]:
@@ -2168,6 +2193,10 @@ class Trainer(
 
     @property
     def use_amp(self) -> bool:
+        rank_zero_deprecation(
+            "`Trainer.use_amp` is deprecated in v1.6.0 and will be removed in v1.8.0."
+            " Please use `Trainer.amp_backend` instead."
+        )
         return self.precision == 16
 
     @property
