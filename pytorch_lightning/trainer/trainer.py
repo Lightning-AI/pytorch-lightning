@@ -1682,7 +1682,6 @@ class Trainer(
             prev_fx_name = pl_module._current_fx_name
             pl_module._current_fx_name = "on_save_checkpoint"
 
-        callback_states = {}
         for callback in self.callbacks:
             with self.profiler.profile(f"[Callback]{callback.state_key}.on_save_checkpoint"):
                 state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
