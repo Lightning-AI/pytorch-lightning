@@ -71,6 +71,8 @@ def _run_horovod(trainer_options):
     ]
     if trainer_options.get("accelerator", "cpu") == "gpu":
         cmdline += ["--on-gpu"]
+    if devices == 2:
+        cmdline += ["--check-size"]
     exit_code = subprocess.call(" ".join(cmdline), shell=True, env=os.environ.copy())
     assert exit_code == 0
 
@@ -93,7 +95,7 @@ def test_horovod_cpu(tmpdir):
 @RunIf(skip_windows=True, horovod=True, skip_49370=True)
 def test_horovod_cpu_accumulate_grad_batches(tmpdir):
     trainer_options = dict(
-        default_root_dir=tmpdir,
+        default_root_dir=str(tmpdir),
         enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=4,

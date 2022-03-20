@@ -623,7 +623,7 @@ class AcceleratorConnector:
         hvd.init()
         if isinstance(self.accelerator, GPUAccelerator):
             # Horovod assigns one local GPU per process
-            self._parallel_devices = list(range(hvd.local_size()))
+            self._parallel_devices = [torch.device(f"cuda:{i}") for i in range(hvd.local_size())]
         else:
             self._parallel_devices = [torch.device("cpu")] * hvd.local_size()
 
@@ -787,14 +787,6 @@ class AcceleratorConnector:
     @property
     def num_processes(self) -> int:
         return self.devices if self.devices is not None else 1
-
-    @property
-    def root_gpu(self) -> Optional[int]:
-        return (
-            self.strategy.root_device.index
-            if not isinstance(self.accelerator, (IPUAccelerator, TPUAccelerator))
-            else None
-        )
 
     @property
     def devices(self) -> int:
