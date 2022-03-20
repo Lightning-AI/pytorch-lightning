@@ -1661,19 +1661,28 @@ class Trainer(
             else:
                 callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx)
 
-    def _call_callbacks_on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
-        """Called when saving a model checkpoint.
+    def _call_callbacks_state_dict(self) -> Dict[str, dict]:
+        """Called when saving a model checkpoint, calls and returns every callback's `state_dict`, keyed by
+        `Callback.state_key`."""
+        callback_state_dicts = {}
+        for callback in self.callbacks:
+            state_dict = callback.state_dict()
+            if state_dict:
+                callback_state_dicts[callback.state_key] = state_dict
+        return callback_state_dicts
 
-        Calls every callback's `on_save_checkpoint` hook. We have a dedicated function for this rather than using
-        `_call_callback_hooks` because we have special logic for returning callback_states.
+    def _call_callbacks_on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """Called when saving a model checkpoint, calls every callback's `on_save_checkpoint` hook.
+
+        Will be removed in v1.8: If state is returned, we insert the callback state into
+        ``checkpoint["callbacks"][Callback.state_key]``. It overrides ``state_dict`` if already present.
         """
-        callback_states = {}
         for callback in self.callbacks:
             # TODO: Add profiling for on_save_checkpoint hook
             state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
-                callback_states[callback.state_key] = state
-        return callback_states
+                # TODO: Add deprecation warning if state is returned (see reference PR #11887)
+                checkpoint["callbacks"][callback.state_key] = state
 
     def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint.
@@ -1702,6 +1711,19 @@ class Trainer(
                 state = deepcopy(state)
                 # TODO: Add profiling for on_load_checkpoint hook
                 callback.on_load_checkpoint(self, self.lightning_module, state)
+
+    def _call_callbacks_load_state_dict(self, checkpoint: Dict[str, Any]) -> None:
+        """Called when loading a model checkpoint, calls every callback's `load_state_dict`."""
+        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
+
+        if callback_states is None:
+            return
+
+        for callback in self.callbacks:
+            state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
+            if state:
+                state = deepcopy(state)
+                callback.load_state_dict(state)
 
     def _call_strategy_hook(
         self,
