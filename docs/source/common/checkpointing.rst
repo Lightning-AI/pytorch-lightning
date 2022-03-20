@@ -37,7 +37,7 @@ A Lightning checkpoint has everything needed to restore a training session inclu
 Individual Component States
 ===========================
 
-Each component can save and load its state by implementing PyTorch ``state_dict``, ``load_state_dict`` stateful protocol.
+Each component can save and load its state by implementing the PyTorch ``state_dict``, ``load_state_dict`` stateful protocol.
 For details on implementing your own stateful callbacks and datamodules, reference their docs pages at :doc:`callbacks <../extensions/callbacks>` and :doc:`datamodules <../extensions/datamodules>`.
 
 
