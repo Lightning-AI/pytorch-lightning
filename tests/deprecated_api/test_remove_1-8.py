@@ -963,7 +963,7 @@ def test_trainer_num_gpu_0(monkeypatch, gpus, expected_num_gpus, strategy):
     ):
         assert Trainer(gpus=gpus, strategy=strategy).num_gpus == expected_num_gpus
 
-        
+
 def test_v1_8_0_base_profiler(tmpdir):
     class CustomProfiler1(BaseProfiler):
         def start(self, action_name: str) -> None:
@@ -984,8 +984,8 @@ def test_v1_8_0_base_profiler(tmpdir):
 
     # No deprecation message
     CustomProfiler2()
-    
-    
+
+
 @pytest.mark.parametrize(
     ["trainer_kwargs", "expected_num_processes"],
     [
