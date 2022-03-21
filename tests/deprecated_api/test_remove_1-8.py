@@ -723,7 +723,9 @@ def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list)
     simple_profiler = SimpleProfiler()
     iterable = _sleep_generator(expected)
 
-    with pytest.deprecated_call(match="`SimpleProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."):
+    with pytest.deprecated_call(
+        match="`SimpleProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."
+    ):
         for _ in simple_profiler.profile_iterable(iterable, action):
             pass
 
@@ -734,7 +736,9 @@ def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list)
 
     iterable = _sleep_generator(expected)
 
-    with pytest.deprecated_call(match="`AdvancedProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."):
+    with pytest.deprecated_call(
+        match="`AdvancedProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."
+    ):
         for _ in advanced_profiler.profile_iterable(iterable, action):
             pass
 
