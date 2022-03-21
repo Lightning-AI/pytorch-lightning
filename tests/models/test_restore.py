@@ -199,7 +199,9 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
             if self.trainer.state.fn == TrainerFn.TUNING:
                 self._test_on_val_test_predict_tune_start()
             else:
-                assert self.trainer.current_epoch == state_dict["epoch"]
+                # `-1` because this checkpoint is saved `on_train_epoch_end` which is considered part of the epoch so
+                # the `current_epoch` count has not been increased yet
+                assert self.trainer.current_epoch - 1 == state_dict["epoch"]
                 assert self.trainer.global_step == state_dict["global_step"]
                 assert self._check_model_state_dict()
                 assert self._check_optimizers()
@@ -241,8 +243,7 @@ def test_correct_step_and_epoch(tmpdir):
 
     ckpt = torch.load(ckpt_path)
     assert ckpt["epoch"] == first_max_epochs
-    # TODO(@carmocca): should not need `+1`
-    assert ckpt["global_step"] == first_max_epochs * train_batches + 1
+    assert ckpt["global_step"] == first_max_epochs * train_batches
 
     max_epochs = first_max_epochs + 2
     trainer = Trainer(
@@ -255,13 +256,11 @@ def test_correct_step_and_epoch(tmpdir):
     class TestModel(BoringModel):
         def on_train_start(self) -> None:
             assert self.trainer.current_epoch == first_max_epochs
-            # TODO(@carmocca): should not need `+1`
-            assert self.trainer.global_step == first_max_epochs * train_batches + 1
+            assert self.trainer.global_step == first_max_epochs * train_batches
 
     trainer.fit(TestModel(), ckpt_path=ckpt_path)
     assert trainer.current_epoch == max_epochs
-    # TODO(@carmocca): should not need `+1`
-    assert trainer.global_step == max_epochs * train_batches + 1
+    assert trainer.global_step == max_epochs * train_batches
 
 
 def test_fit_twice(tmpdir):
