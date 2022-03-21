@@ -533,6 +533,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `Trainer.num_gpus` in favor of `Trainer.num_devices` when GPU is used ([#12384](https://github.com/PyTorchLightning/pytorch-lightning/pull/12384))
 
 
+- Deprecated `Trainer.ipus` in favor of `Trainer.num_devices` when IPU is used ([#12386](https://github.com/PyTorchLightning/pytorch-lightning/pull/12386))
+
+
 ### Removed
 
 - Removed deprecated parameter `method` in `pytorch_lightning.utilities.model_helpers.is_overridden` ([#10507](https://github.com/PyTorchLightning/pytorch-lightning/pull/10507))
@@ -724,6 +727,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed `AcceleratorConnector.num_gpus` property ([#12384](https://github.com/PyTorchLightning/pytorch-lightning/pull/12384))
+
+
+- Removed `AcceleratorConnector.num_ipus` property ([#12386](https://github.com/PyTorchLightning/pytorch-lightning/pull/12386))
 
 
 ### Fixed
