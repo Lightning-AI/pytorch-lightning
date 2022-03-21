@@ -17,7 +17,7 @@ import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Callable, Dict, Generator, Iterable, Optional, TextIO, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Optional, TextIO, Union
 
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
@@ -92,7 +92,7 @@ class Profiler(ABC):
                 self.stop(action_name)
                 break
 
-    def _rank_zero_info(self, *args, **kwargs) -> None:
+    def _rank_zero_info(self, *args: Any, **kwargs: Any) -> None:
         if self._local_rank in (None, 0):
             log.info(*args, **kwargs)
 
@@ -114,7 +114,7 @@ class Profiler(ABC):
     def _prepare_streams(self) -> None:
         if self._write_stream is not None:
             return
-        if self.filename:
+        if self.filename and self.dirpath:
             filepath = os.path.join(self.dirpath, self._prepare_filename())
             fs = get_filesystem(filepath)
             fs.mkdirs(self.dirpath, exist_ok=True)
@@ -131,7 +131,7 @@ class Profiler(ABC):
         # manually instead of letting the `Trainer` do it through `setup` and `teardown`
         self._prepare_streams()
         summary = self.summary()
-        if summary:
+        if summary and self._write_stream is not None:
             self._write_stream(summary)
         if self._output_file is not None:
             self._output_file.flush()
