@@ -1222,7 +1222,8 @@ def test_trainer_config_accelerator(
     assert isinstance(trainer.strategy, strategy_cls)
     assert strategy_cls.strategy_name == strategy_name
     assert isinstance(trainer.accelerator, accelerator_cls)
-    assert trainer.num_gpus == num_gpus
+    trainer_num_gpus = trainer.num_devices if isinstance(trainer.accelerator, GPUAccelerator) else 0
+    assert trainer_num_gpus == num_gpus
 
 
 def test_trainer_subclassing():
@@ -2097,7 +2098,8 @@ def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, stra
     assert isinstance(trainer.strategy, strategy_cls)
     assert strategy_cls.strategy_name == strategy_name
     assert isinstance(trainer.accelerator, accelerator_cls)
-    assert trainer.num_gpus == num_gpus
+    trainer_num_gpus = trainer.num_devices if isinstance(trainer.accelerator, GPUAccelerator) else 0
+    assert trainer_num_gpus == num_gpus
     assert trainer.num_nodes == trainer_kwargs.get("num_nodes", 1)
 
 
