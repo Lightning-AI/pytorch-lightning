@@ -942,7 +942,7 @@ def test_v1_8_0_callback_on_load_checkpoint_hook(tmpdir):
         default_root_dir=tmpdir,
     )
     with pytest.deprecated_call(
-        match="This callback hook will change its signature and behavior in v1.8."
+        match="`TestCallbackLoadHook.on_load_checkpoint` will change its signature and behavior in v1.8."
         " If you wish to load the state of the callback, use `load_state_dict` instead."
         r" In v1.8 `on_load_checkpoint\(..., checkpoint\)` will receive the entire loaded"
         " checkpoint dictionary instead of callback state."
@@ -970,7 +970,7 @@ def test_v1_8_0_callback_on_save_checkpoint_hook(tmpdir):
     )
     trainer.fit(model)
     with pytest.deprecated_call(
-        match="Returning a value from `Callback.on_save_checkpoint` is deprecated in v1.6"
+        match="Returning a value from `TestCallbackSaveHookReturn.on_save_checkpoint` is deprecated in v1.6"
         " and will be removed in v1.8. Please override `Callback.state_dict`"
         " to return state to be saved."
     ):
