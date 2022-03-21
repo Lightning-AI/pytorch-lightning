@@ -262,9 +262,9 @@ Profiler API
     :nosignatures:
     :template: classtemplate.rst
 
-    Profiler
     AdvancedProfiler
     PassThroughProfiler
+    Profiler
     PyTorchProfiler
     SimpleProfiler
     XLAProfiler

@@ -78,7 +78,9 @@ class Profiler(ABC):
         .. deprecated:: v1.6
             `Profiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8.
         """
-        rank_zero_deprecation("`Profiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8.")
+        rank_zero_deprecation(
+            f"`{self.__class__.__name__}.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."
+        )
         iterator = iter(iterable)
         while True:
             try:
