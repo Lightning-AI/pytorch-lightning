@@ -878,3 +878,50 @@ def test_parallel_strategy_torch_distributed_backend():
         match="ParallelStrategy.torch_distributed_backend was deprecated" " in v1.6 and will be removed in v1.8."
     ):
         strategy.torch_distributed_backend
+
+
+def test_trainer_config_device_ids():
+    trainer = Trainer(devices=2)
+    with pytest.deprecated_call(
+        match="`Trainer.devices` was deprecated in v1.6 and will be removed in v1.8."
+        " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
+    ):
+        trainer.devices == 2
+
+
+@pytest.mark.parametrize(
+    ["gpus", "expected_root_gpu", "strategy"],
+    [
+        pytest.param(None, None, "ddp", id="None is None"),
+        pytest.param(0, None, "ddp", id="O gpus, expect gpu root device to be None."),
+        pytest.param(1, 0, "ddp", id="1 gpu, expect gpu root device to be 0."),
+        pytest.param(-1, 0, "ddp", id="-1 - use all gpus, expect gpu root device to be 0."),
+        pytest.param("-1", 0, "ddp", id="'-1' - use all gpus, expect gpu root device to be 0."),
+        pytest.param(3, 0, "ddp", id="3 gpus, expect gpu root device to be 0.(backend:ddp)"),
+    ],
+)
+def test_root_gpu_property(monkeypatch, gpus, expected_root_gpu, strategy):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 16)
+    with pytest.deprecated_call(
+        match="`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
+        "Please use `Trainer.strategy.root_device.index` instead."
+    ):
+        assert Trainer(gpus=gpus, strategy=strategy).root_gpu == expected_root_gpu
+
+
+@pytest.mark.parametrize(
+    ["gpus", "expected_root_gpu", "strategy"],
+    [
+        pytest.param(None, None, None, id="None is None"),
+        pytest.param(None, None, "ddp", id="None is None"),
+        pytest.param(0, None, "ddp", id="None is None"),
+    ],
+)
+def test_root_gpu_property_0_passing(monkeypatch, gpus, expected_root_gpu, strategy):
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 0)
+    with pytest.deprecated_call(
+        match="`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
+        "Please use `Trainer.strategy.root_device.index` instead."
+    ):
+        assert Trainer(gpus=gpus, strategy=strategy).root_gpu == expected_root_gpu

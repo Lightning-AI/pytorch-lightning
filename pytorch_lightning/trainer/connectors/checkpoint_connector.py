@@ -223,6 +223,7 @@ class CheckpointConnector:
             return
 
         self.trainer._call_callbacks_on_load_checkpoint(self._loaded_checkpoint)
+        self.trainer._call_callbacks_load_state_dict(self._loaded_checkpoint)
 
     def restore_loops(self) -> None:
         """Restores the loop progress from the pre-loaded checkpoint.
@@ -344,7 +345,7 @@ class CheckpointConnector:
 
         if not weights_only:
             # dump callbacks
-            checkpoint["callbacks"] = self.trainer._call_callbacks_on_save_checkpoint(checkpoint)
+            checkpoint["callbacks"] = self.trainer._call_callbacks_state_dict()
 
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
@@ -386,6 +387,12 @@ class CheckpointConnector:
                 checkpoint[datamodule.__class__.__qualname__] = datamodule_state_dict
 
         # on_save_checkpoint hooks
+        if not weights_only:
+            # if state is returned from callback's on_save_checkpoint
+            # it overrides the returned state from callback's state_dict
+            # support for returning state in on_save_checkpoint
+            # will be removed in v1.8
+            self.trainer._call_callbacks_on_save_checkpoint(checkpoint)
         model.on_save_checkpoint(checkpoint)
         if datamodule is not None:
             datamodule.on_save_checkpoint(checkpoint)
