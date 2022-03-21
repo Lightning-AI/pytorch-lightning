@@ -985,7 +985,7 @@ def test_v1_8_0_base_profiler(tmpdir):
     # No deprecation message
     CustomProfiler2()
 
-    
+
 @pytest.mark.parametrize(
     ["trainer_kwargs", "expected_data_parallel_device_ids"],
     [
