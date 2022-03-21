@@ -64,7 +64,7 @@ RUN apt-get update -qq --fix-missing  && \
 
 COPY ./requirements.txt requirements.txt
 COPY ./requirements/ ./requirements/
-COPY ./.actions/assistant.py assistant.py
+COPY ./.actions/ ./.actions/
 
 ENV PYTHONPATH=/usr/lib/python${PYTHON_VERSION}/site-packages
 
@@ -73,7 +73,6 @@ RUN \
     python${PYTHON_VERSION} get-pip.py && \
     rm get-pip.py && \
 
-    pip install -q fire && \
     # Disable cache \
     CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
     export BAGUA_CUDA_VERSION=$CUDA_VERSION_MM && \
@@ -83,12 +82,13 @@ RUN \
     python ./requirements/adjust-versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust-versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     python -c "print(' '.join([ln for ln in open('requirements/extra.txt').readlines() if 'horovod' in ln]))" > ./requirements/horovod.txt && \
-    python assistant.py requirements_prune_pkgs requirements/extra.txt "horovod" && \
+    pip install -q -r ./actions/requirements.txt && \
+    python .actions/assistant.py requirements_prune_pkgs requirements/extra.txt "horovod" && \
     # Install all requirements \
-    python assistant.py replace_locked_versions && \
+    python .actions/assistant.py replace_locked_versions && \
     pip install -r requirements/devel.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
     rm requirements.* && \
-    rm assistant.py
+    rm -rf .actions/
 
 RUN \
     apt-get purge -y cmake && \

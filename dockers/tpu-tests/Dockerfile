@@ -28,7 +28,7 @@ RUN cd pytorch-lightning && \
     ls -l legacy/checkpoints/
 
 RUN \
-    pip install -q fire && \
+    pip install -q -r ./actions/requirements.txt && \
     # drop unnecessary packages
     python .actions/assistant.py requirements_prune_pkgs ./pytorch-lightning/requirements/extra.txt --packages fairscale,horovod && \
     pip install -r pytorch-lightning/requirements/devel.txt --no-cache-dir

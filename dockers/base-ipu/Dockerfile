@@ -73,21 +73,19 @@ ENV \
     CONDA_DEFAULT_ENV=${CONDA_ENV} \
     MKL_THREADING_LAYER=GNU
 
-COPY ./requirements/extra.txt requirements-extra.txt
-COPY ./requirements/test.txt requirements-test.txt
-COPY ./requirements/adjust-versions.py adjust_versions.py
-COPY ./.actions/assistant.py assistant.py
+COPY ./requirements/ ./requirements/
+COPY ./.actions/ ./.actions/
 
 RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
-    python adjust_versions.py requirements-extra.txt && \
-    pip install -q fire && \
-    python assistant.py requirements_prune_pkgs requirements-extra.txt --packages fairscale,horovod && \
+    python requirements/adjust-versions.py requirements/extra.txt && \
+    pip install -q -r ./actions/requirements.txt && \
+    python .actions/assistant.py requirements_prune_pkgs requirements/extra.txt --packages fairscale,horovod && \
     # Install remaining requirements
-    pip install -r requirements-extra.txt --no-cache-dir && \
-    pip install -r requirements-test.txt --no-cache-dir && \
-    rm requirements*
+    pip install -r requirements/extra.txt -r requirements/test.txt --no-cache-dir && \
+    rm -rf requirements/ && \
+    rm -rf .actions/
 
 RUN \
     # Show what we have
