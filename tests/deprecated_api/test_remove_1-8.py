@@ -22,6 +22,7 @@ import pytest
 import torch
 from torch import optim
 
+import pytorch_lightning
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import CSVLogger, LightningLoggerBase, LoggerCollection
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
@@ -962,3 +963,23 @@ def test_trainer_num_gpu_0(monkeypatch, gpus, expected_num_gpus, strategy):
         " Please use `Trainer.num_devices` instead."
     ):
         assert Trainer(gpus=gpus, strategy=strategy).num_gpus == expected_num_gpus
+
+
+@pytest.mark.parametrize(
+    ["trainer_kwargs", "expected_ipus"],
+    [
+        ({}, 0),
+        ({"devices": 1}, 0),
+        ({"accelerator": "ipu", "devices": 1}, 1),
+        ({"accelerator": "ipu", "devices": 8}, 8),
+    ],
+)
+def test_trainer_config_ipus(monkeypatch, trainer_kwargs, expected_ipus):
+    monkeypatch.setattr(pytorch_lightning.accelerators.ipu.IPUAccelerator, "is_available", lambda _: True)
+    monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
+    trainer = Trainer(**trainer_kwargs)
+    with pytest.deprecated_call(
+        match="`Trainer.ipus` was deprecated in v1.6 and will be removed in v1.8."
+        " Please use `Trainer.num_devices` instead."
+    ):
+        trainer.ipus == expected_ipus
