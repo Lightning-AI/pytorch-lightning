@@ -44,25 +44,15 @@ def test_availability():
 
 @pytest.mark.skipif(_HPU_AVAILABLE, reason="test requires non-HPU machine")
 @mock.patch("pytorch_lightning.accelerators.hpu.HPUAccelerator.is_available", return_value=True)
-def test_fail_if_no_hpus(tmpdir):
+def test_fail_if_no_hpus():
     with pytest.raises(MisconfigurationException, match="HPU Accelerator requires HPU devices to run"):
-        Trainer(default_root_dir=tmpdir, accelerator="hpu", devices=1)
-
-    with pytest.raises(MisconfigurationException, match="HPU Accelerator requires HPU devices to run"):
-        Trainer(default_root_dir=tmpdir, devices=1, accelerator="hpu")
+        Trainer(accelerator="hpu", devices=1)
 
 
 @RunIf(hpu=True)
-def test_accelerator_selected(tmpdir):
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="hpu", devices=1)
+def test_accelerator_selected():
+    trainer = Trainer(accelerator="hpu")
     assert isinstance(trainer.accelerator, HPUAccelerator)
-
-
-@RunIf(hpu=True)
-def test_no_warning_plugin(tmpdir):
-    with pytest.warns(None) as record:
-        Trainer(default_root_dir=tmpdir, max_epochs=1, strategy=SingleHPUStrategy(device=torch.device("hpu")))
-    assert len(record) == 0
 
 
 @RunIf(hpu=True)
