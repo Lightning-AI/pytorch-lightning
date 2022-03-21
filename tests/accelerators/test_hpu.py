@@ -56,20 +56,13 @@ def test_accelerator_selected():
 @RunIf(hpu=True)
 def test_all_stages(tmpdir, hpus):
     model = BoringModel()
-    parallel_devices = hpus
-    hpustrat_1 = SingleHPUStrategy(
-        device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=None)
-    )
-    hpustrat_8 = HPUParallelStrategy(
-        parallel_devices=[torch.device("hpu")] * parallel_devices,
-        precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=None),
-    )
+
     trainer = Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
         accelerator="hpu",
-        devices=parallel_devices,
-        strategy=hpustrat_8 if (parallel_devices == 8) else hpustrat_1,
+        devices=hpus,
+        plugins=[HPUPrecisionPlugin(precision=16, hmp_params=None)],
     )
     trainer.fit(model)
     trainer.validate(model)
