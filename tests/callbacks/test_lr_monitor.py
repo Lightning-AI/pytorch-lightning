@@ -217,7 +217,6 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
             optimizer2 = optim.Adam(self.parameters(), lr=1e-2)
             lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 1, gamma=0.1)
             lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, 1, gamma=0.1)
-
             return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
 
     model = CustomBoringModel()
@@ -241,7 +240,8 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
     assert list(lr_monitor.lrs) == ["lr-Adam", "lr-Adam-1"], "Names of learning rates not set correctly"
 
     if logging_interval == "step":
-        expected_number_logged = trainer.global_step // log_every_n_steps
+        # divide by 2 because we have 2 optimizers
+        expected_number_logged = trainer.global_step // 2 // log_every_n_steps
     if logging_interval == "epoch":
         expected_number_logged = trainer.max_epochs
 
@@ -284,7 +284,8 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
     assert list(lr_monitor.lrs) == ["lr-Adam", "lr-Adam-1"], "Names of learning rates not set correctly"
 
     if logging_interval == "step":
-        expected_number_logged = trainer.global_step // log_every_n_steps
+        # divide by 2 because we have 2 optimizers
+        expected_number_logged = trainer.global_step // 2 // log_every_n_steps
     if logging_interval == "epoch":
         expected_number_logged = trainer.max_epochs
 

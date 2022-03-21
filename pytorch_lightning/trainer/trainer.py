@@ -1662,19 +1662,28 @@ class Trainer(
             else:
                 callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx)
 
-    def _call_callbacks_on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
-        """Called when saving a model checkpoint.
+    def _call_callbacks_state_dict(self) -> Dict[str, dict]:
+        """Called when saving a model checkpoint, calls and returns every callback's `state_dict`, keyed by
+        `Callback.state_key`."""
+        callback_state_dicts = {}
+        for callback in self.callbacks:
+            state_dict = callback.state_dict()
+            if state_dict:
+                callback_state_dicts[callback.state_key] = state_dict
+        return callback_state_dicts
 
-        Calls every callback's `on_save_checkpoint` hook. We have a dedicated function for this rather than using
-        `_call_callback_hooks` because we have special logic for returning callback_states.
+    def _call_callbacks_on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """Called when saving a model checkpoint, calls every callback's `on_save_checkpoint` hook.
+
+        Will be removed in v1.8: If state is returned, we insert the callback state into
+        ``checkpoint["callbacks"][Callback.state_key]``. It overrides ``state_dict`` if already present.
         """
-        callback_states = {}
         for callback in self.callbacks:
             # TODO: Add profiling for on_save_checkpoint hook
             state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
-                callback_states[callback.state_key] = state
-        return callback_states
+                # TODO: Add deprecation warning if state is returned (see reference PR #11887)
+                checkpoint["callbacks"][callback.state_key] = state
 
     def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint.
@@ -1703,6 +1712,19 @@ class Trainer(
                 state = deepcopy(state)
                 # TODO: Add profiling for on_load_checkpoint hook
                 callback.on_load_checkpoint(self, self.lightning_module, state)
+
+    def _call_callbacks_load_state_dict(self, checkpoint: Dict[str, Any]) -> None:
+        """Called when loading a model checkpoint, calls every callback's `load_state_dict`."""
+        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
+
+        if callback_states is None:
+            return
+
+        for callback in self.callbacks:
+            state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
+            if state:
+                state = deepcopy(state)
+                callback.load_state_dict(state)
 
     def _call_strategy_hook(
         self,
@@ -2012,12 +2034,33 @@ class Trainer(
         return getattr(self.strategy, "num_nodes", 1)
 
     @property
+    def device_ids(self) -> List[int]:
+        """List of device indexes per node."""
+        devices = getattr(self.strategy, "parallel_devices", [self.strategy.root_device])
+        device_ids = []
+        for idx, device in enumerate(devices):
+            if isinstance(device, torch.device):
+                device_ids.append(device.index or idx)
+            elif isinstance(device, int):
+                device_ids.append(device)
+        return device_ids
+
+    @property
+    def num_devices(self) -> int:
+        """Number of devices the trainer uses per node."""
+        return len(self.device_ids)
+
+    @property
     def num_processes(self) -> int:
         return self._accelerator_connector.num_processes
 
     @property
     def root_gpu(self) -> Optional[int]:
-        return self._accelerator_connector.root_gpu
+        rank_zero_deprecation(
+            "`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
+            "Please use `Trainer.strategy.root_device.index` instead."
+        )
+        return self.strategy.root_device.index if isinstance(self.accelerator, GPUAccelerator) else None
 
     @property
     def tpu_cores(self) -> int:
@@ -2029,11 +2072,19 @@ class Trainer(
 
     @property
     def num_gpus(self) -> int:
-        return self._accelerator_connector.num_gpus
+        rank_zero_deprecation(
+            "`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.num_devices` instead."
+        )
+        return self.num_devices if isinstance(self.accelerator, GPUAccelerator) else 0
 
     @property
-    def devices(self) -> Optional[Union[List[int], str, int]]:
-        return self._accelerator_connector.devices
+    def devices(self) -> int:
+        rank_zero_deprecation(
+            "`Trainer.devices` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
+        )
+        return self.num_devices
 
     @property
     def data_parallel_device_ids(self) -> Optional[List[int]]:
@@ -2143,6 +2194,10 @@ class Trainer(
 
     @property
     def use_amp(self) -> bool:
+        rank_zero_deprecation(
+            "`Trainer.use_amp` is deprecated in v1.6.0 and will be removed in v1.8.0."
+            " Please use `Trainer.amp_backend` instead."
+        )
         return self.precision == 16
 
     @property
@@ -2340,16 +2395,19 @@ class Trainer(
         )
         self._predicted_ckpt_path = ckpt_path
 
-    def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
+    def save_checkpoint(
+        self, filepath: _PATH, weights_only: bool = False, storage_options: Optional[Any] = None
+    ) -> None:
         r"""
         Runs routine to create a checkpoint.
 
         Args:
             filepath: Path where checkpoint is saved.
             weights_only: If ``True``, will only save the model weights.
+            storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
 
         """
-        self._checkpoint_connector.save_checkpoint(filepath, weights_only)
+        self._checkpoint_connector.save_checkpoint(filepath, weights_only=weights_only, storage_options=storage_options)
 
     """
     Parsing properties
@@ -2469,7 +2527,11 @@ class Trainer(
 
     @property
     def global_step(self) -> int:
-        return self.fit_loop.global_step
+        """The number of optimizer steps taken (does not reset each epoch).
+
+        This includes multiple optimizers and TBPTT steps (if enabled).
+        """
+        return self.fit_loop.epoch_loop.global_step
 
     @property
     def current_epoch(self) -> int:

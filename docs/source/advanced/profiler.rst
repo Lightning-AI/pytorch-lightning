@@ -125,11 +125,8 @@ of logging it to the output in your terminal. The output below shows the profili
 PyTorch Profiler
 ================
 
-Autograd includes a profiler that lets you inspect the cost of different operators
-inside your model - both on the CPU and GPU. It uses the built-in :class:`~pytorch_lightning.profiler.pytorch.PyTorchProfiler`.
-
-To read more about the PyTorch Profiler and all its options,
-have a look at its `docs <https://pytorch.org/docs/master/profiler.html>`_.
+PyTorch includes a `profiler <https://pytorch.org/docs/master/profiler.html>`__ that lets you inspect the cost of different operators
+inside your model - both on the CPU and GPU. It's used by our :class:`~pytorch_lightning.profiler.pytorch.PyTorchProfiler`.
 
 .. code-block:: python
 
