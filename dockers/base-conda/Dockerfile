@@ -91,7 +91,7 @@ COPY ./.actions/ ./.actions/
 RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
-    python requirements_adjust_versions.py requirements-extra.txt && \
+    python requirements/adjust-versions.py requirements-extra.txt && \
     python -c "print(' '.join([ln for ln in open('requirements-extra.txt').readlines() if 'horovod' in ln]))" > requirements/horovod.txt && \
     python ./requirements/adjust-versions.py requirements-examples.txt && \
     pip install -q -r .actions/requirements.txt && \

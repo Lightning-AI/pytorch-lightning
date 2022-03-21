@@ -51,6 +51,8 @@ jobs:
       displayName: 'Image info & NVIDIA'
 
     - bash: |
+        pip install -q -r .actions/requirements.txt
+        python .actions/assistant.py replace_locked_versions
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
         pip install fairscale==0.4.0
         pip install deepspeed==0.5.7

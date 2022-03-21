@@ -92,6 +92,7 @@ RUN \
     python --version && \
     cd pytorch-lightning && \
     pip install -q -r .actions/requirements.txt && \
+    python .actions/assistant.py replace_locked_versions && \
     # drop packages installed with XLA
     python .actions/assistant.py requirements_prune_pkgs requirements.txt --packages torch && \
     python .actions/assistant.py requirements_prune_pkgs requirements/examples.txt --packages torchvision && \
