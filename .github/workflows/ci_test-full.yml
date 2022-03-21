@@ -22,14 +22,14 @@ jobs:
       matrix:
         os: [ubuntu-20.04, windows-2019, macOS-10.15]
         python-version: ["3.7", "3.9"]  # minimum, maximum
-        requires: ["oldest", "latest"]
+        requires: ["oldest", "locked"]
         release: ["stable"]
         exclude:
           # Skip if torch<1.8 and py3.9 on Linux: https://github.com/pytorch/pytorch/issues/50014
           - {os: ubuntu-20.04, python-version: "3.9", requires: "oldest"}
         # TODO: re-enable RC testing
         # include:
-        #   - {os: ubuntu-20.04, python-version: "3.10", requires: "latest", release: "pre"}
+        #   - {os: ubuntu-20.04, python-version: "3.10", requires: "locked", release: "pre"}
 
     timeout-minutes: 40
 
@@ -58,10 +58,15 @@ jobs:
       if: runner.os == 'windows'
       run: |
         python .actions/assistant.py requirements_prune_pkgs requirements/extra.txt --packages horovod
+
     - name: Set min. dependencies
       if: matrix.requires == 'oldest'
       run: |
-        python .actions/assistant.py replace_oldest_ver
+        python .actions/assistant.py replace_oldest_versions
+    - name: Set latest verified dependencies
+      if: matrix.requires == 'locked'
+      run: |
+        python .actions/assistant.py replace_locked_versions
 
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow

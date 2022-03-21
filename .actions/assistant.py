@@ -1,10 +1,10 @@
 import datetime
 import os
 import re
-from pprint import pprint
-from typing import Sequence
+from typing import Dict, Sequence
 
 import fire
+import yaml
 
 REQUIREMENT_FILES = (
     "requirements.txt",
@@ -13,6 +13,28 @@ REQUIREMENT_FILES = (
     # "requirements/test.txt",
     "requirements/examples.txt",
 )
+REQUIREMENT_LOCK = "requirements/locked.yaml"
+
+
+class Requirements:
+    """Manipulation with requirements file."""
+
+    def __init__(self, fname: str, show_final: bool = False):
+        self._fname = fname
+        with open(self._fname) as fp:
+            self.lines = fp.readlines()
+        self.lines = [ln.strip() for ln in self.lines]
+        self._show_final = show_final
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type_, value_, traceback_):
+        if self._show_final:
+            print(os.linesep.join(self.lines))
+        self.lines = [f"{ln}{os.linesep}" for ln in self.lines]
+        with open(self._fname, "w") as fp:
+            fp.writelines(self.lines)
 
 
 class AssistantCLI:
@@ -37,28 +59,44 @@ class AssistantCLI:
     @staticmethod
     def requirements_prune_pkgs(req_file: str, packages: Sequence[str]) -> None:
         """Remove some packages from given requirement files."""
-        with open(req_file) as fp:
-            lines = fp.readlines()
-
         if isinstance(packages, str):
             packages = [packages]
-        for pkg in packages:
-            lines = [ln for ln in lines if not ln.startswith(pkg)]
-        pprint(lines)
-
-        with open(req_file, "w") as fp:
-            fp.writelines(lines)
+        with Requirements(req_file, show_final=True) as req:
+            for pkg in packages:
+                req.lines = [ln for ln in req.lines if not ln.startswith(pkg)]
 
     @staticmethod
-    def _replace_min(fname: str) -> None:
-        req = open(fname).read().replace(">=", "==")
-        open(fname, "w").write(req)
-
-    @staticmethod
-    def replace_oldest_ver(requirement_fnames: Sequence[str] = REQUIREMENT_FILES) -> None:
+    def replace_oldest_versions(req_files: Sequence[str] = REQUIREMENT_FILES) -> None:
         """Replace the min package version by fixed one."""
-        for fname in requirement_fnames:
-            AssistantCLI._replace_min(fname)
+        for fname in req_files:
+            req = open(fname).read().replace(">=", "==")
+            open(fname, "w").write(req)
+
+    @staticmethod
+    def _lock_pkg_version(req: str, locked: Dict[str, str], comment_char: str = "#") -> str:
+        if comment_char in req:
+            req = req[: req.index(comment_char)].strip()
+        if not req:  # if requirement is not empty
+            return req
+        sep_idx = [req.index(c) for c in "<=>" if c in req]
+        name = (req[: min(sep_idx)] if sep_idx else req).strip()
+        if name not in locked:
+            return req
+        return req + f", <={locked[name]}"
+
+    @staticmethod
+    def replace_locked_versions(
+        req_files: Sequence[str] = REQUIREMENT_FILES, lock_file: str = REQUIREMENT_LOCK
+    ) -> None:
+        """Replace the min package version by fixed one."""
+        with open(lock_file) as fp:
+            locked = yaml.safe_load(fp)
+        if isinstance(req_files, str):
+            req_files = [req_files]
+
+        for fname in req_files:
+            with Requirements(fname, show_final=True) as req:
+                req.lines = [AssistantCLI._lock_pkg_version(ln, locked) for ln in req.lines]
 
 
 if __name__ == "__main__":

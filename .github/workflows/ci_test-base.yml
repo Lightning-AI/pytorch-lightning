@@ -52,8 +52,8 @@ jobs:
     - name: Install dependencies
       run: |
         python --version
-        python -m pip install --upgrade --user pip
         pip --version
+        python .actions/assistant.py replace_locked_versions
         pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip install --requirement requirements/test.txt
         pip list
