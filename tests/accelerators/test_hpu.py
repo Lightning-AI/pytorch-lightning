@@ -324,3 +324,7 @@ def test_inference_only(tmpdir, hpus):
     trainer.validate(model)
     trainer.test(model)
     trainer.predict(model)
+
+
+def test_hpu_auto_device_count():
+    assert HPUAccelerator.auto_device_count() == 8
