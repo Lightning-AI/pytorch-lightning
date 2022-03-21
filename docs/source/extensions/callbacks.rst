@@ -423,7 +423,7 @@ on_exception
     :noindex:
 
 state_dict
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.callbacks.Callback.state_dict
     :noindex:
@@ -435,7 +435,7 @@ on_save_checkpoint
     :noindex:
 
 load_state_dict
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.callbacks.Callback.load_state_dict
     :noindex:
