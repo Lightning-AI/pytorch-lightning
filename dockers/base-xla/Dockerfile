@@ -94,10 +94,9 @@ RUN \
     pip install -q -r .actions/requirements.txt && \
     python .actions/assistant.py replace_locked_versions && \
     # drop packages installed with XLA
-    python .actions/assistant.py requirements_prune_pkgs requirements.txt --packages torch && \
-    python .actions/assistant.py requirements_prune_pkgs requirements/examples.txt --packages torchvision && \
+    python .actions/assistant.py requirements_prune_pkgs torch,torchvision && \
     # drop unnecessary packages
-    python .actions/assistant.py requirements_prune_pkgs requirements/extra.txt --packages fairscale,horovod && \
+    python .actions/assistant.py requirements_prune_pkgs fairscale,horovod && \
     python ./requirements/adjust-versions.py ./requirements/extra.txt && \
     # install PL dependencies
     pip install --requirement ./requirements/devel.txt --no-cache-dir && \

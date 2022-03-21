@@ -81,7 +81,7 @@ RUN \
     python -c "import torch; print(torch.__version__)" && \
     python requirements/adjust-versions.py requirements/extra.txt && \
     pip install -q -r .actions/requirements.txt && \
-    python .actions/assistant.py requirements_prune_pkgs requirements/extra.txt --packages fairscale,horovod && \
+    python .actions/assistant.py requirements_prune_pkgs fairscale,horovod && \
     # Install remaining requirements
     pip install -r requirements/extra.txt -r requirements/test.txt --no-cache-dir && \
     rm -rf requirements/ && \

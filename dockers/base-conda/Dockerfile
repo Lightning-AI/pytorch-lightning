@@ -95,7 +95,7 @@ RUN \
     python -c "print(' '.join([ln for ln in open('requirements/extra.txt').readlines() if 'horovod' in ln]))" > requirements/horovod.txt && \
     python ./requirements/adjust-versions.py requirements/examples.txt && \
     pip install -q -r .actions/requirements.txt && \
-    python .actions/assistant.py requirements_prune_pkgs requirements/extra.txt "horovod" && \
+    python .actions/assistant.py requirements_prune_pkgs "horovod" && \
     python .actions/assistant.py replace_locked_versions && \
     # Install remaining requirements \
     pip install \

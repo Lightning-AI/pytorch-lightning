@@ -83,7 +83,7 @@ RUN \
     python ./requirements/adjust-versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     python -c "print(' '.join([ln for ln in open('requirements/extra.txt').readlines() if 'horovod' in ln]))" > ./requirements/horovod.txt && \
     pip install -q -r .actions/requirements.txt && \
-    python .actions/assistant.py requirements_prune_pkgs requirements/extra.txt "horovod" && \
+    python .actions/assistant.py requirements_prune_pkgs "horovod" && \
     # Install all requirements \
     python .actions/assistant.py replace_locked_versions && \
     pip install -r requirements/devel.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
@@ -134,7 +134,7 @@ RUN \
 
 RUN \
     # install FairScale
-    pip install fairscale==0.4.0 && \
+    pip install fairscale==0.4.5 && \
     python -c "import fairscale; print(fairscale.__version__)"
 
 RUN \

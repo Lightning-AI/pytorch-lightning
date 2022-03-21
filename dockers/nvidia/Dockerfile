@@ -43,7 +43,7 @@ RUN \
 # Installations \
     cd ./pytorch-lightning/ && \
     pip install -q -r .actions/requirements.txt && \
-    python .actions/assistant.py requirements_prune_pkgs requirements/extra.txt --packages horovod && \
+    python .actions/assistant.py requirements_prune_pkgs horovod && \
     pip install "Pillow>=8.2, !=8.3.0" "cryptography>=3.4" "py>=1.10" --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install -r requirements/extra.txt -r requirements/examples.txt --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install ./pytorch-lightning --no-cache-dir && \
