@@ -195,7 +195,6 @@ class AcceleratorConnector:
         # 2. Instantiate Accelerator
         # handle `auto` and `None`
         self._set_accelerator_if_ipu_strategy_is_passed()
-        self._set_accelerator_if_hpu_strategy_is_passed()
         if self._accelerator_flag == "auto" or self._accelerator_flag is None:
             self._accelerator_flag = self._choose_accelerator()
         self._set_parallel_devices_and_init_accelerator()
@@ -478,10 +477,6 @@ class AcceleratorConnector:
         # TODO this logic should apply to both str and object config
         if isinstance(self._strategy_flag, IPUStrategy):
             self._accelerator_flag = "ipu"
-
-    def _set_accelerator_if_hpu_strategy_is_passed(self) -> None:
-        if isinstance(self._strategy_flag, SingleHPUStrategy):
-            self._accelerator_flag = "hpu"
 
     def _choose_accelerator(self) -> str:
         """Choose the accelerator type (str) based on availability when ``accelerator='auto'``."""
