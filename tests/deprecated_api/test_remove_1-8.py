@@ -975,7 +975,7 @@ def test_trainer_num_gpu_0(monkeypatch, gpus, expected_num_gpus, strategy):
     ],
 )
 def test_trainer_num_processes(monkeypatch, trainer_kwargs, expected_num_processes):
-    if trainer_kwargs.get("accelerator") == "ipu":
+    if trainer_kwargs.get("accelerator") == "gpu":
         monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
         monkeypatch.setattr(torch.cuda, "device_count", lambda: 16)
     trainer = Trainer(**trainer_kwargs)
