@@ -13,13 +13,12 @@
 # limitations under the License.
 
 import os
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict, Optional
 
 import torch
 
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
-from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
 from pytorch_lightning.utilities.types import _PATH
 
@@ -37,37 +36,3 @@ class HPUCheckpointIO(TorchCheckpointIO):
             checkpoint = move_data_to_device(checkpoint, torch.device("cpu"))
         # write the checkpoint dictionary on the file
         atomic_save(checkpoint, path)
-
-    def load_checkpoint(
-        self, path: _PATH, map_location: Optional[Callable] = lambda storage, loc: storage
-    ) -> Dict[str, Any]:
-        """Loads checkpoint using :func:`torch.load`, with additional handling for ``fsspec`` remote loading of
-        files.
-
-        Args:
-            path: Path to checkpoint
-            map_location: a function, :class:`torch.device`, string or a dict specifying how to remap storage
-            locations.
-
-        Returns: The loaded checkpoint.
-
-        Raises:
-            FileNotFoundError: If ``path`` is not found by the ``fsspec`` filesystem
-        """
-
-        # Try to read the checkpoint at `path`. If not exist, do not restore checkpoint.
-        fs = get_filesystem(path)
-        if not fs.exists(path):
-            raise FileNotFoundError(f"Checkpoint at {path} not found. Aborting training.")
-
-        return pl_load(path, map_location=map_location)
-
-    def remove_checkpoint(self, path: _PATH) -> None:
-        """Remove checkpoint file from the filesystem.
-
-        Args:
-            path: Path to checkpoint
-        """
-        fs = get_filesystem(path)
-        if fs.exists(path):
-            fs.rm(path, recursive=True)
