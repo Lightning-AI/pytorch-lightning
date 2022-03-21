@@ -242,16 +242,6 @@ def test_dataloaders_passed_to_fit(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@pytest.mark.parametrize(
-    ["tpu_cores", "expected_tpu_id"],
-    [(1, None), (8, None), ([1], 1), ([8], 8)],
-)
-@RunIf(tpu=True)
-def test_tpu_id_to_be_as_expected(tpu_cores, expected_tpu_id):
-    """Test if trainer.tpu_id is set as expected."""
-    assert Trainer(tpu_cores=tpu_cores)._accelerator_connector.tpu_id == expected_tpu_id
-
-
 def test_tpu_misconfiguration():
     """Test if trainer.tpu_id is set as expected."""
     with pytest.raises(MisconfigurationException, match="`tpu_cores` can only be"):

@@ -720,6 +720,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `AcceleratorConnector.root_gpu` property ([#12262](https://github.com/PyTorchLightning/pytorch-lightning/pull/12262))
 
 
+- Removed `AcceleratorConnector.tpu_id` property ([#12387](https://github.com/PyTorchLightning/pytorch-lightning/pull/12387))
+
+
 ### Fixed
 
 - Fixed an issue where `ModelCheckpoint` could delete older checkpoints when `dirpath` has changed during resumed training ([#12045](https://github.com/PyTorchLightning/pytorch-lightning/pull/12045))
