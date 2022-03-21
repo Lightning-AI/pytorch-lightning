@@ -56,6 +56,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
+        process_group_backend: Optional[str] = None,
     ):
         """Plugin for Fully Sharded Data Parallel provided by FairScale.
 
@@ -109,6 +110,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
+            process_group_backend=process_group_backend,
         )
         self.cpu_offload = cpu_offload
         self.move_grads_to_cpu = move_grads_to_cpu

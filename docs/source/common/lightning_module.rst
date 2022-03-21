@@ -1037,11 +1037,6 @@ Pointer to the trainer
         max_steps = self.trainer.max_steps
         any_flag = self.trainer.any_flag
 
-use_amp
-~~~~~~~
-
-``True`` if using Automatic Mixed Precision (AMP)
-
 prepare_data_per_node
 ~~~~~~~~~~~~~~~~~~~~~
 
