@@ -17,6 +17,7 @@ from typing import Dict, List, Optional
 
 import torch
 import torch.distributed
+from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -25,6 +26,7 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -126,6 +128,26 @@ class HPUParallelStrategy(DDPStrategy):
 
         broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
+
+    def teardown(self) -> None:
+        log.detail(f"{self.__class__.__name__}: tearing down DDP plugin")
+        super().teardown()
+        if isinstance(self.model, DistributedDataParallel):
+            self.model = self.lightning_module
+
+        if (
+            self.lightning_module.trainer is not None
+            and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+            and self._layer_sync
+        ):
+            # `self.lightning_module.trainer` can be None if teardown gets called on an exception before
+            # the trainer gets set on the LightningModule
+            self.model = self._layer_sync.revert(self.model)
+
+        if self.root_device.type == "hpu":
+            # GPU teardown
+            log.detail(f"{self.__class__.__name__}: moving model to CPU")
+            self.lightning_module.cpu()
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
