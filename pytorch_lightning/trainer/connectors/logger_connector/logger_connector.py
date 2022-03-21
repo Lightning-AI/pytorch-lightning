@@ -84,13 +84,14 @@ class LoggerConnector:
         return should_log or self.trainer.should_stop
 
     def configure_logger(self, logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]]) -> None:
-        if isinstance(logger, bool):
+        if not logger:
+            # logger is None or logger is False
+            self.trainer.loggers = []
+        elif logger is True:
             # default logger
-            self.trainer.loggers = (
-                [TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id())]
-                if logger
-                else []
-            )
+            self.trainer.loggers = [
+                TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id())
+            ]
         elif isinstance(logger, Iterable):
             self.trainer.loggers = list(logger)
         else:

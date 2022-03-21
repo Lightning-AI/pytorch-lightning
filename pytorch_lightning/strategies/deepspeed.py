@@ -34,7 +34,11 @@ from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import log
+from pytorch_lightning.utilities.distributed import (
+    _get_process_group_backend_from_env,
+    get_default_process_group_backend_for_device,
+    log,
+)
 from pytorch_lightning.utilities.enums import AMPType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
@@ -131,6 +135,7 @@ class DeepSpeedStrategy(DDPStrategy):
         synchronize_checkpoint_boundary: bool = False,
         load_full_weights: bool = False,
         precision_plugin: Optional[PrecisionPlugin] = None,
+        process_group_backend: Optional[str] = None,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models. `For more information: https://pytorch-
@@ -271,6 +276,7 @@ class DeepSpeedStrategy(DDPStrategy):
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             precision_plugin=precision_plugin,
+            process_group_backend=process_group_backend,
         )
 
         self.config = self._load_config(config)
@@ -363,7 +369,15 @@ class DeepSpeedStrategy(DDPStrategy):
                 f"GLOBAL_RANK: {self.global_rank}, "
                 f"MEMBER: {self.global_rank + 1}/{self.world_size}"
             )
-        deepspeed.init_distributed(self.torch_distributed_backend, distributed_port=self.cluster_environment.main_port)
+        self._process_group_backend = self._get_process_group_backend()
+        deepspeed.init_distributed(self._process_group_backend, distributed_port=self.cluster_environment.main_port)
+
+    def _get_process_group_backend(self):
+        return (
+            self._process_group_backend
+            or _get_process_group_backend_from_env()
+            or get_default_process_group_backend_for_device(self.root_device)
+        )
 
     def _set_node_environment_variables(self) -> None:
         os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
@@ -486,7 +500,7 @@ class DeepSpeedStrategy(DDPStrategy):
             # disable deepspeed lr scheduling as lightning manages scheduling
             model.lr_scheduler = None
             if lr_scheduler is None:
-                lr_scheduler = LRSchedulerConfig(deepspeed_scheduler, interval="step")
+                lr_scheduler = LRSchedulerConfig(deepspeed_scheduler, interval="step", opt_idx=0)
             else:
                 lr_scheduler.scheduler = deepspeed_scheduler
             self.lr_scheduler_configs = [lr_scheduler]

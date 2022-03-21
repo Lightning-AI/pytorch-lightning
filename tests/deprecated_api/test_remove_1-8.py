@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.8.0."""
+import os
 import time
+from unittest import mock
 from unittest.mock import Mock
 
 import numpy as np
@@ -36,6 +38,7 @@ from pytorch_lightning.plugins.training_type.single_device import SingleDevicePl
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.profiler import AbstractProfiler, AdvancedProfiler, SimpleProfiler
+from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.apply_func import move_data_to_device
@@ -817,3 +820,108 @@ def test_v1_8_0_datamodule_checkpointhooks():
         " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
     ):
         _check_datamodule_checkpoint_hooks(trainer)
+
+
+def test_v1_8_0_trainer_use_amp(tmpdir):
+    trainer = Trainer()
+
+    with pytest.deprecated_call(match="`Trainer.use_amp` is deprecated in v1.6.0"):
+        _ = trainer.use_amp
+
+
+def test_v1_8_0_lightning_module_use_amp():
+    model = BoringModel()
+    with pytest.deprecated_call(match="`LightningModule.use_amp` was deprecated in v1.6"):
+        _ = model.use_amp
+    with pytest.deprecated_call(match="`LightningModule.use_amp` was deprecated in v1.6"):
+        model.use_amp = False
+
+
+@mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": "foo"})
+def test_v1_8_0_torch_distributed_backend_env():
+    from pytorch_lightning.utilities.distributed import _get_process_group_backend_from_env
+
+    with pytest.deprecated_call(
+        match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"
+        " was deprecated in v1.6 and will be removed in v1.8."
+    ):
+        _get_process_group_backend_from_env()
+
+
+def test_parallel_strategy_torch_distributed_backend():
+    class CustomParallel(ParallelStrategy):
+        @property
+        def root_device(self) -> torch.device:
+            return torch.device("cpu")
+
+        def model_to_device(self):
+            pass
+
+        @property
+        def is_global_zero(self):
+            return True
+
+        def broadcast(self, obj):
+            return obj
+
+        def reduce(self, tensor):
+            return tensor
+
+        def barrier(self):
+            return
+
+        def all_gather(self, tensor):
+            return tensor
+
+    strategy = CustomParallel()
+    with pytest.deprecated_call(
+        match="ParallelStrategy.torch_distributed_backend was deprecated" " in v1.6 and will be removed in v1.8."
+    ):
+        strategy.torch_distributed_backend
+
+
+def test_trainer_config_device_ids():
+    trainer = Trainer(devices=2)
+    with pytest.deprecated_call(
+        match="`Trainer.devices` was deprecated in v1.6 and will be removed in v1.8."
+        " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
+    ):
+        trainer.devices == 2
+
+
+@pytest.mark.parametrize(
+    ["gpus", "expected_root_gpu", "strategy"],
+    [
+        pytest.param(None, None, "ddp", id="None is None"),
+        pytest.param(0, None, "ddp", id="O gpus, expect gpu root device to be None."),
+        pytest.param(1, 0, "ddp", id="1 gpu, expect gpu root device to be 0."),
+        pytest.param(-1, 0, "ddp", id="-1 - use all gpus, expect gpu root device to be 0."),
+        pytest.param("-1", 0, "ddp", id="'-1' - use all gpus, expect gpu root device to be 0."),
+        pytest.param(3, 0, "ddp", id="3 gpus, expect gpu root device to be 0.(backend:ddp)"),
+    ],
+)
+def test_root_gpu_property(monkeypatch, gpus, expected_root_gpu, strategy):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 16)
+    with pytest.deprecated_call(
+        match="`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
+        "Please use `Trainer.strategy.root_device.index` instead."
+    ):
+        assert Trainer(gpus=gpus, strategy=strategy).root_gpu == expected_root_gpu
+
+
+@pytest.mark.parametrize(
+    ["gpus", "expected_root_gpu", "strategy"],
+    [
+        pytest.param(None, None, None, id="None is None"),
+        pytest.param(None, None, "ddp", id="None is None"),
+        pytest.param(0, None, "ddp", id="None is None"),
+    ],
+)
+def test_root_gpu_property_0_passing(monkeypatch, gpus, expected_root_gpu, strategy):
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 0)
+    with pytest.deprecated_call(
+        match="`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
+        "Please use `Trainer.strategy.root_device.index` instead."
+    ):
+        assert Trainer(gpus=gpus, strategy=strategy).root_gpu == expected_root_gpu

@@ -123,7 +123,7 @@ ENV \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
     HOROVOD_WITHOUT_MXNET=1 \
     HOROVOD_WITH_GLOO=1 \
-    HOROVOD_WITHOUT_MPI=1
+    HOROVOD_WITH_MPI=1
 
 RUN \
    HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
@@ -154,4 +154,5 @@ RUN \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
-    python -c "import horovod.torch"
+    python -c "import horovod.torch" && \
+    python -c "from horovod.torch import nccl_built; nccl_built()"

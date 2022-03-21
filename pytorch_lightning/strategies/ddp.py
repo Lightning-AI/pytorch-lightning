@@ -42,7 +42,11 @@ from pytorch_lightning.utilities import (
     _TORCH_GREATER_EQUAL_1_9,
     _TORCH_GREATER_EQUAL_1_10,
 )
-from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.distributed import (
+    _get_process_group_backend_from_env,
+    distributed_available,
+    get_default_process_group_backend_for_device,
+)
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
@@ -75,6 +79,7 @@ class DDPStrategy(ParallelStrategy):
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
         model_averaging_period: Optional[int] = None,
+        process_group_backend: Optional[str] = None,
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
         super().__init__(
@@ -94,6 +99,7 @@ class DDPStrategy(ParallelStrategy):
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
         self._rank_0_will_call_children_scripts: bool = False
+        self._process_group_backend: Optional[str] = process_group_backend
 
     @property
     def is_distributed(self) -> bool:
@@ -124,6 +130,10 @@ class DDPStrategy(ParallelStrategy):
     @property
     def _is_single_process_single_device(self) -> bool:
         return True
+
+    @property
+    def process_group_backend(self) -> Optional[str]:
+        return self._process_group_backend
 
     def _configure_launcher(self) -> None:
         self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
@@ -170,10 +180,15 @@ class DDPStrategy(ParallelStrategy):
         # set warning rank
         rank_zero_only.rank = self.global_rank
 
-        # set up server using proc 0's ip address
-        # try to init for 20 times at max in case ports are taken
-        # where to store ip_table
-        init_dist_connection(self.cluster_environment, self.torch_distributed_backend)
+        self._process_group_backend = self._get_process_group_backend()
+        init_dist_connection(self.cluster_environment, self._process_group_backend)
+
+    def _get_process_group_backend(self) -> str:
+        return (
+            self._process_group_backend
+            or _get_process_group_backend_from_env()
+            or get_default_process_group_backend_for_device(self.root_device)
+        )
 
     def set_world_ranks(self) -> None:
         if self.cluster_environment is None:
