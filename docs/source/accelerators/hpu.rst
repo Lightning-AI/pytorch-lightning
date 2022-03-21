@@ -28,7 +28,7 @@ Lightning supports training on a single HPU device or 8 HPU devices with the plu
 HPU accelerator
 ---------------
 
-The ``devices=1`` with ``accelerator="hpu"`` parameters in the trainer class enables the Habana backend.
+The ``accelerator="hpu"`` parameters in the trainer class enables the Habana backend.
 
 
 ----------------
@@ -112,10 +112,10 @@ The below snippet shows an example model using MNIST with single Habana Gaudi de
     num_hpus = 1
 
     # enable HPU strategy for single device, with mixed precision using default HMP settings
-    hpustrat_1 = SingleHPUStrategy(device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16))
+    hpu_strategy = SingleHPUStrategy(device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16))
 
     # Initialize a trainer with 1 HPU accelerator
-    trainer = pl.Trainer(accelerator="hpu", devices=num_hpus, strategy=hpustrat_1)
+    trainer = pl.Trainer(accelerator="hpu", devices=num_hpus, strategy=hpu_strategy)
 
     # Train the model ⚡
     trainer.fit(model, datamodule=dm)
@@ -148,16 +148,8 @@ The below snippet shows an example model using MNIST with 8 Habana Gaudi devices
 
     ...
 
-    num_hpus = 8
-
-    # setup parallel strategy for 8 HPU's
-    hpustrat_8 = HPUParallelStrategy(
-        parallel_devices=[torch.device("hpu")] * num_hpus,
-        precision_plugin=HPUPrecisionPlugin(precision=16),
-    )
-
-    # Initialize a trainer with 1 HPU accelerator
-    trainer = pl.Trainer(accelerator="hpu", devices=num_hpus, strategy=hpustrat_8)
+    # Initialize a trainer with HPU accelerator with 8 devices
+    trainer = pl.Trainer(accelerator="hpu", devices=8, plugins=[HPUPrecisionPlugin(precision=16)])
 
     # Train the model ⚡
     trainer.fit(model, datamodule=dm)
@@ -201,13 +193,9 @@ This enables advanced users to provide their own BF16 and FP32 operator list ins
     hmp_params["bf16_ops"] = "ops_bf16_mnist.txt"
     hmp_params["fp32_ops"] = "ops_fp32_mnist.txt"
 
-    # enable HPU strategy for single device, with mixed precision using overidden HMP settings
-    hpustrat_1 = SingleHPUStrategy(
-        device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=hmp_params)
-    )
-
-    # Initialize a trainer with 1 HPU accelerator
-    trainer = pl.Trainer(accelerator="hpu", devices=num_hpus, strategy=hpustrat_1)
+    # Initialize a trainer with HPU accelerator for HPU strategy for single device,
+    # with mixed precision using overidden HMP settings
+    trainer = pl.Trainer(accelerator="hpu", devices=1, plugins=[HPUPrecisionPlugin(precision=16, hmp_params=hmp_params)])
 
     # Train the model ⚡
     trainer.fit(model, datamodule=dm)
