@@ -92,32 +92,6 @@ def mocked_device_count_0(monkeypatch):
     monkeypatch.setattr(torch.cuda, "device_count", device_count)
 
 
-@pytest.mark.parametrize(
-    ["gpus", "expected_num_gpus", "strategy"],
-    [
-        pytest.param(None, 0, None, id="None - expect 0 gpu to use."),
-        pytest.param(0, 0, None, id="Oth gpu, expect 1 gpu to use."),
-        pytest.param(1, 1, None, id="1st gpu, expect 1 gpu to use."),
-        pytest.param(-1, PRETEND_N_OF_GPUS, "ddp", id="-1 - use all gpus"),
-        pytest.param("-1", PRETEND_N_OF_GPUS, "ddp", id="'-1' - use all gpus"),
-        pytest.param(3, 3, "ddp", id="3rd gpu - 1 gpu to use (backend:ddp)"),
-    ],
-)
-def test_trainer_gpu_parse(mocked_device_count, gpus, expected_num_gpus, strategy):
-    assert Trainer(gpus=gpus, strategy=strategy).num_gpus == expected_num_gpus
-
-
-@pytest.mark.parametrize(
-    ["gpus", "expected_num_gpus", "strategy"],
-    [
-        pytest.param(None, 0, None, id="None - expect 0 gpu to use."),
-        pytest.param(None, 0, "ddp", id="None - expect 0 gpu to use."),
-    ],
-)
-def test_trainer_num_gpu_0(mocked_device_count_0, gpus, expected_num_gpus, strategy):
-    assert Trainer(gpus=gpus, strategy=strategy).num_gpus == expected_num_gpus
-
-
 # Asking for a gpu when non are available will result in a MisconfigurationException
 @pytest.mark.parametrize(
     ["gpus", "expected_root_gpu", "strategy"],

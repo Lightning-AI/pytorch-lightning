@@ -527,7 +527,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `Trainer.devices` in favor of `Trainer.num_devices` and `Trainer.device_ids` ([#12151](https://github.com/PyTorchLightning/pytorch-lightning/pull/12151))
 
 
-- Deprecated `Trainer.root_gpu` in favor of `Trainer.strategy.root_device.index` when GPU is used. ([#12262](https://github.com/PyTorchLightning/pytorch-lightning/pull/12262))
+- Deprecated `Trainer.root_gpu` in favor of `Trainer.strategy.root_device.index` when GPU is used ([#12262](https://github.com/PyTorchLightning/pytorch-lightning/pull/12262))
+
+
+- Deprecated `Trainer.num_gpus` in favor of `Trainer.num_devices` when GPU is used ([#12384](https://github.com/PyTorchLightning/pytorch-lightning/pull/12384))
 
 
 ### Removed
@@ -718,6 +721,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed `AcceleratorConnector.root_gpu` property ([#12262](https://github.com/PyTorchLightning/pytorch-lightning/pull/12262))
+
+
+- Removed `AcceleratorConnector.num_gpus` property ([#12384](https://github.com/PyTorchLightning/pytorch-lightning/pull/12384))
 
 
 ### Fixed
