@@ -54,6 +54,7 @@ from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
     PassThroughProfiler,
+    Profiler,
     PyTorchProfiler,
     SimpleProfiler,
     XLAProfiler,
@@ -1759,7 +1760,7 @@ class Trainer(
     def _log_api_event(event: str) -> None:
         torch._C._log_api_usage_once("lightning.trainer." + event)
 
-    def __init_profiler(self, profiler: Optional[Union[BaseProfiler, str]]) -> None:
+    def __init_profiler(self, profiler: Optional[Union[Profiler, str]]) -> None:
         if isinstance(profiler, str):
             PROFILERS = {
                 "simple": SimpleProfiler,
@@ -1775,7 +1776,7 @@ class Trainer(
                 )
             profiler_class = PROFILERS[profiler]
             profiler = profiler_class()
-        self.profiler: BaseProfiler = profiler or PassThroughProfiler()
+        self.profiler: Profiler = profiler or PassThroughProfiler()
 
     def __setup_profiler(self) -> None:
         local_rank = self.local_rank if self.world_size > 1 else None
