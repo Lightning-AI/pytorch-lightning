@@ -1,1 +1,9 @@
+numpy: 1.22.3
 torch: 1.11.0
+tqdm: 4.63.0
+PyYAML: 6.0
+fsspec[http]: 2022.2.0
+tensorboard: 2.8.0
+torchmetrics: 0.7.2
+packaging: 21.3
+typing-extensions: 4.1.1
