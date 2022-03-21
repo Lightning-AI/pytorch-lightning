@@ -263,7 +263,7 @@ and override some of its methods. The following is a simple example that profile
 
 .. code-block:: python
 
-    from pytorch_lightning.profiler.base import Profiler
+    from pytorch_lightning.profiler import Profiler
     from collections import defaultdict
     import time
 
