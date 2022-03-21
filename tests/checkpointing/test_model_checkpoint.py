@@ -1251,44 +1251,32 @@ def test_resume_training_preserves_old_ckpt_last(tmpdir):
     """Ensures that the last saved checkpoint is not deleted from the previous folder when training is resumed from
     the old checkpoint."""
     model = BoringModel()
-    trainer_kwargs = dict(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=3,
-        limit_val_batches=0,
-        enable_model_summary=False,
-        logger=False,
-    )
-    mc_cb = ModelCheckpoint(
-        filename="{step}",
-        monitor="step",
-        mode="max",
-        save_last=True,
-        save_top_k=2,
-        every_n_train_steps=1,
-    )
-    trainer = Trainer(**trainer_kwargs, callbacks=mc_cb)
+    trainer_kwargs = {
+        "default_root_dir": tmpdir,
+        "max_epochs": 1,
+        "limit_train_batches": 3,
+        "limit_val_batches": 0,
+        "enable_model_summary": False,
+        "logger": False,
+    }
+    mc_kwargs = {
+        "filename": "{step}",
+        "monitor": "step",
+        "mode": "max",
+        "save_last": True,
+        "save_top_k": 2,
+        "every_n_train_steps": 1,
+    }
+    trainer = Trainer(**trainer_kwargs, callbacks=ModelCheckpoint(**mc_kwargs))
     trainer.fit(model)
-
     # Make sure that the last checkpoint file exists in the dirpath passed (`tmpdir`)
     assert os.listdir(tmpdir / "checkpoints") == ["last.ckpt", "step=2.ckpt", "step=3.ckpt"]
 
     # Training it for 2 epochs for extra surety, that nothing gets deleted after multiple epochs
     trainer_kwargs["max_epochs"] += 1
-    trainer = Trainer(
-        **trainer_kwargs,
-        callbacks=ModelCheckpoint(
-            dirpath=tmpdir / "new",
-            filename="{step}",
-            monitor="step",
-            mode="max",
-            save_last=True,
-            save_top_k=2,
-            every_n_train_steps=1,
-        ),
-    )
+    mc_kwargs["dirpath"] = f"{tmpdir}/new"
+    trainer = Trainer(**trainer_kwargs, callbacks=ModelCheckpoint(**mc_kwargs))
     trainer.fit(model, ckpt_path=f"{tmpdir}/checkpoints/step=2.ckpt")
-
     # Ensure that the file is not deleted from the old folder
     assert os.path.isfile(f"{tmpdir}/checkpoints/last.ckpt")
 
