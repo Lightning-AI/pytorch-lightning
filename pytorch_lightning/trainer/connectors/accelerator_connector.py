@@ -849,12 +849,6 @@ class AcceleratorConnector:
         return 0
 
     @property
-    def num_hpus(self) -> int:
-        if isinstance(self.accelerator, HPUAccelerator):
-            return self.devices
-        return 0
-
-    @property
     def gpus(self) -> Optional[Union[List[int], str, int]]:
         return self._gpus
 
