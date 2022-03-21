@@ -27,7 +27,7 @@ unzip -o legacy/checkpoints.zip -d legacy/
 
 Note: These checkpoints are generated to set baselines for maintaining backward compatibility with legacy versions of PyTorch Lightning. Details of checkpoints for back-compatibility can be found [here](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/legacy/README.md).
 
-You can run the full test-case in your terminal via this make script:
+You can run the full test suite in your terminal via this make script:
 
 ```bash
 make test
