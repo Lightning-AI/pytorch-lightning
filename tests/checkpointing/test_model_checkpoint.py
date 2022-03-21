@@ -38,7 +38,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
-from tests.helpers import BoringModel, RandomDataset
+from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
@@ -1248,74 +1248,49 @@ def test_model_checkpoint_saveload_ckpt(tmpdir):
 
 
 def test_resume_training_preserves_old_ckpt_last(tmpdir):
-    # This test ensures that the last checkpoint when saved is not deleted from the previous folder
-    # (when training is resumed from the old checkpoint)
-
-    from torch.utils.data import DataLoader
-
-    from pytorch_lightning import LightningModule
-
-    class BoringModel(LightningModule):
-        def __init__(self):
-            super().__init__()
-            self.layer = torch.nn.Linear(8, 2)
-
-        def forward(self, x):
-            return self.layer(x)
-
-        def training_step(self, batch, batch_idx):
-            loss = self(batch).sum()
-            self.log("latest_is_best", self.global_step)
-            return {"loss": loss}
-
-        def configure_optimizers(self):
-            return torch.optim.SGD(self.layer.parameters(), lr=0.1)
-
-    train_data = DataLoader(RandomDataset(8, 16), batch_size=2)
+    """Ensures that the last saved checkpoint is not deleted from the previous folder when training is resumed from
+    the old checkpoint."""
     model = BoringModel()
-
-    old_ckpt = ModelCheckpoint(
-        dirpath=tmpdir,
-        monitor="latest_is_best",
+    trainer_kwargs = dict(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=3,
+        limit_val_batches=0,
+        enable_model_summary=False,
+        logger=False,
+    )
+    mc_cb = ModelCheckpoint(
+        filename="{step}",
+        monitor="step",
         mode="max",
         save_last=True,
-        filename="{epoch}-{step}-{latest_is_best}",
-        save_top_k=3,
+        save_top_k=2,
         every_n_train_steps=1,
     )
-    trainer = Trainer(
-        default_root_dir=os.getcwd(),
-        max_epochs=1,
-        limit_train_batches=5,
-        enable_model_summary=False,
-        callbacks=[old_ckpt],
-    )
-    trainer.fit(model, train_dataloaders=train_data)
+    trainer = Trainer(**trainer_kwargs, callbacks=mc_cb)
+    trainer.fit(model)
 
     # Make sure that the last checkpoint file exists in the dirpath passed (`tmpdir`)
-    assert os.path.isfile(f"{tmpdir}/last.ckpt")
+    assert os.listdir(tmpdir / "checkpoints") == ["last.ckpt", "step=2.ckpt", "step=3.ckpt"]
 
-    new_ckpt = ModelCheckpoint(
-        dirpath=str(tmpdir / "after-reload"),
-        monitor="latest_is_best",
-        mode="max",
-        save_last=True,
-        filename="{epoch}-{step}-{latest_is_best}",
-        save_top_k=3,
-        every_n_train_steps=1,
-    )
-    # Training it for 2 epochs for extra surity, that nothing gets deleted after multiple epochs
+    # Training it for 2 epochs for extra surety, that nothing gets deleted after multiple epochs
+    trainer_kwargs["max_epochs"] += 1
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
-        limit_train_batches=5,
-        max_epochs=2,
-        enable_model_summary=False,
-        callbacks=[new_ckpt],
+        **trainer_kwargs,
+        callbacks=ModelCheckpoint(
+            dirpath=tmpdir / "new",
+            filename="{step}",
+            monitor="step",
+            mode="max",
+            save_last=True,
+            save_top_k=2,
+            every_n_train_steps=1,
+        ),
     )
-    trainer.fit(model, train_dataloaders=train_data, ckpt_path=f"{tmpdir}/epoch=0-step=3-latest_is_best=3.0.ckpt")
+    trainer.fit(model, ckpt_path=f"{tmpdir}/checkpoints/step=2.ckpt")
 
     # Ensure that the file is not deleted from the old folder
-    assert os.path.isfile(f"{tmpdir}/last.ckpt")
+    assert os.path.isfile(f"{tmpdir}/checkpoints/last.ckpt")
 
 
 def test_save_last_saves_correct_last_model_path(tmpdir):

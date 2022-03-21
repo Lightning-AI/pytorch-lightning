@@ -623,7 +623,7 @@ class ModelCheckpoint(Callback):
 
     def _monitor_candidates(self, trainer: "pl.Trainer", epoch: int, step: int) -> Dict[str, _METRIC]:
         monitor_candidates = deepcopy(trainer.callback_metrics)
-        monitor_candidates.update(epoch=epoch, step=step)
+        monitor_candidates.update(epoch=torch.tensor(epoch), step=torch.tensor(step))
         return monitor_candidates
 
     def _save_last_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, _METRIC]) -> None:
