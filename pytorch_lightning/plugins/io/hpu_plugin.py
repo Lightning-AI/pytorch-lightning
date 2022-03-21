@@ -31,5 +31,5 @@ class HPUCheckpointIO(TorchCheckpointIO):
         fs.makedirs(os.path.dirname(path), exist_ok=True)
 
         checkpoint = move_data_to_device(checkpoint, torch.device("cpu"))
-        # write the checkpoint dictionary on the file
+        # write the checkpoint dictionary to the provided path
         atomic_save(checkpoint, path)

@@ -25,11 +25,14 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
-from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_LESSER_EQUAL_1_10_2
+from pytorch_lightning.utilities.imports import _HPU_AVAILABLE, _TORCH_LESSER_EQUAL_1_10_2
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+
+if _HPU_AVAILABLE:
+    import habana_frameworks.torch.core.hccl  # noqa: F401
+    from habana_frameworks.torch.utils.library_loader import load_habana_module
 
 log = logging.getLogger(__name__)
 
@@ -65,11 +68,7 @@ class HPUParallelStrategy(DDPStrategy):
         )
 
     def setup_environment(self) -> None:
-
-        from habana_frameworks.torch.utils.library_loader import load_habana_module
-
         load_habana_module()
-        import habana_frameworks.torch.core.hccl  # noqa: F401
 
         os.environ["ID"] = str(self.local_rank)
         os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "hccl"
