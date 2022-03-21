@@ -84,6 +84,7 @@ class AssistantCLI:
 
     @staticmethod
     def _lock_pkg_version(req: str, locked: Dict[str, str], comment_char: str = "#") -> str:
+        """For each line/package find locked version from specific file."""
         if comment_char in req:
             req = req[: req.index(comment_char)].strip()
         if not req:  # if requirement is not empty
@@ -98,7 +99,7 @@ class AssistantCLI:
     def replace_locked_versions(
         req_files: Sequence[str] = REQUIREMENT_FILES, lock_file: str = REQUIREMENT_LOCK
     ) -> None:
-        """Replace the min package version by fixed one."""
+        """Replace the package version by locked one."""
         with open(lock_file) as fp:
             locked = yaml.safe_load(fp)
         if isinstance(req_files, str):
@@ -110,6 +111,7 @@ class AssistantCLI:
 
     @staticmethod
     def _latest_pkg_version(req: str, comment_char: str = "#") -> tuple:
+        """Ask PyPI about the latest available package version on the stack."""
         sep_idx = [req.index(c) for c in "<=>[]" + comment_char if c in req]
         name = (req[: min(sep_idx)] if sep_idx else req).strip()
         if not name:
@@ -119,7 +121,7 @@ class AssistantCLI:
 
     @staticmethod
     def create_locked_versions(req_files: Sequence[str] = REQUIREMENT_FILES, lock_file: str = REQUIREMENT_LOCK) -> None:
-        """Replace the min package version by fixed one."""
+        """Create the min package version by fixed one."""
         if isinstance(req_files, str):
             req_files = [req_files]
 
