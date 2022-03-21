@@ -11,3 +11,71 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Optional
+
+import pytest
+import torch
+
+from pytorch_lightning import Callback, LightningModule, Trainer
+from pytorch_lightning.plugins import HPUPrecisionPlugin
+from pytorch_lightning.strategies.single_hpu import SingleHPUStrategy
+from tests.helpers.boring_model import BoringModel
+from tests.helpers.runif import RunIf
+
+
+@RunIf(hpu=True)
+def test_precision_plugin(hmp_params):
+
+    plugin = HPUPrecisionPlugin(precision="bf16", hmp_params=hmp_params)
+    assert plugin.precision == "bf16"
+
+
+@RunIf(hpu=True)
+def test_mixed_precision(tmpdir, hmp_params):
+    class TestCallback(Callback):
+        def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
+            assert trainer.strategy.model.precision == "bf16"
+            raise SystemExit
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        accelerator="hpu",
+        devices=1,
+        plugins=[HPUPrecisionPlugin(precision="bf16", hmp_params=hmp_params)],
+        callbacks=TestCallback(),
+    )
+    assert isinstance(trainer.strategy, SingleHPUStrategy)
+    assert isinstance(trainer.strategy.precision_plugin, HPUPrecisionPlugin)
+    assert trainer.strategy.precision_plugin.precision == "bf16"
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
+
+
+@RunIf(hpu=True)
+def test_pure_half_precision(tmpdir, hmp_params):
+    class TestCallback(Callback):
+        def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+            assert trainer.strategy.model.precision == 16
+            for param in trainer.strategy.model.parameters():
+                assert param.dtype == torch.float16
+            raise SystemExit
+
+    model = BoringModel()
+    model = model.half()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        accelerator="hpu",
+        devices=1,
+        plugins=[HPUPrecisionPlugin(precision=16, hmp_params=hmp_params)],
+        callbacks=TestCallback(),
+    )
+
+    assert isinstance(trainer.strategy, SingleHPUStrategy)
+    assert isinstance(trainer.strategy.precision_plugin, HPUPrecisionPlugin)
+    assert trainer.strategy.precision_plugin.precision == 16
+
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
