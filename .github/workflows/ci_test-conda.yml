@@ -44,7 +44,7 @@ jobs:
         # adjust versions according installed Torch version
         python ./requirements/adjust-versions.py requirements/extra.txt
         python ./requirements/adjust-versions.py requirements/examples.txt
-        pip install -q -r ./actions/requirements.txt
+        pip install -q -r .actions/requirements.txt
         python .actions/assistant.py replace_locked_versions
         pip install -r requirements/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         # set a per-test timeout of 2.5 minutes to fail sooner; this aids with hanging tests

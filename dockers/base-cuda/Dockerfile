@@ -82,7 +82,7 @@ RUN \
     python ./requirements/adjust-versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust-versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     python -c "print(' '.join([ln for ln in open('requirements/extra.txt').readlines() if 'horovod' in ln]))" > ./requirements/horovod.txt && \
-    pip install -q -r ./actions/requirements.txt && \
+    pip install -q -r .actions/requirements.txt && \
     python .actions/assistant.py requirements_prune_pkgs requirements/extra.txt "horovod" && \
     # Install all requirements \
     python .actions/assistant.py replace_locked_versions && \

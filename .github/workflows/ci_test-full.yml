@@ -50,7 +50,7 @@ jobs:
     - name: basic setup
       run: |
         pip --version
-        pip install -q -r ./actions/requirements.txt
+        pip install -q -r .actions/requirements.txt
 
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
