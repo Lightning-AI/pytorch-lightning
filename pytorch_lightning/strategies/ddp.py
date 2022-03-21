@@ -98,9 +98,8 @@ class DDPStrategy(ParallelStrategy):
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
-        if _TORCH_GREATER_EQUAL_1_10:
-            self._model_averaging_period = model_averaging_period
-            self._model_averager: Optional[ModelAverager] = None
+        self._model_averaging_period = model_averaging_period
+        self._model_averager: Optional[ModelAverager] = None
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
         self._rank_0_will_call_children_scripts: bool = False
@@ -238,7 +237,8 @@ class DDPStrategy(ParallelStrategy):
                 if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
                     self._enable_model_averaging()
 
-    def _enable_model_averaging(self):
+    def _enable_model_averaging(self) -> None:
+        # Only called when PyTorch version >= 1.10
         log.detail(f"{self.__class__.__name__}: reinitializing optimizers with post localSGD")
         if self._model_averaging_period is None:
             raise ValueError(
@@ -282,15 +282,19 @@ class DDPStrategy(ParallelStrategy):
             model: reference to the model, optionally defining optimizer step related hooks
             **kwargs: Any extra arguments to ``optimizer.step``
         """
-        super().optimizer_step(optimizer, opt_idx, closure, model, **kwargs)
+        optimizer_output = super().optimizer_step(optimizer, opt_idx, closure, model, **kwargs)
 
-        if _TORCH_GREATER_EQUAL_1_10 and self._model_averager is not None:
-            for opt in self.optimizers():
-                for group in opt.param_groups:
-                    for param in group["params"]:
-                        if param.grad is None:
-                            continue
-                        self._model_averager.average_parameters(iter(param))
+        if not _TORCH_GREATER_EQUAL_1_10 or self._model_averager is None:
+            return optimizer_output
+
+        for opt in self.optimizers():
+            for group in opt.param_groups:
+                for param in group["params"]:
+                    if param.grad is None:
+                        continue
+                    self._model_averager.average_parameters(iter(param))
+
+        return optimizer_output
 
     def configure_ddp(self) -> None:
         log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
