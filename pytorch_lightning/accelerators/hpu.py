@@ -40,9 +40,9 @@ class HPUAccelerator(Accelerator):
         return devices
 
     @staticmethod
-    def get_parallel_devices(devices: int) -> List[int]:
+    def get_parallel_devices(devices: int) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
-        return list(range(devices))
+        return [torch.device("hpu")] * devices
 
     @staticmethod
     def auto_device_count() -> int:
