@@ -125,7 +125,7 @@ of logging it to the output in your terminal. The output below shows the profili
 PyTorch Profiler
 ================
 
-PyTorch includes a `profiler <https://pytorch.org/docs/master/profiler.html>`_ that lets you inspect the cost of different operators
+PyTorch includes a `profiler <https://pytorch.org/docs/master/profiler.html>`__ that lets you inspect the cost of different operators
 inside your model - both on the CPU and GPU. It's used by our :class:`~pytorch_lightning.profiler.pytorch.PyTorchProfiler`.
 
 .. code-block:: python
