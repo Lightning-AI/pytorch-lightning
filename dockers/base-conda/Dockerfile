@@ -130,7 +130,7 @@ ENV \
 RUN \
    HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
    export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
-   cat requirements_horovod.txt && \
+   cat requirements/horovod.txt && \
    pip install --no-cache-dir -r requirements/horovod.txt && \
    rm -rf requirements/
 
