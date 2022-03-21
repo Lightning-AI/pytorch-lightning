@@ -808,7 +808,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed deepspeed keeping old sub-folders in same ckpt path ([#12194](https://github.com/PyTorchLightning/pytorch-lightning/pull/12194))
 
-  
+
 - Fixed the case where logger=None is passed to the Trainer ([#12249](https://github.com/PyTorchLightning/pytorch-lightning/pull/12249))
 
 
