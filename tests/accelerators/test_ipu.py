@@ -562,9 +562,9 @@ def test_accelerator_ipu_with_devices():
 
     trainer = Trainer(accelerator="ipu", devices=8)
 
-    assert trainer.num_devices == 8
     assert isinstance(trainer.strategy, IPUStrategy)
     assert isinstance(trainer.accelerator, IPUAccelerator)
+    assert trainer.num_devices == 8
 
 
 @RunIf(ipu=True)
@@ -582,6 +582,7 @@ def test_accelerator_ipu_with_ipus_priority():
     with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
         trainer = Trainer(accelerator="ipu", devices=1, ipus=ipus)
 
+    assert isinstance(trainer.accelerator, IPUAccelerator)
     assert trainer.num_devices == ipus
 
 
