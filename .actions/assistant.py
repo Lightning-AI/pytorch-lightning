@@ -93,7 +93,9 @@ class AssistantCLI:
         name = (req[: min(sep_idx)] if sep_idx else req).strip()
         if name not in locked:
             return req
-        return req + f", <={locked[name]}"
+        sep_needed = any(c in req for c in "<=>")
+        req += f"{',' if sep_needed else ''} <={locked[name]}"
+        return req
 
     @staticmethod
     def replace_locked_versions(
