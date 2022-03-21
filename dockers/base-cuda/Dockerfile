@@ -85,8 +85,9 @@ RUN \
     python -c "print(' '.join([ln for ln in open('requirements/extra.txt').readlines() if 'horovod' in ln]))" > ./requirements/horovod.txt && \
     python assistant.py requirements_prune_pkgs requirements/extra.txt "horovod" && \
     # Install all requirements \
+    python assistant.py replace_locked_versions && \
     pip install -r requirements/devel.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
-    rm -rf requirements.* && \
+    rm requirements.* && \
     rm assistant.py
 
 RUN \

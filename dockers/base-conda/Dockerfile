@@ -85,23 +85,25 @@ ENV \
     LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH"
 
 COPY ./requirements.txt requirements.txt
-COPY ./requirements/extra.txt requirements-extra.txt
-COPY ./requirements/examples.txt requirements-examples.txt
-COPY ./requirements/adjust-versions.py requirements_adjust_versions.py
+COPY ./requirements/ ./requirements/
 COPY ./.actions/assistant.py assistant.py
 
 RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
     python requirements_adjust_versions.py requirements-extra.txt && \
-    python -c "print(' '.join([ln for ln in open('requirements-extra.txt').readlines() if 'horovod' in ln]))" > requirements_horovod.txt && \
+    python -c "print(' '.join([ln for ln in open('requirements-extra.txt').readlines() if 'horovod' in ln]))" > requirements/horovod.txt && \
+    python ./requirements/adjust-versions.py requirements-examples.txt && \
     pip install -q fire && \
     python assistant.py requirements_prune_pkgs requirements-extra.txt "horovod" && \
-    python requirements_adjust_versions.py requirements-examples.txt && \
-    # Install remaining requirements
-    pip install -r requirements.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
-    pip install -r requirements-extra.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
-    pip install -r requirements-examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
+    python assistant.py replace_locked_versions && \
+    # Install remaining requirements \
+    pip install \
+      -r requirements.txt \
+      -r requirements/extra.txt \
+      -r requirements/examples.txt \
+      --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
+    rm requirements.* && \
     rm assistant.py
 
 RUN \
@@ -129,8 +131,8 @@ RUN \
    HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
    export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
    cat requirements_horovod.txt && \
-   pip install --no-cache-dir -r requirements_horovod.txt && \
-   rm requirements*
+   pip install --no-cache-dir -r requirements/horovod.txt && \
+   rm -rf requirements/
 
 RUN \
     CUDA_VERSION_MAJOR=$(python -c "import torch ; print(torch.version.cuda.split('.')[0])") && \
