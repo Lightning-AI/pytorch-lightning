@@ -18,8 +18,8 @@ from typing import Any, Dict, Optional
 import torch
 
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
+from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
-from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
 from pytorch_lightning.utilities.types import _PATH
 
 
@@ -30,9 +30,6 @@ class HPUCheckpointIO(TorchCheckpointIO):
         fs = get_filesystem(path)
         fs.makedirs(os.path.dirname(path), exist_ok=True)
 
-        if _HPU_AVAILABLE:
-            from pytorch_lightning.utilities.apply_func import move_data_to_device
-
-            checkpoint = move_data_to_device(checkpoint, torch.device("cpu"))
+        checkpoint = move_data_to_device(checkpoint, torch.device("cpu"))
         # write the checkpoint dictionary on the file
         atomic_save(checkpoint, path)

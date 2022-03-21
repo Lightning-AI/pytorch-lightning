@@ -36,14 +36,13 @@ class HPUPrecisionPlugin(PrecisionPlugin):
             raise MisconfigurationException("HPU precision plugin requires HPU support.")
         super().__init__()
         self.precision = precision
-        if hmp_params is not None:
+        if not hmp_params:
+            return
 
-            from habana_frameworks.torch.hpex import hmp
+        from habana_frameworks.torch.hpex import hmp
 
-            hmp_opt_level = hmp_params["level"]  # type: ignore
-            hmp_bf16 = hmp_params["bf16_ops"]  # type: ignore
-            hmp_fp32 = hmp_params["fp32_ops"]  # type: ignore
-            hmp_verbose = hmp_params["verbose"]  # type: ignore
-            hmp.convert(
-                opt_level=hmp_opt_level, bf16_file_path=hmp_bf16, fp32_file_path=hmp_fp32, isVerbose=hmp_verbose
-            )
+        hmp_opt_level = hmp_params["level"]  # type: ignore
+        hmp_bf16 = hmp_params["bf16_ops"]  # type: ignore
+        hmp_fp32 = hmp_params["fp32_ops"]  # type: ignore
+        hmp_verbose = hmp_params["verbose"]  # type: ignore
+        hmp.convert(opt_level=hmp_opt_level, bf16_file_path=hmp_bf16, fp32_file_path=hmp_fp32, isVerbose=hmp_verbose)

@@ -34,7 +34,6 @@ class SingleHPUStrategy(SingleDeviceStrategy):
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         checkpoint_io: Optional[HPUCheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
-        hmp_params: Optional[str] = None,
     ):
 
         if not _HPU_AVAILABLE:
@@ -46,10 +45,11 @@ class SingleHPUStrategy(SingleDeviceStrategy):
         import habana_frameworks.torch.core
         import habana_frameworks.torch.core.hccl  # noqa: F401
 
-        device = device
-        checkpoint_io = checkpoint_io or HPUCheckpointIO()
         super().__init__(
-            accelerator=accelerator, device=device, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin
+            accelerator=accelerator,
+            device=device,
+            checkpoint_io=checkpoint_io or HPUCheckpointIO(),
+            precision_plugin=precision_plugin,
         )
 
     @property
