@@ -284,7 +284,7 @@ def test_accelerator_auto_with_devices_hpu():
 def test_set_devices_if_none_hpu():
 
     trainer = Trainer(accelerator="hpu", devices=8)
-    assert trainer.devices == 8
+    assert trainer.num_devices == 8
 
 
 @RunIf(hpu=True)
@@ -312,7 +312,7 @@ def test_device_type_when_training_plugin_hpu_passed(tmpdir):
 @RunIf(hpu=True)
 def test_devices_auto_choice_hpu():
     trainer = Trainer(accelerator="auto", devices="auto")
-    assert trainer.devices == 8
+    assert trainer.num_devices == 8
 
 
 @RunIf(hpu=True)

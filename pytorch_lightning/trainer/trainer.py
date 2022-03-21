@@ -1796,7 +1796,7 @@ class Trainer(
         num_ipus = self.ipus if self.ipus is not None else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
-        num_hpus = self.devices if self.devices is not None else 0
+        num_hpus = self.hpus if self.hpus is not None else 0
         rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
 
         if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
