@@ -133,7 +133,7 @@ RUN \
 
 RUN \
     # install FairScale
-    pip install fairscale==0.4.0 && \
+    pip install fairscale==0.4.5 && \
     python -c "import fairscale; print(fairscale.__version__)"
 
 RUN \
