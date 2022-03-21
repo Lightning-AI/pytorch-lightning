@@ -563,9 +563,6 @@ class AcceleratorConnector:
         if self._accelerator_flag == "ipu":
             return IPUStrategy.strategy_name
         if self._accelerator_flag == "hpu":
-            if not _HPU_AVAILABLE:
-                raise MisconfigurationException("HPU Accelerator requires HPU devices to run")
-
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return HPUParallelStrategy(parallel_devices=self.parallel_devices)  # type: ignore
             else:
