@@ -2051,7 +2051,11 @@ class Trainer(
 
     @property
     def num_processes(self) -> int:
-        return self._accelerator_connector.num_processes
+        rank_zero_deprecation(
+            "`Trainer.num_processes` is deprecated in v1.6 and will be removed in v1.8. "
+            "Please use `Trainer.num_devices` instead."
+        )
+        return self.num_devices
 
     @property
     def root_gpu(self) -> Optional[int]:
