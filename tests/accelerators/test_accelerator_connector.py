@@ -936,22 +936,6 @@ def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
         Trainer(accelerator="ipu", precision=64)
 
 
-@mock.patch("pytorch_lightning.accelerators.hpu.HPUAccelerator.is_available", return_value=True)
-def test_unsupported_hpu_choice(monkeypatch):
-    import pytorch_lightning.strategies.single_hpu as single_hpu
-    import pytorch_lightning.utilities.imports as imports
-    from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
-
-    monkeypatch.setattr(imports, "_HPU_AVAILABLE", True)
-    monkeypatch.setattr(single_hpu, "_HPU_AVAILABLE", True)
-    monkeypatch.setattr(AcceleratorConnector, "_HPU_AVAILABLE", True)
-    with pytest.raises(
-        MisconfigurationException,
-        match=r"accelerator='hpu', precision=64\)` is not supported|HPU Accelerator requires HPU devices to run",
-    ):
-        Trainer(accelerator="hpu", precision=64)
-
-
 @mock.patch("torch.cuda.is_available", return_value=False)
 @mock.patch("pytorch_lightning.utilities.imports._TPU_AVAILABLE", return_value=False)
 @mock.patch("pytorch_lightning.utilities.imports._IPU_AVAILABLE", return_value=False)

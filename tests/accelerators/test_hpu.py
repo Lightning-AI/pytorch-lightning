@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from unittest import mock
 
 import pytest
 import torch
@@ -41,9 +40,8 @@ def test_availability():
 
 
 @pytest.mark.skipif(_HPU_AVAILABLE, reason="test requires non-HPU machine")
-@mock.patch("pytorch_lightning.accelerators.hpu.HPUAccelerator.is_available", return_value=True)
 def test_fail_if_no_hpus():
-    with pytest.raises(MisconfigurationException, match="HPU Accelerator requires HPU devices to run"):
+    with pytest.raises(MisconfigurationException, match="HPUAccelerator can not run on your system"):
         Trainer(accelerator="hpu", devices=1)
 
 
