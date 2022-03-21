@@ -57,7 +57,7 @@ jobs:
     - name: Setup Windows
       if: runner.os == 'windows'
       run: |
-        python .actions/assistant.py requirements_prune_pkgs requirements/extra.txt --packages horovod
+        python .actions/assistant.py requirements_prune_pkgs horovod
     - name: Set min. dependencies
       if: matrix.requires == 'oldest'
       run: |

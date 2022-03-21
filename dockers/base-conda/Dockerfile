@@ -96,7 +96,7 @@ RUN \
     python requirements_adjust_versions.py requirements-extra.txt && \
     python -c "print(' '.join([ln for ln in open('requirements-extra.txt').readlines() if 'horovod' in ln]))" > requirements_horovod.txt && \
     pip install -q fire && \
-    python assistant.py requirements_prune_pkgs requirements-extra.txt "horovod" && \
+    python assistant.py requirements_prune_pkgs "horovod" --req_files requirements-extra.txt && \
     python requirements_adjust_versions.py requirements-examples.txt && \
     # Install remaining requirements
     pip install -r requirements.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
@@ -123,7 +123,7 @@ ENV \
     HOROVOD_WITHOUT_TENSORFLOW=1 \
     HOROVOD_WITHOUT_MXNET=1 \
     HOROVOD_WITH_GLOO=1 \
-    HOROVOD_WITHOUT_MPI=1
+    HOROVOD_WITH_MPI=1
 
 RUN \
    HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
@@ -154,4 +154,5 @@ RUN \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
-    python -c "import horovod.torch"
+    python -c "import horovod.torch" && \
+    python -c "from horovod.torch import nccl_built; nccl_built()"
