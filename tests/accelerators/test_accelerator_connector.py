@@ -522,7 +522,7 @@ def test_accelerator_cpu_with_devices(devices, plugin):
 
     trainer = Trainer(accelerator="cpu", devices=devices)
 
-    assert trainer.devices == devices
+    assert trainer.num_devices == devices
     assert isinstance(trainer.strategy, plugin)
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
@@ -535,7 +535,7 @@ def test_accelerator_gpu_with_devices(devices, plugin):
 
     trainer = Trainer(accelerator="gpu", devices=devices)
 
-    assert trainer.devices == devices
+    assert trainer.num_devices == devices
     assert isinstance(trainer.strategy, plugin)
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
@@ -557,7 +557,7 @@ def test_validate_accelerator_and_devices():
 def test_set_devices_if_none_cpu():
 
     trainer = Trainer(accelerator="cpu", devices=3)
-    assert trainer.devices == 3
+    assert trainer.num_devices == 3
 
 
 def test_devices_with_cpu_only_supports_integer():

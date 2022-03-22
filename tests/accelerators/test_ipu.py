@@ -475,7 +475,7 @@ def test_replication_factor(tmpdir):
 
     plugin = IPUStrategy()
     trainer = Trainer(accelerator="ipu", devices=2, default_root_dir=tmpdir, fast_dev_run=True, strategy=plugin)
-    assert trainer.devices == 2
+    assert trainer.num_devices == 2
     assert trainer.strategy.replication_factor == 2
 
     model = BoringModel()
@@ -566,7 +566,7 @@ def test_accelerator_ipu_with_devices():
 
     trainer = Trainer(accelerator="ipu", devices=8)
 
-    assert trainer.devices == 8
+    assert trainer.num_devices == 8
     assert isinstance(trainer.strategy, IPUStrategy)
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
