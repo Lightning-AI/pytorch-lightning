@@ -248,6 +248,7 @@ Example::
 
 .. code-block:: python
 
+    # This is part of the built-in `GPUAccelerator`
     class GPUAccelerator(Accelerator):
         """Accelerator for GPU devices."""
 
