@@ -45,7 +45,7 @@ def test_accelerator_registry_with_new_accelerator():
     assert accelerator_name in AcceleratorRegistry
     assert isinstance(AcceleratorRegistry.get(accelerator_name), TestAccelerator)
 
-    trainer = Trainer(accelerator="custom_accelerator", devices="auto")
+    trainer = Trainer(accelerator=accelerator_name, devices="auto")
     assert isinstance(trainer.accelerator, TestAccelerator)
     assert trainer._accelerator_connector.parallel_devices == ["foo"] * 3
 
