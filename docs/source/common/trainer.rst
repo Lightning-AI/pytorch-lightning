@@ -600,7 +600,8 @@ based on the accelerator type (``"cpu", "gpu", "tpu", "ipu", "auto"``).
     trainer = Trainer(devices="auto", accelerator="ipu")
 
 .. note::
-    If the `devices` flag is not defined, it will assume `devices`` to be `"auto"` and fetch the `auto_device_count`
+
+    If the ``devices`` flag is not defined, it will assume ``devices`` to be ``"auto"`` and fetch the ``auto_device_count``
     from the accelerator.
 
     .. code-block:: python
