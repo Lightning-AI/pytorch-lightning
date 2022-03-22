@@ -48,7 +48,7 @@ def test_accelerator_selected():
 
 @RunIf(hpu=True)
 def test_all_stages(tmpdir, hpus):
-    """Tests all the model stages using BoringModel on HPU"""
+    """Tests all the model stages using BoringModel on HPU."""
     model = BoringModel()
 
     trainer = Trainer(

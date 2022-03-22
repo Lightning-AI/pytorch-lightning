@@ -132,7 +132,7 @@ class HPUParallelStrategy(DDPStrategy):
 
         if self.root_device.type == "hpu":
             log.detail(f"{self.__class__.__name__}: moving model to CPU")
-            self.lightning_module.cpu() # type: ignore
+            self.lightning_module.cpu()  # type: ignore
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
