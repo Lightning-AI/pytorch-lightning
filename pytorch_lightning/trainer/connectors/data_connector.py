@@ -22,7 +22,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
-from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSampler
+from pytorch_lightning.overrides.distributed import UnrepeatedDistributedSampler,WeightedDistSampler
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader, CycleIterator
@@ -322,20 +322,25 @@ class DataConnector:
 
     def _resolve_sampler(self, dataloader: DataLoader, shuffle: bool, mode: Optional[RunningStage] = None) -> Sampler:
         if self._requires_distributed_sampler(dataloader):
-            if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler)):
+            if not isinstance(dataloader.sampler, (SequentialSampler, RandomSampler,WeightedRandomSampler)):
                 raise MisconfigurationException(
                     "You seem to have configured a sampler in your DataLoader. This will be replaced"
                     " by `DistributedSampler` since `replace_sampler_ddp` is True and you are using"
                     " distributed training. Either remove the sampler from your DataLoader or set"
                     " `replace_sampler_ddp=False` if you want to use your custom sampler."
                 )
-            sampler = self._get_distributed_sampler(
+            
+            # replace with distributed sampler
+            if isinstance(dataloader.sampler,WeightedRandomSampler):
+                sampler=WeightedDistSampler(dataloader.dataset,dataloader.sampler.weights)
+            else:    
+                sampler = self._get_distributed_sampler(
                 dataloader,
                 shuffle,
                 mode=mode,
                 overfit_batches=self.trainer.overfit_batches,
                 **self.trainer.distributed_sampler_kwargs,
-            )
+                )
 
             # update docs too once this is resolved
             trainer_fn = self.trainer.state.fn
