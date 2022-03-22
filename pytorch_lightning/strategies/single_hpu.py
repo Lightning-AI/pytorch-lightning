@@ -22,6 +22,10 @@ from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _DEVICE
 
+if _HPU_AVAILABLE:
+    import habana_frameworks.torch.core.hccl  # noqa: F401
+    from habana_frameworks.torch.utils.library_loader import load_habana_module
+
 
 class SingleHPUStrategy(SingleDeviceStrategy):
     """Strategy for training on single HPU device."""
@@ -39,12 +43,7 @@ class SingleHPUStrategy(SingleDeviceStrategy):
         if not _HPU_AVAILABLE:
             raise MisconfigurationException("`SingleHPUStrategy` requires HPU devices to run")
 
-        from habana_frameworks.torch.utils.library_loader import load_habana_module
-
         load_habana_module()
-        import habana_frameworks.torch.core
-        import habana_frameworks.torch.core.hccl  # noqa: F401
-
         super().__init__(
             accelerator=accelerator,
             device=device,
