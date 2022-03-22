@@ -94,47 +94,6 @@ def mocked_device_count_0(monkeypatch):
     monkeypatch.setattr(torch.cuda, "device_count", device_count)
 
 
-@pytest.mark.parametrize(
-    ["devices", "expected_num_gpus", "strategy"],
-    [
-        pytest.param(1, 1, None, id="1st gpu, expect 1 gpu to use."),
-        pytest.param(-1, PRETEND_N_OF_GPUS, "ddp", id="-1 - use all gpus"),
-        pytest.param("-1", PRETEND_N_OF_GPUS, "ddp", id="'-1' - use all gpus"),
-        pytest.param(3, 3, "ddp", id="3rd gpu - 1 gpu to use (backend:ddp)"),
-    ],
-)
-@mock.patch("torch.cuda.is_available", return_value=True)
-def test_trainer_gpu_parse(_, mocked_device_count, devices, expected_num_gpus, strategy):
-    assert Trainer(accelerator="gpu", devices=devices, strategy=strategy).num_gpus == expected_num_gpus
-
-
-@pytest.mark.parametrize(
-    ["devices", "expected_root_gpu", "strategy"],
-    [
-        pytest.param(1, 0, "ddp", id="1 gpu, expect gpu root device to be 0."),
-        pytest.param(-1, 0, "ddp", id="-1 - use all gpus, expect gpu root device to be 0."),
-        pytest.param("-1", 0, "ddp", id="'-1' - use all gpus, expect gpu root device to be 0."),
-        pytest.param(3, 0, "ddp", id="3 gpus, expect gpu root device to be 0.(backend:ddp)"),
-    ],
-)
-@mock.patch("torch.cuda.device_count", return_value=3)
-@mock.patch("torch.cuda.is_available", return_value=True)
-def test_root_gpu_property(_, mocked_device_count, devices, expected_root_gpu, strategy):
-    assert Trainer(accelerator="gpu", devices=devices, strategy=strategy).root_gpu == expected_root_gpu
-
-
-@pytest.mark.parametrize(
-    ["gpus", "expected_root_gpu", "strategy"],
-    [
-        pytest.param(None, None, None, id="None is None"),
-        pytest.param(None, None, "ddp", id="None is None"),
-        pytest.param(0, None, "ddp", id="None is None"),
-    ],
-)
-def test_root_gpu_property_0_passing(mocked_device_count_0, gpus, expected_root_gpu, strategy):
-    assert Trainer(gpus=gpus, strategy=strategy).root_gpu == expected_root_gpu
-
-
 # Asking for a gpu when non are available will result in a MisconfigurationException
 @pytest.mark.parametrize(
     ["devices", "expected_root_gpu", "strategy"],
@@ -222,6 +181,7 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
         "RANK": "3",
         "WORLD_SIZE": "4",
         "LOCAL_WORLD_SIZE": "2",
+        "TORCHELASTIC_RUN_ID": "1",
     },
 )
 @mock.patch("torch.cuda.device_count", return_value=1)
