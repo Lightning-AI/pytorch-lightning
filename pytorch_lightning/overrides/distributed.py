@@ -120,7 +120,7 @@ class UnrepeatedDistributedSampler(DistributedSampler):
         return iter(indices)
 
 class WeightedDistSampler(UnrepeatedDistributedSampler):
-     """An extension of the above that aims to use random weightings provided. 
+    """An extension of the above that aims to use random weightings provided. 
      The goal is to not repeat data, instead allowing the number of batches
     per process to be off-by-one from each other.However, with purely random sampling with replacement this
     is nearly impossible to garuntee no overlap. We therefore must trust the users to use sensible weight veriance. 
