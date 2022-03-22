@@ -90,7 +90,11 @@ class BaseFinetuning(Callback):
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         self._restarting = True
-        self._internal_optimizer_metadata = state_dict["internal_optimizer_metadata"]
+        if "internal_optimizer_metadata" in state_dict:
+            self._internal_optimizer_metadata = state_dict["internal_optimizer_metadata"]
+        else:
+            # compatibility to load from old checkpoints before PR #11887
+            self._internal_optimizer_metadata = state_dict
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         # restore the param_groups created during the previous training.
