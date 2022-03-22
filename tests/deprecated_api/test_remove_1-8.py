@@ -37,7 +37,7 @@ from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnSharde
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
-from pytorch_lightning.profiler import AbstractProfiler, AdvancedProfiler, SimpleProfiler
+from pytorch_lightning.profiler import AbstractProfiler, AdvancedProfiler, BaseProfiler, Profiler, SimpleProfiler
 from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
@@ -724,7 +724,7 @@ def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list)
     iterable = _sleep_generator(expected)
 
     with pytest.deprecated_call(
-        match="`BaseProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."
+        match="`SimpleProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."
     ):
         for _ in simple_profiler.profile_iterable(iterable, action):
             pass
@@ -737,7 +737,7 @@ def test_simple_profiler_iterable_durations(tmpdir, action: str, expected: list)
     iterable = _sleep_generator(expected)
 
     with pytest.deprecated_call(
-        match="`BaseProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."
+        match="`AdvancedProfiler.profile_iterable` is deprecated in v1.6 and will be removed in v1.8."
     ):
         for _ in advanced_profiler.profile_iterable(iterable, action):
             pass
@@ -927,6 +927,65 @@ def test_root_gpu_property_0_passing(monkeypatch, gpus, expected_root_gpu, strat
         assert Trainer(gpus=gpus, strategy=strategy).root_gpu == expected_root_gpu
 
 
+@pytest.mark.parametrize(
+    ["gpus", "expected_num_gpus", "strategy"],
+    [
+        pytest.param(None, 0, None, id="None - expect 0 gpu to use."),
+        pytest.param(0, 0, None, id="Oth gpu, expect 1 gpu to use."),
+        pytest.param(1, 1, None, id="1st gpu, expect 1 gpu to use."),
+        pytest.param(-1, 16, "ddp", id="-1 - use all gpus"),
+        pytest.param("-1", 16, "ddp", id="'-1' - use all gpus"),
+        pytest.param(3, 3, "ddp", id="3rd gpu - 1 gpu to use (backend:ddp)"),
+    ],
+)
+def test_trainer_gpu_parse(monkeypatch, gpus, expected_num_gpus, strategy):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 16)
+    with pytest.deprecated_call(
+        match="`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
+        " Please use `Trainer.num_devices` instead."
+    ):
+        assert Trainer(gpus=gpus, strategy=strategy).num_gpus == expected_num_gpus
+
+
+@pytest.mark.parametrize(
+    ["gpus", "expected_num_gpus", "strategy"],
+    [
+        pytest.param(None, 0, None, id="None - expect 0 gpu to use."),
+        pytest.param(None, 0, "ddp", id="None - expect 0 gpu to use."),
+    ],
+)
+def test_trainer_num_gpu_0(monkeypatch, gpus, expected_num_gpus, strategy):
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 0)
+    with pytest.deprecated_call(
+        match="`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
+        " Please use `Trainer.num_devices` instead."
+    ):
+        assert Trainer(gpus=gpus, strategy=strategy).num_gpus == expected_num_gpus
+
+
+def test_v1_8_0_base_profiler(tmpdir):
+    class CustomProfiler1(BaseProfiler):
+        def start(self, action_name: str) -> None:
+            pass
+
+        def stop(self, action_name: str) -> None:
+            pass
+
+    class CustomProfiler2(Profiler):
+        def start(self, action_name: str) -> None:
+            pass
+
+        def stop(self, action_name: str) -> None:
+            pass
+
+    with pytest.deprecated_call(match="`BaseProfiler` was deprecated in v1.6"):
+        CustomProfiler1()
+
+    # No deprecation message
+    CustomProfiler2()
+
+    
 def test_v1_8_0_callback_on_load_checkpoint_hook(tmpdir):
     class TestCallbackLoadHook(Callback):
         def on_load_checkpoint(self, trainer, pl_module, callback_state):

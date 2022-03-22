@@ -35,7 +35,15 @@ class AssistantCLI:
             fp.write(init)
 
     @staticmethod
-    def requirements_prune_pkgs(req_file: str, packages: Sequence[str]) -> None:
+    def requirements_prune_pkgs(packages: Sequence[str], req_files: Sequence[str] = REQUIREMENT_FILES) -> None:
+        """Remove some packages from given requirement files."""
+        if isinstance(req_files, str):
+            req_files = [req_files]
+        for req in req_files:
+            AssistantCLI._prune_packages(req, packages)
+
+    @staticmethod
+    def _prune_packages(req_file: str, packages: Sequence[str]) -> None:
         """Remove some packages from given requirement files."""
         with open(req_file) as fp:
             lines = fp.readlines()

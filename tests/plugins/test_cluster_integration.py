@@ -49,6 +49,7 @@ def environment_combinations():
         "RANK": "3",
         "WORLD_SIZE": "4",
         "LOCAL_WORLD_SIZE": "2",
+        "TORCHELASTIC_RUN_ID": "1",
     }
     environment = TorchElasticEnvironment()
     yield environment, variables, expected
