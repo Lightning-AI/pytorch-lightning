@@ -256,7 +256,7 @@ Control Logging Frequency
 Logging frequency
 =================
 
-It may slow training down to log every single batch. By default, Lightning logs every 50 rows, or 50 training steps.
+It may slow down training to log on every single batch. By default, Lightning logs every 50 rows, or 50 training steps.
 To change this behaviour, set the ``log_every_n_steps`` :class:`~pytorch_lightning.trainer.trainer.Trainer` flag.
 
 .. testcode::
@@ -268,7 +268,7 @@ To change this behaviour, set the ``log_every_n_steps`` :class:`~pytorch_lightni
 Log Writing Frequency
 =====================
 
-Individual logger implementations determine their flushing frequency and behavior. For example, on the
+Individual logger implementations determine their flushing frequency. For example, on the
 :class:`~pytorch_lightning.loggers.csv_logs.CSVLogger` you can set the flag ``flush_logs_every_n_steps``.
 
 ----------
