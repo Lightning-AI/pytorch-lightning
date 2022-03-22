@@ -1087,7 +1087,7 @@ def test_deepspeed_with_meta_device(tmpdir):
     assert model.layer.weight.device.type == "cpu"
 
 
-@RunIf(min_gpus=2, deepspeed=True)
+@RunIf(min_gpus=2, deepspeed=True, standalone=True)
 def test_deepspeed_multi_save_same_filepath(tmpdir):
     """Test that verifies that deepspeed saves only latest checkpoint in the specified path and deletes the old
     sharded checkpoints."""
