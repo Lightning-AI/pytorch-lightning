@@ -159,10 +159,9 @@ def test_ddp_post_local_sgd_comm_hook(tmpdir):
     ],
 )
 def test_post_local_sgd_model_averaging(average_parameters_mock, tmpdir, strategy):
-    """Test that when using DDP with post-localSGD model averaging is called when it should be."""
+    """Test that when using DDP with post-localSGD, model averaging is called."""
     model = BoringModel()
 
-    # Test that for regular ddp PeriodicModelAverager.average_parameters is not called
     trainer = Trainer(
         fast_dev_run=True,
         gpus=2,
