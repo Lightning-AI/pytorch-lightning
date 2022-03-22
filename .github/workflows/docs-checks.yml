@@ -43,7 +43,7 @@ jobs:
           pip --version
           pip install -q fire
           # remove Horovod from requirements
-          python .actions/assistant.py requirements_prune_pkgs requirements/extra.txt --packages horovod
+          python .actions/assistant.py requirements_prune_pkgs horovod
           # python -m pip install --upgrade --user pip
           pip install --requirement requirements.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
           pip install --requirement requirements/extra.txt

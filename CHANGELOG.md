@@ -497,7 +497,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated passing `weights_save_path` to the `Trainer` constructor in favor of adding the `ModelCheckpoint` callback with `dirpath` directly to the list of callbacks ([#12084](https://github.com/PyTorchLightning/pytorch-lightning/pull/12084))
 
 
-- Deprecated `pytorch_lightning.profiler.AbstractProfiler` in favor of `pytorch_lightning.profiler.BaseProfiler` ([#12106](https://github.com/PyTorchLightning/pytorch-lightning/pull/12106))
+- Deprecated `pytorch_lightning.profiler.AbstractProfiler` in favor of `pytorch_lightning.profiler.Profiler` ([#12106](https://github.com/PyTorchLightning/pytorch-lightning/pull/12106))
+
+
+- Deprecated `pytorch_lightning.profiler.BaseProfiler` in favor of `pytorch_lightning.profiler.Profiler` ([#12150](https://github.com/PyTorchLightning/pytorch-lightning/pull/12150))
 
 
 - Deprecated `BaseProfiler.profile_iterable` ([#12102](https://github.com/PyTorchLightning/pytorch-lightning/pull/12102))
@@ -527,7 +530,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `Trainer.devices` in favor of `Trainer.num_devices` and `Trainer.device_ids` ([#12151](https://github.com/PyTorchLightning/pytorch-lightning/pull/12151))
 
 
-- Deprecated `Trainer.root_gpu` in favor of `Trainer.strategy.root_device.index` when GPU is used. ([#12262](https://github.com/PyTorchLightning/pytorch-lightning/pull/12262))
+- Deprecated `Trainer.root_gpu` in favor of `Trainer.strategy.root_device.index` when GPU is used ([#12262](https://github.com/PyTorchLightning/pytorch-lightning/pull/12262))
+
+
+- Deprecated `Trainer.num_gpus` in favor of `Trainer.num_devices` when GPU is used ([#12384](https://github.com/PyTorchLightning/pytorch-lightning/pull/12384))
+
+
+- Deprecated `Trainer.num_processes` in favor of `Trainer.num_devices` ([#12388](https://github.com/PyTorchLightning/pytorch-lightning/pull/12388))
 
 
 ### Removed
@@ -720,6 +729,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `AcceleratorConnector.root_gpu` property ([#12262](https://github.com/PyTorchLightning/pytorch-lightning/pull/12262))
 
 
+- Removed `AcceleratorConnector.tpu_id` property ([#12387](https://github.com/PyTorchLightning/pytorch-lightning/pull/12387))
+
+
+- Removed `AcceleratorConnector.num_gpus` property ([#12384](https://github.com/PyTorchLightning/pytorch-lightning/pull/12384))
+
+
+- Removed `AcceleratorConnector.num_processes` property ([#12388](https://github.com/PyTorchLightning/pytorch-lightning/pull/12388))
+
+
 ### Fixed
 
 - Fixed an issue where `ModelCheckpoint` could delete older checkpoints when `dirpath` has changed during resumed training ([#12045](https://github.com/PyTorchLightning/pytorch-lightning/pull/12045))
@@ -806,7 +824,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed to avoid common hook warning if no hook is overridden ([#12131](https://github.com/PyTorchLightning/pytorch-lightning/pull/12131))
 
 
-- Fixed the case where logger=None is passed to the Trainer ([#12249](https://github.com/PyTorchLightning/pytorch-lightning/pull/12249))
+- Fixed the case where `logger=None` is passed to the Trainer ([#12249](https://github.com/PyTorchLightning/pytorch-lightning/pull/12249))
+
+
+- Fixed initializing optimizers unnecessarily in `DDPFullyShardedStrategy` ([#12267](https://github.com/PyTorchLightning/pytorch-lightning/pull/12267))
 
 
 ## [1.5.10] - 2022-02-08

@@ -54,6 +54,7 @@ from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
     PassThroughProfiler,
+    Profiler,
     PyTorchProfiler,
     SimpleProfiler,
     XLAProfiler,
@@ -1759,7 +1760,7 @@ class Trainer(
     def _log_api_event(event: str) -> None:
         torch._C._log_api_usage_once("lightning.trainer." + event)
 
-    def __init_profiler(self, profiler: Optional[Union[BaseProfiler, str]]) -> None:
+    def __init_profiler(self, profiler: Optional[Union[Profiler, str]]) -> None:
         if isinstance(profiler, str):
             PROFILERS = {
                 "simple": SimpleProfiler,
@@ -1775,7 +1776,7 @@ class Trainer(
                 )
             profiler_class = PROFILERS[profiler]
             profiler = profiler_class()
-        self.profiler: BaseProfiler = profiler or PassThroughProfiler()
+        self.profiler: Profiler = profiler or PassThroughProfiler()
 
     def __setup_profiler(self) -> None:
         local_rank = self.local_rank if self.world_size > 1 else None
@@ -2051,7 +2052,11 @@ class Trainer(
 
     @property
     def num_processes(self) -> int:
-        return self._accelerator_connector.num_processes
+        rank_zero_deprecation(
+            "`Trainer.num_processes` is deprecated in v1.6 and will be removed in v1.8. "
+            "Please use `Trainer.num_devices` instead."
+        )
+        return self.num_devices
 
     @property
     def root_gpu(self) -> Optional[int]:
@@ -2071,7 +2076,11 @@ class Trainer(
 
     @property
     def num_gpus(self) -> int:
-        return self._accelerator_connector.num_gpus
+        rank_zero_deprecation(
+            "`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.num_devices` instead."
+        )
+        return self.num_devices if isinstance(self.accelerator, GPUAccelerator) else 0
 
     @property
     def devices(self) -> int:

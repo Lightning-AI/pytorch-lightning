@@ -21,7 +21,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
-from pytorch_lightning.profiler.base import BaseProfiler
+from pytorch_lightning.profiler.profiler import Profiler
 
 log = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ _TABLE_ROW = Tuple[str, float, float]
 _TABLE_DATA = List[_TABLE_ROW]
 
 
-class SimpleProfiler(BaseProfiler):
+class SimpleProfiler(Profiler):
     """This profiler simply records the duration of actions (in seconds) and reports the mean duration of each
     action and the total time spent over the entire training run."""
 
