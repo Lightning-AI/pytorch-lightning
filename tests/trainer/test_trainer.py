@@ -1220,8 +1220,7 @@ def test_trainer_config_accelerator(monkeypatch, trainer_kwargs, strategy_cls, s
     assert isinstance(trainer.strategy, strategy_cls)
     assert strategy_cls.strategy_name == strategy_name
     assert isinstance(trainer.accelerator, accelerator_cls)
-    trainer_num_gpus = trainer.num_devices if isinstance(trainer.accelerator, GPUAccelerator) else 0
-    assert trainer_num_gpus == devices
+    assert trainer.num_devices == devices
 
 
 def test_trainer_subclassing():
@@ -2168,8 +2167,22 @@ def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, stra
     assert isinstance(trainer.strategy, strategy_cls)
     assert strategy_cls.strategy_name == strategy_name
     assert isinstance(trainer.accelerator, accelerator_cls)
-    trainer_num_gpus = trainer.num_devices if isinstance(trainer.accelerator, GPUAccelerator) else 0
-    assert trainer_num_gpus == devices
+    assert trainer.num_devices == devices
+    assert trainer.num_nodes == trainer_kwargs.get("num_nodes", 1)
+
+    # Test with `gpus` and `num_processes` flags
+    if trainer_kwargs.get("accelerator") == "gpu":
+        trainer_kwargs["gpus"] = trainer_kwargs.get("devices")
+    else:
+        trainer_kwargs["num_processes"] = trainer_kwargs.get("devices")
+
+    trainer_kwargs.pop("accelerator", None)
+    trainer_kwargs.pop("devices", None)
+
+    assert isinstance(trainer.strategy, strategy_cls)
+    assert strategy_cls.strategy_name == strategy_name
+    assert isinstance(trainer.accelerator, accelerator_cls)
+    assert trainer.num_devices == devices
     assert trainer.num_nodes == trainer_kwargs.get("num_nodes", 1)
 
 
