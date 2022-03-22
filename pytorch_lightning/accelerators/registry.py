@@ -41,7 +41,7 @@ class _AcceleratorRegistry(dict):
 
         or
 
-        AcceleratorRegistry.register("sota", SOTAAAccelerator, description="Custom sota accelerator", a=1, b=True)
+        AcceleratorRegistry.register("sota", SOTAAccelerator, description="Custom sota accelerator", a=1, b=True)
     """
 
     def register(
