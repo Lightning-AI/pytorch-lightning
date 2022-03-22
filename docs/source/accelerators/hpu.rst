@@ -28,7 +28,7 @@ Lightning supports training on a single HPU device or 8 HPU devices with the plu
 HPU accelerator
 ---------------
 
-The ``accelerator="hpu"`` parameters in the trainer class enables the Habana backend.
+To enable PyTorch Lightning to utilize the HPU accelerator, simply provide ``Trainer(accelerator="hpu")`` parameters in the trainer class.
 
 
 ----------------
