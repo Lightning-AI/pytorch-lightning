@@ -789,14 +789,6 @@ class AcceleratorConnector:
         return self.devices if self.devices is not None else 1
 
     @property
-    def root_gpu(self) -> Optional[int]:
-        return (
-            self.strategy.root_device.index
-            if not isinstance(self.accelerator, (IPUAccelerator, TPUAccelerator))
-            else None
-        )
-
-    @property
     def devices(self) -> int:
         if isinstance(self.strategy, SingleDeviceStrategy):
             return 1
@@ -820,12 +812,6 @@ class AcceleratorConnector:
     @property
     def num_ipus(self) -> int:
         if isinstance(self.accelerator, IPUAccelerator):
-            return self.devices
-        return 0
-
-    @property
-    def num_gpus(self) -> int:
-        if isinstance(self.accelerator, GPUAccelerator):
             return self.devices
         return 0
 

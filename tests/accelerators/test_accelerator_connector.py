@@ -148,6 +148,7 @@ def test_accelerator_choice_ddp2_slurm(*_):
         "RANK": "1",
         "LOCAL_RANK": "1",
         "GROUP_RANK": "0",
+        "TORCHELASTIC_RUN_ID": "1",  # present for torch >= 1.9.1
     },
 )
 @mock.patch("torch.cuda.set_device")
@@ -173,6 +174,7 @@ def test_accelerator_choice_ddp_te(*_):
         "RANK": "1",
         "LOCAL_RANK": "1",
         "GROUP_RANK": "0",
+        "TORCHELASTIC_RUN_ID": "1",
     },
 )
 @mock.patch("torch.cuda.set_device")
@@ -190,7 +192,15 @@ def test_accelerator_choice_ddp2_te(*_):
 
 
 @mock.patch.dict(
-    os.environ, {"WORLD_SIZE": "2", "LOCAL_WORLD_SIZE": "2", "RANK": "1", "LOCAL_RANK": "1", "GROUP_RANK": "0"}
+    os.environ,
+    {
+        "WORLD_SIZE": "2",
+        "LOCAL_WORLD_SIZE": "2",
+        "RANK": "1",
+        "LOCAL_RANK": "1",
+        "GROUP_RANK": "0",
+        "TORCHELASTIC_RUN_ID": "1",
+    },
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
@@ -748,6 +758,7 @@ def test_strategy_choice_ddp2_slurm(
         "RANK": "1",
         "LOCAL_RANK": "1",
         "GROUP_RANK": "0",
+        "TORCHELASTIC_RUN_ID": "1",
     },
 )
 @mock.patch("torch.cuda.set_device")
@@ -773,6 +784,7 @@ def test_strategy_choice_ddp_te(*_):
         "RANK": "1",
         "LOCAL_RANK": "1",
         "GROUP_RANK": "0",
+        "TORCHELASTIC_RUN_ID": "1",
     },
 )
 @mock.patch("torch.cuda.set_device")
@@ -790,7 +802,15 @@ def test_strategy_choice_ddp2_te(*_):
 
 
 @mock.patch.dict(
-    os.environ, {"WORLD_SIZE": "2", "LOCAL_WORLD_SIZE": "2", "RANK": "1", "LOCAL_RANK": "1", "GROUP_RANK": "0"}
+    os.environ,
+    {
+        "WORLD_SIZE": "2",
+        "LOCAL_WORLD_SIZE": "2",
+        "RANK": "1",
+        "LOCAL_RANK": "1",
+        "GROUP_RANK": "0",
+        "TORCHELASTIC_RUN_ID": "1",
+    },
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
