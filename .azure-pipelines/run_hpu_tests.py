@@ -13,8 +13,6 @@ import sys
 
 HPU_TESTS_DICTIONARY = {
     "hpu1_test": "python -m coverage run --source pytorch_lightning -m pytest -sv tests/accelerators/test_hpu.py \
-            --hmp-bf16 'tests/accelerators/ops_bf16_mnist.txt' \
-            --hmp-fp32 'tests/accelerators/ops_fp32_mnist.txt' \
             --forked \
             --junitxml=hpu1_test-results.xml",
     "hpu2_test": "python -m coverage run --source pytorch_lightning -m pytest -sv tests/accelerators/test_hpu.py \
@@ -32,19 +30,23 @@ HPU_TESTS_DICTIONARY = {
             --forked \
             --junitxml=hpu4_test-results.xml",
     "hpu8_test": "python -m coverage run --source pytorch_lightning -m pytest -sv tests/accelerators/test_hpu.py \
-            --hmp-bf16 'tests/accelerators/ops_bf16_mnist.txt' \
-            --hmp-fp32 'tests/accelerators/ops_fp32_mnist.txt' \
             --forked \
             --hpus 8 \
             --junitxml=hpu8_test-results.xml",
+    "hpu1_precision_test": "python -m coverage run --source pytorch_lightning -m pytest -sv tests/plugins/precision/hpu/test_hpu.py \
+            --hmp-bf16 'tests/plugins/precision/hpu/ops_bf16.txt' \
+            --hmp-fp32 'tests/plugins/precision/hpu/ops_fp32.txt' \
+            --forked \
+            --junitxml=hpu1_precision_test-results.xml",
 }
 
 HPU1_TEST = HPU_TESTS_DICTIONARY["hpu1_test"]
 HPU2_TEST = HPU_TESTS_DICTIONARY["hpu2_test"]
 HPU4_TEST = HPU_TESTS_DICTIONARY["hpu4_test"]
 HPU8_TEST = HPU_TESTS_DICTIONARY["hpu8_test"]
+HPU1_PRECISION_TEST = HPU_TESTS_DICTIONARY["hpu1_precision_test"]
 
-PARALLEL_HPU_TESTS_EXECUTION = [[HPU4_TEST, HPU1_TEST], [HPU2_TEST, HPU1_TEST], [HPU8_TEST]]
+PARALLEL_HPU_TESTS_EXECUTION = [[HPU4_TEST, HPU1_TEST], [HPU2_TEST, HPU1_TEST], [HPU8_TEST],[HPU1_PRECISION_TEST]]
 TIMEOUT = 60
 TIMEOUT_EXIT_CODE = -9
 
