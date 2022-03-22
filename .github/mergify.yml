@@ -50,6 +50,7 @@ pull_request_rules:
   - name: Not ready yet
     conditions:
       - or:
+        - label="has conflicts"
         - "#approved-reviews-by=0" # number of review approvals
         - "#changes-requested-reviews-by>=1" # no requested changes
     actions:
