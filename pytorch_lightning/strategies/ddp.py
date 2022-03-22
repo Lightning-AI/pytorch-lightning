@@ -274,7 +274,7 @@ class DDPStrategy(ParallelStrategy):
         model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any,
     ) -> Any:
-        """performs the actual optimizer step.
+        """Performs the actual optimizer step.
 
         Args:
             optimizer: the optimizer performing the step
