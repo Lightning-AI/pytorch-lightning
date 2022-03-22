@@ -258,7 +258,8 @@ class DDPStrategy(ParallelStrategy):
                 or isinstance(optimizer, PostLocalSGDOptimizer)
             ):
                 raise ValueError(
-                    f"Currently model averaging cannot work with a distributed optimizer of type {optimizer.__name__}."
+                    f"Currently model averaging cannot work with a distributed optimizer of type "
+                    f"{optimizer.__class__.__name__}."
                 )
 
         self._model_averager = torch.distributed.algorithms.model_averaging.averagers.PeriodicModelAverager(
@@ -287,7 +288,7 @@ class DDPStrategy(ParallelStrategy):
         if not _TORCH_GREATER_EQUAL_1_10 or self._model_averager is None:
             return optimizer_output
 
-        for opt in self.optimizers():
+        for opt in self.optimizers:
             for group in opt.param_groups:
                 for param in group["params"]:
                     if param.grad is None:
