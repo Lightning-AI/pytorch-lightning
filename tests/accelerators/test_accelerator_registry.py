@@ -18,8 +18,14 @@ from pytorch_lightning.accelerators import Accelerator, AcceleratorRegistry
 def test_accelerator_registry_with_new_accelerator():
 
     accelerator_name = "custom_accelerator"
+    accelerator_description = "Custom Accelerator"
 
-    class TestAccelerator(Accelerator):
+    class CustomAccelerator(Accelerator):
+        def __init__(self, param1, param2):
+            self.param1 = param1
+            self.param2 = param2
+            super().__init__()
+
         @staticmethod
         def parse_devices(devices):
             return devices
@@ -36,17 +42,28 @@ def test_accelerator_registry_with_new_accelerator():
         def is_available():
             return True
 
-        @staticmethod
-        def name():
-            return accelerator_name
+        @classmethod
+        def register_accelerators(cls, accelerator_registry) -> None:
+            accelerator_registry.register(
+                accelerator_name,
+                cls,
+                description=f"{cls.__class__.__name__}",
+            )
 
-    AcceleratorRegistry.register(TestAccelerator)
+    AcceleratorRegistry.register(
+        accelerator_name, CustomAccelerator, description=accelerator_description, param1="abc", param2=123
+    )
 
     assert accelerator_name in AcceleratorRegistry
-    assert isinstance(AcceleratorRegistry.get(accelerator_name), TestAccelerator)
+
+    assert AcceleratorRegistry[accelerator_name]["description"] == accelerator_description
+    assert AcceleratorRegistry[accelerator_name]["init_params"] == {"param1": "abc", "param2": 123}
+    assert AcceleratorRegistry[accelerator_name]["accelerator_name"] == accelerator_name
+
+    assert isinstance(AcceleratorRegistry.get(accelerator_name), CustomAccelerator)
 
     trainer = Trainer(accelerator=accelerator_name, devices="auto")
-    assert isinstance(trainer.accelerator, TestAccelerator)
+    assert isinstance(trainer.accelerator, CustomAccelerator)
     assert trainer._accelerator_connector.parallel_devices == ["foo"] * 3
 
     AcceleratorRegistry.remove(accelerator_name)
