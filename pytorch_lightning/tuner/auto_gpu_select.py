@@ -48,6 +48,9 @@ def pick_single_gpu(exclude_gpus: List[int]) -> int:
     previously_used_gpus = []
     unused_gpus = []
     for i in range(torch.cuda.device_count()):
+        if i in exclude_gpus:
+            continue
+
         if torch.cuda.memory_reserved(f"cuda:{i}") > 0:
             previously_used_gpus.append(i)
         else:
@@ -55,8 +58,6 @@ def pick_single_gpu(exclude_gpus: List[int]) -> int:
 
     # Prioritize previously used GPUs
     for i in previously_used_gpus + unused_gpus:
-        if i in exclude_gpus:
-            continue
         # Try to allocate on device:
         device = torch.device(f"cuda:{i}")
         try:
