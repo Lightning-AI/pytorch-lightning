@@ -1,6 +1,6 @@
 # PyTorch-Lightning Tests
 
-Most of the tests in PyTorch Lightning train a random `BoringModel` under various trainer conditions (ddp, ddp2+amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-pw5v393p-qRaDgEk24~EjiZNBpSQFgQ)
+Most of the tests in PyTorch Lightning train a [BoringModel](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/tests/helpers/boring_model.py) under various trainer conditions (ddp, ddp2+amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-pw5v393p-qRaDgEk24~EjiZNBpSQFgQ)
 
 ## Running tests
 
@@ -14,6 +14,7 @@ cd pytorch-lightning
 
 # install required depedencies
 python -m pip install ".[dev, examples]"
+# install pre-commit (optional)
 python -m pip install pre-commit
 pre-commit install
 ```
@@ -33,7 +34,7 @@ You can run the full test suite in your terminal via this make script:
 make test
 ```
 
-Note: if your computer does not have multi-GPU nor TPU these tests are skipped.
+Note: if your computer does not have multi-GPU or TPU these tests are skipped.
 
 **GitHub Actions:** For convenience, you can also use your own GHActions building which will be triggered with each commit.
 This is useful if you do not test against all required dependency versions.
@@ -65,6 +66,8 @@ There are certain standalone tests, which you can run using:
 
 ```bash
 PL_RUN_STANDALONE_TESTS=1 python -m pytest -v tests/trainer/
+# or
+./tests/standalone_tests.sh tests/trainer
 ```
 
 ## Running Coverage
