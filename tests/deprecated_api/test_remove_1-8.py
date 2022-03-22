@@ -985,7 +985,7 @@ def test_v1_8_0_base_profiler(tmpdir):
     # No deprecation message
     CustomProfiler2()
 
-    
+
 def test_v1_8_0_callback_on_load_checkpoint_hook(tmpdir):
     class TestCallbackLoadHook(Callback):
         def on_load_checkpoint(self, trainer, pl_module, callback_state):
