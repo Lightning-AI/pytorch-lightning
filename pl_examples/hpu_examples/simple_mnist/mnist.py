@@ -20,9 +20,6 @@ from torch.nn import functional as F
 import pytorch_lightning as pl
 from pl_examples.basic_examples.mnist_datamodule import MNISTDataModule
 from pytorch_lightning.plugins import HPUPrecisionPlugin
-from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
-from pytorch_lightning.strategies.single_hpu import SingleHPUStrategy
-from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
 
 
 def parse_args():
@@ -87,47 +84,32 @@ class LitClassifier(pl.LightningModule):
 
 
 if __name__ == "__main__":
+    args = parse_args()
 
-    if _HPU_AVAILABLE:
+    # Init our model
+    model = LitClassifier()
 
-        args = parse_args()
+    # Init DataLoader from MNIST Dataset
+    dm = MNISTDataModule(batch_size=args.batch_size)
 
-        # Init our model
-        model = LitClassifier()
+    # TBD: import these keys from hmp
+    hmp_keys = ["level", "verbose", "bf16_ops", "fp32_ops"]
+    hmp_params = dict.fromkeys(hmp_keys)
+    hmp_params["level"] = args.hmp_opt_level
+    hmp_params["verbose"] = args.hmp_verbose
+    hmp_params["bf16_ops"] = args.hmp_bf16  # "./pl_examples/hpu_examples/simple_mnist/ops_bf16_mnist.txt"
+    hmp_params["fp32_ops"] = args.hmp_fp32  # "./pl_examples/hpu_examples/simple_mnist/ops_fp32_mnist.txt"
 
-        # Init DataLoader from MNIST Dataset
-        dm = MNISTDataModule(batch_size=args.batch_size)
+    # Initialize a trainer
+    trainer = pl.Trainer(
+        default_root_dir=os.getcwd(),
+        accelerator="hpu",
+        devices=args.hpus,
+        plugins=[HPUPrecisionPlugin(precision=16, hmp_params=hmp_params)],
+        max_epochs=args.epochs,
+    )
 
-        # TBD: import these keys from hmp
-        hmp_keys = ["level", "verbose", "bf16_ops", "fp32_ops"]
-        hmp_params = dict.fromkeys(hmp_keys)
-        hmp_params["level"] = args.hmp_opt_level
-        hmp_params["verbose"] = args.hmp_verbose
-        hmp_params["bf16_ops"] = args.hmp_bf16  # "./pl_examples/hpu_examples/simple_mnist/ops_bf16_mnist.txt"
-        hmp_params["fp32_ops"] = args.hmp_fp32  # "./pl_examples/hpu_examples/simple_mnist/ops_fp32_mnist.txt"
-
-        parallel_devices = args.hpus
-        hpustrat_1 = SingleHPUStrategy(
-            device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=hmp_params)
-        )
-        hpustrat_8 = HPUParallelStrategy(
-            parallel_devices=[torch.device("hpu")] * parallel_devices,
-            precision_plugin=HPUPrecisionPlugin(precision=16, hmp_params=hmp_params),
-        )
-
-        # Initialize a trainer
-        trainer = pl.Trainer(
-            strategy=hpustrat_8 if (parallel_devices == 8) else hpustrat_1,
-            devices=parallel_devices,
-            max_epochs=args.epochs,
-            default_root_dir=os.getcwd(),
-            accelerator="hpu",
-        )
-
-        # Train the model ⚡
-        trainer.fit(model, datamodule=dm)
-        trainer.test(model, datamodule=dm)
-        trainer.validate(model, datamodule=dm)
-
-    else:
-        print("This example is supported only on HPU !")
+    # Train the model ⚡
+    trainer.fit(model, datamodule=dm)
+    trainer.test(model, datamodule=dm)
+    trainer.validate(model, datamodule=dm)
