@@ -323,16 +323,16 @@ on_after_batch_transfer
 .. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.on_after_batch_transfer
     :noindex:
 
-on_load_checkpoint
+load_state_dict
 ~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.on_load_checkpoint
+.. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.load_state_dict
     :noindex:
 
-on_save_checkpoint
+state_dict
 ~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.on_save_checkpoint
+.. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.state_dict
     :noindex:
 
 on_train_dataloader

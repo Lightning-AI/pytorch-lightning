@@ -81,6 +81,7 @@ class LightningModule(
             "model_size",
             "automatic_optimization",
             "truncated_bptt_steps",
+            "use_amp",
         ]
         + DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -96,8 +97,7 @@ class LightningModule(
         # pointer to the trainer object
         self.trainer = None
 
-        # true if using amp
-        self.use_amp: bool = False
+        self._use_amp: bool = False
 
         # the precision used
         self.precision: int = 32
@@ -110,7 +110,7 @@ class LightningModule(
         self._param_requires_grad_state = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
-        # TODO: remove after the 1.6 release
+        # TODO: remove in 1.8
         self._running_torchscript = False
 
         self._register_sharded_tensor_state_dict_hooks_if_available()
@@ -380,7 +380,7 @@ class LightningModule(
 
         value = apply_to_collection(value, numbers.Number, self.__to_tensor)
 
-        if self.trainer.logger_connector.should_reset_tensors(self._current_fx_name):
+        if self.trainer._logger_connector.should_reset_tensors(self._current_fx_name):
             # if we started a new epoch (running its first batch) the hook name has changed
             # reset any tensors for the new hook name
             results.reset(metrics=False, fx=self._current_fx_name)
@@ -433,7 +433,7 @@ class LightningModule(
             rank_zero_only=rank_zero_only,
         )
 
-        self.trainer.logger_connector._current_fx = self._current_fx_name
+        self.trainer._logger_connector._current_fx = self._current_fx_name
 
     def log_dict(
         self,
@@ -705,10 +705,9 @@ class LightningModule(
             training_epoch_end(train_outs)
 
         Args:
-            outputs: List of outputs you defined in :meth:`training_step`.
-                If there are multiple optimizers, it is a list containing a list of outputs for each optimizer.
-                If using ``truncated_bptt_steps > 1``, each element is a list of outputs corresponding to the outputs
-                of each processed split batch.
+            outputs: List of outputs you defined in :meth:`training_step`. If there are multiple optimizers or when
+                using ``truncated_bptt_steps > 0``, the lists have the dimensions
+                (n_batches, tbptt_steps, n_optimizers). Dimensions of length 1 are squeezed.
 
         Return:
             None
@@ -1331,7 +1330,7 @@ class LightningModule(
         """Call this directly from your :meth:`training_step` when doing optimizations manually. By using this,
         Lightning can ensure that all the proper scaling gets applied when using mixed precision.
 
-        See :ref:`manual optimization<common/optimizers:Manual optimization>` for more examples.
+        See :ref:`manual optimization<common/optimization:Manual optimization>` for more examples.
 
         Example::
 
@@ -1966,6 +1965,36 @@ class LightningModule(
                 stacklevel=5,
             )
         return get_model_size_mb(self)
+
+    @property
+    def use_amp(self) -> bool:
+        r"""
+        .. deprecated:: v1.6.
+
+            This property was deprecated in v1.6 and will be removed in v1.8.
+        """
+        if not self._running_torchscript:  # remove with the deprecation removal
+            rank_zero_deprecation(
+                "`LightningModule.use_amp` was deprecated in v1.6 and will be removed in v1.8."
+                " Please use `Trainer.amp_backend`.",
+                stacklevel=5,
+            )
+        return self._use_amp
+
+    @use_amp.setter
+    def use_amp(self, use_amp: bool) -> None:
+        r"""
+        .. deprecated:: v1.6.
+
+            This property was deprecated in v1.6 and will be removed in v1.8.
+        """
+        if not self._running_torchscript:  # remove with the deprecation removal
+            rank_zero_deprecation(
+                "`LightningModule.use_amp` was deprecated in v1.6 and will be removed in v1.8."
+                " Please use `Trainer.amp_backend`.",
+                stacklevel=5,
+            )
+        self._use_amp = use_amp
 
     def add_to_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
         """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory

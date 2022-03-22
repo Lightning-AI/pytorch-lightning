@@ -14,7 +14,7 @@
 
 from collections import OrderedDict
 from functools import lru_cache
-from typing import Any, cast, Dict, Optional
+from typing import Any, Dict, Optional
 
 from deprecate import void
 from torch.utils.data import DataLoader
@@ -84,7 +84,7 @@ class EvaluationEpochLoop(Loop):
         self._dl_max_batches = dl_max_batches
         self._reload_dataloader_state_dict(data_fetcher)
         # creates the iterator inside the fetcher but returns `self`
-        self._data_fetcher = cast(AbstractDataFetcher, iter(data_fetcher))
+        self._data_fetcher = iter(data_fetcher)
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
 
@@ -135,7 +135,7 @@ class EvaluationEpochLoop(Loop):
         self.batch_progress.increment_completed()
 
         # log batch metrics
-        self.trainer.logger_connector.update_eval_step_metrics()
+        self.trainer._logger_connector.update_eval_step_metrics()
 
         # track epoch level outputs
         if self._should_track_batch_outputs_for_epoch_end() and output is not None:
@@ -242,7 +242,7 @@ class EvaluationEpochLoop(Loop):
         Raises:
             AssertionError: If the number of dataloaders is None (has not yet been set).
         """
-        self.trainer.logger_connector.on_batch_start(**kwargs)
+        self.trainer._logger_connector.on_batch_start(**kwargs)
 
         kwargs.setdefault("dataloader_idx", 0)  # TODO: the argument should be keyword for these
         hook_name = "on_test_batch_start" if self.trainer.testing else "on_validation_batch_start"
@@ -263,7 +263,7 @@ class EvaluationEpochLoop(Loop):
         self.trainer._call_callback_hooks(hook_name, output, *kwargs.values())
         self.trainer._call_lightning_module_hook(hook_name, output, *kwargs.values())
 
-        self.trainer.logger_connector.on_batch_end()
+        self.trainer._logger_connector.on_batch_end()
 
     def _build_kwargs(self, kwargs: OrderedDict, batch: Any, batch_idx: int) -> OrderedDict:
         """Helper function to build the arguments for the current step.

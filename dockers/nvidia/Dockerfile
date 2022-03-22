@@ -40,8 +40,9 @@ RUN \
     mv pytorch-lightning/_notebooks notebooks && \
     mv pytorch-lightning/pl_examples . && \
 
-# Installations
-    python ./pytorch-lightning/.github/prune-packages.py ./pytorch-lightning/requirements/extra.txt "horovod" && \
+# Installations \
+    pip install -q fire && \
+    python ./pytorch-lightning/.actions/assistant.py requirements_prune_pkgs horovod --req_files ./pytorch-lightning/requirements/extra.txt  && \
     pip install "Pillow>=8.2, !=8.3.0" "cryptography>=3.4" "py>=1.10" --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install -r ./pytorch-lightning/requirements/extra.txt --no-cache-dir --upgrade-strategy only-if-needed && \
     pip install -r ./pytorch-lightning/requirements/examples.txt --no-cache-dir --upgrade-strategy only-if-needed && \

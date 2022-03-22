@@ -30,6 +30,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
 from torch.utils.data import DataLoader, IterableDataset
 
+import pytorch_lightning
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, GPUAccelerator
@@ -332,7 +333,8 @@ def test_model_checkpoint_options(tmpdir, save_top_k, save_last, expected_files)
 
     # emulate callback's calls during the training
     for i, loss in enumerate(losses, 1):
-        trainer.fit_loop.global_step = i
+        # sets `trainer.global_step`
+        trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = i
         trainer.callback_metrics.update({"checkpoint_on": torch.tensor(loss)})
         checkpoint_callback.on_validation_end(trainer, trainer.lightning_module)
         trainer.fit_loop.epoch_progress.current.completed = i  # sets `trainer.current_epoch`
@@ -1218,7 +1220,8 @@ def test_trainer_config_accelerator(monkeypatch, trainer_kwargs, strategy_cls, s
     assert isinstance(trainer.strategy, strategy_cls)
     assert strategy_cls.strategy_name == strategy_name
     assert isinstance(trainer.accelerator, accelerator_cls)
-    assert trainer.devices == devices
+    trainer_num_gpus = trainer.num_devices if isinstance(trainer.accelerator, GPUAccelerator) else 0
+    assert trainer_num_gpus == num_gpus
 
 
 def test_trainer_subclassing():
@@ -1719,36 +1722,6 @@ def test_check_val_every_n_epoch_exception(tmpdir):
         Trainer(default_root_dir=tmpdir, max_epochs=1, check_val_every_n_epoch=1.2)
 
 
-def test_trainer_attach_data_pipeline_to_model(tmpdir):
-    class DataPipeline:
-
-        pass
-
-    class TestDataModule(LightningDataModule):
-
-        data_pipeline = DataPipeline()
-
-        def train_dataloader(self):
-            return DataLoader(RandomDataset(32, 64))
-
-        def val_dataloader(self):
-            return DataLoader(RandomDataset(32, 64))
-
-        def test_dataloader(self):
-            return DataLoader(RandomDataset(32, 64))
-
-    class TestCallback(Callback):
-        def on_fit_start(self, trainer, pl_module: LightningModule) -> None:
-            """Called when fit begins."""
-            assert isinstance(pl_module.data_pipeline, DataPipeline)
-
-    model = BoringModel()
-    dm = TestDataModule()
-
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=[TestCallback()])
-    trainer.fit(model, datamodule=dm)
-
-
 def test_exception_when_testing_or_validating_with_fast_dev_run():
     trainer = Trainer(fast_dev_run=True)
     trainer.state.fn = TrainerFn.TESTING
@@ -2195,7 +2168,8 @@ def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, stra
     assert isinstance(trainer.strategy, strategy_cls)
     assert strategy_cls.strategy_name == strategy_name
     assert isinstance(trainer.accelerator, accelerator_cls)
-    assert trainer.devices == devices
+    trainer_num_gpus = trainer.num_devices if isinstance(trainer.accelerator, GPUAccelerator) else 0
+    assert trainer_num_gpus == num_gpus
     assert trainer.num_nodes == trainer_kwargs.get("num_nodes", 1)
 
 
@@ -2216,3 +2190,35 @@ def test_dataloaders_are_not_loaded_if_disabled_through_limit_batches(running_st
         else getattr(trainer, f"{dl_prefix}_dataloaders")
     )
     assert dl is None
+
+
+@pytest.mark.parametrize(
+    ["trainer_kwargs", "expected_device_ids"],
+    [
+        ({}, [0]),
+        ({"devices": 1}, [0]),
+        ({"devices": 1}, [0]),
+        ({"devices": "1"}, [0]),
+        ({"devices": 2}, [0, 1]),
+        ({"accelerator": "gpu", "devices": 1}, [0]),
+        ({"accelerator": "gpu", "devices": 2}, [0, 1]),
+        ({"accelerator": "gpu", "devices": "2"}, [0, 1]),
+        ({"accelerator": "gpu", "devices": [2]}, [2]),
+        ({"accelerator": "gpu", "devices": "2,"}, [2]),
+        ({"accelerator": "gpu", "devices": [0, 2]}, [0, 2]),
+        ({"accelerator": "gpu", "devices": "0, 2"}, [0, 2]),
+        ({"accelerator": "ipu", "devices": 1}, [0]),
+        ({"accelerator": "ipu", "devices": 2}, [0, 1]),
+    ],
+)
+def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_ids):
+    if trainer_kwargs.get("accelerator") == "gpu":
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+        monkeypatch.setattr(torch.cuda, "device_count", lambda: 4)
+    elif trainer_kwargs.get("accelerator") == "ipu":
+        monkeypatch.setattr(pytorch_lightning.accelerators.ipu.IPUAccelerator, "is_available", lambda _: True)
+        monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
+
+    trainer = Trainer(**trainer_kwargs)
+    assert trainer.device_ids == expected_device_ids
+    assert trainer.num_devices == len(expected_device_ids)

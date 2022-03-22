@@ -42,7 +42,11 @@ from pytorch_lightning.utilities import (
     _TORCH_GREATER_EQUAL_1_9,
     _TORCH_GREATER_EQUAL_1_10,
 )
-from pytorch_lightning.utilities.distributed import _revert_sync_batchnorm, distributed_available
+from pytorch_lightning.utilities.distributed import (
+    _get_process_group_backend_from_env,
+    distributed_available,
+    get_default_process_group_backend_for_device,
+)
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
@@ -75,6 +79,7 @@ class DDPStrategy(ParallelStrategy):
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
         model_averaging_period: Optional[int] = None,
+        process_group_backend: Optional[str] = None,
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
         super().__init__(
@@ -86,7 +91,6 @@ class DDPStrategy(ParallelStrategy):
         )
         log.detail(f"{self.__class__.__name__}: initializing DDP plugin")
         self._num_nodes = 1
-        self.sync_batchnorm = False
         self._ddp_kwargs = kwargs
         self._ddp_comm_state = ddp_comm_state
         self._ddp_comm_hook = ddp_comm_hook
@@ -95,6 +99,7 @@ class DDPStrategy(ParallelStrategy):
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
         self._rank_0_will_call_children_scripts: bool = False
+        self._process_group_backend: Optional[str] = process_group_backend
 
     @property
     def is_distributed(self) -> bool:
@@ -126,6 +131,10 @@ class DDPStrategy(ParallelStrategy):
     def _is_single_process_single_device(self) -> bool:
         return True
 
+    @property
+    def process_group_backend(self) -> Optional[str]:
+        return self._process_group_backend
+
     def _configure_launcher(self) -> None:
         self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
         if not self.cluster_environment.creates_processes_externally:
@@ -145,13 +154,15 @@ class DDPStrategy(ParallelStrategy):
         # move the model to the correct device
         self.model_to_device()
 
-        if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
-
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = trainer.state.fn
-        if trainer_fn == TrainerFn.FITTING:
-            self.configure_ddp()
+        if trainer_fn != TrainerFn.FITTING:
+            return
+
+        if self._layer_sync:
+            self.model = self._layer_sync.apply(self.model)
+
+        self.configure_ddp()
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
@@ -169,10 +180,15 @@ class DDPStrategy(ParallelStrategy):
         # set warning rank
         rank_zero_only.rank = self.global_rank
 
-        # set up server using proc 0's ip address
-        # try to init for 20 times at max in case ports are taken
-        # where to store ip_table
-        init_dist_connection(self.cluster_environment, self.torch_distributed_backend)
+        self._process_group_backend = self._get_process_group_backend()
+        init_dist_connection(self.cluster_environment, self._process_group_backend)
+
+    def _get_process_group_backend(self) -> str:
+        return (
+            self._process_group_backend
+            or _get_process_group_backend_from_env()
+            or get_default_process_group_backend_for_device(self.root_device)
+        )
 
     def set_world_ranks(self) -> None:
         if self.cluster_environment is None:
@@ -422,8 +438,14 @@ class DDPStrategy(ParallelStrategy):
         if isinstance(self.model, DistributedDataParallel):
             self.model = self.lightning_module
 
-        if self.sync_batchnorm:
-            self.model = _revert_sync_batchnorm(self.model)
+        if (
+            self.lightning_module.trainer is not None
+            and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+            and self._layer_sync
+        ):
+            # `self.lightning_module.trainer` can be None if teardown gets called on an exception before
+            # the trainer gets set on the LightningModule
+            self.model = self._layer_sync.revert(self.model)
 
         if self.root_device.type == "cuda":
             # GPU teardown

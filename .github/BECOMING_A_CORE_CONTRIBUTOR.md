@@ -38,7 +38,7 @@ Here, we describe general expectations from core contributors:
 
 ### Pull Requests (PRs)
 
-- Pull requests are the evolutionary mechanism of Lightning, so quality is extremely important. Make sure contributors adhere to the guidelines described in the [contributing section](CONTRIBUTING.md#Pull-request).
+- Pull requests are the evolutionary mechanism of Lightning, so quality is extremely important. Make sure contributors adhere to the guidelines described in the [contributing section](CONTRIBUTING.md#Pull-Request).
 
 - Some PRs are from people who want to get involved and try to add something unnecessary. We do want their help though! So don’t approve the PR, but direct them to a Github issue that they might be interested in helping with instead!
 
