@@ -28,11 +28,6 @@ from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 
-if _HPU_AVAILABLE:
-    import habana_frameworks.torch.core as htcore  # noqa: F401
-
-    os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "hccl"
-
 
 @RunIf(hpu=True)
 def test_availability():
@@ -53,6 +48,7 @@ def test_accelerator_selected():
 
 @RunIf(hpu=True)
 def test_all_stages(tmpdir, hpus):
+    """Tests all the model stages using BoringModel on HPU"""
     model = BoringModel()
 
     trainer = Trainer(
