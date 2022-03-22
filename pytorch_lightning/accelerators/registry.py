@@ -13,41 +13,85 @@
 # limitations under the License.
 import importlib
 from inspect import getmembers, isclass
-from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.registry import _is_register_method_overridden
 
 
 class _AcceleratorRegistry(dict):
-    def register(self, accelerator: Accelerator, name: Optional[str] = None, override: bool = False) -> Accelerator:
-        """Registers an accelerator mapped to a name.
+    """This class is a Registry that stores information about the Accelerators.
+
+    The Accelerators are mapped to strings. These strings are names that identify
+    an accelerator, e.g., "gpu". It also returns Optional description and
+    parameters to initialize the Accelerator, which were defined during the
+    registration.
+
+    The motivation for having a AcceleratorRegistry is to make it convenient
+    for the Users to try different accelerators by passing mapped aliases
+    to the accelerator flag to the Trainer.
+
+    Example::
+
+        @AcceleratorRegistry.register("sota", description="Custom sota accelerator", a=1, b=True)
+        class SOTAAccelerator(Accelerator):
+            def __init__(self, a, b):
+                ...
+
+        or
+
+        AcceleratorRegistry.register("sota", SOTAAAccelerator, description="Custom sota accelerator", a=1, b=True)
+    """
+
+    def register(
+        self,
+        name: str,
+        accelerator: Optional[Callable] = None,
+        description: Optional[str] = None,
+        override: bool = False,
+        **init_params: Any,
+    ) -> Callable:
+        """Registers a accelerator mapped to a name and with required metadata.
 
         Args:
-            accelerator: the accelerator to be mapped.
-            name: the name that identifies the provided accelerator.
-            override: Whether to override an existing key.
+            name : the name that identifies a accelerator, e.g. "gpu"
+            accelerator : accelerator class
+            description : accelerator description
+            override : overrides the registered accelerator, if True
+            init_params: parameters to initialize the accelerator
         """
-        if name is None:
-            name = accelerator.name()
-        elif not isinstance(name, str):
+        if not (name is None or isinstance(name, str)):
             raise TypeError(f"`name` must be a str, found {name}")
 
         if name in self and not override:
             raise MisconfigurationException(f"'{name}' is already present in the registry. HINT: Use `override=True`.")
-        self[name] = accelerator
-        return accelerator
+
+        data: Dict[str, Any] = {}
+        data["description"] = description if description is not None else ""
+
+        data["init_params"] = init_params
+
+        def do_register(name: str, accelerator: Callable) -> Callable:
+            data["accelerator"] = accelerator
+            data["accelerator_name"] = name
+            self[name] = data
+            return accelerator
+
+        if accelerator is not None:
+            return do_register(name, accelerator)
+
+        return do_register
 
     def get(self, name: str, default: Optional[Any] = None) -> Any:
-        """Calls the registered Accelerator and returns the Accelerator object.
+        """Calls the registered accelerator with the required parameters and returns the accelerator object.
 
         Args:
-            name (str): the name that identifies a Accelerator, e.g. "tpu"
+            name (str): the name that identifies a accelerator, e.g. "gpu"
         """
         if name in self:
-            accelerator = self[name]
-            return accelerator()
+            data = self[name]
+            return data["accelerator"](**data["init_params"])
 
         if default is not None:
             return default
@@ -71,8 +115,8 @@ class _AcceleratorRegistry(dict):
 AcceleratorRegistry = _AcceleratorRegistry()
 
 
-def register_accelerators(root: Path, base_module: str) -> None:
+def call_register_accelerators(base_module: str) -> None:
     module = importlib.import_module(base_module)
     for _, mod in getmembers(module, isclass):
-        if issubclass(mod, Accelerator) and mod is not Accelerator:
-            AcceleratorRegistry.register(mod)
+        if issubclass(mod, Accelerator) and _is_register_method_overridden(mod, Accelerator, "register_accelerators"):
+            mod.register_accelerators(AcceleratorRegistry)
