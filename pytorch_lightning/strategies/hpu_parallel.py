@@ -40,10 +40,6 @@ log = logging.getLogger(__name__)
 class HPUParallelStrategy(DDPStrategy):
     """Strategy for distributed training on multiple HPU devices."""
 
-    # The main process in each node spawns N-1 child processes via :func:`subprocess.Popen`, where N is the number of
-    # devices (e.g. GPU) per node. It is very similar to how :mod:`torch.distributed.launch` launches processes.
-
-    # Multi-device per process is not supported with habana
 
     strategy_name = "hpu_parallel"
 
