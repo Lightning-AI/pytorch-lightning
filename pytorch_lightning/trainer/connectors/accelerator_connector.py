@@ -785,10 +785,6 @@ class AcceleratorConnector:
         return self._parallel_devices
 
     @property
-    def num_processes(self) -> int:
-        return self.devices if self.devices is not None else 1
-
-    @property
     def devices(self) -> int:
         if isinstance(self.strategy, SingleDeviceStrategy):
             return 1
