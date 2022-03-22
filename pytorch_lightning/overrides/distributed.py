@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from typing import Any, cast, Iterator, List, Sized, Union
+from typing import Any, cast, Iterable, Iterator, List, Sized, Union
 
 import torch
 from torch import Tensor
@@ -163,5 +163,5 @@ class IndexBatchSamplerWrapper:
         return self._sampler.batch_size
 
     @property
-    def sampler(self) -> Sampler:
+    def sampler(self) -> Union[Sampler, Iterable]:
         return self._sampler.sampler

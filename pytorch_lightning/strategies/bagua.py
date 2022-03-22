@@ -161,6 +161,7 @@ class BaguaStrategy(DDPStrategy):
         self._model = self._setup_model(model)
 
         # start the background communication for async algorithm
+        assert self.lightning_module.trainer is not None
         if self.lightning_module.trainer.training and self._bagua_algorithm == "async":
             self.model.bagua_algorithm.resume(self.model)  # type: ignore
 
@@ -188,6 +189,7 @@ class BaguaStrategy(DDPStrategy):
 
     def teardown(self) -> None:
         # abort the background communication for async algorithm
+        assert self.lightning_module.trainer is not None
         if self.lightning_module.trainer.training and self._bagua_algorithm == "async":
             self.model.bagua_algorithm.abort(self.model)  # type: ignore
 

@@ -17,7 +17,7 @@ import os
 from contextlib import contextmanager
 from functools import partial
 from itertools import chain
-from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Set, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Iterator, Mapping, Optional, Set, Type, Union
 
 import torch
 from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler, SequentialSampler
@@ -170,7 +170,9 @@ def get_len(dataloader: DataLoader) -> Union[int, float]:
     return float("inf")
 
 
-def _update_dataloader(dataloader: DataLoader, sampler: Sampler, mode: Optional[RunningStage] = None) -> DataLoader:
+def _update_dataloader(
+    dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
+) -> DataLoader:
     dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler, mode=mode)
     dl_cls = type(dataloader)
     try:

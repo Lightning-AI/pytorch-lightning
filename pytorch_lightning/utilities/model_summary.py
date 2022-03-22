@@ -16,6 +16,7 @@
 import contextlib
 import logging
 from collections import OrderedDict
+from multiprocessing import context
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -265,10 +266,10 @@ class ModelSummary:
         mode = model.training
         model.eval()
 
+        forward_context: contextlib.AbstractContextManager = contextlib.nullcontext()
+        
         if trainer is not None:
             forward_context = trainer.precision_plugin.forward_context()
-        else:
-            forward_context = contextlib.nullcontext()
 
         with torch.no_grad(), forward_context:
             # let the model hooks collect the input- and output shapes
@@ -398,7 +399,7 @@ def get_human_readable_count(number: int) -> str:
     num_groups = int(np.ceil(num_digits / 3))
     num_groups = min(num_groups, len(labels))  # don't abbreviate beyond trillions
     shift = -3 * (num_groups - 1)
-    number = number * (10 ** shift)
+    number = number * (10**shift)
     index = num_groups - 1
     if index < 1 or number >= 100:
         return f"{int(number):,d} {labels[index]}"
