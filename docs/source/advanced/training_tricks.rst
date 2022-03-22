@@ -92,6 +92,9 @@ longer training time. Inspired by https://github.com/BlackHC/toma.
     # find the batch size
     trainer.tune(model)
 
+    # Or if you have a datamodule object that needs to be passed
+    trainer.tune(model, datamodule)
+
 Currently, this feature supports two modes ``'power'`` scaling and ``'binsearch'``
 scaling. In ``'power'`` scaling, starting from a batch size of 1 keeps doubling
 the batch size until an out-of-memory (OOM) error is encountered. Setting the
@@ -191,9 +194,11 @@ Using Lightning's built-in LR finder
 
 To enable the learning rate finder, your :doc:`lightning module <../common/lightning_module>` needs to have a ``learning_rate`` or ``lr`` property.
 Then, set ``Trainer(auto_lr_find=True)`` during trainer construction,
-and then call ``trainer.tune(model)`` to run the LR finder. The suggested ``learning_rate``
-will be written to the console and will be automatically set to your :doc:`lightning module <../common/lightning_module>`,
-which can be accessed via ``self.learning_rate`` or ``self.lr``.
+and then call ``trainer.tune(model)`` to run the LR finder. Note that `trainer.tune` can also take
+a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` object as an argument (``trainer.tune(model, datamodule)``).
+The suggested ``learning_rate`` will be written to the console and will be automatically set to
+your :doc:`lightning module <../common/lightning_module>`, which can be accessed via
+``self.learning_rate`` or ``self.lr``.
 
 .. code-block:: python
 
@@ -225,6 +230,11 @@ If your model is using an arbitrary value instead of ``self.lr`` or ``self.learn
 
     trainer.tune(model)
 
+As described above, if you have a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` object, pass it as the second argument:
+
+.. code-block:: python
+
+    trainer.tune(model, datamodule)
 
 You can also inspect the results of the learning rate finder or just play around
 with the parameters of the algorithm. This can be done by invoking the
