@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Collection, List, Optional, Tuple, Union
 from weakref import proxy
 
-from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampler
+from torch.utils.data import DataLoader, RandomSampler, Sampler, SequentialSampler, WeightedRandomSampler
 from torch.utils.data.distributed import DistributedSampler
 
 import pytorch_lightning as pl
