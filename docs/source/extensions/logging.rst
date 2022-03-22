@@ -265,6 +265,12 @@ To change this behaviour, set the ``log_every_n_steps`` :class:`~pytorch_lightni
    trainer = Trainer(log_every_n_steps=k)
 
 
+Log Writing Frequency
+=====================
+
+Individual logger implementations determine their flushing frequency and behavior. For example, on the
+:class:`~pytorch_lightning.loggers.csv_logs.CSVLogger` you can set the flag ``flush_logs_every_n_steps``.
+
 ----------
 
 ************
