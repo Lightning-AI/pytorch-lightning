@@ -35,14 +35,6 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import (
-    _FAIRSCALE_AVAILABLE,
-    _IS_WINDOWS,
-    _TORCH_GREATER_EQUAL_1_8,
-    _TORCH_GREATER_EQUAL_1_9,
-    _TORCH_GREATER_EQUAL_1_10,
-    _TORCH_GREATER_EQUAL_1_11,
-)
 from pytorch_lightning.utilities.distributed import (
     _get_process_group_backend_from_env,
     distributed_available,
@@ -51,6 +43,14 @@ from pytorch_lightning.utilities.distributed import (
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
+from pytorch_lightning.utilities.imports import (
+    _FAIRSCALE_AVAILABLE,
+    _IS_WINDOWS,
+    _TORCH_GREATER_EQUAL_1_8,
+    _TORCH_GREATER_EQUAL_1_9,
+    _TORCH_GREATER_EQUAL_1_10,
+    _TORCH_GREATER_EQUAL_1_11,
+)
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
