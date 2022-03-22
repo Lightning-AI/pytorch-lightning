@@ -159,18 +159,16 @@ class DDPStrategy(ParallelStrategy):
 
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = trainer.state.fn
-        if trainer_fn != TrainerFn.FITTING:
-            return
 
-        if self._layer_sync:
-            self.model = self._layer_sync.apply(self.model)
-
-        self.configure_ddp()
+        if trainer_fn == TrainerFn.FITTING:
+            if self._layer_sync:
+                self.model = self._layer_sync.apply(self.model)
+            self.configure_ddp()
 
         # set up optimizers after the wrapped module has been moved to the device
         self.setup_optimizers(trainer)
         optimizers_to_device(self.optimizers, self.root_device)
-        if _TORCH_GREATER_EQUAL_1_10 and trainer.state.fn == TrainerFn.FITTING:
+        if _TORCH_GREATER_EQUAL_1_10 and trainer_fn == TrainerFn.FITTING:
             import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
             if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):

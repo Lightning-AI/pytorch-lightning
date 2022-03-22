@@ -58,13 +58,15 @@ class DDPShardedStrategy(DDPStrategy):
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = trainer.state.fn
         if trainer_fn == TrainerFn.FITTING:
-            self._configure_sdp(trainer)
+            if self._layer_sync:
+                self.model = self._layer_sync.apply(self.model)
+            self.configure_ddp()
 
         self.setup_precision_plugin()
 
-    def _configure_sdp(self, trainer: "pl.Trainer") -> None:
+    def configure_ddp(self) -> None:
         self._set_ddp_kwargs()
-        self.setup_optimizers(trainer)
+        self.setup_optimizers(self.model.trainer)
         self.model, self.optimizers = self._setup_model_and_optimizers(
             model=LightningShardedDataParallel(self.model),
             optimizers=self.optimizers,

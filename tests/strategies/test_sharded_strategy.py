@@ -241,7 +241,7 @@ def test_custom_kwargs_sharded(tmpdir, cls):
     class_name = "sharded" if isinstance(strategy, DDPShardedStrategy) else "sharded_spawn"
 
     with mock.patch(f"pytorch_lightning.strategies.{class_name}.ShardedDataParallel", autospec=True) as mock_sharded:
-        strategy.configure_ddp()
+        strategy._configure_sdp(strategy.model.trainer)
     args, kwargs = mock_sharded.call_args
     assert "reduce_fp16" in kwargs
     assert kwargs["reduce_fp16"]

@@ -127,16 +127,11 @@ class DDPSpawnStrategy(ParallelStrategy):
         # move the model to the correct device
         self.model_to_device()
 
-        trainer_fn = self.lightning_module.trainer.state.fn
-        if trainer_fn != TrainerFn.FITTING:
-            return
-
-        if self._layer_sync:
-            self.model = self._layer_sync.apply(self.model)
-
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = trainer.state.fn
         if trainer_fn == TrainerFn.FITTING:
+            if self._layer_sync:
+                self.model = self._layer_sync.apply(self.model)
             self.configure_ddp()
 
         # set up optimizers after the wrapped module has been moved to the device
