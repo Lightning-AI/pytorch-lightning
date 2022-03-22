@@ -89,10 +89,8 @@ longer training time. Inspired by https://github.com/BlackHC/toma.
     # Autoscale batch size
     trainer = Trainer(auto_scale_batch_size=None | "power" | "binsearch")
 
-    # find the batch size
-    trainer.tune(model)
-
-    # Or if you have a datamodule object that needs to be passed
+    # Find the batch size
+    # Assuming you have a datamodule object that needs to be passed
     trainer.tune(model, datamodule)
 
 Currently, this feature supports two modes ``'power'`` scaling and ``'binsearch'``
@@ -194,11 +192,12 @@ Using Lightning's built-in LR finder
 
 To enable the learning rate finder, your :doc:`lightning module <../common/lightning_module>` needs to have a ``learning_rate`` or ``lr`` property.
 Then, set ``Trainer(auto_lr_find=True)`` during trainer construction,
-and then call ``trainer.tune(model)`` to run the LR finder. Note that `trainer.tune` can also take
-a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` object as an argument (``trainer.tune(model, datamodule)``).
-The suggested ``learning_rate`` will be written to the console and will be automatically set to
-your :doc:`lightning module <../common/lightning_module>`, which can be accessed via
-``self.learning_rate`` or ``self.lr``.
+and then call ``trainer.tune(model, datamodule=datamodule)`` to run the LR finder.
+The suggested ``learning_rate`` will be written to the console and will be automatically
+set to your :doc:`lightning module <../common/lightning_module>`, which can be accessed
+via ``self.learning_rate`` or ``self.lr``.
+
+.. seealso:: :ref:`trainer.tune <common/trainer:tune>`.
 
 .. code-block:: python
 
@@ -217,7 +216,8 @@ your :doc:`lightning module <../common/lightning_module>`, which can be accessed
     # sets hparams.lr or hparams.learning_rate to that learning rate
     trainer = Trainer(auto_lr_find=True)
 
-    trainer.tune(model)
+    # this assumes that you have a datamodule defined before
+    trainer.tune(model, datamodule=datamodule)
 
 If your model is using an arbitrary value instead of ``self.lr`` or ``self.learning_rate``, set that value as ``auto_lr_find``:
 
@@ -228,13 +228,8 @@ If your model is using an arbitrary value instead of ``self.lr`` or ``self.learn
     # to set to your own hparams.my_value
     trainer = Trainer(auto_lr_find="my_value")
 
-    trainer.tune(model)
-
-As described above, if you have a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` object, pass it as the second argument:
-
-.. code-block:: python
-
-    trainer.tune(model, datamodule)
+    # assuming you have a datamodule defined before
+    trainer.tune(model, datamodule=datamodule)
 
 You can also inspect the results of the learning rate finder or just play around
 with the parameters of the algorithm. This can be done by invoking the
@@ -249,7 +244,7 @@ with the parameters of the algorithm. This can be done by invoking the
     lr_finder = trainer.tuner.lr_find(model)
 
     # Results can be found in
-    lr_finder.results
+    print(lr_finder.results)
 
     # Plot with
     fig = lr_finder.plot(suggest=True)
@@ -261,8 +256,8 @@ with the parameters of the algorithm. This can be done by invoking the
     # update hparams of the model
     model.hparams.lr = new_lr
 
-    # Fit model
-    trainer.fit(model)
+    # Fit model, with a datamodule (assuming it's defined before)
+    trainer.fit(model, datamodule=datamodule)
 
 The figure produced by ``lr_finder.plot()`` should look something like the figure
 below. It is recommended to not pick the learning rate that achieves the lowest
