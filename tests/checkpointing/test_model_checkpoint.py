@@ -1270,7 +1270,7 @@ def test_resume_training_preserves_old_ckpt_last(tmpdir):
     trainer = Trainer(**trainer_kwargs, callbacks=ModelCheckpoint(**mc_kwargs))
     trainer.fit(model)
     # Make sure that the last checkpoint file exists in the dirpath passed (`tmpdir`)
-    assert sorted(os.listdir(tmpdir / "checkpoints")) == sorted(["last.ckpt", "step=2.ckpt", "step=3.ckpt"])
+    assert set(os.listdir(tmpdir / "checkpoints")) == {"last.ckpt", "step=2.ckpt", "step=3.ckpt"}
 
     # Training it for 2 epochs for extra surety, that nothing gets deleted after multiple epochs
     trainer_kwargs["max_epochs"] += 1
