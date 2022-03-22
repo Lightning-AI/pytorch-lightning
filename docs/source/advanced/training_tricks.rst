@@ -105,7 +105,7 @@ search for batch sizes larger than the size of the training dataset.
 
     This feature expects that a ``batch_size`` field is either located as a model attribute
     i.e. ``model.batch_size`` or as a field in your ``hparams`` i.e. ``model.hparams.batch_size``.
-    Similarly it can work with datamodules too. The field should exist and will be overridden by
+    Similarly it can work with datamodules too. The field should exist and will be updated by
     the results of this algorithm. Additionally, your ``train_dataloader()`` method should depend
     on this field for this feature to work i.e.
 
