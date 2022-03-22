@@ -112,34 +112,36 @@ class UnrepeatedDistributedSampler(DistributedSampler):
             indices = list(range(len(self.dataset)))
         assert len(indices) == self.total_size
 
-
         # subsample
         indices = indices[self.rank : self.total_size : self.num_replicas]
         assert len(indices) == self.num_samples
 
         return iter(indices)
 
+
 class WeightedDistSampler(UnrepeatedDistributedSampler):
-    """An extension of the above that aims to use random weightings provided. 
-     The goal is to not repeat data, instead allowing the number of batches
-    per process to be off-by-one from each other.However, with purely random sampling with replacement this
-    is nearly impossible to garuntee no overlap. We therefore must trust the users to use sensible weight veriance. 
-    See the below for 
+    """An extension of the above that aims to use random weightings provided.
+
+    The goal is to not repeat data, instead allowing the number of batches per process to be off-by-one from each
+    other.However, with purely random sampling with replacement this is nearly impossible to garuntee no overlap. We
+    therefore must trust the users to use sensible weight veriance. See the below for
     """
+
     def __init__(self, weights: Tensor, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.weights = weights
-        self.G=torch.Generator()
-        self.G.manual_seed(self.seed+self.epoch)
-    def __iter__(self):
-        #the problem is we need to avoid collisions whilst sampling correctly. - not perfect because their is replacement. BUT its better than no weighting and a cleaner way than non distributed.
-        self.G.manual_seed(self.seed+self.epoch)
+        self.G = torch.Generator()
+        self.G.manual_seed(self.seed + self.epoch)
 
-        indices=torch.multinomial(self.weights,self.total_size,replacement=True,generator=self.G)
+    def __iter__(self):
+        # the problem is we need to avoid collisions whilst sampling correctly. - not perfect because their is replacement. BUT its better than no weighting and a cleaner way than non distributed.
+        self.G.manual_seed(self.seed + self.epoch)
+
+        indices = torch.multinomial(self.weights, self.total_size, replacement=True, generator=self.G)
         assert len(indices) == self.total_size
-        
+
         # subsample
-        indices = indices[self.rank:self.total_size:self.num_replicas]
+        indices = indices[self.rank : self.total_size : self.num_replicas]
         assert len(indices) == self.num_samples
         return iter(indices)
 
