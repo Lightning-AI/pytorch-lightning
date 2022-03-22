@@ -27,6 +27,9 @@ from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
 
+if _HPU_AVAILABLE:
+    from habana_frameworks.torch.hpex import hmp
+
 
 class HPUPrecisionPlugin(PrecisionPlugin):
     """Plugin that enables bfloats/floats on HPUs."""
@@ -38,8 +41,6 @@ class HPUPrecisionPlugin(PrecisionPlugin):
         self.precision = precision
         if not hmp_params:
             return
-
-        from habana_frameworks.torch.hpex import hmp
 
         hmp_opt_level = hmp_params["level"]  # type: ignore
         hmp_bf16 = hmp_params["bf16_ops"]  # type: ignore

@@ -68,6 +68,8 @@ class HPUParallelStrategy(DDPStrategy):
         )
 
     def setup_environment(self) -> None:
+        # This function is used to load Habana libraries required for PyTorch
+        # to register HPU as one of the available devices.
         load_habana_module()
 
         os.environ["ID"] = str(self.local_rank)

@@ -43,7 +43,10 @@ class SingleHPUStrategy(SingleDeviceStrategy):
         if not _HPU_AVAILABLE:
             raise MisconfigurationException("`SingleHPUStrategy` requires HPU devices to run")
 
+        # This function is used to load Habana libraries required for PyTorch
+        # to register HPU as one of the available devices.
         load_habana_module()
+
         super().__init__(
             accelerator=accelerator,
             device=device,
