@@ -420,10 +420,6 @@ class AcceleratorConnector:
             devices, num_processes, gpus, ipus, tpu_cores
         )
 
-        if self._devices_flag in ([], 0, "0"):
-            rank_zero_warn(f"You passed `devices={devices}`, switching to `cpu` accelerator")
-            self._accelerator_flag = "cpu"
-
         if self._devices_flag == "auto" and self._accelerator_flag is None:
             raise MisconfigurationException(
                 f"You passed `devices={devices}` but haven't specified"
