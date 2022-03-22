@@ -124,7 +124,7 @@ class WeightedDistSampler(UnrepeatedDistributedSampler):
 
     The goal is to not repeat data, instead allowing the number of batches per process to be off-by-one from each
     other.However, with purely random sampling with replacement this is nearly impossible to garuntee no overlap. We
-    therefore must trust the users to use sensible weight veriance. See the below for
+    therefore must trust the users to use sensible weight veriance.
     """
 
     def __init__(self, weights: Tensor, *args, **kwargs) -> None:
@@ -134,7 +134,7 @@ class WeightedDistSampler(UnrepeatedDistributedSampler):
         self.G.manual_seed(self.seed + self.epoch)
 
     def __iter__(self):
-        # the problem is we need to avoid collisions whilst sampling correctly. - not perfect because their is replacement. BUT its better than no weighting and a cleaner way than non distributed.
+        """the problem is we need to avoid collisions whilst sampling correctly."""
         self.G.manual_seed(self.seed + self.epoch)
 
         indices = torch.multinomial(self.weights, self.total_size, replacement=True, generator=self.G)
