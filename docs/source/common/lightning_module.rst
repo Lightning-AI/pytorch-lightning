@@ -631,7 +631,7 @@ In the case where you want to scale your inference, you should be using
 
     data_module = ...
     model = Autoencoder()
-    trainer = Trainer(gpus=2)
+    trainer = Trainer(accelerator="gpu", devices=2)
     trainer.predict(model, data_module)
 
 Inference in Production
@@ -689,7 +689,7 @@ Then pass in any arbitrary model to be fit with this task
     for model in [resnet50(), vgg16(), BidirectionalRNN()]:
         task = ClassificationTask(model)
 
-        trainer = Trainer(gpus=2)
+        trainer = Trainer(accelerator="gpu", devices=2)
         trainer.fit(task, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
 Tasks can be arbitrarily complex such as implementing GAN training, self-supervised or even RL.
@@ -712,7 +712,7 @@ The following example shows how you can run inference in the Python runtime:
 .. code-block:: python
 
     task = ClassificationTask(model)
-    trainer = Trainer(gpus=2)
+    trainer = Trainer(accelerator="gpu", devices=2)
     trainer.fit(task, train_dataloader, val_dataloader)
     trainer.save_checkpoint("best_model.ckpt")
 
