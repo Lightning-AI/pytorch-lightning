@@ -108,17 +108,23 @@ class ModelCheckpoint(Callback):
         every_n_train_steps: Number of training steps between checkpoints.
             If ``every_n_train_steps == None or every_n_train_steps == 0``, we skip saving during training.
             To disable, set ``every_n_train_steps = 0``. This value must be ``None`` or non-negative.
+            This must be mutually exclusive with ``train_time_interval`` and ``every_n_epochs``.
         train_time_interval: Checkpoints are monitored at the specified time interval.
             For all practical purposes, this cannot be smaller than the amount
             of time it takes to process a single training batch. This is not
             guaranteed to execute at the exact time specified, but should be close.
+            This must be mutually exclusive with ``every_n_train_steps`` and ``every_n_epochs``.
         every_n_epochs: Number of epochs between checkpoints.
             This value must be ``None`` or non-negative.
             To disable saving top-k checkpoints, set ``every_n_epochs = 0``.
             If all of ``every_n_epochs``, ``every_n_train_steps`` and
             ``train_time_interval`` are ``None``, we save a checkpoint at the end of every epoch
             (equivalent to ``every_n_epochs = 1``).
-            Setting both ``ModelCheckpoint(every_n_epochs=V, save_on_train_epoch_end=False)`` and
+            If ``every_n_epochs == None`` and either ``every_n_train_steps != None`` or ``train_time_interval != None``,
+            saving at the end of each epoch is disabled
+            (equivalent to ``every_n_epochs = 0``).
+            This must be mutually exclusive with ``every_n_train_steps`` and ``train_time_interval``.
+            Setting both ``ModelCheckpoint(..., every_n_epochs=V, save_on_train_epoch_end=False)`` and
             ``Trainer(max_epochs=N, check_val_every_n_epoch=M)``
             will only save checkpoints at epochs 0 < E <= N
             where both values for ``every_n_epochs`` and ``check_val_every_n_epoch`` evenly divide E.
@@ -233,9 +239,7 @@ class ModelCheckpoint(Callback):
 
         self.__init_monitor_mode(mode)
         self.__init_ckpt_dir(dirpath, filename)
-        self._train_time_interval = train_time_interval
-        self._every_n_epochs = 1 if every_n_epochs is None else every_n_epochs
-        self._every_n_train_steps = 0 if every_n_train_steps is None else every_n_train_steps
+        self.__init_triggers(every_n_train_steps, every_n_epochs, train_time_interval)
         self.__validate_init_configuration()
 
     @property
@@ -297,12 +301,18 @@ class ModelCheckpoint(Callback):
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the training epoch."""
         if not self._should_skip_saving_checkpoint(trainer) and self._save_on_train_epoch_end:
-            self.save_checkpoint(trainer)
+            monitor_candidates = self._monitor_candidates(trainer)
+            if self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0:
+                self._save_topk_checkpoint(trainer, monitor_candidates)
+            self._save_last_checkpoint(trainer, monitor_candidates)
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the validation stage."""
         if not self._should_skip_saving_checkpoint(trainer) and not self._save_on_train_epoch_end:
-            self.save_checkpoint(trainer)
+            monitor_candidates = self._monitor_candidates(trainer)
+            if self._every_n_epochs >= 1 and (trainer.current_epoch + 1) % self._every_n_epochs == 0:
+                self._save_topk_checkpoint(trainer, monitor_candidates)
+            self._save_last_checkpoint(trainer, monitor_candidates)
 
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
@@ -349,7 +359,7 @@ class ModelCheckpoint(Callback):
         self._save_last_checkpoint(trainer, monitor_candidates)
 
     def _save_topk_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, _METRIC]) -> None:
-        if self.save_top_k == 0 or self._every_n_epochs < 1 or (trainer.current_epoch + 1) % self._every_n_epochs != 0:
+        if self.save_top_k == 0:
             # `every_n_epochs` only applies to monitored checkpoints
             return
 
@@ -398,6 +408,16 @@ class ModelCheckpoint(Callback):
         if self._every_n_epochs < 0:
             raise MisconfigurationException(f"Invalid value for every_n_epochs={self._every_n_epochs}. Must be >= 0")
 
+        every_n_train_steps_triggered = self._every_n_train_steps >= 1
+        every_n_epochs_triggered = self._every_n_epochs >= 1
+        train_time_interval_triggered = self._train_time_interval is not None
+        if every_n_train_steps_triggered + every_n_epochs_triggered + train_time_interval_triggered > 1:
+            raise MisconfigurationException(
+                f"Combination of parameters every_n_train_steps={self._every_n_train_steps}, "
+                f"every_n_epochs={self._every_n_epochs} and train_time_interval={self._train_time_interval} "
+                "should be mutually exclusive."
+            )
+
         if self.monitor is None:
             # -1: save all epochs, 0: nothing is saved, 1: save last epoch
             if self.save_top_k not in (-1, 0, 1):
@@ -429,6 +449,27 @@ class ModelCheckpoint(Callback):
             raise MisconfigurationException(f"`mode` can be {', '.join(mode_dict.keys())} but got {mode}")
 
         self.kth_value, self.mode = mode_dict[mode]
+
+    def __init_triggers(
+        self,
+        every_n_train_steps: Optional[int],
+        every_n_epochs: Optional[int],
+        train_time_interval: Optional[timedelta],
+    ) -> None:
+
+        # Default to running once after each validation epoch if neither
+        # every_n_train_steps nor every_n_epochs is set
+        if every_n_train_steps is None and every_n_epochs is None and train_time_interval is None:
+            every_n_epochs = 1
+            every_n_train_steps = 0
+            log.debug("Both every_n_train_steps and every_n_epochs are not set. Setting every_n_epochs=1")
+        else:
+            every_n_epochs = every_n_epochs or 0
+            every_n_train_steps = every_n_train_steps or 0
+
+        self._train_time_interval: Optional[timedelta] = train_time_interval
+        self._every_n_epochs: int = every_n_epochs
+        self._every_n_train_steps: int = every_n_train_steps
 
     @property
     def every_n_epochs(self) -> Optional[int]:
