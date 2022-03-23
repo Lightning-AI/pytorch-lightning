@@ -1606,7 +1606,7 @@ class Trainer(
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        log.detail(f"{self.__class__.__name__}: calling callback hook: {hook_name}")
+        log.debug(f"{self.__class__.__name__}: calling callback hook: {hook_name}")
         # TODO: remove if block in v1.8
         if hook_name in ("on_init_start", "on_init_end"):
             # these `Callback` hooks are the only ones that do not take a lightning module.
