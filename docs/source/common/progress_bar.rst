@@ -2,11 +2,18 @@
 
     from pytorch_lightning.trainer.trainer import Trainer
 
+.. _progress_bar:
+
+
 Progress Bar
 ============
 
 Lightning supports two different types of progress bars (`tqdm <https://github.com/tqdm/tqdm>`_ and `rich <https://github.com/Textualize/rich>`_). :class:`~pytorch_lightning.callbacks.TQDMProgressBar` is used by default,
 but you can override it by passing a custom :class:`~pytorch_lightning.callbacks.TQDMProgressBar` or :class:`~pytorch_lightning.callbacks.RichProgressBar` to the ``callbacks`` argument of the :class:`~pytorch_lightning.trainer.trainer.Trainer`.
+
+Check out the :ref:`logging guide <../extensions/logging:Progress Bar>` for more information on how to log metrics and customize the progress bar.
+
+You could also use the :class:`~pytorch_lightning.callbacks.ProgressBarBase` class to implement your own progress bar.
 
 -------------
 
@@ -122,3 +129,12 @@ If you wish for a new progress bar to be displayed at the end of every epoch, yo
     - :class:`~pytorch_lightning.callbacks.RichProgressBar` docs.
     - :class:`~pytorch_lightning.callbacks.RichModelSummary` docs to customize the model summary table.
     - `Rich library <https://github.com/Textualize/rich>`__.
+
+
+.. note::
+
+    Progress bar is automatically enabled with the Trainer, and to disable it, one should do this:
+
+    .. code-block:: python
+
+        trainer = Trainer(enable_progress_bar=False)
