@@ -403,6 +403,7 @@ def test_model_freeze_unfreeze():
         assert param.requires_grad
 
 
+# TODO: move to `test/models/test_restore.py`
 @pytest.mark.parametrize("url_ckpt", [True, False])
 def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Verify resuming from checkpoint runs the right number of epochs."""
@@ -425,11 +426,12 @@ def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ck
             self.num_on_load_checkpoint_called += 1
 
     model = TestModel()
+    max_epochs = 2
     trainer = Trainer(
-        max_epochs=2,
+        max_epochs=max_epochs,
         limit_train_batches=0.65,
         limit_val_batches=1,
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_top_k=-1)],
+        callbacks=ModelCheckpoint(dirpath=tmpdir, save_top_k=-1),
         default_root_dir=tmpdir,
         val_check_interval=1.0,
         enable_progress_bar=False,
@@ -438,26 +440,26 @@ def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ck
     )
     trainer.fit(model)
 
-    assert model.num_epochs_end_seen == 2
-    assert model.num_batches_seen == trainer.num_training_batches * 2
+    assert model.num_epochs_end_seen == max_epochs
+    assert model.num_batches_seen == trainer.num_training_batches * max_epochs == trainer.global_step
     assert model.num_on_load_checkpoint_called == 0
 
     # Other checkpoints can be uncommented if/when resuming mid-epoch is supported
-    checkpoints = Path(trainer.checkpoint_callback.dirpath).glob("*.ckpt")
+    checkpoints = set(Path(trainer.checkpoint_callback.dirpath).glob("*.ckpt"))
     if url_ckpt:
         # transform local paths into url checkpoints
         ip, port = tmpdir_server
         checkpoints = [f"http://{ip}:{port}/" + ckpt.name for ckpt in checkpoints]
 
+    assert len(checkpoints) == max_epochs
     for ckpt in checkpoints:
-        next_model = TestModel()
+        model = TestModel()
         state = pl_load(ckpt)
-
         # Resume training
-        new_trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
-        new_trainer.fit(next_model, ckpt_path=ckpt)
-        assert state["global_step"] + next_model.num_batches_seen == trainer.num_training_batches * trainer.max_epochs
-        assert next_model.num_on_load_checkpoint_called == 1
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, enable_progress_bar=False)
+        trainer.fit(model, ckpt_path=ckpt)
+        assert state["global_step"] + model.num_batches_seen == trainer.global_step
+        assert model.num_on_load_checkpoint_called == 1
 
 
 def test_trainer_max_steps_and_epochs(tmpdir):

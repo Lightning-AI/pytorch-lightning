@@ -199,9 +199,7 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
             if self.trainer.state.fn == TrainerFn.TUNING:
                 self._test_on_val_test_predict_tune_start()
             else:
-                # `-1` because this checkpoint is saved `on_train_epoch_end` which is considered part of the epoch so
-                # the `current_epoch` count has not been increased yet
-                assert self.trainer.current_epoch - 1 == state_dict["epoch"]
+                assert self.trainer.current_epoch == state_dict["epoch"]
                 assert self.trainer.global_step == state_dict["global_step"]
                 assert self._check_model_state_dict()
                 assert self._check_optimizers()
