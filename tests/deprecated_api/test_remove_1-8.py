@@ -22,6 +22,7 @@ import pytest
 import torch
 from torch import optim
 
+import pytorch_lightning
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.loggers import CSVLogger, LightningLoggerBase, LoggerCollection
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
@@ -984,3 +985,45 @@ def test_v1_8_0_base_profiler(tmpdir):
 
     # No deprecation message
     CustomProfiler2()
+
+
+@pytest.mark.parametrize(
+    ["trainer_kwargs", "expected_ipus"],
+    [
+        ({}, 0),
+        ({"devices": 1}, 0),
+        ({"accelerator": "ipu", "devices": 1}, 1),
+        ({"accelerator": "ipu", "devices": 8}, 8),
+    ],
+)
+def test_trainer_config_ipus(monkeypatch, trainer_kwargs, expected_ipus):
+    monkeypatch.setattr(pytorch_lightning.accelerators.ipu.IPUAccelerator, "is_available", lambda _: True)
+    monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
+    trainer = Trainer(**trainer_kwargs)
+    with pytest.deprecated_call(
+        match="`Trainer.ipus` was deprecated in v1.6 and will be removed in v1.8."
+        " Please use `Trainer.num_devices` instead."
+    ):
+        trainer.ipus == expected_ipus
+
+
+@pytest.mark.parametrize(
+    ["trainer_kwargs", "expected_num_processes"],
+    [
+        ({}, 1),
+        ({"devices": 1}, 1),
+        ({"devices": 4}, 4),
+        ({"accelerator": "cpu", "devices": 1}, 0),
+        ({"accelerator": "gpu", "devices": 4}, 4),
+    ],
+)
+def test_trainer_num_processes(monkeypatch, trainer_kwargs, expected_num_processes):
+    if trainer_kwargs.get("accelerator") == "gpu":
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+        monkeypatch.setattr(torch.cuda, "device_count", lambda: 16)
+    trainer = Trainer(**trainer_kwargs)
+    with pytest.deprecated_call(
+        match="`Trainer.num_processes` is deprecated in v1.6 and will be removed in v1.8. "
+        "Please use `Trainer.num_devices` instead."
+    ):
+        trainer.num_processes == expected_num_processes
