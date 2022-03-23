@@ -296,7 +296,9 @@ class ModelCheckpoint(Callback):
         if not skip_time:
             self._last_time_checked = now
 
-        self.save_checkpoint(trainer)
+        monitor_candidates = self._monitor_candidates(trainer)
+        self._save_topk_checkpoint(trainer, monitor_candidates)
+        self._save_last_checkpoint(trainer, monitor_candidates)
 
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the training epoch."""
@@ -348,12 +350,13 @@ class ModelCheckpoint(Callback):
         self.last_model_path = callback_state.get("last_model_path", self.last_model_path)
         self.best_model_path = callback_state["best_model_path"]
 
-    def save_checkpoint(self, trainer: "pl.Trainer") -> None:
+    def save_checkpoint(self, trainer: "pl.Trainer") -> None:  # pragma: no-cover
         """Performs the main logic around saving a checkpoint.
 
         This method runs on all ranks. It is the responsibility of `trainer.save_checkpoint` to correctly handle the
         behaviour in distributed training, i.e., saving only on rank 0 for data parallel use cases.
         """
+        # TODO: unused method. deprecate it
         monitor_candidates = self._monitor_candidates(trainer)
         self._save_topk_checkpoint(trainer, monitor_candidates)
         self._save_last_checkpoint(trainer, monitor_candidates)
