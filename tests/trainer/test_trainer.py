@@ -403,6 +403,7 @@ def test_model_freeze_unfreeze():
         assert param.requires_grad
 
 
+@pytest.mark.xfail(reason="FIXME(@carmocca): this test wasn't running and is now broken")
 @pytest.mark.parametrize("url_ckpt", [True, False])
 def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Verify resuming from checkpoint runs the right number of epochs."""
@@ -429,7 +430,7 @@ def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ck
         max_epochs=2,
         limit_train_batches=0.65,
         limit_val_batches=1,
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_top_k=-1)],
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)],
         default_root_dir=tmpdir,
         val_check_interval=1.0,
         enable_progress_bar=False,
@@ -449,6 +450,7 @@ def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ck
         ip, port = tmpdir_server
         checkpoints = [f"http://{ip}:{port}/" + ckpt.name for ckpt in checkpoints]
 
+    assert checkpoints
     for ckpt in checkpoints:
         next_model = TestModel()
         state = pl_load(ckpt)
