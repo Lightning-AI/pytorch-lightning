@@ -322,19 +322,27 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
             assert isinstance(trainer.optimizers[0].optimizer, torch.optim.SGD)
             assert isinstance(trainer.lr_scheduler_configs[0].scheduler, WarmupLR)
             assert trainer.lr_scheduler_configs[0].interval == "step"
+            assert trainer.lr_scheduler_configs[0].opt_idx == 0
 
     model = BoringModel()
+    lr_monitor = LearningRateMonitor()
     trainer = Trainer(
         strategy=DeepSpeedStrategy(config=deepspeed_zero_config),
         default_root_dir=tmpdir,
         gpus=1,
-        fast_dev_run=True,
+        log_every_n_steps=1,
+        limit_train_batches=4,
+        limit_val_batches=4,
+        limit_test_batches=4,
+        max_epochs=2,
         precision=16,
-        callbacks=[TestCB()],
+        callbacks=[TestCB(), lr_monitor],
     )
 
     trainer.fit(model)
     trainer.test(model)
+    assert list(lr_monitor.lrs) == ["lr-SGD"]
+    assert len(set(lr_monitor.lrs["lr-SGD"])) == 8
 
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
