@@ -6,10 +6,10 @@ Habana Gaudi AI Processor (HPU)
 Habana® Gaudi® AI training processors have been architected from the ground up and optimized for deep learning training efficiency.
 Gaudi offers substantial price/performance advantage -- so you get to do more deep learning training while spending less.
 
-You can use either `the Gaudi-based AWS EC2 DL1 instances <https://aws.amazon.com/ec2/instance-types/dl1/>`_ or `the Supermicro X12 Gaudi server <https://www.supermicro.com/en/solutions/habana-gaudi>`_.
+You can either use `the Gaudi-based AWS EC2 DL1 instances <https://aws.amazon.com/ec2/instance-types/dl1/>`_ or `the Supermicro X12 Gaudi server <https://www.supermicro.com/en/solutions/habana-gaudi>`_.
 
 Habana’s SynapseAI® software suite is optimized for building and training deep learning models using TensorFlow and PyTorch frameworks. Gaudi is referred to as the Habana Processing Unit (HPU).
-With SynapseAI, we aim to make training workloads on Gaudi easy, whether you're developing from scratch or migrating existing workloads.
+With SynapseAI, the aim is to make training workloads on Gaudi easy, whether you're developing from scratch or migrating existing workloads.
 
 For more information, check out `<https://developer.habana.ai>`_ and `<https://habana.ai/>`_.
 
@@ -18,17 +18,17 @@ For more information, check out `<https://developer.habana.ai>`_ and `<https://h
 PyTorch Lightning With Gaudi HPU
 --------------------------------
 
-Lightning supports training on a single HPU device or 8 HPU devices with the plugins described in the following sections
+Lightning supports training on a single HPU device or 8 HPU devices with the integrations described in the following sections
 
 
 ----------------
 
 .. _hpu_accelerator:
 
-HPU accelerator
+HPU Accelerator
 ---------------
 
-To enable PyTorch Lightning to utilize the HPU accelerator, simply provide ``Trainer(accelerator="hpu")`` parameters in the trainer class.
+To enable PyTorch Lightning to utilize the HPU accelerator, simply provide ``Trainer(accelerator="hpu")`` parameter in the Trainer class.
 
 
 ----------------
@@ -38,7 +38,11 @@ To enable PyTorch Lightning to utilize the HPU accelerator, simply provide ``Tra
 Training on Single HPU
 ----------------------
 
-The ``devices=1`` and ``accelerator="hpu"`` with ``strategy=SingleHPUStrategy(device=torch.device("hpu"))`` parameter in the trainer class enables the Habana backend for single Gaudi training.
+The ``devices=1`` and ``accelerator="hpu"`` in the Trainer class enables the Habana backend for single Gaudi training.
+
+.. code-block:: python
+
+    trainer = Trainer(devices=1, accelerator="hpu")
 
 
 ----------------
@@ -49,10 +53,13 @@ Distributed Training
 ---------------------
 
 
-The ``devices=8`` and ``accelerator="hpu"`` with ``strategy=HPUParallelStrategy(parallel_devices=[torch.device("hpu")]*devices)`` parameter in the trainer class enables the Habana backend for distributed training with 8 Gaudis.
+The ``devices=8`` and ``accelerator="hpu"`` parameters in the Trainer class enables the Habana backend for distributed training with 8 Gaudis.
 
 The Habana parallel device strategy is based on DDP strategy with the addition of Habana's collective communication library (HCCL) to support scale-up within a node and scale-out across multiple nodes.
 
+.. code-block:: python
+
+    trainer = Trainer(devices=8, accelerator="hpu")
 
 ----------------
 
@@ -61,7 +68,7 @@ The Habana parallel device strategy is based on DDP strategy with the addition o
 Mixed Precision Plugin
 ----------------------
 
-The ``precision=16`` and a ``hmp_params`` parameter in the trainer class enables the Habana plugin for mixed precision using the Habana Mixed Precision (HMP) package.
+The ``precision=16`` parameter in the Trainer class enables the Habana plugin for mixed precision using the Habana Mixed Precision (HMP) package.
 
 You can execute the ops in FP32 or BF16 precision. The HMP package modifies the python operators to add the appropriate cast operations for the arguments before execution.
 The default settings enable users to easily enable mixed precision training with minimal code.
