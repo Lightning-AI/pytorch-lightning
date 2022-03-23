@@ -835,6 +835,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed to avoid common hook warning if no hook is overridden ([#12131](https://github.com/PyTorchLightning/pytorch-lightning/pull/12131))
 
 
+- Fixed returning logged metrics instead of callback metrics during evaluation ([#12224](https://github.com/PyTorchLightning/pytorch-lightning/pull/12224))
+
+
 - Fixed the case where `logger=None` is passed to the Trainer ([#12249](https://github.com/PyTorchLightning/pytorch-lightning/pull/12249))
 
 
