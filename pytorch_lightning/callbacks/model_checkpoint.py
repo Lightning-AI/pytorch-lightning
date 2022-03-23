@@ -100,8 +100,8 @@ class ModelCheckpoint(Callback):
             based on either the maximization or the minimization of the monitored quantity.
             For ``'val_acc'``, this should be ``'max'``, for ``'val_loss'`` this should be ``'min'``, etc.
         auto_insert_metric_name: When ``True``, the checkpoints filenames will contain the metric name.
-            For example, ``filename='checkpoint_{epoch:02d}-{acc:02d}`` with epoch 1 and acc 80 will resolve to
-            ``checkpoint_epoch=01-acc=80.ckp``. Is useful to set it to ``False`` when metric names contain ``/``
+            For example, ``filename='checkpoint_{epoch:02d}-{acc:02.0f}`` with epoch ``1`` and acc ``1.12`` will resolve
+            to ``checkpoint_epoch=01-acc=01.ckp``. Is useful to set it to ``False`` when metric names contain ``/``
             as this will result in extra folders.
         save_weights_only: if ``True``, then only the model's weights will be
             saved. Otherwise, the optimizer states, lr-scheduler states, etc are added in the checkpoint too.
