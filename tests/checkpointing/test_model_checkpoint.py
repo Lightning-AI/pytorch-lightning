@@ -109,7 +109,6 @@ def test_model_checkpoint_score_and_ckpt(
         def validation_step(self, batch, batch_idx):
             log_value = self.val_logs[self.current_epoch, batch_idx]
             self.log("val_log", log_value)
-            self.log("epoch", self.current_epoch, on_epoch=True)
             return super().validation_step(batch, batch_idx)
 
         def configure_optimizers(self):
@@ -538,22 +537,6 @@ def test_invalid_every_n_train_steps(tmpdir):
     ModelCheckpoint(dirpath=tmpdir, every_n_epochs=2)
 
 
-def test_invalid_trigger_combination(tmpdir):
-    """Test that a MisconfigurationException is raised if more than one of every_n_epochs, every_n_train_steps, and
-    train_time_interval are enabled together."""
-    with pytest.raises(MisconfigurationException, match=r".*Combination of parameters every_n_train_steps"):
-        ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=1, every_n_epochs=2)
-    with pytest.raises(MisconfigurationException, match=r".*Combination of parameters every_n_train_steps"):
-        ModelCheckpoint(train_time_interval=timedelta(minutes=1), every_n_epochs=2)
-    with pytest.raises(MisconfigurationException, match=r".*Combination of parameters every_n_train_steps"):
-        ModelCheckpoint(train_time_interval=timedelta(minutes=1), every_n_train_steps=2)
-
-    # These should not fail
-    ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=0, every_n_epochs=3)
-    ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=4, every_n_epochs=0)
-    ModelCheckpoint(dirpath=tmpdir, every_n_train_steps=0, every_n_epochs=0, train_time_interval=timedelta(minutes=1))
-
-
 def test_none_every_n_train_steps_val_epochs(tmpdir):
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir)
     assert checkpoint_callback.every_n_epochs == 1
@@ -625,7 +608,6 @@ def test_ckpt_every_n_train_steps(tmpdir):
     epoch_length = 64
     checkpoint_callback = ModelCheckpoint(
         filename="{step}",
-        every_n_epochs=0,
         every_n_train_steps=every_n_train_steps,
         dirpath=tmpdir,
         save_top_k=-1,
@@ -675,10 +657,9 @@ def test_model_checkpoint_train_time_interval(mock_datetime, tmpdir) -> None:
     )
 
     trainer.fit(model)
-    # Each batch takes 7 sec and we checkpoint every minute. There are 64
-    # batches per epoch, so total time to run is 7*64*2 = 896 sec < 14.96 minutes,
-    # so we should have 14 checkpoints.
-    assert len(os.listdir(tmpdir)) == 14
+    # Each batch takes 7 sec and we checkpoint every minute. There are 64 batches per epoch, so total time to run is
+    # 7*64*2 = 896 sec < 14.96 minutes so we should have 14 checkpoints. +2 for those saved at the end of the each epoch
+    assert len(os.listdir(tmpdir)) == 14 + 2
 
 
 def test_model_checkpoint_topk_zero(tmpdir):
@@ -1086,7 +1067,7 @@ def test_hparams_type(tmpdir, use_omegaconf):
             super().__init__()
             self.save_hyperparameters(hparams)
 
-    model_checkpoint = ModelCheckpoint(dirpath=tmpdir, save_top_k=1, monitor="foo")
+    model_checkpoint = ModelCheckpoint(dirpath=tmpdir, save_top_k=1)
     trainer = Trainer(
         max_epochs=1,
         default_root_dir=tmpdir,
@@ -1253,7 +1234,7 @@ def test_save_last_saves_correct_last_model_path(tmpdir):
     trainer = Trainer(callbacks=mc)
     trainer.strategy.connect(BoringModel())
 
-    mc._save_last_checkpoint(trainer, {"foo": 1})
+    mc._save_last_checkpoint(trainer, {"foo": 1, "step": 0})
     expected = "foo=1-last.ckpt"
     assert os.listdir(tmpdir) == [expected]
     full_path = str(tmpdir / expected)
@@ -1266,7 +1247,7 @@ def test_none_monitor_saves_correct_best_model_path(tmpdir):
     trainer = Trainer(callbacks=mc)
     trainer.strategy.connect(BoringModel())
 
-    mc._save_none_monitor_checkpoint(trainer, {})
+    mc._save_none_monitor_checkpoint(trainer, {"step": 0})
     expected = "epoch=0-step=0.ckpt"
     assert os.listdir(tmpdir) == [expected]
     full_path = str(tmpdir / expected)
@@ -1281,3 +1262,24 @@ def test_last_global_step_saved():
     trainer.callback_metrics = {"foo": 123}
     model_checkpoint.save_checkpoint(trainer)
     assert model_checkpoint._last_global_step_saved == 0
+
+
+def test_save_last_every_n_epochs_interaction(tmpdir):
+    """Test that `save_last` ignores `every_n_epochs`."""
+    mc = ModelCheckpoint(every_n_epochs=5, save_last=True, save_top_k=0, save_on_train_epoch_end=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        callbacks=mc,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+    )
+    assert mc.every_n_epochs > trainer.max_epochs
+    model = BoringModel()
+    with patch.object(trainer, "save_checkpoint") as save_mock:
+        trainer.fit(model)
+    assert mc.last_model_path  # a "last" ckpt was saved
+    assert save_mock.call_count == trainer.max_epochs
