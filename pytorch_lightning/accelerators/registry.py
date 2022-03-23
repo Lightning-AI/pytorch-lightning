@@ -108,7 +108,7 @@ class _AcceleratorRegistry(dict):
         return list(self.keys())
 
     def __str__(self) -> str:
-        return "Registered Accelerators: {}".format(", ".join(self.keys()))
+        return "Registered Accelerators: {}".format(", ".join(self.available_accelerators()))
 
 
 AcceleratorRegistry = _AcceleratorRegistry()
