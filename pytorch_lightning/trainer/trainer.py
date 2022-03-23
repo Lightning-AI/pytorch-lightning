@@ -1678,12 +1678,21 @@ class Trainer(
         Will be removed in v1.8: If state is returned, we insert the callback state into
         ``checkpoint["callbacks"][Callback.state_key]``. It overrides ``state_dict`` if already present.
         """
+        pl_module = self.lightning_module
+        if pl_module:
+            prev_fx_name = pl_module._current_fx_name
+            pl_module._current_fx_name = "on_save_checkpoint"
+
         for callback in self.callbacks:
-            # TODO: Add profiling for on_save_checkpoint hook
-            state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
+            with self.profiler.profile(f"[Callback]{callback.state_key}.on_save_checkpoint"):
+                state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
                 # TODO: Add deprecation warning if state is returned (see reference PR #11887)
                 checkpoint["callbacks"][callback.state_key] = state
+
+        if pl_module:
+            # restore current_fx when nested context
+            pl_module._current_fx_name = prev_fx_name
 
     def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint.
@@ -1691,6 +1700,11 @@ class Trainer(
         Calls every callback's `on_load_checkpoint` hook. We have a dedicated function for this rather than using
         `_call_callback_hooks` because we have special logic for getting callback_states.
         """
+        pl_module = self.lightning_module
+        if pl_module:
+            prev_fx_name = pl_module._current_fx_name
+            pl_module._current_fx_name = "on_load_checkpoint"
+
         callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
 
         if callback_states is None:
@@ -1710,8 +1724,12 @@ class Trainer(
             state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
             if state:
                 state = deepcopy(state)
-                # TODO: Add profiling for on_load_checkpoint hook
-                callback.on_load_checkpoint(self, self.lightning_module, state)
+                with self.profiler.profile(f"[Callback]{callback.state_key}.on_load_checkpoint"):
+                    callback.on_load_checkpoint(self, self.lightning_module, state)
+
+        if pl_module:
+            # restore current_fx when nested context
+            pl_module._current_fx_name = prev_fx_name
 
     def _call_callbacks_load_state_dict(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint, calls every callback's `load_state_dict`."""
