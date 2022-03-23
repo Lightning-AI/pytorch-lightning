@@ -87,7 +87,6 @@ class MLFlowLogger(LightningLoggerBase):
                 self.logger.experiment.whatever_ml_flow_supports(...)
 
     Args:
-        run_id: The run identifier of the experiment. If not provided, a new run is started.
         experiment_name: The name of the experiment.
         run_name: Name of the new run. The `run_name` is internally stored as a ``mlflow.runName`` tag.
             If the ``mlflow.runName`` tag has already been set in `tags`, the value is overridden by the `run_name`.
@@ -101,6 +100,7 @@ class MLFlowLogger(LightningLoggerBase):
         prefix: A string to put at the beginning of metric keys.
         artifact_location: The location to store run artifacts. If not provided, the server picks an appropriate
             default.
+        run_id: The run identifier of the experiment. If not provided, a new run is started.
 
     Raises:
         ModuleNotFoundError:
