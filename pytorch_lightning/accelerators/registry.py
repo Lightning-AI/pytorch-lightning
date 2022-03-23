@@ -96,7 +96,7 @@ class _AcceleratorRegistry(dict):
             return default
 
         err_msg = "'{}' not found in registry. Available names: {}"
-        available_names = ", ".join(sorted(self.keys())) or "none"
+        available_names = self.available_accelerators()
         raise KeyError(err_msg.format(name, available_names))
 
     def remove(self, name: str) -> None:
