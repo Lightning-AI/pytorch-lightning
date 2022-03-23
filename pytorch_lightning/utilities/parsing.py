@@ -21,6 +21,7 @@ from argparse import Namespace
 from dataclasses import fields, is_dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 
+from torch import nn
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
@@ -225,12 +226,25 @@ def save_hyperparameters(
         for local_args in collect_init_args(frame, []):
             init_args.update(local_args)
 
-    if ignore is not None:
-        if isinstance(ignore, str):
-            ignore = [ignore]
-        if isinstance(ignore, (list, tuple)):
-            ignore = [arg for arg in ignore if isinstance(arg, str)]
-        init_args = {k: v for k, v in init_args.items() if k not in ignore}
+    if ignore is None:
+        ignore = []
+    elif isinstance(ignore, str):
+        ignore = [ignore]
+    elif isinstance(ignore, (list, tuple)):
+        ignore = [arg for arg in ignore if isinstance(arg, str)]
+
+    ignore = list(set(ignore))
+
+    for k in list(init_args):
+        if k in ignore:
+            del init_args[k]
+            continue
+
+        if isinstance(init_args[k], nn.Module):
+            rank_zero_warn(
+                f"Attribute {k!r} is an instance of `nn.Module` and is already saved during checkpointing."
+                " It is recommended to ignore them using `self.save_hyperparameters(ignore=[k!r])`."
+            )
 
     if not args:
         # take all arguments
@@ -249,7 +263,7 @@ def save_hyperparameters(
 
     # `hparams` are expected here
     obj._set_hparams(hp)
-    # make deep copy so  there is not other runtime changes reflected
+    # make deep copy so there is not other runtime changes reflected
     obj._hparams_initial = copy.deepcopy(obj._hparams)
 
 
