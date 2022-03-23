@@ -48,7 +48,7 @@ class _AcceleratorRegistry(dict):
         self,
         name: str,
         accelerator: Optional[Callable] = None,
-        description: Optional[str] = None,
+        description: str = "",
         override: bool = False,
         **init_params: Any,
     ) -> Callable:
