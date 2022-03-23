@@ -26,7 +26,7 @@ from pytorch_lightning.callbacks import (
 )
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
-from pytorch_lightning.utilities import ModelSummaryMode
+from pytorch_lightning.utilities.enums import ModelSummaryMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
 
@@ -53,6 +53,12 @@ class CallbackConnector:
     ):
         # init folder paths for checkpoint + weights save callbacks
         self.trainer._default_root_dir = default_root_dir or os.getcwd()
+        if weights_save_path:
+            rank_zero_deprecation(
+                "Setting `Trainer(weights_save_path=)` has been deprecated in v1.6 and will be"
+                " removed in v1.8. Please pass ``dirpath`` directly to the `ModelCheckpoint` callback"
+            )
+
         self.trainer._weights_save_path = weights_save_path or self.trainer._default_root_dir
         if stochastic_weight_avg:
             rank_zero_deprecation(
@@ -102,7 +108,10 @@ class CallbackConnector:
         # accumulated grads
         self._configure_accumulated_gradients(accumulate_grad_batches)
 
-        # push all checkpoint callbacks to the end
+        if self.trainer.state._fault_tolerant_mode.is_enabled:
+            self._configure_fault_tolerance_callbacks()
+
+        # push all model checkpoint callbacks to the end
         # it is important that these are the last callbacks to run
         self.trainer.callbacks = self._reorder_callbacks(self.trainer.callbacks)
 
@@ -146,13 +155,13 @@ class CallbackConnector:
             # if both are set then checkpoint only if both are True
             enable_checkpointing = checkpoint_callback and enable_checkpointing
 
-        if self._trainer_has_checkpoint_callbacks() and enable_checkpointing is False:
-            raise MisconfigurationException(
-                "Trainer was configured with `enable_checkpointing=False`"
-                " but found `ModelCheckpoint` in callbacks list."
-            )
-
-        if not self._trainer_has_checkpoint_callbacks() and enable_checkpointing is True:
+        if self.trainer.checkpoint_callbacks:
+            if not enable_checkpointing:
+                raise MisconfigurationException(
+                    "Trainer was configured with `enable_checkpointing=False`"
+                    " but found `ModelCheckpoint` in callbacks list."
+                )
+        elif enable_checkpointing:
             self.trainer.callbacks.append(ModelCheckpoint())
 
     def _configure_model_summary_callback(
@@ -252,8 +261,13 @@ class CallbackConnector:
         timer = Timer(duration=max_time, interval="step")
         self.trainer.callbacks.append(timer)
 
-    def _trainer_has_checkpoint_callbacks(self):
-        return len(self.trainer.checkpoint_callbacks) > 0
+    def _configure_fault_tolerance_callbacks(self):
+        from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
+
+        if any(isinstance(cb, _FaultToleranceCheckpoint) for cb in self.trainer.callbacks):
+            raise RuntimeError("There should be only one fault-tolerance checkpoint callback.")
+        # don't use `log_dir` to minimize the chances of failure
+        self.trainer.callbacks.append(_FaultToleranceCheckpoint(dirpath=self.trainer.default_root_dir))
 
     def _attach_model_logging_functions(self):
         lightning_module = self.trainer.lightning_module

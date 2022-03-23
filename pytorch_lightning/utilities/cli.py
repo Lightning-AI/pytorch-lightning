@@ -30,6 +30,7 @@ from pytorch_lightning import Callback, LightningDataModule, LightningModule, se
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _JSONARGPARSE_AVAILABLE
+from pytorch_lightning.utilities.meta import get_all_subclasses
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple, LRSchedulerTypeUnion
@@ -58,9 +59,8 @@ class _Registry(dict):
         elif not isinstance(key, str):
             raise TypeError(f"`key` must be a str, found {key}")
 
-        if key in self and not override:
-            raise MisconfigurationException(f"'{key}' is already present in the registry. HINT: Use `override=True`.")
-        self[key] = cls
+        if key not in self or override:
+            self[key] = cls
         return cls
 
     def register_classes(self, module: ModuleType, base_cls: Type, override: bool = False) -> None:
@@ -91,10 +91,11 @@ class _Registry(dict):
 
 
 OPTIMIZER_REGISTRY = _Registry()
-OPTIMIZER_REGISTRY.register_classes(torch.optim, Optimizer)
-
 LR_SCHEDULER_REGISTRY = _Registry()
-LR_SCHEDULER_REGISTRY.register_classes(torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler)
+CALLBACK_REGISTRY = _Registry()
+MODEL_REGISTRY = _Registry()
+DATAMODULE_REGISTRY = _Registry()
+LOGGER_REGISTRY = _Registry()
 
 
 class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
@@ -103,17 +104,29 @@ class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
         self.monitor = monitor
 
 
-LR_SCHEDULER_REGISTRY(cls=ReduceLROnPlateau)
-
-CALLBACK_REGISTRY = _Registry()
-CALLBACK_REGISTRY.register_classes(pl.callbacks, pl.callbacks.Callback)
-
-MODEL_REGISTRY = _Registry()
-
-DATAMODULE_REGISTRY = _Registry()
-
-LOGGER_REGISTRY = _Registry()
-LOGGER_REGISTRY.register_classes(pl.loggers, pl.loggers.LightningLoggerBase)
+def _populate_registries(subclasses: bool) -> None:
+    if subclasses:
+        # this will register any subclasses from all loaded modules including userland
+        for cls in get_all_subclasses(torch.optim.Optimizer):
+            OPTIMIZER_REGISTRY(cls)
+        for cls in get_all_subclasses(torch.optim.lr_scheduler._LRScheduler):
+            LR_SCHEDULER_REGISTRY(cls)
+        for cls in get_all_subclasses(pl.Callback):
+            CALLBACK_REGISTRY(cls)
+        for cls in get_all_subclasses(pl.LightningModule):
+            MODEL_REGISTRY(cls)
+        for cls in get_all_subclasses(pl.LightningDataModule):
+            DATAMODULE_REGISTRY(cls)
+        for cls in get_all_subclasses(pl.loggers.LightningLoggerBase):
+            LOGGER_REGISTRY(cls)
+    else:
+        # manually register torch's subclasses and our subclasses
+        OPTIMIZER_REGISTRY.register_classes(torch.optim, Optimizer)
+        LR_SCHEDULER_REGISTRY.register_classes(torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler)
+        CALLBACK_REGISTRY.register_classes(pl.callbacks, pl.Callback)
+        LOGGER_REGISTRY.register_classes(pl.loggers, pl.loggers.LightningLoggerBase)
+    # `ReduceLROnPlateau` does not subclass `_LRScheduler`
+    LR_SCHEDULER_REGISTRY(cls=ReduceLROnPlateau)
 
 
 class LightningArgumentParser(ArgumentParser):
@@ -135,7 +148,7 @@ class LightningArgumentParser(ArgumentParser):
             )
         super().__init__(*args, **kwargs)
         self.add_argument(
-            "--config", action=ActionConfigFile, help="Path to a configuration file in json or yaml format."
+            "-c", "--config", action=ActionConfigFile, help="Path to a configuration file in json or yaml format."
         )
         self.callback_keys: List[str] = []
         # separate optimizers and lr schedulers to know which were added
@@ -415,8 +428,6 @@ class SaveConfigCallback(Callback):
         self.multifile = multifile
 
     def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
-        # save the config in `setup` because (1) we want it to save regardless of the trainer function run
-        # and we want to save before processes are spawned
         log_dir = trainer.log_dir  # this broadcasts the directory
         assert log_dir is not None
         config_path = os.path.join(log_dir, self.config_filename)
@@ -437,17 +448,13 @@ class SaveConfigCallback(Callback):
 
         # save the file on rank 0
         if trainer.is_global_zero:
-            # save only on rank zero to avoid race conditions on DDP.
+            # save only on rank zero to avoid race conditions.
             # the `log_dir` needs to be created as we rely on the logger to do it usually
             # but it hasn't logged anything at this point
             fs.makedirs(log_dir, exist_ok=True)
             self.parser.save(
                 self.config, config_path, skip_none=False, overwrite=self.overwrite, multifile=self.multifile
             )
-
-    def __reduce__(self) -> Tuple[Type["SaveConfigCallback"], Tuple, Dict]:
-        # `ArgumentParser` is un-pickleable. Drop it
-        return self.__class__, (None, self.config, self.config_filename), {}
 
 
 class LightningCLI:
@@ -471,6 +478,7 @@ class LightningCLI:
         subclass_mode_model: bool = False,
         subclass_mode_data: bool = False,
         run: bool = True,
+        auto_registry: bool = False,
     ) -> None:
         """Receives as input pytorch-lightning classes (or callables which return pytorch-lightning classes), which
         are called / instantiated using a parsed configuration file and / or command line args.
@@ -514,6 +522,7 @@ class LightningCLI:
                 of the given class.
             run: Whether subcommands should be added to run a :class:`~pytorch_lightning.trainer.trainer.Trainer`
                 method. If set to ``False``, the trainer and model classes will be instantiated only.
+            auto_registry: Whether to automatically fill up the registries with all defined subclasses.
         """
         self.save_config_callback = save_config_callback
         self.save_config_filename = save_config_filename
@@ -532,6 +541,8 @@ class LightningCLI:
         # used to differentiate between the original value and the processed value
         self._datamodule_class = datamodule_class or LightningDataModule
         self.subclass_mode_data = (datamodule_class is None) or subclass_mode_data
+
+        _populate_registries(auto_registry)
 
         main_kwargs, subparser_kwargs = self._setup_parser_kwargs(
             parser_kwargs or {},  # type: ignore  # github.com/python/mypy/issues/6463

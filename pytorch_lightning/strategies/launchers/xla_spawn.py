@@ -14,7 +14,7 @@
 import os
 import time
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 import torch.multiprocessing as mp
 
@@ -31,6 +31,9 @@ if _TPU_AVAILABLE:
 else:
     xm, xmp, MpDeviceLoader, rendezvous = [None] * 4
 
+if TYPE_CHECKING:
+    from pytorch_lightning.strategies import Strategy
+
 
 class _XLASpawnLauncher(_SpawnLauncher):
     r"""Spawns processes that run a given function in parallel on XLA supported hardware, and joins them all at the end.
@@ -42,7 +45,18 @@ class _XLASpawnLauncher(_SpawnLauncher):
     Note:
         - This launcher requires all objects to be pickleable.
         - It is important that the entry point to the program/script is guarded by ``if __name__ == "__main__"``.
+
+    Args:
+        strategy: A reference to the strategy that is used together with this launcher
     """
+
+    def __init__(self, strategy: "Strategy") -> None:
+        super().__init__(strategy)
+        self._start_method = "fork"
+
+    @property
+    def is_interactive_compatible(self) -> bool:
+        return True
 
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
         """Spawns processes that run the given function in parallel.
@@ -57,12 +71,13 @@ class _XLASpawnLauncher(_SpawnLauncher):
                 a selected set of attributes get restored in the main process after processes join.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
-        context = mp.get_context(self._strategy.start_method or "fork")
+        context = mp.get_context(self._start_method)
         return_queue = context.SimpleQueue()
         xmp.spawn(
             self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
-            **self._strategy.get_mp_spawn_kwargs()
+            nprocs=len(self._strategy.parallel_devices),
+            start_method=self._start_method,
         )
         spawn_output = return_queue.get()
         if trainer is None:

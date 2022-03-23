@@ -155,7 +155,11 @@ class PrecisionPlugin(CheckpointHooks):
     def _track_grad_norm(self, trainer: "pl.Trainer") -> None:
         if trainer.track_grad_norm == -1:
             return
-        kwargs = {"group_separator": trainer.logger.group_separator} if trainer.logger is not None else {}
+
+        kwargs = {}
+        if len(trainer.loggers) == 1:
+            kwargs["group_separator"] = trainer.loggers[0].group_separator
+
         grad_norm_dict = grad_norm(trainer.lightning_module, trainer.track_grad_norm, **kwargs)
         if grad_norm_dict:
             prev_fx = trainer.lightning_module._current_fx_name
@@ -259,3 +263,15 @@ class PrecisionPlugin(CheckpointHooks):
             state_dict: the precision plugin state returned by ``state_dict``.
         """
         pass
+
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """``PrecisionPlugin.on_save_checkpoint`` was deprecated in v1.6 and will be removed in v1.8.
+
+        Use ``state_dict`` instead.
+        """
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """``PrecisionPlugin.on_load_checkpoint`` was deprecated in v1.6 and will be removed in v1.8.
+
+        Use ``load_state_dict`` instead.
+        """

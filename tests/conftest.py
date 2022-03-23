@@ -64,6 +64,8 @@ def restore_env_variables():
         "PL_GLOBAL_SEED",
         "PL_SEED_WORKERS",
         "WANDB_MODE",
+        "WANDB_REQUIRE_SERVICE",
+        "WANDB_SERVICE",
         "HOROVOD_FUSION_THRESHOLD",
         "RANK",  # set by DeepSpeed
         "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
@@ -77,6 +79,7 @@ def restore_env_variables():
         "XRT_HOST_WORLD_SIZE",
         "XRT_SHARD_ORDINAL",
         "XRT_SHARD_LOCAL_ORDINAL",
+        "TF_CPP_MIN_LOG_LEVEL",
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"

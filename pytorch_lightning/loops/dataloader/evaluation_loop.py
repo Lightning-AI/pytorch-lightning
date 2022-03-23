@@ -15,19 +15,29 @@ import os
 import shutil
 from collections import OrderedDict
 from functools import partial
-from typing import Any, IO, Iterable, List, Optional, Sequence, Union
+from typing import Any, IO, Iterable, List, Optional, Sequence, Type, Union
 
 import torch
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
 
+import pytorch_lightning as pl
+from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataFetcher
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetching import (
+    AbstractDataFetcher,
+    DataFetcher,
+    DataLoaderIterDataFetcher,
+    InterBatchParallelDataFetcher,
+)
 from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
 if _RICH_AVAILABLE:
@@ -56,8 +66,6 @@ class EvaluationLoop(DataLoaderLoop):
         # case where user does:
         # return dl1, dl2
         dataloaders = self.dataloaders
-        if dataloaders is None:
-            return 0
         length = len(dataloaders)
         if length > 0 and isinstance(dataloaders[0], (list, tuple)):
             length = len(dataloaders[0])
@@ -68,8 +76,15 @@ class EvaluationLoop(DataLoaderLoop):
         """Returns the validation or test dataloaders."""
         dataloaders = self.trainer.test_dataloaders if self.trainer.testing else self.trainer.val_dataloaders
         if dataloaders is None:
-            raise RuntimeError("Dataloaders should be available.")
+            return []
         return dataloaders
+
+    @property
+    def prefetch_batches(self) -> int:
+        batches = self.trainer.num_test_batches if self.trainer.testing else self.trainer.num_val_batches
+        is_unsized = batches[self.current_dataloader_idx] == float("inf")
+        inter_batch_parallelism = os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1"
+        return 1 if is_unsized or inter_batch_parallelism else 0
 
     def connect(self, epoch_loop: EvaluationEpochLoop) -> None:  # type: ignore[override]
         """Connect the evaluation epoch loop with this loop."""
@@ -110,7 +125,8 @@ class EvaluationLoop(DataLoaderLoop):
         hooks."""
         void(*args, **kwargs)
 
-        self._data_fetcher = DataFetcher()
+        data_fetcher_cls = _select_data_fetcher_type(self.trainer)
+        self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)
 
         # hook
         self._on_evaluation_model_eval()
@@ -144,16 +160,16 @@ class EvaluationLoop(DataLoaderLoop):
             self._has_run = True
 
     def on_advance_end(self) -> None:
-        self.trainer.logger_connector.epoch_end_reached()
+        self.trainer._logger_connector.epoch_end_reached()
 
-        self._logged_outputs.append(self.trainer.logger_connector.update_eval_epoch_metrics())
+        self._logged_outputs.append(self.trainer._logger_connector.update_eval_epoch_metrics())
 
         super().on_advance_end()
 
     def on_run_end(self) -> List[_OUT_DICT]:
         """Runs the ``_on_evaluation_epoch_end`` hook."""
         # if `done` returned True before any iterations were done, this won't have been called in `on_advance_end`
-        self.trainer.logger_connector.epoch_end_reached()
+        self.trainer._logger_connector.epoch_end_reached()
 
         # hook
         self._evaluation_epoch_end(self._outputs)
@@ -164,12 +180,12 @@ class EvaluationLoop(DataLoaderLoop):
 
         logged_outputs, self._logged_outputs = self._logged_outputs, []  # free memory
         # include any logged outputs on epoch_end
-        epoch_end_logged_outputs = self.trainer.logger_connector.update_eval_epoch_metrics()
+        epoch_end_logged_outputs = self.trainer._logger_connector.update_eval_epoch_metrics()
         for dl_outputs in logged_outputs:
             dl_outputs.update(epoch_end_logged_outputs)
 
         # log metrics
-        self.trainer.logger_connector.log_eval_end_metrics()
+        self.trainer._logger_connector.log_eval_end_metrics()
 
         # hook
         self._on_evaluation_end()
@@ -248,11 +264,11 @@ class EvaluationLoop(DataLoaderLoop):
             self.trainer._call_strategy_hook("on_validation_end", *args, **kwargs)
 
         # reset the logger connector state
-        self.trainer.logger_connector.reset_results()
+        self.trainer._logger_connector.reset_results()
 
     def _on_evaluation_epoch_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_epoch_start`` and ``on_{validation/test}_epoch_start`` hooks."""
-        self.trainer.logger_connector.on_epoch_start()
+        self.trainer._logger_connector.on_epoch_start()
         self.trainer._call_callback_hooks("on_epoch_start", *args, **kwargs)
         self.trainer._call_lightning_module_hook("on_epoch_start", *args, **kwargs)
 
@@ -265,7 +281,7 @@ class EvaluationLoop(DataLoaderLoop):
 
     def _evaluation_epoch_end(self, outputs: List[EPOCH_OUTPUT]) -> None:
         """Runs ``{validation/test}_epoch_end``"""
-        self.trainer.logger_connector._evaluation_epoch_end()
+        self.trainer._logger_connector._evaluation_epoch_end()
 
         # with a single dataloader don't pass a 2D list
         output_or_outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]] = (
@@ -286,7 +302,7 @@ class EvaluationLoop(DataLoaderLoop):
 
         self.trainer._call_callback_hooks("on_epoch_end")
         self.trainer._call_lightning_module_hook("on_epoch_end")
-        self.trainer.logger_connector.on_epoch_end()
+        self.trainer._logger_connector.on_epoch_end()
 
     @staticmethod
     def _get_keys(data: dict) -> Iterable[str]:
@@ -366,3 +382,20 @@ class EvaluationLoop(DataLoaderLoop):
                         lines.append(row_format.format(metric, *row).rstrip())
                 lines.append(bar)
                 print(os.linesep.join(lines), file=file)
+
+
+def _select_data_fetcher_type(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:
+    lightning_module = trainer.lightning_module
+    step_fx_name = "test_step" if trainer.testing else "validation_step"
+    step_fx = getattr(lightning_module, step_fx_name)
+    if is_param_in_hook_signature(step_fx, "dataloader_iter", explicit=True):
+        rank_zero_warn(
+            f"Found `dataloader_iter` argument in the `{step_fx_name}`. Note that the support for "
+            "this signature is experimental and the behavior is subject to change."
+        )
+        return DataLoaderIterDataFetcher
+    elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
+        if not isinstance(trainer.accelerator, GPUAccelerator):
+            raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
+        return InterBatchParallelDataFetcher
+    return DataFetcher

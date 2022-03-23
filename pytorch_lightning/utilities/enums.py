@@ -254,8 +254,6 @@ class _StrategyType(LightningEnum):
         """Returns a list containing interactive compatible _StrategyTypes."""
         return [
             _StrategyType.DP,
-            _StrategyType.DDP_SPAWN,
-            _StrategyType.DDP_SHARDED_SPAWN,
             _StrategyType.TPU_SPAWN,
         ]
 

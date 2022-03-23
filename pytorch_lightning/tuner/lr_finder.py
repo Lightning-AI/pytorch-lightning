@@ -204,9 +204,7 @@ def lr_find(
 
     # Save initial model, that is loaded after learning rate is found
     ckpt_path = os.path.join(trainer.default_root_dir, f".lr_find_{uuid.uuid4()}.ckpt")
-    trainer.fit_loop.global_step -= 1
     trainer.save_checkpoint(ckpt_path)
-    trainer.fit_loop.global_step += 1
     params = __lr_finder_dump_params(trainer)
 
     # Set to values that are required by the algorithm
@@ -267,7 +265,7 @@ def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_sto
     # Use special lr logger callback
     trainer.callbacks = [_LRCallback(num_training, early_stop_threshold, progress_bar_refresh_rate=1)]
     # No logging
-    trainer.logger = DummyLogger() if trainer.logger is not None else None
+    trainer.loggers = [DummyLogger()] if trainer.loggers else []
     # Max step set to number of iterations
     trainer.fit_loop.max_steps = num_training
 

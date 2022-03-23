@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
 from tests.loggers.test_base import CustomLogger
@@ -30,26 +32,24 @@ def test_trainer_loggers_property():
     # trainer.loggers should create a list of size 1
     trainer = Trainer(logger=logger1)
 
+    assert trainer.logger == logger1
     assert trainer.loggers == [logger1]
-
-    # trainer.loggers should be an empty list
-    trainer = Trainer(logger=False)
-
-    assert trainer.loggers == []
 
     # trainer.loggers should be a list of size 1 holding the default logger
     trainer = Trainer(logger=True)
 
     assert trainer.loggers == [trainer.logger]
-    assert type(trainer.loggers[0]) == TensorBoardLogger
+    assert isinstance(trainer.logger, TensorBoardLogger)
 
 
 def test_trainer_loggers_setters():
     """Test the behavior of setters for trainer.logger and trainer.loggers."""
     logger1 = CustomLogger()
     logger2 = CustomLogger()
-    logger_collection = LoggerCollection([logger1, logger2])
-    logger_collection_2 = LoggerCollection([logger2])
+    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
+        logger_collection = LoggerCollection([logger1, logger2])
+    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
+        logger_collection_2 = LoggerCollection([logger2])
 
     trainer = Trainer()
     assert type(trainer.logger) == TensorBoardLogger
@@ -89,3 +89,23 @@ def test_trainer_loggers_setters():
     trainer.loggers = None
     assert trainer.loggers == []
     assert trainer.logger is None
+
+
+@pytest.mark.parametrize(
+    "logger_value",
+    [
+        None,
+        False,
+        [],
+    ],
+)
+def test_no_logger(tmpdir, logger_value):
+    """Test the cases where logger=None, logger=False, logger=[] are passed to Trainer."""
+    trainer = Trainer(
+        logger=logger_value,
+        default_root_dir=tmpdir,
+        max_steps=1,
+    )
+    assert trainer.logger is None
+    assert trainer.loggers == []
+    assert trainer.log_dir == tmpdir

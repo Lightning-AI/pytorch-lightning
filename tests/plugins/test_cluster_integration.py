@@ -49,6 +49,7 @@ def environment_combinations():
         "RANK": "3",
         "WORLD_SIZE": "4",
         "LOCAL_WORLD_SIZE": "2",
+        "TORCHELASTIC_RUN_ID": "1",
     }
     environment = TorchElasticEnvironment()
     yield environment, variables, expected
@@ -58,7 +59,8 @@ def environment_combinations():
     "strategy_cls",
     [DDPStrategy, DDPShardedStrategy, DDP2Strategy, pytest.param(DeepSpeedStrategy, marks=RunIf(deepspeed=True))],
 )
-def test_ranks_available_manual_strategy_selection(strategy_cls):
+@mock.patch("pytorch_lightning.accelerators.gpu.GPUAccelerator.is_available", return_value=True)
+def test_ranks_available_manual_strategy_selection(mock_gpu_acc_available, strategy_cls):
     """Test that the rank information is readily available after Trainer initialization."""
     num_nodes = 2
     for cluster, variables, expected in environment_combinations():
