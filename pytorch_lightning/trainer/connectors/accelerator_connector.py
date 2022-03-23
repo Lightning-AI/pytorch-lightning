@@ -505,9 +505,9 @@ class AcceleratorConnector:
             ]
             raise MisconfigurationException(
                 f"{self.accelerator.__class__.__qualname__} can not run on your system"
-                f" since {self.accelerator.name().upper()}s are not available."
-                " The following accelerator(s) is available and can be passed into"
-                f" `accelerator` argument of `Trainer`: {available_accelerator}."
+                " since the accelerator is not available. The following accelerator(s)"
+                " is available and can be passed into `accelerator` argument of"
+                f" `Trainer`: {available_accelerator}."
             )
 
         self._set_devices_flag_if_auto_passed()
