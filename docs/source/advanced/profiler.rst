@@ -125,11 +125,8 @@ of logging it to the output in your terminal. The output below shows the profili
 PyTorch Profiler
 ================
 
-Autograd includes a profiler that lets you inspect the cost of different operators
-inside your model - both on the CPU and GPU. It uses the built-in :class:`~pytorch_lightning.profiler.pytorch.PyTorchProfiler`.
-
-To read more about the PyTorch Profiler and all its options,
-have a look at its `docs <https://pytorch.org/docs/master/profiler.html>`_.
+PyTorch includes a `profiler <https://pytorch.org/docs/master/profiler.html>`__ that lets you inspect the cost of different operators
+inside your model - both on the CPU and GPU. It's used by our :class:`~pytorch_lightning.profiler.pytorch.PyTorchProfiler`.
 
 .. code-block:: python
 
@@ -261,17 +258,17 @@ Custom Profiling
 Custom Profiler
 ===============
 
-You can also configure a custom profiler and pass it to the Trainer. To configure it, subclass :class:`~pytorch_lightning.profiler.base.BaseProfiler`
+You can also configure a custom profiler and pass it to the Trainer. To configure it, subclass :class:`~pytorch_lightning.profiler.base.Profiler`
 and override some of its methods. The following is a simple example that profiles the first occurrence and total calls of each action:
 
 .. code-block:: python
 
-    from pytorch_lightning.profiler.base import BaseProfiler
+    from pytorch_lightning.profiler import Profiler
     from collections import defaultdict
     import time
 
 
-    class ActionCountProfiler(BaseProfiler):
+    class ActionCountProfiler(Profiler):
         def __init__(self, dirpath=None, filename=None):
             super().__init__(dirpath=dirpath, filename=filename)
             self._action_count = defaultdict(int)

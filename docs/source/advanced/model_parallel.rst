@@ -737,9 +737,6 @@ DDP Communication Hooks
 
 DDP Communication hooks is an interface to control how gradients are communicated across workers, overriding the standard allreduce in DistributedDataParallel. This allows you to enable performance improving communication hooks when using multiple nodes.
 
-.. note::
-    DDP communication hooks needs pytorch version at least 1.8.0
-
 Enable `FP16 Compress Hook for multi-node throughput improvement <https://pytorch.org/docs/stable/ddp_comm_hooks.html#torch.distributed.algorithms.ddp_comm_hooks.default_hooks.fp16_compress_hook>`__:
 
 .. code-block:: python
@@ -785,7 +782,7 @@ Enable `PowerSGD for multi-node throughput improvement <https://pytorch.org/docs
 Combine hooks for accumulated benefit:
 
 .. note::
-    DDP communication wrappers needs pytorch version at least 1.9.0
+    DDP communication wrappers support requires PyTorch>=1.9.0
 
 .. code-block:: python
 
@@ -810,3 +807,20 @@ Combine hooks for accumulated benefit:
         ),
     )
     trainer.fit(model)
+
+DDP Static Graph
+""""""""""""""""
+
+`DDP static graph <https://pytorch.org/blog/pytorch-1.11-released/#stable-ddp-static-graph>`__ assumes that your model
+employs the same set of used/unused parameters in every iteration, so that it can deterministically know the flow of
+training and apply special optimizations during runtime.
+
+.. note::
+    DDP static graph support requires PyTorch>=1.11.0
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.strategies import DDPStrategy
+
+    trainer = Trainer(devices=4, strategy=DDPStrategy(static_graph=True))

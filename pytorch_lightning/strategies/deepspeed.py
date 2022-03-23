@@ -500,7 +500,7 @@ class DeepSpeedStrategy(DDPStrategy):
             # disable deepspeed lr scheduling as lightning manages scheduling
             model.lr_scheduler = None
             if lr_scheduler is None:
-                lr_scheduler = LRSchedulerConfig(deepspeed_scheduler, interval="step")
+                lr_scheduler = LRSchedulerConfig(deepspeed_scheduler, interval="step", opt_idx=0)
             else:
                 lr_scheduler.scheduler = deepspeed_scheduler
             self.lr_scheduler_configs = [lr_scheduler]
@@ -760,6 +760,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 "`Trainer.save_checkpoint(..., storage_options=...)` with `storage_options` arg"
                 f" is not supported for `{self.__class__.__name__}` as `CheckpointIO` is not used."
             )
+
         if self.zero_stage_3 and self._multi_device and self.is_global_zero:
             warning_cache.warn(
                 "When saving the DeepSpeed Stage 3 checkpoint, "
@@ -772,7 +773,7 @@ class DeepSpeedStrategy(DDPStrategy):
         # dump states as a checkpoint dictionary object
         _exclude_keys = ["state_dict", "optimizer_states"]
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
-        self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint)
+        self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint, tag="checkpoint")
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         if self.load_full_weights and self.zero_stage_3:

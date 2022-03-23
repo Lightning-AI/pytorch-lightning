@@ -54,6 +54,7 @@ from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
     PassThroughProfiler,
+    Profiler,
     PyTorchProfiler,
     SimpleProfiler,
     XLAProfiler,
@@ -1677,12 +1678,21 @@ class Trainer(
         Will be removed in v1.8: If state is returned, we insert the callback state into
         ``checkpoint["callbacks"][Callback.state_key]``. It overrides ``state_dict`` if already present.
         """
+        pl_module = self.lightning_module
+        if pl_module:
+            prev_fx_name = pl_module._current_fx_name
+            pl_module._current_fx_name = "on_save_checkpoint"
+
         for callback in self.callbacks:
-            # TODO: Add profiling for on_save_checkpoint hook
-            state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
+            with self.profiler.profile(f"[Callback]{callback.state_key}.on_save_checkpoint"):
+                state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
                 # TODO: Add deprecation warning if state is returned (see reference PR #11887)
                 checkpoint["callbacks"][callback.state_key] = state
+
+        if pl_module:
+            # restore current_fx when nested context
+            pl_module._current_fx_name = prev_fx_name
 
     def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint.
@@ -1690,6 +1700,11 @@ class Trainer(
         Calls every callback's `on_load_checkpoint` hook. We have a dedicated function for this rather than using
         `_call_callback_hooks` because we have special logic for getting callback_states.
         """
+        pl_module = self.lightning_module
+        if pl_module:
+            prev_fx_name = pl_module._current_fx_name
+            pl_module._current_fx_name = "on_load_checkpoint"
+
         callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
 
         if callback_states is None:
@@ -1709,8 +1724,12 @@ class Trainer(
             state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
             if state:
                 state = deepcopy(state)
-                # TODO: Add profiling for on_load_checkpoint hook
-                callback.on_load_checkpoint(self, self.lightning_module, state)
+                with self.profiler.profile(f"[Callback]{callback.state_key}.on_load_checkpoint"):
+                    callback.on_load_checkpoint(self, self.lightning_module, state)
+
+        if pl_module:
+            # restore current_fx when nested context
+            pl_module._current_fx_name = prev_fx_name
 
     def _call_callbacks_load_state_dict(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint, calls every callback's `load_state_dict`."""
@@ -1759,7 +1778,7 @@ class Trainer(
     def _log_api_event(event: str) -> None:
         torch._C._log_api_usage_once("lightning.trainer." + event)
 
-    def __init_profiler(self, profiler: Optional[Union[BaseProfiler, str]]) -> None:
+    def __init_profiler(self, profiler: Optional[Union[Profiler, str]]) -> None:
         if isinstance(profiler, str):
             PROFILERS = {
                 "simple": SimpleProfiler,
@@ -1775,7 +1794,7 @@ class Trainer(
                 )
             profiler_class = PROFILERS[profiler]
             profiler = profiler_class()
-        self.profiler: BaseProfiler = profiler or PassThroughProfiler()
+        self.profiler: Profiler = profiler or PassThroughProfiler()
 
     def __setup_profiler(self) -> None:
         local_rank = self.local_rank if self.world_size > 1 else None
@@ -1792,7 +1811,7 @@ class Trainer(
         )
         rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
 
-        num_ipus = self.ipus if self.ipus is not None else 0
+        num_ipus = self.num_devices if isinstance(self.accelerator, IPUAccelerator) else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
         if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
@@ -2051,11 +2070,19 @@ class Trainer(
 
     @property
     def num_processes(self) -> int:
-        return self._accelerator_connector.num_processes
+        rank_zero_deprecation(
+            "`Trainer.num_processes` is deprecated in v1.6 and will be removed in v1.8. "
+            "Please use `Trainer.num_devices` instead."
+        )
+        return self.num_devices
 
     @property
     def root_gpu(self) -> Optional[int]:
-        return self._accelerator_connector.root_gpu
+        rank_zero_deprecation(
+            "`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
+            "Please use `Trainer.strategy.root_device.index` instead."
+        )
+        return self.strategy.root_device.index if isinstance(self.accelerator, GPUAccelerator) else None
 
     @property
     def tpu_cores(self) -> int:
@@ -2063,11 +2090,19 @@ class Trainer(
 
     @property
     def ipus(self) -> int:
-        return self._accelerator_connector.num_ipus
+        rank_zero_deprecation(
+            "`Trainer.ipus` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.num_devices` instead."
+        )
+        return self.num_devices if isinstance(self.accelerator, IPUAccelerator) else 0
 
     @property
     def num_gpus(self) -> int:
-        return self._accelerator_connector.num_gpus
+        rank_zero_deprecation(
+            "`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.num_devices` instead."
+        )
+        return self.num_devices if isinstance(self.accelerator, GPUAccelerator) else 0
 
     @property
     def devices(self) -> int:
