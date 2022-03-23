@@ -373,6 +373,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - The strategies that support `sync_batchnorm` now only apply it when fitting ([#11919](https://github.com/PyTorchLightning/pytorch-lightning/pull/11919))
 
+- Modified `supporters.py` so that in the accumulator element (for loss) is created directly on the device ([#12408](https://github.com/PyTorchLightning/pytorch-lightning/pull/12408))
+
 
 ### Deprecated
 
