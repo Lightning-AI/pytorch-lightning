@@ -232,6 +232,7 @@ via ``self.learning_rate`` or ``self.lr``.
 
     class LitModel(LightningModule):
         def __init__(self, learning_rate):
+            super().__init__()
             self.learning_rate = learning_rate
             self.model = Model(...)
 
