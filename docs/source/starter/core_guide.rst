@@ -535,7 +535,7 @@ But the beauty is all the magic you can do with the trainer flags. For instance,
 .. code-block:: python
 
     model = LitMNIST()
-    trainer = Trainer(gpus=1)
+    trainer = Trainer(accelerator="gpu", devices=1)
     trainer.fit(model, train_loader)
 
 
@@ -549,7 +549,7 @@ Or you can also train on multiple GPUs.
 .. code-block:: python
 
     model = LitMNIST()
-    trainer = Trainer(gpus=8)
+    trainer = Trainer(accelerator="gpu", devices=8)
     trainer.fit(model, train_loader)
 
 Or multiple nodes
@@ -558,7 +558,7 @@ Or multiple nodes
 
     # (32 GPUs)
     model = LitMNIST()
-    trainer = Trainer(gpus=8, num_nodes=4, strategy="ddp")
+    trainer = Trainer(accelerator="gpu", devices=8, num_nodes=4, strategy="ddp")
     trainer.fit(model, train_loader)
 
 Refer to the :ref:`distributed computing guide for more details <accelerators/gpu:Multi GPU Training>`.
