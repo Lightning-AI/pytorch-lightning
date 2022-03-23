@@ -3,26 +3,33 @@
 Habana Gaudi AI Processor (HPU)
 ===============================
 
-Habana® Gaudi® AI training processors have been architected from the ground up and optimized for deep learning training efficiency.
+Lightning supports `Habana Gaudi AI Processor (HPU) <https://habana.ai/>`__, for accelerating Deep Learning training workloads.
+
+HPU terminology
+---------------
+
+Habana® Gaudi® AI training processors are built on a heterogeneous architecture with a cluster of fully programmable Tensor Processing Cores (TPC) along with its associated development tools and libraries, and a configurable Matrix Math engine.
+
+The TPC core is a VLIW SIMD processor with instruction set and hardware tailored to serve training workloads efficiently.
+The Gaudi memory architecture includes on-die SRAM and local memories in each TPC and,
+Gaudi is the first DL training processor that has integrated RDMA over Converged Ethernet (RoCE v2) engines on-chip.
+
+On the software side, the PyTorch Habana bridge interfaces between the framework and SynapseAI software stack to enable the execution of deep learning models on the Habana Gaudi device.
+
 Gaudi offers substantial price/performance advantage -- so you get to do more deep learning training while spending less.
 
-You can either use `the Gaudi-based AWS EC2 DL1 instances <https://aws.amazon.com/ec2/instance-types/dl1/>`_ or `the Supermicro X12 Gaudi server <https://www.supermicro.com/en/solutions/habana-gaudi>`_.
+For more information, check out `Gaudi Architecture <https://docs.habana.ai/en/latest/Gaudi_Overview/Gaudi_Overview.html#gaudi-architecture>`__ and `Gaudi Developer Docs <https://developer.habana.ai>`__.
 
-Habana’s SynapseAI® software suite is optimized for building and training deep learning models using TensorFlow and PyTorch frameworks. Gaudi is referred to as the Habana Processing Unit (HPU).
-With SynapseAI, the aim is to make training workloads on Gaudi easy, whether you're developing from scratch or migrating existing workloads.
+How to access HPUs
+------------------
 
-For more information, check out `<https://developer.habana.ai>`_ and `<https://habana.ai/>`_.
+To use HPUs, you must have access to a system with HPU devices.
+You can either use `Gaudi-based AWS EC2 DL1 instances <https://aws.amazon.com/ec2/instance-types/dl1/>`__ or `Supermicro X12 Gaudi server <https://www.supermicro.com/en/solutions/habana-gaudi>`__ to get access to HPUs.
 
-----------------
+Checkout the `Getting Started Guide with AWS and Habana <https://docs.habana.ai/en/latest/AWS_EC2_Getting_Started/AWS_EC2_Getting_Started.html>`__.
 
-Getting Started with Lightning on Gaudi
----------------------------------------
-
-Lightning supports `Habana Gaudi AI Processor (HPU) <https://habana.ai/>`__ with the integrations described in the following sections:
-
-
-HPU Accelerator
----------------
+Training with HPUs
+------------------
 
 To enable PyTorch Lightning to utilize the HPU accelerator, simply provide ``accelerator="hpu"`` parameter to the Trainer class.
 
@@ -30,28 +37,22 @@ To enable PyTorch Lightning to utilize the HPU accelerator, simply provide ``acc
 
     trainer = Trainer(accelerator="hpu")
 
-
-Training on Single HPU
-----------------------
-
-The ``devices=1`` and ``accelerator="hpu"`` in the Trainer class enables the Habana accelerator for single Gaudi training.
+Passing ``devices=1`` and ``accelerator="hpu"`` to the Trainer class enables the Habana accelerator for single Gaudi training.
 
 .. code-block:: python
 
     trainer = Trainer(devices=1, accelerator="hpu")
 
-
-Distributed Training
----------------------
-
 The ``devices=8`` and ``accelerator="hpu"`` parameters to the Trainer class enables the Habana accelerator for distributed training with 8 Gaudis.
-
-The :class:`~pytorch_lightning.strategies.HPUParallelStrategy` is based on DDP strategy with the addition of Habana's collective communication library (HCCL) to support scale-up within a node and scale-out across multiple nodes.
-It is used when ``devices=8`` and ``accelerator="hpu"`` are provided.
+It uses :class:`~pytorch_lightning.strategies.HPUParallelStrategy` internally which is based on DDP strategy with the addition of Habana's collective communication library (HCCL) to support scale-up within a node and scale-out across multiple nodes.
 
 .. code-block:: python
 
     trainer = Trainer(devices=8, accelerator="hpu")
+
+.. note::
+    If the ``devices`` flag is not defined, it will assume ``devices`` to be ``"auto"`` and fetch the :meth:`~pytorch_lightning.accelerators.HPUAccelerator.auto_device_count`
+    from :class:`~pytorch_lightning.accelerators.HPUAccelerator`.
 
 
 Mixed Precision Plugin
@@ -67,78 +68,10 @@ HPU's precision plugin is realised using ``HPUPrecisionPlugin``. The ``hmp_param
 
 .. code-block:: python
 
-    trainer = Trainer(devices=1, accelerator="hpu", plugins=[HPUPrecisionPlugin(precision="bf16", hmp_params=hmp_params)])
+    trainer = Trainer(devices=1, accelerator="hpu", precision="bf16")
 
-For more details, please refer to `PyTorch Mixed Precision Training on Gaudi <https://docs.habana.ai/en/latest/PyTorch_User_Guide/PyTorch_User_Guide.html#pytorch-mixed-precision-training-on-gaudi>`_.
+For more details, please refer to `PyTorch Mixed Precision Training on Gaudi <https://docs.habana.ai/en/latest/PyTorch_User_Guide/PyTorch_User_Guide.html#pytorch-mixed-precision-training-on-gaudi>`__.
 
-
-Enabling Lightning with Single Gaudi HPU
-----------------------------------------
-
-The below snippet shows an example model using MNIST with single Habana Gaudi device:
-
-.. code-block:: python
-
-    import habana_frameworks.torch.core as htcore
-
-
-    class LitClassifier(pl.LightningModule):
-        def __init__(self):
-            super(LitClassifier, self).__init__()
-
-        ...
-
-
-    # Init our model
-    model = LitClassifier()
-
-    # Init DataLoader from MNIST Dataset
-    dm = MNISTDataModule(batch_size=batch_size)
-
-    ...
-
-    # Initialize a trainer with 1 HPU accelerator
-    trainer = pl.Trainer(accelerator="hpu", devices=1)
-
-    # Train the model ⚡
-    trainer.fit(model, datamodule=dm)
-
-
-----------------
-
-Enabling Lightning with 8 Gaudi HPUs (distributed)
---------------------------------------------------
-
-The below snippet shows an example model using MNIST with 8 Habana Gaudi devices:
-
-.. code-block:: python
-
-    import habana_frameworks.torch.core as htcore
-
-
-    class LitClassifier(pl.LightningModule):
-        def __init__(self):
-            super(LitClassifier, self).__init__()
-
-        ...
-
-
-    # Init our model
-    model = LitClassifier()
-
-    # Init DataLoader from MNIST Dataset
-    dm = MNISTDataModule(batch_size=batch_size)
-
-    ...
-
-    # Initialize a trainer with HPU accelerator with 8 devices
-    trainer = pl.Trainer(accelerator="hpu", devices=8)
-
-    # Train the model ⚡
-    trainer.fit(model, datamodule=dm)
-
-
-----------------
 
 Enabling Mixed Precision Options
 --------------------------------
@@ -191,5 +124,6 @@ This enables advanced users to provide their own BF16 and FP32 operator list ins
 Known limitations
 -----------------
 
+* Multiple optimizers are not supported.
 * Habana dataloader is not supported.
 * Device stats monitoring is not supported.
