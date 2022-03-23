@@ -303,6 +303,8 @@ method, setting ``prog_bar=True``.
         self.log("my_loss", loss, prog_bar=True)
 
 
+You could learn more about progress bars supported by Lightning :doc:`here <../common/progress_bar>`.
+
 Modifying the Progress Bar
 ==========================
 
