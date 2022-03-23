@@ -110,6 +110,7 @@ search for batch sizes larger than the size of the training dataset.
     on this field for this feature to work i.e.
 
     .. code-block:: python
+
         # using LightningModule
         class LitModel(LightningModule):
             def __init__(self, batch_size):
