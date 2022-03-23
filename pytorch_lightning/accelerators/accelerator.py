@@ -77,4 +77,4 @@ class Accelerator(ABC):
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:
-        raise NotImplementedError(f"`register_accelerators` is not implemented for {cls.__class__.__name__}")
+        pass
