@@ -313,7 +313,6 @@ def test_warning_if_tpus_not_used():
         Trainer()
 
 
-@pytest.mark.skip(reason="TODO(@kaushikb11): Optimize TPU tests to avoid timeouts")
 @RunIf(tpu=True)
 @pytest.mark.parametrize(
     ["devices", "expected_device_ids"],
