@@ -1252,7 +1252,7 @@ def test_save_last_saves_correct_last_model_path(tmpdir):
     trainer = Trainer(callbacks=mc)
     trainer.strategy.connect(BoringModel())
 
-    mc._save_last_checkpoint(trainer, {"foo": 1, "step": 0})
+    mc._save_last_checkpoint(trainer, {"foo": 1})
     expected = "foo=1-last.ckpt"
     assert os.listdir(tmpdir) == [expected]
     full_path = str(tmpdir / expected)
@@ -1265,7 +1265,7 @@ def test_none_monitor_saves_correct_best_model_path(tmpdir):
     trainer = Trainer(callbacks=mc)
     trainer.strategy.connect(BoringModel())
 
-    mc._save_none_monitor_checkpoint(trainer, {"step": 0})
+    mc._save_none_monitor_checkpoint(trainer, {})
     expected = "epoch=0-step=0.ckpt"
     assert os.listdir(tmpdir) == [expected]
     full_path = str(tmpdir / expected)

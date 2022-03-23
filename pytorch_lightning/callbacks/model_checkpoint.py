@@ -117,6 +117,7 @@ class ModelCheckpoint(Callback):
         every_n_epochs: Number of epochs between checkpoints.
             This value must be ``None`` or non-negative.
             To disable saving top-k checkpoints, set ``every_n_epochs = 0``.
+            This argument does not impact the saving of ``save_last=True`` checkpoints.
             If all of ``every_n_epochs``, ``every_n_train_steps`` and
             ``train_time_interval`` are ``None``, we save a checkpoint at the end of every epoch
             (equivalent to ``every_n_epochs = 1``).
@@ -128,7 +129,6 @@ class ModelCheckpoint(Callback):
             ``Trainer(max_epochs=N, check_val_every_n_epoch=M)``
             will only save checkpoints at epochs 0 < E <= N
             where both values for ``every_n_epochs`` and ``check_val_every_n_epoch`` evenly divide E.
-            This argument does not impact the saving of ``save_last=True`` checkpoints.
         save_on_train_epoch_end: Whether to run checkpointing at the end of the training epoch.
             If this is ``False``, then the check runs at the end of the validation.
 
@@ -360,7 +360,6 @@ class ModelCheckpoint(Callback):
 
     def _save_topk_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, _METRIC]) -> None:
         if self.save_top_k == 0:
-            # `every_n_epochs` only applies to monitored checkpoints
             return
 
         # validate metric
