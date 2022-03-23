@@ -69,6 +69,7 @@ class _AcceleratorRegistry(dict):
 
         data: Dict[str, Any] = {}
 
+        data["description"] = description
         data["init_params"] = init_params
 
         def do_register(name: str, accelerator: Callable) -> Callable:
