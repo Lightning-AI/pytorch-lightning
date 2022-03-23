@@ -172,7 +172,7 @@ class LoggerConnector:
         self._progress_bar_metrics.update(metrics["pbar"])
         self._callback_metrics.update(metrics["callback"])
         self._logged_metrics.update(metrics["log"])
-        return metrics["callback"]
+        return metrics["log"]
 
     def log_eval_end_metrics(self) -> None:
         assert self._epoch_end_reached

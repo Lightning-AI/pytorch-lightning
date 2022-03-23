@@ -137,6 +137,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added utility functions for moving optimizers to devices ([#11758](https://github.com/PyTorchLightning/pytorch-lightning/pull/11758))
 
 
+- Added a warning when saving an instance of `nn.Module` with `save_hyperparameters()` ([#12068](https://github.com/PyTorchLightning/pytorch-lightning/pull/12068))
+
+
 - Added `estimated_stepping_batches` property to `Trainer` ([#11599](https://github.com/PyTorchLightning/pytorch-lightning/pull/11599))
 
 
@@ -369,7 +372,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - The strategies that support `sync_batchnorm` now only apply it when fitting ([#11919](https://github.com/PyTorchLightning/pytorch-lightning/pull/11919))
-
 
 
 ### Deprecated
@@ -831,6 +833,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed to avoid common hook warning if no hook is overridden ([#12131](https://github.com/PyTorchLightning/pytorch-lightning/pull/12131))
+
+
+- Fixed deepspeed keeping old sub-folders in same ckpt path ([#12194](https://github.com/PyTorchLightning/pytorch-lightning/pull/12194))
+
+
+- Fixed returning logged metrics instead of callback metrics during evaluation ([#12224](https://github.com/PyTorchLightning/pytorch-lightning/pull/12224))
 
 
 - Fixed the case where `logger=None` is passed to the Trainer ([#12249](https://github.com/PyTorchLightning/pytorch-lightning/pull/12249))
