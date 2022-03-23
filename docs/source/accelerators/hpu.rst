@@ -28,7 +28,7 @@ Lightning supports training on a single HPU device or 8 HPU devices with the int
 HPU Accelerator
 ---------------
 
-To enable PyTorch Lightning to utilize the HPU accelerator, simply provide ``Trainer(accelerator="hpu")`` parameter in the Trainer class.
+To enable PyTorch Lightning to utilize the HPU Accelerator, simply provide ``Trainer(accelerator="hpu")`` parameter in the Trainer class.
 
 
 ----------------
@@ -73,7 +73,12 @@ The ``precision=16`` parameter in the Trainer class enables the Habana plugin fo
 You can execute the ops in FP32 or BF16 precision. The HMP package modifies the python operators to add the appropriate cast operations for the arguments before execution.
 The default settings enable users to easily enable mixed precision training with minimal code.
 
-In addition to the default settings in HMP, users also have the option of overriding these defaults and providing their own BF16 and FP32 operator lists.
+In addition to the default settings in HMP, users also have the option of overriding these defaults and providing their own BF16 and FP32 operator lists using the ``plugins`` parameter of Trainer class.
+HPU's precision plugin is realised using ``HPUPrecisionPlugin``. The ``hmp_params`` parameter with this plugin is used to override the default operator list. An example can be found in the subsequent section.
+
+.. code-block:: python
+
+    trainer = Trainer(devices=1, accelerator="hpu", plugins=[HPUPrecisionPlugin(precision="bf16", hmp_params=hmp_params)])
 
 For more details, please refer to `PyTorch Mixed Precision Training on Gaudi <https://docs.habana.ai/en/latest/PyTorch_User_Guide/PyTorch_User_Guide.html#pytorch-mixed-precision-training-on-gaudi>`_.
 
@@ -116,13 +121,8 @@ The below snippet shows an example model using MNIST with single Habana Gaudi de
 
     ...
 
-    num_hpus = 1
-
-    # enable HPU strategy for single device, with mixed precision using default HMP settings
-    hpu_strategy = SingleHPUStrategy(device=torch.device("hpu"), precision_plugin=HPUPrecisionPlugin(precision=16))
-
     # Initialize a trainer with 1 HPU accelerator
-    trainer = pl.Trainer(accelerator="hpu", devices=num_hpus, strategy=hpu_strategy)
+    trainer = pl.Trainer(accelerator="hpu", devices=1)
 
     # Train the model ⚡
     trainer.fit(model, datamodule=dm)
@@ -156,7 +156,7 @@ The below snippet shows an example model using MNIST with 8 Habana Gaudi devices
     ...
 
     # Initialize a trainer with HPU accelerator with 8 devices
-    trainer = pl.Trainer(accelerator="hpu", devices=8, plugins=[HPUPrecisionPlugin(precision=16)])
+    trainer = pl.Trainer(accelerator="hpu", devices=8)
 
     # Train the model ⚡
     trainer.fit(model, datamodule=dm)
