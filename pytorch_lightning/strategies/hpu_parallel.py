@@ -68,6 +68,8 @@ class HPUParallelStrategy(DDPStrategy):
         load_habana_module()
 
         os.environ["ID"] = str(self.local_rank)
+        # this env is used in overrides to check the backend initiated
+        os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "hccl"
         super().setup_environment()
 
     def determine_ddp_device_ids(self) -> None:
