@@ -68,7 +68,6 @@ class _AcceleratorRegistry(dict):
             raise MisconfigurationException(f"'{name}' is already present in the registry. HINT: Use `override=True`.")
 
         data: Dict[str, Any] = {}
-        data["description"] = description if description is not None else ""
 
         data["init_params"] = init_params
 
