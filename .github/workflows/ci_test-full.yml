@@ -41,7 +41,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Reset caching
-      run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(f"d{int(days / 2) * 2}")' 2>&1)"
+      run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(f\"d{int(days / 2) * 2}\")' 2>&1)"
       id: times
 
     - name: basic setup
