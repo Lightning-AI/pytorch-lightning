@@ -104,8 +104,6 @@ This enables advanced users to provide their own BF16 and FP32 operator list ins
 
     ...
 
-    num_hpus = 1
-
     # Optional Habana mixed precision params to be set
     hmp_keys = ["level", "verbose", "bf16_ops", "fp32_ops"]
     hmp_params = dict.fromkeys(hmp_keys)
