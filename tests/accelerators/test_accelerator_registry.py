@@ -42,14 +42,6 @@ def test_accelerator_registry_with_new_accelerator():
         def is_available():
             return True
 
-        @classmethod
-        def register_accelerators(cls, accelerator_registry) -> None:
-            accelerator_registry.register(
-                accelerator_name,
-                cls,
-                description=f"{cls.__class__.__name__}",
-            )
-
     AcceleratorRegistry.register(
         accelerator_name, CustomAccelerator, description=accelerator_description, param1="abc", param2=123
     )
