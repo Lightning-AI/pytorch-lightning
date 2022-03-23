@@ -66,8 +66,6 @@ class EvaluationLoop(DataLoaderLoop):
         # case where user does:
         # return dl1, dl2
         dataloaders = self.dataloaders
-        if dataloaders is None:
-            return 0
         length = len(dataloaders)
         if length > 0 and isinstance(dataloaders[0], (list, tuple)):
             length = len(dataloaders[0])
@@ -78,7 +76,7 @@ class EvaluationLoop(DataLoaderLoop):
         """Returns the validation or test dataloaders."""
         dataloaders = self.trainer.test_dataloaders if self.trainer.testing else self.trainer.val_dataloaders
         if dataloaders is None:
-            raise RuntimeError("Dataloaders should be available.")
+            return []
         return dataloaders
 
     @property

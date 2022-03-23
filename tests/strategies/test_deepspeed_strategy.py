@@ -322,19 +322,27 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
             assert isinstance(trainer.optimizers[0].optimizer, torch.optim.SGD)
             assert isinstance(trainer.lr_scheduler_configs[0].scheduler, WarmupLR)
             assert trainer.lr_scheduler_configs[0].interval == "step"
+            assert trainer.lr_scheduler_configs[0].opt_idx == 0
 
     model = BoringModel()
+    lr_monitor = LearningRateMonitor()
     trainer = Trainer(
         strategy=DeepSpeedStrategy(config=deepspeed_zero_config),
         default_root_dir=tmpdir,
         gpus=1,
-        fast_dev_run=True,
+        log_every_n_steps=1,
+        limit_train_batches=4,
+        limit_val_batches=4,
+        limit_test_batches=4,
+        max_epochs=2,
         precision=16,
-        callbacks=[TestCB()],
+        callbacks=[TestCB(), lr_monitor],
     )
 
     trainer.fit(model)
     trainer.test(model)
+    assert list(lr_monitor.lrs) == ["lr-SGD"]
+    assert len(set(lr_monitor.lrs["lr-SGD"])) == 8
 
 
 @RunIf(min_gpus=1, deepspeed=True, standalone=True)
@@ -1077,3 +1085,25 @@ def test_deepspeed_with_meta_device(tmpdir):
     )
     trainer.fit(model)
     assert model.layer.weight.device.type == "cpu"
+
+
+@RunIf(min_gpus=2, deepspeed=True, standalone=True)
+def test_deepspeed_multi_save_same_filepath(tmpdir):
+    """Test that verifies that deepspeed saves only latest checkpoint in the specified path and deletes the old
+    sharded checkpoints."""
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        strategy="deepspeed",
+        accelerator="gpu",
+        devices=2,
+        callbacks=[ModelCheckpoint(save_top_k=1, save_last=True)],
+        limit_train_batches=1,
+        limit_val_batches=0,
+        num_sanity_val_steps=0,
+        max_epochs=2,
+    )
+    trainer.fit(model)
+    ckpt_path = os.path.join(trainer.checkpoint_callback.dirpath, "last.ckpt")
+    expected = ["latest", "zero_to_fp32.py", "checkpoint"]
+    assert set(expected) == set(os.listdir(ckpt_path))

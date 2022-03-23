@@ -27,9 +27,9 @@ jobs:
         exclude:
           # Skip if torch<1.8 and py3.9 on Linux: https://github.com/pytorch/pytorch/issues/50014
           - {os: ubuntu-20.04, python-version: "3.9", requires: "oldest"}
-        #include:
-          # nightly: add when there's a release candidate
-          #- {os: ubuntu-20.04, python-version: "3.10", requires: "latest", release: "pre"}
+        # TODO: re-enable RC testing
+        # include:
+        #   - {os: ubuntu-20.04, python-version: "3.10", requires: "latest", release: "pre"}
 
     timeout-minutes: 40
 
@@ -40,32 +40,27 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Weekly reset caching
-      run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
-      id: times
+    - name: Reset caching
+      run: python -c "import time; days = time.time() / 60 / 60 / 24; print(f'TIME_PERIOD=d{int(days / 2) * 2}')" >> $GITHUB_ENV
 
-    - name: Upgrade pip
+    - name: basic setup
       run: |
-        python --version
-        # needed for `pip cache` command
-        pip install --upgrade pip --user
         pip --version
+        pip install -q fire
 
     # Github Actions: Run step on specific OS: https://stackoverflow.com/a/57948488/4521646
     - name: Setup macOS
       if: runner.os == 'macOS'
       run: |
         brew install openmpi libuv  # Horovod on macOS requires OpenMPI, Gloo not currently supported
-
     - name: Setup Windows
       if: runner.os == 'windows'
       run: |
-        python .github/prune-packages.py requirements/extra.txt "horovod"
-
+        python .actions/assistant.py requirements_prune_pkgs horovod
     - name: Set min. dependencies
       if: matrix.requires == 'oldest'
       run: |
-        python .github/set-min-requirements.py
+        python .actions/assistant.py replace_oldest_ver
 
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -77,9 +72,9 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements/extra.txt') }}
+        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements/extra.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
+          ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
 
     - name: Pull checkpoints from S3
       working-directory: ./legacy
@@ -93,9 +88,10 @@ jobs:
     - name: Install dependencies
       run: |
         flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
-        pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade $flag
+        url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
+        pip install --requirement requirements.txt --upgrade $flag --find-links "https://download.pytorch.org/whl/${url}"
         # adjust versions according installed Torch version
-        python ./requirements/adjust_versions.py requirements/examples.txt
+        python ./requirements/adjust-versions.py requirements/examples.txt
         pip install --requirement requirements/examples.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip install --requirement requirements/test.txt --upgrade
         pip list
@@ -108,7 +104,7 @@ jobs:
         HOROVOD_WITHOUT_TENSORFLOW: 1
       run: |
         # adjust versions according installed Torch version
-        python ./requirements/adjust_versions.py requirements/extra.txt
+        python ./requirements/adjust-versions.py requirements/extra.txt
         pip install --requirement ./requirements/extra.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip list
       shell: bash
@@ -127,6 +123,7 @@ jobs:
           pip install --no-cache-dir -r requirements/horovod.txt
         fi
         horovodrun --check-build
+        python -c "import horovod.torch"
       shell: bash
 
     - name: Cache datasets
@@ -134,6 +131,10 @@ jobs:
       with:
         path: Datasets
         key: pl-dataset
+
+    - name: Sanity check
+      run: |
+        python requirements/check-avail-extras.py
 
     - name: Tests
       run: |
