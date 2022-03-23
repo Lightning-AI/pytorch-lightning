@@ -15,55 +15,44 @@ For more information, check out `<https://developer.habana.ai>`_ and `<https://h
 
 ----------------
 
-PyTorch Lightning With Gaudi HPU
---------------------------------
+Getting Started with Lightning on Gaudi
+---------------------------------------
 
-Lightning supports training on a single HPU device or 8 HPU devices with the integrations described in the following sections
+Lightning supports `Habana Gaudi AI Processor (HPU) <https://habana.ai/>`__ with the integrations described in the following sections:
 
-
-----------------
-
-.. _hpu_accelerator:
 
 HPU Accelerator
 ---------------
 
-To enable PyTorch Lightning to utilize the HPU accelerator, simply provide ``Trainer(accelerator="hpu")`` parameter in the Trainer class.
+To enable PyTorch Lightning to utilize the HPU accelerator, simply provide ``accelerator="hpu"`` parameter to the Trainer class.
 
+.. code-block:: python
 
-----------------
+    trainer = Trainer(accelerator="hpu")
 
-.. _single_device_strategy:
 
 Training on Single HPU
 ----------------------
 
-The ``devices=1`` and ``accelerator="hpu"`` in the Trainer class enables the Habana backend for single Gaudi training.
+The ``devices=1`` and ``accelerator="hpu"`` in the Trainer class enables the Habana accelerator for single Gaudi training.
 
 .. code-block:: python
 
     trainer = Trainer(devices=1, accelerator="hpu")
 
 
-----------------
-
-.. _parallel_device_strategy:
-
 Distributed Training
 ---------------------
 
+The ``devices=8`` and ``accelerator="hpu"`` parameters to the Trainer class enables the Habana accelerator for distributed training with 8 Gaudis.
 
-The ``devices=8`` and ``accelerator="hpu"`` parameters in the Trainer class enables the Habana backend for distributed training with 8 Gaudis.
-
-The Habana parallel device strategy is based on DDP strategy with the addition of Habana's collective communication library (HCCL) to support scale-up within a node and scale-out across multiple nodes.
+The :class:`~pytorch_lightning.strategies.HPUParallelStrategy` is based on DDP strategy with the addition of Habana's collective communication library (HCCL) to support scale-up within a node and scale-out across multiple nodes.
+It is used when ``devices=8`` and ``accelerator="hpu"`` are provided.
 
 .. code-block:: python
 
     trainer = Trainer(devices=8, accelerator="hpu")
 
-----------------
-
-.. _mixed_precision_plugin:
 
 Mixed Precision Plugin
 ----------------------
@@ -77,19 +66,6 @@ In addition to the default settings in HMP, users also have the option of overri
 
 For more details, please refer to `PyTorch Mixed Precision Training on Gaudi <https://docs.habana.ai/en/latest/PyTorch_User_Guide/PyTorch_User_Guide.html#pytorch-mixed-precision-training-on-gaudi>`_.
 
-
-----------------
-
-.. _pytorch_lightning_examples:
-
-Getting Started with Lightning on Gaudi
----------------------------------------
-
-This section describes how to train models using PyTorch Lightning with Habana Gaudi.
-
-More Lightning HPU examples can be found in pl_examples (`<https://github.com/PyTorchLightning/pytorch-lightning/tree/master/pl_examples/hpu_examples>`_)
-
-----------------
 
 Enabling Lightning with Single Gaudi HPU
 ----------------------------------------
