@@ -1282,9 +1282,10 @@ def test_last_global_step_saved():
     assert model_checkpoint._last_global_step_saved == 0
 
 
-def test_save_last_every_n_epochs_interaction(tmpdir):
+@pytest.mark.parametrize("every_n_epochs", (0, 5))
+def test_save_last_every_n_epochs_interaction(tmpdir, every_n_epochs):
     """Test that `save_last` ignores `every_n_epochs`."""
-    mc = ModelCheckpoint(every_n_epochs=5, save_last=True, save_top_k=0, save_on_train_epoch_end=True)
+    mc = ModelCheckpoint(every_n_epochs=every_n_epochs, save_last=True, save_top_k=0, save_on_train_epoch_end=True)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=2,
@@ -1295,7 +1296,6 @@ def test_save_last_every_n_epochs_interaction(tmpdir):
         enable_model_summary=False,
         logger=False,
     )
-    assert mc.every_n_epochs > trainer.max_epochs
     model = BoringModel()
     with patch.object(trainer, "save_checkpoint") as save_mock:
         trainer.fit(model)

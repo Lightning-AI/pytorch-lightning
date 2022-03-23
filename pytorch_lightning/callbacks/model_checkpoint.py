@@ -380,7 +380,7 @@ class ModelCheckpoint(Callback):
         else:
             self._save_none_monitor_checkpoint(trainer, monitor_candidates)
 
-    def _actual_save_checkpoint(self, trainer: "pl.Trainer", filepath: str) -> None:
+    def _save_checkpoint(self, trainer: "pl.Trainer", filepath: str) -> None:
         trainer.save_checkpoint(filepath, self.save_weights_only)
 
         self._last_global_step_saved = trainer.global_step
@@ -632,7 +632,7 @@ class ModelCheckpoint(Callback):
         filepath = self.format_checkpoint_name(monitor_candidates, self.CHECKPOINT_NAME_LAST)
         # set the last model path before saving because it will be part of the state.
         previous, self.last_model_path = self.last_model_path, filepath
-        self._actual_save_checkpoint(trainer, filepath)
+        self._save_checkpoint(trainer, filepath)
         if previous and previous != filepath:
             trainer.strategy.remove_checkpoint(previous)
 
@@ -649,7 +649,7 @@ class ModelCheckpoint(Callback):
         filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, trainer)
         # set the best model path before saving because it will be part of the state.
         previous, self.best_model_path = self.best_model_path, filepath
-        self._actual_save_checkpoint(trainer, filepath)
+        self._save_checkpoint(trainer, filepath)
         if self.save_top_k == 1 and previous and previous != filepath:
             trainer.strategy.remove_checkpoint(previous)
 
@@ -690,7 +690,7 @@ class ModelCheckpoint(Callback):
                 f"Epoch {epoch:d}, global step {step:d}: {self.monitor!r} reached {current:0.5f}"
                 f" (best {self.best_model_score:0.5f}), saving model to {filepath!r} as top {k}"
             )
-        self._actual_save_checkpoint(trainer, filepath)
+        self._save_checkpoint(trainer, filepath)
 
         if del_filepath is not None and filepath != del_filepath:
             trainer.strategy.remove_checkpoint(del_filepath)
