@@ -138,7 +138,7 @@ def parse_tpu_cores(tpu_cores: Optional[Union[int, str, List[int]]]) -> Optional
     return tpu_cores
 
 
-def parse_cpu_cores(cpu_cores: Optional[Union[int, str, List[int]]]) -> Optional[int]:
+def parse_cpu_cores(cpu_cores: Union[int, str, List[int]]) -> Optional[int]:
     """
     Parses the cpu_cores given in the format as accepted by the
     :class:`~pytorch_lightning.trainer.Trainer`.

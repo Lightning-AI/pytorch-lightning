@@ -46,8 +46,9 @@ class CPUAccelerator(Accelerator):
         return devices
 
     @staticmethod
-    def get_parallel_devices(devices: int) -> List[torch.device]:
+    def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
+        devices = device_parser.parse_cpu_cores(devices)
         return [torch.device("cpu")] * devices
 
     @staticmethod
