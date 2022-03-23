@@ -29,7 +29,6 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.launchers.spawn import _SpawnLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.distributed import (
     _get_process_group_backend_from_env,
     distributed_available,
@@ -37,7 +36,8 @@ from pytorch_lightning.utilities.distributed import (
 )
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
-from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_11
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -282,8 +282,20 @@ class DDPSpawnStrategy(ParallelStrategy):
         )
 
     def teardown(self) -> None:
+        log.detail(f"{self.__class__.__name__}: tearing down strategy")
         super().teardown()
+
         if isinstance(self.model, DistributedDataParallel):
+            if (
+                _TORCH_GREATER_EQUAL_1_11
+                and not self.model.static_graph
+                and self.model._get_ddp_logging_data().get("can_set_static_graph")
+            ):
+                rank_zero_info(
+                    "Your model can run with static graph optimizations. For future training runs, we suggest you"
+                    f" pass `Trainer(..., strategy={self.__class__.__name__}(static_graph=True))` to enable them."
+                )
+            # unwrap model
             self.model = self.lightning_module
 
         if (
@@ -291,10 +303,13 @@ class DDPSpawnStrategy(ParallelStrategy):
             and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
             and self._layer_sync
         ):
+            # `self.lightning_module.trainer` can be None if teardown gets called on an exception before
+            # the trainer gets set on the LightningModule
             self.model = self._layer_sync.revert(self.model)
 
         if self.root_device.type == "cuda":
             # GPU teardown
+            log.detail(f"{self.__class__.__name__}: moving model to CPU")
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
