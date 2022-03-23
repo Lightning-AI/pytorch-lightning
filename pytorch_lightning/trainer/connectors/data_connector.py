@@ -164,7 +164,8 @@ class DataConnector:
 
         for m in [model, ref_model]:
             m.trainer = proxy(self.trainer)
-            m.use_amp = self.trainer.amp_backend is not None
+            # Remove setting use_amp in v1.8
+            m._use_amp = self.trainer.amp_backend is not None
             m.precision = self.trainer.precision
 
     def attach_dataloaders(
@@ -209,10 +210,6 @@ class DataConnector:
 
         self.trainer.datamodule = datamodule
         datamodule.trainer = self.trainer
-
-        # experimental feature for Flash
-        if hasattr(datamodule, "data_pipeline"):
-            model.data_pipeline = datamodule.data_pipeline
 
     def _worker_check(self, dataloader: DataLoader, name: str) -> None:
         if not isinstance(dataloader, DataLoader):
