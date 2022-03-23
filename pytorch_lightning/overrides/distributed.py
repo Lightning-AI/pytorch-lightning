@@ -133,7 +133,7 @@ class WeightedDistSampler(UnrepeatedDistributedSampler):
         self.G = torch.Generator()
         self.G.manual_seed(self.seed + self.epoch)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[List[int]]:
         """the problem is we need to avoid collisions whilst sampling correctly."""
         self.G.manual_seed(self.seed + self.epoch)
 
