@@ -69,7 +69,7 @@ def test_restore_checkpoint_after_pre_setup(tmpdir, restore_after_pre_setup):
         func(model, ckpt_path=checkpoint_path)
 
 
-@pytest.mark.parametrize("devices", ([3], -1, "1"))
+@pytest.mark.parametrize("devices", ([3], -1, 0))
 def test_invalid_devices_with_cpu_accelerator(devices):
     """Test invalid device flag raises MisconfigurationException with CPUAccelerator."""
     with pytest.raises(MisconfigurationException, match="should be an int > 0"):
