@@ -621,8 +621,14 @@ class ModelCheckpoint(Callback):
 
     def _monitor_candidates(self, trainer: "pl.Trainer") -> Dict[str, _METRIC]:
         monitor_candidates = deepcopy(trainer.callback_metrics)
-        monitor_candidates.setdefault("epoch", torch.tensor(trainer.current_epoch))
-        monitor_candidates.setdefault("step", torch.tensor(trainer.global_step))
+        # cast to int if necessary because `self.log("epoch", 123)` will convert it to float. if it's not a tensor
+        # or does not exist we overwrite it as it's likely an error
+        epoch = monitor_candidates.get("epoch")
+        monitor_candidates["epoch"] = (
+            epoch.int() if isinstance(epoch, torch.Tensor) else torch.tensor(trainer.current_epoch)
+        )
+        step = monitor_candidates.get("step")
+        monitor_candidates["step"] = step.int() if isinstance(step, torch.Tensor) else torch.tensor(trainer.global_step)
         return monitor_candidates
 
     def _save_last_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, _METRIC]) -> None:
