@@ -114,14 +114,11 @@ class ModelCheckpoint(Callback):
             guaranteed to execute at the exact time specified, but should be close.
         every_n_epochs: Number of epochs between checkpoints.
             This value must be ``None`` or non-negative.
-            To disable saving after each epoch, set ``every_n_epochs = 0``.
+            To disable saving top-k checkpoints, set ``every_n_epochs = 0``.
             If all of ``every_n_epochs``, ``every_n_train_steps`` and
             ``train_time_interval`` are ``None``, we save a checkpoint at the end of every epoch
             (equivalent to ``every_n_epochs = 1``).
-            If ``every_n_epochs == None`` and either ``every_n_train_steps != None`` or ``train_time_interval != None``,
-            saving at the end of each epoch is disabled
-            (equivalent to ``every_n_epochs = 0``).
-            Setting both ``ModelCheckpoint(..., every_n_epochs=V, save_on_train_epoch_end=False)`` and
+            Setting both ``ModelCheckpoint(every_n_epochs=V, save_on_train_epoch_end=False)`` and
             ``Trainer(max_epochs=N, check_val_every_n_epoch=M)``
             will only save checkpoints at epochs 0 < E <= N
             where both values for ``every_n_epochs`` and ``check_val_every_n_epoch`` evenly divide E.
