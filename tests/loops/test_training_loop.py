@@ -133,7 +133,7 @@ def test_should_stop_mid_epoch(tmpdir):
     # even though we stopped mid epoch, the fit loop finished normally and the current epoch was increased
     assert trainer.current_epoch == 1
     assert trainer.global_step == 5
-    assert model.validation_called_at == (0, 4)
+    assert model.validation_called_at == (0, 5)
 
 
 def test_warning_valid_train_step_end(tmpdir):

@@ -100,13 +100,14 @@ In Python scripts, it's recommended you use a main function to call the Trainer.
 
     def main(hparams):
         model = LightningModule()
-        trainer = Trainer(gpus=hparams.gpus)
+        trainer = Trainer(accelerator=hparams.accelerator, devices=hparams.devices)
         trainer.fit(model)
 
 
     if __name__ == "__main__":
         parser = ArgumentParser()
-        parser.add_argument("--gpus", default=None)
+        parser.add_argument("--accelerator", default=None)
+        parser.add_argument("--devices", default=None)
         args = parser.parse_args()
 
         main(args)
@@ -115,7 +116,7 @@ So you can run it like so:
 
 .. code-block:: bash
 
-    python main.py --gpus 2
+    python main.py --accelerator 'gpu' --devices 2
 
 .. note::
 
@@ -143,7 +144,7 @@ So you can run it like so:
 
 .. code-block:: bash
 
-    python main.py --gpus 2 --max_steps 10 --limit_train_batches 10 --any_trainer_arg x
+    python main.py --accelerator 'gpu' --devices 2 --max_steps 10 --limit_train_batches 10 --any_trainer_arg x
 
 .. note::
     If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
@@ -356,16 +357,16 @@ such that only one process at a time can access them.
 Example::
 
     # no auto selection (picks first 2 gpus on system, may fail if other process is occupying)
-    trainer = Trainer(gpus=2, auto_select_gpus=False)
+    trainer = Trainer(accelerator="gpu", devices=2, auto_select_gpus=False)
 
     # enable auto selection (will find two available gpus on system)
-    trainer = Trainer(gpus=2, auto_select_gpus=True)
+    trainer = Trainer(accelerator="gpu", devices=2, auto_select_gpus=True)
 
     # specifies all GPUs regardless of its availability
-    Trainer(gpus=-1, auto_select_gpus=False)
+    Trainer(accelerator="gpu", devices=-1, auto_select_gpus=False)
 
     # specifies all available GPUs (if only one GPU is not occupied, uses one gpu)
-    Trainer(gpus=-1, auto_select_gpus=True)
+    Trainer(accelerator="gpu", devices=-1, auto_select_gpus=True)
 
 auto_lr_find
 ^^^^^^^^^^^^
@@ -695,6 +696,9 @@ See Also:
 gpus
 ^^^^
 
+.. warning:: Setting `Trainer(gpus=x)` is deprecated in v1.6 and will be removed"
+    in v2.0. Please use `Trainer(accelerator='gpu', devices=x)` instead.
+
 .. raw:: html
 
     <video width="50%" max-width="400px" controls
@@ -934,7 +938,7 @@ max_steps
 
 |
 
-Stop training after this number of steps
+Stop training after this number of :ref:`global steps <common/trainer:global_step>`.
 Training will stop if max_steps or max_epochs have reached (earliest).
 
 .. testcode::
@@ -959,7 +963,7 @@ min_steps
 
 |
 
-Force training for at least these number of steps.
+Force training for at least this number of :ref:`global steps <common/trainer:global_step>`.
 Trainer will train model for at least min_steps or min_epochs (latest).
 
 .. testcode::
@@ -1433,7 +1437,7 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
 
 See Also:
     - :ref:`accelerators/gpu:Multi GPU Training`.
-    - :doc:`Model Parallel GPU training guide <../advanced/advanced_gpu>`.
+    - :doc:`Model Parallel GPU training guide <../advanced/model_parallel>`.
     - :doc:`TPU training guide <../accelerators/tpu>`.
 
 sync_batchnorm
@@ -1732,16 +1736,23 @@ The metrics available to callbacks. These are automatically set when you log via
 current_epoch
 *************
 
-The current epoch
+The number of epochs run.
 
 .. code-block:: python
 
-    def training_step(self, batch, batch_idx):
-        current_epoch = self.trainer.current_epoch
-        if current_epoch > 100:
-            # do something
-            pass
+    if trainer.current_epoch >= 10:
+        ...
 
+global_step
+***********
+
+The number of optimizer steps taken (does not reset each epoch).
+This includes multiple optimizers and TBPTT steps (if enabled).
+
+.. code-block:: python
+
+    if trainer.global_step >= 100:
+        ...
 
 logger
 *******
@@ -1822,4 +1833,4 @@ The metrics sent to the progress bar.
 estimated_stepping_batches
 **************************
 
-Check out :paramref:`~pytorch_lightning.trainer.trainer.Trainer.estimated_stepping_batches`.
+Check out :meth:`~pytorch_lightning.trainer.trainer.Trainer.estimated_stepping_batches`.
