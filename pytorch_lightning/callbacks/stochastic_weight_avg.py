@@ -179,6 +179,7 @@ class StochasticWeightAveraging(Callback):
                 anneal_strategy=self._annealing_strategy,
                 last_epoch=trainer.max_epochs if self._annealing_strategy == "cos" else -1,
             )
+            # We assert that there is only one optimizer on fit start, so know opt_idx is always 0
             default_scheduler_cfg = LRSchedulerConfig(self._swa_scheduler, opt_idx=0)
             assert default_scheduler_cfg.interval == "epoch" and default_scheduler_cfg.frequency == 1
 
