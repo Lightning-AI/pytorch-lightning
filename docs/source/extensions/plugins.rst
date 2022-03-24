@@ -6,8 +6,8 @@ Plugins
 
 .. include:: ../links.rst
 
-Plugins allow custom integrations to the internals of the Trainer such as a custom precision or
-distributed implementation.
+Plugins allow custom integrations to the internals of the Trainer such as a custom precision, checkpointing or
+cluster environment implementation.
 
 Under the hood, the Lightning Trainer is using plugins in the training routine, added automatically
 depending on the provided Trainer arguments. For example:
@@ -27,22 +27,11 @@ We expose Accelerators and Plugins mainly for expert users that want to extend L
   `PyTorch <https://pytorch.org/docs/stable/distributed.html#backends>`_ itself)
 - Clusters (e.g. customized access to the cluster's environment interface)
 
-There are two types of Plugins in Lightning with different responsibilities:
+There are three types of Plugins in Lightning with different responsibilities:
 
-Strategy
---------
-
-- Launching and teardown of training processes (if applicable)
-- Setup communication between processes (NCCL, GLOO, MPI, ...)
-- Provide a unified communication interface for reduction, broadcast, etc.
-- Provide access to the wrapped LightningModule
-
-
-Furthermore, for multi-node training Lightning provides cluster environment plugins that allow the advanced user
-to configure Lightning to integrate with a :ref:`custom-cluster`.
-
-
-.. image:: ../_static/images/accelerator/overview.svg
+- Precision Plugins
+- CheckpointIO Plugins
+- Cluster Environments (e.g. customized access to the cluster's environment interface)
 
 
 The full list of built-in plugins is listed below.
