@@ -976,6 +976,6 @@ def test_eval_step_logging(tmpdir, num_dataloaders):
         assert logger.logged_metrics[f"val_log_fit{suffix}"]["logged_values"] == list(range(limit_batches)) * max_epochs
         assert logger.logged_metrics[f"val_log_fit{suffix}"]["logged_steps"] == list(range(limit_batches * max_epochs))
         assert logger.logged_metrics[f"val_log_validate{suffix}"]["logged_values"] == list(range(limit_batches))
-        assert logger.logged_metrics[f"val_log_validate{suffix}"]["logged_values"] == list(range(limit_batches))
-        assert logger.logged_metrics[f"test_log{suffix}"]["logged_steps"] == list(range(limit_batches))
+        assert logger.logged_metrics[f"val_log_validate{suffix}"]["logged_steps"] == list(range(limit_batches))
+        assert logger.logged_metrics[f"test_log{suffix}"]["logged_values"] == list(range(limit_batches))
         assert logger.logged_metrics[f"test_log{suffix}"]["logged_steps"] == list(range(limit_batches))
