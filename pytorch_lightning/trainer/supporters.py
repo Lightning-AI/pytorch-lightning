@@ -107,8 +107,8 @@ class TensorRunningAccum:
     def _agg_memory(self, how: str):
         if self.last_idx is not None:
             if self.rotated:
-                return getattr(self.memory, how)()
-            return getattr(self.memory[: self.current_idx], how)()
+                return getattr(self.memory.float(), how)()
+            return getattr(self.memory[: self.current_idx].float(), how)()
 
 
 @dataclass
