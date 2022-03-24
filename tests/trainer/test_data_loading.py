@@ -378,5 +378,5 @@ def test_non_sequential_sampler_warning_is_raised_for_eval_dataloader(val_dl):
     trainer = Trainer()
     model = BoringModel()
     trainer._data_connector.attach_data(model, val_dataloaders=val_dl)
-    with pytest.warns(PossibleUserWarning, match="recommended .* turn this off for val/test/predict"):
+    with pytest.warns(PossibleUserWarning, match="recommended .* turn shuffling off for val/test/predict"):
         trainer._data_connector._reset_eval_dataloader(RunningStage.VALIDATING, model)
