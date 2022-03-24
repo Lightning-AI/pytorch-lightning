@@ -90,9 +90,12 @@ def run_hpu_tests_parallel(timeout=TIMEOUT):
 def zip_cmd_exitcode(exit_status):
     """This function is called to zip the tests that were executed with the exit status of the test.
 
-    Return of this function will be list of hpu tests called and their exit status.
+
     Args:
         exit_status: The returned exit_status after executing run_hpu_tests_parallel().
+
+    Return:
+        A list of hpu tests called and their exit status.
     """
     status_list = []
     hpu_tests_called = []
@@ -118,8 +121,9 @@ def print_subprocess_logs_and_return_status(exit_status):
 
     Args:
         exit_status: The returned exit_status after executing run_hpu_tests_parallel().
-    Return of this function will be the return to main().
-    Based on the exit status of the HPU tests, we return success or failure to the main method.
+
+    Return:
+        Based on the exit status of the HPU tests, we return success or failure to the main method.
     """
     if all(v == 0 for v in exit_status):
         print("All HPU tests passed")

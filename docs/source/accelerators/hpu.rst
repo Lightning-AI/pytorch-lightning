@@ -5,18 +5,18 @@ Habana Gaudi AI Processor (HPU)
 
 Lightning supports `Habana Gaudi AI Processor (HPU) <https://habana.ai/>`__, for accelerating Deep Learning training workloads.
 
-HPU terminology
+HPU Terminology
 ---------------
 
 Habana® Gaudi® AI training processors are built on a heterogeneous architecture with a cluster of fully programmable Tensor Processing Cores (TPC) along with its associated development tools and libraries, and a configurable Matrix Math engine.
 
-The TPC core is a VLIW SIMD processor with instruction set and hardware tailored to serve training workloads efficiently.
+The TPC core is a VLIW SIMD processor with an instruction set and hardware tailored to serve training workloads efficiently.
 The Gaudi memory architecture includes on-die SRAM and local memories in each TPC and,
 Gaudi is the first DL training processor that has integrated RDMA over Converged Ethernet (RoCE v2) engines on-chip.
 
 On the software side, the PyTorch Habana bridge interfaces between the framework and SynapseAI software stack to enable the execution of deep learning models on the Habana Gaudi device.
 
-Gaudi offers substantial price/performance advantage -- so you get to do more deep learning training while spending less.
+Gaudi offers a substantial price/performance advantage -- so you get to do more deep learning training while spending less.
 
 For more information, check out `Gaudi Architecture <https://docs.habana.ai/en/latest/Gaudi_Overview/Gaudi_Overview.html#gaudi-architecture>`__ and `Gaudi Developer Docs <https://developer.habana.ai>`__.
 
@@ -44,15 +44,15 @@ Passing ``devices=1`` and ``accelerator="hpu"`` to the Trainer class enables the
     trainer = Trainer(devices=1, accelerator="hpu")
 
 The ``devices=8`` and ``accelerator="hpu"`` parameters to the Trainer class enables the Habana accelerator for distributed training with 8 Gaudis.
-It uses :class:`~pytorch_lightning.strategies.HPUParallelStrategy` internally which is based on DDP strategy with the addition of Habana's collective communication library (HCCL) to support scale-up within a node and scale-out across multiple nodes.
+It uses :class:`~pytorch_lightning.strategies.hpu_parallel.HPUParallelStrategy` internally which is based on DDP strategy with the addition of Habana's collective communication library (HCCL) to support scale-up within a node and scale-out across multiple nodes.
 
 .. code-block:: python
 
     trainer = Trainer(devices=8, accelerator="hpu")
 
 .. note::
-    If the ``devices`` flag is not defined, it will assume ``devices`` to be ``"auto"`` and fetch the :meth:`~pytorch_lightning.accelerators.HPUAccelerator.auto_device_count`
-    from :class:`~pytorch_lightning.accelerators.HPUAccelerator`.
+    If the ``devices`` flag is not defined, it will assume ``devices`` to be ``"auto"`` and fetch the :meth:`~pytorch_lightning.accelerators.hpu.HPUAccelerator.auto_device_count`
+    from :class:`~pytorch_lightning.accelerators.hpu.HPUAccelerator`.
 
 
 Mixed Precision Plugin
@@ -62,7 +62,7 @@ Lightning also allows mixed precision training with HPUs.
 By default, HPU training will use 32-bit precision. To enable mixed precision, set the ``precision`` flag.
 
 In addition to the default settings in HMP, users also have the option of overriding these defaults and providing their own BF16 and FP32 operator lists using the ``plugins`` parameter of Trainer class.
-HPU's precision plugin is realised using ``HPUPrecisionPlugin``. The ``hmp_params`` parameter with this plugin is used to override the default operator list. An example can be found in the subsequent section.
+HPU's precision plugin is realised using :class:`~pytorch_lightning.plugins.precision.hpu.HPUPrecisionPlugin`. The ``hmp_params`` parameter with this plugin is used to override the default operator list. An example can be found in the subsequent section.
 
 .. code-block:: python
 
