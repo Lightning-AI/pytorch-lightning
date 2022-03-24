@@ -18,16 +18,22 @@ import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities import _HPU_AVAILABLE, device_parser
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 
 
 class HPUAccelerator(Accelerator):
     """Accelerator for HPU devices."""
 
-    @staticmethod
-    def name() -> str:
-        """Name of the Accelerator."""
-        return "hpu"
+    def setup_environment(self, root_device: torch.device) -> None:
+        """
+        Raises:
+            MisconfigurationException:
+                If the selected device is not HPU.
+        """
+        super().setup_environment(root_device)
+        if root_device.type != "hpu":
+            raise MisconfigurationException(f"Device should be HPU, got {root_device} instead.")
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """HPU device stats aren't supported yet."""
@@ -53,3 +59,11 @@ class HPUAccelerator(Accelerator):
     @staticmethod
     def is_available() -> bool:
         return _HPU_AVAILABLE
+
+    @classmethod
+    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+        accelerator_registry.register(
+            "hpu",
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )
