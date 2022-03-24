@@ -73,11 +73,11 @@ class TensorRunningAccum:
     def append(self, x):
         """Add an element to the accumulator."""
         if self.memory is None:
+            # tradeoff memory for speed by keeping the memory on device
             self.memory = torch.zeros(self.window_length, *x.shape, device=x.device)
-
-        # ensure same device and type
-        if self.memory.device != x.device or self.memory.type() != x.type():
-            x = x.to(self.memory)
+        else:
+            # ensure same device and type
+            self.memory = self.memory.to(x)
 
         # store without grads
         with torch.no_grad():
