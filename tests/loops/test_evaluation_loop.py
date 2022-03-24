@@ -47,23 +47,32 @@ def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
 def test_set_epoch_called_eval_predict(tmpdir):
     """Tests that set_epoch (if the sampler has one) is called on the DataLoader during evaluation and
     prediction."""
+
+    def _get_dataloader():
+        dataset = RandomDataset(32, 64)
+        sampler = RandomSampler(dataset)
+        sampler.set_epoch = Mock()
+        sampler.set_epoch.reset_mock()
+        return DataLoader(dataset, sampler=sampler)
+
     model = BoringModel()
-    dataset = RandomDataset(32, 64)
-    sampler = RandomSampler(dataset)
-    sampler.set_epoch = Mock()
-    dataloader = torch.utils.data.dataloader.DataLoader(dataset, sampler=sampler)  # DataLoader
+
+    train_dataloader = _get_dataloader()
+    val_dataloader = _get_dataloader()
+
     trainer = Trainer(
         default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=2, enable_model_summary=False
     )
 
-    trainer.fit(model, dataloader)
-    # One for each epoch!
-    assert dataloader.sampler.set_epoch.call_count == 2
+    trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
+    # One for each epoch
+    assert train_dataloader.sampler.set_epoch.call_count == 2
+    # One for each epoch + sanity check
+    assert val_dataloader.sampler.set_epoch.call_count == 3
 
-    predict_dataloader = torch.utils.data.dataloader.DataLoader(dataset, sampler=sampler)
-    trainer.predict(model, predict_dataloader)
-    # One for each epoch!
-    assert predict_dataloader.sampler.set_epoch.call_count == 2
+    val_dataloader = _get_dataloader()
+    trainer.validate(model, val_dataloader)
+    assert val_dataloader.sampler.set_epoch.call_count == 1
 
 
 @mock.patch(

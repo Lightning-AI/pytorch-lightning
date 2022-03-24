@@ -500,8 +500,8 @@ class DataConnector:
     def _check_eval_shuffling(dataloader, mode):
         if _is_dataloader_shuffled(dataloader):
             rank_zero_warn(
-                f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"
-                " it is strongly recommended that you turn this off for val/test/predict dataloaders.",
+                f"Your `{mode.dataloader_prefix}_dataloader`'s sampler has shuffling enabled,"
+                " it is strongly recommended that you turn shuffling off for val/test/predict dataloaders.",
                 category=PossibleUserWarning,
             )
 
