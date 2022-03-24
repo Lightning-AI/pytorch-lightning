@@ -62,7 +62,7 @@ def run_hpu_tests_parallel(timeout=TIMEOUT):
             An exception is logged if the threshold timeout gets expired.
             TIMEOUT_EXIT_CODE will be returned as -9 in case of timeout,
             0 in case of success and 4 in case of failure.
-        
+
     Return:
         The list of exit status of the HPU tests that were run in the subprocess.
         Here, the exit_status 0 means the test run is successful. exit_status 1 means the test run is failed.
