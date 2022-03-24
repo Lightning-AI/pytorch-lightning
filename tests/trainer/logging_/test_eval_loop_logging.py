@@ -265,7 +265,7 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir, suffix):
     results = trainer.test(model)
 
     for i, r in enumerate(results):
-        expected = {"test_loss", "test_loss_epoch"}
+        expected = {"test_loss_epoch"}
         if suffix:
             expected = {e + f"/dataloader_idx_{i}" for e in expected}
         assert set(r) == expected
@@ -839,6 +839,9 @@ expected3 = """
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 """
 
+inputs4 = ([{}], "foo")
+expected4 = ""
+
 
 @pytest.mark.parametrize(
     ["inputs", "expected"],
@@ -847,6 +850,7 @@ expected3 = """
         pytest.param(inputs1, expected1, id="case1"),
         pytest.param(inputs2, expected2, id="case2"),
         pytest.param(inputs3, expected3, id="case3"),
+        pytest.param(inputs4, expected4, id="empty case"),
     ],
 )
 def test_native_print_results(monkeypatch, inputs, expected):
@@ -917,6 +921,7 @@ expected3 = """
         pytest.param(inputs1, expected1, id="case1"),
         pytest.param(inputs2, expected2, id="case2"),
         pytest.param(inputs3, expected3, id="case3"),
+        pytest.param(inputs4, expected4, id="empty case"),
     ],
 )
 @RunIf(rich=True, skip_windows=True)

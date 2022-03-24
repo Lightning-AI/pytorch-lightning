@@ -785,10 +785,6 @@ class AcceleratorConnector:
         return self._parallel_devices
 
     @property
-    def num_processes(self) -> int:
-        return self.devices if self.devices is not None else 1
-
-    @property
     def devices(self) -> int:
         if isinstance(self.strategy, SingleDeviceStrategy):
             return 1
@@ -803,31 +799,8 @@ class AcceleratorConnector:
         return 0
 
     @property
-    def tpu_id(self) -> Optional[int]:
-        if isinstance(self.accelerator, TPUAccelerator):
-            if isinstance(self._tpu_cores, list):
-                return self._tpu_cores[0]
-        return None
-
-    @property
-    def num_ipus(self) -> int:
-        if isinstance(self.accelerator, IPUAccelerator):
-            return self.devices
-        return 0
-
-    @property
-    def num_gpus(self) -> int:
-        if isinstance(self.accelerator, GPUAccelerator):
-            return self.devices
-        return 0
-
-    @property
     def gpus(self) -> Optional[Union[List[int], str, int]]:
         return self._gpus
-
-    @property
-    def parallel_device_ids(self) -> List[int]:
-        return [i for i in range(len(self.parallel_devices))] if isinstance(self.accelerator, GPUAccelerator) else []
 
     @property
     def is_distributed(self) -> bool:

@@ -83,7 +83,7 @@ RUN \
     python ./requirements/adjust-versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust-versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     python -c "print(' '.join([ln for ln in open('requirements/extra.txt').readlines() if 'horovod' in ln]))" > ./requirements/horovod.txt && \
-    python assistant.py requirements_prune_pkgs requirements/extra.txt "horovod" && \
+    python assistant.py requirements_prune_pkgs "horovod" && \
     # Install all requirements \
     pip install -r requirements/devel.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
     rm -rf requirements.* && \
