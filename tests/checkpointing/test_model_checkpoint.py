@@ -109,7 +109,6 @@ def test_model_checkpoint_score_and_ckpt(
         def validation_step(self, batch, batch_idx):
             log_value = self.val_logs[self.current_epoch, batch_idx]
             self.log("val_log", log_value)
-            self.log("epoch", self.current_epoch, on_epoch=True)
             return super().validation_step(batch, batch_idx)
 
         def configure_optimizers(self):
@@ -1086,7 +1085,7 @@ def test_hparams_type(tmpdir, use_omegaconf):
             super().__init__()
             self.save_hyperparameters(hparams)
 
-    model_checkpoint = ModelCheckpoint(dirpath=tmpdir, save_top_k=1, monitor="foo")
+    model_checkpoint = ModelCheckpoint(dirpath=tmpdir, save_top_k=1)
     trainer = Trainer(
         max_epochs=1,
         default_root_dir=tmpdir,
@@ -1281,3 +1280,24 @@ def test_last_global_step_saved():
     trainer.callback_metrics = {"foo": 123}
     model_checkpoint.save_checkpoint(trainer)
     assert model_checkpoint._last_global_step_saved == 0
+
+
+@pytest.mark.parametrize("every_n_epochs", (0, 5))
+def test_save_last_every_n_epochs_interaction(tmpdir, every_n_epochs):
+    """Test that `save_last` ignores `every_n_epochs`."""
+    mc = ModelCheckpoint(every_n_epochs=every_n_epochs, save_last=True, save_top_k=0, save_on_train_epoch_end=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        callbacks=mc,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+    )
+    model = BoringModel()
+    with patch.object(trainer, "save_checkpoint") as save_mock:
+        trainer.fit(model)
+    assert mc.last_model_path  # a "last" ckpt was saved
+    assert save_mock.call_count == trainer.max_epochs

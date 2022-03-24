@@ -138,9 +138,6 @@ class DDPFullyShardedStrategy(DDPStrategy):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.accelerator.setup(trainer)
-        self.setup_optimizers(trainer)
-        self.setup_precision_plugin()
-        optimizers_to_device(self.optimizers, self.root_device)
 
         if trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
             self.model = self._layer_sync.apply(self.model)
@@ -148,6 +145,8 @@ class DDPFullyShardedStrategy(DDPStrategy):
         self.configure_ddp()
         self.barrier()
         self.setup_optimizers(trainer)
+        optimizers_to_device(self.optimizers, self.root_device)
+        self.setup_precision_plugin()
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
@@ -176,16 +175,13 @@ class DDPFullyShardedStrategy(DDPStrategy):
         log.detail(f"{self.__class__.__name__}: exiting model_sharded_context.")
 
     def configure_ddp(self) -> None:
-        log.detail(f"{self.__class__.__name__}: configuring DDP... (cpu_offload: [{self.cpu_offload}])")
+        log.detail(f"{self.__class__.__name__}: configuring FSDP... (cpu_offload: [{self.cpu_offload}])")
         if not self.cpu_offload:
             # When using CPU Offload, FSDP will manage the CUDA movement for us.
             # Note: this would be problematic for large model (which could not fit in one GPU)
             # as FSDP module.to(device) would first summon all parameters
             # (TODO: need to figure out solution)
             self.model_to_device()
-
-        # setup optimizers after fully sharded has wrapped the lightning module
-        self.setup_optimizers(self.lightning_module.trainer)
 
     def model_to_device(self) -> None:
         log.detail(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
