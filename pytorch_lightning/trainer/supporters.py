@@ -68,7 +68,7 @@ class TensorRunningAccum:
     def last(self):
         """Get the last added element."""
         if self.last_idx is not None:
-            return self.memory[self.last_idx]
+            return self.memory[self.last_idx].float()
 
     def append(self, x):
         """Add an element to the accumulator."""
