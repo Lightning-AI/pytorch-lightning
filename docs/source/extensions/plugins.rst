@@ -29,6 +29,17 @@ We expose Accelerators and Plugins mainly for expert users that want to extend L
 
 There are three types of Plugins in Lightning with different responsibilities:
 
+Precision Plugins
+-----------------
+
+We expose precision plugins for the users
+
+
+.. code-block:: python
+
+    # precision: FP16Plugin
+    trainer = Trainer(precision=16)
+
 - Precision Plugins
 - CheckpointIO Plugins
 - Cluster Environments (e.g. customized access to the cluster's environment interface)
@@ -66,6 +77,11 @@ Precision Plugins
 CheckpointIO Plugins
 --------------------
 
+As part of our commitment to extensibility, we have abstracted Lightning's checkpointing logic into the :class:`~pytorch_lightning.plugins.io.CheckpointIO` plugin.
+With this, users have the ability to customize the checkpointing logic to match the needs of their infrastructure.
+
+Below is a list of built-in plugins for checkpointing.
+
 .. currentmodule:: pytorch_lightning.plugins.io
 
 .. autosummary::
@@ -76,6 +92,7 @@ CheckpointIO Plugins
     TorchCheckpointIO
     XLACheckpointIO
 
+You could learn more about custom checkpointing with Lightning :ref:`here <../common/checkpointing:Customize Checkpointing>`.
 
 Cluster Environments
 --------------------
