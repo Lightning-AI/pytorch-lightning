@@ -853,7 +853,9 @@ class TestManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
 
 @RunIf(min_gpus=2, standalone=True)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp_with_toggle_model(tmpdir):
-    train_manual_optimization(tmpdir, "ddp", model_cls=TestManualOptimizationDDPModelToggleModel)
+    train_manual_optimization(
+        tmpdir, "ddp_find_unused_parameters_false", model_cls=TestManualOptimizationDDPModelToggleModel
+    )
 
 
 def test_lr_schedulers(tmpdir):

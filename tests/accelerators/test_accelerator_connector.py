@@ -147,6 +147,7 @@ def test_accelerator_choice_ddp2_slurm(*_):
         "RANK": "1",
         "LOCAL_RANK": "1",
         "GROUP_RANK": "0",
+        "TORCHELASTIC_RUN_ID": "1",  # present for torch >= 1.9.1
     },
 )
 @mock.patch("torch.cuda.set_device")
@@ -172,6 +173,7 @@ def test_accelerator_choice_ddp_te(*_):
         "RANK": "1",
         "LOCAL_RANK": "1",
         "GROUP_RANK": "0",
+        "TORCHELASTIC_RUN_ID": "1",
     },
 )
 @mock.patch("torch.cuda.set_device")
@@ -189,7 +191,15 @@ def test_accelerator_choice_ddp2_te(*_):
 
 
 @mock.patch.dict(
-    os.environ, {"WORLD_SIZE": "2", "LOCAL_WORLD_SIZE": "2", "RANK": "1", "LOCAL_RANK": "1", "GROUP_RANK": "0"}
+    os.environ,
+    {
+        "WORLD_SIZE": "2",
+        "LOCAL_WORLD_SIZE": "2",
+        "RANK": "1",
+        "LOCAL_RANK": "1",
+        "GROUP_RANK": "0",
+        "TORCHELASTIC_RUN_ID": "1",
+    },
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
@@ -523,7 +533,7 @@ def test_accelerator_cpu_with_devices(devices, plugin):
 
     trainer = Trainer(accelerator="cpu", devices=devices)
 
-    assert trainer.num_processes == devices
+    assert trainer.num_devices == devices
     assert isinstance(trainer.strategy, plugin)
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
@@ -535,7 +545,7 @@ def test_accelerator_cpu_with_num_processes_priority():
     with pytest.warns(UserWarning, match="The flag `devices=8` will be ignored,"):
         trainer = Trainer(accelerator="cpu", devices=8, num_processes=num_processes)
 
-    assert trainer.num_processes == num_processes
+    assert trainer.num_devices == num_processes
 
 
 @RunIf(min_gpus=2)
@@ -573,20 +583,20 @@ def test_validate_accelerator_and_devices():
 
     trainer = Trainer(accelerator="ddp_cpu", devices=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert trainer.num_processes == 2
+    assert trainer.num_devices == 2
 
 
 def test_set_devices_if_none_cpu():
 
     trainer = Trainer(accelerator="cpu", num_processes=3)
-    assert trainer.devices == 3
+    assert trainer.num_devices == 3
 
 
 @RunIf(min_gpus=2)
 def test_set_devices_if_none_gpu():
 
     trainer = Trainer(accelerator="gpu", gpus=2)
-    assert trainer.devices == 2
+    assert trainer.num_devices == 2
 
 
 def test_devices_with_cpu_only_supports_integer():
@@ -594,7 +604,7 @@ def test_devices_with_cpu_only_supports_integer():
     with pytest.warns(UserWarning, match="The flag `devices` must be an int"):
         trainer = Trainer(accelerator="cpu", devices="1,3")
     assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert trainer.devices == 1
+    assert trainer.num_devices == 1
 
 
 @pytest.mark.parametrize("training_type", ["ddp2", "dp"])
@@ -786,6 +796,7 @@ def test_strategy_choice_ddp2_slurm(
         "RANK": "1",
         "LOCAL_RANK": "1",
         "GROUP_RANK": "0",
+        "TORCHELASTIC_RUN_ID": "1",
     },
 )
 @mock.patch("torch.cuda.set_device")
@@ -810,6 +821,7 @@ def test_strategy_choice_ddp_te(*_):
         "RANK": "1",
         "LOCAL_RANK": "1",
         "GROUP_RANK": "0",
+        "TORCHELASTIC_RUN_ID": "1",
     },
 )
 @mock.patch("torch.cuda.set_device")
@@ -826,7 +838,15 @@ def test_strategy_choice_ddp2_te(*_):
 
 
 @mock.patch.dict(
-    os.environ, {"WORLD_SIZE": "2", "LOCAL_WORLD_SIZE": "2", "RANK": "1", "LOCAL_RANK": "1", "GROUP_RANK": "0"}
+    os.environ,
+    {
+        "WORLD_SIZE": "2",
+        "LOCAL_WORLD_SIZE": "2",
+        "RANK": "1",
+        "LOCAL_RANK": "1",
+        "GROUP_RANK": "0",
+        "TORCHELASTIC_RUN_ID": "1",
+    },
 )
 @mock.patch("torch.cuda.device_count", return_value=0)
 @mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
@@ -941,15 +961,14 @@ def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
 @mock.patch("pytorch_lightning.utilities.imports._IPU_AVAILABLE", return_value=False)
 def test_devices_auto_choice_cpu(is_ipu_available_mock, is_tpu_available_mock, is_gpu_available_mock):
     trainer = Trainer(accelerator="auto", devices="auto")
-    assert trainer.devices == 1
-    assert trainer.num_processes == 1
+    assert trainer.num_devices == 1
 
 
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
 def test_devices_auto_choice_gpu(is_gpu_available_mock, device_count_mock):
     trainer = Trainer(accelerator="auto", devices="auto")
-    assert trainer.devices == 2
+    assert trainer.num_devices == 2
     assert trainer.gpus == 2
 
 
