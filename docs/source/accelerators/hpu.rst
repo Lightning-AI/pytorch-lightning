@@ -80,7 +80,7 @@ The default settings enable users to easily enable mixed precision training with
 In addition to the default settings in HMP, users also have the option of overriding these defaults and providing their own BF16 and FP32 operator lists by passing it
 to the ``hmp_params`` parameter of :class:`~pytorch_lightning.plugins.precision.HPUPrecisionPlugin`.
 
-The below snippet shows an example model using MNIST with single Habana Gaudi and making use of HMP by overriding the default parameters.
+The below snippet shows an example model using MNIST with a single Habana Gaudi device and making use of HMP by overriding the default parameters.
 This enables advanced users to provide their own BF16 and FP32 operator list instead of using the HMP defaults.
 
 .. code-block:: python
