@@ -548,18 +548,6 @@ def test_accelerator_auto_with_devices_gpu():
     assert trainer.num_devices == 1
 
 
-@RunIf(min_gpus=1)
-def test_accelerator_gpu_with_gpus_priority():
-    """Test for checking `gpus` flag takes priority over `devices`."""
-
-    gpus = 1
-    with pytest.warns(UserWarning, match="The flag `devices=4` will be ignored,"):
-        trainer = Trainer(accelerator="gpu", devices=4, gpus=gpus)
-
-    assert isinstance(trainer.accelerator, GPUAccelerator)
-    assert trainer.num_devices == gpus
-
-
 def test_validate_accelerator_and_devices():
 
     trainer = Trainer(accelerator="ddp_cpu", devices=2)
