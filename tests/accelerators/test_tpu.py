@@ -103,6 +103,12 @@ def test_accelerator_tpu(accelerator, devices):
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
     assert trainer.num_devices == 8
+    with pytest.deprecated_call(
+        match= "`Trainer.tpu_cores` is deprecated in v1.6 and will be removed in v1.8. "
+        "Please use `Trainer.devices` instead."
+    ):
+        trainer.tpu_cores == 8
+
 
 
 @RunIf(tpu=True)
