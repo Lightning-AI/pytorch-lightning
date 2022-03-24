@@ -242,6 +242,7 @@ class KFoldLoop(Loop):
     def __setstate__(self, state):
         self.__dict__.update(state)
 
+
 class LitImageClassifier(ImageClassifier):
     def __init__(self) -> None:
         super().__init__()
