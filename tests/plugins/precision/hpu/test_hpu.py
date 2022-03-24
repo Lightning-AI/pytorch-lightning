@@ -79,3 +79,9 @@ def test_pure_half_precision(tmpdir, hmp_params):
 
     with pytest.raises(SystemExit):
         trainer.fit(model)
+
+
+@RunIf(hpu=True)
+def test_unsupported_precision_plugin():
+    with pytest.raises(ValueError, match="`Trainer(accelerator='hpu', precision='mixed` is not supported."):
+        HPUPrecisionPlugin(precision="mixed")
