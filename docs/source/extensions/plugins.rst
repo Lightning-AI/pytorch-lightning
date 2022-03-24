@@ -17,7 +17,7 @@ depending on the provided Trainer arguments. For example:
     # accelerator: GPUAccelerator
     # training strategy: DDPStrategy
     # precision: NativeMixedPrecisionPlugin
-    trainer = Trainer(gpus=4, precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, precision=16)
 
 
 We expose Accelerators and Plugins mainly for expert users that want to extend Lightning for:
