@@ -799,18 +799,8 @@ class AcceleratorConnector:
         return 0
 
     @property
-    def num_ipus(self) -> int:
-        if isinstance(self.accelerator, IPUAccelerator):
-            return self.devices
-        return 0
-
-    @property
     def gpus(self) -> Optional[Union[List[int], str, int]]:
         return self._gpus
-
-    @property
-    def parallel_device_ids(self) -> List[int]:
-        return [i for i in range(len(self.parallel_devices))] if isinstance(self.accelerator, GPUAccelerator) else []
 
     @property
     def is_distributed(self) -> bool:

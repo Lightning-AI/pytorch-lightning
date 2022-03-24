@@ -403,7 +403,7 @@ Inference from file:
 .. code-block:: python
 
     gpu = 1 if cfg.trainer.gpus != 0 else 0
-    trainer = pl.Trainer(gpus=gpu)
+    trainer = pl.Trainer(accelerator="gpu", devices=gpu)
     model.set_trainer(trainer)
     model.evaluate_from_file(
         text_file=os.path.join(cfg.model.dataset.data_dir, cfg.model.validation_ds.text_file),
