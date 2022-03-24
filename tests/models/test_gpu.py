@@ -23,6 +23,7 @@ import torch
 import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators import CPUAccelerator, GPUAccelerator
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -190,10 +191,12 @@ def test_torchelastic_gpu_parsing(mocked_device_count, mocked_is_available, gpus
     sanitizing the gpus as only one of the GPUs is visible."""
     trainer = Trainer(gpus=gpus)
     assert isinstance(trainer._accelerator_connector.cluster_environment, TorchElasticEnvironment)
-    assert trainer.gpus == gpus
     # when use gpu
     if device_parser.parse_gpu_ids(gpus) is not None:
         assert trainer.device_ids == device_parser.parse_gpu_ids(gpus)
+        assert isinstance(trainer.accelerator, GPUAccelerator)
+    else:
+        assert isinstance(trainer.accelerator, CPUAccelerator)
 
 
 @RunIf(min_gpus=1)
