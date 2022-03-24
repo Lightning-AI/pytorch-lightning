@@ -26,7 +26,7 @@ How to access HPUs
 To use HPUs, you must have access to a system with HPU devices.
 You can either use `Gaudi-based AWS EC2 DL1 instances <https://aws.amazon.com/ec2/instance-types/dl1/>`__ or `Supermicro X12 Gaudi server <https://www.supermicro.com/en/solutions/habana-gaudi>`__ to get access to HPUs.
 
-Checkout the `Getting Started Guide with AWS and Habana <https://docs.habana.ai/en/latest/AWS_EC2_Getting_Started/AWS_EC2_Getting_Started.html>`__.
+Check out the `Getting Started Guide with AWS and Habana <https://docs.habana.ai/en/latest/AWS_EC2_Getting_Started/AWS_EC2_Getting_Started.html>`__.
 
 Training with HPUs
 ------------------
@@ -71,7 +71,7 @@ Enabling Mixed Precision Options
 
 Internally, :class:`~pytorch_lightning.plugins.precision.HPUPrecisionPlugin` uses the Habana Mixed Precision (HMP) package to enable mixed precision training.
 
-You can execute the ops in FP32 or BF16 precision. The HMP package modifies the python operators to add the appropriate cast operations for the arguments before execution.
+You can execute the ops in FP32 or BF16 precision. The HMP package modifies the Python operators to add the appropriate cast operations for the arguments before execution.
 The default settings enable users to enable mixed precision training with minimal code easily.
 
 In addition to the default settings in HMP, users also have the option of overriding these defaults and providing their BF16 and FP32 operator lists by passing it
