@@ -792,7 +792,7 @@ class AcceleratorConnector:
         ):
             raise ValueError(
                 "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `TPUSpawnStrategy`,"
-                f" found {self.strategy}."
+                f" found {self.strategy.__class__.__name__}."
             )
 
         if isinstance(self.accelerator, HPUAccelerator) and not isinstance(
@@ -800,7 +800,7 @@ class AcceleratorConnector:
         ):
             raise ValueError(
                 "The `HPUAccelerator` can only be used with a `SingleHPUStrategy` or `HPUParallelStrategy`,"
-                f" found {self.strategy}."
+                f" found {self.strategy.__class__.__name__}."
             )
 
     """The following properties are here for backward-compatibility and will be deprecated and removed in favor

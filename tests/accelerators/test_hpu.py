@@ -151,7 +151,7 @@ def test_stages_correct(tmpdir):
     trainer.fit(model)
     trainer.test(model)
     trainer.validate(model)
-    trainer.predict(model, model.test_dataloader())
+    trainer.predict(model)
 
 
 @RunIf(hpu=True)
