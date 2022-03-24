@@ -90,7 +90,6 @@ def run_hpu_tests_parallel(timeout=TIMEOUT):
 def zip_cmd_exitcode(exit_status):
     """This function is called to zip the tests that were executed with the exit status of the test.
 
-
     Args:
         exit_status: The returned exit_status after executing run_hpu_tests_parallel().
 
