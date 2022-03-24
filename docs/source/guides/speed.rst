@@ -35,13 +35,13 @@ Lightning supports a variety of plugins to speed up distributed GPU training. Mo
 .. code-block:: python
 
     # run on 1 gpu
-    trainer = Trainer(gpus=1)
+    trainer = Trainer(accelerator="gpu", devices=1)
 
     # train on 8 gpus, using the DDP strategy
-    trainer = Trainer(gpus=8, strategy="ddp")
+    trainer = Trainer(accelerator="gpu", devices=8, strategy="ddp")
 
     # train on multiple GPUs across nodes (uses 8 gpus in total)
-    trainer = Trainer(gpus=2, num_nodes=4)
+    trainer = Trainer(accelerator="gpu", devices=2, num_nodes=4)
 
 
 GPU Training Speedup Tips

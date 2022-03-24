@@ -36,7 +36,7 @@ class BoringModelGPU(BoringModel):
 @RunIf(skip_windows=True, min_gpus=2, standalone=True)
 def test_ddp_with_2_gpus():
     """Tests if device is set correctly when training and after teardown for DDPStrategy."""
-    trainer = Trainer(gpus=2, strategy="ddp", fast_dev_run=True)
+    trainer = Trainer(accelerator="gpu", devices=2, strategy="ddp", fast_dev_run=True)
     # assert training type plugin attributes for device setting
     assert isinstance(trainer.strategy, DDPStrategy)
     local_rank = trainer.strategy.local_rank

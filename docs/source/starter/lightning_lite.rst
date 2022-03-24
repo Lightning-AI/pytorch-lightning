@@ -437,7 +437,7 @@ Shorthand for setting ``devices=X`` and ``accelerator="gpu"``.
 .. code-block:: python
 
     # Run on two GPUs
-    lite = Lite(gpus=2)
+    lite = Lite(accelerator="gpu", devices=2)
 
     # Equivalent
     lite = Lite(devices=2, accelerator="gpu")

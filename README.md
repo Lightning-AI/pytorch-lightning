@@ -229,10 +229,10 @@ Here are some examples:
 ```python
 # 8 GPUs
 # no code changes needed
-trainer = Trainer(max_epochs=1, gpus=8)
+trainer = Trainer(max_epochs=1, accelerator="gpu", devices=8)
 
 # 256 GPUs
-trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
+trainer = Trainer(max_epochs=1, accelerator="gpu", devices=8, num_nodes=32)
 ```
 
 <summary>Train on TPUs without code changes</summary>
@@ -429,7 +429,7 @@ Grid AI is our platform for training models at scale on the cloud!
 To use grid, take your regular command:
 
 ```
-python my_model.py --learning_rate 1e-6 --layers 2 --gpus 4
+python my_model.py --learning_rate 1e-6 --layers 2 --accelerator 'gpu' --devices 4
 ```
 
 And change it to use the grid train command:
