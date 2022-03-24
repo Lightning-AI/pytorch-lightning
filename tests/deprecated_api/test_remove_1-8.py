@@ -1038,7 +1038,6 @@ def test_trainer_num_processes(monkeypatch, trainer_kwargs, expected_num_process
         ({"accelerator": "gpu", "devices": 1}, [0]),
         ({"accelerator": "gpu", "devices": 2}, [0, 1]),
         ({"accelerator": "gpu", "devices": [1]}, [1]),
-        ({"accelerator": "gpu", "devices": "0"}, None),
         ({"accelerator": "gpu", "devices": "0,"}, [0]),
     ],
 )
