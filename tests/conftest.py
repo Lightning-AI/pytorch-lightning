@@ -81,7 +81,6 @@ def restore_env_variables():
         "XRT_SHARD_ORDINAL",
         "XRT_SHARD_LOCAL_ORDINAL",
         "TF_CPP_MIN_LOG_LEVEL",
-        "ID",  # used by HPU for acquiring the right gaudi device based on rank,
     }
     leaked_vars.difference_update(allowlist)
     assert not leaked_vars, f"test is leaking environment variable(s): {set(leaked_vars)}"

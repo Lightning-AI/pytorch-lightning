@@ -40,8 +40,8 @@ jobs:
          python ".azure-pipelines/run_hpu_tests.py"
       displayName: 'HPU Tests in parallel'
 
-    - script: |
-        python pl_examples/hpu_examples/simple_mnist/mnist.py
+    - bash: |
+        python "pl_examples/hpu_examples/simple_mnist/mnist.py"
       displayName: 'Testing: examples'
 
     - task: PublishTestResults@2
