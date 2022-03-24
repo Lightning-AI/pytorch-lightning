@@ -27,7 +27,7 @@ from tests.helpers.runif import RunIf
 def hmp_params(request):
     return {
         "opt_level": "01",
-        "verbose": False,
+        "isVerbose": False,
         "bf16_file_path": request.config.getoption("--hmp-bf16"),
         "fp32_file_path": request.config.getoption("--hmp-fp32"),
     }
