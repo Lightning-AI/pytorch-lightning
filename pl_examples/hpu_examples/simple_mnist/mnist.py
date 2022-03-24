@@ -11,42 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import os
-
 import torch
+from jsonargparse import lazy_instance
 from torch.nn import functional as F
 
 import pytorch_lightning as pl
 from pl_examples.basic_examples.mnist_datamodule import MNISTDataModule
 from pytorch_lightning.plugins import HPUPrecisionPlugin
-
-
-def parse_args():
-    import argparse
-
-    parser = argparse.ArgumentParser(description="PyTorch Classification Training")
-
-    parser.add_argument("-b", "--batch-size", default=32, type=int)
-    parser.add_argument("--epochs", default=1, type=int, metavar="N", help="number of total epochs to run")
-    parser.add_argument(
-        "--hpus", default=1, type=int, metavar="N", help="number of habana accelerator for training (default: 1)"
-    )
-    parser.add_argument("--hmp", dest="is_hmp", action="store_true", help="enable habana mixed precision mode")
-    parser.add_argument("--hmp-bf16", default="", help="path to bf16 ops list in hmp O1 mode")
-    parser.add_argument("--hmp-fp32", default="", help="path to fp32 ops list in hmp O1 mode")
-    parser.add_argument("--hmp-opt-level", default="O1", help="choose optimization level for hmp")
-    parser.add_argument("--hmp-verbose", action="store_true", help="enable verbose mode for hmp")
-
-    args = parser.parse_args()
-
-    return args
+from pytorch_lightning.utilities.cli import LightningCLI
 
 
 class LitClassifier(pl.LightningModule):
     def __init__(self):
         super().__init__()
-
         self.l1 = torch.nn.Linear(28 * 28, 10)
 
     def forward(self, x):
@@ -78,32 +55,19 @@ class LitClassifier(pl.LightningModule):
 
 
 if __name__ == "__main__":
-    args = parse_args()
-
-    # Init our model
-    model = LitClassifier()
-
-    # Init DataLoader from MNIST Dataset
-    dm = MNISTDataModule(batch_size=args.batch_size)
-
-    # TBD: import these keys from hmp
-    hmp_keys = ["level", "verbose", "bf16_ops", "fp32_ops"]
-    hmp_params = dict.fromkeys(hmp_keys)
-    hmp_params["level"] = args.hmp_opt_level
-    hmp_params["verbose"] = args.hmp_verbose
-    hmp_params["bf16_ops"] = args.hmp_bf16  # "./pl_examples/hpu_examples/simple_mnist/ops_bf16_mnist.txt"
-    hmp_params["fp32_ops"] = args.hmp_fp32  # "./pl_examples/hpu_examples/simple_mnist/ops_fp32_mnist.txt"
-
-    # Initialize a trainer
-    trainer = pl.Trainer(
-        default_root_dir=os.getcwd(),
-        accelerator="hpu",
-        devices=args.hpus,
-        plugins=[HPUPrecisionPlugin(precision=16, hmp_params=hmp_params)],
-        max_epochs=args.epochs,
+    cli = LightningCLI(
+        LitClassifier,
+        MNISTDataModule,
+        trainer_defaults={
+            "accelerator": "hpu",
+            "devices": 1,
+            "max_epochs": 1,
+            "plugins": lazy_instance(HPUPrecisionPlugin, precision=16),
+        },
+        run=False,
     )
 
-    # Train the model ⚡
-    trainer.fit(model, datamodule=dm)
-    trainer.test(model, datamodule=dm)
-    trainer.validate(model, datamodule=dm)
+    # Run the model ⚡
+    cli.trainer.fit(cli.model, datamodule=cli.datamodule)
+    cli.trainer.validate(cli.model, datamodule=cli.datamodule)
+    cli.trainer.test(cli.model, datamodule=cli.datamodule)

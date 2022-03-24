@@ -207,15 +207,3 @@ def pytest_addoption(parser):
 def hpus(request):
     hpus = request.config.getoption("--hpus")
     return hpus
-
-
-@pytest.fixture
-def hmp_params(request):
-    """Ensure precision plugin value is set correctly."""
-    hmp_keys = ["level", "verbose", "bf16_ops", "fp32_ops"]
-    hmp_params = dict.fromkeys(hmp_keys)
-    hmp_params["level"] = "O1"
-    hmp_params["verbose"] = False
-    hmp_params["bf16_ops"] = request.config.getoption("--hmp-bf16")
-    hmp_params["fp32_ops"] = request.config.getoption("--hmp-fp32")
-    return hmp_params

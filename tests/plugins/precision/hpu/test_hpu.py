@@ -23,10 +23,19 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
+@pytest.fixture
+def hmp_params(request):
+    return {
+        "opt_level": "01",
+        "verbose": False,
+        "bf16_file_path": request.config.getoption("--hmp-bf16"),
+        "fp32_file_path": request.config.getoption("--hmp-fp32"),
+    }
+
+
 @RunIf(hpu=True)
 def test_precision_plugin(hmp_params):
-
-    plugin = HPUPrecisionPlugin(precision="bf16", hmp_params=hmp_params)
+    plugin = HPUPrecisionPlugin(precision="bf16", **hmp_params)
     assert plugin.precision == "bf16"
 
 
@@ -43,7 +52,7 @@ def test_mixed_precision(tmpdir, hmp_params):
         fast_dev_run=True,
         accelerator="hpu",
         devices=1,
-        plugins=[HPUPrecisionPlugin(precision="bf16", hmp_params=hmp_params)],
+        plugins=[HPUPrecisionPlugin(precision="bf16", **hmp_params)],
         callbacks=TestCallback(),
     )
     assert isinstance(trainer.strategy, SingleHPUStrategy)
@@ -69,7 +78,7 @@ def test_pure_half_precision(tmpdir, hmp_params):
         fast_dev_run=True,
         accelerator="hpu",
         devices=1,
-        plugins=[HPUPrecisionPlugin(precision=16, hmp_params=hmp_params)],
+        plugins=[HPUPrecisionPlugin(precision=16, **hmp_params)],
         callbacks=TestCallback(),
     )
 

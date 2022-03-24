@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional, Sequence, Union
+from typing import Optional, Union
 
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -22,9 +22,24 @@ if _HPU_AVAILABLE:
 
 
 class HPUPrecisionPlugin(PrecisionPlugin):
-    """Plugin that enables bfloats/floats on HPUs."""
+    """Plugin that enables bfloat/half support on HPUs.
 
-    def __init__(self, precision: Union[str, int], hmp_params: Optional[Sequence[Any]] = None) -> None:
+    Args:
+        precision: The precision to use.
+        opt_level: Choose optimization level for hmp.
+        bf16_file_path: Path to bf16 ops list in hmp O1 mode.
+        fp32_file_path: Path to fp32 ops list in hmp O1 mode.
+        verbose: Enable verbose mode for hmp.
+    """
+
+    def __init__(
+        self,
+        precision: Union[str, int],
+        opt_level: str = "O2",
+        bf16_file_path: Optional[str] = None,
+        fp32_file_path: Optional[str] = None,
+        verbose: bool = False,
+    ) -> None:
         if not _HPU_AVAILABLE:
             raise MisconfigurationException("HPU precision plugin requires HPU devices.")
         supported_precision_values = (16, 32, "bf16")
@@ -35,12 +50,6 @@ class HPUPrecisionPlugin(PrecisionPlugin):
             )
         super().__init__()
         self.precision = precision
-        if not hmp_params:
-            return
-
-        hmp_opt_level = hmp_params.get("level", "02")  # type: ignore
-        hmp_bf16 = hmp_params.get("bf16_ops", None)  # type: ignore
-        hmp_fp32 = hmp_params.get("fp32_ops", None)  # type: ignore
-        hmp_verbose = hmp_params.get("verbose", False)  # type: ignore
-
-        hmp.convert(opt_level=hmp_opt_level, bf16_file_path=hmp_bf16, fp32_file_path=hmp_fp32, isVerbose=hmp_verbose)
+        hmp.convert(
+            opt_level=opt_level, bf16_file_path=bf16_file_path, fp32_file_path=fp32_file_path, isVerbose=verbose
+        )

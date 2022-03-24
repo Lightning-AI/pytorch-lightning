@@ -84,18 +84,25 @@ This enables advanced users to provide their own BF16 and FP32 operator list ins
     import pytorch_lightning as pl
     from pytorch_lightning.plugins import HPUPrecisionPlugin
 
-    # Init our model
-    model = LitClassifier()
-
-    # Init DataLoader from MNIST Dataset
-    dm = MNISTDataModule(batch_size=batch_size)
-
-    # Optional Habana mixed precision params to be set
-    hmp_params = {"level": "O1", "verbose": False, "bf16_ops": "ops_bf16_mnist.txt", "fp32_ops": "ops_fp32_mnist.txt"}
-
     # Initialize a trainer with HPU accelerator for HPU strategy for single device,
     # with mixed precision using overidden HMP settings
-    trainer = pl.Trainer(accelerator="hpu", devices=1, plugins=[HPUPrecisionPlugin(precision=16, hmp_params=hmp_params)])
+    trainer = pl.Trainer(
+        accelerator="hpu",
+        devices=1,
+        # Optional Habana mixed precision params to be set
+        plugins=HPUPrecisionPlugin(
+            precision=16,
+            opt_level="O1",
+            verbose=False,
+            bf16_file_path="ops_bf16_mnist.txt",
+            fp32_file_path="ops_fp32_mnist.txt",
+        ),
+    )
+
+    # Init our model
+    model = LitClassifier()
+    # Init the data
+    dm = MNISTDataModule(batch_size=batch_size)
 
     # Train the model ⚡
     trainer.fit(model, datamodule=dm)
