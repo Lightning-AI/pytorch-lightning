@@ -90,13 +90,15 @@ This enables advanced users to provide their own BF16 and FP32 operator list ins
         accelerator="hpu",
         devices=1,
         # Optional Habana mixed precision params to be set
-        plugins=[HPUPrecisionPlugin(
-            precision=16,
-            opt_level="O1",
-            verbose=False,
-            bf16_file_path="ops_bf16_mnist.txt",
-            fp32_file_path="ops_fp32_mnist.txt",
-        )],
+        plugins=[
+            HPUPrecisionPlugin(
+                precision=16,
+                opt_level="O1",
+                verbose=False,
+                bf16_file_path="ops_bf16_mnist.txt",
+                fp32_file_path="ops_fp32_mnist.txt",
+            )
+        ],
     )
 
     # Init our model
