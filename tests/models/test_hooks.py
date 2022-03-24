@@ -496,7 +496,9 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
     }
     if kwargs.get("amp_backend") == "native" or kwargs.get("amp_backend") == "apex":
         saved_ckpt[trainer.precision_plugin.__class__.__qualname__] = ANY
-    device = torch.device("cuda:0" if kwargs["accelerator"] == "gpu" else "cpu")
+    device = torch.device("cpu")
+    if "accelerator" in kwargs:
+        device = torch.device("cuda:0")
     expected = [
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
