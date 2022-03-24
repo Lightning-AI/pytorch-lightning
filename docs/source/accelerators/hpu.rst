@@ -51,8 +51,7 @@ It uses :class:`~pytorch_lightning.strategies.hpu_parallel.HPUParallelStrategy` 
     trainer = Trainer(devices=8, accelerator="hpu")
 
 .. note::
-    If the ``devices`` flag is not defined, it will assume ``devices`` to be ``"auto"`` and fetch the :meth:`~pytorch_lightning.accelerators.hpu.HPUAccelerator.auto_device_count`
-    from :class:`~pytorch_lightning.accelerators.hpu.HPUAccelerator`.
+    If the ``devices`` flag is not defined, it will assume ``devices`` to be ``"auto"`` and select 8 Gaudi devices for :class:`~pytorch_lightning.accelerators.hpu.HPUAccelerator`.
 
 
 Mixed Precision Plugin

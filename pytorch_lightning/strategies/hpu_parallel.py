@@ -128,6 +128,8 @@ class HPUParallelStrategy(DDPStrategy):
 
         log.detail(f"{self.__class__.__name__}: moving model to CPU")
         self.lightning_module.cpu()  # type: ignore
+        # Was set to local rank
+        os.environ.pop("ID", None)
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
