@@ -130,4 +130,4 @@ Known limitations
 
 * Multiple optimizers are not supported.
 * `Habana dataloader <https://docs.habana.ai/en/latest/PyTorch_User_Guide/PyTorch_User_Guide.html#habana-data-loader>`__ is not supported.
-* :class:`~pytorch_lightning.callbacks.DeviceStatsMonitor` is not supported.
+* :class:`~pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor` is not supported.
