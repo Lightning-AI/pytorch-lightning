@@ -259,16 +259,16 @@ def test_tpu_misconfiguration(tpu_cores):
 
 
 @pytest.mark.skipif(_TPU_AVAILABLE, reason="test requires missing TPU")
-def test_exception_when_no_tpu_found(tmpdir):
+def test_exception_when_no_tpu_found():
     """Test if exception is thrown when xla devices are not available."""
 
-    with pytest.raises(MisconfigurationException, match="No TPU devices were found."):
+    with pytest.raises(MisconfigurationException, match="TPUAccelerator can not run on your system"):
         Trainer(accelerator="tpu", devices=8)
 
 
 @pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
 @RunIf(tpu=True)
-def test_accelerator_set_when_using_tpu(tmpdir, tpu_cores):
+def test_accelerator_set_when_using_tpu(tpu_cores):
     """Test if the accelerator is set to `tpu` when tpu_cores is not None."""
     assert isinstance(Trainer(accelerator="tpu", devices=tpu_cores).accelerator, TPUAccelerator)
 
