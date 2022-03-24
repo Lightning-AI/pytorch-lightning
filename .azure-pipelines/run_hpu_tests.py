@@ -56,12 +56,16 @@ def run_hpu_tests_parallel(timeout=TIMEOUT):
 
     We run the tests in sub process to utilize all the eight cards available in the DL1 instance
     Considering the max time taken to run the HPU tests as 60 seconds, we kill the process if the time taken exceeds.
-    Return of this function will be the list of exit status of the HPU tests that were run in the subprocess.
-    Here, the exit_status 0 means the test run is successful. exit_status 1 means the test run is failed.
+
     Args:
         timeout: The threshold time to run the HPU tests in parallel.
-        Exception is logged if the threshold timeout gets expired.
-        TIMEOUT_EXIT_CODE will be returned as -9 in case of timeout, 0 in case of success and 4 in case of a failure.
+            An exception is logged if the threshold timeout gets expired.
+            TIMEOUT_EXIT_CODE will be returned as -9 in case of timeout,
+            0 in case of success and 4 in case of failure.
+        
+    Return:
+        The list of exit status of the HPU tests that were run in the subprocess.
+        Here, the exit_status 0 means the test run is successful. exit_status 1 means the test run is failed.
     """
     exit_status = []
     with open("stdout_log.txt", "w") as stdout_log, open("error_log.txt", "w") as error_log:
