@@ -84,8 +84,8 @@ class ModelCheckpoint(Callback):
             By default, filename is ``None`` and will be set to ``'{epoch}-{step}'``.
         monitor: quantity to monitor. By default it is ``None`` which saves a checkpoint only for the last epoch.
         verbose: verbosity mode. Default: ``False``.
-        save_last: When ``True``, always saves the model at the end of the epoch to
-            a file `last.ckpt`. Default: ``None``.
+        save_last: When ``True``, saves an exact copy of the checkpoint to a file `last.ckpt` whenever a checkpoint
+            file gets saved. This allows accessing the latest checkpoint in a deterministic manner. Default: ``None``.
         save_top_k: if ``save_top_k == k``,
             the best k models according to
             the quantity monitored will be saved.
@@ -227,7 +227,7 @@ class ModelCheckpoint(Callback):
         self.save_weights_only = save_weights_only
         self.auto_insert_metric_name = auto_insert_metric_name
         self._save_on_train_epoch_end = save_on_train_epoch_end
-        self._last_global_step_saved = -1
+        self._last_global_step_saved = 0  # no need to save when no steps were taken
         self._last_time_checked: Optional[float] = None
         self.current_score = None
         self.best_k_models = {}
@@ -278,8 +278,7 @@ class ModelCheckpoint(Callback):
         """Save checkpoint on train batch end if we meet the criteria for `every_n_train_steps`"""
         if self._should_skip_saving_checkpoint(trainer):
             return
-        step = trainer.global_step
-        skip_batch = self._every_n_train_steps < 1 or ((step + 1) % self._every_n_train_steps != 0)
+        skip_batch = self._every_n_train_steps < 1 or (trainer.global_step % self._every_n_train_steps != 0)
 
         train_time_interval = self._train_time_interval
         skip_time = True
@@ -300,8 +299,6 @@ class ModelCheckpoint(Callback):
 
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the training epoch."""
-        # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
-        trainer.fit_loop.global_step -= 1
         if (
             not self._should_skip_saving_checkpoint(trainer)
             and self._save_on_train_epoch_end
@@ -309,7 +306,6 @@ class ModelCheckpoint(Callback):
             and (trainer.current_epoch + 1) % self._every_n_epochs == 0
         ):
             self.save_checkpoint(trainer)
-        trainer.fit_loop.global_step += 1
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Save a checkpoint at the end of the validation stage."""
@@ -321,22 +317,6 @@ class ModelCheckpoint(Callback):
         ):
             return
         self.save_checkpoint(trainer)
-
-    def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Save a checkpoint when training stops.
-
-        This will only save a checkpoint if `save_last` is also enabled as the monitor metrics logged during
-        training/validation steps or end of epochs are not guaranteed to be available at this stage.
-        """
-        if self._should_skip_saving_checkpoint(trainer) or not self.save_last:
-            return
-        if self.verbose:
-            rank_zero_info("Saving latest checkpoint...")
-        # as we advance one step at end of training, we use `global_step - 1` to avoid saving duplicates
-        monitor_candidates = self._monitor_candidates(trainer, trainer.current_epoch, trainer.global_step - 1)
-        trainer.fit_loop.global_step -= 1
-        self._save_last_checkpoint(trainer, monitor_candidates)
-        trainer.fit_loop.global_step += 1
 
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]

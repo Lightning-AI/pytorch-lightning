@@ -343,7 +343,7 @@ def test_autoreport(tmpdir):
     )
     trainer.fit(model)
     assert os.path.exists(autoreport_path)
-    assert os.path.isfile(autoreport_path + "profile.pop")
+    assert os.path.isfile(autoreport_path + "training/profile.pop")
 
 
 @RunIf(ipu=True)
@@ -400,7 +400,7 @@ def test_manual_poptorch_opts(tmpdir):
     dataloader = trainer.train_dataloader.loaders
     assert isinstance(dataloader, poptorch.DataLoader)
     assert dataloader.options == training_opts
-    assert trainer.devices > 1  # testing this only makes sense in a distributed setting
+    assert trainer.num_devices > 1  # testing this only makes sense in a distributed setting
     assert not isinstance(dataloader.sampler, DistributedSampler)
 
 
@@ -464,7 +464,8 @@ def test_replication_factor(tmpdir):
 
     plugin = IPUStrategy()
     trainer = Trainer(ipus=2, default_root_dir=tmpdir, fast_dev_run=True, strategy=plugin)
-    assert trainer.ipus == 2
+    assert isinstance(trainer.accelerator, IPUAccelerator)
+    assert trainer.num_devices == 2
     assert trainer.strategy.replication_factor == 2
 
     model = BoringModel()
@@ -561,16 +562,16 @@ def test_accelerator_ipu_with_devices():
 
     trainer = Trainer(accelerator="ipu", devices=8)
 
-    assert trainer.ipus == 8
     assert isinstance(trainer.strategy, IPUStrategy)
     assert isinstance(trainer.accelerator, IPUAccelerator)
+    assert trainer.num_devices == 8
 
 
 @RunIf(ipu=True)
 def test_accelerator_auto_with_devices_ipu():
     trainer = Trainer(accelerator="auto", devices=8)
     assert isinstance(trainer.accelerator, IPUAccelerator)
-    assert trainer.ipus == 8
+    assert trainer.num_devices == 8
 
 
 @RunIf(ipu=True)
@@ -581,14 +582,15 @@ def test_accelerator_ipu_with_ipus_priority():
     with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
         trainer = Trainer(accelerator="ipu", devices=1, ipus=ipus)
 
-    assert trainer.ipus == ipus
+    assert isinstance(trainer.accelerator, IPUAccelerator)
+    assert trainer.num_devices == ipus
 
 
 @RunIf(ipu=True)
 def test_set_devices_if_none_ipu():
 
     trainer = Trainer(accelerator="ipu", ipus=8)
-    assert trainer.devices == 8
+    assert trainer.num_devices == 8
 
 
 @RunIf(ipu=True)
@@ -631,5 +633,5 @@ def test_poptorch_models_at_different_stages(tmpdir):
 @RunIf(ipu=True)
 def test_devices_auto_choice_ipu():
     trainer = Trainer(accelerator="auto", devices="auto")
-    assert trainer.devices == 4
-    assert trainer.ipus == 4
+    assert trainer.num_devices == 4
+    assert isinstance(trainer.accelerator, IPUAccelerator)

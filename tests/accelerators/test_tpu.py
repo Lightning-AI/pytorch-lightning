@@ -94,6 +94,7 @@ def test_accelerator_cpu_with_tpu_cores_flag():
 
 
 @RunIf(tpu=True)
+@pl_multi_process_test
 @pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", None)])
 def test_accelerator_tpu(accelerator, devices):
     assert TPUAccelerator.is_available()
@@ -101,7 +102,7 @@ def test_accelerator_tpu(accelerator, devices):
     trainer = Trainer(accelerator=accelerator, devices=devices)
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
-    assert trainer.devices == 8
+    assert trainer.num_devices == 8
     assert trainer.tpu_cores == 8
 
 
@@ -117,10 +118,10 @@ def test_accelerator_tpu_with_tpu_cores_priority():
 
 
 @RunIf(tpu=True)
+@pl_multi_process_test
 def test_set_devices_if_none_tpu():
-
     trainer = Trainer(accelerator="tpu", tpu_cores=8)
-    assert trainer.devices == 8
+    assert trainer.num_devices == 8
 
 
 @RunIf(tpu=True)
@@ -310,3 +311,21 @@ def test_mp_device_dataloader_attribute(_):
 def test_warning_if_tpus_not_used():
     with pytest.warns(UserWarning, match="TPU available but not used. Set `accelerator` and `devices`"):
         Trainer()
+
+
+@pytest.mark.skip(reason="TODO(@kaushikb11): Optimize TPU tests to avoid timeouts")
+@RunIf(tpu=True)
+@pytest.mark.parametrize(
+    ["devices", "expected_device_ids"],
+    [
+        (1, [0]),
+        (8, list(range(8))),
+        ("8", list(range(8))),
+        ([2], [2]),
+        ("2,", [2]),
+    ],
+)
+def test_trainer_config_device_ids(devices, expected_device_ids):
+    trainer = Trainer(accelerator="tpu", devices=devices)
+    assert trainer.device_ids == expected_device_ids
+    assert trainer.num_devices == len(expected_device_ids)

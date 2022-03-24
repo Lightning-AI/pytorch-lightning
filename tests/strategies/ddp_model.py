@@ -30,7 +30,7 @@ def main():
     parser.add_argument("--trainer_method", default="fit")
     parser.add_argument("--tmpdir")
     parser.add_argument("--workdir")
-    parser.set_defaults(gpus=2)
+    parser.set_defaults(accelerator="gpu", devices=2)
     parser.set_defaults(strategy="ddp")
     args = parser.parse_args()
 

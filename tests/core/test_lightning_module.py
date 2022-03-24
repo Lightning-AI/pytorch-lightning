@@ -18,11 +18,17 @@ import torch
 from torch import nn
 from torch.optim import Adam, SGD
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
+
+
+def test_lightning_module_not_abstract():
+    """Test that the LightningModule can be instantiated (it is not an abstract class)."""
+    _ = LightningModule()
 
 
 def test_property_current_epoch():
@@ -291,7 +297,7 @@ def test_device_placement(tmpdir):
 
 
 @RunIf(min_torch="1.10", skip_windows=True)
-def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
+def test_sharded_tensor_state_dict(single_process_pg):
     from torch.distributed._sharded_tensor import empty as sharded_tensor_empty
     from torch.distributed._sharding_spec import ChunkShardingSpec
 
@@ -310,7 +316,8 @@ def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
 
     m_0 = BoringModelWithShardedTensor(spec)
     m_0.sharded_tensor.local_shards()[0].tensor.fill_(1)
-    assert "sharded_tensor" in m_0.state_dict(), 'Expect "sharded_tensor" to appear in the state dict'
+    name_st = ".sharded_tensor" if _TORCH_GREATER_EQUAL_1_11 else "sharded_tensor"
+    assert name_st in m_0.state_dict(), 'Expect "sharded_tensor" to appear in the state dict'
 
     m_1 = BoringModelWithShardedTensor(spec)
     assert not torch.allclose(

@@ -68,7 +68,7 @@ You can also load the saved checkpoint and use it as a regular :class:`torch.nn.
     model = SimpleModel()
 
     # train it
-    trainer = Trainer(gpus=2)
+    trainer = Trainer(accelerator="gpu", devices=2)
     trainer.fit(model, train_dataloader, val_dataloader)
     trainer.save_checkpoint("best_model.ckpt", weights_only=True)
 

@@ -243,7 +243,7 @@ then call fit with both the data and model.
     autoencoder = LitAutoEncoder()
 
     # most basic trainer, uses good defaults (auto-tensorboard, checkpoints, logs, and more)
-    # trainer = pl.Trainer(gpus=8) (if you have GPUs)
+    # trainer = pl.Trainer(accelerator="gpu", devices=8) (if you have GPUs)
     trainer = pl.Trainer()
     trainer.fit(model=autoencoder, train_dataloaders=train_loader)
 
@@ -446,16 +446,16 @@ GPU
 .. code-block:: python
 
     # train on 1 GPU
-    trainer = pl.Trainer(gpus=1)
+    trainer = pl.Trainer(accelerator="gpu", devices=1)
 
     # train on multiple GPUs across nodes (32 gpus here)
-    trainer = pl.Trainer(gpus=4, num_nodes=8)
+    trainer = pl.Trainer(accelerator="gpu", devices=4, num_nodes=8)
 
     # train on gpu 1, 3, 5 (3 gpus total)
-    trainer = pl.Trainer(gpus=[1, 3, 5])
+    trainer = pl.Trainer(accelerator="gpu", devices=[1, 3, 5])
 
     # Multi GPU with mixed precision
-    trainer = pl.Trainer(gpus=2, precision=16)
+    trainer = pl.Trainer(accelerator="gpu", devices=2, precision=16)
 
 TPU
 ---
@@ -633,9 +633,9 @@ Once you define and train your first Lightning model, you might want to try othe
 - :ref:`Load checkpoints directly from S3 <common/checkpointing:Checkpoint Loading>`
 - :doc:`Scale to massive compute clusters <../clouds/cluster>`
 - :doc:`Use multiple dataloaders per train/val/test/predict loop <../guides/data>`
-- :ref:`Use multiple optimizers to do reinforcement learning or even GANs <common/optimizers:Use multiple optimizers (like GANs)>`
+- :ref:`Use multiple optimizers to do reinforcement learning or even GANs <common/optimization:Use multiple optimizers (like GANs)>`
 
-Read our :doc:`Guide <../starter/introduction_guide>` to learn more with a step-by-step walk-through!
+Read our :doc:`Guide <../starter/core_guide>` to learn more with a step-by-step walk-through!
 
 
 -------------

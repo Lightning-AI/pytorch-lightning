@@ -405,15 +405,18 @@ class Strategy(ABC):
         model = self.lightning_module
         return model.state_dict()
 
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
+    def save_checkpoint(
+        self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
+    ) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
+            storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
         """
         if self.is_global_zero:
-            self.checkpoint_io.save_checkpoint(checkpoint, filepath)
+            self.checkpoint_io.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
