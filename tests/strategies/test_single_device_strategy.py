@@ -36,7 +36,7 @@ class BoringModelGPU(BoringModel):
         self.start_cuda_memory = torch.cuda.memory_allocated()
 
 
-@RunIf(skip_windows=True, min_gpus=1)
+@RunIf(min_gpus=1, skip_windows=True)
 def test_single_gpu():
     """Tests if device is set correctly when training and after teardown for single GPU strategy."""
     trainer = Trainer(accelerator="gpu", devices=1, fast_dev_run=True)

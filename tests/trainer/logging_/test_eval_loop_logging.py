@@ -918,7 +918,7 @@ expected3 = """
         pytest.param(inputs3, expected3, id="case3"),
     ],
 )
-@RunIf(rich=True, skip_windows=True)
+@RunIf(skip_windows=True, rich=True)
 def test_rich_print_results(inputs, expected):
     out = StringIO()
     EvaluationLoop._print_results(*inputs, file=out)

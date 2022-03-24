@@ -21,7 +21,7 @@ import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug as new_rank_zero_debug
 from pytorch_lightning.utilities.rank_zero import rank_zero_only  # noqa: F401
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
@@ -276,9 +276,6 @@ def register_ddp_comm_hook(
     """
     from pytorch_lightning.utilities import rank_zero_warn
 
-    if not _TORCH_GREATER_EQUAL_1_8:
-        rank_zero_warn("Not registering DDP comm hook. To use communication hooks, please use pytorch>=1.8.0.")
-        return
     if ddp_comm_hook is None:
         return
     # inform mypy that ddp_comm_hook is callable

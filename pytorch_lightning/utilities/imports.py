@@ -89,7 +89,6 @@ def _compare_version(package: str, op: Callable, version: str, use_base_version:
 
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
-_TORCH_GREATER_EQUAL_1_8 = _compare_version("torch", operator.ge, "1.8.0")
 _TORCH_GREATER_EQUAL_1_8_1 = _compare_version("torch", operator.ge, "1.8.1")
 _TORCH_GREATER_EQUAL_1_9 = _compare_version("torch", operator.ge, "1.9.0")
 _TORCH_GREATER_EQUAL_1_9_1 = _compare_version("torch", operator.ge, "1.9.1")

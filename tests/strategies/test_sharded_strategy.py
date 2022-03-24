@@ -181,7 +181,7 @@ class ManualBoringModel(BoringModel):
         return {"loss": loss}
 
 
-@RunIf(skip_windows=True, standalone=True, fairscale=True, min_gpus=2)
+@RunIf(min_gpus=2, skip_windows=True, standalone=True, fairscale=True)
 def test_ddp_sharded_strategy_manual_optimization_spawn(tmpdir):
     # todo (sean): this test has been split out as running both tests using parametrize causes "Address in use"
     model = ManualBoringModel()
@@ -189,7 +189,7 @@ def test_ddp_sharded_strategy_manual_optimization_spawn(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(skip_windows=True, standalone=True, fairscale=True, min_gpus=2)
+@RunIf(min_gpus=2, skip_windows=True, standalone=True, fairscale=True)
 def test_ddp_sharded_strategy_manual_optimization(tmpdir):
     model = ManualBoringModel()
     trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_sharded", fast_dev_run=2, gpus=2)

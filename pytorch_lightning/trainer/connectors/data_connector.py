@@ -220,7 +220,6 @@ class DataConnector:
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
         if dataloader.num_workers > 0 and using_spawn:
-            # checks for the attr persistent_workers available in pytorch >= 1.7
             if hasattr(dataloader, "persistent_workers"):
                 if not dataloader.persistent_workers:
                     rank_zero_warn(
@@ -238,7 +237,6 @@ class DataConnector:
                 )
 
         elif dataloader.num_workers == 0 and using_spawn:
-            # checks for the attr persistent_workers available in pytorch >= 1.7
             if hasattr(dataloader, "persistent_workers"):
                 if not dataloader.persistent_workers:
                     rank_zero_warn(

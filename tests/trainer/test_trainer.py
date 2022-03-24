@@ -26,6 +26,7 @@ from unittest.mock import ANY, call, patch
 import cloudpickle
 import pytest
 import torch
+from torch.multiprocessing import ProcessRaisedException
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
 from torch.utils.data import DataLoader, IterableDataset
@@ -52,7 +53,7 @@ from pytorch_lightning.strategies import (
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
-from pytorch_lightning.utilities.imports import _IS_WINDOWS, _OMEGACONF_AVAILABLE, _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.seed import seed_everything
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.boring_model import RandomIterableDataset, RandomIterableDatasetWithLen
@@ -62,11 +63,6 @@ from tests.helpers.simple_models import ClassificationModel
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
-
-if _TORCH_GREATER_EQUAL_1_8:
-    from torch.multiprocessing import ProcessRaisedException
-else:
-    ProcessRaisedException = Exception
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -1498,7 +1494,6 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
     assert len(predictions) == 8
 
 
-@pytest.mark.skipif(_IS_WINDOWS and not _TORCH_GREATER_EQUAL_1_8, reason="torch.distributed support required")
 def test_spawn_predict_return_predictions(tmpdir):
     """Test that `return_predictions=True` raise a MisconfigurationException with spawn training type plugins."""
     model = BoringModel()
@@ -1747,7 +1742,7 @@ class TrainerStagesModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "strategy,num_processes", [(None, 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True, skip_49370=True))]
+    "strategy,num_processes", [(None, 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True))]
 )
 def test_model_in_correct_mode_during_stages(tmpdir, strategy, num_processes):
     model = TrainerStagesModel()
@@ -1768,7 +1763,7 @@ class TestDummyModelForCheckpoint(BoringModel):
         pass
 
 
-@RunIf(skip_windows=True, skip_49370=True)
+@RunIf(skip_windows=True)
 def test_fit_test_synchronization(tmpdir):
     """Test that the trainer synchronizes processes before returning control back to the caller."""
     tutils.set_random_main_port()
