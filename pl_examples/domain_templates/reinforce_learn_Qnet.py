@@ -391,7 +391,7 @@ class DQNLightning(pl.LightningModule):
 def main(args) -> None:
     model = DQNLightning(**vars(args))
 
-    trainer = pl.Trainer(gpus=1, strategy="dp", val_check_interval=100)
+    trainer = pl.Trainer(accelerator="gpu", devices=1, strategy="dp", val_check_interval=100)
 
     trainer.fit(model)
 

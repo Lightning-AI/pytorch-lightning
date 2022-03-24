@@ -264,7 +264,7 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir, suffix):
     results = trainer.test(model)
 
     for i, r in enumerate(results):
-        expected = {"test_loss", "test_loss_epoch"}
+        expected = {"test_loss_epoch"}
         if suffix:
             expected = {e + f"/dataloader_idx_{i}" for e in expected}
         assert set(r) == expected

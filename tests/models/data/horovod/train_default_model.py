@@ -100,7 +100,7 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
     trainer._checkpoint_connector.restore(checkpoint_path)
 
     if on_gpu:
-        trainer = Trainer(gpus=1, strategy="horovod", max_epochs=1)
+        trainer = Trainer(accelerator="gpu", devices=1, strategy="horovod", max_epochs=1)
         # test root gpu index
         assert trainer.strategy.root_device.index == hvd.local_rank()
 
