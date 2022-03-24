@@ -43,7 +43,7 @@ def test_model_saves_with_input_sample(tmpdir):
 def test_model_saves_on_gpu(tmpdir):
     """Test that model saves on gpu."""
     model = BoringModel()
-    trainer = Trainer(gpus=1, fast_dev_run=True)
+    trainer = Trainer(accelerator="gpu", devices=1, fast_dev_run=True)
     trainer.fit(model)
 
     file_path = os.path.join(tmpdir, "model.onnx")
