@@ -61,23 +61,17 @@ class LitClassifier(pl.LightningModule):
         x, y = batch
         probs = self(x)
         acc = self.accuracy(probs, y)
-        return acc
+        self.log("val_acc", acc)
 
     def test_step(self, batch, batch_idx):
         x, y = batch
         logits = self(x)
         acc = self.accuracy(logits, y)
-        return acc
+        self.log("test_acc", acc)
 
     def accuracy(self, logits, y):
         acc = torch.sum(torch.eq(torch.argmax(logits, -1), y).to(torch.float32)) / len(y)
         return acc
-
-    def validation_epoch_end(self, outputs) -> None:
-        self.log("val_acc", torch.stack(outputs).mean(), prog_bar=True)
-
-    def test_epoch_end(self, outputs) -> None:
-        self.log("test_acc", torch.stack(outputs).mean())
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.02)

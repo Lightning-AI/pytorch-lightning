@@ -26,7 +26,7 @@ class HPUPrecisionPlugin(PrecisionPlugin):
 
     def __init__(self, precision: int, hmp_params: Optional[Sequence[Any]] = None) -> None:
         if not _HPU_AVAILABLE:
-            raise MisconfigurationException("HPU precision plugin requires HPU support.")
+            raise MisconfigurationException("HPU precision plugin requires HPU devices.")
         super().__init__()
         self.precision = precision
         if not hmp_params:
