@@ -137,10 +137,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added utility functions for moving optimizers to devices ([#11758](https://github.com/PyTorchLightning/pytorch-lightning/pull/11758))
 
 
+- Added a warning when saving an instance of `nn.Module` with `save_hyperparameters()` ([#12068](https://github.com/PyTorchLightning/pytorch-lightning/pull/12068))
+
+
 - Added `estimated_stepping_batches` property to `Trainer` ([#11599](https://github.com/PyTorchLightning/pytorch-lightning/pull/11599))
 
 
 - Added support for pluggable Accelerators ([#12030](https://github.com/PyTorchLightning/pytorch-lightning/pull/12030))
+
+
+- Added profiling for `on_load_checkpoint`/`on_save_checkpoint` callback and LightningModule hooks ([#12149](https://github.com/PyTorchLightning/pytorch-lightning/pull/12149))
 
 
 - Added `LayerSync` and `NativeSyncBatchNorm` plugins ([#11754](https://github.com/PyTorchLightning/pytorch-lightning/pull/11754))
@@ -167,6 +173,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Implemented a new native and rich format in `_print_results` method of the `EvaluationLoop` ([#11332](https://github.com/PyTorchLightning/pytorch-lightning/pull/11332))
+
+
+- Do not print an empty table at the end of the `EvaluationLoop` ([#12427](https://github.com/PyTorchLightning/pytorch-lightning/pull/12427))
 
 
 - Set the `prog_bar` flag to False in `LightningModule.log_grad_norm` ([#11472](https://github.com/PyTorchLightning/pytorch-lightning/pull/11472))
@@ -353,6 +362,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Rewrote `accelerator_connector` ([#11448](https://github.com/PyTorchLightning/pytorch-lightning/pull/11448))
 
 
+- When manual optimization is used with DDP, we no longer force `find_unused_parameters=True` ([#12425](https://github.com/PyTorchLightning/pytorch-lightning/pull/12425))
+
+
 - Disable loading dataloades if corresponding `limit_batches=0` ([#11576](https://github.com/PyTorchLightning/pytorch-lightning/pull/11576))
 
 
@@ -364,9 +376,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Marked `trainer.logger_connector` as protected ([#12195](https://github.com/PyTorchLightning/pytorch-lightning/pull/12195))
 
+- Move `Strategy.process_dataloader` function call from `fit/evaluation/predict_loop.py` to `data_connector.py` ([#12251](https://github.com/PyTorchLightning/pytorch-lightning/pull/12251))
+
 
 - The strategies that support `sync_batchnorm` now only apply it when fitting ([#11919](https://github.com/PyTorchLightning/pytorch-lightning/pull/11919))
-
 
 - Removed `EarlyStopping.on_save_checkpoint` and `EarlyStopping.on_load_checkpoint` in favor of `EarlyStopping.state_dict` and `EarlyStopping.load_state_dict` ([#11887](https://github.com/PyTorchLightning/pytorch-lightning/pull/11887))
 
@@ -550,9 +563,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `Trainer.num_gpus` in favor of `Trainer.num_devices` when GPU is used ([#12384](https://github.com/PyTorchLightning/pytorch-lightning/pull/12384))
 
 
+- Deprecated `Trainer.ipus` in favor of `Trainer.num_devices` when IPU is used ([#12386](https://github.com/PyTorchLightning/pytorch-lightning/pull/12386))
+
+
 - Deprecated `Trainer.num_processes` in favor of `Trainer.num_devices` ([#12388](https://github.com/PyTorchLightning/pytorch-lightning/pull/12388))
 
 
+- Deprecated `Trainer.data_parallel_device_ids` in favor of `Trainer.device_ids` ([#12072](https://github.com/PyTorchLightning/pytorch-lightning/pull/12072))
+
+  
 - Deprecated returning state from `Callback.on_save_checkpoint` in favor of returning state in `Callback.state_dict` for checkpointing ([#11887](https://github.com/PyTorchLightning/pytorch-lightning/pull/11887))
 
 
@@ -755,7 +774,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed `AcceleratorConnector.num_gpus` property ([#12384](https://github.com/PyTorchLightning/pytorch-lightning/pull/12384))
 
 
+- Removed `AcceleratorConnector.num_ipus` property ([#12386](https://github.com/PyTorchLightning/pytorch-lightning/pull/12386))
+
+
 - Removed `AcceleratorConnector.num_processes` property ([#12388](https://github.com/PyTorchLightning/pytorch-lightning/pull/12388))
+
+
+- Removed `AcceleratorConnector.parallel_device_ids` property ([#12072](https://github.com/PyTorchLightning/pytorch-lightning/pull/12072))
 
 
 ### Fixed
@@ -842,6 +867,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed to avoid common hook warning if no hook is overridden ([#12131](https://github.com/PyTorchLightning/pytorch-lightning/pull/12131))
+
+
+- Fixed deepspeed keeping old sub-folders in same ckpt path ([#12194](https://github.com/PyTorchLightning/pytorch-lightning/pull/12194))
+
+
+- Fixed returning logged metrics instead of callback metrics during evaluation ([#12224](https://github.com/PyTorchLightning/pytorch-lightning/pull/12224))
 
 
 - Fixed the case where `logger=None` is passed to the Trainer ([#12249](https://github.com/PyTorchLightning/pytorch-lightning/pull/12249))

@@ -156,7 +156,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
     model = CurrentTestModel()
     batch = CustomBatch((torch.zeros(5, 32), torch.ones(5, 1, dtype=torch.long)))
 
-    trainer = Trainer(gpus=1)
+    trainer = Trainer(accelerator="gpu", devices=1)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
 
     model_getter_mock.return_value = model

@@ -2,6 +2,7 @@
 name: Feature request
 about: Propose a feature for this project
 title: ''
+label: needs triage
 assignees: ''
 ---
 

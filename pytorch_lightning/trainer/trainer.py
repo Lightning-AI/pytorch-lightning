@@ -1606,7 +1606,7 @@ class Trainer(
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        log.detail(f"{self.__class__.__name__}: calling callback hook: {hook_name}")
+        log.debug(f"{self.__class__.__name__}: calling callback hook: {hook_name}")
         # TODO: remove if block in v1.8
         if hook_name in ("on_init_start", "on_init_end"):
             # these `Callback` hooks are the only ones that do not take a lightning module.
@@ -1678,9 +1678,14 @@ class Trainer(
         Will be removed in v1.8: If state is returned, we insert the callback state into
         ``checkpoint["callbacks"][Callback.state_key]``. It overrides ``state_dict`` if already present.
         """
+        pl_module = self.lightning_module
+        if pl_module:
+            prev_fx_name = pl_module._current_fx_name
+            pl_module._current_fx_name = "on_save_checkpoint"
+
         for callback in self.callbacks:
-            # TODO: Add profiling for on_save_checkpoint hook
-            state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
+            with self.profiler.profile(f"[Callback]{callback.state_key}.on_save_checkpoint"):
+                state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
                 rank_zero_deprecation(
                     f"Returning a value from `{callback.__class__.__name__}.on_save_checkpoint` is deprecated in v1.6"
@@ -1689,12 +1694,21 @@ class Trainer(
                 )
                 checkpoint["callbacks"][callback.state_key] = state
 
+        if pl_module:
+            # restore current_fx when nested context
+            pl_module._current_fx_name = prev_fx_name
+
     def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint.
 
         Calls every callback's `on_load_checkpoint` hook. We have a dedicated function for this rather than using
         `_call_callback_hooks` because we have special logic for getting callback_states.
         """
+        pl_module = self.lightning_module
+        if pl_module:
+            prev_fx_name = pl_module._current_fx_name
+            pl_module._current_fx_name = "on_load_checkpoint"
+
         callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
 
         if callback_states is None:
@@ -1714,8 +1728,12 @@ class Trainer(
             state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
             if state:
                 state = deepcopy(state)
-                # TODO: Add profiling for on_load_checkpoint hook
-                callback.on_load_checkpoint(self, self.lightning_module, state)
+                with self.profiler.profile(f"[Callback]{callback.state_key}.on_load_checkpoint"):
+                    callback.on_load_checkpoint(self, self.lightning_module, state)
+
+        if pl_module:
+            # restore current_fx when nested context
+            pl_module._current_fx_name = prev_fx_name
 
     def _call_callbacks_load_state_dict(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint, calls every callback's `load_state_dict`."""
@@ -1797,7 +1815,7 @@ class Trainer(
         )
         rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
 
-        num_ipus = self.ipus if self.ipus is not None else 0
+        num_ipus = self.num_devices if isinstance(self.accelerator, IPUAccelerator) else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
         if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
@@ -2076,7 +2094,11 @@ class Trainer(
 
     @property
     def ipus(self) -> int:
-        return self._accelerator_connector.num_ipus
+        rank_zero_deprecation(
+            "`Trainer.ipus` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.num_devices` instead."
+        )
+        return self.num_devices if isinstance(self.accelerator, IPUAccelerator) else 0
 
     @property
     def num_gpus(self) -> int:
@@ -2096,9 +2118,11 @@ class Trainer(
 
     @property
     def data_parallel_device_ids(self) -> Optional[List[int]]:
-        return (
-            self._accelerator_connector.parallel_device_ids if self._accelerator_connector.parallel_device_ids else None
+        rank_zero_deprecation(
+            "`Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.device_ids` instead."
         )
+        return self.device_ids if isinstance(self.accelerator, GPUAccelerator) else None
 
     @property
     def lightning_module(self) -> "pl.LightningModule":
