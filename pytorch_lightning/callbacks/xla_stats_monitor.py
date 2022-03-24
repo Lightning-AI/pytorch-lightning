@@ -75,8 +75,8 @@ class XLAStatsMonitor(Callback):
 
         if isinstance(trainer.accelerator, TPUAccelerator):
             raise MisconfigurationException(
-                "You are using XLAStatsMonitor but are not running on TPU"
-                f" since `tpu_cores` attribute in Trainer is set to {trainer.tpu_cores}."
+                "You are using XLAStatsMonitor but are not running on TPU."
+                f" The Trainer accelerator type is set to {trainer.accelerator.name().upper()}."
             )
 
         device = trainer.strategy.root_device

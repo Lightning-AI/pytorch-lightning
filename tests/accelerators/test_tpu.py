@@ -103,7 +103,6 @@ def test_accelerator_tpu(accelerator, devices):
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
     assert trainer.num_devices == 8
-    assert trainer.tpu_cores == 8
 
 
 @RunIf(tpu=True)
@@ -114,7 +113,8 @@ def test_accelerator_tpu_with_tpu_cores_priority():
     with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
         trainer = Trainer(accelerator="tpu", devices=1, tpu_cores=tpu_cores)
 
-    assert trainer.tpu_cores == tpu_cores
+    assert isinstance(trainer.accelerator, TPUAccelerator)
+    assert trainer.num_devices == tpu_cores
 
 
 @RunIf(tpu=True)
