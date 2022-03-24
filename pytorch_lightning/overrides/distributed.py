@@ -132,20 +132,27 @@ class WeightedDistSampler(UnrepeatedDistributedSampler):
         self.weights = weights
         self.G = torch.Generator()
         self.G.manual_seed(self.seed + self.epoch)
+        self.indices=torch.multinomial(self.weights, self.total_size, replacement=True, generator=self.G)
+    def update_indices(self) -> None:
+        self.G.manual_seed(self.seed + self.epoch)
+
+        self.indices=torch.multinomial(self.weights, self.total_size, replacement=True, generator=self.G)
 
     def __iter__(self) -> Iterator[List[int]]:
         """the problem is we need to avoid collisions whilst sampling correctly."""
         self.G.manual_seed(self.seed + self.epoch)
 
-        indices = torch.multinomial(self.weights, self.total_size, replacement=True, generator=self.G)
         assert len(indices) == self.total_size
 
         # subsample
-        indices = indices[self.rank : self.total_size : self.num_replicas]
+        indices = self.indices[self.rank : self.total_size : self.num_replicas]
         assert len(indices) == self.num_samples
         return iter(indices)
-
-
+    def set_epoch(self, epoch: int) -> None:
+        super().set_epoch(int)
+        self.update_indices()
+        
+        
 class IndexBatchSamplerWrapper:
     """This class is used to wrap a :class:`torch.utils.data.BatchSampler` and capture its indices."""
 
