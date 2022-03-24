@@ -137,8 +137,8 @@ class DDPStrategy(ParallelStrategy):
         return self._process_group_backend
 
     def _configure_launcher(self) -> None:
-        self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
         if not self.cluster_environment.creates_processes_externally:
+            self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
             self._rank_0_will_call_children_scripts = True
 
     def setup_environment(self) -> None:
@@ -204,15 +204,6 @@ class DDPStrategy(ParallelStrategy):
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
         # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
-        if not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get(
-            "find_unused_parameters", False
-        ):
-            # TODO: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
-            rank_zero_warn(
-                "From PyTorch 1.7.0, Lightning `manual_optimization` needs to set `find_unused_parameters=True` to"
-                " properly work with DDP. Using `find_unused_parameters=True`."
-            )
-            self._ddp_kwargs["find_unused_parameters"] = True
 
     def _register_ddp_hooks(self) -> None:
         log.detail(f"{self.__class__.__name__}: registering ddp hooks")

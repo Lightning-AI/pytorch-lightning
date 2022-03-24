@@ -23,6 +23,7 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
+from pytorch_lightning.accelerators.registry import AcceleratorRegistry
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
@@ -157,7 +158,7 @@ class AcceleratorConnector:
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
         self._registered_strategies = StrategyRegistry.available_strategies()
-        self._accelerator_types = ("tpu", "ipu", "gpu", "cpu")
+        self._accelerator_types = AcceleratorRegistry.available_accelerators()
         self._precision_types = ("16", "32", "64", "bf16", "mixed")
 
         # Raise an exception if there are conflicts between flags
@@ -486,32 +487,27 @@ class AcceleratorConnector:
         return "cpu"
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
-        ACCELERATORS = {
-            "cpu": CPUAccelerator,
-            "gpu": GPUAccelerator,
-            "tpu": TPUAccelerator,
-            "ipu": IPUAccelerator,
-        }
         if isinstance(self._accelerator_flag, Accelerator):
             self.accelerator: Accelerator = self._accelerator_flag
         else:
             assert self._accelerator_flag is not None
             self._accelerator_flag = self._accelerator_flag.lower()
-            if self._accelerator_flag not in ACCELERATORS:
+            if self._accelerator_flag not in AcceleratorRegistry:
                 raise MisconfigurationException(
                     "When passing string value for the `accelerator` argument of `Trainer`,"
-                    f" it can only be one of {list(ACCELERATORS)}."
+                    f" it can only be one of {self._accelerator_types}."
                 )
-            accelerator_class = ACCELERATORS[self._accelerator_flag]
-            self.accelerator = accelerator_class()  # type: ignore[abstract]
+            self.accelerator = AcceleratorRegistry.get(self._accelerator_flag)
 
         if not self.accelerator.is_available():
-            available_accelerator = [acc_str for acc_str in list(ACCELERATORS) if ACCELERATORS[acc_str].is_available()]
+            available_accelerator = [
+                acc_str for acc_str in self._accelerator_types if AcceleratorRegistry.get(acc_str).is_available()
+            ]
             raise MisconfigurationException(
                 f"{self.accelerator.__class__.__qualname__} can not run on your system"
-                f" since {self.accelerator.name().upper()}s are not available."
-                " The following accelerator(s) is available and can be passed into"
-                f" `accelerator` argument of `Trainer`: {available_accelerator}."
+                " since the accelerator is not available. The following accelerator(s)"
+                " is available and can be passed into `accelerator` argument of"
+                f" `Trainer`: {available_accelerator}."
             )
 
         self._set_devices_flag_if_auto_passed()
@@ -801,10 +797,6 @@ class AcceleratorConnector:
     @property
     def gpus(self) -> Optional[Union[List[int], str, int]]:
         return self._gpus
-
-    @property
-    def parallel_device_ids(self) -> List[int]:
-        return [i for i in range(len(self.parallel_devices))] if isinstance(self.accelerator, GPUAccelerator) else []
 
     @property
     def is_distributed(self) -> bool:

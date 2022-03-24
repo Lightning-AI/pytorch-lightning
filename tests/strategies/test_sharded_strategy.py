@@ -71,7 +71,7 @@ def test_ddp_sharded_strategy_checkpoint_cpu(tmpdir):
 def test_ddp_sharded_strategy_checkpoint_multi_gpu(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs."""
     model = BoringModel()
-    trainer = Trainer(gpus=2, strategy="ddp_sharded_spawn", fast_dev_run=True)
+    trainer = Trainer(accelerator="gpu", devices=2, strategy="ddp_sharded_spawn", fast_dev_run=True)
 
     trainer.fit(model)
 
@@ -88,7 +88,7 @@ def test_ddp_sharded_strategy_checkpoint_multi_gpu(tmpdir):
 def test_ddp_sharded_strategy_finetune(tmpdir):
     """Test to ensure that we can save and restart training (simulate fine-tuning)"""
     model = BoringModel()
-    trainer = Trainer(gpus=2, strategy="ddp_sharded_spawn", fast_dev_run=True)
+    trainer = Trainer(accelerator="gpu", devices=2, strategy="ddp_sharded_spawn", fast_dev_run=True)
     trainer.fit(model)
 
     checkpoint_path = os.path.join(tmpdir, "model.pt")

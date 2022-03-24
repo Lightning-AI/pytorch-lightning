@@ -1606,7 +1606,7 @@ class Trainer(
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        log.detail(f"{self.__class__.__name__}: calling callback hook: {hook_name}")
+        log.debug(f"{self.__class__.__name__}: calling callback hook: {hook_name}")
         # TODO: remove if block in v1.8
         if hook_name in ("on_init_start", "on_init_end"):
             # these `Callback` hooks are the only ones that do not take a lightning module.
@@ -2114,9 +2114,11 @@ class Trainer(
 
     @property
     def data_parallel_device_ids(self) -> Optional[List[int]]:
-        return (
-            self._accelerator_connector.parallel_device_ids if self._accelerator_connector.parallel_device_ids else None
+        rank_zero_deprecation(
+            "`Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.device_ids` instead."
         )
+        return self.device_ids if isinstance(self.accelerator, GPUAccelerator) else None
 
     @property
     def lightning_module(self) -> "pl.LightningModule":
