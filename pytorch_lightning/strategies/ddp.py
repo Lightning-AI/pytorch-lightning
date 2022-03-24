@@ -289,12 +289,11 @@ class DDPStrategy(ParallelStrategy):
         if not _TORCH_GREATER_EQUAL_1_10 or self._model_averager is None:
             return optimizer_output
 
-        for opt in self.optimizers:
-            for group in opt.param_groups:
-                for param in group["params"]:
-                    if param.grad is None:
-                        continue
-                    self._model_averager.average_parameters(iter(param))
+        for group in optimizer.param_groups:
+            for param in group["params"]:
+                if param.grad is None:
+                    continue
+                self._model_averager.average_parameters(iter(param))
 
         return optimizer_output
 
