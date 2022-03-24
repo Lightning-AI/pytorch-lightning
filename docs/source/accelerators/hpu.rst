@@ -61,9 +61,6 @@ Mixed Precision Plugin
 Lightning also allows mixed precision training with HPUs.
 By default, HPU training will use 32-bit precision. To enable mixed precision, set the ``precision`` flag.
 
-In addition to the default settings in HMP, users also have the option of overriding these defaults and providing their own BF16 and FP32 operator lists using the ``plugins`` parameter of Trainer class.
-HPU's precision plugin is realised using :class:`~pytorch_lightning.plugins.precision.hpu.HPUPrecisionPlugin`. The ``hmp_params`` parameter with this plugin is used to override the default operator list. An example can be found in the subsequent section.
-
 .. code-block:: python
 
     trainer = Trainer(devices=1, accelerator="hpu", precision=16)
@@ -88,21 +85,11 @@ This enables advanced users to provide their own BF16 and FP32 operator list ins
     import pytorch_lightning as pl
     from pytorch_lightning.plugins import HPUPrecisionPlugin
 
-
-    class LitClassifier(pl.LightningModule):
-        def __init__(self):
-            super(LitClassifier, self).__init__()
-
-        ...
-
-
     # Init our model
     model = LitClassifier()
 
     # Init DataLoader from MNIST Dataset
     dm = MNISTDataModule(batch_size=batch_size)
-
-    ...
 
     # Optional Habana mixed precision params to be set
     hmp_keys = ["level", "verbose", "bf16_ops", "fp32_ops"]
