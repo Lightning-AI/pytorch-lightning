@@ -314,6 +314,7 @@ def test_warning_if_tpus_not_used():
 
 
 @RunIf(tpu=True)
+@pl_multi_process_test
 @pytest.mark.parametrize(
     ["devices", "expected_device_ids"],
     [
