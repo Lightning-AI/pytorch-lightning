@@ -535,7 +535,7 @@ def test_accelerator_gpu_with_devices(devices, plugin):
 
     trainer = Trainer(accelerator="gpu", devices=devices)
 
-    assert trainer.num_devices == devices
+    assert trainer.num_devices == len(devices) if isinstance(devices, list) else devices
     assert isinstance(trainer.strategy, plugin)
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
