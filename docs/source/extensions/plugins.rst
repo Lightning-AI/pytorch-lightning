@@ -75,6 +75,20 @@ Precision Plugins
     TPUPrecisionPlugin
 
 
+CheckpointIO Plugins
+--------------------
+
+.. currentmodule:: pytorch_lightning.plugins.io
+
+.. autosummary::
+    :nosignatures:
+    :template: classtemplate.rst
+
+    CheckpointIO
+    TorchCheckpointIO
+    XLACheckpointIO
+
+
 Cluster Environments
 --------------------
 
