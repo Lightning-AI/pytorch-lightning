@@ -56,7 +56,7 @@ def test_all_stages(tmpdir, hpus):
         fast_dev_run=True,
         accelerator="hpu",
         devices=hpus,
-        plugins=[HPUPrecisionPlugin(precision=16, hmp_params=None)],
+        precision=16,
     )
     trainer.fit(model)
     trainer.validate(model)
