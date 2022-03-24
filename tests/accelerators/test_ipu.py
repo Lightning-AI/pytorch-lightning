@@ -475,6 +475,7 @@ def test_replication_factor(tmpdir):
 
     plugin = IPUStrategy()
     trainer = Trainer(accelerator="ipu", devices=2, default_root_dir=tmpdir, fast_dev_run=True, strategy=plugin)
+    assert isinstance(trainer.accelerator, IPUAccelerator)
     assert trainer.num_devices == 2
     assert trainer.strategy.replication_factor == 2
 
@@ -565,17 +566,16 @@ def test_accelerator_ipu():
 def test_accelerator_ipu_with_devices():
 
     trainer = Trainer(accelerator="ipu", devices=8)
-
-    assert trainer.num_devices == 8
     assert isinstance(trainer.strategy, IPUStrategy)
     assert isinstance(trainer.accelerator, IPUAccelerator)
+    assert trainer.num_devices == 8
 
 
 @RunIf(ipu=True)
 def test_accelerator_auto_with_devices_ipu():
     trainer = Trainer(accelerator="auto", devices=8)
     assert isinstance(trainer.accelerator, IPUAccelerator)
-    assert trainer.ipus == 8
+    assert trainer.num_devices == 8
 
 
 @RunIf(ipu=True)
@@ -586,7 +586,8 @@ def test_accelerator_ipu_with_ipus_priority():
     with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
         trainer = Trainer(accelerator="ipu", devices=1, ipus=ipus)
 
-    assert trainer.ipus == ipus
+    assert isinstance(trainer.accelerator, IPUAccelerator)
+    assert trainer.num_devices == ipus
 
 
 @RunIf(ipu=True)
@@ -637,4 +638,4 @@ def test_poptorch_models_at_different_stages(tmpdir):
 def test_devices_auto_choice_ipu():
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.num_devices == 4
-    assert trainer.ipus == 4
+    assert isinstance(trainer.accelerator, IPUAccelerator)

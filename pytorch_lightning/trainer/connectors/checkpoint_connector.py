@@ -167,7 +167,7 @@ class CheckpointConnector:
         model = self.trainer.lightning_module
 
         # hook: give user access to checkpoint if needed.
-        model.on_load_checkpoint(self._loaded_checkpoint)
+        self.trainer._call_lightning_module_hook("on_load_checkpoint", self._loaded_checkpoint)
 
         # TODO: remove this in v1.8.
         # call hpc specific hook
@@ -393,7 +393,7 @@ class CheckpointConnector:
             # support for returning state in on_save_checkpoint
             # will be removed in v1.8
             self.trainer._call_callbacks_on_save_checkpoint(checkpoint)
-        model.on_save_checkpoint(checkpoint)
+        self.trainer._call_lightning_module_hook("on_save_checkpoint", checkpoint)
         if datamodule is not None:
             datamodule.on_save_checkpoint(checkpoint)
 
