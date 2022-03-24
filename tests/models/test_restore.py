@@ -106,7 +106,7 @@ class CustomClassificationModelDP(ClassificationModel):
 def test_model_properties_fit_ckpt_path(tmpdir):
     """Test that properties like `current_epoch` and `global_step` in model and trainer are always the same."""
     model = BoringModel()
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_last=True)
     trainer_args = dict(
         default_root_dir=tmpdir,
         max_epochs=1,

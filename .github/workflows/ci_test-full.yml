@@ -40,9 +40,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Weekly reset caching
-      run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
-      id: times
+    - name: Reset caching
+      run: python -c "import time; days = time.time() / 60 / 60 / 24; print(f'TIME_PERIOD=d{int(days / 2) * 2}')" >> $GITHUB_ENV
 
     - name: basic setup
       run: |
@@ -57,7 +56,7 @@ jobs:
     - name: Setup Windows
       if: runner.os == 'windows'
       run: |
-        python .actions/assistant.py requirements_prune_pkgs requirements/extra.txt --packages horovod
+        python .actions/assistant.py requirements_prune_pkgs horovod
     - name: Set min. dependencies
       if: matrix.requires == 'oldest'
       run: |
@@ -73,9 +72,9 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements/extra.txt') }}
+        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements/extra.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
+          ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
 
     - name: Pull checkpoints from S3
       working-directory: ./legacy

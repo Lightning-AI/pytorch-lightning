@@ -19,7 +19,7 @@ import torch
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.plugins.environments import LightningEnvironment
+from pytorch_lightning.plugins.environments import ClusterEnvironment, LightningEnvironment
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers.boring_model import BoringModel
@@ -36,7 +36,7 @@ class BoringModelGPU(BoringModel):
 @RunIf(skip_windows=True, min_gpus=2, standalone=True)
 def test_ddp_with_2_gpus():
     """Tests if device is set correctly when training and after teardown for DDPStrategy."""
-    trainer = Trainer(gpus=2, strategy="ddp", fast_dev_run=True)
+    trainer = Trainer(accelerator="gpu", devices=2, strategy="ddp", fast_dev_run=True)
     # assert training type plugin attributes for device setting
     assert isinstance(trainer.strategy, DDPStrategy)
     local_rank = trainer.strategy.local_rank
@@ -147,3 +147,45 @@ def test_ddp_dont_configure_sync_batchnorm(trainer_fn):
     trainer.strategy.setup(trainer)
     # because TrainerFn is not FITTING, model is not configured with sync batchnorm
     assert not isinstance(trainer.strategy.model.layer, torch.nn.modules.batchnorm.SyncBatchNorm)
+
+
+def test_configure_launcher_create_processes_externally():
+    class MyClusterEnvironment(ClusterEnvironment):
+        @property
+        def creates_processes_externally(self):
+            return True
+
+        @property
+        def main_address(self):
+            return ""
+
+        @property
+        def main_port(self):
+            return 8080
+
+        @staticmethod
+        def detect():
+            return True
+
+        def world_size(self):
+            return 1
+
+        def set_world_size(self):
+            pass
+
+        def global_rank(self):
+            return 0
+
+        def set_global_rank(self):
+            pass
+
+        def local_rank(self):
+            return 0
+
+        def node_rank(self):
+            return 0
+
+    ddp_strategy = DDPStrategy(cluster_environment=MyClusterEnvironment())
+    assert ddp_strategy.launcher is None
+    ddp_strategy._configure_launcher()
+    assert ddp_strategy.launcher is None

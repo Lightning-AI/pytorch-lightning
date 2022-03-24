@@ -84,13 +84,14 @@ class LoggerConnector:
         return should_log or self.trainer.should_stop
 
     def configure_logger(self, logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]]) -> None:
-        if isinstance(logger, bool):
+        if not logger:
+            # logger is None or logger is False
+            self.trainer.loggers = []
+        elif logger is True:
             # default logger
-            self.trainer.loggers = (
-                [TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id())]
-                if logger
-                else []
-            )
+            self.trainer.loggers = [
+                TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id())
+            ]
         elif isinstance(logger, Iterable):
             self.trainer.loggers = list(logger)
         else:
@@ -171,7 +172,7 @@ class LoggerConnector:
         self._progress_bar_metrics.update(metrics["pbar"])
         self._callback_metrics.update(metrics["callback"])
         self._logged_metrics.update(metrics["log"])
-        return metrics["callback"]
+        return metrics["log"]
 
     def log_eval_end_metrics(self) -> None:
         assert self._epoch_end_reached
@@ -220,7 +221,7 @@ class LoggerConnector:
                 self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True)
             else:
                 gpu_id = int(key.split("/")[0].split(":")[1])
-                if gpu_id in self.trainer._accelerator_connector.parallel_device_ids:
+                if gpu_id in self.trainer.device_ids:
                     self.trainer.lightning_module.log(
                         key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False
                     )
