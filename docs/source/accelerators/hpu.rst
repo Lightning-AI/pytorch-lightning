@@ -92,12 +92,7 @@ This enables advanced users to provide their own BF16 and FP32 operator list ins
     dm = MNISTDataModule(batch_size=batch_size)
 
     # Optional Habana mixed precision params to be set
-    hmp_params = {
-        'level': 'O1',
-        'verbose': False,
-        'bf16_ops': 'ops_bf16_mnist.txt',
-        'fp32_ops': 'ops_fp32_mnist.txt'
-    }
+    hmp_params = {"level": "O1", "verbose": False, "bf16_ops": "ops_bf16_mnist.txt", "fp32_ops": "ops_fp32_mnist.txt"}
 
     # Initialize a trainer with HPU accelerator for HPU strategy for single device,
     # with mixed precision using overidden HMP settings
