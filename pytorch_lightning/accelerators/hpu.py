@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Union
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities import _HPU_AVAILABLE
+from pytorch_lightning.utilities import _HPU_AVAILABLE, device_parser
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 
 
@@ -35,9 +35,9 @@ class HPUAccelerator(Accelerator):
         return {}
 
     @staticmethod
-    def parse_devices(devices: int) -> int:
+    def parse_devices(devices: Union[int, str, List[int]]) -> int:
         """Accelerator device parsing logic."""
-        return devices
+        return device_parser.parse_hpus(devices)
 
     @staticmethod
     def get_parallel_devices(devices: int) -> List[torch.device]:

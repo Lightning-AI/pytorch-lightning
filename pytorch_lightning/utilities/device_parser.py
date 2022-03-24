@@ -243,3 +243,31 @@ def _parse_tpu_cores_str(tpu_cores: str) -> Union[int, List[int]]:
     if tpu_cores in ("1", "8"):
         return int(tpu_cores)
     return [int(x.strip()) for x in tpu_cores.split(",") if len(x) > 0]
+
+
+def parse_hpus(devices: Optional[Union[int, str, List[int]]]) -> Optional[int]:
+    """
+    Parses the hpus given in the format as accepted by the
+    :class:`~pytorch_lightning.trainer.Trainer` for the `devices` flag.
+
+    Args:
+        devices: An int 1 or string '1' indicate that 1 Gaudi device should be used
+            An int 8 or string '8' indicate that all 8 Gaudi devices should be used
+
+    Returns:
+        Either integer 1 or 8,  or ``None`` if no devices were requested
+
+    Raises:
+        MisconfigurationException:
+            If devices aren't of value 1 or 8, or either of type `int` or `str`
+    """
+    if devices is not None and isinstance(devices, (int, str)):
+        raise MisconfigurationException("`devices` for `HPUAccelerator` must be int, string or None.")
+
+    if isinstance(devices, str) and devices in ("1", "8"):
+        devices = int(devices)
+
+    if devices not in (1, 8, None):
+        raise MisconfigurationException("`devices` can only be 1 or 8")
+
+    return devices

@@ -158,12 +158,15 @@ def test_accelerator_hpu():
 
     trainer = Trainer(accelerator="hpu", devices=1)
     assert isinstance(trainer.accelerator, HPUAccelerator)
+    assert trainer.num_devices == 1
 
     trainer = Trainer(accelerator="hpu")
     assert isinstance(trainer.accelerator, HPUAccelerator)
+    assert trainer.num_devices == 8
 
     trainer = Trainer(accelerator="auto", devices=8)
     assert isinstance(trainer.accelerator, HPUAccelerator)
+    assert trainer.num_devices == 8
 
 
 @RunIf(hpu=True)
@@ -193,13 +196,6 @@ def test_accelerator_auto_with_devices_hpu():
 
 
 @RunIf(hpu=True)
-def test_set_devices_if_none_hpu():
-
-    trainer = Trainer(accelerator="hpu", devices=8)
-    assert trainer.num_devices == 8
-
-
-@RunIf(hpu=True)
 def test_strategy_choice_hpu_plugin():
     trainer = Trainer(strategy=SingleHPUStrategy(device=torch.device("hpu")), accelerator="hpu", devices=1)
     assert isinstance(trainer.strategy, SingleHPUStrategy)
@@ -220,20 +216,13 @@ def test_strategy_choice_hpu_parallel_plugin():
 
 
 @RunIf(hpu=True)
-def test_hpu_accelerator_type():
-
-    trainer = Trainer(accelerator="hpu", devices=1)
-    assert isinstance(trainer.accelerator, HPUAccelerator)
-
-
-@RunIf(hpu=True)
 def test_devices_auto_choice_hpu():
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.num_devices == 8
 
 
 @RunIf(hpu=True)
-@pytest.mark.parametrize("hpus", [1])
+@pytest.mark.parametrize("hpus", 1)
 def test_inference_only(tmpdir, hpus):
     model = BoringModel()
 
@@ -245,3 +234,9 @@ def test_inference_only(tmpdir, hpus):
 
 def test_hpu_auto_device_count():
     assert HPUAccelerator.auto_device_count() == 8
+
+
+@RunIf(hpu=True)
+def test_hpu_unsupported_device_type():
+    with pytest.raises(MisconfigurationException, match="`devices` for `HPUAccelerator` must be int, string or None."):
+        Trainer(accelerator="hpu", devices=[1])
