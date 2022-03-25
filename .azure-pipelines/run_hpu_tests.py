@@ -47,7 +47,7 @@ HPU8_TEST = HPU_TESTS_DICTIONARY["hpu8_test"]
 HPU1_PRECISION_TEST = HPU_TESTS_DICTIONARY["hpu1_precision_test"]
 
 PARALLEL_HPU_TESTS_EXECUTION = [[HPU4_TEST, HPU1_TEST], [HPU2_TEST, HPU1_TEST], [HPU8_TEST], [HPU1_PRECISION_TEST]]
-TIMEOUT = 60
+TIMEOUT = 60  # seconds
 TIMEOUT_EXIT_CODE = -9
 
 
@@ -97,10 +97,7 @@ def zip_cmd_exitcode(exit_status):
         A list of hpu tests called and their exit status.
     """
     status_list = []
-    hpu_tests_called = []
-    for hpu_tests in PARALLEL_HPU_TESTS_EXECUTION:
-        hpu_tests_called.append(hpu_tests)
-    status_list = list(zip(list(itertools.chain(*hpu_tests_called)), exit_status))
+    status_list = list(zip(list(itertools.chain(*PARALLEL_HPU_TESTS_EXECUTION)), exit_status))
     return status_list
 
 
