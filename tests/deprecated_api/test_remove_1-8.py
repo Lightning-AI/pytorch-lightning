@@ -24,6 +24,7 @@ from torch import optim
 
 import pytorch_lightning
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CSVLogger, LightningLoggerBase, LoggerCollection
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
@@ -1054,6 +1055,15 @@ def test_trainer_data_parallel_device_ids(monkeypatch, trainer_kwargs, expected_
         " Please use `Trainer.device_ids` instead."
     ):
         assert trainer.data_parallel_device_ids == expected_data_parallel_device_ids
+
+
+def test_deprecated_mc_save_checkpoint():
+    mc = ModelCheckpoint()
+    trainer = Trainer()
+    with mock.patch.object(trainer, "save_checkpoint"), pytest.deprecated_call(
+        match=r"ModelCheckpoint.save_checkpoint\(\)` was deprecated in v1.6"
+    ):
+        mc.save_checkpoint(trainer)
 
 
 def test_v1_8_0_callback_on_load_checkpoint_hook(tmpdir):
