@@ -510,7 +510,7 @@ def test_accelerator_cpu(_):
 @pytest.mark.parametrize("devices", ["0", 0, []])
 def test_passing_zero_and_empty_list_to_devices_flag(_, devices):
     with pytest.raises(
-        MisconfigurationException, match="can not run on your system since  the accelerator is not available."
+        MisconfigurationException, match="can not run on your system since the accelerator is not available."
     ):
         Trainer(accelerator="gpu", devices=devices)
 
