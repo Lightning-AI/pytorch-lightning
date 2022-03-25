@@ -718,6 +718,73 @@ DDP Optimizations
 ^^^^^^^^^^^^^^^^^
 
 
+When Using DDP Plugins, Set find_unused_parameters=False
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, we have set ``find_unused_parameters=True`` for compatibility reasons that have been observed in the past (refer to the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
+When enabled, it can result in a performance hit and can be disabled in most cases. Read more about it `here <https://pytorch.org/docs/stable/notes/ddp.html#internal-design>`_.
+
+.. tip::
+    It applies to all DDP strategies that support ``find_unused_parameters`` as input.
+
+.. code-block:: python
+
+    from pytorch_lightning.strategies import DDPStrategy
+
+    trainer = pl.Trainer(
+        gpus=2,
+        strategy=DDPStrategy(find_unused_parameters=False),
+    )
+
+.. code-block:: python
+
+    from pytorch_lightning.strategies import DDPSpawnStrategy
+
+    trainer = pl.Trainer(
+        gpus=2,
+        strategy=DDPSpawnStrategy(find_unused_parameters=False),
+    )
+
+
+DDP Static Graph
+""""""""""""""""
+
+`DDP static graph <https://pytorch.org/blog/pytorch-1.11-released/#stable-ddp-static-graph>`__ assumes that your model
+employs the same set of used/unused parameters in every iteration, so that it can deterministically know the flow of
+training and apply special optimizations during runtime.
+
+.. note::
+    DDP static graph support requires PyTorch>=1.11.0
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.strategies import DDPStrategy
+
+    trainer = Trainer(devices=4, strategy=DDPStrategy(static_graph=True))
+
+
+When Using DDP on a Multi-node Cluster, Set NCCL Parameters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+`NCCL <https://developer.nvidia.com/nccl>`__ is the NVIDIA Collective Communications Library that is used by PyTorch to handle communication across nodes and GPUs. There are reported benefits in terms of speedups when adjusting NCCL parameters as seen in this `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues/7179>`__. In the issue, we see a 30% speed improvement when training the Transformer XLM-RoBERTa and a 15% improvement in training with Detectron2.
+
+NCCL parameters can be adjusted via environment variables.
+
+.. note::
+
+    AWS and GCP already set default values for these on their clusters. This is typically useful for custom cluster setups.
+
+* `NCCL_NSOCKS_PERTHREAD <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-nsocks-perthread>`__
+* `NCCL_SOCKET_NTHREADS <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-socket-nthreads>`__
+* `NCCL_MIN_NCHANNELS <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-min-nchannels>`__
+
+.. code-block:: bash
+
+    export NCCL_NSOCKS_PERTHREAD=4
+    export NCCL_SOCKET_NTHREADS=2
+
+
 Gradients as Bucket View
 """"""""""""""""""""""""
 
@@ -839,20 +906,3 @@ When using Post-localSGD, you must also pass ``model_averaging_period`` to allow
         ),
     )
     trainer.fit(model)
-
-DDP Static Graph
-""""""""""""""""
-
-`DDP static graph <https://pytorch.org/blog/pytorch-1.11-released/#stable-ddp-static-graph>`__ assumes that your model
-employs the same set of used/unused parameters in every iteration, so that it can deterministically know the flow of
-training and apply special optimizations during runtime.
-
-.. note::
-    DDP static graph support requires PyTorch>=1.11.0
-
-.. code-block:: python
-
-    from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DDPStrategy
-
-    trainer = Trainer(devices=4, strategy=DDPStrategy(static_graph=True))
