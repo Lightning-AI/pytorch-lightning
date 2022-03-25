@@ -239,7 +239,7 @@ trainer = Trainer(max_epochs=1, accelerator="gpu", devices=8, num_nodes=32)
 
 ```python
 # no code changes needed
-trainer = Trainer(tpu_cores=8)
+trainer = Trainer(accelerator="tpu", devices=8)
 ```
 
 <summary>16-bit precision</summary>

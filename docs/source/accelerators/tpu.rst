@@ -115,7 +115,7 @@ To use a full TPU pod skip to the TPU pod section.
     import pytorch_lightning as pl
 
     my_model = MyLightningModule()
-    trainer = pl.Trainer(tpu_cores=8)
+    trainer = pl.Trainer(accelerator="tpu", devices=8)
     trainer.fit(my_model)
 
 That's it! Your model will train on all 8 TPU cores.
@@ -135,13 +135,13 @@ Single TPU core training. Model will train on TPU core ID 5.
 
 .. code-block:: python
 
-    trainer = pl.Trainer(tpu_cores=[5])
+    trainer = pl.Trainer(accelerator="tpu", devices=[5])
 
 8 TPU cores training. Model will train on 8 TPU cores.
 
 .. code-block:: python
 
-    trainer = pl.Trainer(tpu_cores=8)
+    trainer = pl.Trainer(accelerator="tpu", devices=8)
 
 ----------------
 
@@ -200,7 +200,7 @@ set the 16-bit flag.
     import pytorch_lightning as pl
 
     my_model = MyLightningModule()
-    trainer = pl.Trainer(tpu_cores=8, precision=16)
+    trainer = pl.Trainer(accelerator="tpu", devices=8, precision=16)
     trainer.fit(my_model)
 
 Under the hood the xla library will use the `bfloat16 type <https://en.wikipedia.org/wiki/Bfloat16_floating-point_format>`_.
@@ -256,7 +256,7 @@ Example:
 
 
     model = WeightSharingModule()
-    trainer = Trainer(max_epochs=1, tpu_cores=8)
+    trainer = Trainer(max_epochs=1, accelerator="tpu", devices=8)
 
 See `XLA Documentation <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#xla-tensor-quirks>`_
 
@@ -356,7 +356,7 @@ PyTorch XLA only supports Tensor objects for CPU to TPU data transfer. Might cau
     import pytorch_lightning as pl
 
     my_model = MyLightningModule()
-    trainer = pl.Trainer(tpu_cores=8, strategy="tpu_spawn_debug")
+    trainer = pl.Trainer(accelerator="tpu", devices=8, strategy="tpu_spawn_debug")
     trainer.fit(my_model)
 
 Example Metrics report:
