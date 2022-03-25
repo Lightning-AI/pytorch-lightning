@@ -755,7 +755,8 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
     }
 
 
-def test_logging_multi_dataloader_on_epoch_end(tmpdir):
+@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+def test_logging_multi_dataloader_on_epoch_end(mock_log_metrics, tmpdir):
     class CustomBoringModel(BoringModel):
         def test_step(self, batch, batch_idx, dataloader_idx):
             self.log("foo", dataloader_idx + 1)
@@ -765,13 +766,27 @@ def test_logging_multi_dataloader_on_epoch_end(tmpdir):
             self.log("foobar", sum(sum(o) for o in outputs))
 
         def test_dataloader(self):
-            return [super().val_dataloader(), super().val_dataloader()]
+            return [super().test_dataloader(), super().test_dataloader()]
 
     model = CustomBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_test_batches=1,
+    )
     results = trainer.test(model)
     # what's logged in `test_epoch_end` gets included in the results of each dataloader
     assert results == [{"foo/dataloader_idx_0": 1, "foobar": 3}, {"foo/dataloader_idx_1": 2, "foobar": 3}]
+    assert set(trainer.callback_metrics) == {
+        "foo/dataloader_idx_0",
+        "foo/dataloader_idx_1",
+        "foobar",
+    }
+    assert set(mock_log_metrics.mock_calls[0].kwargs["metrics"]) == {
+        "foo/dataloader_idx_0",
+        "foo/dataloader_idx_1",
+        "foobar",
+        "epoch",
+    }
 
 
 inputs0 = ([{"log": torch.tensor(5)}, {"no_log": torch.tensor(6)}], RunningStage.TESTING)
