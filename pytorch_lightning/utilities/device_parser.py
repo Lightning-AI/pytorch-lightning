@@ -135,6 +135,7 @@ def parse_tpu_cores(tpu_cores: Optional[Union[int, str, List[int]]]) -> Union[in
     if tpu_cores is not None and not _TPU_AVAILABLE:
         raise MisconfigurationException("No TPU devices were found.")
 
+    assert tpu_cores is not None
     return tpu_cores
 
 
