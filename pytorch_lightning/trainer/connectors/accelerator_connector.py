@@ -22,6 +22,7 @@ import torch
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
+from pytorch_lightning.accelerators.hpu import HPUAccelerator
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.registry import AcceleratorRegistry
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
@@ -31,6 +32,7 @@ from pytorch_lightning.plugins import (
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
     FullyShardedNativeMixedPrecisionPlugin,
+    HPUPrecisionPlugin,
     IPUPrecisionPlugin,
     NativeMixedPrecisionPlugin,
     PLUGIN_INPUT,
@@ -58,8 +60,10 @@ from pytorch_lightning.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     HorovodStrategy,
+    HPUParallelStrategy,
     IPUStrategy,
     SingleDeviceStrategy,
+    SingleHPUStrategy,
     SingleTPUStrategy,
     Strategy,
     StrategyRegistry,
@@ -77,6 +81,7 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
+    _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_8,
     _TPU_AVAILABLE,
@@ -187,7 +192,6 @@ class AcceleratorConnector:
         self._check_device_config_and_set_final_flags(
             devices=devices, num_nodes=num_nodes, num_processes=num_processes, gpus=gpus, ipus=ipus, tpu_cores=tpu_cores
         )
-
         # 2. Instantiate Accelerator
         # handle `auto` and `None`
         self._set_accelerator_if_ipu_strategy_is_passed()
@@ -427,7 +431,7 @@ class AcceleratorConnector:
         if self._devices_flag == "auto" and self._accelerator_flag is None:
             raise MisconfigurationException(
                 f"You passed `devices={devices}` but haven't specified"
-                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu')` for the devices mapping"
+                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu'|'hpu)` for the devices mapping"
             )
 
     def _map_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
@@ -481,6 +485,8 @@ class AcceleratorConnector:
                 return "tpu"
             if _IPU_AVAILABLE:
                 return "ipu"
+            if _HPU_AVAILABLE:
+                return "hpu"
             if torch.cuda.is_available() and torch.cuda.device_count() > 0:
                 return "gpu"
         return "cpu"
@@ -545,6 +551,11 @@ class AcceleratorConnector:
     def _choose_strategy(self) -> Union[Strategy, str]:
         if self._accelerator_flag == "ipu":
             return IPUStrategy.strategy_name
+        if self._accelerator_flag == "hpu":
+            if self._parallel_devices and len(self._parallel_devices) > 1:
+                return HPUParallelStrategy.strategy_name
+            else:
+                return SingleHPUStrategy(device=torch.device("hpu"))
         if self._accelerator_flag == "tpu":
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return TPUSpawnStrategy.strategy_name
@@ -642,6 +653,8 @@ class AcceleratorConnector:
 
         if isinstance(self.accelerator, IPUAccelerator):
             return IPUPrecisionPlugin(self._precision_flag)  # type: ignore
+        if isinstance(self.accelerator, HPUAccelerator):
+            return HPUPrecisionPlugin(self._precision_flag)  # type: ignore
         if isinstance(self.accelerator, TPUAccelerator):
             if self._precision_flag == 32:
                 return TPUPrecisionPlugin()
@@ -707,6 +720,11 @@ class AcceleratorConnector:
                     f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
                     f" found: {self._precision_plugin_flag}."
                 )
+        if isinstance(self.accelerator, HPUAccelerator):
+            if self._precision_flag not in (16, "bf16", 32):
+                raise MisconfigurationException(
+                    f"`Trainer(accelerator='hpu', precision={self._precision_flag!r})` is not supported."
+                )
         if (
             self._precision_flag == 16
             and isinstance(self.accelerator, CPUAccelerator)
@@ -768,7 +786,15 @@ class AcceleratorConnector:
         ):
             raise ValueError(
                 "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `TPUSpawnStrategy`,"
-                f" found {self.strategy}."
+                f" found {self.strategy.__class__.__name__}."
+            )
+
+        if isinstance(self.accelerator, HPUAccelerator) and not isinstance(
+            self.strategy, (SingleHPUStrategy, HPUParallelStrategy)
+        ):
+            raise ValueError(
+                "The `HPUAccelerator` can only be used with a `SingleHPUStrategy` or `HPUParallelStrategy`,"
+                f" found {self.strategy.__class__.__name__}."
             )
 
     """The following properties are here for backward-compatibility and will be deprecated and removed in favor
@@ -801,6 +827,7 @@ class AcceleratorConnector:
             DeepSpeedStrategy,
             TPUSpawnStrategy,
             HorovodStrategy,
+            HPUParallelStrategy,
         )
         is_distributed = isinstance(self.strategy, distributed_strategy)
         if isinstance(self.accelerator, TPUAccelerator):

@@ -451,7 +451,7 @@ Shorthand for ``devices=X`` and ``accelerator="tpu"``.
 .. code-block:: python
 
     # Run on eight TPUs
-    lite = Lite(tpu_cores=8)
+    lite = Lite(accelerator="tpu", devices=8)
 
     # Equivalent
     lite = Lite(devices=8, accelerator="tpu")

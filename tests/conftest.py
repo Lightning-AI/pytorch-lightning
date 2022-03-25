@@ -198,3 +198,19 @@ def pytest_collection_modifyitems(items):
             # has `@RunIf(ipu=True)`
             if marker.name == "skipif" and marker.kwargs.get("ipu")
         ]
+
+
+def pytest_addoption(parser):
+    parser.addoption("--hpus", action="store", type=int, default=1, help="Number of hpus 1-8")
+    parser.addoption(
+        "--hmp-bf16", action="store", type=str, default="./ops_bf16_mnist.txt", help="bf16 ops list file in hmp O1 mode"
+    )
+    parser.addoption(
+        "--hmp-fp32", action="store", type=str, default="./ops_fp32_mnist.txt", help="fp32 ops list file in hmp O1 mode"
+    )
+
+
+@pytest.fixture
+def hpus(request):
+    hpus = request.config.getoption("--hpus")
+    return hpus
