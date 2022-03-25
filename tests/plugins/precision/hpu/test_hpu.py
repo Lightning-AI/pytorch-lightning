@@ -40,7 +40,7 @@ def test_precision_plugin(hmp_params):
 
 
 @RunIf(hpu=True)
-def test_mixed_precision(tmpdir, hmp_params):
+def test_mixed_precision(tmpdir, hmp_params: dict):
     class TestCallback(Callback):
         def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
             assert trainer.strategy.model.precision == "bf16"
@@ -63,7 +63,7 @@ def test_mixed_precision(tmpdir, hmp_params):
 
 
 @RunIf(hpu=True)
-def test_pure_half_precision(tmpdir, hmp_params):
+def test_pure_half_precision(tmpdir, hmp_params: dict):
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
             assert trainer.strategy.model.precision == 16
