@@ -28,7 +28,6 @@ from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE, _TORCH_LESSER_EQUAL_1_10_2
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 if _HPU_AVAILABLE:
     import habana_frameworks.torch.core.hccl  # noqa: F401
@@ -81,15 +80,6 @@ class HPUParallelStrategy(DDPStrategy):
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
         # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
-        if not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get(
-            "find_unused_parameters", False
-        ):
-            # TODO: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
-            rank_zero_warn(
-                "From PyTorch 1.7.0, Lightning `manual_optimization` needs to set `find_unused_parameters=True` to"
-                " properly work with DDP. Using `find_unused_parameters=True`."
-            )
-            self._ddp_kwargs["find_unused_parameters"] = True
 
         self._static_graph = False
         static_graph = self._ddp_kwargs.get("static_graph")
