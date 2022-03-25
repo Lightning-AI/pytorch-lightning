@@ -838,6 +838,9 @@ expected3 = """
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 """
 
+inputs4 = ([{}], "foo")
+expected4 = ""
+
 
 @pytest.mark.parametrize(
     ["inputs", "expected"],
@@ -846,6 +849,7 @@ expected3 = """
         pytest.param(inputs1, expected1, id="case1"),
         pytest.param(inputs2, expected2, id="case2"),
         pytest.param(inputs3, expected3, id="case3"),
+        pytest.param(inputs4, expected4, id="empty case"),
     ],
 )
 def test_native_print_results(monkeypatch, inputs, expected):
@@ -916,6 +920,7 @@ expected3 = """
         pytest.param(inputs1, expected1, id="case1"),
         pytest.param(inputs2, expected2, id="case2"),
         pytest.param(inputs3, expected3, id="case3"),
+        pytest.param(inputs4, expected4, id="empty case"),
     ],
 )
 @RunIf(rich=True, skip_windows=True)
