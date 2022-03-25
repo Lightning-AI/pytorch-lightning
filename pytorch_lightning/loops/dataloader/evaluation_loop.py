@@ -181,7 +181,7 @@ class EvaluationLoop(DataLoaderLoop):
         logged_outputs, self._logged_outputs = self._logged_outputs, []  # free memory
         # include any logged outputs on epoch_end
         epoch_end_logged_outputs = self.trainer._logger_connector.update_eval_epoch_metrics()
-        all_logged_outputs = dict(ChainMap(*logged_outputs))
+        all_logged_outputs = dict(ChainMap(*logged_outputs))  # list[dict] -> dict
         all_logged_outputs.update(epoch_end_logged_outputs)
         for dl_outputs in logged_outputs:
             dl_outputs.update(epoch_end_logged_outputs)
