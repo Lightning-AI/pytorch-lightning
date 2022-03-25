@@ -31,7 +31,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator
+from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, HPUAccelerator, IPUAccelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -77,6 +77,7 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
+    _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
     AMPType,
@@ -195,7 +196,7 @@ class Trainer(
 
         Args:
 
-            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "auto")
+            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "auto")
                 as well as custom accelerator instances.
 
                 .. deprecated:: v1.5
@@ -353,7 +354,7 @@ class Trainer(
                 Default: ``None``.
 
             precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
-                Can be used on CPU, GPU, TPUs or IPUs.
+                Can be used on CPU, GPU, TPUs, HPUs or IPUs.
                 Default: ``32``.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
@@ -1818,6 +1819,9 @@ class Trainer(
         num_ipus = self.num_devices if isinstance(self.accelerator, IPUAccelerator) else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
+        num_hpus = self.num_devices if isinstance(self.accelerator, HPUAccelerator) else 0
+        rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
+
         if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
             rank_zero_warn(
                 "GPU available but not used. Set `accelerator` and `devices` using"
@@ -1835,6 +1839,12 @@ class Trainer(
             rank_zero_warn(
                 "IPU available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='ipu', devices={IPUAccelerator.auto_device_count()})`."
+            )
+
+        if _HPU_AVAILABLE and not isinstance(self.accelerator, HPUAccelerator):
+            rank_zero_warn(
+                "HPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='hpu', devices={HPUAccelerator.auto_device_count()})`."
             )
 
     """

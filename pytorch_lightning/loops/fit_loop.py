@@ -325,9 +325,6 @@ class FitLoop(Loop[None]):
         self.trainer._call_lightning_module_hook("on_train_end")
         self.trainer._call_strategy_hook("on_train_end")
 
-        # give accelerators a chance to finish
-        self.trainer.strategy.on_train_end()
-
     def teardown(self) -> None:
         if self._data_fetcher is not None:
             self._data_fetcher.teardown()
