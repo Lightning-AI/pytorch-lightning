@@ -77,6 +77,7 @@ Whereas :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs two
 
 |
 
+For more details on how to tune performance with DDP, please see the :ref:`DDP Optimizations <ddp-optimizations>` section.
 
 DataLoaders
 ^^^^^^^^^^^
