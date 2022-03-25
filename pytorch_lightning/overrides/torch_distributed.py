@@ -54,13 +54,13 @@ def _broadcast_object_list(object_list, src=0, group=None, device=None):
     broadcasted.
 
     Args:
-        object_list (List[Any]): List of input objects to broadcast.
+        object_list: List of input objects to broadcast.
             Each object must be picklable. Only objects on the ``src`` rank will
             be broadcast, but each rank must provide lists of equal sizes.
-        src (int): Source rank from which to broadcast ``object_list``.
-        group: (ProcessGroup, optional): The process group to work on. If None,
+        src: Source rank from which to broadcast ``object_list``.
+        group: The process group to work on. If None,
             the default process group will be used. Default is ``None``.
-        device (``torch.device``, optional): If not None, the objects are
+        device: If not None, the objects are
             serialized and converted to tensors which are moved to the
             ``device`` before broadcasting. Default is ``None``.
 
