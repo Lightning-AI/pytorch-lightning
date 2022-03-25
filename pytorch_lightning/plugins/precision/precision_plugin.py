@@ -55,9 +55,9 @@ class PrecisionPlugin(CheckpointHooks):
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
         """
-        if model.trainer is not None:
-            model.trainer._call_callback_hooks("on_before_backward", closure_loss)
-            model.trainer._call_lightning_module_hook("on_before_backward", closure_loss)
+        assert model.trainer is not None
+        model.trainer._call_callback_hooks("on_before_backward", closure_loss)
+        model.trainer._call_lightning_module_hook("on_before_backward", closure_loss)
         return closure_loss
 
     def backward(
@@ -111,12 +111,9 @@ class PrecisionPlugin(CheckpointHooks):
             return
         trainer = model.trainer
         assert trainer is not None
-
         trainer._call_callback_hooks("on_before_optimizer_step", optimizer, optimizer_idx)
         trainer._call_lightning_module_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         # TODO: this is done for the entire model but should be changed to per-optimizer
-
-        assert hasattr(trainer, "gradient_clip_algorithm")
 
         if optimizer_idx == 0:
             self._track_grad_norm(trainer)

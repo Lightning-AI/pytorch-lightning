@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities related to model weights summary."""
-
-import contextlib
 import logging
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -265,12 +263,8 @@ class ModelSummary:
         mode = model.training
         model.eval()
 
-        forward_context: contextlib.AbstractContextManager = contextlib.nullcontext()
-
-        if trainer is not None:
-            forward_context = trainer.precision_plugin.forward_context()
-
-        with torch.no_grad(), forward_context:
+        assert trainer is not None
+        with torch.no_grad(), trainer.precision_plugin.forward_context():
             # let the model hooks collect the input- and output shapes
             if isinstance(input_, (list, tuple)):
                 model(*input_)

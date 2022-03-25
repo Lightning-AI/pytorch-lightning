@@ -176,7 +176,6 @@ def _init_optimizers_and_lr_schedulers(
     model: "pl.LightningModule",
 ) -> Tuple[List[Optimizer], List[LRSchedulerConfig], List[int]]:
     """Calls `LightningModule.configure_optimizers` and parses and validates the output."""
-
     assert model.trainer is not None
     optim_conf = model.trainer._call_lightning_module_hook("configure_optimizers", pl_module=model)
 

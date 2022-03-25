@@ -47,7 +47,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 " the backward logic internally."
             )
         assert model.trainer is not None
-        deepspeed_engine: "DeepSpeedEngine" = model.trainer.model
+        deepspeed_engine: DeepSpeedEngine = model.trainer.model
         deepspeed_engine.backward(closure_loss, *args, **kwargs)
 
     def _run_backward(self, tensor: Tensor, model: Optional["DeepSpeedEngine"], *args: Any, **kwargs: Any) -> None:
@@ -76,8 +76,12 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 "Skipping backward by returning `None` from your `training_step` is not supported by `DeepSpeed`"
             )
         # DeepSpeed handles the optimizer step internally
-        assert model.trainer is not None
-        deepspeed_engine: DeepSpeedEngine = model.trainer.model if isinstance(model, pl.LightningModule) else model
+        deepspeed_engine: DeepSpeedEngine
+        if isinstance(model, pl.LightningModule):
+            assert model.trainer is not None
+            deepspeed_engine = model.trainer.model
+        else:
+            deepspeed_engine = model
         return deepspeed_engine.step(**kwargs)
 
     def clip_gradients(
