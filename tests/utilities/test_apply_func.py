@@ -33,8 +33,8 @@ class Feature:
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, Feature):
             return NotImplemented
-        else:
-            return torch.equal(self.input_ids, o.input_ids) and np.equal(self.segment_ids, o.segment_ids).all()
+        
+        return torch.equal(self.input_ids, o.input_ids) and np.equal(self.segment_ids, o.segment_ids).all()
 
 
 @dataclasses.dataclass
@@ -50,13 +50,13 @@ class ModelExample:
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, ModelExample):
             return NotImplemented
-        else:
-            return (
-                self.example_ids == o.example_ids
-                and self.feature == o.feature
-                and torch.equal(self.label, o.label)
-                and self.some_constant == o.some_constant
-            )
+        
+        return (
+            self.example_ids == o.example_ids
+            and self.feature == o.feature
+            and torch.equal(self.label, o.label)
+            and self.some_constant == o.some_constant
+        )
 
 
 @dataclasses.dataclass
@@ -69,8 +69,8 @@ class WithClassVar:
             return NotImplemented
         elif isinstance(self.dummy, torch.Tensor):
             return torch.equal(self.dummy, o.dummy)
-        else:
-            return self.dummy == o.dummy
+
+        return self.dummy == o.dummy
 
 
 @dataclasses.dataclass
@@ -87,8 +87,8 @@ class WithInitVar:
             return NotImplemented
         elif isinstance(self.dummy, torch.Tensor):
             return torch.equal(self.dummy, o.dummy)
-        else:
-            return self.dummy == o.dummy
+        
+        return self.dummy == o.dummy
 
 
 @dataclasses.dataclass
@@ -106,8 +106,8 @@ class WithClassAndInitVar:
             return NotImplemented
         elif isinstance(self.dummy, torch.Tensor):
             return torch.equal(self.dummy, o.dummy)
-        else:
-            return self.dummy == o.dummy
+        
+        return self.dummy == o.dummy
 
 
 def test_recursive_application_to_collection():
