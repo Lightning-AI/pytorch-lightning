@@ -230,7 +230,7 @@ class HookedCallback(Callback):
             update_wrapper(partial_h, attr)
             setattr(self, h, partial_h)
 
-    def on_save_checkpoint(*args, **kwargs):
+    def state_dict(*args, **kwargs):
         return {"foo": True}
 
 
