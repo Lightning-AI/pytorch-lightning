@@ -17,7 +17,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.registry import _is_register_method_overridden
+from pytorch_lightning.utilities.model_helpers import is_overridden
 
 
 class _StrategyRegistry(dict):
@@ -118,5 +118,5 @@ StrategyRegistry = _StrategyRegistry()
 def call_register_strategies(base_module: str) -> None:
     module = importlib.import_module(base_module)
     for _, mod in getmembers(module, isclass):
-        if issubclass(mod, Strategy) and _is_register_method_overridden(mod, Strategy, "register_strategies"):
+        if issubclass(mod, Strategy) and is_overridden("register_strategies", mod, Strategy):
             mod.register_strategies(StrategyRegistry)

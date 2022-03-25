@@ -63,10 +63,7 @@ class CPUAccelerator(Accelerator):
         """CPU is always available for execution."""
         return True
 
-    @classmethod
-    def register_accelerators(cls, accelerator_registry: Dict) -> None:
-        accelerator_registry.register(
-            "cpu",
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )
+    @staticmethod
+    def name() -> str:
+        """Name of the Accelerator."""
+        return "cpu"

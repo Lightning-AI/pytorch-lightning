@@ -93,13 +93,10 @@ class GPUAccelerator(Accelerator):
     def is_available() -> bool:
         return torch.cuda.device_count() > 0
 
-    @classmethod
-    def register_accelerators(cls, accelerator_registry: Dict) -> None:
-        accelerator_registry.register(
-            "gpu",
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )
+    @staticmethod
+    def name() -> str:
+        """Name of the Accelerator."""
+        return "gpu"
 
 
 def get_nvidia_gpu_stats(device: _DEVICE) -> Dict[str, float]:

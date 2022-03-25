@@ -24,7 +24,7 @@ from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.accelerators.hpu import HPUAccelerator
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
-from pytorch_lightning.accelerators.registry import AcceleratorRegistry
+from pytorch_lightning.accelerators.registry import ACCELERATOR_REGISTRY
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
@@ -86,6 +86,7 @@ from pytorch_lightning.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_8,
     _TPU_AVAILABLE,
 )
+from pytorch_lightning.utilities.meta import get_all_subclasses
 
 log = logging.getLogger(__name__)
 
@@ -162,7 +163,8 @@ class AcceleratorConnector:
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
         self._registered_strategies = StrategyRegistry.available_strategies()
-        self._accelerator_types = AcceleratorRegistry.available_accelerators()
+        _populate_registries()
+        self._accelerator_types = ACCELERATOR_REGISTRY.names
         self._precision_types = ("16", "32", "64", "bf16", "mixed")
 
         # Raise an exception if there are conflicts between flags
@@ -493,16 +495,16 @@ class AcceleratorConnector:
         else:
             assert self._accelerator_flag is not None
             self._accelerator_flag = self._accelerator_flag.lower()
-            if self._accelerator_flag not in AcceleratorRegistry:
+            if self._accelerator_flag not in ACCELERATOR_REGISTRY:
                 raise MisconfigurationException(
                     "When passing string value for the `accelerator` argument of `Trainer`,"
                     f" it can only be one of {self._accelerator_types}."
                 )
-            self.accelerator = AcceleratorRegistry.get(self._accelerator_flag)
+            self.accelerator = ACCELERATOR_REGISTRY.get(self._accelerator_flag)
 
         if not self.accelerator.is_available():
             available_accelerator = [
-                acc_str for acc_str in self._accelerator_types if AcceleratorRegistry.get(acc_str).is_available()
+                acc_str for acc_str in self._accelerator_types if ACCELERATOR_REGISTRY.get(acc_str).is_available()
             ]
             raise MisconfigurationException(
                 f"{self.accelerator.__class__.__qualname__} can not run on your system"
@@ -829,3 +831,9 @@ class AcceleratorConnector:
         if isinstance(self.accelerator, TPUAccelerator):
             is_distributed |= self.strategy.is_distributed
         return is_distributed
+
+
+def _populate_registries() -> None:
+    # automatically register accelerators
+    for cls in get_all_subclasses(Accelerator):
+        ACCELERATOR_REGISTRY(cls)

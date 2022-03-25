@@ -11,17 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
+
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import Accelerator, AcceleratorRegistry
+from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.accelerators.registry import ACCELERATOR_REGISTRY
+from pytorch_lightning.trainer.connectors.accelerator_connector import _populate_registries
+
+
+@pytest.fixture(autouse=True)
+def clear_registries():
+    # since the registries are global, it's good to clear them after each test to avoid unwanted interactions
+    yield
+    ACCELERATOR_REGISTRY.clear()
 
 
 def test_accelerator_registry_with_new_accelerator():
-
-    accelerator_name = "custom_accelerator"
-    accelerator_description = "Custom Accelerator"
+    name = "custom"
+    description = "My custom Accelerator"
 
     class CustomAccelerator(Accelerator):
-        def __init__(self, param1, param2):
+        def __init__(self, param1=None, param2=None):
             self.param1 = param1
             self.param2 = param2
             super().__init__()
@@ -42,25 +52,39 @@ def test_accelerator_registry_with_new_accelerator():
         def is_available():
             return True
 
-    AcceleratorRegistry.register(
-        accelerator_name, CustomAccelerator, description=accelerator_description, param1="abc", param2=123
-    )
+        @staticmethod
+        def name():
+            return "custom"
 
-    assert accelerator_name in AcceleratorRegistry
+    ACCELERATOR_REGISTRY.register(CustomAccelerator, name=name, description=description, param1="abc")
 
-    assert AcceleratorRegistry[accelerator_name]["description"] == accelerator_description
-    assert AcceleratorRegistry[accelerator_name]["init_params"] == {"param1": "abc", "param2": 123}
-    assert AcceleratorRegistry[accelerator_name]["accelerator_name"] == accelerator_name
+    assert name in ACCELERATOR_REGISTRY
+    assert ACCELERATOR_REGISTRY[name] == {
+        "accelerator": CustomAccelerator,
+        "description": description,
+        "kwargs": {"param1": "abc"},
+    }
+    instance = ACCELERATOR_REGISTRY.get(name)
+    assert isinstance(instance, CustomAccelerator)
+    assert instance.param1 == "abc"
 
-    assert isinstance(AcceleratorRegistry.get(accelerator_name), CustomAccelerator)
+    assert ACCELERATOR_REGISTRY.get("foo", 123) == 123
 
-    trainer = Trainer(accelerator=accelerator_name, devices="auto")
+    ACCELERATOR_REGISTRY.clear()
+
+    trainer = Trainer(accelerator=name, devices="auto")
     assert isinstance(trainer.accelerator, CustomAccelerator)
     assert trainer.strategy.parallel_devices == ["foo"] * 3
 
-    AcceleratorRegistry.remove(accelerator_name)
-    assert accelerator_name not in AcceleratorRegistry
+    @ACCELERATOR_REGISTRY
+    class NewAccelerator(CustomAccelerator):
+        @staticmethod
+        def name():
+            return "new"
+
+    assert "new" in ACCELERATOR_REGISTRY
 
 
 def test_available_accelerators_in_registry():
-    assert AcceleratorRegistry.available_accelerators() == ["cpu", "gpu", "hpu", "ipu", "tpu"]
+    _populate_registries()
+    assert ACCELERATOR_REGISTRY.names == ["cpu", "gpu", "hpu", "ipu", "tpu"]
