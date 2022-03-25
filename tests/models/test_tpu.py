@@ -77,7 +77,8 @@ def test_model_tpu_index(tmpdir, tpu_core):
         default_root_dir=tmpdir,
         enable_progress_bar=False,
         max_epochs=2,
-        tpu_cores=[tpu_core],
+        accelerator="tpu",
+        devices=[tpu_core],
         limit_train_batches=4,
         limit_val_batches=4,
     )
@@ -138,7 +139,8 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
         precision=16,
         enable_progress_bar=False,
         max_epochs=2,
-        tpu_cores=[tpu_core],
+        accelerator="tpu",
+        devices=[tpu_core],
         limit_train_batches=4,
         limit_val_batches=2,
     )
@@ -253,22 +255,22 @@ def test_dataloaders_passed_to_fit(tmpdir):
 @pytest.mark.parametrize("tpu_cores", [[1, 8], "9, ", [9], [0], 2, 10])
 def test_tpu_misconfiguration(tpu_cores):
     with pytest.raises(MisconfigurationException, match="`tpu_cores` can only be"):
-        Trainer(tpu_cores=tpu_cores)
+        Trainer(accelerator="tpu", devices=tpu_cores)
 
 
 @pytest.mark.skipif(_TPU_AVAILABLE, reason="test requires missing TPU")
-def test_exception_when_no_tpu_found(tmpdir):
+def test_exception_when_no_tpu_found():
     """Test if exception is thrown when xla devices are not available."""
 
-    with pytest.raises(MisconfigurationException, match="No TPU devices were found."):
-        Trainer(tpu_cores=8)
+    with pytest.raises(MisconfigurationException, match="TPUAccelerator can not run on your system"):
+        Trainer(accelerator="tpu", devices=8)
 
 
 @pytest.mark.parametrize("tpu_cores", [1, 8, [1]])
 @RunIf(tpu=True)
-def test_accelerator_set_when_using_tpu(tmpdir, tpu_cores):
+def test_accelerator_set_when_using_tpu(tpu_cores):
     """Test if the accelerator is set to `tpu` when tpu_cores is not None."""
-    assert isinstance(Trainer(tpu_cores=tpu_cores).accelerator, TPUAccelerator)
+    assert isinstance(Trainer(accelerator="tpu", devices=tpu_cores).accelerator, TPUAccelerator)
 
 
 @RunIf(tpu=True)
@@ -450,7 +452,6 @@ def test_tpu_host_world_size(tmpdir):
 @RunIf(tpu=True)
 @pl_multi_process_test
 def test_device_type_when_training_plugin_tpu_passed(tmpdir):
-
     trainer = Trainer(strategy=TPUSpawnStrategy(), accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
     assert isinstance(trainer.accelerator, TPUAccelerator)

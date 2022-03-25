@@ -56,11 +56,11 @@ def test_accelerator_registry_with_new_accelerator():
 
     trainer = Trainer(accelerator=accelerator_name, devices="auto")
     assert isinstance(trainer.accelerator, CustomAccelerator)
-    assert trainer._accelerator_connector.parallel_devices == ["foo"] * 3
+    assert trainer.strategy.parallel_devices == ["foo"] * 3
 
     AcceleratorRegistry.remove(accelerator_name)
     assert accelerator_name not in AcceleratorRegistry
 
 
 def test_available_accelerators_in_registry():
-    assert AcceleratorRegistry.available_accelerators() == ["cpu", "gpu", "ipu", "tpu"]
+    assert AcceleratorRegistry.available_accelerators() == ["cpu", "gpu", "hpu", "ipu", "tpu"]
