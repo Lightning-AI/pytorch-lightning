@@ -181,8 +181,7 @@ def test_mlflow_logger_dirs_creation(tmpdir):
         assert set(os.listdir(tmpdir / exp_id)) == {run_id, "meta.yaml"}
 
     class CustomModel(BoringModel):
-        def training_epoch_end(self, *args, **kwargs):
-            super().training_epoch_end(*args, **kwargs)
+        def on_train_epoch_end(self, *args, **kwargs):
             self.log("epoch", self.current_epoch)
 
     model = CustomModel()

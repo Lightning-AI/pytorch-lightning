@@ -144,7 +144,8 @@ def test_ddp_wrapper(tmpdir, precision):
         fast_dev_run=True,
         precision=precision,
         strategy="ddp",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         callbacks=CustomCallback(),
     )
     trainer.fit(model)
