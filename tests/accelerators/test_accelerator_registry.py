@@ -63,4 +63,4 @@ def test_accelerator_registry_with_new_accelerator():
 
 
 def test_available_accelerators_in_registry():
-    assert AcceleratorRegistry.available_accelerators() == ["cpu", "gpu", "ipu", "tpu"]
+    assert AcceleratorRegistry.available_accelerators() == ["cpu", "gpu", "hpu", "ipu", "tpu"]
