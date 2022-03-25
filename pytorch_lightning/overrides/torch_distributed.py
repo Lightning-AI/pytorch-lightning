@@ -8,9 +8,6 @@ import pickle
 import torch
 from torch._C._distributed_c10d import ProcessGroup
 
-from pytorch_lightning.utilities import _HPU_AVAILABLE
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
-
 _pickler = pickle.Pickler
 _unpickler = pickle.Unpickler
 
@@ -168,7 +165,5 @@ if not torch.distributed.is_available():
         return obj
 
     broadcast_object_list = _broadcast_noop
-elif _TORCH_GREATER_EQUAL_1_8 and not _HPU_AVAILABLE:
-    from torch.distributed.distributed_c10d import broadcast_object_list
 else:
     broadcast_object_list = _broadcast_object_list
