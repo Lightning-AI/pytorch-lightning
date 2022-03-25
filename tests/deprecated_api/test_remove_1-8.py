@@ -1113,7 +1113,6 @@ def test_v1_8_0_callback_on_save_checkpoint_hook(tmpdir):
     [
         {"accelerator": "gpu", "devices": 2},
         {"accelerator": "gpu", "devices": [0, 2]},
-        {"accelerator": "gpu", "devices": "0"},
         {"accelerator": "gpu", "devices": "2"},
         {"accelerator": "gpu", "devices": "0,"},
     ],
