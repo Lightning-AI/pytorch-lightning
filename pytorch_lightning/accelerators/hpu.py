@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 
@@ -41,7 +41,7 @@ class HPUAccelerator(Accelerator):
         return {}
 
     @staticmethod
-    def parse_devices(devices: Union[int, str, List[int]]) -> int:
+    def parse_devices(devices: Union[int, str, List[int]]) -> Optional[int]:
         """Accelerator device parsing logic."""
         return device_parser.parse_hpus(devices)
 
