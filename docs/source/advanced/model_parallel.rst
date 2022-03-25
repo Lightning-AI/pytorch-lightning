@@ -749,10 +749,7 @@ Enable `FP16 Compress Hook for multi-node throughput improvement <https://pytorc
 
     from pytorch_lightning import Trainer
     from pytorch_lightning.strategies import DDPStrategy
-    from torch.distributed.algorithms.ddp_comm_hooks import (
-        default_hooks as default,
-        powerSGD_hook as powerSGD,
-    )
+    from torch.distributed.algorithms.ddp_comm_hooks import default_hooks as default
 
     model = MyModel()
     trainer = Trainer(accelerator="gpu", devices=4, strategy=DDPStrategy(ddp_comm_hook=default.fp16_compress_hook))
@@ -812,6 +809,33 @@ Combine hooks for accumulated benefit:
             ),
             ddp_comm_hook=powerSGD.powerSGD_hook,
             ddp_comm_wrapper=default.fp16_compress_wrapper,
+        ),
+    )
+    trainer.fit(model)
+
+
+When using Post-localSGD, you must also pass ``model_averaging_period`` to allow for model parameter averaging:
+
+.. note::
+    Post-localSGD support requires PyTorch>=1.10.0
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.strategies import DDPStrategy
+    from torch.distributed.algorithms.ddp_comm_hooks import post_localSGD_hook as post_localSGD
+
+    model = MyModel()
+    trainer = Trainer(
+        gpus=4,
+        strategy=DDPStrategy(
+            ddp_comm_state=post_localSGD.PostLocalSGDState(
+                process_group=None,
+                subgroup=None,
+                start_localSGD_iter=8,
+            ),
+            ddp_comm_hook=post_localSGD.post_localSGD_hook,
+            model_averaging_period=4,
         ),
     )
     trainer.fit(model)
