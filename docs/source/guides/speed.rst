@@ -77,53 +77,7 @@ Whereas :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs two
 
 |
 
-
-When Using DDP Plugins, Set find_unused_parameters=False
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-By default, we have set ``find_unused_parameters=True`` for compatibility reasons that have been observed in the past (refer to the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
-When enabled, it can result in a performance hit and can be disabled in most cases. Read more about it `here <https://pytorch.org/docs/stable/notes/ddp.html#internal-design>`_.
-
-.. tip::
-    It applies to all DDP strategies that support ``find_unused_parameters`` as input.
-
-.. code-block:: python
-
-    from pytorch_lightning.strategies import DDPStrategy
-
-    trainer = pl.Trainer(
-        gpus=2,
-        strategy=DDPStrategy(find_unused_parameters=False),
-    )
-
-.. code-block:: python
-
-    from pytorch_lightning.strategies import DDPSpawnStrategy
-
-    trainer = pl.Trainer(
-        gpus=2,
-        strategy=DDPSpawnStrategy(find_unused_parameters=False),
-    )
-
-When Using DDP on a Multi-node Cluster, Set NCCL Parameters
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-`NCCL <https://developer.nvidia.com/nccl>`__ is the NVIDIA Collective Communications Library that is used by PyTorch to handle communication across nodes and GPUs. There are reported benefits in terms of speedups when adjusting NCCL parameters as seen in this `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues/7179>`__. In the issue, we see a 30% speed improvement when training the Transformer XLM-RoBERTa and a 15% improvement in training with Detectron2.
-
-NCCL parameters can be adjusted via environment variables.
-
-.. note::
-
-    AWS and GCP already set default values for these on their clusters. This is typically useful for custom cluster setups.
-
-* `NCCL_NSOCKS_PERTHREAD <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-nsocks-perthread>`__
-* `NCCL_SOCKET_NTHREADS <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-socket-nthreads>`__
-* `NCCL_MIN_NCHANNELS <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-min-nchannels>`__
-
-.. code-block:: bash
-
-    export NCCL_NSOCKS_PERTHREAD=4
-    export NCCL_SOCKET_NTHREADS=2
+For more details on how to tune performance with DDP, please see the :ref:`DDP Optimizations <ddp-optimizations>` section.
 
 DataLoaders
 ^^^^^^^^^^^
@@ -191,13 +145,13 @@ You can set the ``tpu_cores`` trainer flag to 1, [7] (specific core) or eight co
 .. code-block:: python
 
     # train on 1 TPU core
-    trainer = Trainer(tpu_cores=1)
+    trainer = Trainer(accelerator="tpu", devices=1)
 
     # train on 7th TPU core
-    trainer = Trainer(tpu_cores=[7])
+    trainer = Trainer(accelerator="tpu", devices=[7])
 
     # train on 8 TPU cores
-    trainer = Trainer(tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
 
 To train on more than eight cores (a POD),
 submit this script using the xla_dist script.
