@@ -19,7 +19,7 @@ import torch
 from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.plugins.environments import LightningEnvironment
+from pytorch_lightning.plugins.environments import ClusterEnvironment, LightningEnvironment
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from tests.helpers.boring_model import BoringModel
@@ -36,7 +36,7 @@ class BoringModelGPU(BoringModel):
 @RunIf(skip_windows=True, min_gpus=2, standalone=True)
 def test_ddp_with_2_gpus():
     """Tests if device is set correctly when training and after teardown for DDPStrategy."""
-    trainer = Trainer(gpus=2, strategy="ddp", fast_dev_run=True)
+    trainer = Trainer(accelerator="gpu", devices=2, strategy="ddp", fast_dev_run=True)
     # assert training type plugin attributes for device setting
     assert isinstance(trainer.strategy, DDPStrategy)
     local_rank = trainer.strategy.local_rank
@@ -115,11 +115,12 @@ def test_ddp_configure_ddp():
     # in DDPStrategy configure_ddp(), model wrapped by DistributedDataParallel
     assert isinstance(trainer.model, DistributedDataParallel)
 
+    ddp_strategy = DDPStrategy()
     trainer = Trainer(
         max_epochs=1,
         strategy=ddp_strategy,
     )
-    # test do not wrap the model if trainerFN is not fitting
+    # test do not wrap the model if TrainerFn is not fitting
     trainer.state.fn = TrainerFn.VALIDATING
     trainer.strategy.connect(model)
     trainer.lightning_module.trainer = trainer
@@ -127,3 +128,64 @@ def test_ddp_configure_ddp():
     trainer.strategy.setup(trainer)
     # in DDPStrategy configure_ddp(), model are still LightningModule
     assert isinstance(trainer.model, LightningModule)
+
+
+@RunIf(min_gpus=1)
+@pytest.mark.parametrize(
+    "trainer_fn", (TrainerFn.VALIDATING, TrainerFn.TUNING, TrainerFn.TESTING, TrainerFn.PREDICTING)
+)
+def test_ddp_dont_configure_sync_batchnorm(trainer_fn):
+    model = BoringModelGPU()
+    model.layer = torch.nn.BatchNorm1d(10)
+    ddp_strategy = DDPStrategy()
+    trainer = Trainer(gpus=1, strategy=ddp_strategy, sync_batchnorm=True)
+    trainer.state.fn = trainer_fn
+    trainer.strategy.connect(model)
+    trainer.lightning_module.trainer = trainer
+    trainer.strategy.setup_environment()
+    assert isinstance(trainer.model, LightningModule)
+    trainer.strategy.setup(trainer)
+    # because TrainerFn is not FITTING, model is not configured with sync batchnorm
+    assert not isinstance(trainer.strategy.model.layer, torch.nn.modules.batchnorm.SyncBatchNorm)
+
+
+def test_configure_launcher_create_processes_externally():
+    class MyClusterEnvironment(ClusterEnvironment):
+        @property
+        def creates_processes_externally(self):
+            return True
+
+        @property
+        def main_address(self):
+            return ""
+
+        @property
+        def main_port(self):
+            return 8080
+
+        @staticmethod
+        def detect():
+            return True
+
+        def world_size(self):
+            return 1
+
+        def set_world_size(self):
+            pass
+
+        def global_rank(self):
+            return 0
+
+        def set_global_rank(self):
+            pass
+
+        def local_rank(self):
+            return 0
+
+        def node_rank(self):
+            return 0
+
+    ddp_strategy = DDPStrategy(cluster_environment=MyClusterEnvironment())
+    assert ddp_strategy.launcher is None
+    ddp_strategy._configure_launcher()
+    assert ddp_strategy.launcher is None

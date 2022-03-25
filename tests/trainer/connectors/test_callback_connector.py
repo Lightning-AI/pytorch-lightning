@@ -83,7 +83,7 @@ def test_checkpoint_callbacks_are_last(tmpdir):
 
 
 class StatefulCallback0(Callback):
-    def on_save_checkpoint(self, *args):
+    def state_dict(self):
         return {"content0": 0}
 
 
@@ -96,7 +96,7 @@ class StatefulCallback1(Callback):
     def state_key(self):
         return self._generate_state_key(unique=self._unique)
 
-    def on_save_checkpoint(self, *args):
+    def state_dict(self):
         return {"content1": self._unique}
 
 

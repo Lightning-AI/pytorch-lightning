@@ -93,7 +93,7 @@ def test_has_iterable_dataset():
 def test_has_len():
     assert has_len(DataLoader(RandomDataset(1, 1)))
 
-    with pytest.raises(ValueError, match="`Dataloader` returned 0 length."):
+    with pytest.warns(UserWarning, match="`DataLoader` returned 0 length."):
         assert has_len(DataLoader(RandomDataset(0, 0)))
 
     assert not has_len(DataLoader(RandomIterableDataset(1, 1)))
@@ -112,8 +112,8 @@ def test_has_len_all_rank():
     trainer = Trainer(fast_dev_run=True)
     model = BoringModel()
 
-    with pytest.raises(MisconfigurationException, match="Total length of `Dataloader` across ranks is zero."):
-        assert not has_len_all_ranks(DataLoader(RandomDataset(0, 0)), trainer.strategy, model)
+    with pytest.warns(UserWarning, match="Total length of `DataLoader` across ranks is zero."):
+        assert has_len_all_ranks(DataLoader(RandomDataset(0, 0)), trainer.strategy, model)
 
     assert has_len_all_ranks(DataLoader(RandomDataset(1, 1)), trainer.strategy, model)
 

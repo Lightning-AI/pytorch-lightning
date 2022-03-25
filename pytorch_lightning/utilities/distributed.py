@@ -18,7 +18,6 @@ import os
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
-from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
@@ -302,6 +301,21 @@ def tpu_distributed() -> bool:
     return _TPU_AVAILABLE and xm.xrt_world_size() > 1
 
 
+def get_default_process_group_backend_for_device(device: torch.device) -> str:
+    return "nccl" if device.type == "cuda" else "gloo"
+
+
+def _get_process_group_backend_from_env() -> Optional[str]:
+    torch_backend = os.getenv("PL_TORCH_DISTRIBUTED_BACKEND")
+    if torch_backend is not None:
+        rank_zero_deprecation(
+            "Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"
+            " was deprecated in v1.6 and will be removed in v1.8."
+            " Specify `process_group_backend` directly on the strategy constructor."
+        )
+    return torch_backend
+
+
 def init_dist_connection(
     cluster_environment: "pl.plugins.environments.ClusterEnvironment",
     torch_distributed_backend: str,
@@ -365,40 +379,6 @@ def _collect_states_on_rank_zero(state: Dict[str, Any]) -> Dict[int, Any]:
     if not distributed_available():
         return {0: state}
     return {rank: _broadcast_object_list(state, rank) for rank in range(torch.distributed.get_world_size())}
-
-
-class _BatchNormXd(torch.nn.modules.batchnorm._BatchNorm):
-    def _check_input_dim(self, input: torch.Tensor) -> None:
-        # The only difference between BatchNorm1d, BatchNorm2d, BatchNorm3d, etc
-        # is this method that is overwritten by the subclass.
-        # Here, we are bypassing some tensor sanity checks and trusting that the user
-        # provides the right input dimensions at inference.
-        return
-
-
-def _revert_sync_batchnorm(module: Module) -> Module:
-    # Code adapted from https://github.com/pytorch/pytorch/issues/41081#issuecomment-783961547
-    # Original author: Kapil Yedidi (@kapily)
-    converted_module = module
-    if isinstance(module, torch.nn.modules.batchnorm.SyncBatchNorm):
-        # Unfortunately, SyncBatchNorm does not store the original class - if it did
-        # we could return the one that was originally created.
-        converted_module = _BatchNormXd(
-            module.num_features, module.eps, module.momentum, module.affine, module.track_running_stats
-        )
-        if module.affine:
-            with torch.no_grad():
-                converted_module.weight = module.weight
-                converted_module.bias = module.bias
-        converted_module.running_mean = module.running_mean
-        converted_module.running_var = module.running_var
-        converted_module.num_batches_tracked = module.num_batches_tracked
-        if hasattr(module, "qconfig"):
-            converted_module.qconfig = module.qconfig
-    for name, child in module.named_children():
-        converted_module.add_module(name, _revert_sync_batchnorm(child))
-    del module
-    return converted_module
 
 
 def rank_zero_info(*args: Any, **kwargs: Any) -> Any:

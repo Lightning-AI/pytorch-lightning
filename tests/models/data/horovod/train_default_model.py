@@ -49,7 +49,7 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
     set_random_main_port()
     reset_seed()
 
-    ckpt_path = trainer_options["weights_save_path"]
+    ckpt_path = trainer_options["default_root_dir"]
     trainer_options.update(callbacks=[ModelCheckpoint(dirpath=ckpt_path)])
 
     class TestModel(BoringModel):
@@ -100,9 +100,9 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
     trainer._checkpoint_connector.restore(checkpoint_path)
 
     if on_gpu:
-        trainer = Trainer(gpus=1, strategy="horovod", max_epochs=1)
-        # Test the root_gpu property
-        assert trainer.root_gpu == hvd.local_rank()
+        trainer = Trainer(accelerator="gpu", devices=1, strategy="horovod", max_epochs=1)
+        # test root gpu index
+        assert trainer.strategy.root_device.index == hvd.local_rank()
 
 
 if __name__ == "__main__":
