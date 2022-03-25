@@ -46,7 +46,8 @@ class LitClassifier(pl.LightningModule):
         acc = self.accuracy(logits, y)
         self.log("test_acc", acc)
 
-    def accuracy(self, logits, y):
+    @staticmethod
+    def accuracy(logits, y):
         acc = torch.sum(torch.eq(torch.argmax(logits, -1), y).to(torch.float32)) / len(y)
         return acc
 
