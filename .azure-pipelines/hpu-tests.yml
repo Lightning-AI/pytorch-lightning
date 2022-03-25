@@ -41,6 +41,7 @@ jobs:
       displayName: 'HPU Tests in parallel'
 
     - bash: |
+        export PYTHONPATH="${PYTHONPATH}:$(pwd)"
         python "pl_examples/hpu_examples/simple_mnist/mnist.py"
       displayName: 'Testing: HPU examples'
 
