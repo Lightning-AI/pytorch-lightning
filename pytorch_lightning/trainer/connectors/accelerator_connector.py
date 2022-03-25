@@ -776,10 +776,6 @@ class AcceleratorConnector:
     # TODO: deprecate all properties below
 
     @property
-    def parallel_devices(self) -> List[Union[torch.device, int]]:
-        return self._parallel_devices
-
-    @property
     def tpu_cores(self) -> Optional[Union[List[int], int]]:
         if isinstance(self.accelerator, TPUAccelerator):
             return self._tpu_cores  # type: ignore
