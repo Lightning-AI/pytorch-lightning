@@ -28,7 +28,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.loops.dataloader import EvaluationLoop
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _PY_GRATER_EQUAL_3_8_0
+from pytorch_lightning.utilities.imports import _PYTHON_GRATER_EQUAL_3_8_0
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -575,7 +575,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
 
     def get_metrics_at_idx(idx):
         mock_call = mock_log_metrics.mock_calls[idx]
-        return mock_call.kwargs["metrics"] if _PY_GRATER_EQUAL_3_8_0 else mock_call[2]["metrics"]
+        return mock_call.kwargs["metrics"] if _PYTHON_GRATER_EQUAL_3_8_0 else mock_call[2]["metrics"]
 
     expected = {"valid_loss_0_step", "valid_loss_2"}
     assert set(get_metrics_at_idx(1)) == expected
@@ -777,7 +777,7 @@ def test_logging_multi_dataloader_on_epoch_end(mock_log_metrics, tmpdir):
     assert cb_metrics == {"foo/dataloader_idx_0", "foo/dataloader_idx_1", "foobar"}
 
     mock_call = mock_log_metrics.mock_calls[0]
-    logged_metrics = mock_call.kwargs["metrics"] if _PY_GRATER_EQUAL_3_8_0 else mock_call[2]["metrics"]
+    logged_metrics = mock_call.kwargs["metrics"] if _PYTHON_GRATER_EQUAL_3_8_0 else mock_call[2]["metrics"]
     cb_metrics.add("epoch")
     assert set(logged_metrics) == cb_metrics
 
