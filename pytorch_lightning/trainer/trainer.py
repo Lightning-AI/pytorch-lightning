@@ -1688,7 +1688,11 @@ class Trainer(
             with self.profiler.profile(f"[Callback]{callback.state_key}.on_save_checkpoint"):
                 state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
-                # TODO: Add deprecation warning if state is returned (see reference PR #11887)
+                rank_zero_deprecation(
+                    f"Returning a value from `{callback.__class__.__name__}.on_save_checkpoint` is deprecated in v1.6"
+                    " and will be removed in v1.8. Please override `Callback.state_dict`"
+                    " to return state to be saved."
+                )
                 checkpoint["callbacks"][callback.state_key] = state
 
         if pl_module:

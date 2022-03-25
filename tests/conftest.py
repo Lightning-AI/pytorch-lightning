@@ -191,6 +191,14 @@ def pytest_collection_modifyitems(items):
             # has `@RunIf(slow=True)`
             if marker.name == "skipif" and marker.kwargs.get("slow")
         ]
+    elif os.getenv("PL_RUN_IPU_TESTS", "0") == "1":
+        items[:] = [
+            item
+            for item in items
+            for marker in item.own_markers
+            # has `@RunIf(ipu=True)`
+            if marker.name == "skipif" and marker.kwargs.get("ipu")
+        ]
 
 
 def pytest_addoption(parser):
