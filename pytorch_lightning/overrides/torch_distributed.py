@@ -104,8 +104,7 @@ def _broadcast_object_list(object_list, src=0, group=None, device=None):
     # broadcasted to this device.
     group_backend = get_backend(group)
     is_nccl_backend = group_backend == Backend.NCCL
-    dist_backend = os.environ.get("PL_TORCH_DISTRIBUTED_BACKEND")
-    is_hpu_backend = group_backend == torch.distributed.Backend(str(dist_backend))
+    is_hpu_backend = os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
     current_device = None
     if device is not None:
         if is_nccl_backend and device.type != "cuda":

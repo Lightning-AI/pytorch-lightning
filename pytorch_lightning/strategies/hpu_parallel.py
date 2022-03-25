@@ -67,8 +67,9 @@ class HPUParallelStrategy(DDPStrategy):
         load_habana_module()
 
         os.environ["ID"] = str(self.local_rank)
-        # this env is used in overrides to check the backend initiated
-        os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "hccl"
+        if self._process_group_backend == "hccl":
+            # this env is used in overrides to check the backend initiated
+            os.environ["HCCL_DISTRIBUTED_BACKEND"] = str(1)
         super().setup_environment()
 
     def determine_ddp_device_ids(self) -> None:
@@ -120,6 +121,7 @@ class HPUParallelStrategy(DDPStrategy):
         self.lightning_module.cpu()  # type: ignore
         # Was set to local rank
         os.environ.pop("ID", None)
+        os.environ.pop("HCCL_DISTRIBUTED_BACKEND", None)
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
