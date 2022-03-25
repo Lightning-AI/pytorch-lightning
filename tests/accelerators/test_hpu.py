@@ -222,7 +222,7 @@ def test_devices_auto_choice_hpu():
 
 
 @RunIf(hpu=True)
-@pytest.mark.parametrize("hpus", 1)
+@pytest.mark.parametrize("hpus", [1])
 def test_inference_only(tmpdir, hpus):
     model = BoringModel()
 

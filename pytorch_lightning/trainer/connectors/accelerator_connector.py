@@ -655,7 +655,7 @@ class AcceleratorConnector:
         if isinstance(self.accelerator, IPUAccelerator):
             return IPUPrecisionPlugin(self._precision_flag)  # type: ignore
         if isinstance(self.accelerator, HPUAccelerator):
-            return HPUPrecisionPlugin(self._precision_flag, self._amp_level_flag)  # type: ignore
+            return HPUPrecisionPlugin(self._precision_flag)  # type: ignore
         if isinstance(self.accelerator, TPUAccelerator):
             if self._precision_flag == 32:
                 return TPUPrecisionPlugin()
