@@ -88,6 +88,7 @@ Welcome to PyTorch Lightning
    accelerators/gpu
    accelerators/tpu
    accelerators/ipu
+   accelerators/hpu
 
 .. toctree::
    :maxdepth: 1
@@ -112,6 +113,7 @@ Welcome to PyTorch Lightning
    common/remote_fs
    advanced/training_tricks
    advanced/pruning_quantization
+   common/progress_bar
    advanced/transfer_learning
    common/evaluation
 
