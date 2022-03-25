@@ -27,8 +27,9 @@ from pytorch_lightning.utilities import rank_zero_deprecation
 class LightningDistributedModule(_LightningModuleWrapperBase):
     def __init__(self, pl_module: "pl.LightningModule") -> None:
         """Wraps the user's LightningModule and redirects the forward call to the appropriate method, either
-        ``training_step``, ``validation_step``, ``test_step`` or ``predict``. This class is used in combination
-        with :class:`~torch.nn.parallel.DistributedDataParallel` as shown in the example.
+        ``training_step``, ``validation_step``, ``test_step`` or ``predict``.
+
+        This class is used in combination with :class:`~torch.nn.parallel.DistributedDataParallel`.
 
         Example:
 
