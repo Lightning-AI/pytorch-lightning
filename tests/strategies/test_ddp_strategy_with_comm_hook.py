@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
+
+import pytest
 import torch
 
 from pytorch_lightning import Trainer
@@ -136,3 +139,80 @@ def test_ddp_post_local_sgd_comm_hook(tmpdir):
     expected_comm_hook = post_localSGD.post_localSGD_hook.__qualname__
     assert trainer_comm_hook == expected_comm_hook
     assert trainer.state.finished, f"Training failed with {trainer.state}"
+
+
+@RunIf(skip_windows=True, min_torch="1.10.0", min_gpus=2, standalone=True)
+@mock.patch("torch.distributed.algorithms.model_averaging.averagers.PeriodicModelAverager.average_parameters")
+def test_post_local_sgd_model_averaging(average_parameters_mock, tmpdir):
+    """Test that when using DDP with post-localSGD, model averaging is called."""
+    model = BoringModel()
+
+    # test regular ddp does not call model averaging
+    trainer = Trainer(
+        fast_dev_run=True,
+        gpus=2,
+        strategy="ddp",
+        default_root_dir=tmpdir,
+        sync_batchnorm=True,
+    )
+
+    trainer.fit(model)
+    average_parameters_mock.assert_not_called()
+
+    # test ddp with post-localSGD does call model averaging
+    ddp_strategy = DDPStrategy(
+        ddp_comm_state=post_localSGD.PostLocalSGDState(
+            process_group=None,
+            subgroup=None,
+            start_localSGD_iter=8,
+        ),
+        ddp_comm_hook=post_localSGD.post_localSGD_hook,
+        model_averaging_period=4,
+    )
+
+    trainer = Trainer(
+        fast_dev_run=True,
+        gpus=2,
+        strategy=ddp_strategy,
+        default_root_dir=tmpdir,
+        sync_batchnorm=True,
+    )
+
+    trainer.fit(model)
+    average_parameters_mock.assert_called()
+
+
+@RunIf(skip_windows=True, min_torch="1.10.0", min_gpus=2, standalone=True)
+@mock.patch("torch.distributed.algorithms.model_averaging.averagers.PeriodicModelAverager.average_parameters")
+def test_post_local_sgd_model_averaging_value_error(average_parameters_mock, tmpdir):
+    """Test that when using DDP with post-localSGD a ValueError is thrown when the optmizer is
+    ZeroRedundancyOptimizer."""
+    from torch.distributed.optim import ZeroRedundancyOptimizer
+
+    class OptimizerModel(BoringModel):
+        def configure_optimizers(self):
+            return ZeroRedundancyOptimizer(params=self.parameters(), optimizer_class=torch.optim.Adam, lr=0.01)
+
+    model = OptimizerModel()
+    strategy = DDPStrategy(
+        ddp_comm_state=post_localSGD.PostLocalSGDState(
+            process_group=None,
+            subgroup=None,
+            start_localSGD_iter=8,
+        ),
+        ddp_comm_hook=post_localSGD.post_localSGD_hook,
+        model_averaging_period=4,
+    )
+
+    trainer = Trainer(
+        fast_dev_run=True,
+        gpus=2,
+        strategy=strategy,
+        default_root_dir=tmpdir,
+        sync_batchnorm=True,
+    )
+
+    with pytest.raises(ValueError, match="Currently model averaging cannot work with a distributed optimizer"):
+        trainer.fit(model)
+
+    average_parameters_mock.assert_not_called()
