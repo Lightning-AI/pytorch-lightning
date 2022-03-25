@@ -28,6 +28,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.loops.dataloader import EvaluationLoop
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _PY_GRATER_EQUAL_3_8_0
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -573,10 +574,8 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     assert mock_log_metrics.mock_calls[0] == call({"hp_metric": -1}, 0)
 
     def get_metrics_at_idx(idx):
-        mock_calls = list(mock_log_metrics.mock_calls)
-        if isinstance(mock_calls[idx].kwargs, dict):
-            return mock_calls[idx].kwargs["metrics"]
-        return mock_calls[idx][2]["metrics"]
+        mock_call = mock_log_metrics.mock_calls[idx]
+        return mock_call.kwargs["metrics"] if _PY_GRATER_EQUAL_3_8_0 else mock_call[2]["metrics"]
 
     expected = {"valid_loss_0_step", "valid_loss_2"}
     assert set(get_metrics_at_idx(1)) == expected
@@ -769,24 +768,18 @@ def test_logging_multi_dataloader_on_epoch_end(mock_log_metrics, tmpdir):
             return [super().test_dataloader(), super().test_dataloader()]
 
     model = CustomBoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        limit_test_batches=1,
-    )
+    trainer = Trainer(default_root_dir=tmpdir, limit_test_batches=1)
     results = trainer.test(model)
+
     # what's logged in `test_epoch_end` gets included in the results of each dataloader
     assert results == [{"foo/dataloader_idx_0": 1, "foobar": 3}, {"foo/dataloader_idx_1": 2, "foobar": 3}]
-    assert set(trainer.callback_metrics) == {
-        "foo/dataloader_idx_0",
-        "foo/dataloader_idx_1",
-        "foobar",
-    }
-    assert set(mock_log_metrics.mock_calls[0].kwargs["metrics"]) == {
-        "foo/dataloader_idx_0",
-        "foo/dataloader_idx_1",
-        "foobar",
-        "epoch",
-    }
+    cb_metrics = set(trainer.callback_metrics)
+    assert cb_metrics == {"foo/dataloader_idx_0", "foo/dataloader_idx_1", "foobar"}
+
+    mock_call = mock_log_metrics.mock_calls[0]
+    logged_metrics = mock_call.kwargs["metrics"] if _PY_GRATER_EQUAL_3_8_0 else mock_call[2]["metrics"]
+    cb_metrics.add("epoch")
+    assert set(logged_metrics) == cb_metrics
 
 
 inputs0 = ([{"log": torch.tensor(5)}, {"no_log": torch.tensor(6)}], RunningStage.TESTING)
