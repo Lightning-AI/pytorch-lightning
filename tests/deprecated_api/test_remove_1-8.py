@@ -1127,4 +1127,4 @@ def test_trainer_gpus(monkeypatch, trainer_kwargs):
         match="`Trainer.gpus` was deprecated in v1.6 and will be removed in v1.8."
         " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
     ):
-        assert trainer.gpus == trainer_kwargs.get("devices")
+        assert trainer.gpus == trainer_kwargs["devices"]
