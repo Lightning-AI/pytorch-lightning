@@ -251,23 +251,16 @@ def parse_hpus(devices: Optional[Union[int, str, List[int]]]) -> Optional[int]:
     :class:`~pytorch_lightning.trainer.Trainer` for the `devices` flag.
 
     Args:
-        devices: An int 1 or string '1' indicate that 1 Gaudi device should be used
-            An int 8 or string '8' indicate that all 8 Gaudi devices should be used
+        devices: An integer that indicates the number of Gaudi devices to be used
 
     Returns:
-        Either integer 1 or 8,  or ``None`` if no devices were requested
+        Either an integer or ``None`` if no devices were requested
 
     Raises:
         MisconfigurationException:
-            If devices aren't of value 1 or 8, or either of type `int` or `str`
+            If devices aren't of type `int` or `str`
     """
     if devices is not None and not isinstance(devices, (int, str)):
         raise MisconfigurationException("`devices` for `HPUAccelerator` must be int, string or None.")
 
-    if isinstance(devices, str) and devices in ("1", "8"):
-        devices = int(devices)
-
-    if devices not in (1, 8, None):
-        raise MisconfigurationException("`devices` can only be 1 or 8")
-
-    return devices
+    return int(devices) if isinstance(devices, str) else devices
