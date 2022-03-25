@@ -2066,7 +2066,11 @@ class Trainer(
     @property
     def device_ids(self) -> List[int]:
         """List of device indexes per node."""
-        devices = getattr(self.strategy, "parallel_devices", [self.strategy.root_device])
+        devices = (
+            self.strategy.parallel_devices
+            if isinstance(self.strategy, ParallelStrategy)
+            else [self.strategy.root_device]
+        )
         device_ids = []
         for idx, device in enumerate(devices):
             if isinstance(device, torch.device):

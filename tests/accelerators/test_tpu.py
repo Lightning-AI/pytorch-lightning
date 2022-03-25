@@ -94,7 +94,6 @@ def test_accelerator_cpu_with_tpu_cores_flag():
 
 
 @RunIf(tpu=True)
-@pl_multi_process_test
 @pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", None)])
 def test_accelerator_tpu(accelerator, devices):
     assert TPUAccelerator.is_available()
@@ -104,11 +103,10 @@ def test_accelerator_tpu(accelerator, devices):
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
     assert trainer.num_devices == 8
     with pytest.deprecated_call(
-        match= "`Trainer.tpu_cores` is deprecated in v1.6 and will be removed in v1.8. "
+        match="`Trainer.tpu_cores` is deprecated in v1.6 and will be removed in v1.8. "
         "Please use `Trainer.devices` instead."
     ):
         trainer.tpu_cores == 8
-
 
 
 @RunIf(tpu=True)
@@ -124,7 +122,6 @@ def test_accelerator_tpu_with_tpu_cores_priority():
 
 
 @RunIf(tpu=True)
-@pl_multi_process_test
 def test_set_devices_if_none_tpu():
     trainer = Trainer(accelerator="tpu", tpu_cores=8)
     assert trainer.num_devices == 8
