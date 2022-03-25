@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities related to model weights summary."""
 
+import contextlib
 import logging
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -23,7 +25,6 @@ from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities import _AcceleratorType, AMPType
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -261,16 +262,15 @@ class ModelSummary:
         input_ = model.example_input_array
         input_ = model._apply_batch_transfer_handler(input_)
 
-        if (
-            trainer is not None
-            and trainer.amp_backend == AMPType.NATIVE
-            and trainer._device_type != _AcceleratorType.TPU
-        ):
-            model.forward = torch.cuda.amp.autocast()(model.forward)
-
         mode = model.training
         model.eval()
-        with torch.no_grad():
+
+        if trainer is not None:
+            forward_context = trainer.precision_plugin.forward_context()
+        else:
+            forward_context = contextlib.nullcontext()
+
+        with torch.no_grad(), forward_context:
             # let the model hooks collect the input- and output shapes
             if isinstance(input_, (list, tuple)):
                 model(*input_)

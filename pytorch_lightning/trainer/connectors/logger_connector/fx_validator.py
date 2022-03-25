@@ -43,6 +43,7 @@ class _FxValidator:
         "optimizer_step": _LogOptions(
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),
+        "lr_scheduler_step": None,
         "on_before_zero_grad": _LogOptions(
             allowed_on_step=(False, True), allowed_on_epoch=(False, True), default_on_step=True, default_on_epoch=False
         ),
@@ -125,8 +126,10 @@ class _FxValidator:
         "on_predict_batch_end": None,
         "on_keyboard_interrupt": None,
         "on_exception": None,
+        "state_dict": None,
         "on_save_checkpoint": None,
         "on_load_checkpoint": None,
+        "load_state_dict": None,
         "setup": None,
         "teardown": None,
         "configure_sharded_model": None,

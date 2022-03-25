@@ -61,7 +61,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> None:
+    ) -> Any:
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"DeepSpeed and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
@@ -76,7 +76,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
             )
         # DeepSpeed handles the optimizer step internally
         deepspeed_engine = model.trainer.model if isinstance(model, pl.LightningModule) else model
-        deepspeed_engine.step(**kwargs)
+        return deepspeed_engine.step(**kwargs)
 
     def clip_gradients(
         self,

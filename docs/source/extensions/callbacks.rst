@@ -64,10 +64,10 @@ Examples
 --------
 You can do pretty much anything with callbacks.
 
-- `Add a MLP to fine-tune self-supervised networks <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/self_supervised.html#sslonlineevaluator>`_.
-- `Find how to modify an image input to trick the classification result <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/vision.html#confused-logit>`_.
-- `Interpolate the latent space of any variational model <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/variational.html#latent-dim-interpolator>`_.
-- `Log images to Tensorboard for any model <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/vision.html#tensorboard-image-generator>`_.
+- `Add a MLP to fine-tune self-supervised networks <https://lightning-bolts.readthedocs.io/en/stable/deprecated/callbacks/self_supervised.html#sslonlineevaluator>`_.
+- `Find how to modify an image input to trick the classification result <https://lightning-bolts.readthedocs.io/en/stable/deprecated/callbacks/vision.html#confused-logit>`_.
+- `Interpolate the latent space of any variational model <https://lightning-bolts.readthedocs.io/en/stable/deprecated/callbacks/variational.html#latent-dim-interpolator>`_.
+- `Log images to Tensorboard for any model <https://lightning-bolts.readthedocs.io/en/stable/deprecated/callbacks/vision.html#tensorboard-image-generator>`_.
 
 
 --------------
@@ -78,12 +78,11 @@ Lightning has a few built-in callbacks.
 
 .. note::
     For a richer collection of callbacks, check out our
-    `bolts library <https://lightning-bolts.readthedocs.io/en/latest/index.html>`_.
+    `bolts library <https://lightning-bolts.readthedocs.io/en/stable/index.html>`_.
 
 .. currentmodule:: pytorch_lightning.callbacks
 
 .. autosummary::
-    :toctree: generated
     :nosignatures:
     :template: classtemplate.rst
 
@@ -117,8 +116,8 @@ Persisting State
 ----------------
 
 Some callbacks require internal state in order to function properly. You can optionally
-choose to persist your callback's state as part of model checkpoint files using the callback hooks
-:meth:`~pytorch_lightning.callbacks.Callback.on_save_checkpoint` and :meth:`~pytorch_lightning.callbacks.Callback.on_load_checkpoint`.
+choose to persist your callback's state as part of model checkpoint files using
+:meth:`~pytorch_lightning.callbacks.Callback.state_dict` and :meth:`~pytorch_lightning.callbacks.Callback.load_state_dict`.
 Note that the returned state must be able to be pickled.
 
 When your callback is meant to be used only as a singleton callback then implementing the above two hooks is enough
@@ -148,10 +147,10 @@ the following example.
             if self.what == "batches":
                 self.state["batches"] += 1
 
-        def on_load_checkpoint(self, trainer, pl_module, callback_state):
-            self.state.update(callback_state)
+        def load_state_dict(self, state_dict):
+            self.state.update(state_dict)
 
-        def on_save_checkpoint(self, trainer, pl_module, checkpoint):
+        def state_dict(self):
             return self.state.copy()
 
 
@@ -188,7 +187,7 @@ The following are best practices when using/designing callbacks.
 
 -----------
 
-.. _hooks:
+.. _callback_hooks:
 
 Callback API
 ------------
@@ -214,12 +213,6 @@ on_configure_sharded_model
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.callbacks.Callback.on_configure_sharded_model
-    :noindex:
-
-on_before_accelerator_backend_setup
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_before_accelerator_backend_setup
     :noindex:
 
 setup
@@ -330,28 +323,7 @@ on_predict_epoch_end
 .. automethod:: pytorch_lightning.callbacks.Callback.on_predict_epoch_end
     :noindex:
 
-on_epoch_start
-~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_epoch_start
-    :noindex:
-
-on_epoch_end
-~~~~~~~~~~~~
-
 .. automethod:: pytorch_lightning.callbacks.Callback.on_epoch_end
-    :noindex:
-
-on_batch_start
-~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_batch_start
-    :noindex:
-
-on_batch_end
-~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_batch_end
     :noindex:
 
 on_validation_batch_start
@@ -402,18 +374,6 @@ on_train_end
 .. automethod:: pytorch_lightning.callbacks.Callback.on_train_end
     :noindex:
 
-on_pretrain_routine_start
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_pretrain_routine_start
-    :noindex:
-
-on_pretrain_routine_end
-~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_pretrain_routine_end
-    :noindex:
-
 on_validation_start
 ~~~~~~~~~~~~~~~~~~~
 
@@ -462,10 +422,22 @@ on_exception
 .. automethod:: pytorch_lightning.callbacks.Callback.on_exception
     :noindex:
 
+state_dict
+~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.callbacks.Callback.state_dict
+    :noindex:
+
 on_save_checkpoint
 ~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.callbacks.Callback.on_save_checkpoint
+    :noindex:
+
+load_state_dict
+~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.callbacks.Callback.load_state_dict
     :noindex:
 
 on_load_checkpoint

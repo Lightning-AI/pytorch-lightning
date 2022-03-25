@@ -26,9 +26,9 @@ from torch.nn import Module
 from torch.nn.modules.container import ModuleDict, ModuleList, Sequential
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_10
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch._C import _DisableTorchDispatch  # type: ignore[attr-defined]
@@ -147,7 +147,7 @@ else:
 
 
 # https://stackoverflow.com/a/63851681/9201239
-def get_all_subclasses(cls: Type[nn.Module]) -> Set[nn.Module]:
+def get_all_subclasses(cls: Type) -> Set[Type]:
     subclass_list = []
 
     def recurse(cl):

@@ -139,10 +139,10 @@ ENV/
 .data/
 Datasets/
 mnist/
+MNIST/
 legacy/checkpoints/
 *.gz
 *ubyte
-
 
 # pl tests
 ml-runs/

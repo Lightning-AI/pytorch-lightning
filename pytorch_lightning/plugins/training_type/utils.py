@@ -11,8 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
+from pytorch_lightning.strategies.utils import on_colab_kaggle as _on_colab_kaggle
+from pytorch_lightning.utilities import rank_zero_deprecation
 
 
 def on_colab_kaggle() -> bool:
-    return bool(os.getenv("COLAB_GPU") or os.getenv("KAGGLE_URL_BASE"))
+    rank_zero_deprecation(
+        "`pl.plugins.training_type.utils.on_colab_kaggle` is deprecated in v1.6 and will be removed in v1.8."
+        " Use `pl.strategies.utils.on_colab_kaggle` instead."
+    )
+    return _on_colab_kaggle()

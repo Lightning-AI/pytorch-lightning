@@ -26,8 +26,8 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -154,9 +154,7 @@ class EarlyStopping(Callback):
     def monitor_op(self) -> Callable:
         return self.mode_dict[self.mode]
 
-    def on_save_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def state_dict(self) -> Dict[str, Any]:
         return {
             "wait_count": self.wait_count,
             "stopped_epoch": self.stopped_epoch,
@@ -164,13 +162,11 @@ class EarlyStopping(Callback):
             "patience": self.patience,
         }
 
-    def on_load_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
-    ) -> None:
-        self.wait_count = callback_state["wait_count"]
-        self.stopped_epoch = callback_state["stopped_epoch"]
-        self.best_score = callback_state["best_score"]
-        self.patience = callback_state["patience"]
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        self.wait_count = state_dict["wait_count"]
+        self.stopped_epoch = state_dict["stopped_epoch"]
+        self.best_score = state_dict["best_score"]
+        self.patience = state_dict["patience"]
 
     def _should_skip_check(self, trainer: "pl.Trainer") -> bool:
         from pytorch_lightning.trainer.states import TrainerFn
@@ -200,7 +196,7 @@ class EarlyStopping(Callback):
         should_stop, reason = self._evaluate_stopping_criteria(current)
 
         # stop every ddp process if any world process decides to stop
-        should_stop = trainer.training_type_plugin.reduce_boolean_decision(should_stop)
+        should_stop = trainer.strategy.reduce_boolean_decision(should_stop)
         trainer.should_stop = trainer.should_stop or should_stop
         if should_stop:
             self.stopped_epoch = trainer.current_epoch

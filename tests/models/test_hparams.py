@@ -286,7 +286,6 @@ if _OMEGACONF_AVAILABLE:
             super().__init__(*args, **kwargs)
             self.save_hyperparameters()
 
-
 else:
 
     class DictConfSubClassBoringModel:
@@ -673,6 +672,31 @@ def test_ignore_args_list_hparams(tmpdir, ignore):
         assert arg not in model.hparams
 
 
+class IgnoreAllParametersModel(BoringModel):
+    def __init__(self, arg1, arg2, arg3):
+        super().__init__()
+        self.save_hyperparameters(ignore=("arg1", "arg2", "arg3"))
+
+
+class NoParametersModel(BoringModel):
+    def __init__(self):
+        super().__init__()
+        self.save_hyperparameters()
+
+
+@pytest.mark.parametrize(
+    "model",
+    (
+        IgnoreAllParametersModel(arg1=14, arg2=90, arg3=50),
+        NoParametersModel(),
+    ),
+)
+def test_save_no_parameters(model):
+    """Test that calling save_hyperparameters works if no parameters need saving."""
+    assert model.hparams == {}
+    assert model._hparams_initial == {}
+
+
 class HparamsKwargsContainerModel(BoringModel):
     def __init__(self, **kwargs):
         super().__init__()
@@ -793,3 +817,20 @@ def test_colliding_hparams(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     with pytest.raises(MisconfigurationException, match=r"Error while merging hparams:"):
         trainer.fit(model, datamodule=data)
+
+
+def test_nn_modules_raises_warning_when_saved_as_hparams():
+    class TorchModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.l1 = torch.nn.Linear(4, 5)
+
+    class CustomBoringModel(BoringModel):
+        def __init__(self, encoder, decoder, other_hparam=7):
+            super().__init__()
+            self.save_hyperparameters()
+
+    with pytest.warns(UserWarning, match="is an instance of `nn.Module` and is already saved"):
+        model = CustomBoringModel(encoder=TorchModule(), decoder=TorchModule())
+
+    assert list(model.hparams) == ["encoder", "decoder", "other_hparam"]

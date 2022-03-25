@@ -112,8 +112,8 @@ class QuantizationAwareTraining(Callback):
 
         collect_quantization: count or custom function to collect quantization statistics:
 
-            - ``None`` (deafult). The quantization observer is called in each module forward
-                (useful for collecting extended statistic when useing image/data augmentation).
+            - ``None`` (default). The quantization observer is called in each module forward
+                (useful for collecting extended statistic when using image/data augmentation).
             - ``int``. Use to set a fixed number of calls, starting from the beginning.
             - ``Callable``. Custom function with single trainer argument.
                 See this example to trigger only the last epoch:

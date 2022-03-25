@@ -213,12 +213,6 @@ def test_add_argparse_args_no_argument_group():
     assert args.my_parameter == 2
 
 
-def test_add_argparse_args_invalid():
-    """Test that `add_argparse_args` doesn't raise `TypeError` when a class has args typed as `typing.Generic` in
-    Python 3.6."""
-    add_argparse_args(AddArgparseArgsExampleClassGeneric, ArgumentParser())
-
-
 def test_gpus_allowed_type():
     assert _gpus_allowed_type("1,2") == "1,2"
     assert _gpus_allowed_type("1") == 1

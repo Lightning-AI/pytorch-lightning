@@ -37,10 +37,7 @@ references:
     run:
       name: Make Documentation
       command: |
-        # First run the same pipeline as Read-The-Docs
-        # apt-get update && apt-get install -y cmake
-        # using: https://hub.docker.com/r/readthedocs/build
-        # we need to use py3.7 ot higher becase of an issue with metaclass inheritence
+        # the image uses python 2.7 by default, force a different version
         pyenv global 3.7.3
         python --version
         pip install -r requirements/docs.txt
@@ -119,7 +116,7 @@ jobs:
     docker:
       - image: circleci/python:3.7
     environment:
-      - XLA_VER: 1.8
+      - XLA_VER: 1.9
       - PYTHON_VER: 3.7
       - MAX_CHECKS: 240
       - CHECK_SPEEP: 5

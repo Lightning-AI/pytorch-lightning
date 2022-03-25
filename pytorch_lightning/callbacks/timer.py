@@ -24,8 +24,8 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities import LightningEnum
-from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
 log = logging.getLogger(__name__)
 
@@ -159,21 +159,17 @@ class Timer(Callback):
             return
         self._check_time_remaining(trainer)
 
-    def on_save_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def state_dict(self) -> Dict[str, Any]:
         return {"time_elapsed": {stage.value: self.time_elapsed(stage) for stage in list(RunningStage)}}
 
-    def on_load_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
-    ) -> None:
-        time_elapsed = callback_state.get("time_elapsed", {})
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        time_elapsed = state_dict.get("time_elapsed", {})
         self._offset = time_elapsed.get(RunningStage.TRAINING.value, 0)
 
     def _check_time_remaining(self, trainer: "pl.Trainer") -> None:
         assert self._duration is not None
         should_stop = self.time_elapsed() >= self._duration
-        should_stop = trainer.training_type_plugin.broadcast(should_stop)
+        should_stop = trainer.strategy.broadcast(should_stop)
         trainer.should_stop = trainer.should_stop or should_stop
         if should_stop and self._verbose:
             elapsed = timedelta(seconds=int(self.time_elapsed(RunningStage.TRAINING)))

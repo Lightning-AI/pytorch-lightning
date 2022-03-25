@@ -2,7 +2,7 @@
 name: Refactor
 about: Suggest a code refactor or deprecation
 title: ''
-labels: refactor
+label: needs triage
 assignees: ''
 ---
 

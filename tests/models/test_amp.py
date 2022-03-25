@@ -153,11 +153,11 @@ def test_amp_gpu_ddp_slurm_managed(tmpdir):
     assert trainer.state.finished, "amp + ddp model failed to complete"
 
     # test root model address
-    assert isinstance(trainer.training_type_plugin.cluster_environment, SLURMEnvironment)
-    assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address("abc") == "abc"
-    assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address("abc[23]") == "abc23"
-    assert trainer.training_type_plugin.cluster_environment.resolve_root_node_address("abc[23-24]") == "abc23"
-    generated = trainer.training_type_plugin.cluster_environment.resolve_root_node_address("abc[23-24, 45-40, 40]")
+    assert isinstance(trainer.strategy.cluster_environment, SLURMEnvironment)
+    assert trainer.strategy.cluster_environment.resolve_root_node_address("abc") == "abc"
+    assert trainer.strategy.cluster_environment.resolve_root_node_address("abc[23]") == "abc23"
+    assert trainer.strategy.cluster_environment.resolve_root_node_address("abc[23-24]") == "abc23"
+    generated = trainer.strategy.cluster_environment.resolve_root_node_address("abc[23-24, 45-40, 40]")
     assert generated == "abc23"
 
 
@@ -199,7 +199,9 @@ def test_amp_with_apex(bwd_mock, tmpdir):
     assert str(trainer.amp_backend) == "AMPType.APEX"
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert bwd_mock.call_count == 10
+    # `max_steps` is fulfilled in the third batch first optimizer, but we don't check the loop
+    # `done` condition until all optimizers have run, so the number of backwards is higher than `max_steps`
+    assert bwd_mock.call_count == 6
 
-    assert isinstance(trainer.lr_schedulers[0]["scheduler"].optimizer, optim.Adam)
-    assert isinstance(trainer.lr_schedulers[1]["scheduler"].optimizer, optim.SGD)
+    assert isinstance(trainer.lr_scheduler_configs[0].scheduler.optimizer, optim.Adam)
+    assert isinstance(trainer.lr_scheduler_configs[1].scheduler.optimizer, optim.SGD)

@@ -20,8 +20,9 @@ from typing import Any, Dict, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import _module_available, rank_zero_deprecation, rank_zero_warn
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities import _module_available
+from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
 
 _TESTTUBE_AVAILABLE = _module_available("test_tube")
 
@@ -152,14 +153,14 @@ class TestTubeLogger(LightningLoggerBase):
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         # TODO: HACK figure out where this is being set to true
         self.experiment.debug = self.debug
-        params = self._convert_params(params)
-        params = self._flatten_dict(params)
+        params = _convert_params(params)
+        params = _flatten_dict(params)
         self.experiment.argparse(Namespace(**params))
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         # TODO: HACK figure out where this is being set to true
-        metrics = self._add_prefix(metrics)
+        metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
         self.experiment.debug = self.debug
         self.experiment.log(metrics, global_step=step)
 

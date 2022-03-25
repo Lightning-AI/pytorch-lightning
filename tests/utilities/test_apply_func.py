@@ -22,6 +22,7 @@ import pytest
 import torch
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def test_recursive_application_to_collection():
@@ -300,6 +301,17 @@ def test_apply_to_collections():
     assert reduced1 == reduced2 == [1, 4, 9]
     reduced = apply_to_collections(None, None, int, lambda x: x * x)
     assert reduced is None
+
+
+def test_apply_to_collection_frozen_dataclass():
+    @dataclasses.dataclass(frozen=True)
+    class Foo:
+        input: torch.Tensor
+
+    foo = Foo(torch.tensor(0))
+
+    with pytest.raises(MisconfigurationException, match="frozen dataclass was passed"):
+        apply_to_collection(foo, torch.Tensor, lambda t: t.to(torch.int))
 
 
 @pytest.mark.parametrize("should_return", [False, True])

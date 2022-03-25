@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import sys
-from types import ModuleType
+from types import ModuleType, TracebackType
 
 import pytorch_lightning.utilities.argparse
 
@@ -32,7 +34,7 @@ class pl_legacy_patch:
             torch.load("path/to/legacy/checkpoint.ckpt")
     """
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         # `pl.utilities.argparse_utils` was renamed to `pl.utilities.argparse`
         legacy_argparse_module = ModuleType("pytorch_lightning.utilities.argparse_utils")
         sys.modules["pytorch_lightning.utilities.argparse_utils"] = legacy_argparse_module
@@ -40,9 +42,10 @@ class pl_legacy_patch:
         # `_gpus_arg_default` used to be imported from these locations
         legacy_argparse_module._gpus_arg_default = lambda x: x
         pytorch_lightning.utilities.argparse._gpus_arg_default = lambda x: x
-        return self
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
+    def __exit__(
+        self, exc_type: type[BaseException] | None, exc_value: BaseException | None, exc_traceback: TracebackType | None
+    ) -> None:
         if hasattr(pytorch_lightning.utilities.argparse, "_gpus_arg_default"):
             delattr(pytorch_lightning.utilities.argparse, "_gpus_arg_default")
         del sys.modules["pytorch_lightning.utilities.argparse_utils"]

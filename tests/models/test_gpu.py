@@ -92,59 +92,6 @@ def mocked_device_count_0(monkeypatch):
     monkeypatch.setattr(torch.cuda, "device_count", device_count)
 
 
-@pytest.mark.parametrize(
-    ["gpus", "expected_num_gpus", "strategy"],
-    [
-        pytest.param(None, 0, None, id="None - expect 0 gpu to use."),
-        pytest.param(0, 0, None, id="Oth gpu, expect 1 gpu to use."),
-        pytest.param(1, 1, None, id="1st gpu, expect 1 gpu to use."),
-        pytest.param(-1, PRETEND_N_OF_GPUS, "ddp", id="-1 - use all gpus"),
-        pytest.param("-1", PRETEND_N_OF_GPUS, "ddp", id="'-1' - use all gpus"),
-        pytest.param(3, 3, "ddp", id="3rd gpu - 1 gpu to use (backend:ddp)"),
-    ],
-)
-def test_trainer_gpu_parse(mocked_device_count, gpus, expected_num_gpus, strategy):
-    assert Trainer(gpus=gpus, strategy=strategy).num_gpus == expected_num_gpus
-
-
-@pytest.mark.parametrize(
-    ["gpus", "expected_num_gpus", "strategy"],
-    [
-        pytest.param(None, 0, None, id="None - expect 0 gpu to use."),
-        pytest.param(None, 0, "ddp", id="None - expect 0 gpu to use."),
-    ],
-)
-def test_trainer_num_gpu_0(mocked_device_count_0, gpus, expected_num_gpus, strategy):
-    assert Trainer(gpus=gpus, strategy=strategy).num_gpus == expected_num_gpus
-
-
-@pytest.mark.parametrize(
-    ["gpus", "expected_root_gpu", "strategy"],
-    [
-        pytest.param(None, None, "ddp", id="None is None"),
-        pytest.param(0, None, "ddp", id="O gpus, expect gpu root device to be None."),
-        pytest.param(1, 0, "ddp", id="1 gpu, expect gpu root device to be 0."),
-        pytest.param(-1, 0, "ddp", id="-1 - use all gpus, expect gpu root device to be 0."),
-        pytest.param("-1", 0, "ddp", id="'-1' - use all gpus, expect gpu root device to be 0."),
-        pytest.param(3, 0, "ddp", id="3 gpus, expect gpu root device to be 0.(backend:ddp)"),
-    ],
-)
-def test_root_gpu_property(mocked_device_count, gpus, expected_root_gpu, strategy):
-    assert Trainer(gpus=gpus, strategy=strategy).root_gpu == expected_root_gpu
-
-
-@pytest.mark.parametrize(
-    ["gpus", "expected_root_gpu", "strategy"],
-    [
-        pytest.param(None, None, None, id="None is None"),
-        pytest.param(None, None, "ddp", id="None is None"),
-        pytest.param(0, None, "ddp", id="None is None"),
-    ],
-)
-def test_root_gpu_property_0_passing(mocked_device_count_0, gpus, expected_root_gpu, strategy):
-    assert Trainer(gpus=gpus, strategy=strategy).root_gpu == expected_root_gpu
-
-
 # Asking for a gpu when non are available will result in a MisconfigurationException
 @pytest.mark.parametrize(
     ["gpus", "expected_root_gpu", "strategy"],
@@ -232,17 +179,21 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
         "RANK": "3",
         "WORLD_SIZE": "4",
         "LOCAL_WORLD_SIZE": "2",
+        "TORCHELASTIC_RUN_ID": "1",
     },
 )
 @mock.patch("torch.cuda.device_count", return_value=1)
-@pytest.mark.parametrize("gpus", [[0, 1, 2], 2, "0"])
-def test_torchelastic_gpu_parsing(mocked_device_count, gpus):
+@mock.patch("torch.cuda.is_available", return_value=True)
+@pytest.mark.parametrize("gpus", [[0, 1, 2], 2, "0", [0, 2]])
+def test_torchelastic_gpu_parsing(mocked_device_count, mocked_is_available, gpus):
     """Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device That we omit
     sanitizing the gpus as only one of the GPUs is visible."""
     trainer = Trainer(gpus=gpus)
     assert isinstance(trainer._accelerator_connector.cluster_environment, TorchElasticEnvironment)
-    assert trainer._accelerator_connector.parallel_device_ids == device_parser.parse_gpu_ids(gpus)
     assert trainer.gpus == gpus
+    # when use gpu
+    if device_parser.parse_gpu_ids(gpus) is not None:
+        assert trainer.device_ids == device_parser.parse_gpu_ids(gpus)
 
 
 @RunIf(min_gpus=1)
@@ -252,35 +203,35 @@ def test_single_gpu_batch_parse():
     # non-transferrable types
     primitive_objects = [None, {}, [], 1.0, "x", [None, 2], {"x": (1, 2), "y": None}]
     for batch in primitive_objects:
-        data = trainer.training_type_plugin.batch_to_device(batch, torch.device("cuda:0"))
+        data = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
         assert data == batch
 
     # batch is just a tensor
     batch = torch.rand(2, 3)
-    batch = trainer.training_type_plugin.batch_to_device(batch, torch.device("cuda:0"))
+    batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
     assert batch.device.index == 0 and batch.type() == "torch.cuda.FloatTensor"
 
     # tensor list
     batch = [torch.rand(2, 3), torch.rand(2, 3)]
-    batch = trainer.training_type_plugin.batch_to_device(batch, torch.device("cuda:0"))
+    batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
     assert batch[0].device.index == 0 and batch[0].type() == "torch.cuda.FloatTensor"
     assert batch[1].device.index == 0 and batch[1].type() == "torch.cuda.FloatTensor"
 
     # tensor list of lists
     batch = [[torch.rand(2, 3), torch.rand(2, 3)]]
-    batch = trainer.training_type_plugin.batch_to_device(batch, torch.device("cuda:0"))
+    batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
     assert batch[0][0].device.index == 0 and batch[0][0].type() == "torch.cuda.FloatTensor"
     assert batch[0][1].device.index == 0 and batch[0][1].type() == "torch.cuda.FloatTensor"
 
     # tensor dict
     batch = [{"a": torch.rand(2, 3), "b": torch.rand(2, 3)}]
-    batch = trainer.training_type_plugin.batch_to_device(batch, torch.device("cuda:0"))
+    batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
     assert batch[0]["a"].device.index == 0 and batch[0]["a"].type() == "torch.cuda.FloatTensor"
     assert batch[0]["b"].device.index == 0 and batch[0]["b"].type() == "torch.cuda.FloatTensor"
 
     # tuple of tensor list and list of tensor dict
     batch = ([torch.rand(2, 3) for _ in range(2)], [{"a": torch.rand(2, 3), "b": torch.rand(2, 3)} for _ in range(2)])
-    batch = trainer.training_type_plugin.batch_to_device(batch, torch.device("cuda:0"))
+    batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
     assert batch[0][0].device.index == 0 and batch[0][0].type() == "torch.cuda.FloatTensor"
 
     assert batch[1][0]["a"].device.index == 0
@@ -292,7 +243,7 @@ def test_single_gpu_batch_parse():
     # namedtuple of tensor
     BatchType = namedtuple("BatchType", ["a", "b"])
     batch = [BatchType(a=torch.rand(2, 3), b=torch.rand(2, 3)) for _ in range(2)]
-    batch = trainer.training_type_plugin.batch_to_device(batch, torch.device("cuda:0"))
+    batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
     assert batch[0].a.device.index == 0
     assert batch[0].a.type() == "torch.cuda.FloatTensor"
 
@@ -305,7 +256,7 @@ def test_single_gpu_batch_parse():
             self.a = self.a.to(*args, **kwargs)
             return self
 
-    batch = trainer.training_type_plugin.batch_to_device(CustomBatchType(), torch.device("cuda:0"))
+    batch = trainer.strategy.batch_to_device(CustomBatchType(), torch.device("cuda:0"))
     assert batch.a.type() == "torch.cuda.FloatTensor"
 
     # torchtext.data.Batch
@@ -331,7 +282,7 @@ def test_single_gpu_batch_parse():
     batch = Batch(data=examples, dataset=dataset)
 
     with pytest.deprecated_call(match="The `torchtext.legacy.Batch` object is deprecated"):
-        batch = trainer.training_type_plugin.batch_to_device(batch, torch.device("cuda:0"))
+        batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
 
     assert batch.text.type() == "torch.cuda.LongTensor"
     assert batch.label.type() == "torch.cuda.LongTensor"
@@ -344,7 +295,7 @@ def test_non_blocking():
 
     batch = torch.zeros(2, 3)
     with patch.object(batch, "to", wraps=batch.to) as mocked:
-        batch = trainer.training_type_plugin.batch_to_device(batch, torch.device("cuda:0"))
+        batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
         mocked.assert_called_with(torch.device("cuda", 0), non_blocking=True)
 
     class BatchObject:
@@ -353,5 +304,5 @@ def test_non_blocking():
 
     batch = BatchObject()
     with patch.object(batch, "to", wraps=batch.to) as mocked:
-        batch = trainer.training_type_plugin.batch_to_device(batch, torch.device("cuda:0"))
+        batch = trainer.strategy.batch_to_device(batch, torch.device("cuda:0"))
         mocked.assert_called_with(torch.device("cuda", 0))

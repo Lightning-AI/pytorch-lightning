@@ -28,9 +28,25 @@ A Lightning checkpoint has everything needed to restore a training session inclu
 - LightningModule's state_dict
 - State of all optimizers
 - State of all learning rate schedulers
-- State of all callbacks
+- State of all callbacks (for stateful callbacks)
+- State of datamodule (for stateful datamodules)
 - The hyperparameters used for that model if passed in as hparams (Argparse.Namespace)
 - State of Loops (if using Fault-Tolerant training)
+
+
+Individual Component States
+===========================
+
+Each component can save and load its state by implementing the PyTorch ``state_dict``, ``load_state_dict`` stateful protocol.
+For details on implementing your own stateful callbacks and datamodules, refer to the individual docs pages at :doc:`callbacks <../extensions/callbacks>` and :doc:`datamodules <../extensions/datamodules>`.
+
+
+Operating on Global Checkpoint Component States
+===============================================
+
+If you need to operate on the global component state (i.e. the entire checkpoint dictionary), you can read/add/delete/modify custom states in your checkpoints before they are being saved or loaded.
+For this you can override :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint` and :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint` in your ``LightningModule``
+or :meth:`~pytorch_lightning.callbacks.base.Callback.on_save_checkpoint` and :meth:`~pytorch_lightning.callbacks.base.Callback.on_load_checkpoint` methods in your ``Callback``.
 
 
 *****************
@@ -98,16 +114,8 @@ Lightning automatically ensures that the model is saved only on the main process
     trainer.save_checkpoint("example.ckpt")
 
 Not using :meth:`~pytorch_lightning.trainer.trainer.Trainer.save_checkpoint` can lead to unexpected behavior and potential deadlock. Using other saving functions will result in all devices attempting to save the checkpoint. As a result, we highly recommend using the Trainer's save functionality.
-If using custom saving functions cannot be avoided, we recommend using the :func:`~pytorch_lightning.utilities.distributed.rank_zero_only` decorator to ensure saving occurs only on the main process. Note that this will only work if all ranks hold the exact same state and won't work when using
+If using custom saving functions cannot be avoided, we recommend using the :func:`~pytorch_lightning.utilities.rank_zero.rank_zero_only` decorator to ensure saving occurs only on the main process. Note that this will only work if all ranks hold the exact same state and won't work when using
 model parallel distributed strategies such as deepspeed or sharded training.
-
-
-Modifying Checkpoint When Saving and Loading
-============================================
-
-You can add/delete/modify custom states in your checkpoints before they are being saved or loaded. For this you can override :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint`
-and :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint` in your ``LightningModule`` or :meth:`~pytorch_lightning.callbacks.base.Callback.on_save_checkpoint` and
-:meth:`~pytorch_lightning.callbacks.base.Callback.on_load_checkpoint` methods in your ``Callback``.
 
 
 Checkpointing Hyperparameters
@@ -318,7 +326,7 @@ Customize Checkpointing
 
 
 Lightning supports modifying the checkpointing save/load functionality through the ``CheckpointIO``. This encapsulates the save/load logic
-that is managed by the ``TrainingTypePlugin``. ``CheckpointIO`` is different from :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint`
+that is managed by the ``Strategy``. ``CheckpointIO`` is different from :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint`
 and :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint` methods as it determines how the checkpoint is saved/loaded to storage rather than
 what's saved in the checkpoint.
 
@@ -342,13 +350,14 @@ Built-in Checkpoint IO Plugins
 Custom Checkpoint IO Plugin
 ===========================
 
-``CheckpointIO`` can be extended to include your custom save/load functionality to and from a path. The ``CheckpointIO`` object can be passed to either a ``Trainer`` directly or a ``TrainingTypePlugin`` as shown below:
+``CheckpointIO`` can be extended to include your custom save/load functionality to and from a path. The ``CheckpointIO`` object can be passed to either a ``Trainer`` directly or a ``Strategy`` as shown below:
 
 .. code-block:: python
 
     from pytorch_lightning import Trainer
     from pytorch_lightning.callbacks import ModelCheckpoint
-    from pytorch_lightning.plugins import CheckpointIO, SingleDevicePlugin
+    from pytorch_lightning.plugins import CheckpointIO
+    from pytorch_lightning.strategies import SingleDeviceStrategy
 
 
     class CustomCheckpointIO(CheckpointIO):
@@ -372,15 +381,25 @@ Custom Checkpoint IO Plugin
     )
     trainer.fit(model)
 
-    # or pass into TrainingTypePlugin
+    # or pass into Strategy
     model = MyModel()
     device = torch.device("cpu")
     trainer = Trainer(
-        plugins=SingleDevicePlugin(device, checkpoint_io=custom_checkpoint_io),
+        strategy=SingleDeviceStrategy(device, checkpoint_io=custom_checkpoint_io),
         callbacks=ModelCheckpoint(save_last=True),
     )
     trainer.fit(model)
 
 .. note::
 
-    Some ``TrainingTypePlugins`` like ``DeepSpeedPlugin`` do not support custom ``CheckpointIO`` as checkpointing logic is not modifiable.
+    Some ``TrainingTypePlugins`` like ``DeepSpeedStrategy`` do not support custom ``CheckpointIO`` as checkpointing logic is not modifiable.
+
+-----------
+
+***************************
+Managing Remote Filesystems
+***************************
+
+Lightning supports saving and loading checkpoints from a variety of filesystems, including local filesystems and several cloud storage providers.
+
+Check out :ref:`Remote Filesystems <remote_fs>` document for more info.
