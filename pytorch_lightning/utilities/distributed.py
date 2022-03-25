@@ -18,7 +18,6 @@ import os
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
-from torch.distributed import get_backend
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
@@ -132,9 +131,7 @@ def sync_ddp(
 
     # WA for HPU. HPU doesn't support Long types, forcefully set it to float
     if _HPU_AVAILABLE:
-        group_backend = get_backend(group)
-        dist_backend = os.environ.get("PL_TORCH_DISTRIBUTED_BACKEND")
-        is_hpu_backend = group_backend == torch.distributed.Backend(str(dist_backend))
+        is_hpu_backend = os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
         if is_hpu_backend:
             if (result.type() == "torch.LongTensor") or (result.type() == "torch.hpu.LongTensor"):
                 new_rank_zero_info("Long tensor unsupported on HPU, casting to float")
