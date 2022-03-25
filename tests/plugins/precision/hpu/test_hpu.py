@@ -26,7 +26,7 @@ from tests.helpers.runif import RunIf
 @pytest.fixture
 def hmp_params(request):
     return {
-        "opt_level": "01",
+        "opt_level": "O1",
         "verbose": False,
         "bf16_file_path": request.config.getoption("--hmp-bf16"),
         "fp32_file_path": request.config.getoption("--hmp-fp32"),

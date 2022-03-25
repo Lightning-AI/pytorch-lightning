@@ -68,13 +68,13 @@ By default, HPU training will use 32-bit precision. To enable mixed precision, s
 Enabling Mixed Precision Options
 --------------------------------
 
-Internally, :class:`~pytorch_lightning.plugins.precision.HPUPrecisionPlugin` uses the Habana Mixed Precision (HMP) package to enable mixed precision training.
+Internally, :class:`~pytorch_lightning.plugins.precision.hpu.HPUPrecisionPlugin` uses the Habana Mixed Precision (HMP) package to enable mixed precision training.
 
 You can execute the ops in FP32 or BF16 precision. The HMP package modifies the Python operators to add the appropriate cast operations for the arguments before execution.
 The default settings enable users to enable mixed precision training with minimal code easily.
 
 In addition to the default settings in HMP, users also have the option of overriding these defaults and providing their
-BF16 and FP32 operator lists by passing them as parameter to :class:`~pytorch_lightning.plugins.precision.HPUPrecisionPlugin`.
+BF16 and FP32 operator lists by passing them as parameter to :class:`~pytorch_lightning.plugins.precision.hpu.HPUPrecisionPlugin`.
 
 The below snippet shows an example model using MNIST with a single Habana Gaudi device and making use of HMP by overriding the default parameters.
 This enables advanced users to provide their own BF16 and FP32 operator list instead of using the HMP defaults.
@@ -90,6 +90,7 @@ This enables advanced users to provide their own BF16 and FP32 operator list ins
         accelerator="hpu",
         devices=1,
         # Optional Habana mixed precision params to be set
+        # Checkout `pl_examples/hpu_examples/simple_mnist/ops_bf16_mnist.txt` for the format
         plugins=[
             HPUPrecisionPlugin(
                 precision=16,

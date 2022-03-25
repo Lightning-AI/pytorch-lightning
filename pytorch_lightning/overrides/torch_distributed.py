@@ -24,7 +24,7 @@ if torch.distributed.is_available():
 # the distributed backend and tensor type updates for habana backend is done here before broadcast
 
 
-# https://github.com/pytorch/pytorch/blob/master/torch/distributed/distributed_c10d.py#L256
+# Taken from https://github.com/pytorch/pytorch/blob/3466c1b6901f06a563b8cbfa3c942fa50bda835b/torch/distributed/distributed_c10d.py#L267 # noqa: E501
 def _rank_not_in_group(group: ProcessGroup):
     """Helper that checks if the current process's rank is not in a given group."""
     if group is None:
@@ -32,7 +32,7 @@ def _rank_not_in_group(group: ProcessGroup):
     return group == GroupMember.NON_GROUP_MEMBER
 
 
-# Taken from https://github.com/pytorch/pytorch/blob/master/torch/distributed/distributed_c10d.py#L1518
+# Taken from https://github.com/pytorch/pytorch/blob/3466c1b6901f06a563b8cbfa3c942fa50bda835b/torch/distributed/distributed_c10d.py#L1551 # noqa: E501
 def _object_to_tensor(obj):
     f = io.BytesIO()
     _pickler(f).dump(obj)
@@ -45,13 +45,12 @@ def _object_to_tensor(obj):
     return byte_tensor, local_size
 
 
-# Taken from https://github.com/pytorch/pytorch/blob/master/torch/distributed/distributed_c10d.py#L1530
+# Taken from https://github.com/pytorch/pytorch/blob/3466c1b6901f06a563b8cbfa3c942fa50bda835b/torch/distributed/distributed_c10d.py#L1563 # noqa: E501
 def _tensor_to_object(tensor, tensor_size):
     buf = tensor.numpy().tobytes()[:tensor_size]
     return _unpickler(io.BytesIO(buf)).load()
 
 
-# Taken from https://github.com/pytorch/pytorch/blob/master/torch/distributed/distributed_c10d.py#L1729
 def _broadcast_object_list(object_list, src=0, group=None, device=None):
     """Broadcasts picklable objects in ``object_list`` to the whole group. Similar to :func:`broadcast`, but Python
     objects can be passed in. Note that all objects in ``object_list`` must be picklable in order to be
