@@ -64,3 +64,11 @@ class TPUAccelerator(Accelerator):
     @staticmethod
     def is_available() -> bool:
         return _TPU_AVAILABLE
+
+    @classmethod
+    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+        accelerator_registry.register(
+            "tpu",
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )

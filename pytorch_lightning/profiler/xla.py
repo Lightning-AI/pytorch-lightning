@@ -14,7 +14,7 @@
 import logging
 from typing import Dict
 
-from pytorch_lightning.profiler.base import BaseProfiler
+from pytorch_lightning.profiler.profiler import Profiler
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
@@ -24,7 +24,7 @@ if _TPU_AVAILABLE and _TORCH_GREATER_EQUAL_1_8:
 log = logging.getLogger(__name__)
 
 
-class XLAProfiler(BaseProfiler):
+class XLAProfiler(Profiler):
 
     STEP_FUNCTIONS = {"validation_step", "test_step", "predict_step"}
     RECORD_FUNCTIONS = {
@@ -78,6 +78,3 @@ class XLAProfiler(BaseProfiler):
         else:
             self._step_recoding_map[action_name] += 1
         return self._step_recoding_map[action_name]
-
-    def summary(self) -> str:
-        return ""

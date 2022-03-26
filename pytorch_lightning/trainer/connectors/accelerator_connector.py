@@ -14,14 +14,17 @@
 
 import logging
 import os
-from typing import List, Optional, Union
+from collections import Counter
+from typing import Dict, List, Optional, Union
 
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
+from pytorch_lightning.accelerators.hpu import HPUAccelerator
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
+from pytorch_lightning.accelerators.registry import AcceleratorRegistry
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
@@ -29,6 +32,7 @@ from pytorch_lightning.plugins import (
     DeepSpeedPrecisionPlugin,
     DoublePrecisionPlugin,
     FullyShardedNativeMixedPrecisionPlugin,
+    HPUPrecisionPlugin,
     IPUPrecisionPlugin,
     NativeMixedPrecisionPlugin,
     PLUGIN_INPUT,
@@ -56,9 +60,10 @@ from pytorch_lightning.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     HorovodStrategy,
+    HPUParallelStrategy,
     IPUStrategy,
-    ParallelStrategy,
     SingleDeviceStrategy,
+    SingleHPUStrategy,
     SingleTPUStrategy,
     Strategy,
     StrategyRegistry,
@@ -76,6 +81,7 @@ from pytorch_lightning.utilities import (
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
+    _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_8,
     _TPU_AVAILABLE,
@@ -156,7 +162,7 @@ class AcceleratorConnector:
         # 1. Parsing flags
         # Get registered strategies, built-in accelerators and precision plugins
         self._registered_strategies = StrategyRegistry.available_strategies()
-        self._accelerator_types = ("tpu", "ipu", "gpu", "cpu")
+        self._accelerator_types = AcceleratorRegistry.available_accelerators()
         self._precision_types = ("16", "32", "64", "bf16", "mixed")
 
         # Raise an exception if there are conflicts between flags
@@ -186,7 +192,6 @@ class AcceleratorConnector:
         self._check_device_config_and_set_final_flags(
             devices=devices, num_nodes=num_nodes, num_processes=num_processes, gpus=gpus, ipus=ipus, tpu_cores=tpu_cores
         )
-
         # 2. Instantiate Accelerator
         # handle `auto` and `None`
         self._set_accelerator_if_ipu_strategy_is_passed()
@@ -304,6 +309,7 @@ class AcceleratorConnector:
             self._precision_flag = precision
 
         if plugins:
+            plugins_flags_types: Dict[str, int] = Counter()
             for plugin in plugins:
                 if isinstance(plugin, Strategy) or isinstance(plugin, str) and plugin in self._registered_strategies:
                     self._strategy_flag = plugin
@@ -311,15 +317,17 @@ class AcceleratorConnector:
                         f"Passing {plugin} `strategy` to the `plugins` flag in Trainer has been deprecated"
                         f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={plugin})` instead."
                     )
+                    plugins_flags_types[Strategy.__name__] += 1
 
                 elif isinstance(plugin, PrecisionPlugin):
                     self._precision_plugin_flag = plugin
-                elif isinstance(plugin, str) and plugin in self._precision_types:
-                    self._precision_flag = plugin
+                    plugins_flags_types[PrecisionPlugin.__name__] += 1
                 elif isinstance(plugin, CheckpointIO):
                     self.checkpoint_io = plugin
+                    plugins_flags_types[CheckpointIO.__name__] += 1
                 elif isinstance(plugin, ClusterEnvironment):
                     self._cluster_environment_flag = plugin
+                    plugins_flags_types[ClusterEnvironment.__name__] += 1
                 elif isinstance(plugin, LayerSync):
                     if sync_batchnorm and not isinstance(plugin, NativeSyncBatchNorm):
                         raise MisconfigurationException(
@@ -327,10 +335,19 @@ class AcceleratorConnector:
                             " plugin, but this is not allowed. Choose one or the other."
                         )
                     self._layer_sync = plugin
+                    plugins_flags_types[NativeSyncBatchNorm.__name__] += 1
                 else:
                     raise MisconfigurationException(
-                        f"Found invalid type for plugin {plugin}. Expected a precision plugin or training strategy."
+                        f"Found invalid type for plugin {plugin}. Expected one of: PrecisionPlugin, "
+                        "CheckpointIO, ClusterEnviroment, LayerSync, or Strategy."
                     )
+
+            duplicated_plugin_key = [k for k, v in plugins_flags_types.items() if v > 1]
+            if duplicated_plugin_key:
+                raise MisconfigurationException(
+                    f"Received multiple values for {', '.join(duplicated_plugin_key)} flags in `plugins`."
+                    " Expected one value for each type at most."
+                )
 
         # handle the case when the user passes in a strategy instance which has an accelerator, precision,
         # checkpoint io or cluster env set up
@@ -364,13 +381,21 @@ class AcceleratorConnector:
                 else:
                     self._cluster_environment_flag = getattr(self._strategy_flag, "cluster_environment")
 
-            # TODO: RFC existing accel_conn doesn't handle this, should we add conflict check?
-            #   eg: parallel_device is torch.device(cpu) but accelerator=gpu
             if hasattr(self._strategy_flag, "parallel_devices"):
                 if self._strategy_flag.parallel_devices:
                     if self._strategy_flag.parallel_devices[0].type == "cpu":
+                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "cpu"):
+                            raise MisconfigurationException(
+                                f"CPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                            )
                         self._accelerator_flag = "cpu"
                     if self._strategy_flag.parallel_devices[0].type == "cuda":
+                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "gpu"):
+                            raise MisconfigurationException(
+                                f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                            )
                         self._accelerator_flag = "gpu"
                     self._parallel_devices = self._strategy_flag.parallel_devices
 
@@ -399,14 +424,10 @@ class AcceleratorConnector:
             devices, num_processes, gpus, ipus, tpu_cores
         )
 
-        if self._devices_flag in ([], 0, "0"):
-            rank_zero_warn(f"You passed `devices={devices}`, switching to `cpu` accelerator")
-            self._accelerator_flag = "cpu"
-
         if self._devices_flag == "auto" and self._accelerator_flag is None:
             raise MisconfigurationException(
                 f"You passed `devices={devices}` but haven't specified"
-                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu')` for the devices mapping"
+                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu'|'hpu)` for the devices mapping"
             )
 
     def _map_deprecated_devices_specific_info_to_accelerator_and_device_flag(
@@ -481,30 +502,35 @@ class AcceleratorConnector:
                 return "tpu"
             if _IPU_AVAILABLE:
                 return "ipu"
+            if _HPU_AVAILABLE:
+                return "hpu"
             if torch.cuda.is_available() and torch.cuda.device_count() > 0:
                 return "gpu"
         return "cpu"
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
-        # TODO add device availability check
         if isinstance(self._accelerator_flag, Accelerator):
             self.accelerator: Accelerator = self._accelerator_flag
         else:
-            ACCELERATORS = {
-                "cpu": CPUAccelerator,
-                "gpu": GPUAccelerator,
-                "tpu": TPUAccelerator,
-                "ipu": IPUAccelerator,
-            }
             assert self._accelerator_flag is not None
             self._accelerator_flag = self._accelerator_flag.lower()
-            if self._accelerator_flag not in ACCELERATORS:
+            if self._accelerator_flag not in AcceleratorRegistry:
                 raise MisconfigurationException(
                     "When passing string value for the `accelerator` argument of `Trainer`,"
-                    f" it can only be one of {list(ACCELERATORS)}."
+                    f" it can only be one of {self._accelerator_types}."
                 )
-            accelerator_class = ACCELERATORS[self._accelerator_flag]
-            self.accelerator = accelerator_class()  # type: ignore[abstract]
+            self.accelerator = AcceleratorRegistry.get(self._accelerator_flag)
+
+        if not self.accelerator.is_available():
+            available_accelerator = [
+                acc_str for acc_str in self._accelerator_types if AcceleratorRegistry.get(acc_str).is_available()
+            ]
+            raise MisconfigurationException(
+                f"{self.accelerator.__class__.__qualname__} can not run on your system"
+                " since the accelerator is not available. The following accelerator(s)"
+                " is available and can be passed into `accelerator` argument of"
+                f" `Trainer`: {available_accelerator}."
+            )
 
         self._set_devices_flag_if_auto_passed()
 
@@ -542,6 +568,11 @@ class AcceleratorConnector:
     def _choose_strategy(self) -> Union[Strategy, str]:
         if self._accelerator_flag == "ipu":
             return IPUStrategy.strategy_name
+        if self._accelerator_flag == "hpu":
+            if self._parallel_devices and len(self._parallel_devices) > 1:
+                return HPUParallelStrategy.strategy_name
+            else:
+                return SingleHPUStrategy(device=torch.device("hpu"))
         if self._accelerator_flag == "tpu":
             if self._parallel_devices and len(self._parallel_devices) > 1:
                 return TPUSpawnStrategy.strategy_name
@@ -639,6 +670,8 @@ class AcceleratorConnector:
 
         if isinstance(self.accelerator, IPUAccelerator):
             return IPUPrecisionPlugin(self._precision_flag)  # type: ignore
+        if isinstance(self.accelerator, HPUAccelerator):
+            return HPUPrecisionPlugin(self._precision_flag)  # type: ignore
         if isinstance(self.accelerator, TPUAccelerator):
             if self._precision_flag == 32:
                 return TPUPrecisionPlugin()
@@ -690,12 +723,6 @@ class AcceleratorConnector:
 
     def _validate_precision_choice(self) -> None:
         """Validate the combination of choices for precision, AMP type, and accelerator."""
-        # TODO: change exception type to ImpactableConfigurationException
-        if isinstance(self.accelerator, IPUAccelerator):
-            if self._precision_flag not in (16, 32):
-                raise MisconfigurationException(
-                    f"`Trainer(accelerator='ipu', precision={self._precision_flag!r})` is not supported."
-                )
         if isinstance(self.accelerator, TPUAccelerator):
             if self._precision_flag == 64:
                 raise MisconfigurationException(
@@ -709,6 +736,11 @@ class AcceleratorConnector:
                 raise ValueError(
                     f"The `TPUAccelerator` can only be used with a `TPUPrecisionPlugin`,"
                     f" found: {self._precision_plugin_flag}."
+                )
+        if isinstance(self.accelerator, HPUAccelerator):
+            if self._precision_flag not in (16, "bf16", 32):
+                raise MisconfigurationException(
+                    f"`Trainer(accelerator='hpu', precision={self._precision_flag!r})` is not supported."
                 )
         if (
             self._precision_flag == 16
@@ -771,36 +803,20 @@ class AcceleratorConnector:
         ):
             raise ValueError(
                 "The `TPUAccelerator` can only be used with a `SingleTPUStrategy` or `TPUSpawnStrategy`,"
-                f" found {self.strategy}."
+                f" found {self.strategy.__class__.__name__}."
+            )
+
+        if isinstance(self.accelerator, HPUAccelerator) and not isinstance(
+            self.strategy, (SingleHPUStrategy, HPUParallelStrategy)
+        ):
+            raise ValueError(
+                "The `HPUAccelerator` can only be used with a `SingleHPUStrategy` or `HPUParallelStrategy`,"
+                f" found {self.strategy.__class__.__name__}."
             )
 
     """The following properties are here for backward-compatibility and will be deprecated and removed in favor
     of accessing this information through the strategy/accelerator directly."""
     # TODO: deprecate all properties below
-
-    @property
-    def parallel_devices(self) -> List[Union[torch.device, int]]:
-        return self._parallel_devices
-
-    @property
-    def num_processes(self) -> int:
-        return self.devices if self.devices is not None else 1
-
-    @property
-    def root_gpu(self) -> Optional[int]:
-        return (
-            self.strategy.root_device.index
-            if not isinstance(self.accelerator, (IPUAccelerator, TPUAccelerator))
-            else None
-        )
-
-    @property
-    def devices(self) -> int:
-        if isinstance(self.strategy, SingleDeviceStrategy):
-            return 1
-        elif isinstance(self.strategy, ParallelStrategy):
-            return len(self.strategy.parallel_devices)
-        return 0
 
     @property
     def tpu_cores(self) -> Optional[Union[List[int], int]]:
@@ -809,31 +825,8 @@ class AcceleratorConnector:
         return 0
 
     @property
-    def tpu_id(self) -> Optional[int]:
-        if isinstance(self.accelerator, TPUAccelerator):
-            if isinstance(self._tpu_cores, list):
-                return self._tpu_cores[0]
-        return None
-
-    @property
-    def num_ipus(self) -> int:
-        if isinstance(self.accelerator, IPUAccelerator):
-            return self.devices
-        return 0
-
-    @property
-    def num_gpus(self) -> int:
-        if isinstance(self.accelerator, GPUAccelerator):
-            return self.devices
-        return 0
-
-    @property
     def gpus(self) -> Optional[Union[List[int], str, int]]:
         return self._gpus
-
-    @property
-    def parallel_device_ids(self) -> List[int]:
-        return [i for i in range(len(self.parallel_devices))] if isinstance(self.accelerator, GPUAccelerator) else []
 
     @property
     def is_distributed(self) -> bool:
@@ -851,6 +844,7 @@ class AcceleratorConnector:
             DeepSpeedStrategy,
             TPUSpawnStrategy,
             HorovodStrategy,
+            HPUParallelStrategy,
         )
         is_distributed = isinstance(self.strategy, distributed_strategy)
         if isinstance(self.accelerator, TPUAccelerator):

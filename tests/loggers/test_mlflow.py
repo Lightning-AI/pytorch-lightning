@@ -136,7 +136,7 @@ def test_mlflow_log_dir(client, mlflow, tmpdir):
     assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
     assert trainer.checkpoint_callback.dirpath == (tmpdir / "exp-id" / "run-id" / "checkpoints")
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {"epoch=0-step=0.ckpt"}
+    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {"epoch=0-step=1.ckpt"}
     assert trainer.log_dir == logger.save_dir
 
 
@@ -159,8 +159,7 @@ def test_mlflow_logger_dirs_creation(tmpdir):
         assert set(os.listdir(tmpdir / exp_id)) == {run_id, "meta.yaml"}
 
     class CustomModel(BoringModel):
-        def training_epoch_end(self, *args, **kwargs):
-            super().training_epoch_end(*args, **kwargs)
+        def on_train_epoch_end(self, *args, **kwargs):
             self.log("epoch", self.current_epoch)
 
     model = CustomModel()
@@ -177,7 +176,7 @@ def test_mlflow_logger_dirs_creation(tmpdir):
     assert "epoch" in os.listdir(tmpdir / exp_id / run_id / "metrics")
     assert set(os.listdir(tmpdir / exp_id / run_id / "params")) == model.hparams.keys()
     assert trainer.checkpoint_callback.dirpath == (tmpdir / exp_id / run_id / "checkpoints")
-    assert os.listdir(trainer.checkpoint_callback.dirpath) == [f"epoch=0-step={limit_batches - 1}.ckpt"]
+    assert os.listdir(trainer.checkpoint_callback.dirpath) == [f"epoch=0-step={limit_batches}.ckpt"]
 
 
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
