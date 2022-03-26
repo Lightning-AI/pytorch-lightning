@@ -330,9 +330,10 @@ def test_accelerator_choice_ddp_cpu_custom_cluster(_, tmpdir):
         @property
         def creates_processes_externally(self) -> bool:
             return True
+
     trainer = Trainer(
-            default_root_dir=tmpdir, plugins=[CustomCluster()], fast_dev_run=True, accelerator="ddp_cpu", devices=2
-        )
+        default_root_dir=tmpdir, plugins=[CustomCluster()], fast_dev_run=True, accelerator="ddp_cpu", devices=2
+    )
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
     assert isinstance(trainer.strategy.cluster_environment, CustomCluster)
@@ -430,7 +431,7 @@ def test_ipython_incompatible_backend_error(_, monkeypatch):
         Trainer(strategy="ddp_spawn", accelerator="gpu", devices=2)
 
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp_sharded_spawn'\)`.*is not compatible"):
-       Trainer(strategy="ddp_sharded_spawn", accelerator="gpu", devices=2)
+        Trainer(strategy="ddp_sharded_spawn", accelerator="gpu", devices=2)
 
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
         # Edge case: AcceleratorConnector maps dp to ddp if accelerator != gpu
