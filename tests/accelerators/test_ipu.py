@@ -101,7 +101,10 @@ class IPUClassificationModel(ClassificationModel):
 @mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
 def test_fail_if_no_ipus(mock_ipu_acc_avail, tmpdir):
     with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
-        Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1)
+        Trainer(default_root_dir=tmpdir, ipus=1)
+
+    with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
+        Trainer(default_root_dir=tmpdir, ipus=1, accelerator="ipu")
 
 
 @RunIf(ipu=True)
