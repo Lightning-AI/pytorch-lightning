@@ -21,7 +21,12 @@ import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
+from pytorch_lightning.utilities.imports import (
+    _HPU_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_8,
+    _TORCH_GREATER_EQUAL_1_9,
+    _TPU_AVAILABLE,
+)
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug as new_rank_zero_debug
 from pytorch_lightning.utilities.rank_zero import rank_zero_only  # noqa: F401
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
@@ -123,6 +128,14 @@ def sync_ddp(
             op = getattr(ReduceOp, reduce_op.upper())
     else:
         op = reduce_op
+
+    # WA for HPU. HPU doesn't support Long types, forcefully set it to float
+    if _HPU_AVAILABLE:
+        is_hpu_backend = os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
+        if is_hpu_backend:
+            if (result.type() == "torch.LongTensor") or (result.type() == "torch.hpu.LongTensor"):
+                new_rank_zero_info("Long tensor unsupported on HPU, casting to float")
+                result = result.float()
 
     # sync all processes before reduction
     torch.distributed.barrier(group=group)

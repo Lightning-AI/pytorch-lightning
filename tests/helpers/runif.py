@@ -27,6 +27,7 @@ from pytorch_lightning.utilities import (
     _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
     _HOROVOD_AVAILABLE,
+    _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _RICH_AVAILABLE,
@@ -68,6 +69,7 @@ class RunIf:
         amp_apex: bool = False,
         tpu: bool = False,
         ipu: bool = False,
+        hpu: bool = False,
         horovod: bool = False,
         horovod_nccl: bool = False,
         skip_windows: bool = False,
@@ -94,6 +96,7 @@ class RunIf:
             amp_apex: Require that NVIDIA/apex is installed.
             tpu: Require that TPU is available.
             ipu: Require that IPU is available.
+            hpu: Require that HPU is available.
             horovod: Require that Horovod is installed.
             horovod_nccl: Require that Horovod is installed with NCCL support.
             skip_windows: Skip for Windows platform.
@@ -153,6 +156,10 @@ class RunIf:
             conditions.append(env_flag != "1" or not _IPU_AVAILABLE)
             reasons.append("IPU")
             kwargs["ipu"] = True
+
+        if hpu:
+            conditions.append(not _HPU_AVAILABLE)
+            reasons.append("HPU")
 
         if horovod:
             conditions.append(not _HOROVOD_AVAILABLE)
