@@ -167,6 +167,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `AcceleratorRegistry` ([#12180](https://github.com/PyTorchLightning/pytorch-lightning/pull/12180))
 
 
+- Added support for Habana Accelerator (HPU) ([#11808](https://github.com/PyTorchLightning/pytorch-lightning/pull/11808))
+
+
 ### Changed
 
 - Drop PyTorch 1.7 support ([#12191](https://github.com/PyTorchLightning/pytorch-lightning/pull/12191))
@@ -347,6 +350,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Changed `parallel_devices` property in `ParallelStrategy` to be lazy initialized ([#11572](https://github.com/PyTorchLightning/pytorch-lightning/pull/11572))
 
 
+- Updated `TQDMProgressBar` to run a separate progress bar for each eval dataloader ([#11657](https://github.com/PyTorchLightning/pytorch-lightning/pull/11657))
+
+
 - Sorted `SimpleProfiler(extended=False)` summary based on mean duration for each hook ([#11671](https://github.com/PyTorchLightning/pytorch-lightning/pull/11671))
 
 
@@ -387,6 +393,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - The strategies that support `sync_batchnorm` now only apply it when fitting ([#11919](https://github.com/PyTorchLightning/pytorch-lightning/pull/11919))
 
+
+- Avoided fallback on CPU if no devices are provided for other accelerators ([#12410](https://github.com/PyTorchLightning/pytorch-lightning/pull/12410))
+
+
+- Modified `supporters.py` so that in the accumulator element (for loss) is created directly on the device ([#12430](https://github.com/PyTorchLightning/pytorch-lightning/pull/12430))
+
+
 - Removed `EarlyStopping.on_save_checkpoint` and `EarlyStopping.on_load_checkpoint` in favor of `EarlyStopping.state_dict` and `EarlyStopping.load_state_dict` ([#11887](https://github.com/PyTorchLightning/pytorch-lightning/pull/11887))
 
 
@@ -400,6 +413,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed `Timer.on_save_checkpoint` and `Timer.on_load_checkpoint` in favor of `Timer.state_dict` and `Timer.load_state_dict` ([#11887](https://github.com/PyTorchLightning/pytorch-lightning/pull/11887))
+
+
+- Replaced PostLocalSGDOptimizer with a dedicated model averaging component ([#12378](https://github.com/PyTorchLightning/pytorch-lightning/pull/12378))
 
 
 ### Deprecated
@@ -787,6 +803,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed `AcceleratorConnector.parallel_device_ids` property ([#12072](https://github.com/PyTorchLightning/pytorch-lightning/pull/12072))
+
+
+- Removed `AcceleratorConnector.devices` property ([#12435](https://github.com/PyTorchLightning/pytorch-lightning/pull/12435))
+
+
+- Removed `AcceleratorConnector.parallel_devices` property ([#12075](https://github.com/PyTorchLightning/pytorch-lightning/pull/12075))
 
 
 ### Fixed
