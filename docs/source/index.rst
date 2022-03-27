@@ -6,6 +6,32 @@
 Welcome to PyTorch Lightning
 ============================
 
+TODO: write why lightning is
+
+
+----
+
+
+Install Lightning 
+-----------------
+
+For pip users (tip: pip also works inside conda environments)
+
+.. code-block:: bash
+
+    pip install pytorch-lightning
+
+
+For conda (miniconda, anaconda) users
+
+.. code-block:: bash
+
+    conda install pytorch-lightning -c conda-forge
+
+Or read the `advanced install guide <starter/installation.html>`_
+
+----
+
 .. raw:: html
 
     <div class="tutorials-callout-container">
