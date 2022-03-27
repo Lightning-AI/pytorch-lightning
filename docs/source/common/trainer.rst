@@ -506,7 +506,7 @@ check_val_every_n_epoch
 
 |
 
-Check val every n train epochs.
+Check val every n train epochs. The last epoch will always be validated even if it does not coincide with n.
 
 Example::
 
