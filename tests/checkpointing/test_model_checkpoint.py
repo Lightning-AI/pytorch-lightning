@@ -365,21 +365,20 @@ class ModelCheckpointTestInvocations(ModelCheckpoint):
     def __init__(self, expected_count, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.expected_count = expected_count
-        self.on_save_checkpoint_count = 0
+        self.state_dict_count = 0
 
     def on_train_start(self, trainer, pl_module):
         torch.save = Mock(wraps=torch.save)
 
-    def on_save_checkpoint(self, trainer, pl_module, checkpoint):
-        # only rank 0 will call ``torch.save``
-        super().on_save_checkpoint(trainer, pl_module, checkpoint)
-        self.on_save_checkpoint_count += 1
+    def state_dict(self):
+        super().state_dict()
+        self.state_dict_count += 1
 
     def on_train_end(self, trainer, pl_module):
         super().on_train_end(trainer, pl_module)
         assert self.best_model_path
         assert self.best_model_score
-        assert self.on_save_checkpoint_count == self.expected_count
+        assert self.state_dict_count == self.expected_count
         if trainer.is_global_zero:
             assert torch.save.call_count == self.expected_count
         else:
@@ -1216,25 +1215,25 @@ def test_model_checkpoint_saveload_ckpt(tmpdir):
         "last_model_path": "last2245.ckpt",
     }
 
-    # test on_save_checkpoint
+    # test state_dict
     cb_write = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, save_last=True)
     for key, val in ckpt.items():
         setattr(cb_write, key, val)
-    written_ckpt = cb_write.on_save_checkpoint("", "", "")
+    written_ckpt = cb_write.state_dict()
     for state in ckpt:
         assert ckpt[state] == written_ckpt[state]
 
     # Case - 1
-    # test on_load_checkpoint
+    # test load_state_dict
     # Notes:
-    # 1. "current_score", "dirpath" and "monitor" are currently not restored by on_load_checkpoint.
+    # 1. "current_score", "dirpath" and "monitor" are currently not restored by load_state_dict.
     #    We therefore set "dirpath" and "monitor" to something different than for ckpt/cb_write so we can assert them.
     # 2. "current_score" is left as initialized, i.e. None, and can therefore also be asserted
     # 3. When a different `dirpath` is passed to `ModelCheckpoint` to resume training, only
     #    `best_model_path` and `last_model_path` are reloaded (reloading for others is stopped).
     cb_restore = ModelCheckpoint(dirpath=tmpdir + "/restore", monitor=None, save_top_k=-1, save_last=True)
     with pytest.warns(UserWarning, match="The dirpath has changed from*"):
-        cb_restore.on_load_checkpoint("", "", written_ckpt)
+        cb_restore.load_state_dict(written_ckpt)
     make_assertions(cb_restore, written_ckpt)
 
     # Case - 2
@@ -1242,7 +1241,7 @@ def test_model_checkpoint_saveload_ckpt(tmpdir):
     cb_restore = CustomModelCheckpoint()
     cb_restore.setup(Trainer(), BoringModel())
     with pytest.warns(UserWarning, match="The dirpath has changed from*"):
-        cb_restore.on_load_checkpoint("", "", written_ckpt)
+        cb_restore.load_state_dict(written_ckpt)
     make_assertions(cb_restore, written_ckpt)
 
 

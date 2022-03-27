@@ -506,6 +506,15 @@ def test_accelerator_cpu(_):
         trainer = Trainer(accelerator="cpu", gpus=1)
 
 
+@mock.patch("torch.cuda.is_available", return_value=False)
+@pytest.mark.parametrize("devices", ["0", 0, []])
+def test_passing_zero_and_empty_list_to_devices_flag(_, devices):
+    with pytest.raises(
+        MisconfigurationException, match="can not run on your system since the accelerator is not available."
+    ):
+        Trainer(accelerator="gpu", devices=devices)
+
+
 @RunIf(min_gpus=1)
 def test_accelerator_gpu():
     trainer = Trainer(accelerator="gpu", gpus=1)
@@ -545,7 +554,7 @@ def test_accelerator_gpu_with_devices(devices, plugin):
 def test_accelerator_auto_with_devices_gpu():
     trainer = Trainer(accelerator="auto", devices=1)
     assert isinstance(trainer.accelerator, GPUAccelerator)
-    assert trainer.gpus == 1
+    assert trainer.num_devices == 1
 
 
 def test_validate_accelerator_and_devices():
@@ -925,7 +934,10 @@ def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
 @mock.patch("torch.cuda.is_available", return_value=False)
 @mock.patch("pytorch_lightning.utilities.imports._TPU_AVAILABLE", return_value=False)
 @mock.patch("pytorch_lightning.utilities.imports._IPU_AVAILABLE", return_value=False)
-def test_devices_auto_choice_cpu(is_ipu_available_mock, is_tpu_available_mock, is_gpu_available_mock):
+@mock.patch("pytorch_lightning.utilities.imports._HPU_AVAILABLE", return_value=False)
+def test_devices_auto_choice_cpu(
+    is_ipu_available_mock, is_tpu_available_mock, is_gpu_available_mock, is_hpu_available_mock
+):
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.num_devices == 1
 
@@ -934,8 +946,8 @@ def test_devices_auto_choice_cpu(is_ipu_available_mock, is_tpu_available_mock, i
 @mock.patch("torch.cuda.device_count", return_value=2)
 def test_devices_auto_choice_gpu(is_gpu_available_mock, device_count_mock):
     trainer = Trainer(accelerator="auto", devices="auto")
+    assert isinstance(trainer.accelerator, GPUAccelerator)
     assert trainer.num_devices == 2
-    assert trainer.gpus == 2
 
 
 @pytest.mark.parametrize(
@@ -945,14 +957,6 @@ def test_devices_auto_choice_gpu(is_gpu_available_mock, device_count_mock):
 def test_parallel_devices_in_strategy_confilict_with_accelerator(parallel_devices, accelerator):
     with pytest.raises(MisconfigurationException, match=r"parallel_devices set through"):
         Trainer(strategy=DDPStrategy(parallel_devices=parallel_devices), accelerator=accelerator)
-
-
-def test_passing_zero_and_empty_list_to_devices_flag():
-    with pytest.warns(UserWarning, match=r"switching to `cpu` accelerator"):
-        Trainer(accelerator="gpu", devices=0)
-
-    with pytest.warns(UserWarning, match=r"switching to `cpu` accelerator"):
-        Trainer(accelerator="gpu", devices=[])
 
 
 @pytest.mark.parametrize("deterministic", [True, False])
