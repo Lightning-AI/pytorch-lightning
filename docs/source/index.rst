@@ -14,27 +14,39 @@ Welcome to PyTorch Lightning
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Read our 2-step guide to getting started
+   :description: (5 min reading time) Read our 2-step guide to getting started
    :header: New to Lightning?
    :button_link:  starter/introduction.html
-   :button_text: Continue (5 min reading time)
+   :button_text: Continue 
 
 .. customcalloutitem::
-   :description: Learn the key concepts to help you organize your PyTorch code as PyTorch Lightning
+   :description: (10 min reading time) Learn the key concepts to help you organize your PyTorch code as PyTorch Lightning
    :header: PyTorch to PyTorch Lightning
    :button_link: starter/converting.html
-   :button_text: Continue (10 min reading time)
+   :button_text: Continue
 
 .. customcalloutitem::
    :description: Learn how to use Lightning for anything from NLP, Computer vision to RL and meta learning. Lightning works for ALL research areas.
-   :header: Tutorials
+   :header: Code examples
    :button_link: tutorials.html
    :button_text: Continue
 
 .. customcalloutitem::
-   :description: 
+   :description: Detailed description of API each package. Assumes you already have basic Lightning knowledge.
    :header: API Reference
    :button_link: starter/api_references.html
+   :button_text: Continue
+
+.. customcalloutitem::
+   :description: Learn how to do anything from hyperparameters sweeps to cloud training to Pruning and Quantization.
+   :header: Common usecases
+   :button_link: usecases.html
+   :button_text: Continue
+
+.. customcalloutitem::
+   :description: Learn how we benchmark against non-organized PyTorch
+   :header: Benchmarking
+   :button_link: benchmarking/benchmarks.html
    :button_text: Continue
 
 .. raw:: html
