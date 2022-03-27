@@ -15,7 +15,7 @@ Welcome to PyTorch Lightning
 
 .. customcalloutitem::
    :description: Learn how to leverage the PyTorch Lightning features for your Machine Learning projects with ease in this quickstart guide.
-   :header: Introduction
+   :header: Lightning in 2 Steps
    :button_link:  starter/introduction.html
    :button_text: Get started with PyTorch Lightning
 
@@ -88,6 +88,7 @@ Welcome to PyTorch Lightning
    accelerators/gpu
    accelerators/tpu
    accelerators/ipu
+   accelerators/hpu
 
 .. toctree::
    :maxdepth: 1
@@ -112,6 +113,7 @@ Welcome to PyTorch Lightning
    common/remote_fs
    advanced/training_tricks
    advanced/pruning_quantization
+   common/progress_bar
    advanced/transfer_learning
    common/evaluation
 

@@ -96,7 +96,7 @@ RUN \
     python requirements_adjust_versions.py requirements-extra.txt && \
     python -c "print(' '.join([ln for ln in open('requirements-extra.txt').readlines() if 'horovod' in ln]))" > requirements_horovod.txt && \
     pip install -q fire && \
-    python assistant.py requirements_prune_pkgs requirements-extra.txt "horovod" && \
+    python assistant.py requirements_prune_pkgs "horovod" --req_files requirements-extra.txt && \
     python requirements_adjust_versions.py requirements-examples.txt && \
     # Install remaining requirements
     pip install -r requirements.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \

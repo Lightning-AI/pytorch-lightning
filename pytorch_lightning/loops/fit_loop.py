@@ -259,7 +259,7 @@ class FitLoop(Loop[None]):
         """Runs one whole epoch."""
         log.detail(f"{self.__class__.__name__}: advancing loop")
         assert self.trainer.train_dataloader is not None
-        dataloader = self.trainer.strategy.process_dataloader(self.trainer.train_dataloader)
+        dataloader = self.trainer.train_dataloader
         assert self._data_fetcher is not None
         self._data_fetcher.setup(
             dataloader, batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=0)
@@ -324,9 +324,6 @@ class FitLoop(Loop[None]):
         self.trainer._call_callback_hooks("on_train_end")
         self.trainer._call_lightning_module_hook("on_train_end")
         self.trainer._call_strategy_hook("on_train_end")
-
-        # give accelerators a chance to finish
-        self.trainer.strategy.on_train_end()
 
     def teardown(self) -> None:
         if self._data_fetcher is not None:

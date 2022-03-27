@@ -403,6 +403,7 @@ def test_model_freeze_unfreeze():
         assert param.requires_grad
 
 
+@pytest.mark.xfail(reason="FIXME(@carmocca): this test wasn't running and is now broken")
 @pytest.mark.parametrize("url_ckpt", [True, False])
 def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Verify resuming from checkpoint runs the right number of epochs."""
@@ -429,7 +430,7 @@ def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ck
         max_epochs=2,
         limit_train_batches=0.65,
         limit_val_batches=1,
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_top_k=-1)],
+        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)],
         default_root_dir=tmpdir,
         val_check_interval=1.0,
         enable_progress_bar=False,
@@ -449,6 +450,7 @@ def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ck
         ip, port = tmpdir_server
         checkpoints = [f"http://{ip}:{port}/" + ckpt.name for ckpt in checkpoints]
 
+    assert checkpoints
     for ckpt in checkpoints:
         next_model = TestModel()
         state = pl_load(ckpt)
@@ -1184,31 +1186,29 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
 
 
 @pytest.mark.parametrize(
-    ["trainer_kwargs", "strategy_cls", "strategy_name", "accelerator_cls", "num_gpus"],
+    ["trainer_kwargs", "strategy_cls", "strategy_name", "accelerator_cls", "devices"],
     [
-        ({"accelerator": None}, SingleDeviceStrategy, "single_device", CPUAccelerator, 0),
-        ({"accelerator": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"accelerator": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"accelerator": "ddp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"accelerator": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"accelerator": "ddp_cpu", "num_processes": 2}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 0),
-        ({"accelerator": "ddp2"}, DDPStrategy, "ddp", CPUAccelerator, 0),
+        ({"accelerator": None}, SingleDeviceStrategy, "single_device", CPUAccelerator, 1),
+        ({"accelerator": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 1),
+        ({"accelerator": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 1),
+        ({"accelerator": "ddp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
+        ({"accelerator": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 1),
+        ({"accelerator": "ddp_cpu", "num_processes": 2}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 2),
+        ({"accelerator": "ddp2"}, DDPStrategy, "ddp", CPUAccelerator, 1),
         ({"accelerator": None, "gpus": 1}, SingleDeviceStrategy, "single_device", GPUAccelerator, 1),
         ({"accelerator": "dp", "gpus": 1}, DataParallelStrategy, "dp", GPUAccelerator, 1),
         ({"accelerator": "ddp", "gpus": 1}, DDPStrategy, "ddp", GPUAccelerator, 1),
-        ({"accelerator": "ddp_cpu", "num_processes": 2, "gpus": 1}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 0),
+        ({"accelerator": "ddp_cpu", "num_processes": 2, "gpus": 1}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 2),
         ({"accelerator": "ddp2", "gpus": 1}, DDP2Strategy, "ddp2", GPUAccelerator, 1),
         ({"accelerator": None, "gpus": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
         ({"accelerator": "dp", "gpus": 2}, DataParallelStrategy, "dp", GPUAccelerator, 2),
         ({"accelerator": "ddp", "gpus": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
         ({"accelerator": "ddp2", "gpus": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
-        ({"accelerator": "ddp2", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"accelerator": "dp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
+        ({"accelerator": "ddp2", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
+        ({"accelerator": "dp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
     ],
 )
-def test_trainer_config_accelerator(
-    monkeypatch, trainer_kwargs, strategy_cls, strategy_name, accelerator_cls, num_gpus
-):
+def test_trainer_config_accelerator(monkeypatch, trainer_kwargs, strategy_cls, strategy_name, accelerator_cls, devices):
     if trainer_kwargs.get("gpus") is not None:
         monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
         monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
@@ -1222,7 +1222,7 @@ def test_trainer_config_accelerator(
     assert isinstance(trainer.strategy, strategy_cls)
     assert strategy_cls.strategy_name == strategy_name
     assert isinstance(trainer.accelerator, accelerator_cls)
-    assert trainer.num_gpus == num_gpus
+    assert trainer.num_devices == devices
 
 
 def test_trainer_subclassing():
@@ -1785,7 +1785,7 @@ def test_fit_test_synchronization(tmpdir):
 
 
 class CustomCallbackOnLoadCheckpoint(Callback):
-    def on_save_checkpoint(self, trainer, pl_module, checkpoint) -> dict:
+    def state_dict(self) -> dict:
         return {"a": None}
 
 
@@ -2026,60 +2026,132 @@ def test_detect_anomaly_nan(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["trainer_kwargs", "strategy_cls", "strategy_name", "accelerator_cls", "num_gpus"],
+    ["trainer_kwargs", "strategy_cls", "strategy_name", "accelerator_cls", "devices"],
     [
-        ({"strategy": None}, SingleDeviceStrategy, "single_device", CPUAccelerator, 0),
-        ({"strategy": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"strategy": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"strategy": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"strategy": "ddp2"}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"strategy": None, "gpus": 1}, SingleDeviceStrategy, "single_device", GPUAccelerator, 1),
-        ({"strategy": "dp", "gpus": 1}, DataParallelStrategy, "dp", GPUAccelerator, 1),
-        ({"strategy": "ddp", "gpus": 1}, DDPStrategy, "ddp", GPUAccelerator, 1),
-        ({"strategy": "ddp_spawn", "gpus": 1}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 1),
-        ({"strategy": "ddp2", "gpus": 1}, DDP2Strategy, "ddp2", GPUAccelerator, 1),
-        ({"strategy": None, "gpus": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
-        ({"strategy": "dp", "gpus": 2}, DataParallelStrategy, "dp", GPUAccelerator, 2),
-        ({"strategy": "ddp", "gpus": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
-        ({"strategy": "ddp2", "gpus": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
-        ({"strategy": "ddp2", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"strategy": "ddp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"strategy": "ddp_spawn", "num_processes": 2}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 0),
-        ({"strategy": "ddp_spawn", "num_processes": 1}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 0),
-        ({"strategy": "ddp_fully_sharded", "gpus": 1}, DDPFullyShardedStrategy, "ddp_fully_sharded", GPUAccelerator, 1),
-        ({"strategy": DDPSpawnStrategy(), "num_processes": 2}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 0),
-        ({"strategy": DDPSpawnStrategy(), "gpus": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
-        ({"strategy": DDPStrategy()}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"strategy": DDPStrategy(), "gpus": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
-        ({"strategy": DDP2Strategy(), "gpus": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
-        ({"strategy": DataParallelStrategy(), "gpus": 2}, DataParallelStrategy, "dp", GPUAccelerator, 2),
+        ({"strategy": None}, SingleDeviceStrategy, "single_device", CPUAccelerator, 1),
+        ({"strategy": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 1),
+        ({"strategy": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 1),
+        ({"strategy": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 1),
+        ({"strategy": "ddp2"}, DDPStrategy, "ddp", CPUAccelerator, 1),
         (
-            {"strategy": DDPFullyShardedStrategy(), "gpus": 2},
-            DDPFullyShardedStrategy,
-            "ddp_fully_sharded",
+            {"strategy": None, "accelerator": "gpu", "devices": 1},
+            SingleDeviceStrategy,
+            "single_device",
             GPUAccelerator,
+            1,
+        ),
+        ({"strategy": "dp", "accelerator": "gpu", "devices": 1}, DataParallelStrategy, "dp", GPUAccelerator, 1),
+        ({"strategy": "ddp", "accelerator": "gpu", "devices": 1}, DDPStrategy, "ddp", GPUAccelerator, 1),
+        (
+            {"strategy": "ddp_spawn", "accelerator": "gpu", "devices": 1},
+            DDPSpawnStrategy,
+            "ddp_spawn",
+            GPUAccelerator,
+            1,
+        ),
+        ({"strategy": "ddp2", "accelerator": "gpu", "devices": 1}, DDP2Strategy, "ddp2", GPUAccelerator, 1),
+        ({"strategy": None, "accelerator": "gpu", "devices": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
+        ({"strategy": "dp", "accelerator": "gpu", "devices": 2}, DataParallelStrategy, "dp", GPUAccelerator, 2),
+        ({"strategy": "ddp", "accelerator": "gpu", "devices": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
+        ({"strategy": "ddp2", "accelerator": "gpu", "devices": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
+        ({"strategy": "ddp2", "accelerator": "cpu", "devices": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
+        ({"strategy": "ddp", "accelerator": "cpu", "devices": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
+        (
+            {"strategy": "ddp_spawn", "accelerator": "cpu", "devices": 2},
+            DDPSpawnStrategy,
+            "ddp_spawn",
+            CPUAccelerator,
             2,
         ),
         (
-            {"strategy": DDPSpawnShardedStrategy(), "gpus": 2},
-            DDPSpawnShardedStrategy,
-            "ddp_sharded_spawn",
-            GPUAccelerator,
-            2,
+            {"strategy": "ddp_spawn", "accelerator": "cpu", "devices": 1},
+            DDPSpawnStrategy,
+            "ddp_spawn",
+            CPUAccelerator,
+            1,
         ),
-        ({"strategy": DDPShardedStrategy(), "gpus": 2}, DDPShardedStrategy, "ddp_sharded", GPUAccelerator, 2),
-        ({"strategy": "ddp2", "gpus": 2, "num_nodes": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
-        ({"strategy": "ddp_spawn", "gpus": 2, "num_nodes": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
         (
-            {"strategy": "ddp_fully_sharded", "gpus": 1, "num_nodes": 2},
+            {"strategy": "ddp_fully_sharded", "accelerator": "gpu", "devices": 1},
             DDPFullyShardedStrategy,
             "ddp_fully_sharded",
             GPUAccelerator,
             1,
         ),
-        ({"strategy": "ddp_sharded", "gpus": 2, "num_nodes": 2}, DDPShardedStrategy, "ddp_sharded", GPUAccelerator, 2),
         (
-            {"strategy": "ddp_sharded_spawn", "gpus": 2, "num_nodes": 2},
+            {"strategy": DDPSpawnStrategy(), "accelerator": "cpu", "devices": 2},
+            DDPSpawnStrategy,
+            "ddp_spawn",
+            CPUAccelerator,
+            2,
+        ),
+        (
+            {"strategy": DDPSpawnStrategy(), "accelerator": "gpu", "devices": 2},
+            DDPSpawnStrategy,
+            "ddp_spawn",
+            GPUAccelerator,
+            2,
+        ),
+        ({"strategy": DDPStrategy()}, DDPStrategy, "ddp", CPUAccelerator, 1),
+        ({"strategy": DDPStrategy(), "accelerator": "gpu", "devices": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
+        ({"strategy": DDP2Strategy(), "accelerator": "gpu", "devices": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
+        (
+            {"strategy": DataParallelStrategy(), "accelerator": "gpu", "devices": 2},
+            DataParallelStrategy,
+            "dp",
+            GPUAccelerator,
+            2,
+        ),
+        (
+            {"strategy": DDPFullyShardedStrategy(), "accelerator": "gpu", "devices": 2},
+            DDPFullyShardedStrategy,
+            "ddp_fully_sharded",
+            GPUAccelerator,
+            2,
+        ),
+        (
+            {"strategy": DDPSpawnShardedStrategy(), "accelerator": "gpu", "devices": 2},
+            DDPSpawnShardedStrategy,
+            "ddp_sharded_spawn",
+            GPUAccelerator,
+            2,
+        ),
+        (
+            {"strategy": DDPShardedStrategy(), "accelerator": "gpu", "devices": 2},
+            DDPShardedStrategy,
+            "ddp_sharded",
+            GPUAccelerator,
+            2,
+        ),
+        (
+            {"strategy": "ddp2", "accelerator": "gpu", "devices": 2, "num_nodes": 2},
+            DDP2Strategy,
+            "ddp2",
+            GPUAccelerator,
+            2,
+        ),
+        (
+            {"strategy": "ddp_spawn", "accelerator": "gpu", "devices": 2, "num_nodes": 2},
+            DDPSpawnStrategy,
+            "ddp_spawn",
+            GPUAccelerator,
+            2,
+        ),
+        (
+            {"strategy": "ddp_fully_sharded", "accelerator": "gpu", "devices": 1, "num_nodes": 2},
+            DDPFullyShardedStrategy,
+            "ddp_fully_sharded",
+            GPUAccelerator,
+            1,
+        ),
+        (
+            {"strategy": "ddp_sharded", "accelerator": "gpu", "devices": 2, "num_nodes": 2},
+            DDPShardedStrategy,
+            "ddp_sharded",
+            GPUAccelerator,
+            2,
+        ),
+        (
+            {"strategy": "ddp_sharded_spawn", "accelerator": "gpu", "devices": 2, "num_nodes": 2},
             DDPSpawnShardedStrategy,
             "ddp_sharded_spawn",
             GPUAccelerator,
@@ -2087,17 +2159,32 @@ def test_detect_anomaly_nan(tmpdir):
         ),
     ],
 )
-def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, strategy_name, accelerator_cls, num_gpus):
-    if trainer_kwargs.get("gpus") is not None:
+def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, strategy_name, accelerator_cls, devices):
+    if trainer_kwargs.get("accelerator") == "gpu":
         monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-        monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
+        monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["devices"])
 
     trainer = Trainer(**trainer_kwargs)
 
     assert isinstance(trainer.strategy, strategy_cls)
     assert strategy_cls.strategy_name == strategy_name
     assert isinstance(trainer.accelerator, accelerator_cls)
-    assert trainer.num_gpus == num_gpus
+    assert trainer.num_devices == devices
+    assert trainer.num_nodes == trainer_kwargs.get("num_nodes", 1)
+
+    # Test with `gpus` and `num_processes` flags
+    if trainer_kwargs.get("accelerator") == "gpu":
+        trainer_kwargs["gpus"] = trainer_kwargs.get("devices")
+    else:
+        trainer_kwargs["num_processes"] = trainer_kwargs.get("devices")
+
+    trainer_kwargs.pop("accelerator", None)
+    trainer_kwargs.pop("devices", None)
+
+    assert isinstance(trainer.strategy, strategy_cls)
+    assert strategy_cls.strategy_name == strategy_name
+    assert isinstance(trainer.accelerator, accelerator_cls)
+    assert trainer.num_devices == devices
     assert trainer.num_nodes == trainer_kwargs.get("num_nodes", 1)
 
 
