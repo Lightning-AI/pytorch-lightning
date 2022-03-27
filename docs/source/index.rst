@@ -40,7 +40,7 @@ Or read the `advanced install guide <starter/installation.html>`_
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Get started with this 2-step guide which teaches the basic concepts
+   :description: Use this 2-step guide to learn the key concepts.
    :header: New to Lightning?
    :button_link:  starter/introduction.html
    :button_text: Continue 
@@ -60,7 +60,7 @@ Or read the `advanced install guide <starter/installation.html>`_
 .. customcalloutitem::
    :description: Detailed description of API each package. Assumes you already have basic Lightning knowledge.
    :header: API Reference
-   :button_link: starter/api_references.html
+   :button_link: api_references.html
    :button_text: Continue
 
 .. customcalloutitem::
