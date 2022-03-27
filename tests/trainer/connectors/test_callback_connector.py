@@ -22,6 +22,7 @@ from pytorch_lightning.callbacks import (
     LearningRateMonitor,
     ModelCheckpoint,
     ModelSummary,
+    ProgressBarBase,
     TQDMProgressBar,
 )
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
@@ -39,8 +40,6 @@ def test_checkpoint_callbacks_are_last(tmpdir):
 
     # no model reference
     trainer = Trainer(callbacks=[checkpoint1, progress_bar, lr_monitor, model_summary, checkpoint2])
-    cb_connector = CallbackConnector(trainer)
-    cb_connector._attach_model_callbacks()
     assert trainer.callbacks == [
         progress_bar,
         lr_monitor,
@@ -54,6 +53,7 @@ def test_checkpoint_callbacks_are_last(tmpdir):
     model = LightningModule()
     model.configure_callbacks = lambda: []
     trainer.model = model
+    cb_connector = CallbackConnector(trainer)
     cb_connector._attach_model_callbacks()
     assert trainer.callbacks == [
         progress_bar,
@@ -83,7 +83,7 @@ def test_checkpoint_callbacks_are_last(tmpdir):
 
 
 class StatefulCallback0(Callback):
-    def on_save_checkpoint(self, *args):
+    def state_dict(self):
         return {"content0": 0}
 
 
@@ -96,7 +96,7 @@ class StatefulCallback1(Callback):
     def state_key(self):
         return self._generate_state_key(unique=self._unique)
 
-    def on_save_checkpoint(self, *args):
+    def state_dict(self):
         return {"content1": self._unique}
 
 
@@ -143,10 +143,11 @@ def test_attach_model_callbacks():
     def _attach_callbacks(trainer_callbacks, model_callbacks):
         model = LightningModule()
         model.configure_callbacks = lambda: model_callbacks
+        has_progress_bar = any(isinstance(cb, ProgressBarBase) for cb in trainer_callbacks + model_callbacks)
         trainer = Trainer(
             enable_checkpointing=False,
-            enable_progress_bar=False,
-            enable_model_summary=None,
+            enable_progress_bar=has_progress_bar,
+            enable_model_summary=False,
             callbacks=trainer_callbacks,
         )
         trainer.model = model

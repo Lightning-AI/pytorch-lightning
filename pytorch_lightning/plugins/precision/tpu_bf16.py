@@ -28,5 +28,8 @@ class TPUBf16PrecisionPlugin(TPUPrecisionPlugin):
     def connect(
         self, model: nn.Module, optimizers: List[Optimizer], lr_schedulers: List[Any]
     ) -> Tuple[nn.Module, List[Optimizer], List[Any]]:
-        os.environ["XLA_USE_BF16"] = str(1)
+        os.environ["XLA_USE_BF16"] = "1"
         return super().connect(model=model, optimizers=optimizers, lr_schedulers=lr_schedulers)
+
+    def teardown(self) -> None:
+        os.environ.pop("XLA_USE_BF16", None)

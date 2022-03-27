@@ -14,6 +14,8 @@
 """Test logging in the evaluation loop."""
 import collections
 import itertools
+import os
+from io import StringIO
 from unittest import mock
 from unittest.mock import call
 
@@ -23,8 +25,11 @@ import torch
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loops.dataloader import EvaluationLoop
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 def test__validation_step__log(tmpdir):
@@ -61,6 +66,9 @@ def test__validation_step__log(tmpdir):
     # we don't want to enable val metrics during steps because it is not something that users should do
     # on purpose DO NOT allow b_step... it's silly to monitor val step metrics
     assert set(trainer.callback_metrics) == {"a", "a2", "b", "a_epoch", "b_epoch", "a_step"}
+    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 def test__validation_step__epoch_end__log(tmpdir):
@@ -101,6 +109,9 @@ def test__validation_step__epoch_end__log(tmpdir):
 
     # we don't want to enable val metrics during steps because it is not something that users should do
     assert set(trainer.callback_metrics) == {"a", "b", "b_epoch", "c", "d", "d_epoch", "g", "b_step"}
+    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 @pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
@@ -132,6 +143,9 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     # make sure all the metrics are available for callbacks
     callback_metrics = set(trainer.callback_metrics)
     assert callback_metrics == (logged_metrics | pbar_metrics)
+    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 def test_eval_float_logging(tmpdir):
@@ -250,7 +264,7 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir, suffix):
     results = trainer.test(model)
 
     for i, r in enumerate(results):
-        expected = {"test_loss", "test_loss_epoch"}
+        expected = {"test_loss_epoch"}
         if suffix:
             expected = {e + f"/dataloader_idx_{i}" for e in expected}
         assert set(r) == expected
@@ -333,7 +347,9 @@ def test_log_works_in_val_callback(tmpdir):
         max_epochs=1,
         callbacks=[cb],
     )
-    trainer.fit(model)
+    # TODO: Update this test in v1.8 (#11578)
+    with pytest.deprecated_call(match="`Callback.on_epoch_start` hook was deprecated in v1.6"):
+        trainer.fit(model)
 
     assert cb.call_counter == {
         "on_validation_batch_end": 4,
@@ -392,8 +408,8 @@ def test_log_works_in_test_callback(tmpdir):
                 pl_module.log(custom_func_name, self.count, on_step=on_step, on_epoch=on_epoch, prog_bar=prog_bar)
 
                 num_dl_ext = ""
-                if pl_module._current_dataloader_idx is not None:
-                    dl_idx = pl_module._current_dataloader_idx
+                dl_idx = pl_module.trainer._results.dataloader_idx
+                if dl_idx is not None:
                     num_dl_ext = f"/dataloader_idx_{dl_idx}"
                     func_name += num_dl_ext
 
@@ -422,12 +438,6 @@ def test_log_works_in_test_callback(tmpdir):
 
         def on_test_start(self, _, pl_module):
             self.make_logging(pl_module, "on_test_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
-
-        def on_epoch_start(self, trainer, pl_module):
-            if trainer.testing:
-                self.make_logging(
-                    pl_module, "on_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
-                )
 
         def on_test_epoch_start(self, _, pl_module):
             self.make_logging(
@@ -470,13 +480,13 @@ def test_log_works_in_test_callback(tmpdir):
     assert cb.funcs_called_count["on_test_batch_end"] == 4
     assert cb.funcs_called_count["on_test_epoch_end"] == 1
 
-    callback_metrics_keys = list(trainer.callback_metrics)
-    for func_name in cb.callback_funcs_called.keys():
-        is_in = False
-        for callback_metrics_key in callback_metrics_keys:
-            if func_name in callback_metrics_key:
-                is_in = True
-        assert is_in, (func_name, callback_metrics_keys)
+    callback_metrics = trainer.callback_metrics
+    for func_name in cb.callback_funcs_called:
+        for key in callback_metrics:
+            if func_name in key:
+                break
+        else:
+            assert False, (func_name, list(callback_metrics))
 
     def get_expected(on_epoch, values):
         reduction = np.mean if on_epoch else np.max
@@ -508,6 +518,10 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     class ExtendedModel(BoringModel):
 
         val_losses = []
+
+        def __init__(self, some_val=7):
+            super().__init__()
+            self.save_hyperparameters()
 
         def training_step(self, batch, batch_idx):
             output = self.layer(batch)
@@ -672,3 +686,246 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
         enable_model_summary=False,
     )
     trainer.fit(model)
+
+
+@RunIf(min_gpus=1)
+def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir):
+    class TestModel(BoringModel):
+        def validation_step(self, *args):
+            x = torch.tensor(2.0, requires_grad=True, device=self.device)
+            y = x * 2
+            assert x.requires_grad is True
+            assert y.grad_fn is None  # disabled by validation
+
+            self.log("foo", y)
+            return y
+
+        def validation_epoch_end(self, outputs):
+            # the step outputs were not moved
+            assert all(o.device == self.device for o in outputs), outputs
+            # but the logging results were
+            assert self.trainer.callback_metrics["foo"].device.type == "cpu"
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir, limit_val_batches=2, move_metrics_to_cpu=True, accelerator="gpu", devices=1
+    )
+    trainer.validate(model, verbose=False)
+
+
+def test_logging_results_with_no_dataloader_idx(tmpdir):
+    num_dataloaders = 2
+    log_common_same_val = {"test_log_common": 789}
+    log_common_diff_val = "test_log_common_diff_value"
+    log_key_no_dl_idx = "test_log_no_dl_idx_{}"
+    log_key_dl0 = {"test_log_a_class": 123}
+    log_key_dl1 = {"test_log_b_class": 456}
+
+    class CustomBoringModel(BoringModel):
+        def test_step(self, batch, batch_idx, dataloader_idx):
+            self.log_dict(log_common_same_val)
+            self.log(log_common_diff_val, dataloader_idx + 1)
+            self.log(
+                log_key_no_dl_idx.format(dataloader_idx),
+                321 * (dataloader_idx + 1),
+                add_dataloader_idx=False,
+            )
+            self.log_dict(log_key_dl0 if dataloader_idx == 0 else log_key_dl1, add_dataloader_idx=False)
+
+        def test_dataloader(self):
+            return [torch.utils.data.DataLoader(RandomDataset(32, 64)) for _ in range(num_dataloaders)]
+
+    model = CustomBoringModel()
+    model.test_epoch_end = None
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    results = trainer.test(model)
+
+    assert len(results) == num_dataloaders
+    assert results[0] == {
+        "test_log_common/dataloader_idx_0": 789.0,
+        "test_log_common_diff_value/dataloader_idx_0": 1.0,
+        "test_log_no_dl_idx_0": 321,
+        "test_log_a_class": 123.0,
+    }
+    assert results[1] == {
+        "test_log_common/dataloader_idx_1": 789.0,
+        "test_log_common_diff_value/dataloader_idx_1": 2.0,
+        "test_log_no_dl_idx_1": 321 * 2,
+        "test_log_b_class": 456.0,
+    }
+
+
+def test_logging_multi_dataloader_on_epoch_end(tmpdir):
+    class CustomBoringModel(BoringModel):
+        def test_step(self, batch, batch_idx, dataloader_idx):
+            self.log("foo", dataloader_idx + 1)
+            return dataloader_idx + 1
+
+        def test_epoch_end(self, outputs) -> None:
+            self.log("foobar", sum(sum(o) for o in outputs))
+
+        def test_dataloader(self):
+            return [super().val_dataloader(), super().val_dataloader()]
+
+    model = CustomBoringModel()
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    results = trainer.test(model)
+    # what's logged in `test_epoch_end` gets included in the results of each dataloader
+    assert results == [{"foo/dataloader_idx_0": 1, "foobar": 3}, {"foo/dataloader_idx_1": 2, "foobar": 3}]
+
+
+inputs0 = ([{"log": torch.tensor(5)}, {"no_log": torch.tensor(6)}], RunningStage.TESTING)
+expected0 = """
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+       Test metric             DataLoader 0             DataLoader 1
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+           log                       5
+         no_log                                               6
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+"""
+
+inputs1 = (
+    [
+        {"performance": {"log1": torch.tensor(5), "log2": torch.tensor(3)}},
+        {"test": {"no_log1": torch.tensor(6), "no_log2": torch.tensor(1)}},
+    ],
+    RunningStage.TESTING,
+)
+expected1 = """
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+       Test metric             DataLoader 0             DataLoader 1
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+          log1                       5
+          log2                       3
+         no_log1                                              6
+         no_log2                                              1
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+"""
+
+inputs2 = (
+    [
+        {f"a {'really ' * 11}long metric name": torch.tensor(5)},
+        {f"a {'really ' * 11}long metric name": torch.tensor([[6]])},
+    ],
+    RunningStage.VALIDATING,
+)
+expected2 = """
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+                      Validate metric                                               DataLoader 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+a really really really really really really really really re                             5
+            ally really really long metric name
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+                      Validate metric                                               DataLoader 1
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+a really really really really really really really really re                             6
+            ally really really long metric name
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+"""
+
+inputs3 = ([{f"log/dataloader_idx_{i}": torch.tensor(5)} for i in range(5)], "foobar")
+expected3 = """
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+      Foobar metric            DataLoader 0             DataLoader 1             DataLoader 2
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+           log                       5                        5                        5
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+      Foobar metric            DataLoader 3             DataLoader 4
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+           log                       5                        5
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+"""
+
+inputs4 = ([{}], "foo")
+expected4 = ""
+
+
+@pytest.mark.parametrize(
+    ["inputs", "expected"],
+    [
+        pytest.param(inputs0, expected0, id="case0"),
+        pytest.param(inputs1, expected1, id="case1"),
+        pytest.param(inputs2, expected2, id="case2"),
+        pytest.param(inputs3, expected3, id="case3"),
+        pytest.param(inputs4, expected4, id="empty case"),
+    ],
+)
+def test_native_print_results(monkeypatch, inputs, expected):
+    import pytorch_lightning.loops.dataloader.evaluation_loop as imports
+
+    monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
+    out = StringIO()
+    EvaluationLoop._print_results(*inputs, file=out)
+    expected = expected[1:]  # remove the initial line break from the """ string
+    assert out.getvalue().replace(os.linesep, "\n") == expected.lstrip()
+
+
+expected0 = """
+┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃       Test metric       ┃      DataLoader 0       ┃       DataLoader 1       ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│           log           │            5            │                          │
+│         no_log          │                         │            6             │
+└─────────────────────────┴─────────────────────────┴──────────────────────────┘
+"""
+
+expected1 = """
+┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃       Test metric       ┃      DataLoader 0       ┃       DataLoader 1       ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│          log1           │            5            │                          │
+│          log2           │            3            │                          │
+│         no_log1         │                         │            6             │
+│         no_log2         │                         │            1             │
+└─────────────────────────┴─────────────────────────┴──────────────────────────┘
+"""
+
+expected2 = """
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           Validate metric            ┃             DataLoader 0              ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ a really really really really really │                   5                   │
+│  really really really really really  │                                       │
+│       really long metric name        │                                       │
+└──────────────────────────────────────┴───────────────────────────────────────┘
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           Validate metric            ┃             DataLoader 1              ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ a really really really really really │                   6                   │
+│  really really really really really  │                                       │
+│       really long metric name        │                                       │
+└──────────────────────────────────────┴───────────────────────────────────────┘
+"""
+
+expected3 = """
+┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┓
+┃   Foobar metric   ┃   DataLoader 0    ┃   DataLoader 1    ┃   DataLoader 2   ┃
+┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━┩
+│        log        │         5         │         5         │        5         │
+└───────────────────┴───────────────────┴───────────────────┴──────────────────┘
+┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃      Foobar metric      ┃      DataLoader 3       ┃       DataLoader 4       ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│           log           │            5            │            5             │
+└─────────────────────────┴─────────────────────────┴──────────────────────────┘
+"""
+
+
+@pytest.mark.parametrize(
+    ["inputs", "expected"],
+    [
+        pytest.param(inputs0, expected0, id="case0"),
+        pytest.param(inputs1, expected1, id="case1"),
+        pytest.param(inputs2, expected2, id="case2"),
+        pytest.param(inputs3, expected3, id="case3"),
+        pytest.param(inputs4, expected4, id="empty case"),
+    ],
+)
+@RunIf(rich=True, skip_windows=True)
+def test_rich_print_results(inputs, expected):
+    out = StringIO()
+    EvaluationLoop._print_results(*inputs, file=out)
+    expected = expected[1:]  # remove the initial line break from the """ string
+    assert out.getvalue() == expected.lstrip()

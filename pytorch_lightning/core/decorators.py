@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
 rank_zero_deprecation(
     "Using `pytorch_lightning.core.decorators.parameter_validation` is deprecated in v1.5, "
@@ -21,8 +21,6 @@ rank_zero_deprecation(
 
 from functools import wraps  # noqa: E402
 from typing import Callable  # noqa: E402
-
-from pytorch_lightning.utilities import rank_zero_warn  # noqa: E402
 
 
 def parameter_validation(fn: Callable) -> Callable:

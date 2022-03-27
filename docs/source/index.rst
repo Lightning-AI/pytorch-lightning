@@ -3,9 +3,34 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-PyTorch Lightning
-=================
+Welcome to PyTorch Lightning
+============================
 
+.. raw:: html
+
+    <div class="tutorials-callout-container">
+        <div class="row">
+
+.. Add callout items below this line
+
+.. customcalloutitem::
+   :description: Learn how to leverage the PyTorch Lightning features for your Machine Learning projects with ease in this quickstart guide.
+   :header: Lightning in 2 Steps
+   :button_link:  starter/introduction.html
+   :button_text: Get started with PyTorch Lightning
+
+.. customcalloutitem::
+   :description: Guide to restructure your PyTorch code to PyTorch Lightning and help you focus more on research rather than the tricky engineering aspects.
+   :header: PyTorch to PyTorch Lightning
+   :button_link: starter/converting.html
+   :button_text: Organize PyTorch to PyTorch Lightning
+
+.. raw:: html
+
+        </div>
+    </div>
+
+.. End of callout item section
 
 .. tutoriallist::
 
@@ -18,9 +43,9 @@ PyTorch Lightning
    :name: start
    :caption: Getting started
 
-   starter/new-project
+   starter/introduction
+   starter/installation
    starter/converting
-   starter/rapid_prototyping_templates
    starter/lightning_lite
 
 .. toctree::
@@ -43,50 +68,54 @@ PyTorch Lightning
    common/trainer
 
 .. toctree::
+   :maxdepth: 2
+   :name: docs
+   :caption: Optional Extensions
+
+   extensions/accelerator
+   extensions/callbacks
+   extensions/datamodules
+   extensions/logging
+   extensions/plugins
+   extensions/strategy
+   extensions/loops
+
+.. toctree::
+   :maxdepth: 1
+   :name: Accelerators
+   :caption: Accelerators
+
+   accelerators/gpu
+   accelerators/tpu
+   accelerators/ipu
+   accelerators/hpu
+
+.. toctree::
    :maxdepth: 1
    :name: Common Use Cases
    :caption: Common Use Cases
 
    clouds/cloud_training
    clouds/cluster
-   common/child_modules
    common/debugging
    common/early_stopping
    common/hyperparameters
    common/production_inference
-   advanced/ipu
    common/lightning_cli
-   advanced/lr_finder
    common/loggers
-   advanced/multi_gpu
-   advanced/advanced_gpu
-   advanced/mixed_precision
-   common/weights_loading
+   advanced/model_parallel
+   advanced/precision
+   common/checkpointing
    advanced/fault_tolerant_training
-   advanced/checkpoint_io
-   common/optimizers
+   common/optimization
    advanced/profiler
-   advanced/plugins_registry
-   advanced/sequences
-   common/single_gpu
+   advanced/strategy_registry
+   common/remote_fs
    advanced/training_tricks
    advanced/pruning_quantization
+   common/progress_bar
    advanced/transfer_learning
-   advanced/tpu
-   common/test_set
-
-.. toctree::
-   :maxdepth: 2
-   :name: docs
-   :caption: Optional extensions
-
-   extensions/accelerators
-   extensions/callbacks
-   extensions/datamodules
-   extensions/logging
-   extensions/metrics
-   extensions/plugins
-   extensions/loops
+   common/evaluation
 
 .. toctree::
    :maxdepth: 1
@@ -94,7 +123,7 @@ PyTorch Lightning
    :caption: Tutorials
    :glob:
 
-   starter/introduction_guide
+   starter/core_guide
    PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
    From PyTorch to PyTorch Lightning [Blog] <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
    From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
@@ -109,10 +138,14 @@ PyTorch Lightning
 
 .. toctree::
    :maxdepth: 1
-   :name: Bolts
-   :caption: Bolts
+   :name: Lightning Ecosystem
+   :caption: Lightning Ecosystem
 
+   ecosystem/metrics
+   ecosystem/flash
    ecosystem/bolts
+   ecosystem/transformers
+   ecosystem/ecosystem-ci
 
 .. toctree::
    :maxdepth: 1
@@ -120,21 +153,15 @@ PyTorch Lightning
    :caption: Examples
 
    ecosystem/community_examples
-   Autoencoder <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/autoencoders.html>
-   BYOL <https://lightning-bolts.readthedocs.io/en/latest/deprecated/callbacks/self_supervised.html#byolmaweightupdate>
-   DQN <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/reinforce_learn.html#deep-q-network-dqn>
-   GAN <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/gans.html#basic-gan>
-   GPT-2 <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/convolutional.html#gpt-2>
-   Image-GPT <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/convolutional.html#image-gpt>
-   SimCLR <https://lightning-bolts.readthedocs.io/en/latest/deprecated/transforms/self_supervised.html#simclr-transforms>
-   VAE <https://lightning-bolts.readthedocs.io/en/latest/deprecated/models/autoencoders.html#basic-vae>
-
-.. toctree::
-   :maxdepth: 1
-   :name: Partner Domain Frameworks
-   :caption: Partner Domain Frameworks
-
    ecosystem/asr_nlp_tts
+   Autoencoder <https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/autoencoders.html>
+   BYOL <https://lightning-bolts.readthedocs.io/en/stable/deprecated/callbacks/self_supervised.html#byolmaweightupdate>
+   DQN <https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/reinforce_learn.html#deep-q-network-dqn>
+   GAN <https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/gans.html#basic-gan>
+   GPT-2 <https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/convolutional.html#gpt-2>
+   Image-GPT <https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/convolutional.html#image-gpt>
+   SimCLR <https://lightning-bolts.readthedocs.io/en/stable/deprecated/transforms/self_supervised.html#simclr-transforms>
+   VAE <https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/autoencoders.html#basic-vae>
 
 .. toctree::
    :maxdepth: 1

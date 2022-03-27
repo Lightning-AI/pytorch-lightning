@@ -14,7 +14,6 @@
 """General utilities."""
 import importlib
 import operator
-import os
 import platform
 import sys
 from importlib.util import find_spec
@@ -26,22 +25,42 @@ from packaging.version import Version
 from pkg_resources import DistributionNotFound
 
 
-def _module_available(module_path: str) -> bool:
-    """Check if a path is available in your environment.
+def _package_available(package_name: str) -> bool:
+    """Check if a package is available in your environment.
 
-    >>> _module_available('os')
+    >>> _package_available('os')
     True
-    >>> _module_available('bla.bla')
+    >>> _package_available('bla')
     False
     """
     try:
-        return find_spec(module_path) is not None
-    except AttributeError:
-        # Python 3.6
-        return False
+        return find_spec(package_name) is not None
     except ModuleNotFoundError:
-        # Python 3.7+
         return False
+
+
+def _module_available(module_path: str) -> bool:
+    """Check if a module path is available in your environment.
+
+    >>> _module_available('os')
+    True
+    >>> _module_available('os.bla')
+    False
+    >>> _module_available('bla.bla')
+    False
+    """
+    module_names = module_path.split(".")
+    if not _package_available(module_names[0]):
+        return False
+    try:
+        module = importlib.import_module(module_names[0])
+    except ImportError:
+        return False
+    for name in module_names[1:]:
+        if not hasattr(module, name):
+            return False
+        module = getattr(module, name)
+    return True
 
 
 def _compare_version(package: str, op: Callable, version: str, use_base_version: bool = False) -> bool:
@@ -59,7 +78,7 @@ def _compare_version(package: str, op: Callable, version: str, use_base_version:
             pkg_version = Version(pkg.__version__)
         else:
             # try pkg_resources to infer version
-            pkg_version = Version(pkg_resources.get_distribution(pkg).version)
+            pkg_version = Version(pkg_resources.get_distribution(package).version)
     except TypeError:
         # this is mocked by Sphinx, so it should return True to generate all summaries
         return True
@@ -70,33 +89,41 @@ def _compare_version(package: str, op: Callable, version: str, use_base_version:
 
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
-_TORCH_GREATER_EQUAL_1_7 = _compare_version("torch", operator.ge, "1.7.0")
 _TORCH_GREATER_EQUAL_1_8 = _compare_version("torch", operator.ge, "1.8.0")
 _TORCH_GREATER_EQUAL_1_8_1 = _compare_version("torch", operator.ge, "1.8.1")
 _TORCH_GREATER_EQUAL_1_9 = _compare_version("torch", operator.ge, "1.9.0")
+_TORCH_GREATER_EQUAL_1_9_1 = _compare_version("torch", operator.ge, "1.9.1")
 _TORCH_GREATER_EQUAL_1_10 = _compare_version("torch", operator.ge, "1.10.0")
-# _TORCH_GREATER_EQUAL_DEV_1_11 = _compare_version("torch", operator.ge, "1.11.0", use_base_version=True)
+_TORCH_LESSER_EQUAL_1_10_2 = _compare_version("torch", operator.le, "1.10.2")
+_TORCH_GREATER_EQUAL_1_11 = _compare_version("torch", operator.ge, "1.11.0")
 
 _APEX_AVAILABLE = _module_available("apex.amp")
-_DEEPSPEED_AVAILABLE = _module_available("deepspeed")
+_BAGUA_AVAILABLE = _package_available("bagua")
+_DEEPSPEED_AVAILABLE = _package_available("deepspeed")
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
 _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
 _FAIRSCALE_FULLY_SHARDED_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.4")
 _GROUP_AVAILABLE = not _IS_WINDOWS and _module_available("torch.distributed.group")
 _HOROVOD_AVAILABLE = _module_available("horovod.torch")
-_HYDRA_AVAILABLE = _module_available("hydra")
+_HYDRA_AVAILABLE = _package_available("hydra")
 _HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
-_JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")
+_JSONARGPARSE_AVAILABLE = _package_available("jsonargparse") and _compare_version("jsonargparse", operator.ge, "4.3.0")
 _KINETO_AVAILABLE = _TORCH_GREATER_EQUAL_1_8_1 and torch.profiler.kineto_available()
-_NEPTUNE_AVAILABLE = _module_available("neptune")
+_NEPTUNE_AVAILABLE = _package_available("neptune")
 _NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", operator.ge, "0.9.0")
-_OMEGACONF_AVAILABLE = _module_available("omegaconf")
-_POPTORCH_AVAILABLE = _module_available("poptorch")
-_RICH_AVAILABLE = _module_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
+_OMEGACONF_AVAILABLE = _package_available("omegaconf")
+_POPTORCH_AVAILABLE = _package_available("poptorch")
+_HABANA_FRAMEWORK_AVAILABLE = _package_available("habana_frameworks")
+_RICH_AVAILABLE = _package_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
-_TORCHTEXT_AVAILABLE = _module_available("torchtext")
-_TORCHVISION_AVAILABLE = _module_available("torchvision")
-_XLA_AVAILABLE: bool = _module_available("torch_xla")
+_TORCHTEXT_AVAILABLE = _package_available("torchtext")
+_TORCHTEXT_LEGACY: bool = _TORCHTEXT_AVAILABLE and _compare_version("torchtext", operator.lt, "0.11.0")
+_TORCHVISION_AVAILABLE = _package_available("torchvision")
+_WANDB_AVAILABLE = _package_available("wandb")
+_WANDB_GREATER_EQUAL_0_10_22 = _WANDB_AVAILABLE and _compare_version("wandb", operator.ge, "0.10.22")
+_WANDB_GREATER_EQUAL_0_12_10 = _WANDB_AVAILABLE and _compare_version("wandb", operator.ge, "0.12.10")
+_XLA_AVAILABLE: bool = _package_available("torch_xla")
+
 
 from pytorch_lightning.utilities.xla_device import XLADeviceUtils  # noqa: E402
 
@@ -109,7 +136,16 @@ if _POPTORCH_AVAILABLE:
 else:
     _IPU_AVAILABLE = False
 
+if _HABANA_FRAMEWORK_AVAILABLE:
+    from habana_frameworks.torch.utils.library_loader import is_habana_avaialble
+
+    _HPU_AVAILABLE = is_habana_avaialble()
+else:
+    _HPU_AVAILABLE = False
+
 
 # experimental feature within PyTorch Lightning.
 def _fault_tolerant_training() -> bool:
-    return _TORCH_GREATER_EQUAL_1_7 and int(os.getenv("PL_FAULT_TOLERANT_TRAINING", 0))
+    from pytorch_lightning.utilities.enums import _FaultTolerantMode
+
+    return _FaultTolerantMode.detect_current_mode().is_enabled

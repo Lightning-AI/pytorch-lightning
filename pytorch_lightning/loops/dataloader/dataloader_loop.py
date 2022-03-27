@@ -24,7 +24,7 @@ from pytorch_lightning.trainer.progress import DataLoaderProgress
 class DataLoaderLoop(Loop):
     """Base class to loop over all dataloaders."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.dataloader_progress = DataLoaderProgress()
 

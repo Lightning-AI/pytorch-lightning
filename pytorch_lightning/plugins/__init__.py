@@ -1,19 +1,17 @@
-from pathlib import Path
 from typing import Union
 
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
-from pytorch_lightning.plugins.plugins_registry import (  # noqa: F401
-    call_training_type_register_plugins,
-    TrainingTypePluginsRegistry,
-)
+from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
 from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugin
-from pytorch_lightning.plugins.precision.deepspeed_precision import DeepSpeedPrecisionPlugin
+from pytorch_lightning.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.precision.double import DoublePrecisionPlugin
 from pytorch_lightning.plugins.precision.fully_sharded_native_amp import FullyShardedNativeMixedPrecisionPlugin
-from pytorch_lightning.plugins.precision.ipu_precision import IPUPrecisionPlugin
+from pytorch_lightning.plugins.precision.hpu import HPUPrecisionPlugin
+from pytorch_lightning.plugins.precision.ipu import IPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
@@ -34,14 +32,16 @@ from pytorch_lightning.plugins.training_type.single_device import SingleDevicePl
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.plugins.training_type.training_type_plugin import TrainingTypePlugin
+from pytorch_lightning.strategies import Strategy
 
-PLUGIN = Union[TrainingTypePlugin, PrecisionPlugin, ClusterEnvironment, CheckpointIO]
+PLUGIN = Union[Strategy, PrecisionPlugin, ClusterEnvironment, CheckpointIO, LayerSync]
 PLUGIN_INPUT = Union[PLUGIN, str]
 
 __all__ = [
     "CheckpointIO",
     "TorchCheckpointIO",
     "XLACheckpointIO",
+    "HPUCheckpointIO",
     "ApexMixedPrecisionPlugin",
     "DataParallelPlugin",
     "DDP2Plugin",
@@ -54,6 +54,7 @@ __all__ = [
     "HorovodPlugin",
     "IPUPlugin",
     "IPUPrecisionPlugin",
+    "HPUPrecisionPlugin",
     "NativeMixedPrecisionPlugin",
     "PrecisionPlugin",
     "ShardedNativeMixedPrecisionPlugin",
@@ -67,9 +68,6 @@ __all__ = [
     "ParallelPlugin",
     "DDPShardedPlugin",
     "DDPSpawnShardedPlugin",
+    "LayerSync",
+    "NativeSyncBatchNorm",
 ]
-
-FILE_ROOT = Path(__file__).parent
-TRAINING_TYPE_BASE_MODULE = "pytorch_lightning.plugins.training_type"
-
-call_training_type_register_plugins(FILE_ROOT, TRAINING_TYPE_BASE_MODULE)

@@ -16,73 +16,75 @@ from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass
 from typing import Any, Dict
 from unittest import mock
-from unittest.mock import call, PropertyMock
+from unittest.mock import call, Mock, PropertyMock
 
 import pytest
 import torch
-from omegaconf import OmegaConf
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import AttributeDict
+from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 from tests.helpers.utils import reset_seed
 
+if _OMEGACONF_AVAILABLE:
+    from omegaconf import OmegaConf
+
 
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.node_rank", new_callable=PropertyMock)
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.local_rank", new_callable=PropertyMock)
 def test_can_prepare_data(local_rank, node_rank):
-    dm = BoringDataModule()
+    dm = Mock(spec=LightningDataModule)
+    dm.prepare_data_per_node = True
     trainer = Trainer()
     trainer.datamodule = dm
 
     # 1 no DM
     # prepare_data_per_node = True
     # local rank = 0   (True)
-    dm.random_full = None
+    dm.prepare_data.assert_not_called()
     local_rank.return_value = 0
     assert trainer.local_rank == 0
 
     trainer._data_connector.prepare_data()
-    assert dm.random_full is not None
+    dm.prepare_data.assert_called_once()
 
     # local rank = 1   (False)
-    dm.random_full = None
+    dm.reset_mock()
     local_rank.return_value = 1
     assert trainer.local_rank == 1
 
     trainer._data_connector.prepare_data()
-    assert dm.random_full is None
+    dm.prepare_data.assert_not_called()
 
     # prepare_data_per_node = False (prepare across all nodes)
     # global rank = 0   (True)
-    dm.random_full = None
+    dm.reset_mock()
     dm.prepare_data_per_node = False
     node_rank.return_value = 0
     local_rank.return_value = 0
 
     trainer._data_connector.prepare_data()
-    assert dm.random_full is not None
+    dm.prepare_data.assert_called_once()
 
     # global rank = 1   (False)
-    dm.random_full = None
+    dm.reset_mock()
     node_rank.return_value = 1
     local_rank.return_value = 0
 
     trainer._data_connector.prepare_data()
-    assert dm.random_full is None
+    dm.prepare_data.assert_not_called()
 
     node_rank.return_value = 0
     local_rank.return_value = 1
 
     trainer._data_connector.prepare_data()
-    assert dm.random_full is None
+    dm.prepare_data.assert_not_called()
 
     # 2 dm
     # prepar per node = True
@@ -90,10 +92,9 @@ def test_can_prepare_data(local_rank, node_rank):
     dm.prepare_data_per_node = True
     local_rank.return_value = 0
 
-    with mock.patch.object(trainer.datamodule, "prepare_data") as dm_mock:
-        # is_overridden prepare data = True
-        trainer._data_connector.prepare_data()
-        dm_mock.assert_called_once()
+    # is_overridden prepare data = True
+    trainer._data_connector.prepare_data()
+    dm.prepare_data.assert_called_once()
 
 
 def test_hooks_no_recursion_error():
@@ -194,11 +195,18 @@ def test_dm_checkpoint_save_and_load(tmpdir):
             return out
 
     class CustomBoringDataModule(BoringDataModule):
+        def state_dict(self) -> Dict[str, Any]:
+            return {"my": "state_dict"}
+
+        def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+            self.my_state_dict = state_dict
+
         def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-            checkpoint[self.__class__.__name__] = self.__class__.__name__
+            checkpoint[self.__class__.__qualname__].update({"on_save": "update"})
 
         def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-            self.checkpoint_state = checkpoint.get(self.__class__.__name__)
+            self.checkpoint_state = checkpoint.get(self.__class__.__qualname__).copy()
+            checkpoint[self.__class__.__qualname__].pop("on_save")
 
     reset_seed()
     dm = CustomBoringDataModule()
@@ -214,18 +222,22 @@ def test_dm_checkpoint_save_and_load(tmpdir):
     )
 
     # fit model
-    trainer.fit(model, datamodule=dm)
+    with pytest.deprecated_call(
+        match="`LightningDataModule.on_save_checkpoint` was deprecated in"
+        " v1.6 and will be removed in v1.8. Use `state_dict` instead."
+    ):
+        trainer.fit(model, datamodule=dm)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
     checkpoint_path = list(trainer.checkpoint_callback.best_k_models.keys())[0]
     checkpoint = torch.load(checkpoint_path)
-    assert dm.__class__.__name__ in checkpoint
-    assert checkpoint[dm.__class__.__name__] == dm.__class__.__name__
+    assert dm.__class__.__qualname__ in checkpoint
+    assert checkpoint[dm.__class__.__qualname__] == {"my": "state_dict", "on_save": "update"}
 
     for trainer_fn in TrainerFn:
         trainer.state.fn = trainer_fn
-        with mock.patch.object(dm, "on_load_checkpoint") as dm_mock:
-            trainer._restore_modules_and_callbacks(checkpoint_path)
-            dm_mock.assert_called_once()
+        trainer._restore_modules_and_callbacks(checkpoint_path)
+        assert dm.checkpoint_state == {"my": "state_dict", "on_save": "update"}
+        assert dm.my_state_dict == {"my": "state_dict"}
 
 
 def test_full_loop(tmpdir):
@@ -253,7 +265,10 @@ def test_full_loop(tmpdir):
 
 
 @RunIf(min_gpus=1)
-@mock.patch("pytorch_lightning.accelerators.accelerator.Accelerator.lightning_module", new_callable=PropertyMock)
+@mock.patch(
+    "pytorch_lightning.strategies.Strategy.lightning_module",
+    new_callable=PropertyMock,
+)
 def test_dm_apply_batch_transfer_handler(get_module_mock):
     expected_device = torch.device("cuda", 0)
 
@@ -296,17 +311,13 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
 
     batch = CustomBatch((torch.zeros(5, 32), torch.ones(5, 1, dtype=torch.long)))
 
-    trainer = Trainer(gpus=1)
+    trainer = Trainer(accelerator="gpu", devices=1)
+    model.trainer = trainer
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     get_module_mock.return_value = model
-    if is_overridden("transfer_batch_to_device", dm):
-        model.transfer_batch_to_device = dm.transfer_batch_to_device
 
-    model.on_before_batch_transfer = dm.on_before_batch_transfer
-    model.transfer_batch_to_device = dm.transfer_batch_to_device
-    model.on_after_batch_transfer = dm.on_after_batch_transfer
-
-    batch_gpu = trainer.accelerator.batch_to_device(batch, expected_device)
+    trainer._data_connector.attach_datamodule(model, datamodule=dm)
+    batch_gpu = trainer.strategy.batch_to_device(batch, expected_device)
 
     assert dm.on_before_batch_transfer_hook_rank == 0
     assert dm.transfer_batch_to_device_hook_rank == 1
@@ -366,9 +377,9 @@ def test_dm_init_from_datasets_dataloaders(iterable):
     with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
         dm.train_dataloader()
         dl_mock.assert_called_once_with(train_ds, batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True)
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(MisconfigurationException):
         _ = dm.val_dataloader()
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(MisconfigurationException):
         _ = dm.test_dataloader()
 
     train_ds_sequence = [ds(), ds()]
@@ -381,9 +392,9 @@ def test_dm_init_from_datasets_dataloaders(iterable):
                 call(train_ds_sequence[1], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True),
             ]
         )
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(MisconfigurationException):
         _ = dm.val_dataloader()
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(MisconfigurationException):
         _ = dm.test_dataloader()
 
     valid_ds = ds()
@@ -394,7 +405,7 @@ def test_dm_init_from_datasets_dataloaders(iterable):
         dl_mock.assert_called_with(valid_ds, batch_size=2, shuffle=False, num_workers=0, pin_memory=True)
         dm.test_dataloader()
         dl_mock.assert_called_with(test_ds, batch_size=2, shuffle=False, num_workers=0, pin_memory=True)
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(MisconfigurationException):
         _ = dm.train_dataloader()
 
     valid_dss = [ds(), ds()]
@@ -437,25 +448,30 @@ def test_hyperparameters_saving():
     data = DataModuleWithHparams_1({"hello": "world"}, "foo", kwarg0="bar")
     assert data.hparams == AttributeDict({"hello": "world"})
 
-    data = DataModuleWithHparams_1(OmegaConf.create({"hello": "world"}), "foo", kwarg0="bar")
-    assert data.hparams == OmegaConf.create({"hello": "world"})
+    if _OMEGACONF_AVAILABLE:
+        data = DataModuleWithHparams_1(OmegaConf.create({"hello": "world"}), "foo", kwarg0="bar")
+        assert data.hparams == OmegaConf.create({"hello": "world"})
 
 
 def test_define_as_dataclass():
+    class BoringDataModule(LightningDataModule):
+        def __init__(self, foo=None):
+            super().__init__()
+
     # makes sure that no functionality is broken and the user can still manually make
     # super().__init__ call with parameters
     # also tests all the dataclass features that can be enabled without breaking anything
     @dataclass(init=True, repr=True, eq=True, order=True, unsafe_hash=True, frozen=False)
-    class BoringDataModule1(LightningDataModule):
+    class BoringDataModule1(BoringDataModule):
         batch_size: int
-        dims: int = 2
+        foo: int = 2
 
         def __post_init__(self):
-            super().__init__(dims=self.dims)
+            super().__init__(foo=self.foo)
 
     # asserts for the different dunder methods added by dataclass, when __init__ is implemented, i.e.
     # __repr__, __eq__, __lt__, __le__, etc.
-    assert BoringDataModule1(batch_size=64).dims == 2
+    assert BoringDataModule1(batch_size=64).foo == 2
     assert BoringDataModule1(batch_size=32)
     assert hasattr(BoringDataModule1, "__repr__")
     assert BoringDataModule1(batch_size=32) == BoringDataModule1(batch_size=32)
@@ -477,7 +493,8 @@ def test_inconsistent_prepare_data_per_node(tmpdir):
     with pytest.raises(MisconfigurationException, match="Inconsistent settings found for `prepare_data_per_node`."):
         model = BoringModel()
         dm = BoringDataModule()
-        trainer = Trainer(prepare_data_per_node=False)
+        with pytest.deprecated_call(match="prepare_data_per_node` with the trainer flag is deprecated"):
+            trainer = Trainer(prepare_data_per_node=False)
         trainer.model = model
         trainer.datamodule = dm
         trainer._data_connector.prepare_data()

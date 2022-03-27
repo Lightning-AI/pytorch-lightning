@@ -26,8 +26,8 @@ from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -57,10 +57,11 @@ class BaseFinetuning(Callback):
         >>> class MyModel(pl.LightningModule):
         ...     def configure_optimizer(self):
         ...         # Make sure to filter the parameters based on `requires_grad`
-        ...         return Adam(filter(lambda p: p.requires_grad, self.parameters))
+        ...         return Adam(filter(lambda p: p.requires_grad, self.parameters()))
         ...
         >>> class FeatureExtractorFreezeUnfreeze(BaseFinetuning):
         ...     def __init__(self, unfreeze_at_epoch=10):
+        ...         super().__init__()
         ...         self._unfreeze_at_epoch = unfreeze_at_epoch
         ...
         ...     def freeze_before_training(self, pl_module):
@@ -82,23 +83,25 @@ class BaseFinetuning(Callback):
         self._internal_optimizer_metadata: Dict[int, List[Dict[str, Any]]] = {}
         self._restarting = False
 
-    def on_save_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
-    ) -> Dict[int, List[Dict[str, Any]]]:
-        return self._internal_optimizer_metadata
+    def state_dict(self) -> Dict[str, Any]:
+        return {
+            "internal_optimizer_metadata": self._internal_optimizer_metadata,
+        }
 
-    def on_load_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[int, List[Dict[str, Any]]]
-    ) -> None:
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         self._restarting = True
-        self._internal_optimizer_metadata = callback_state
+        if "internal_optimizer_metadata" in state_dict:
+            self._internal_optimizer_metadata = state_dict["internal_optimizer_metadata"]
+        else:
+            # compatibility to load from old checkpoints before PR #11887
+            self._internal_optimizer_metadata = state_dict
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         # restore the param_groups created during the previous training.
         if self._restarting:
             named_parameters = dict(pl_module.named_parameters())
             for opt_idx, optimizer in enumerate(trainer.optimizers):
-                param_groups = self.__apply_mapping_to_param_groups(
+                param_groups = self._apply_mapping_to_param_groups(
                     self._internal_optimizer_metadata[opt_idx], named_parameters
                 )
                 optimizer.param_groups = param_groups
@@ -126,7 +129,7 @@ class BaseFinetuning(Callback):
         else:
             _modules = modules.modules()
 
-        # Capture all leaf modules as well as parent modules that have parameters directly themsleves
+        # Capture all leaf modules as well as parent modules that have parameters directly themselves
         return [m for m in _modules if not list(m.children()) or m._parameters]
 
     @staticmethod
@@ -209,7 +212,6 @@ class BaseFinetuning(Callback):
                 " Those parameters will be skipped.\n"
                 "HINT: Did you init your optimizer in `configure_optimizer` as such:\n"
                 f" {type(optimizer)}(filter(lambda p: p.requires_grad, self.parameters()), ...) ",
-                UserWarning,
             )
         return out_params
 
@@ -241,11 +243,11 @@ class BaseFinetuning(Callback):
         if params:
             optimizer.add_param_group({"params": params, "lr": params_lr / denom_lr})
 
-    def on_before_accelerator_backend_setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         self.freeze_before_training(pl_module)
 
     @staticmethod
-    def __apply_mapping_to_param_groups(param_groups: List[Dict[str, Any]], mapping: dict) -> List[Dict[str, Any]]:
+    def _apply_mapping_to_param_groups(param_groups: List[Dict[str, Any]], mapping: dict) -> List[Dict[str, Any]]:
         output = []
         for g in param_groups:
             # skip params to save memory
@@ -263,13 +265,13 @@ class BaseFinetuning(Callback):
     ) -> None:
         mapping = {p: n for n, p in pl_module.named_parameters()}
         if opt_idx not in self._internal_optimizer_metadata:
-            self._internal_optimizer_metadata[opt_idx] = self.__apply_mapping_to_param_groups(
+            self._internal_optimizer_metadata[opt_idx] = self._apply_mapping_to_param_groups(
                 current_param_groups, mapping
             )
         elif num_param_groups != len(current_param_groups):
             # save new param_groups possibly created by the users.
             self._internal_optimizer_metadata[opt_idx].extend(
-                self.__apply_mapping_to_param_groups(current_param_groups[num_param_groups:], mapping)
+                self._apply_mapping_to_param_groups(current_param_groups[num_param_groups:], mapping)
             )
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -305,13 +307,13 @@ class BackboneFinetuning(BaseFinetuning):
         lambda_func: Scheduling function for increasing backbone learning rate.
         backbone_initial_ratio_lr:
             Used to scale down the backbone learning rate compared to rest of model
-        backbone_initial_lr: Optional, Inital learning rate for the backbone.
+        backbone_initial_lr: Optional, Initial learning rate for the backbone.
             By default, we will use ``current_learning /  backbone_initial_ratio_lr``
-        should_align: Wheter to align with current learning rate when backbone learning
+        should_align: Whether to align with current learning rate when backbone learning
             reaches it.
-        initial_denom_lr: When unfreezing the backbone, the intial learning rate will
+        initial_denom_lr: When unfreezing the backbone, the initial learning rate will
             ``current_learning_rate /  initial_denom_lr``.
-        train_bn: Wheter to make Batch Normalization trainable.
+        train_bn: Whether to make Batch Normalization trainable.
         verbose: Display current learning rate for model and backbone
         rounding: Precision for displaying learning rate
 
@@ -350,19 +352,15 @@ class BackboneFinetuning(BaseFinetuning):
         self.rounding: int = rounding
         self.previous_backbone_lr: Optional[float] = None
 
-    def on_save_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def state_dict(self) -> Dict[str, Any]:
         return {
             "internal_optimizer_metadata": self._internal_optimizer_metadata,
             "previous_backbone_lr": self.previous_backbone_lr,
         }
 
-    def on_load_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[int, List[Dict[str, Any]]]
-    ) -> None:
-        self.previous_backbone_lr = callback_state["previous_backbone_lr"]
-        super().on_load_checkpoint(trainer, pl_module, callback_state["internal_optimizer_metadata"])
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        self.previous_backbone_lr = state_dict["previous_backbone_lr"]
+        super().load_state_dict(state_dict)
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """

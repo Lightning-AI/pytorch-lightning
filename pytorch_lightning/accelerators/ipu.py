@@ -11,32 +11,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Union
 
 import torch
 
-import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import _IPU_AVAILABLE
 
 
 class IPUAccelerator(Accelerator):
     """Accelerator for IPUs."""
 
-    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
-        """
-        Raises:
-            MisconfigurationException:
-                If multiple optimizers are provided.
-        """
-        super().setup_optimizers(trainer)
-
-        if len(self.optimizers) > 1:
-            raise MisconfigurationException("IPUs currently only support one optimizer.")
-
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
         """IPU device stats aren't supported yet."""
         return {}
+
+    @staticmethod
+    def parse_devices(devices: int) -> int:
+        """Accelerator device parsing logic."""
+        return devices
+
+    @staticmethod
+    def get_parallel_devices(devices: int) -> List[int]:
+        """Gets parallel devices for the Accelerator."""
+        return list(range(devices))
 
     @staticmethod
     def auto_device_count() -> int:
@@ -44,3 +42,15 @@ class IPUAccelerator(Accelerator):
         # TODO (@kaushikb11): 4 is the minimal unit they are shipped in.
         # Update this when api is exposed by the Graphcore team.
         return 4
+
+    @staticmethod
+    def is_available() -> bool:
+        return _IPU_AVAILABLE
+
+    @classmethod
+    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+        accelerator_registry.register(
+            "ipu",
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )

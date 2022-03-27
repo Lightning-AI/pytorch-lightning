@@ -11,18 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities that can be used with distributed training."""
 
 import logging
 import os
-from functools import wraps
-from platform import python_version
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
+from pytorch_lightning.utilities.imports import (
+    _HPU_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_8,
+    _TORCH_GREATER_EQUAL_1_9,
+    _TPU_AVAILABLE,
+)
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug as new_rank_zero_debug
+from pytorch_lightning.utilities.rank_zero import rank_zero_only  # noqa: F401
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_info as new_rank_zero_info
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -40,52 +48,6 @@ else:
 
 
 log = logging.getLogger(__name__)
-
-
-def rank_zero_only(fn: Callable) -> Callable:
-    @wraps(fn)
-    def wrapped_fn(*args: Any, **kwargs: Any) -> Optional[Any]:
-        if rank_zero_only.rank == 0:
-            return fn(*args, **kwargs)
-        return None
-
-    return wrapped_fn
-
-
-# TODO: this should be part of the cluster environment
-def _get_rank() -> int:
-    rank_keys = ("RANK", "SLURM_PROCID", "LOCAL_RANK")
-    for key in rank_keys:
-        rank = os.environ.get(key)
-        if rank is not None:
-            return int(rank)
-    return 0
-
-
-# add the attribute to the function but don't overwrite in case Trainer has already set it
-rank_zero_only.rank = getattr(rank_zero_only, "rank", _get_rank())
-
-
-def _info(*args: Any, stacklevel: int = 2, **kwargs: Any) -> None:
-    if python_version() >= "3.8.0":
-        kwargs["stacklevel"] = stacklevel
-    log.info(*args, **kwargs)
-
-
-def _debug(*args: Any, stacklevel: int = 2, **kwargs: Any) -> None:
-    if python_version() >= "3.8.0":
-        kwargs["stacklevel"] = stacklevel
-    log.debug(*args, **kwargs)
-
-
-@rank_zero_only
-def rank_zero_debug(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
-    _debug(*args, stacklevel=stacklevel, **kwargs)
-
-
-@rank_zero_only
-def rank_zero_info(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
-    _info(*args, stacklevel=stacklevel, **kwargs)
 
 
 def gather_all_tensors(result: torch.Tensor, group: Optional[Any] = None) -> List[torch.Tensor]:
@@ -123,8 +85,8 @@ def distributed_available() -> bool:
 def sync_ddp_if_available(
     result: torch.Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
 ) -> torch.Tensor:
-    """
-    Function to reduce a tensor across worker processes during distributed training
+    """Function to reduce a tensor across worker processes during distributed training.
+
     Args:
         result: the value to sync and reduce (typically tensor or number)
         group: the process group to gather results from. Defaults to all processes (world)
@@ -166,6 +128,14 @@ def sync_ddp(
             op = getattr(ReduceOp, reduce_op.upper())
     else:
         op = reduce_op
+
+    # WA for HPU. HPU doesn't support Long types, forcefully set it to float
+    if _HPU_AVAILABLE:
+        is_hpu_backend = os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
+        if is_hpu_backend:
+            if (result.type() == "torch.LongTensor") or (result.type() == "torch.hpu.LongTensor"):
+                new_rank_zero_info("Long tensor unsupported on HPU, casting to float")
+                result = result.float()
 
     # sync all processes before reduction
     torch.distributed.barrier(group=group)
@@ -253,7 +223,7 @@ def register_ddp_comm_hook(
             c10d reducer would call this hook and use the tensors returned
             by the Future and copy grads to individual parameters.
         ddp_comm_wrapper:
-            communication hook wraper to support a communication hook such
+            communication hook wrapper to support a communication hook such
             as FP16 compression as wrapper, which could be combined with
             ddp_comm_hook
 
@@ -264,54 +234,58 @@ def register_ddp_comm_hook(
         DDP communication wrapper needs pytorch version at least 1.9.0
         Post-localSGD hook needs pytorch version at least 1.9.0
 
-    Example:
+    Examples:
 
-        from torch.distributed.algorithms.ddp_comm_hooks import (
-            default_hooks as default,
-            powerSGD_hook as powerSGD,
-            post_localSGD_hook as post_localSGD,
-        )
-
-        # fp16_compress_hook for compress gradients
-        register_ddp_comm_hook(
-            model=ddp_model,
-            ddp_comm_hook=default.fp16_compress_hook,
-        )
-
-        # powerSGD_hook
-        register_ddp_comm_hook(
-            model=ddp_model,
-            ddp_comm_state=powerSGD.PowerSGDState(
-                process_group=None,
-                matrix_approximation_rank=1,
-                start_powerSGD_iter=5000,
-            ),
-            ddp_comm_hook=powerSGD.powerSGD_hook,
-        )
-
-        # post_localSGD_hook
-        subgroup, _ = torch.distributed.new_subgroups()
-        register_comm_hook(
-            model=ddp_model,
-            state=post_localSGD.PostLocalSGDState(
-                process_group=None,
-                subgroup=subgroup,
-                start_localSGD_iter=1_000,
-            ),
-            ddp_comm_hook=post_localSGD.post_localSGD_hook,
-        )
-
-        # fp16_compress_wrapper combined with other communication hook
-        register_ddp_comm_hook(
-            model=ddp_model,
-            ddp_comm_state=powerSGD.PowerSGDState(
-                process_group=None,
-                matrix_approximation_rank=1,
-                start_powerSGD_iter=5000,
-            ),
-            ddp_comm_hook=powerSGD.powerSGD_hook,
-            ddp_comm_wrapper=default.fp16_compress_wrapper,
-        )
+        >>> from torch.distributed.algorithms.ddp_comm_hooks import ( # doctest: +SKIP
+        ...     default_hooks as default,
+        ...     powerSGD_hook as powerSGD,
+        ...     post_localSGD_hook as post_localSGD,
+        ... )
+        >>>
+        >>> # fp16_compress_hook for compress gradients
+        >>> ddp_model = ...
+        >>> register_ddp_comm_hook( # doctest: +SKIP
+        ...     model=ddp_model,
+        ...     ddp_comm_hook=default.fp16_compress_hook,
+        ... )
+        >>>
+        >>> # powerSGD_hook
+        >>> ddp_model = ...
+        >>> register_ddp_comm_hook( # doctest: +SKIP
+        ...     model=ddp_model,
+        ...     ddp_comm_state=powerSGD.PowerSGDState(
+        ...         process_group=None,
+        ...         matrix_approximation_rank=1,
+        ...         start_powerSGD_iter=5000,
+        ...     ),
+        ...     ddp_comm_hook=powerSGD.powerSGD_hook,
+        ... )
+        >>>
+        >>> # post_localSGD_hook
+        >>> subgroup, _ = torch.distributed.new_subgroups() # doctest: +SKIP
+        >>> ddp_model = ...
+        >>> register_ddp_comm_hook( # doctest: +SKIP
+        ...     model=ddp_model,
+        ...     state=post_localSGD.PostLocalSGDState(
+        ...         process_group=None,
+        ...         subgroup=subgroup,
+        ...         start_localSGD_iter=1_000,
+        ...     ),
+        ...     ddp_comm_hook=post_localSGD.post_localSGD_hook,
+        ... )
+        >>>
+        >>> # fp16_compress_wrapper combined with other communication hook
+        >>> ddp_model = ...
+        >>> register_ddp_comm_hook( # doctest: +SKIP
+        ...     model=ddp_model,
+        ...     ddp_comm_state=powerSGD.PowerSGDState(
+        ...         process_group=None,
+        ...         matrix_approximation_rank=1,
+        ...         start_powerSGD_iter=5000,
+        ...     ),
+        ...     ddp_comm_hook=powerSGD.powerSGD_hook,
+        ...     ddp_comm_wrapper=default.fp16_compress_wrapper,
+        ... )
     """
     from pytorch_lightning.utilities import rank_zero_warn
 
@@ -327,7 +301,7 @@ def register_ddp_comm_hook(
         if not _TORCH_GREATER_EQUAL_1_9:
             rank_zero_warn("Not applying DDP comm wrapper. To use communication wrapper, please use pytorch>=1.9.0.")
         else:
-            rank_zero_info(
+            new_rank_zero_info(
                 f"DDP comm wrapper is provided, apply {ddp_comm_wrapper.__qualname__}({ddp_comm_hook.__qualname__})."
             )
             ddp_comm_hook = ddp_comm_wrapper(ddp_comm_hook)
@@ -340,6 +314,21 @@ def tpu_distributed() -> bool:
     return _TPU_AVAILABLE and xm.xrt_world_size() > 1
 
 
+def get_default_process_group_backend_for_device(device: torch.device) -> str:
+    return "nccl" if device.type == "cuda" else "gloo"
+
+
+def _get_process_group_backend_from_env() -> Optional[str]:
+    torch_backend = os.getenv("PL_TORCH_DISTRIBUTED_BACKEND")
+    if torch_backend is not None:
+        rank_zero_deprecation(
+            "Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"
+            " was deprecated in v1.6 and will be removed in v1.8."
+            " Specify `process_group_backend` directly on the strategy constructor."
+        )
+    return torch_backend
+
+
 def init_dist_connection(
     cluster_environment: "pl.plugins.environments.ClusterEnvironment",
     torch_distributed_backend: str,
@@ -347,7 +336,7 @@ def init_dist_connection(
     world_size: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
-    """Utility function to initialize distributed connection by setting env variables and initiliazing the
+    """Utility function to initialize distributed connection by setting env variables and initializing the
     distributed process group.
 
     Args:
@@ -356,23 +345,68 @@ def init_dist_connection(
         global_rank: rank of the current process
         world_size: number of processes in the group
         kwargs: kwargs for ``init_process_group``
+
+    Raises:
+        RuntimeError:
+            If ``torch.distributed`` is not available
     """
+    if not torch.distributed.is_available():
+        raise RuntimeError("torch.distributed is not available. Cannot initialize distributed process group")
+    if torch.distributed.is_initialized():
+        log.debug("torch.distributed is already initialized. Exiting early")
+        return
     global_rank = global_rank if global_rank is not None else cluster_environment.global_rank()
     world_size = world_size if world_size is not None else cluster_environment.world_size()
     os.environ["MASTER_ADDR"] = cluster_environment.main_address
     os.environ["MASTER_PORT"] = str(cluster_environment.main_port)
-    if not torch.distributed.is_available():
-        raise RuntimeError("torch.distributed is not available. Cannot initialize distributed process group")
-    if not torch.distributed.is_initialized():
-        log.info(f"initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-        torch.distributed.init_process_group(
-            torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs
-        )
+    log.info(f"Initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
+    torch.distributed.init_process_group(torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs)
 
-        # on rank=0 let everyone know training is starting
-        rank_zero_info(
-            f"{'-' * 100}\n"
-            f"distributed_backend={torch_distributed_backend}\n"
-            f"All distributed processes registered. Starting with {world_size} processes\n"
-            f"{'-' * 100}\n"
-        )
+    # on rank=0 let everyone know training is starting
+    new_rank_zero_info(
+        f"{'-' * 100}\n"
+        f"distributed_backend={torch_distributed_backend}\n"
+        f"All distributed processes registered. Starting with {world_size} processes\n"
+        f"{'-' * 100}\n"
+    )
+
+
+def _broadcast_object_list(obj: Any, rank: int) -> Any:
+    objects = [obj if torch.distributed.get_rank() == rank else None]
+    torch.distributed.broadcast_object_list(objects, src=rank)
+    return objects[0]
+
+
+# TODO: Refactor with the Strategy Collectives once finalized.
+def _collect_states_on_rank_zero(state: Dict[str, Any]) -> Dict[int, Any]:
+    """This distributed utility collects dictionary state across all processes.
+
+    Args:
+        state: Dictionary containing the state of the current process
+        device: Current process device.
+
+    Returns:
+        states: On global rank 0, a dictionary where the primary keys are
+            the process rank and the values their associated states. Otherwise, returns None.
+    """
+    if not distributed_available():
+        return {0: state}
+    return {rank: _broadcast_object_list(state, rank) for rank in range(torch.distributed.get_world_size())}
+
+
+def rank_zero_info(*args: Any, **kwargs: Any) -> Any:
+    rank_zero_deprecation(
+        "pytorch_lightning.utilities.distributed.rank_zero_info has been deprecated in v1.6"
+        " and will be removed in v1.8."
+        " Use the equivalent function from the pytorch_lightning.utilities.rank_zero module instead."
+    )
+    return new_rank_zero_info(*args, **kwargs)
+
+
+def rank_zero_debug(*args: Any, **kwargs: Any) -> Any:
+    rank_zero_deprecation(
+        "pytorch_lightning.utilities.distributed.rank_zero_debug has been deprecated in v1.6"
+        " and will be removed in v1.8."
+        " Use the equivalent function from the pytorch_lightning.utilities.rank_zero module instead."
+    )
+    return new_rank_zero_debug(*args, **kwargs)

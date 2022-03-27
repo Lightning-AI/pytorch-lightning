@@ -55,7 +55,7 @@ To train a model using multiple nodes, do the following:
     .. code-block:: python
 
        # train on 32 GPUs across 4 nodes
-       trainer = Trainer(gpus=8, num_nodes=4, strategy="ddp")
+       trainer = Trainer(accelerator="gpu", devices=8, num_nodes=4, strategy="ddp")
 
 
 Submit a job to the cluster
@@ -127,7 +127,7 @@ To train a model using multiple nodes, do the following:
     .. code-block:: python
 
        # train on 32 GPUs across 4 nodes
-       trainer = Trainer(gpus=8, num_nodes=4, strategy="ddp")
+       trainer = Trainer(accelerator="gpu", devices=8, num_nodes=4, strategy="ddp")
 
 3.  It's a good idea to structure your training script like this:
 
@@ -137,7 +137,7 @@ To train a model using multiple nodes, do the following:
         def main(hparams):
             model = LightningTemplateModel(hparams)
 
-            trainer = Trainer(gpus=8, num_nodes=4, strategy="ddp")
+            trainer = Trainer(accelerator="gpu", devices=8, num_nodes=4, strategy="ddp")
 
             trainer.fit(model)
 
@@ -209,6 +209,14 @@ To get this behavior make sure to add the correct signal to your SLURM script
 
     # 90 seconds before training ends
     SBATCH --signal=SIGUSR1@90
+
+If auto-resubmit is not desired, it can be turned off in the :class:`~pytorch_lightning.plugins.environments.slurm_environment.SLURMEnvironment` plugin:
+
+.. code-block:: python
+
+    from pytorch_lightning.plugins.environments import SLURMEnvironment
+
+    trainer = Trainer(plugins=[SLURMEnvironment(auto_requeue=False)])
 
 
 Building SLURM scripts

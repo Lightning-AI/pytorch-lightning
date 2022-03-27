@@ -31,7 +31,7 @@ from tests.helpers.simple_models import RegressionModel
 if _TORCH_GREATER_EQUAL_1_8:
     from torch.quantization import FakeQuantizeBase
 else:
-    # For torch 1.6 and 1.7.
+    # For torch 1.7.
     from torch.quantization import FakeQuantize as FakeQuantizeBase
 
 
@@ -43,7 +43,8 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     """Parity test for quant model."""
     seed_everything(42)
     dm = RegressDataModule()
-    trainer_args = dict(default_root_dir=tmpdir, max_epochs=7, gpus=int(torch.cuda.is_available()))
+    accelerator = "gpu" if torch.cuda.is_available() else "cpu"
+    trainer_args = dict(default_root_dir=tmpdir, max_epochs=7, accelerator=accelerator, devices=1)
     model = RegressionModel()
     qmodel = copy.deepcopy(model)
 

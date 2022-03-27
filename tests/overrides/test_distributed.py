@@ -54,9 +54,7 @@ def test_index_batch_sampler(tmpdir):
     assert batch_sampler.batch_size == index_batch_sampler.batch_size
     assert batch_sampler.drop_last == index_batch_sampler.drop_last
     assert batch_sampler.sampler is sampler
-
-    for batch in index_batch_sampler:
-        assert index_batch_sampler.batch_indices == batch
+    assert list(index_batch_sampler) == index_batch_sampler.seen_batch_indices
 
 
 def test_index_batch_sampler_methods():

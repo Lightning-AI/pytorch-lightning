@@ -58,8 +58,8 @@ import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.callbacks.finetuning import BaseFinetuning
-from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.cli import LightningCLI
+from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
 log = logging.getLogger(__name__)
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"
@@ -84,7 +84,7 @@ class MilestonesFinetuning(BaseFinetuning):
             )
 
         elif epoch == self.milestones[1]:
-            # unfreeze remaing layers
+            # unfreeze remaining layers
             self.unfreeze_and_add_param_group(
                 modules=pl_module.feature_extractor[:-5], optimizer=optimizer, train_bn=self.train_bn
             )

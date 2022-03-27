@@ -18,7 +18,7 @@ from pytorch_lightning.utilities.types import _PATH
 
 
 class CheckpointIO(ABC):
-    """Interface to save/load checkpoints as they are saved through the ``TrainingTypePlugin``.
+    """Interface to save/load checkpoints as they are saved through the ``Strategy``.
 
     Typically most plugins either use the Torch based IO Plugin; ``TorchCheckpointIO`` but may
     require particular handling depending on the plugin.

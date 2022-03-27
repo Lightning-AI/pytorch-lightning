@@ -38,9 +38,17 @@ formats:
   - htmlzip
   #- pdf
 
+build:
+  os: ubuntu-20.04
+  tools:
+    python: "3.9"
+  apt_packages:
+    - texlive-latex-extra
+    - dvipng
+    - texlive-pictures
+
 # Optionally set the version of Python and requirements required to build your docs
 python:
-  version: 3.7
   install:
     - requirements: requirements/docs.txt
     #- requirements: requirements.txt

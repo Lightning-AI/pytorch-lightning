@@ -16,7 +16,7 @@ FROM google/cloud-sdk:slim
 
 LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
 
-# CALL: docker image build -t pytorch-lightning:XLA-extras-py3.6 -f dockers/base-xla/Dockerfile . --build-arg PYTHON_VERSION=3.8
+# CALL: docker image build -t pytorch-lightning:XLA-image -f dockers/base-xla/Dockerfile . --build-arg PYTHON_VERSION=3.8
 ARG PYTHON_VERSION=3.9
 ARG CONDA_VERSION=4.9.2
 ARG XLA_VERSION=1.8
@@ -91,12 +91,12 @@ COPY ./ ./pytorch-lightning/
 RUN \
     python --version && \
     cd pytorch-lightning && \
+    pip install -q fire && \
     # drop packages installed with XLA
-    python .github/prune-packages.py requirements.txt "torch" && \
-    python .github/prune-packages.py requirements/examples.txt "torchvision" && \
+    python .actions/assistant.py requirements_prune_pkgs torch,torchvision && \
     # drop unnecessary packages
-    python .github/prune-packages.py requirements/extra.txt "fairscale" "horovod" && \
-    python ./requirements/adjust_versions.py ./requirements/extra.txt && \
+    python .actions/assistant.py requirements_prune_pkgs fairscale,horovod && \
+    python ./requirements/adjust-versions.py ./requirements/extra.txt && \
     # install PL dependencies
     pip install --requirement ./requirements/devel.txt --no-cache-dir && \
     cd .. && \

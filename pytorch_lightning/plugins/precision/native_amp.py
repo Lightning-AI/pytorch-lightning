@@ -25,9 +25,9 @@ from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_10:
-    from torch import autocast
+    from torch import autocast as new_autocast
 else:
-    from torch.cuda.amp import autocast
+    from torch.cuda.amp import autocast as old_autocast
 
 
 class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
@@ -62,7 +62,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
             closure_loss = self.scaler.scale(closure_loss)
         return super().pre_backward(model, closure_loss)
 
-    def _run_backward(self, tensor: Tensor, model: Module, *args: Any, **kwargs: Any) -> None:
+    def _run_backward(self, tensor: Tensor, model: Optional[Module], *args: Any, **kwargs: Any) -> None:
         if self.scaler is not None:
             tensor = self.scaler.scale(tensor)
         super()._run_backward(tensor, model, *args, **kwargs)
@@ -74,7 +74,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> None:
+    ) -> Any:
         if self.scaler is None:
             # skip scaler logic, as bfloat16 does not require scaler
             return super().optimizer_step(model, optimizer, optimizer_idx, closure, **kwargs)
@@ -90,15 +90,17 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         # in manual optimization, the closure does not return a value
         if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
             # note: the scaler will skip the `optimizer.step` if nonfinite gradients are found
-            self.scaler.step(optimizer, **kwargs)
+            step_output = self.scaler.step(optimizer, **kwargs)
             self.scaler.update()
+            return step_output
+        return closure_result
 
-    def autocast_context_manager(self) -> autocast:
+    def autocast_context_manager(self) -> Union["old_autocast", "new_autocast"]:
         if _TORCH_GREATER_EQUAL_1_10:
             # the dtype could be automatically inferred but we need to manually set it due to a bug upstream
             # https://github.com/pytorch/pytorch/issues/67233
-            return autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
-        return autocast()
+            return new_autocast(self.device, dtype=torch.bfloat16 if self.precision == "bf16" else torch.half)
+        return old_autocast()
 
     @contextmanager
     def forward_context(self) -> Generator[None, None, None]:
@@ -106,10 +108,11 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         with self.autocast_context_manager():
             yield
 
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        if self.scaler is not None and "native_amp_scaling_state" in checkpoint:
-            self.scaler.load_state_dict(checkpoint["native_amp_scaling_state"])
-
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+    def state_dict(self) -> Dict[str, Any]:
         if self.scaler is not None:
-            checkpoint["native_amp_scaling_state"] = self.scaler.state_dict()
+            return self.scaler.state_dict()
+        return {}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        if self.scaler is not None:
+            self.scaler.load_state_dict(state_dict)

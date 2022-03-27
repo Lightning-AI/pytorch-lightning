@@ -31,7 +31,8 @@ from tests.helpers.runif import RunIf
 def test_gpu_stats_monitor(tmpdir):
     """Test GPU stats are logged using a logger."""
     model = BoringModel()
-    gpu_stats = GPUStatsMonitor(intra_step_time=True)
+    with pytest.deprecated_call(match="GPUStatsMonitor` callback was deprecated in v1.5"):
+        gpu_stats = GPUStatsMonitor(intra_step_time=True)
     logger = CSVLogger(tmpdir)
     log_every_n_steps = 2
 
@@ -40,7 +41,8 @@ def test_gpu_stats_monitor(tmpdir):
         max_epochs=2,
         limit_train_batches=7,
         log_every_n_steps=log_every_n_steps,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
         callbacks=[gpu_stats],
         logger=logger,
     )
@@ -65,25 +67,27 @@ def test_gpu_stats_monitor(tmpdir):
 def test_gpu_stats_monitor_no_queries(tmpdir):
     """Test GPU logger doesn't fail if no "nvidia-smi" queries are to be performed."""
     model = BoringModel()
-    gpu_stats = GPUStatsMonitor(
-        memory_utilization=False,
-        gpu_utilization=False,
-        intra_step_time=True,
-        inter_step_time=True,
-    )
+    with pytest.deprecated_call(match="GPUStatsMonitor` callback was deprecated in v1.5"):
+        gpu_stats = GPUStatsMonitor(
+            memory_utilization=False,
+            gpu_utilization=False,
+            intra_step_time=True,
+            inter_step_time=True,
+        )
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=2,
         limit_val_batches=0,
         log_every_n_steps=1,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
         callbacks=[gpu_stats],
     )
     with mock.patch("pytorch_lightning.loggers.tensorboard.TensorBoardLogger.log_metrics") as log_metrics_mock:
         trainer.fit(model)
 
-    assert log_metrics_mock.mock_calls[2:] == [
+    assert log_metrics_mock.mock_calls[1:] == [
         mock.call({"batch_time/intra_step (ms)": mock.ANY}, step=0),
         mock.call({"batch_time/inter_step (ms)": mock.ANY}, step=1),
         mock.call({"batch_time/intra_step (ms)": mock.ANY}, step=1),
@@ -93,7 +97,9 @@ def test_gpu_stats_monitor_no_queries(tmpdir):
 @pytest.mark.skipif(torch.cuda.is_available(), reason="test requires CPU machine")
 def test_gpu_stats_monitor_cpu_machine(tmpdir):
     """Test GPUStatsMonitor on CPU machine."""
-    with pytest.raises(MisconfigurationException, match="NVIDIA driver is not installed"):
+    with pytest.raises(MisconfigurationException, match="NVIDIA driver is not installed"), pytest.deprecated_call(
+        match="GPUStatsMonitor` callback was deprecated in v1.5"
+    ):
         GPUStatsMonitor()
 
 
@@ -101,9 +107,12 @@ def test_gpu_stats_monitor_cpu_machine(tmpdir):
 def test_gpu_stats_monitor_no_logger(tmpdir):
     """Test GPUStatsMonitor with no logger in Trainer."""
     model = BoringModel()
-    gpu_stats = GPUStatsMonitor()
+    with pytest.deprecated_call(match="GPUStatsMonitor` callback was deprecated in v1.5"):
+        gpu_stats = GPUStatsMonitor()
 
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[gpu_stats], max_epochs=1, gpus=1, logger=False)
+    trainer = Trainer(
+        default_root_dir=tmpdir, callbacks=[gpu_stats], max_epochs=1, accelerator="gpu", devices=1, logger=False
+    )
 
     with pytest.raises(MisconfigurationException, match="Trainer that has no logger."):
         trainer.fit(model)
@@ -113,7 +122,8 @@ def test_gpu_stats_monitor_no_logger(tmpdir):
 def test_gpu_stats_monitor_no_gpu_warning(tmpdir):
     """Test GPUStatsMonitor raises a warning when not training on GPU device."""
     model = BoringModel()
-    gpu_stats = GPUStatsMonitor()
+    with pytest.deprecated_call(match="GPUStatsMonitor` callback was deprecated in v1.5"):
+        gpu_stats = GPUStatsMonitor()
 
     trainer = Trainer(default_root_dir=tmpdir, callbacks=[gpu_stats], max_steps=1, gpus=None)
 

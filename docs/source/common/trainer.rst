@@ -100,13 +100,14 @@ In Python scripts, it's recommended you use a main function to call the Trainer.
 
     def main(hparams):
         model = LightningModule()
-        trainer = Trainer(gpus=hparams.gpus)
+        trainer = Trainer(accelerator=hparams.accelerator, devices=hparams.devices)
         trainer.fit(model)
 
 
     if __name__ == "__main__":
         parser = ArgumentParser()
-        parser.add_argument("--gpus", default=None)
+        parser.add_argument("--accelerator", default=None)
+        parser.add_argument("--devices", default=None)
         args = parser.parse_args()
 
         main(args)
@@ -115,7 +116,7 @@ So you can run it like so:
 
 .. code-block:: bash
 
-    python main.py --gpus 2
+    python main.py --accelerator 'gpu' --devices 2
 
 .. note::
 
@@ -143,7 +144,7 @@ So you can run it like so:
 
 .. code-block:: bash
 
-    python main.py --gpus 2 --max_steps 10 --limit_train_batches 10 --any_trainer_arg x
+    python main.py --accelerator 'gpu' --devices 2 --max_steps 10 --limit_train_batches 10 --any_trainer_arg x
 
 .. note::
     If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
@@ -189,7 +190,7 @@ Example::
     from pytorch_lightning import Trainer, seed_everything
 
     seed_everything(42, workers=True)
-    # sets seeds for numpy, torch, python.random and PYTHONHASHSEED.
+    # sets seeds for numpy, torch and python.random.
     model = Model()
     trainer = Trainer(deterministic=True)
 
@@ -356,16 +357,16 @@ such that only one process at a time can access them.
 Example::
 
     # no auto selection (picks first 2 gpus on system, may fail if other process is occupying)
-    trainer = Trainer(gpus=2, auto_select_gpus=False)
+    trainer = Trainer(accelerator="gpu", devices=2, auto_select_gpus=False)
 
     # enable auto selection (will find two available gpus on system)
-    trainer = Trainer(gpus=2, auto_select_gpus=True)
+    trainer = Trainer(accelerator="gpu", devices=2, auto_select_gpus=True)
 
     # specifies all GPUs regardless of its availability
-    Trainer(gpus=-1, auto_select_gpus=False)
+    Trainer(accelerator="gpu", devices=-1, auto_select_gpus=False)
 
     # specifies all available GPUs (if only one GPU is not occupied, uses one gpu)
-    Trainer(gpus=-1, auto_select_gpus=True)
+    Trainer(accelerator="gpu", devices=-1, auto_select_gpus=True)
 
 auto_lr_find
 ^^^^^^^^^^^^
@@ -403,7 +404,7 @@ Example::
     trainer.tune(model)
 
 .. note::
-    See the :doc:`learning rate finder guide <../advanced/lr_finder>`.
+    See the :ref:`learning rate finder guide <learning_rate_finder>`.
 
 benchmark
 ^^^^^^^^^
@@ -416,18 +417,20 @@ benchmark
 
 |
 
-If true enables cudnn.benchmark.
-This flag is likely to increase the speed of your system if your
-input sizes don't change. However, if it does, then it will likely
-make your system slower.
+Defaults to ``True`` if :paramref:`~pytorch_lightning.trainer.Trainer.deterministic` is not set.
+This flag sets the ``torch.backends.cudnn.deterministic`` flag. You can read more about its impact
+`here <https://pytorch.org/docs/stable/notes/randomness.html#cuda-convolution-benchmarking>`__
 
-The speedup comes from allowing the cudnn auto-tuner to find the best
-algorithm for the hardware `[see discussion here]
-<https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936>`_.
+This is likely to increase the speed of your system if your input sizes don't change. However, if they do, then it
+might make your system slower. The CUDNN auto-tuner will try to find the best algorithm for the hardware when a new
+input size is encountered. Read more about it `here <https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936>`__.
 
 Example::
 
-    # default used by the Trainer
+    # defaults to True if not deterministic (which is False by default)
+    trainer = Trainer()
+
+    # you can overwrite the value
     trainer = Trainer(benchmark=False)
 
 deterministic
@@ -603,7 +606,7 @@ To disable automatic checkpointing, set this to `False`.
 
 You can override the default behavior by initializing the :class:`~pytorch_lightning.callbacks.ModelCheckpoint`
 callback, and adding it to the :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks` list.
-See :doc:`Saving and Loading Weights <../common/weights_loading>` for how to customize checkpointing.
+See :doc:`Saving and Loading Checkpoints <../common/checkpointing>` for how to customize checkpointing.
 
 .. testcode::
 
@@ -693,6 +696,9 @@ See Also:
 gpus
 ^^^^
 
+.. warning:: Setting `Trainer(gpus=x)` is deprecated in v1.6 and will be removed"
+    in v2.0. Please use `Trainer(accelerator='gpu', devices=x)` instead.
+
 .. raw:: html
 
     <video width="50%" max-width="400px" controls
@@ -734,7 +740,7 @@ Example::
     trainer = Trainer(gpus=[1, 4], num_nodes=4)
 
 See Also:
-    - :doc:`Multi-GPU training guide <../advanced/multi_gpu>`.
+    - :ref:`accelerators/gpu:Multi GPU Training`
 
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
@@ -932,7 +938,7 @@ max_steps
 
 |
 
-Stop training after this number of steps
+Stop training after this number of :ref:`global steps <common/trainer:global_step>`.
 Training will stop if max_steps or max_epochs have reached (earliest).
 
 .. testcode::
@@ -957,7 +963,7 @@ min_steps
 
 |
 
-Force training for at least these number of steps.
+Force training for at least this number of :ref:`global steps <common/trainer:global_step>`.
 Trainer will train model for at least min_steps or min_epochs (latest).
 
 .. testcode::
@@ -1074,7 +1080,7 @@ overfit_batches
 
 |
 
-Uses this much data of the training set. If nonzero, will use the same training set for validation and testing.
+Uses this much data of the training set. If nonzero, will turn off validation.
 If the training dataloaders have `shuffle=True`, Lightning will automatically disable it.
 
 Useful for quickly debugging or trying to overfit on purpose.
@@ -1084,7 +1090,7 @@ Useful for quickly debugging or trying to overfit on purpose.
     # default used by the Trainer
     trainer = Trainer(overfit_batches=0.0)
 
-    # use only 1% of the train set (and use the train set for val and test)
+    # use only 1% of the train set
     trainer = Trainer(overfit_batches=0.01)
 
     # overfit on 10 of the same batches
@@ -1103,7 +1109,7 @@ plugins
 
 :ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
 
-- :ref:`DDP <multi_gpu>`
+- :ref:`DDP <gpu>`
 - `TorchElastic <https://pytorch.org/elastic/0.2.2/index.html>`_
 - :ref:`Apex <amp>`
 
@@ -1131,6 +1137,16 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
 prepare_data_per_node
 ^^^^^^^^^^^^^^^^^^^^^
+.. warning:: ``prepare_data_per_node`` has been deprecated in v1.5 and will be removed in v1.7.
+    Please set its value inside ``LightningDataModule`` and/or ``LightningModule`` directly described
+    in the following code:
+
+    .. testcode::
+
+        class LitDataModule(LightningDataModule):
+            def __init__(self):
+                super().__init__()
+                self.prepare_data_per_node = True
 
 .. raw:: html
 
@@ -1140,8 +1156,8 @@ prepare_data_per_node
 
 |
 
-If True will call `prepare_data()` on LOCAL_RANK=0 for every node.
-If False will only call from NODE_RANK=0, LOCAL_RANK=0
+If set to ``True`` will call ``prepare_data()`` on LOCAL_RANK=0 for every node.
+If set to ``False`` will only call from NODE_RANK=0, LOCAL_RANK=0.
 
 .. testcode::
 
@@ -1308,7 +1324,7 @@ reload_dataloaders_every_n_epochs
 
 |
 
-Set to a postive integer to reload dataloaders every n epochs.
+Set to a positive integer to reload dataloaders every n epochs.
 
 .. code-block:: python
 
@@ -1366,7 +1382,7 @@ By setting to False, you have to add your own distributed sampler:
 resume_from_checkpoint
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. warning:: ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v1.7.
+.. warning:: ``resume_from_checkpoint`` is deprecated in v1.5 and will be removed in v2.0.
     Please pass ``trainer.fit(ckpt_path="some/path/to/my_checkpoint.ckpt")`` instead.
 
 
@@ -1406,10 +1422,10 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
 
 .. code-block:: python
 
-    from pytorch_lightning.plugins import DDPPlugin
+    from pytorch_lightning.strategies import DDPStrategy
 
 
-    class CustomDDPPlugin(DDPPlugin):
+    class CustomDDPStrategy(DDPStrategy):
         def configure_ddp(self):
             self._model = MyCustomDistributedDataParallel(
                 self.model,
@@ -1417,12 +1433,12 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
             )
 
 
-    trainer = Trainer(strategy=CustomDDPPlugin(), accelerator="gpu", devices=2)
+    trainer = Trainer(strategy=CustomDDPStrategy(), accelerator="gpu", devices=2)
 
 See Also:
-    - :doc:`Multi-GPU training guide <../advanced/multi_gpu>`.
-    - :doc:`Model Parallel GPU training guide <../advanced/advanced_gpu>`.
-    - :doc:`TPU training guide <../advanced/tpu>`.
+    - :ref:`accelerators/gpu:Multi GPU Training`.
+    - :doc:`Model Parallel GPU training guide <../advanced/model_parallel>`.
+    - :doc:`TPU training guide <../accelerators/tpu>`.
 
 sync_batchnorm
 ^^^^^^^^^^^^^^
@@ -1534,8 +1550,8 @@ val_check_interval
 How often within one training epoch to check the validation set.
 Can specify as float or int.
 
-- use (float) to check within a training epoch
-- use (int) to check every n steps (batches)
+- pass a ``float`` in the range [0.0, 1.0] to check after a fraction of the training epoch.
+- pass an ``int`` to check after a fixed number of training batches.
 
 .. testcode::
 
@@ -1571,6 +1587,12 @@ Can specify as float or int.
 
 weights_save_path
 ^^^^^^^^^^^^^^^^^
+
+
+.. warning:: `weights_save_path` has been deprecated in v1.6 and will be removed in v1.8. Please pass
+   ``dirpath`` directly to the :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+   callback.
+
 
 .. raw:: html
 
@@ -1693,6 +1715,7 @@ tune
 .. automethod:: pytorch_lightning.trainer.Trainer.tune
    :noindex:
 
+
 Properties
 ^^^^^^^^^^
 
@@ -1713,27 +1736,46 @@ The metrics available to callbacks. These are automatically set when you log via
 current_epoch
 *************
 
-The current epoch
+The number of epochs run.
 
 .. code-block:: python
 
-    def training_step(self, batch, batch_idx):
-        current_epoch = self.trainer.current_epoch
-        if current_epoch > 100:
-            # do something
-            pass
+    if trainer.current_epoch >= 10:
+        ...
 
+global_step
+***********
 
-logger (p)
-**********
+The number of optimizer steps taken (does not reset each epoch).
+This includes multiple optimizers and TBPTT steps (if enabled).
+
+.. code-block:: python
+
+    if trainer.global_step >= 100:
+        ...
+
+logger
+*******
 
 The current logger being used. Here's an example using tensorboard
 
 .. code-block:: python
 
-    def training_step(self, batch, batch_idx):
-        logger = self.trainer.logger
-        tensorboard = logger.experiment
+    logger = trainer.logger
+    tensorboard = logger.experiment
+
+
+loggers
+********
+
+The list of loggers currently being used by the Trainer.
+
+.. code-block:: python
+
+    # List of LightningLoggerBase objects
+    loggers = trainer.loggers
+    for logger in loggers:
+        logger.log_metrics({"foo": 1.0})
 
 
 logged_metrics
@@ -1786,3 +1828,9 @@ The metrics sent to the progress bar.
 
     progress_bar_metrics = trainer.progress_bar_metrics
     assert progress_bar_metrics["a_val"] == 2
+
+
+estimated_stepping_batches
+**************************
+
+Check out :meth:`~pytorch_lightning.trainer.trainer.Trainer.estimated_stepping_batches`.

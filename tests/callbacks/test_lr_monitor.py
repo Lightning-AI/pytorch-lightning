@@ -40,7 +40,7 @@ def test_lr_monitor_single_lr(tmpdir):
 
     assert lr_monitor.lrs, "No learning rates logged"
     assert all(v is None for v in lr_monitor.last_momentum_values.values()), "Momentum should not be logged by default"
-    assert len(lr_monitor.lrs) == len(trainer.lr_schedulers)
+    assert len(lr_monitor.lrs) == len(trainer.lr_scheduler_configs)
     assert list(lr_monitor.lrs) == ["lr-SGD"]
 
 
@@ -76,7 +76,7 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
     trainer.fit(model)
 
     assert all(v is not None for v in lr_monitor.last_momentum_values.values()), "Expected momentum to be logged"
-    assert len(lr_monitor.last_momentum_values) == len(trainer.lr_schedulers)
+    assert len(lr_monitor.last_momentum_values) == len(trainer.lr_scheduler_configs)
     assert all(k == f"lr-{opt}-momentum" for k in lr_monitor.last_momentum_values)
 
 
@@ -103,7 +103,7 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
         trainer.fit(model)
 
     assert all(v == 0 for v in lr_monitor.last_momentum_values.values()), "Expected momentum to be logged"
-    assert len(lr_monitor.last_momentum_values) == len(trainer.lr_schedulers)
+    assert len(lr_monitor.last_momentum_values) == len(trainer.lr_scheduler_configs)
     assert all(k == "lr-ASGD-momentum" for k in lr_monitor.last_momentum_values)
 
 
@@ -217,7 +217,6 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
             optimizer2 = optim.Adam(self.parameters(), lr=1e-2)
             lr_scheduler1 = optim.lr_scheduler.StepLR(optimizer1, 1, gamma=0.1)
             lr_scheduler2 = optim.lr_scheduler.StepLR(optimizer2, 1, gamma=0.1)
-
             return [optimizer1, optimizer2], [lr_scheduler1, lr_scheduler2]
 
     model = CustomBoringModel()
@@ -237,11 +236,12 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
     trainer.fit(model)
 
     assert lr_monitor.lrs, "No learning rates logged"
-    assert len(lr_monitor.lrs) == len(trainer.lr_schedulers)
+    assert len(lr_monitor.lrs) == len(trainer.lr_scheduler_configs)
     assert list(lr_monitor.lrs) == ["lr-Adam", "lr-Adam-1"], "Names of learning rates not set correctly"
 
     if logging_interval == "step":
-        expected_number_logged = trainer.global_step // log_every_n_steps
+        # divide by 2 because we have 2 optimizers
+        expected_number_logged = trainer.global_step // 2 // log_every_n_steps
     if logging_interval == "epoch":
         expected_number_logged = trainer.max_epochs
 
@@ -284,7 +284,8 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
     assert list(lr_monitor.lrs) == ["lr-Adam", "lr-Adam-1"], "Names of learning rates not set correctly"
 
     if logging_interval == "step":
-        expected_number_logged = trainer.global_step // log_every_n_steps
+        # divide by 2 because we have 2 optimizers
+        expected_number_logged = trainer.global_step // 2 // log_every_n_steps
     if logging_interval == "epoch":
         expected_number_logged = trainer.max_epochs
 
@@ -316,7 +317,7 @@ def test_lr_monitor_param_groups(tmpdir):
     trainer.fit(model, datamodule=dm)
 
     assert lr_monitor.lrs, "No learning rates logged"
-    assert len(lr_monitor.lrs) == 2 * len(trainer.lr_schedulers)
+    assert len(lr_monitor.lrs) == 2 * len(trainer.lr_scheduler_configs)
     assert list(lr_monitor.lrs) == ["lr-Adam/pg1", "lr-Adam/pg2"], "Names of learning rates not set correctly"
 
 

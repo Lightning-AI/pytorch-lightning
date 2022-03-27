@@ -15,7 +15,6 @@
 Weights and Biases Logger
 -------------------------
 """
-import operator
 import os
 from argparse import Namespace
 from pathlib import Path
@@ -26,13 +25,10 @@ import torch.nn as nn
 
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import _module_available, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _compare_version
-from pytorch_lightning.utilities.warnings import rank_zero_warn
-
-_WANDB_AVAILABLE = _module_available("wandb")
-_WANDB_GREATER_EQUAL_0_10_22 = _compare_version("wandb", operator.ge, "0.10.22")
+from pytorch_lightning.utilities.imports import _WANDB_GREATER_EQUAL_0_10_22, _WANDB_GREATER_EQUAL_0_12_10
+from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _sanitize_callable_params
+from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 try:
     import wandb
@@ -307,11 +303,18 @@ class WandbLogger(LightningLoggerBase):
         self._save_dir = self._wandb_init.get("dir")
         self._name = self._wandb_init.get("name")
         self._id = self._wandb_init.get("id")
+        # start wandb run (to create an attach_id for distributed modes)
+        if _WANDB_GREATER_EQUAL_0_12_10:
+            wandb.require("service")
+            _ = self.experiment
 
     def __getstate__(self):
         state = self.__dict__.copy()
         # args needed to reload correct experiment
-        state["_id"] = self._experiment.id if self._experiment is not None else None
+        if self._experiment is not None:
+            state["_id"] = getattr(self._experiment, "id", None)
+            state["_attach_id"] = getattr(self._experiment, "_attach_id", None)
+            state["_name"] = self._experiment.project_name()
 
         # cannot be pickled
         state["_experiment"] = None
@@ -335,19 +338,26 @@ class WandbLogger(LightningLoggerBase):
         if self._experiment is None:
             if self._offline:
                 os.environ["WANDB_MODE"] = "dryrun"
-            if wandb.run is None:
-                self._experiment = wandb.init(**self._wandb_init)
-            else:
+
+            attach_id = getattr(self, "_attach_id", None)
+            if wandb.run is not None:
+                # wandb process already created in this instance
                 rank_zero_warn(
                     "There is a wandb run already in progress and newly created instances of `WandbLogger` will reuse"
                     " this run. If this is not desired, call `wandb.finish()` before instantiating `WandbLogger`."
                 )
                 self._experiment = wandb.run
+            elif attach_id is not None and hasattr(wandb, "_attach"):
+                # attach to wandb process referenced
+                self._experiment = wandb._attach(attach_id)
+            else:
+                # create new wandb process
+                self._experiment = wandb.init(**self._wandb_init)
 
-        # define default x-axis (for latest wandb versions)
-        if getattr(self._experiment, "define_metric", None):
-            self._experiment.define_metric("trainer/global_step")
-            self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
+                # define default x-axis
+                if getattr(self._experiment, "define_metric", None):
+                    self._experiment.define_metric("trainer/global_step")
+                    self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
 
         return self._experiment
 
@@ -356,16 +366,16 @@ class WandbLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
-        params = self._convert_params(params)
-        params = self._flatten_dict(params)
-        params = self._sanitize_callable_params(params)
+        params = _convert_params(params)
+        params = _flatten_dict(params)
+        params = _sanitize_callable_params(params)
         self.experiment.config.update(params, allow_val_change=True)
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
-        metrics = self._add_prefix(metrics)
+        metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
         if step is not None:
             self.experiment.log({**metrics, "trainer/global_step": step})
         else:
@@ -405,7 +415,7 @@ class WandbLogger(LightningLoggerBase):
         self.log_table(key, columns, data, dataframe, step)
 
     @rank_zero_only
-    def log_image(self, key: str, images: List[Any], **kwargs: str) -> None:
+    def log_image(self, key: str, images: List[Any], step: Optional[int] = None, **kwargs: str) -> None:
         """Log images (tensors, numpy arrays, PIL Images or file paths).
 
         Optional kwargs are lists passed to each image (ex: caption, masks, boxes).
@@ -416,7 +426,6 @@ class WandbLogger(LightningLoggerBase):
         for k, v in kwargs.items():
             if len(v) != n:
                 raise ValueError(f"Expected {n} items but only found {len(v)} for {k}")
-        step = kwargs.pop("step", None)
         kwarg_list = [{k: kwargs[k][i] for k in kwargs.keys()} for i in range(n)]
         metrics = {key: [wandb.Image(img, **kwarg) for img, kwarg in zip(images, kwarg_list)]}
         self.log_metrics(metrics, step)

@@ -28,7 +28,7 @@ from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 if _TORCH_GREATER_EQUAL_1_8:
     from torch.quantization import FakeQuantizeBase
 else:
-    # For torch 1.6 and 1.7.
+    # For torch 1.7.
     from torch.quantization import FakeQuantize as FakeQuantizeBase
 
 import pytorch_lightning as pl
@@ -112,8 +112,8 @@ class QuantizationAwareTraining(Callback):
 
         collect_quantization: count or custom function to collect quantization statistics:
 
-            - ``None`` (deafult). The quantization observer is called in each module forward
-                (useful for collecting extended statistic when useing image/data augmentation).
+            - ``None`` (default). The quantization observer is called in each module forward
+                (useful for collecting extended statistic when using image/data augmentation).
             - ``int``. Use to set a fixed number of calls, starting from the beginning.
             - ``Callable``. Custom function with single trainer argument.
                 See this example to trigger only the last epoch:

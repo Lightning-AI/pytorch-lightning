@@ -24,6 +24,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
 class DeviceStatsMonitor(Callback):
@@ -43,7 +44,7 @@ class DeviceStatsMonitor(Callback):
     """
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
-        if not trainer.logger:
+        if not trainer.loggers:
             raise MisconfigurationException("Cannot use DeviceStatsMonitor callback with Trainer that has no logger.")
 
     def on_train_batch_start(
@@ -52,14 +53,20 @@ class DeviceStatsMonitor(Callback):
         pl_module: "pl.LightningModule",
         batch: Any,
         batch_idx: int,
-        unused: Optional[int] = 0,
+        unused: int = 0,
     ) -> None:
-        if not trainer.logger_connector.should_update_logs:
+        if not trainer.loggers:
+            raise MisconfigurationException("Cannot use `DeviceStatsMonitor` callback with `Trainer(logger=False)`.")
+
+        if not trainer._logger_connector.should_update_logs:
             return
 
-        device_stats = trainer.accelerator.get_device_stats(pl_module.device)
-        prefixed_device_stats = prefix_metrics_keys(device_stats, "on_train_batch_start")
-        trainer.logger.log_metrics(prefixed_device_stats, step=trainer.global_step)
+        device = trainer.strategy.root_device
+        device_stats = trainer.accelerator.get_device_stats(device)
+        for logger in trainer.loggers:
+            separator = logger.group_separator
+            prefixed_device_stats = _prefix_metric_keys(device_stats, "on_train_batch_start", separator)
+            logger.log_metrics(prefixed_device_stats, step=trainer.fit_loop.epoch_loop._batches_that_stepped)
 
     def on_train_batch_end(
         self,
@@ -68,15 +75,30 @@ class DeviceStatsMonitor(Callback):
         outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
-        unused: Optional[int] = 0,
+        unused: int = 0,
     ) -> None:
-        if not trainer.logger_connector.should_update_logs:
+        if not trainer.loggers:
+            raise MisconfigurationException("Cannot use `DeviceStatsMonitor` callback with `Trainer(logger=False)`.")
+
+        if not trainer._logger_connector.should_update_logs:
             return
 
-        device_stats = trainer.accelerator.get_device_stats(pl_module.device)
-        prefixed_device_stats = prefix_metrics_keys(device_stats, "on_train_batch_end")
-        trainer.logger.log_metrics(prefixed_device_stats, step=trainer.global_step)
+        device = trainer.strategy.root_device
+        device_stats = trainer.accelerator.get_device_stats(device)
+        for logger in trainer.loggers:
+            separator = logger.group_separator
+            prefixed_device_stats = _prefix_metric_keys(device_stats, "on_train_batch_end", separator)
+            logger.log_metrics(prefixed_device_stats, step=trainer.fit_loop.epoch_loop._batches_that_stepped)
 
 
-def prefix_metrics_keys(metrics_dict: Dict[str, float], prefix: str) -> Dict[str, float]:
-    return {prefix + "." + k: v for k, v in metrics_dict.items()}
+def _prefix_metric_keys(metrics_dict: Dict[str, float], prefix: str, separator: str) -> Dict[str, float]:
+    return {prefix + separator + k: v for k, v in metrics_dict.items()}
+
+
+def prefix_metric_keys(metrics_dict: Dict[str, float], prefix: str) -> Dict[str, float]:
+    rank_zero_deprecation(
+        "`pytorch_lightning.callbacks.device_stats_monitor.prefix_metrics`"
+        " is deprecated in v1.6 and will be removed in v1.8."
+    )
+    sep = ""
+    return _prefix_metric_keys(metrics_dict, prefix, sep)

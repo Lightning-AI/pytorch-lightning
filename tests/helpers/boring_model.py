@@ -91,9 +91,9 @@ class BoringModel(LightningModule):
     def forward(self, x):
         return self.layer(x)
 
-    def loss(self, batch, prediction):
+    def loss(self, batch, preds):
         # An arbitrary loss to have a loss that updates the model weights during `Trainer.fit` calls
-        return torch.nn.functional.mse_loss(prediction, torch.ones_like(prediction))
+        return torch.nn.functional.mse_loss(preds, torch.ones_like(preds))
 
     def step(self, x):
         x = self(x)
@@ -151,8 +151,6 @@ class BoringDataModule(LightningDataModule):
         self.data_dir = data_dir
         self.non_picklable = None
         self.checkpoint_state: Optional[str] = None
-
-    def prepare_data(self):
         self.random_full = RandomDataset(32, 64 * 4)
 
     def setup(self, stage: Optional[str] = None):

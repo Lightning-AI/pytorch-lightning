@@ -43,7 +43,7 @@ def test_model_saves_with_input_sample(tmpdir):
 def test_model_saves_on_gpu(tmpdir):
     """Test that model saves on gpu."""
     model = BoringModel()
-    trainer = Trainer(gpus=1, fast_dev_run=True)
+    trainer = Trainer(accelerator="gpu", devices=1, fast_dev_run=True)
     trainer.fit(model)
 
     file_path = os.path.join(tmpdir, "model.onnx")
@@ -53,6 +53,7 @@ def test_model_saves_on_gpu(tmpdir):
     assert os.path.getsize(file_path) > 4e2
 
 
+@RunIf(max_torch="1.10")
 def test_model_saves_with_example_output(tmpdir):
     """Test that ONNX model saves when provided with example output."""
     model = BoringModel()
@@ -95,7 +96,8 @@ def test_model_saves_on_multi_gpu(tmpdir):
         max_epochs=1,
         limit_train_batches=10,
         limit_val_batches=10,
-        gpus=[0, 1],
+        accelerator="gpu",
+        devices=[0, 1],
         strategy="ddp_spawn",
         enable_progress_bar=False,
     )

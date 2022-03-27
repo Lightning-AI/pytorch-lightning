@@ -17,13 +17,13 @@ from unittest import mock
 import pytest
 import torch
 from torch.utils.data import DataLoader
-from torchmetrics import Accuracy, AveragePrecision
+from torchmetrics import Accuracy, AveragePrecision, MeanAbsoluteError, MeanSquaredError
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -31,9 +31,9 @@ from tests.models.test_hooks import get_members
 
 
 def test_fx_validator(tmpdir):
-    funcs_name = sorted(get_members(Callback))
+    funcs_name = get_members(Callback)
 
-    callbacks_func = [
+    callbacks_func = {
         "on_before_backward",
         "on_after_backward",
         "on_before_optimizer_step",
@@ -51,10 +51,12 @@ def test_fx_validator(tmpdir):
         "on_keyboard_interrupt",
         "on_exception",
         "on_load_checkpoint",
+        "load_state_dict",
         "on_pretrain_routine_end",
         "on_pretrain_routine_start",
         "on_sanity_check_end",
         "on_sanity_check_start",
+        "state_dict",
         "on_save_checkpoint",
         "on_test_batch_end",
         "on_test_batch_start",
@@ -82,9 +84,9 @@ def test_fx_validator(tmpdir):
         "on_predict_start",
         "setup",
         "teardown",
-    ]
+    }
 
-    not_supported = [
+    not_supported = {
         "on_before_accelerator_backend_setup",
         "on_fit_end",
         "on_fit_start",
@@ -94,6 +96,7 @@ def test_fx_validator(tmpdir):
         "on_keyboard_interrupt",
         "on_exception",
         "on_load_checkpoint",
+        "load_state_dict",
         "on_pretrain_routine_end",
         "on_pretrain_routine_start",
         "on_sanity_check_end",
@@ -104,17 +107,17 @@ def test_fx_validator(tmpdir):
         "on_predict_epoch_end",
         "on_predict_epoch_start",
         "on_predict_start",
+        "state_dict",
         "on_save_checkpoint",
         "on_test_end",
         "on_train_end",
         "on_validation_end",
         "setup",
         "teardown",
-    ]
+    }
 
-    assert funcs_name == sorted(
-        callbacks_func
-    ), "Detected new callback function. Need to add its logging permission to FxValidator and update this test"
+    # Detected new callback function. Need to add its logging permission to FxValidator and update this test
+    assert funcs_name == callbacks_func
 
     validator = _FxValidator()
 
@@ -141,22 +144,27 @@ def test_fx_validator(tmpdir):
             and func_name not in ["on_train_end", "on_test_end", "on_validation_end"]
         )
         if allowed:
-            validator.check_logging(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
+            validator.check_logging_levels(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
             if not is_start and is_stage:
                 with pytest.raises(MisconfigurationException, match="must be one of"):
-                    validator.check_logging(fx_name=func_name, on_step=True, on_epoch=on_epoch)
+                    validator.check_logging_levels(fx_name=func_name, on_step=True, on_epoch=on_epoch)
         else:
             assert func_name in not_supported
             with pytest.raises(MisconfigurationException, match="You can't"):
-                validator.check_logging(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
+                validator.check_logging(fx_name=func_name)
 
     with pytest.raises(RuntimeError, match="Logging inside `foo` is not implemented"):
-        validator.check_logging("foo", False, False)
+        validator.check_logging("foo")
 
 
 class HookedCallback(Callback):
     def __init__(self, not_supported):
-        def call(hook, trainer, model=None, *_, **__):
+        def call(hook, trainer=None, model=None, *_, **__):
+            if trainer is None:
+                # `state_dict`, `load_state_dict` do not have the `Trainer` available
+                assert hook in ("state_dict", "load_state_dict")
+                return
+
             lightning_module = trainer.lightning_module or model
             if lightning_module is None:
                 # `on_init_{start,end}` do not have the `LightningModule` available
@@ -233,6 +241,11 @@ def test_fx_validator_integration(tmpdir):
         "prepare_data": "You can't",
         "configure_callbacks": "You can't",
         "on_validation_model_eval": "You can't",
+        "on_validation_model_train": "You can't",
+        "lr_scheduler_step": "You can't",
+        "on_save_checkpoint": "You can't",
+        "on_load_checkpoint": "You can't",
+        "on_exception": "You can't",
         "summarize": "not managed by the `Trainer",
     }
     model = HookedModel(not_supported)
@@ -250,7 +263,8 @@ def test_fx_validator_integration(tmpdir):
         limit_predict_batches=1,
         callbacks=callback,
     )
-    trainer.fit(model)
+    with pytest.deprecated_call(match="on_train_dataloader` is deprecated in v1.5"):
+        trainer.fit(model)
 
     not_supported.update(
         {
@@ -259,27 +273,30 @@ def test_fx_validator_integration(tmpdir):
             "on_test_dataloader": "You can't",
             "test_dataloader": "You can't",
             "on_test_model_eval": "You can't",
+            "on_test_model_train": "You can't",
             "on_test_end": "You can't",
         }
     )
-    trainer.test(model, verbose=False)
+    with pytest.deprecated_call(match="on_test_dataloader` is deprecated in v1.5"):
+        trainer.test(model, verbose=False)
 
-    not_supported.update({k: "ResultCollection` is not registered yet" for k in not_supported})
+    not_supported.update({k: "result collection is not registered yet" for k in not_supported})
     not_supported.update(
         {
-            "on_predict_dataloader": "ResultCollection` is not registered yet",
-            "predict_dataloader": "ResultCollection` is not registered yet",
-            "on_predict_model_eval": "ResultCollection` is not registered yet",
-            "on_predict_start": "ResultCollection` is not registered yet",
-            "on_predict_epoch_start": "ResultCollection` is not registered yet",
-            "on_predict_batch_start": "ResultCollection` is not registered yet",
-            "predict_step": "ResultCollection` is not registered yet",
-            "on_predict_batch_end": "ResultCollection` is not registered yet",
-            "on_predict_epoch_end": "ResultCollection` is not registered yet",
-            "on_predict_end": "ResultCollection` is not registered yet",
+            "on_predict_dataloader": "result collection is not registered yet",
+            "predict_dataloader": "result collection is not registered yet",
+            "on_predict_model_eval": "result collection is not registered yet",
+            "on_predict_start": "result collection is not registered yet",
+            "on_predict_epoch_start": "result collection is not registered yet",
+            "on_predict_batch_start": "result collection is not registered yet",
+            "predict_step": "result collection is not registered yet",
+            "on_predict_batch_end": "result collection is not registered yet",
+            "on_predict_epoch_end": "result collection is not registered yet",
+            "on_predict_end": "result collection is not registered yet",
         }
     )
-    trainer.predict(model)
+    with pytest.deprecated_call(match="on_predict_dataloader` is deprecated in v1.5"):
+        trainer.predict(model)
 
 
 @RunIf(min_gpus=2)
@@ -330,7 +347,13 @@ def test_epoch_results_cache_dp(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, strategy="dp", gpus=2, limit_train_batches=2, limit_val_batches=2, max_epochs=1
+        default_root_dir=tmpdir,
+        strategy="dp",
+        accelerator="gpu",
+        devices=2,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
     )
     trainer.fit(model)
     trainer.test(model)
@@ -527,9 +550,9 @@ def test_metrics_reset(tmpdir):
 
 
 def test_result_collection_on_tensor_with_mean_reduction():
-    result_collection = ResultCollection(True, torch.device("cpu"))
+    result_collection = _ResultCollection(True)
     product = [(True, True), (False, True), (True, False), (False, False)]
-    values = torch.arange(1, 10).float()  # need to convert to float() due to precision issues using torch 1.4
+    values = torch.arange(1, 10)
     batches = values * values
 
     for i, v in enumerate(values):
@@ -637,3 +660,51 @@ def test_logged_metrics_has_logged_epoch_value(tmpdir):
 
     # should not get overridden if logged manually
     assert trainer.logged_metrics == {"epoch": -1}
+
+
+def test_result_collection_batch_size_extraction():
+    fx_name = "training_step"
+    log_val = torch.tensor(7.0)
+
+    results = _ResultCollection(training=True, device="cpu")
+    results.batch = torch.randn(1, 4)
+    train_mse = MeanSquaredError()
+    train_mse(torch.randn(4, 5), torch.randn(4, 5))
+    results.log(fx_name, "train_logs", {"mse": train_mse, "log_val": log_val}, on_step=False, on_epoch=True)
+    assert results.batch_size == 1
+    assert isinstance(results["training_step.train_logs"]["mse"].value, MeanSquaredError)
+    assert results["training_step.train_logs"]["log_val"].value == log_val
+
+    results = _ResultCollection(training=True, device="cpu")
+    results.batch = torch.randn(1, 4)
+    results.log(fx_name, "train_log", log_val, on_step=False, on_epoch=True)
+    assert results.batch_size == 1
+    assert results["training_step.train_log"].value == log_val
+    assert results["training_step.train_log"].cumulated_batch_size == 1
+
+
+def test_result_collection_no_batch_size_extraction():
+    results = _ResultCollection(training=True, device="cpu")
+    results.batch = torch.randn(1, 4)
+    fx_name = "training_step"
+    batch_size = 10
+    log_val = torch.tensor(7.0)
+
+    train_mae = MeanAbsoluteError()
+    train_mae(torch.randn(4, 5), torch.randn(4, 5))
+    train_mse = MeanSquaredError()
+    train_mse(torch.randn(4, 5), torch.randn(4, 5))
+    results.log(fx_name, "step_log_val", log_val, on_step=True, on_epoch=False)
+    results.log(fx_name, "epoch_log_val", log_val, on_step=False, on_epoch=True, batch_size=batch_size)
+    results.log(fx_name, "epoch_sum_log_val", log_val, on_step=True, on_epoch=True, reduce_fx="sum")
+    results.log(fx_name, "train_mae", train_mae, on_step=True, on_epoch=False)
+    results.log(fx_name, "train_mse", {"mse": train_mse}, on_step=True, on_epoch=False)
+
+    assert results.batch_size is None
+    assert isinstance(results["training_step.train_mse"]["mse"].value, MeanSquaredError)
+    assert isinstance(results["training_step.train_mae"].value, MeanAbsoluteError)
+    assert results["training_step.step_log_val"].value == log_val
+    assert results["training_step.step_log_val"].cumulated_batch_size == 0
+    assert results["training_step.epoch_log_val"].value == log_val * batch_size
+    assert results["training_step.epoch_log_val"].cumulated_batch_size == batch_size
+    assert results["training_step.epoch_sum_log_val"].value == log_val

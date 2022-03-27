@@ -19,7 +19,6 @@ import urllib.request
 from typing import Optional, Sequence, Tuple
 
 import torch
-from torch import Tensor
 from torch.utils.data import Dataset
 
 
@@ -70,7 +69,7 @@ class MNIST(Dataset):
         data_file = self.TRAIN_FILE_NAME if self.train else self.TEST_FILE_NAME
         self.data, self.targets = self._try_load(os.path.join(self.cached_folder_path, data_file))
 
-    def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
         img = self.data[idx].float().unsqueeze(0)
         target = int(self.targets[idx])
 
@@ -126,7 +125,7 @@ class MNIST(Dataset):
         return res
 
     @staticmethod
-    def normalize_tensor(tensor: Tensor, mean: float = 0.0, std: float = 1.0) -> Tensor:
+    def normalize_tensor(tensor: torch.Tensor, mean: float = 0.0, std: float = 1.0) -> torch.Tensor:
         mean = torch.as_tensor(mean, dtype=tensor.dtype, device=tensor.device)
         std = torch.as_tensor(std, dtype=tensor.dtype, device=tensor.device)
         return tensor.sub(mean).div(std)
