@@ -69,7 +69,7 @@ def test_ddp_cpu():
 def test_ddp_spawn_extra_parameters(tmpdir):
     """Tests if device is set correctly when training for DDPSpawnStrategy and tests add_to_queue/get_from_queue
     with Lightning Module (deprecated way)."""
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, gpus=2, strategy="ddp_spawn")
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="gpu", devices=2, strategy="ddp_spawn")
 
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
     assert trainer.strategy.root_device == torch.device("cuda:0")
@@ -103,7 +103,9 @@ def test_ddp_spawn_add_get_queue(tmpdir):
     """Tests add_to_queue/get_from_queue with DDPSpawnStrategy."""
 
     ddp_spawn_strategy = TestDDPSpawnStrategy()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, num_processes=2, strategy=ddp_spawn_strategy)
+    trainer = Trainer(
+        default_root_dir=tmpdir, fast_dev_run=True, accelerator="cpu", devices=2, strategy=ddp_spawn_strategy
+    )
 
     val: float = 1.0
     val_name: str = "val_acc"
@@ -138,7 +140,7 @@ class BoringModelDDP(BoringModel):
 @RunIf(skip_windows=True, skip_49370=True, skip_hanging_spawn=True)
 def test_ddp_spawn_configure_ddp(tmpdir):
     """Tests with ddp spawn strategy."""
-    trainer = Trainer(default_root_dir=tmpdir, num_processes=2, strategy="ddp_spawn", fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=True)
 
     model = BoringModelDDP()
 

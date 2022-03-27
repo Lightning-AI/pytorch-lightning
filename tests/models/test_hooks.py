@@ -203,7 +203,8 @@ def test_transfer_batch_hook_ddp(tmpdir):
         max_epochs=1,
         enable_model_summary=False,
         strategy="ddp",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
     )
     trainer.fit(model)
 

@@ -96,7 +96,8 @@ def test_model_saves_on_multi_gpu(tmpdir):
         max_epochs=1,
         limit_train_batches=10,
         limit_val_batches=10,
-        gpus=[0, 1],
+        accelerator="gpu",
+        devices=[0, 1],
         strategy="ddp_spawn",
         enable_progress_bar=False,
     )
