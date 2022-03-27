@@ -421,6 +421,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Replaced PostLocalSGDOptimizer with a dedicated model averaging component ([#12378](https://github.com/PyTorchLightning/pytorch-lightning/pull/12378))
 
 
+- Always validate the last epoch even when the last epoch does not coincide with `check_val_every_n_epoch` ([#4536](https://github.com/PyTorchLightning/pytorch-lightning/issues/4539)).
+
+
 ### Deprecated
 
 - Deprecated `training_type_plugin` property in favor of `strategy` in `Trainer` and updated the references ([#11141](https://github.com/PyTorchLightning/pytorch-lightning/pull/11141))
