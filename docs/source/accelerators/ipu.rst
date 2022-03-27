@@ -34,7 +34,7 @@ Specify the number of IPUs to train with. Note that when training with IPUs, you
 
 .. code-block:: python
 
-    trainer = pl.Trainer(ipus=8)  # Train using data parallel on 8 IPUs
+    trainer = pl.Trainer(accelerator="ipu", devices=8)  # Train using data parallel on 8 IPUs
 
 IPUs only support specifying a single number to allocate devices, which is handled via the underlying libraries.
 
@@ -53,7 +53,7 @@ set the precision flag.
     import pytorch_lightning as pl
 
     model = MyLightningModule()
-    trainer = pl.Trainer(ipus=8, precision=16)
+    trainer = pl.Trainer(accelerator="ipu", devices=8, precision=16)
     trainer.fit(model)
 
 You can also use pure 16-bit training, where the weights are also in 16-bit precision.
@@ -65,7 +65,7 @@ You can also use pure 16-bit training, where the weights are also in 16-bit prec
 
     model = MyLightningModule()
     model = model.half()
-    trainer = pl.Trainer(ipus=8, precision=16)
+    trainer = pl.Trainer(accelerator="ipu", devices=8, precision=16)
     trainer.fit(model)
 
 Advanced IPU options
@@ -83,7 +83,7 @@ IPUs provide further optimizations to speed up training. By using the ``IPUStrat
     from pytorch_lightning.strategies import IPUStrategy
 
     model = MyLightningModule()
-    trainer = pl.Trainer(ipus=8, strategy=IPUStrategy(device_iterations=32))
+    trainer = pl.Trainer(accelerator="ipu", devices=8, strategy=IPUStrategy(device_iterations=32))
     trainer.fit(model)
 
 Note that by default we return the last device iteration loss. You can override this by passing in your own ``poptorch.Options`` and setting the AnchorMode as described in the `PopTorch documentation <https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/reference.html#poptorch.Options.anchorMode>`__.
@@ -102,7 +102,9 @@ Note that by default we return the last device iteration loss. You can override 
     training_opts.anchorMode(poptorch.AnchorMode.All)
     training_opts.deviceIterations(32)
 
-    trainer = Trainer(ipus=8, strategy=IPUStrategy(inference_opts=inference_opts, training_opts=training_opts))
+    trainer = Trainer(
+        accelerator="ipu", devices=8, strategy=IPUStrategy(inference_opts=inference_opts, training_opts=training_opts)
+    )
     trainer.fit(model)
 
 You can also override all options by passing the ``poptorch.Options`` to the plugin. See `PopTorch options documentation <https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/batching.html>`__ for more information.
@@ -124,7 +126,7 @@ Lightning supports dumping all reports to a directory to open using the tool.
     from pytorch_lightning.strategies import IPUStrategy
 
     model = MyLightningModule()
-    trainer = pl.Trainer(ipus=8, strategy=IPUStrategy(autoreport_dir="report_dir/"))
+    trainer = pl.Trainer(accelerator="ipu", devices=8, strategy=IPUStrategy(autoreport_dir="report_dir/"))
     trainer.fit(model)
 
 This will dump all reports to ``report_dir/`` which can then be opened using the Graph Analyser Tool, see `Opening Reports <https://docs.graphcore.ai/projects/graph-analyser-userguide/en/latest/graph-analyser.html#opening-reports>`__.
@@ -142,7 +144,7 @@ Below is an example using the block annotation in a LightningModule.
 
     Currently, when using model parallelism we do not infer the number of IPUs required for you. This is done via the annotations themselves. If you specify 4 different IDs when defining Blocks, this means your model will be split onto 4 different IPUs.
 
-    This is also mutually exclusive with the Trainer flag. In other words, if your model is split onto 2 IPUs and you set ``Trainer(ipus=4)`` this will require 8 IPUs in total: data parallelism will be used to replicate the two-IPU model 4 times.
+    This is also mutually exclusive with the Trainer flag. In other words, if your model is split onto 2 IPUs and you set ``Trainer(accelerator="ipu", devices=4)`` this will require 8 IPUs in total: data parallelism will be used to replicate the two-IPU model 4 times.
 
     When pipelining the model you must also increase the `device_iterations` to ensure full data saturation of the devices data, i.e whilst one device in the model pipeline processes a batch of data, the other device can start on the next batch. For example if the model is split onto 4 IPUs, we require `device_iterations` to be at-least 4.
 
@@ -174,7 +176,7 @@ Below is an example using the block annotation in a LightningModule.
 
 
     model = MyLightningModule()
-    trainer = pl.Trainer(ipus=8, strategy=IPUStrategy(device_iterations=20))
+    trainer = pl.Trainer(accelerator="ipu", devices=8, strategy=IPUStrategy(device_iterations=20))
     trainer.fit(model)
 
 
@@ -217,7 +219,7 @@ You can also use the block context manager within the forward function, or any o
 
 
     model = MyLightningModule()
-    trainer = pl.Trainer(ipus=8, strategy=IPUStrategy(device_iterations=20))
+    trainer = pl.Trainer(accelerator="ipu", devices=8, strategy=IPUStrategy(device_iterations=20))
     trainer.fit(model)
 
 

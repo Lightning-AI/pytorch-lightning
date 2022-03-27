@@ -732,7 +732,8 @@ When enabled, it can result in a performance hit and can be disabled in most cas
     from pytorch_lightning.strategies import DDPStrategy
 
     trainer = pl.Trainer(
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy=DDPStrategy(find_unused_parameters=False),
     )
 
@@ -741,7 +742,8 @@ When enabled, it can result in a performance hit and can be disabled in most cas
     from pytorch_lightning.strategies import DDPSpawnStrategy
 
     trainer = pl.Trainer(
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy=DDPSpawnStrategy(find_unused_parameters=False),
     )
 
@@ -894,7 +896,8 @@ When using Post-localSGD, you must also pass ``model_averaging_period`` to allow
 
     model = MyModel()
     trainer = Trainer(
-        gpus=4,
+        accelerator="gpu",
+        devices=4,
         strategy=DDPStrategy(
             ddp_comm_state=post_localSGD.PostLocalSGDState(
                 process_group=None,

@@ -403,10 +403,10 @@ GPU
     # train on 1 GPU
     trainer = pl.Trainer(accelerator="gpu", devices=1)
 
-    # train on multiple GPUs across nodes (32 gpus here)
+    # train on multiple GPUs across nodes (32 GPUs here)
     trainer = pl.Trainer(accelerator="gpu", devices=4, num_nodes=8)
 
-    # train on gpu 1, 3, 5 (3 gpus total)
+    # train on gpu 1, 3, 5 (3 GPUs total)
     trainer = pl.Trainer(accelerator="gpu", devices=[1, 3, 5])
 
     # Multi GPU with mixed precision
@@ -437,7 +437,7 @@ IPU
 .. code-block:: python
 
     # Train on IPUs
-    trainer = pl.Trainer(ipus=8)
+    trainer = pl.Trainer(accelerator="ipu", devices=8)
 
 
 Checkpointing

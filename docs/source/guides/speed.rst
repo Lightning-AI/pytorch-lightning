@@ -37,10 +37,10 @@ Lightning supports a variety of plugins to speed up distributed GPU training. Mo
     # run on 1 gpu
     trainer = Trainer(accelerator="gpu", devices=1)
 
-    # train on 8 gpus, using the DDP strategy
+    # train on 8 GPUs, using the DDP strategy
     trainer = Trainer(accelerator="gpu", devices=8, strategy="ddp")
 
-    # train on multiple GPUs across nodes (uses 8 gpus in total)
+    # train on multiple GPUs across nodes (uses 8 GPUs in total)
     trainer = Trainer(accelerator="gpu", devices=2, num_nodes=4)
 
 
@@ -140,7 +140,7 @@ This is a limitation of Python ``.spawn()`` and PyTorch.
 TPU Training
 ============
 
-You can set the ``tpu_cores`` trainer flag to 1, [7] (specific core) or eight cores.
+You can set the ``devices`` trainer argument to 1, [7] (specific core) or eight cores.
 
 .. code-block:: python
 
@@ -214,7 +214,7 @@ Lightning offers mixed precision training for GPUs and CPUs, as well as bfloat16
     :skipif: torch.cuda.device_count() < 4
 
     # 16-bit precision
-    trainer = Trainer(precision=16, gpus=4)
+    trainer = Trainer(precision=16, accelerator="gpu", devices=4)
 
 
 Read more about :ref:`mixed-precision training <amp>`.
@@ -361,7 +361,7 @@ Here is an example of an advanced use case:
 
 .. testcode::
 
-    # Scenario for a GAN with gradient accumulation every two batches and optimized for multiple gpus.
+    # Scenario for a GAN with gradient accumulation every two batches and optimized for multiple GPUs.
     class SimpleGAN(LightningModule):
         def __init__(self):
             super().__init__()

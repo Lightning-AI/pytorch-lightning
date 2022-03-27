@@ -46,7 +46,7 @@ This script shows you the result of the conversion to the `LightningModule` and 
 python image_classifier_4_lightning_module.py
 
 # GPUs (any number)
-python image_classifier_4_lightning_module.py --trainer.gpus 2
+python image_classifier_4_lightning_module.py --trainer.accelerator 'gpu' --trainer.devices 2
 ```
 
 ______________________________________________________________________
@@ -60,8 +60,8 @@ This script shows you how to extract the data related components into a `Lightni
 python image_classifier_5_lightning_datamodule.py
 
 # GPUs (any number)
-python image_classifier_5_lightning_datamodule.py --trainer.gpus 2
+python image_classifier_5_lightning_datamodule.py --trainer.accelerator 'gpu' --trainer.devices 2
 
 # Distributed Data parallel
-python image_classifier_5_lightning_datamodule.py --trainer.gpus 2 --trainer.strategy 'ddp'
+python image_classifier_5_lightning_datamodule.py --trainer.accelerator 'gpu' --trainer.devices 2 --trainer.strategy 'ddp'
 ```
