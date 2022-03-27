@@ -390,10 +390,10 @@ CPU
     trainer = Trainer()
 
     # train on 8 CPUs
-    trainer = Trainer(num_processes=8)
+    trainer = Trainer(accelerator="cpu", devices=8)
 
     # train on 1024 CPUs across 128 machines
-    trainer = pl.Trainer(num_processes=8, num_nodes=128)
+    trainer = pl.Trainer(accelerator="cpu", devices=8, num_nodes=128)
 
 GPU
 ---
