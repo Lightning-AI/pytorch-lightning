@@ -41,7 +41,6 @@ if _HOROVOD_AVAILABLE:
 
 
 @RunIf(min_gpus=1, horovod=True)
-@pytest.mark.xfail(reason="FIXME(@Borda): nccl is not available in the GPU image")
 def test_nccl_is_available_on_gpu_environment():
     from tests.helpers.runif import _HOROVOD_NCCL_AVAILABLE
 
@@ -156,7 +155,7 @@ def test_horovod_multi_gpu(tmpdir):
 @RunIf(min_gpus=2, skip_windows=True, horovod_nccl=True)
 def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
     trainer_options = dict(
-        default_root_dir=tmpdir,
+        default_root_dir=str(tmpdir),
         enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=4,
