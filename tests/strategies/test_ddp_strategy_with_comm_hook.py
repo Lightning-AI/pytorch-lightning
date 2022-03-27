@@ -36,7 +36,8 @@ def test_ddp_fp16_compress_comm_hook(tmpdir):
     strategy = DDPStrategy(ddp_comm_hook=default.fp16_compress_hook)
     trainer = Trainer(
         max_epochs=1,
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy=strategy,
         default_root_dir=tmpdir,
         sync_batchnorm=True,
@@ -59,7 +60,8 @@ def test_ddp_sgd_comm_hook(tmpdir):
     )
     trainer = Trainer(
         max_epochs=1,
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy=strategy,
         default_root_dir=tmpdir,
         sync_batchnorm=True,
@@ -83,7 +85,8 @@ def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
     )
     trainer = Trainer(
         max_epochs=1,
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy=strategy,
         default_root_dir=tmpdir,
         sync_batchnorm=True,
@@ -103,7 +106,8 @@ def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
     strategy = DDPSpawnStrategy(ddp_comm_hook=default.fp16_compress_hook)
     trainer = Trainer(
         max_epochs=1,
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy=strategy,
         default_root_dir=tmpdir,
         sync_batchnorm=True,
@@ -129,7 +133,8 @@ def test_ddp_post_local_sgd_comm_hook(tmpdir):
     )
     trainer = Trainer(
         fast_dev_run=True,
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy=strategy,
         default_root_dir=tmpdir,
         sync_batchnorm=True,
@@ -150,7 +155,8 @@ def test_post_local_sgd_model_averaging(average_parameters_mock, tmpdir):
     # test regular ddp does not call model averaging
     trainer = Trainer(
         fast_dev_run=True,
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy="ddp",
         default_root_dir=tmpdir,
         sync_batchnorm=True,
@@ -206,7 +212,8 @@ def test_post_local_sgd_model_averaging_value_error(average_parameters_mock, tmp
 
     trainer = Trainer(
         fast_dev_run=True,
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy=strategy,
         default_root_dir=tmpdir,
         sync_batchnorm=True,

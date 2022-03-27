@@ -68,7 +68,7 @@ def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir):
     """Test correct usage of barriers when device ids do not start at 0 or are not consecutive."""
     model = BoringModel()
     gpus = [1, 3]
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, gpus=gpus, strategy="ddp")
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, accelerator="gpu", devices=gpus, strategy="ddp")
     trainer.fit(model)
     barrier_mock.assert_any_call(device_ids=[gpus[trainer.local_rank]])
 

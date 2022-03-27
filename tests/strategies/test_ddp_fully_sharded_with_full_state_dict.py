@@ -96,7 +96,9 @@ def test_fully_sharded_strategy_checkpoint(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
 
     model = TestFSDPModel()
-    trainer = Trainer(default_root_dir=tmpdir, gpus=1, strategy="fsdp", precision=16, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir, accelerator="gpu", devices=1, strategy="fsdp", precision=16, max_epochs=1
+    )
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
@@ -106,7 +108,15 @@ def test_fully_sharded_strategy_checkpoint_multi_gpus(tmpdir):
 
     model = TestFSDPModel()
     ck = ModelCheckpoint(save_last=True)
-    trainer = Trainer(default_root_dir=tmpdir, gpus=2, strategy="fsdp", precision=16, max_epochs=1, callbacks=[ck])
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        devices=2,
+        strategy="fsdp",
+        precision=16,
+        max_epochs=1,
+        callbacks=[ck],
+    )
     _run_multiple_stages(trainer, model)
 
 
@@ -146,7 +156,8 @@ def test_fsdp_gradient_clipping_raises(tmpdir):
         default_root_dir=tmpdir,
         strategy="fsdp",
         fast_dev_run=True,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
         precision=16,
         gradient_clip_val=1,
         gradient_clip_algorithm="norm",
