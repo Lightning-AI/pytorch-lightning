@@ -31,3 +31,23 @@ jobs:
         apt-get install -y hwinfo
         hwinfo --short
       displayName: 'Instance HW info'
+
+    - bash: |
+        pip install . --requirement requirements/test.txt
+      displayName: 'Install dependencies'
+
+    - bash: |
+         python ".azure-pipelines/run_hpu_tests.py"
+      displayName: 'HPU Tests in parallel'
+
+    - bash: |
+        export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+        python "pl_examples/hpu_examples/simple_mnist/mnist.py"
+      displayName: 'Testing: HPU examples'
+
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFiles: 'hpu*_test-results.xml'
+        testRunTitle: '$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)'
+      condition: succeededOrFailed()
+      displayName: 'Publish test results'

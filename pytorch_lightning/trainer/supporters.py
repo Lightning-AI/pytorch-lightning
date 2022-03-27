@@ -68,16 +68,13 @@ class TensorRunningAccum:
     def last(self):
         """Get the last added element."""
         if self.last_idx is not None:
-            return self.memory[self.last_idx]
+            return self.memory[self.last_idx].float()
 
     def append(self, x):
         """Add an element to the accumulator."""
         if self.memory is None:
-            self.memory = torch.zeros(self.window_length, *x.shape)
-
-        # ensure same device and type
-        if self.memory.device != x.device or self.memory.type() != x.type():
-            x = x.to(self.memory)
+            # tradeoff memory for speed by keeping the memory on device
+            self.memory = torch.zeros(self.window_length, *x.shape, device=x.device, dtype=x.dtype)
 
         # store without grads
         with torch.no_grad():
@@ -107,8 +104,8 @@ class TensorRunningAccum:
     def _agg_memory(self, how: str):
         if self.last_idx is not None:
             if self.rotated:
-                return getattr(self.memory, how)()
-            return getattr(self.memory[: self.current_idx], how)()
+                return getattr(self.memory.float(), how)()
+            return getattr(self.memory[: self.current_idx].float(), how)()
 
 
 @dataclass

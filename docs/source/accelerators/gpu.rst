@@ -223,15 +223,10 @@ a comma separated list of GPU ids:
     Trainer(accelerator="gpu", devices=-1)
 
 The table below lists examples of possible input formats and how they are interpreted by Lightning.
-Note in particular the difference between ``devices=0``, ``devices=[0]`` and ``devices="0"``.
 
 +------------------+-----------+---------------------+---------------------------------+
 | `devices`        | Type      | Parsed              | Meaning                         |
 +==================+===========+=====================+=================================+
-| None             | NoneType  | None                | CPU                             |
-+------------------+-----------+---------------------+---------------------------------+
-| 0                | int       | None                | CPU                             |
-+------------------+-----------+---------------------+---------------------------------+
 | 3                | int       | [0, 1, 2]           | first 3 GPUs                    |
 +------------------+-----------+---------------------+---------------------------------+
 | -1               | int       | [0, 1, 2, ...]      | all available GPUs              |
@@ -239,8 +234,6 @@ Note in particular the difference between ``devices=0``, ``devices=[0]`` and ``d
 | [0]              | list      | [0]                 | GPU 0                           |
 +------------------+-----------+---------------------+---------------------------------+
 | [1, 3]           | list      | [1, 3]              | GPUs 1 and 3                    |
-+------------------+-----------+---------------------+---------------------------------+
-| "0"              | str       | None                | CPU                             |
 +------------------+-----------+---------------------+---------------------------------+
 | "3"              | str       | [0, 1, 2]           | first 3 GPUs                    |
 +------------------+-----------+---------------------+---------------------------------+
@@ -289,7 +282,7 @@ Lightning allows multiple ways of training
 - DistributedDataParallel 2 (``strategy='ddp2'``) (DP in a machine, DDP across machines).
 - Horovod (``strategy='horovod'``) (multi-machine, multi-gpu, configured at runtime)
 - Bagua (``strategy='bagua'``) (multiple-gpus across many machines with advanced training algorithms)
-- TPUs (``tpu_cores=8|x``) (tpu or TPU pod)
+- TPUs (``accelerator="tpu", devices=8|x``) (tpu or TPU pod)
 
 .. note::
     If you request multiple GPUs or nodes without setting a mode, DDP Spawn will be automatically used.
