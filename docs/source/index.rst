@@ -6,7 +6,7 @@
 Welcome to PyTorch Lightning
 ============================
 
-TODO: write why lightning is
+TODO: write why lightning is not
 
 
 ----
@@ -40,20 +40,20 @@ Or read the `advanced install guide <starter/installation.html>`_
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: (5 min reading time) Read our 2-step guide to getting started
+   :description: Get started with this 2-step guide which teaches the basic concepts
    :header: New to Lightning?
    :button_link:  starter/introduction.html
    :button_text: Continue 
 
 .. customcalloutitem::
-   :description: (10 min reading time) Learn the key concepts to help you organize your PyTorch code as PyTorch Lightning
+   :description: Learn the key concepts to help you organize your PyTorch code as PyTorch Lightning
    :header: PyTorch to PyTorch Lightning
    :button_link: starter/converting.html
    :button_text: Continue
 
 .. customcalloutitem::
    :description: Learn how to use Lightning for anything from NLP, Computer vision to RL and meta learning. Lightning works for ALL research areas.
-   :header: Code examples
+   :header: Examples
    :button_link: tutorials.html
    :button_text: Continue
 
