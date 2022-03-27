@@ -59,3 +59,14 @@ Notes (Optional):
 - You need to have LaTeX installed for rendering math equations. You can for example install TeXLive by doing one of the following:
   - on Ubuntu (Linux) run `apt-get install texlive` or otherwise follow the instructions on the TeXLive website
   - use the [RTD docker image](https://hub.docker.com/r/readthedocs/build)
+
+## Developing docs
+When developing the docs, building docs can be VERY slow locally because of the notebook tutorials.
+To speed this up, enable this flag in `path/to/pytorch-lighting/docs/conf.py`
+```python
+# builds notebooks which is slow
+_FAST_DOCS_DEV = False
+
+# fast notebook build which is fast
+_FAST_DOCS_DEV = True
+```
