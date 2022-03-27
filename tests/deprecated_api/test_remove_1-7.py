@@ -20,6 +20,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 
+import pytorch_lightning
 from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
@@ -35,6 +36,7 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.strategies import SingleDeviceStrategy
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
@@ -393,8 +395,8 @@ def test_v1_7_0_deprecate_gpu_stats_monitor(tmpdir):
         _ = GPUStatsMonitor()
 
 
-@RunIf(tpu=True)
-def test_v1_7_0_deprecate_xla_stats_monitor(tmpdir):
+def test_v1_7_0_deprecate_xla_stats_monitor(monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.callbacks.xla_stats_monitor, "_TPU_AVAILABLE", lambda: True)
     with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
         _ = XLAStatsMonitor()
 
@@ -516,3 +518,17 @@ def test_v1_7_0_post_dispatch_hook():
 
     with pytest.deprecated_call(match=escape("`CustomPlugin.post_dispatch()` has been deprecated in v1.6")):
         CustomPlugin(torch.device("cpu"))
+
+
+def test_xla_stats_monitor_tpu_not_used(monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.callbacks.xla_stats_monitor, "_TPU_AVAILABLE", lambda: True)
+    with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
+        xla_stats = XLAStatsMonitor()
+
+    trainer = Trainer(accelerator="cpu", callbacks=[xla_stats])
+    model = BoringModel()
+    with pytest.raises(
+        MisconfigurationException,
+        match="You are using XLAStatsMonitor but are not running on TPU. The accelerator is set to CPUAccelerator.",
+    ):
+        trainer.fit(model)

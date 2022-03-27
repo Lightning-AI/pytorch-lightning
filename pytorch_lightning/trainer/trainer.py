@@ -2104,7 +2104,7 @@ class Trainer(
     def tpu_cores(self) -> int:
         rank_zero_deprecation(
             "`Trainer.tpu_cores` is deprecated in v1.6 and will be removed in v1.8. "
-            "Please use `Trainer.devices` instead."
+            "Please use `Trainer.num_devices` instead."
         )
         return self.num_devices if isinstance(self.accelerator, TPUAccelerator) else 0
 
