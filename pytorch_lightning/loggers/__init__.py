@@ -20,7 +20,7 @@ from pytorch_lightning.loggers.csv_logs import CSVLogger
 from pytorch_lightning.loggers.logger import Logger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
-__all__ = ["Logger", "LoggerCollection", "TensorBoardLogger", "CSVLogger", "LightningLoggerBase"]
+__all__ = ["CSVLogger", "LightningLoggerBase", "Logger", "LoggerCollection", "TensorBoardLogger"]
 
 from pytorch_lightning.loggers.comet import _COMET_AVAILABLE, CometLogger  # noqa: F401
 from pytorch_lightning.loggers.mlflow import _MLFLOW_AVAILABLE, MLFlowLogger  # noqa: F401
