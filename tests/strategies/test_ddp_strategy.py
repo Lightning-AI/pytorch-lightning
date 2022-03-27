@@ -87,7 +87,8 @@ def test_incorrect_ddp_script_spawning(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         strategy="ddp",
-        num_processes=2,
+        accelerator="cpu",
+        devices=2,
         plugins=[WronglyImplementedEnvironment()],
     )
     with pytest.raises(
@@ -138,7 +139,7 @@ def test_ddp_dont_configure_sync_batchnorm(trainer_fn):
     model = BoringModelGPU()
     model.layer = torch.nn.BatchNorm1d(10)
     ddp_strategy = DDPStrategy()
-    trainer = Trainer(gpus=1, strategy=ddp_strategy, sync_batchnorm=True)
+    trainer = Trainer(accelerator="gpu", devices=1, strategy=ddp_strategy, sync_batchnorm=True)
     trainer.state.fn = trainer_fn
     trainer.strategy.connect(model)
     trainer.lightning_module.trainer = trainer
