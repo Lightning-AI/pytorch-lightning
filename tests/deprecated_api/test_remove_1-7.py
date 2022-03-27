@@ -396,7 +396,7 @@ def test_v1_7_0_deprecate_gpu_stats_monitor(tmpdir):
 
 
 def test_v1_7_0_deprecate_xla_stats_monitor(monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.callbacks.xla_stats_monitor, "_TPU_AVAILABLE", lambda: True)
+    monkeypatch.setattr(pytorch_lightning.callbacks.xla_stats_monitor, "_TPU_AVAILABLE", True)
     with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
         _ = XLAStatsMonitor()
 
@@ -521,7 +521,7 @@ def test_v1_7_0_post_dispatch_hook():
 
 
 def test_xla_stats_monitor_tpu_not_used(monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.callbacks.xla_stats_monitor, "_TPU_AVAILABLE", lambda: True)
+    monkeypatch.setattr(pytorch_lightning.callbacks.xla_stats_monitor, "_TPU_AVAILABLE", True)
     with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
         xla_stats = XLAStatsMonitor()
 
