@@ -49,7 +49,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.runif import RunIf
 
 
-# TODO: please modify/sunset any test that has accelerator=ddp/ddp2/ddp_cpu/ddp_spawn @daniellepintz
 def test_accelerator_choice_cpu(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
     assert isinstance(trainer.accelerator, CPUAccelerator)

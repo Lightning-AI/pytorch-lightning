@@ -348,8 +348,8 @@ def test_combined_data_loader_validation_test(
     )
 
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(use_fault_tolerant))}):
-
-        trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, strategy="ddp", accelerator="gpu", devices=2)
+        with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
+            trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, strategy="ddp", accelerator="gpu", devices=2)
         dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=True)
         _count = 0
         _has_fastforward_sampler = False

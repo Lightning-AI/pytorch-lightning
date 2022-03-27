@@ -192,8 +192,8 @@ def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
         parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
         parser.add_lightning_class_args(Trainer, None)
         args = parser.parse_args()
-
-    trainer = Trainer.from_argparse_args(args)
+    with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
+        trainer = Trainer.from_argparse_args(args)
     assert trainer.device_ids == expected_gpu
 
 

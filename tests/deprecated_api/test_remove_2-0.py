@@ -31,7 +31,7 @@ def test_v2_0_0_deprecated_num_processes(tmpdir):
 @mock.patch("torch.cuda.device_count", return_value=2)
 def test_v2_0_0_deprecated_gpus(mock_is_available, mock_device_count, tmpdir):
     with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
-        _ = Trainer(default_root_dir=tmpdir, gpus=2)
+        _ = Trainer(default_root_dir=tmpdir, gpus=0)
 
 
 @RunIf(tpu=True)
@@ -43,7 +43,7 @@ def test_v2_0_0_deprecated_tpu_cores(tmpdir):
 @RunIf(ipu=True)
 def test_v2_0_0_deprecated_ipus(tmpdir):
     with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
-        _ = Trainer(default_root_dir=tmpdir, ipus=2)
+        _ = Trainer(default_root_dir=tmpdir, ipus=4)
 
 
 def test_v2_0_resume_from_checkpoint_trainer_constructor(tmpdir):
