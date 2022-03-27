@@ -554,7 +554,7 @@ def test_accelerator_gpu_with_devices(devices, plugin):
 def test_accelerator_auto_with_devices_gpu():
     trainer = Trainer(accelerator="auto", devices=1)
     assert isinstance(trainer.accelerator, GPUAccelerator)
-    assert trainer.gpus == 1
+    assert trainer.num_devices == 1
 
 
 def test_validate_accelerator_and_devices():
@@ -946,8 +946,8 @@ def test_devices_auto_choice_cpu(
 @mock.patch("torch.cuda.device_count", return_value=2)
 def test_devices_auto_choice_gpu(is_gpu_available_mock, device_count_mock):
     trainer = Trainer(accelerator="auto", devices="auto")
+    assert isinstance(trainer.accelerator, GPUAccelerator)
     assert trainer.num_devices == 2
-    assert trainer.gpus == 2
 
 
 @pytest.mark.parametrize(
