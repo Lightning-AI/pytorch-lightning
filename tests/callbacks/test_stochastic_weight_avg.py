@@ -155,7 +155,7 @@ def test_swa_callback_ddp_spawn(tmpdir):
     train_with_swa(tmpdir, strategy="ddp_spawn", accelerator="gpu", devices=2)
 
 
-@RunIf(skip_windows=True, skip_49370=True)
+@RunIf(skip_windows=True)
 def test_swa_callback_ddp_cpu(tmpdir):
     train_with_swa(tmpdir, strategy="ddp_spawn", accelerator="cpu", devices=2)
 
