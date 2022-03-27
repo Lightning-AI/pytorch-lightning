@@ -50,7 +50,7 @@ class SerialLoaderBoringModel(BoringModel):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_model_tpu_cores_1(tmpdir):
+def test_model_tpu_devices_1(tmpdir):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
     trainer_options = dict(
@@ -90,7 +90,7 @@ def test_model_tpu_index(tmpdir, tpu_core):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_model_tpu_cores_8(tmpdir):
+def test_model_tpu_devices_8(tmpdir):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
     trainer_options = dict(
@@ -110,7 +110,7 @@ def test_model_tpu_cores_8(tmpdir):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_model_16bit_tpu_cores_1(tmpdir):
+def test_model_16bit_tpu_devices_1(tmpdir):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
     trainer_options = dict(
@@ -152,7 +152,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
 
 @RunIf(tpu=True)
 @pl_multi_process_test
-def test_model_16bit_tpu_cores_8(tmpdir):
+def test_model_16bit_tpu_devices_8(tmpdir):
     """Make sure model trains on TPU."""
     tutils.reset_seed()
     trainer_options = dict(
