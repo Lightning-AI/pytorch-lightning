@@ -3,46 +3,10 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to PyTorch Lightning
-============================
+PyTorch Lightning Tutorials
+===========================
 
-.. raw:: html
-
-    <div class="tutorials-callout-container">
-        <div class="row">
-
-.. Add callout items below this line
-
-.. customcalloutitem::
-   :description: Read our 2-step guide to getting started
-   :header: New to Lightning?
-   :button_link:  starter/introduction.html
-   :button_text: Continue (5 min reading time)
-
-.. customcalloutitem::
-   :description: Learn the key concepts to help you organize your PyTorch code as PyTorch Lightning
-   :header: PyTorch to PyTorch Lightning
-   :button_link: starter/converting.html
-   :button_text: Continue (10 min reading time)
-
-.. customcalloutitem::
-   :description: Learn how to use Lightning for anything from NLP, Computer vision to RL and meta learning. Lightning works for ALL research areas.
-   :header: Tutorials
-   :button_link: tutorials.html
-   :button_text: Continue
-
-.. customcalloutitem::
-   :description: 
-   :header: API Reference
-   :button_link: starter/api_references.html
-   :button_text: Continue
-
-.. raw:: html
-
-        </div>
-    </div>
-
-.. End of callout item section
+.. tutoriallist::
 
 .. raw:: html
 
