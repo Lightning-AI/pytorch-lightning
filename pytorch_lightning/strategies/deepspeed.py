@@ -41,7 +41,7 @@ from pytorch_lightning.utilities.distributed import (
     get_default_process_group_backend_for_device,
     log,
 )
-from pytorch_lightning.utilities.enums import AMPType, PrecisionType
+from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
