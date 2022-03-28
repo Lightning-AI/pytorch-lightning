@@ -32,7 +32,7 @@ PyTorch Lightning is the deep learning framework for professional AI researchers
    <hr class="docutils" style="margin: 50px 0 50px 0">
 
 
-Install Lightning 
+Install Lightning
 -----------------
 
 
@@ -80,7 +80,7 @@ Or read the `advanced install guide <starter/installation.html>`_
    :description: Use this 2-step guide to learn the key concepts.
    :header: New to Lightning?
    :button_link:  starter/introduction.html
-   :button_text: Continue 
+   :button_text: Continue
 
 .. customcalloutitem::
    :description: Easily organize your existing PyTorch code as PyTorch Lightning in a few hours.

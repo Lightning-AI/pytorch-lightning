@@ -61,8 +61,10 @@ Notes (Optional):
   - use the [RTD docker image](https://hub.docker.com/r/readthedocs/build)
 
 ## Developing docs
+
 When developing the docs, building docs can be VERY slow locally because of the notebook tutorials.
 To speed this up, enable this flag in `path/to/pytorch-lighting/docs/conf.py`
+
 ```python
 # builds notebooks which is slow
 _FAST_DOCS_DEV = False
@@ -72,5 +74,6 @@ _FAST_DOCS_DEV = True
 ```
 
 ## docs CSS/theme
+
 To change the CSS theme of the docs, go [here](https://github.com/PyTorchLightning/lightning_sphinx_theme).
 Apologies in advance... this is a bit complex to build and requires basic understanding of javascript/npm.

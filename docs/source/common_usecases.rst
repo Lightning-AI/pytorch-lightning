@@ -77,7 +77,7 @@ Common use cases
    :card_style: text-container-small
 
 .. customcalloutitem::
-   :description: Reduce configuration boilerplate with the Lightning CLI 
+   :description: Reduce configuration boilerplate with the Lightning CLI
    :header: Lightning CLI
    :button_link: common/lightning_cli.html
    :card_style: text-container-small
@@ -137,7 +137,7 @@ Common use cases
    :card_style: text-container-small
 
 .. customcalloutitem::
-   :description: Building the next Deepspeed, FSDP or fancy scaling technique? Add them to Lightning here 
+   :description: Building the next Deepspeed, FSDP or fancy scaling technique? Add them to Lightning here
    :header: Strategy registry
    :button_link: advanced/strategy_registry.html
    :card_style: text-container-small
@@ -149,7 +149,7 @@ Common use cases
    :card_style: text-container-small
 
 .. customcalloutitem::
-   :description: Use models training on large datasets to achieve better results when you don't have much data 
+   :description: Use models training on large datasets to achieve better results when you don't have much data
    :header: Transfer learning (finetuning)
    :button_link: advanced/transfer_learning.html
    :card_style: text-container-small
