@@ -287,7 +287,7 @@ def test_accelerator_choice_ddp_cpu_and_strategy(tmpdir):
     _test_accelerator_choice_ddp_cpu_and_strategy(tmpdir, ddp_strategy_class=DDPStrategy)
 
 
-@RunIf(skip_windows=True, skip_49370=True)
+@RunIf(skip_windows=True)
 def test_accelerator_choice_ddp_cpu_and_strategy_spawn(tmpdir):
     """Test that accelerator="ddp_cpu" can work together with an instance of DDPPSpawnPlugin."""
     _test_accelerator_choice_ddp_cpu_and_strategy(tmpdir, ddp_strategy_class=DDPSpawnStrategy)

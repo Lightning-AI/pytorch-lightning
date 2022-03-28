@@ -79,13 +79,7 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import (
-    _HOROVOD_AVAILABLE,
-    _HPU_AVAILABLE,
-    _IPU_AVAILABLE,
-    _TORCH_GREATER_EQUAL_1_8,
-    _TPU_AVAILABLE,
-)
+from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE, _HPU_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE
 
 log = logging.getLogger(__name__)
 
@@ -217,10 +211,7 @@ class AcceleratorConnector:
 
     def _init_deterministic(self, deterministic: bool) -> None:
         self.deterministic = deterministic
-        if _TORCH_GREATER_EQUAL_1_8:
-            torch.use_deterministic_algorithms(deterministic)
-        else:
-            torch.set_deterministic(deterministic)
+        torch.use_deterministic_algorithms(deterministic)
         if deterministic:
             # fixing non-deterministic part of horovod
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
