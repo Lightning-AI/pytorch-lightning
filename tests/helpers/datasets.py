@@ -215,7 +215,7 @@ class SklearnDataset(Dataset):
 
 
 class ExampleDataset(Dataset):
-    """Feed the model's example input array"""
+    """Feed the model's example input array."""
 
     def __init__(self, model_cls, num_samples=64):
         super().__init__()

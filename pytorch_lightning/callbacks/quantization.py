@@ -22,14 +22,12 @@ from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 import torch
 import torch.nn as nn
-from torch.quantization import QConfig
 from torch import Tensor
 from torch.quantization import FakeQuantizeBase
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_warn
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10, rank_zero_warn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_10:

@@ -18,7 +18,6 @@ from torch.utils.data import DataLoader
 from torchmetrics import Accuracy, MeanSquaredError
 
 from pytorch_lightning import LightningModule
-from pytorch_lightning.metrics import Accuracy, MeanSquaredError
 from tests.helpers.datasets import ExampleDataset
 
 
@@ -131,7 +130,7 @@ class RegressionModel(LightningModule):
 
     @example_input_array.setter
     def example_input_array(self, ex):
-        """Need a way to set to toggle None for test_quantization_exceptions"""
+        """Need a way to set to toggle None for test_quantization_exceptions."""
         self._example_input_array = ex
 
 
@@ -143,7 +142,7 @@ class MultiInputModel(LightningModule):
         self.triggered = False
 
     def forward(self, a, b, trigger=False):
-        """Use 2 positional arguments and 1 keyword argument"""
+        """Use 2 positional arguments and 1 keyword argument."""
         feat_a = self.conv(a)
         feat_b = self.conv(b)
         combined = self.ff.add(feat_a, feat_b)
@@ -152,7 +151,7 @@ class MultiInputModel(LightningModule):
         return combined
 
     def training_step(self, batch, batch_idx):
-        """Dummy loss as-in BoringModel"""
+        """Dummy loss as-in BoringModel."""
         out = self.forward(*batch)
         return torch.nn.functional.mse_loss(out, torch.ones_like(out))
 
@@ -161,7 +160,7 @@ class MultiInputModel(LightningModule):
 
     @property
     def example_input_array(self):
-        """Two MNIST-sized squares"""
+        """Two MNIST-sized squares."""
         return torch.randn(1, 3, 28, 28), torch.randn(1, 3, 28, 28)
 
 
@@ -180,7 +179,7 @@ class MultiOutputModel(LightningModule):
         return self.output_dtype([c1, c2])
 
     def training_step(self, batch, batch_idx):
-        """Dummy loss as-in BoringModel"""
+        """Dummy loss as-in BoringModel."""
         out = self.forward(batch)
         loss = torch.tensor(0.0)
         for o in out:
@@ -195,5 +194,5 @@ class MultiOutputModel(LightningModule):
 
     @property
     def example_input_array(self):
-        """MNIST-size square image"""
+        """MNIST-size square image."""
         return torch.randn(1, 3, 28, 28)

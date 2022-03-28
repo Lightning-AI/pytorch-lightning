@@ -24,7 +24,6 @@ from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import get_model_size_mb
 from tests.helpers.boring_model import RandomDataset
-from tests.helpers.datamodules import RegressDataModule
 from tests.helpers.datamodules import MultiInputDatamodule, RegressDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import MultiInputModel, MultiOutputModel, RegressionModel
@@ -80,7 +79,7 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
 
     # todo: make it work also with strict loading
     qmodel2 = RegressionModel.load_from_checkpoint(model_path, strict=False)
-    quant2_score = torch.mean(torch.tensor([mean_relative_error(qmodel2(x), y) for x, y in dm.test_dataloader()]))
+    quant2_score = torch.mean(torch.tensor([mape(qmodel2(x), y) for x, y in dm.test_dataloader()]))
     assert torch.allclose(org_score, quant2_score, atol=0.5)
 
     # test without and with QAT callback
@@ -111,7 +110,7 @@ def test_quantize_torchscript(tmpdir):
 
 @RunIf(quantization=True)
 def test_quantization_exceptions(tmpdir):
-    """Test wrongly configured callback"""
+    """Test wrongly configured callback."""
     with pytest.raises(MisconfigurationException, match="Unsupported qconfig"):
         QuantizationAwareTraining(qconfig=["abc"])
 
@@ -260,7 +259,7 @@ def test_quantization_val_test_predict(tmpdir):
 
 @RunIf(quantization=True)
 def test_quantize_wrapper_multi_input(tmpdir):
-    """Pass multi-tensor input through QAT forward wrappers"""
+    """Pass multi-tensor input through QAT forward wrappers."""
     trainer = Trainer(callbacks=[QuantizationAwareTraining()], default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(MultiInputModel(), datamodule=MultiInputDatamodule())
 
@@ -268,14 +267,14 @@ def test_quantize_wrapper_multi_input(tmpdir):
 @RunIf(quantization=True)
 @pytest.mark.parametrize("output_dtype", [list, tuple])
 def test_quantize_wrapper_multi_output(tmpdir, output_dtype):
-    """Dequantize multiple output tensors in QAT forward wrappers"""
+    """Dequantize multiple output tensors in QAT forward wrappers."""
     trainer = Trainer(callbacks=[QuantizationAwareTraining()], default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(MultiOutputModel(output_dtype))
 
 
 @RunIf(quantization=True)
 def test_quantize_wrapper_kwargs(tmpdir):
-    """Pass kwargs through QAT forward wrappers"""
+    """Pass kwargs through QAT forward wrappers."""
     model = MultiInputModel()
     trainer = Trainer(callbacks=[QuantizationAwareTraining()], default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(model, datamodule=MultiInputDatamodule())
