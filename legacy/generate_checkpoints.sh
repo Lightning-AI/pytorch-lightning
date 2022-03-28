@@ -9,6 +9,7 @@ FROZEN_MIN_PT_VERSION="1.8.1"
 
 echo $LEGACY_PATH
 # install some PT version here so it does not need to reinstalled for each env
+pip install pip -U
 pip install virtualenv "torch==1.8.1" -f https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
 
 ENV_PATH="$LEGACY_PATH/vEnv"
