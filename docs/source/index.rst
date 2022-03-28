@@ -80,37 +80,37 @@ Or read the `advanced install guide <starter/installation.html>`_
    :description: Use this 2-step guide to learn the key concepts.
    :header: New to Lightning?
    :button_link:  starter/introduction.html
-   :button_text: Continue
+
 
 .. customcalloutitem::
    :description: Easily organize your existing PyTorch code as PyTorch Lightning in a few hours.
    :header: PyTorch to PyTorch Lightning
    :button_link: starter/converting.html
-   :button_text: Continue
+
 
 .. customcalloutitem::
    :description: From NLP, Computer vision to RL and meta learning - see how to use Lightning in ALL research areas.
    :header: Examples
    :button_link: tutorials.html
-   :button_text: Continue
+
 
 .. customcalloutitem::
    :description: Detailed description of API each package. Assumes you already have basic Lightning knowledge.
    :header: API Reference
    :button_link: api_references.html
-   :button_text: Continue
+
 
 .. customcalloutitem::
    :description: From hyperparameters sweeps to cloud training to Pruning and Quantization - Lightning covers the key use-cases.
    :header: Common usecases
    :button_link: common_usecases.html
-   :button_text: Continue
+
 
 .. customcalloutitem::
    :description: Learn how to benchmark PyTorch Lightning.
    :header: Benchmarking
    :button_link: benchmarking/benchmarks.html
-   :button_text: Continue
+
 
 .. raw:: html
 
