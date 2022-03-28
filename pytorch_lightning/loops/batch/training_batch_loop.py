@@ -105,6 +105,11 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
     def teardown(self) -> None:
         self.optimizer_loop.teardown()
         self.manual_loop.teardown()
+        # release memory
+        if self.accumulated_loss.memory is not None:
+            self.accumulated_loss.memory = self.accumulated_loss.memory.cpu()
+        if self.running_loss.memory is not None:
+            self.running_loss.memory = self.running_loss.memory.cpu()
 
     def _tbptt_split_batch(self, batch: Any) -> List[Any]:
         """Splits a single batch into a list of sequence steps for tbptt.

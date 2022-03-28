@@ -111,7 +111,7 @@ def precision_context(precision, accelerator) -> Generator[None, None, None]:
         pytest.param(32, None, 1, "cpu"),
         pytest.param(32, None, 1, "gpu", marks=RunIf(min_gpus=1)),
         pytest.param(16, None, 1, "gpu", marks=RunIf(min_gpus=1)),
-        pytest.param("bf16", None, 1, "gpu", marks=RunIf(min_torch="1.10", min_gpus=1)),
+        pytest.param("bf16", None, 1, "gpu", marks=RunIf(min_gpus=1, min_torch="1.10")),
     ],
 )
 def test_boring_lite_model_single_device(precision, strategy, devices, accelerator, tmpdir):

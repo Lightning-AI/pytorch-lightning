@@ -86,7 +86,7 @@ class PredictionLoop(DataLoaderLoop):
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Predicts one entire dataloader."""
         void(*args, **kwargs)
-        dataloader = self.trainer.strategy.process_dataloader(self.current_dataloader)
+        dataloader = self.current_dataloader
         dataloader_iter = enumerate(dataloader)
         dl_max_batches = self.max_batches[self.current_dataloader_idx]
 

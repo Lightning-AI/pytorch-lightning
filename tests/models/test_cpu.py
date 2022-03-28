@@ -125,7 +125,7 @@ def test_early_stopping_cpu_model(tmpdir):
     model.unfreeze()
 
 
-@RunIf(skip_windows=True, skip_49370=True)
+@RunIf(skip_windows=True)
 def test_multi_cpu_model_ddp(tmpdir):
     """Make sure DDP works."""
     tutils.set_random_main_port()
@@ -136,8 +136,8 @@ def test_multi_cpu_model_ddp(tmpdir):
         max_epochs=1,
         limit_train_batches=0.4,
         limit_val_batches=0.2,
-        gpus=None,
-        num_processes=2,
+        accelerator="cpu",
+        devices=2,
         strategy="ddp_spawn",
     )
 
