@@ -16,34 +16,37 @@ from unittest import mock
 
 import pytest
 
+import pytorch_lightning
 from pytorch_lightning import Trainer
 from tests.callbacks.test_callbacks import OldStatefulCallback
 from tests.helpers import BoringModel
-from tests.helpers.runif import RunIf
 
 
-def test_v2_0_0_deprecated_num_processes(tmpdir):
+def test_v2_0_0_deprecated_num_processes():
     with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
-        _ = Trainer(default_root_dir=tmpdir, num_processes=2)
+        _ = Trainer(num_processes=2)
 
 
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
-def test_v2_0_0_deprecated_gpus(mock_is_available, mock_device_count, tmpdir):
+def test_v2_0_0_deprecated_gpus(*_):
     with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
-        _ = Trainer(default_root_dir=tmpdir, gpus=0)
+        _ = Trainer(gpus=0)
 
 
-@RunIf(tpu=True)
-def test_v2_0_0_deprecated_tpu_cores(tmpdir):
+@mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
+@mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.parse_devices", return_value=8)
+def test_v2_0_0_deprecated_tpu_cores(mock_is_available, mock_parse_devices, monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.utilities.device_parser, "_TPU_AVAILABLE", True)
     with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
-        _ = Trainer(default_root_dir=tmpdir, tpu_cores=1)
+        _ = Trainer(tpu_cores=8)
 
 
-@RunIf(ipu=True)
-def test_v2_0_0_deprecated_ipus(tmpdir):
+@mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
+def test_v2_0_0_deprecated_ipus(_, monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", True)
     with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
-        _ = Trainer(default_root_dir=tmpdir, ipus=4)
+        _ = Trainer(ipus=4)
 
 
 def test_v2_0_resume_from_checkpoint_trainer_constructor(tmpdir):
