@@ -219,25 +219,31 @@ class CheckpointConnector:
             prec_plugin.load_state_dict(self._loaded_checkpoint["native_amp_scaling_state"])
 
     def restore_quantization_callbacks(self) -> None:
+        """Restores all the QuantizationAwareTraining callbacks from the pre-loaded checkpoint.
+
+        The implementation is similar to :meth:`restore_callbacks` but calls the QAT callback with a special hook
+        `load_before_model` instead of `load_state_dict`.
+        """
         if not self._loaded_checkpoint:
             return
-
-        from pytorch_lightning.callbacks.quantization import QuantizationAwareTraining
 
         callback_states = self._loaded_checkpoint.get("callbacks")
 
         if callback_states is None:
             return
 
+        from pytorch_lightning.callbacks.quantization import QuantizationAwareTraining  # avoid circular import
+
         for callback in self.trainer.callbacks:
-            if isinstance(callback, QuantizationAwareTraining):
+            if not isinstance(callback, QuantizationAwareTraining):
+                continue
 
-                state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
-                if state:
-                    state = deepcopy(state)
-                    callback.load_state_dict(state)
-
-                callback.restore(self.trainer.model, state)
+            state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
+            if state:
+                state = deepcopy(state)
+                # The Quantization callbacks have a special method that must be called before restoring the weights
+                # of the model
+                callback.load_before_model(self.trainer.model, state)
 
     def restore_callbacks(self) -> None:
         """Restores all callbacks from the pre-loaded checkpoint."""

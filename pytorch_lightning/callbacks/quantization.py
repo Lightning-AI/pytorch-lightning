@@ -339,7 +339,7 @@ class QuantizationAwareTraining(Callback):
         attribs = {n: getattr(self, f"_{n}") for n in arg_names}
         return attribs
 
-    def restore(self, pl_module, state_dict):
+    def load_before_model(self, pl_module: "pl.LightningModule", state_dict: Dict[str, Any]) -> None:
         for k, v in state_dict.items():
             setattr(self, f"_{k}", v)
         self._prepare_model(pl_module)
