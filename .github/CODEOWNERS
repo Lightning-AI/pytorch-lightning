@@ -17,6 +17,7 @@
 /.github/*.md               @edenlightning @williamfalcon @borda
 /.github/ISSUE_TEMPLATE/    @edenlightning @borda @tchaton
 /docs/source/conf.py        @borda @awaelchli @carmocca
+/docs/source/index.rst      @williamfalcon
 
 # Packages
 /pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
