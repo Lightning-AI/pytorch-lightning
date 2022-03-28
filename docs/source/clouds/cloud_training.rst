@@ -32,7 +32,7 @@ You can launch any Lightning model on Grid using the Grid `CLI <https://pypi.org
 
 .. code-block:: bash
 
-    grid run --instance_type v100 --gpus 4 my_model.py --gpus 4 --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
+    grid run --instance_type v100 --gpus 4 my_model.py --accelerator 'gpu' --devices 4 --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
 
 You can also start runs or interactive sessions from the `Grid platform <https://platform.grid.ai>`_, where you can upload datasets, view artifacts, view the logs, the cost, log into tensorboard, and so much more.
 

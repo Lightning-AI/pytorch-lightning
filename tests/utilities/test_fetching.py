@@ -192,7 +192,7 @@ class RecommenderModel(BoringModel):
         return DataLoader(RandomIndicesDataset(), batch_size=4)
 
 
-@RunIf(min_gpus=1, min_torch="1.8.0")
+@RunIf(min_gpus=1)
 def test_trainer_num_prefetch_batches(tmpdir):
 
     model = RecommenderModel()
@@ -239,7 +239,6 @@ def test_trainer_num_prefetch_batches(tmpdir):
 
 
 @pytest.mark.parametrize("automatic_optimization", [False, True])
-@RunIf(min_torch="1.8.0")
 def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
     class TestModel(BoringModel):
         def __init__(self, *args, automatic_optimization: bool = False, **kwargs):
@@ -282,7 +281,6 @@ def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
 
 
 @pytest.mark.parametrize("fn", ("validate", "test"))
-@RunIf(min_torch="1.8.0")
 def test_fetching_dataloader_iter_running_stages(fn, tmpdir):
     class TestModel(BoringModel):
         def fetch(self, data_fetcher, dataloader_iter, batch_idx):
