@@ -182,7 +182,7 @@ Here is an example while running on 256 GPUs (eight GPUs times 32 nodes).
             self.barrier()
 
 
-    Lite(strategy="ddp", gpus=8, num_nodes=32, accelerator="gpu").run()
+    Lite(strategy="ddp", devices=8, num_nodes=32, accelerator="gpu").run()
 
 
 If you require custom data or model device placement, you can deactivate
