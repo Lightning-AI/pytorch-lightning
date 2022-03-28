@@ -14,10 +14,10 @@ pip install virtualenv "torch==1.8.1" -f https://download.pytorch.org/whl/cpu/to
 ENV_PATH="$LEGACY_PATH/vEnv"
 
 # iterate over all arguments assuming that each argument is version
-for ver in "$@"
+for pl_ver in "$@"
 do
-	echo "processing version: $ver"
-	# mkdir "$LEGACY_PATH/$ver"
+	echo "processing version: $pl_ver"
+	# mkdir "$LEGACY_PATH/$pl_ver"
 
   # create local env
   echo $ENV_PATH
@@ -25,17 +25,17 @@ do
   # activate and install PL version
   source "$ENV_PATH/bin/activate"
   # there are problem to load ckpt in older versions since they are saved the newer versions
-  pip install "pytorch_lightning==$ver" "torch==$FROZEN_MIN_PT_VERSION" "torchmetrics" "scikit-learn" --quiet
+  pip install "pytorch_lightning==$pl_ver" "torch==$FROZEN_MIN_PT_VERSION" "torchmetrics" "scikit-learn" --quiet
 
   python --version
   pip --version
   pip list | grep torch
 
   python "$LEGACY_PATH/simple_classif_training.py"
-  cp "$LEGACY_PATH/simple_classif_training.py" ${LEGACY_PATH}/checkpoints/${ver}
+  cp "$LEGACY_PATH/simple_classif_training.py" ${LEGACY_PATH}/checkpoints/${pl_ver}
 
-  mv ${LEGACY_PATH}/checkpoints/${ver}/lightning_logs/version_0/checkpoints/*.ckpt ${LEGACY_PATH}/checkpoints/${ver}/
-  rm -rf ${LEGACY_PATH}/checkpoints/${ver}/lightning_logs
+  mv ${LEGACY_PATH}/checkpoints/${pl_ver}/lightning_logs/version_0/checkpoints/*.ckpt ${LEGACY_PATH}/checkpoints/${pl_ver}/
+  rm -rf ${LEGACY_PATH}/checkpoints/${pl_ver}/lightning_logs
 
   deactivate
   # clear env
