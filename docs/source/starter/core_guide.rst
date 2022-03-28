@@ -535,7 +535,7 @@ But the beauty is all the magic you can do with the trainer flags. For instance,
 .. code-block:: python
 
     model = LitMNIST()
-    trainer = Trainer(gpus=1)
+    trainer = Trainer(accelerator="gpu", devices=1)
     trainer.fit(model, train_loader)
 
 
@@ -549,7 +549,7 @@ Or you can also train on multiple GPUs.
 .. code-block:: python
 
     model = LitMNIST()
-    trainer = Trainer(gpus=8)
+    trainer = Trainer(accelerator="gpu", devices=8)
     trainer.fit(model, train_loader)
 
 Or multiple nodes
@@ -558,7 +558,7 @@ Or multiple nodes
 
     # (32 GPUs)
     model = LitMNIST()
-    trainer = Trainer(gpus=8, num_nodes=4, strategy="ddp")
+    trainer = Trainer(accelerator="gpu", devices=8, num_nodes=4, strategy="ddp")
     trainer.fit(model, train_loader)
 
 Refer to the :ref:`distributed computing guide for more details <accelerators/gpu:Multi GPU Training>`.
@@ -645,7 +645,7 @@ Now we can train the LightningModule on a TPU without doing anything else!
 
     dm = MNISTDataModule()
     model = LitMNIST()
-    trainer = Trainer(tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
     trainer.fit(model, dm)
 
 You'll now see the TPU cores booting up.
@@ -688,7 +688,7 @@ Now we can train with a validation loop as well.
     from pytorch_lightning import Trainer
 
     model = LitMNIST()
-    trainer = Trainer(tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
     trainer.fit(model, train_loader, val_loader)
 
 You may have noticed the words **Validation sanity check** logged. This is because Lightning runs 2 batches
@@ -768,7 +768,7 @@ Once you train your model simply call ``.test()``.
     from pytorch_lightning import Trainer
 
     model = LitMNIST()
-    trainer = Trainer(tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
     trainer.fit(model)
 
     # run test set
@@ -791,7 +791,7 @@ You can also run the test from a saved lightning model
 .. code-block:: python
 
     model = LitMNIST.load_from_checkpoint(PATH)
-    trainer = Trainer(tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
     trainer.test(model)
 
 .. note:: Lightning disables gradients, puts model in eval mode, and does everything needed for testing.

@@ -22,14 +22,7 @@ from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 import torch
 from torch import Tensor
-
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
-
-if _TORCH_GREATER_EQUAL_1_8:
-    from torch.quantization import FakeQuantizeBase
-else:
-    # For torch 1.7.
-    from torch.quantization import FakeQuantize as FakeQuantizeBase
+from torch.quantization import FakeQuantizeBase
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback

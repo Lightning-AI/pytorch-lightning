@@ -29,9 +29,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Weekly reset caching
-      run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
-      id: times
+    - name: Reset caching
+      run: python -c "import time; days = time.time() / 60 / 60 / 24; print(f'TIME_PERIOD=d{int(days / 2) * 2}')" >> $GITHUB_ENV
 
     - name: Get pip cache
       id: pip-cache
@@ -42,14 +41,14 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-py${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
+        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-py${{ matrix.python-version }}-
+          ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-
 
     - name: Install dependencies
       run: |
         # adjust versions according installed Torch version
-        python ./requirements/adjust_versions.py requirements.txt ${{ matrix.pytorch-version }}
+        python ./requirements/adjust-versions.py requirements.txt ${{ matrix.pytorch-version }}
         pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip install --requirement requirements/test.txt
         pip list

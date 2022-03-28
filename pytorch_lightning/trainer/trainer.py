@@ -31,7 +31,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator
+from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, HPUAccelerator, IPUAccelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -54,6 +54,7 @@ from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
     PassThroughProfiler,
+    Profiler,
     PyTorchProfiler,
     SimpleProfiler,
     XLAProfiler,
@@ -76,6 +77,7 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
+    _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
     AMPType,
@@ -194,7 +196,7 @@ class Trainer(
 
         Args:
 
-            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "auto")
+            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "auto")
                 as well as custom accelerator instances.
 
                 .. deprecated:: v1.5
@@ -352,7 +354,7 @@ class Trainer(
                 Default: ``None``.
 
             precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
-                Can be used on CPU, GPU, TPUs or IPUs.
+                Can be used on CPU, GPU, TPUs, HPUs or IPUs.
                 Default: ``32``.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
@@ -1605,7 +1607,7 @@ class Trainer(
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        log.detail(f"{self.__class__.__name__}: calling callback hook: {hook_name}")
+        log.debug(f"{self.__class__.__name__}: calling callback hook: {hook_name}")
         # TODO: remove if block in v1.8
         if hook_name in ("on_init_start", "on_init_end"):
             # these `Callback` hooks are the only ones that do not take a lightning module.
@@ -1661,19 +1663,41 @@ class Trainer(
             else:
                 callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx)
 
-    def _call_callbacks_on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
-        """Called when saving a model checkpoint.
-
-        Calls every callback's `on_save_checkpoint` hook. We have a dedicated function for this rather than using
-        `_call_callback_hooks` because we have special logic for returning callback_states.
-        """
-        callback_states = {}
+    def _call_callbacks_state_dict(self) -> Dict[str, dict]:
+        """Called when saving a model checkpoint, calls and returns every callback's `state_dict`, keyed by
+        `Callback.state_key`."""
+        callback_state_dicts = {}
         for callback in self.callbacks:
-            # TODO: Add profiling for on_save_checkpoint hook
-            state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
+            state_dict = callback.state_dict()
+            if state_dict:
+                callback_state_dicts[callback.state_key] = state_dict
+        return callback_state_dicts
+
+    def _call_callbacks_on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """Called when saving a model checkpoint, calls every callback's `on_save_checkpoint` hook.
+
+        Will be removed in v1.8: If state is returned, we insert the callback state into
+        ``checkpoint["callbacks"][Callback.state_key]``. It overrides ``state_dict`` if already present.
+        """
+        pl_module = self.lightning_module
+        if pl_module:
+            prev_fx_name = pl_module._current_fx_name
+            pl_module._current_fx_name = "on_save_checkpoint"
+
+        for callback in self.callbacks:
+            with self.profiler.profile(f"[Callback]{callback.state_key}.on_save_checkpoint"):
+                state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
-                callback_states[callback.state_key] = state
-        return callback_states
+                rank_zero_deprecation(
+                    f"Returning a value from `{callback.__class__.__name__}.on_save_checkpoint` is deprecated in v1.6"
+                    " and will be removed in v1.8. Please override `Callback.state_dict`"
+                    " to return state to be saved."
+                )
+                checkpoint["callbacks"][callback.state_key] = state
+
+        if pl_module:
+            # restore current_fx when nested context
+            pl_module._current_fx_name = prev_fx_name
 
     def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint.
@@ -1681,6 +1705,11 @@ class Trainer(
         Calls every callback's `on_load_checkpoint` hook. We have a dedicated function for this rather than using
         `_call_callback_hooks` because we have special logic for getting callback_states.
         """
+        pl_module = self.lightning_module
+        if pl_module:
+            prev_fx_name = pl_module._current_fx_name
+            pl_module._current_fx_name = "on_load_checkpoint"
+
         callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
 
         if callback_states is None:
@@ -1700,8 +1729,25 @@ class Trainer(
             state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
             if state:
                 state = deepcopy(state)
-                # TODO: Add profiling for on_load_checkpoint hook
-                callback.on_load_checkpoint(self, self.lightning_module, state)
+                with self.profiler.profile(f"[Callback]{callback.state_key}.on_load_checkpoint"):
+                    callback.on_load_checkpoint(self, self.lightning_module, state)
+
+        if pl_module:
+            # restore current_fx when nested context
+            pl_module._current_fx_name = prev_fx_name
+
+    def _call_callbacks_load_state_dict(self, checkpoint: Dict[str, Any]) -> None:
+        """Called when loading a model checkpoint, calls every callback's `load_state_dict`."""
+        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
+
+        if callback_states is None:
+            return
+
+        for callback in self.callbacks:
+            state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
+            if state:
+                state = deepcopy(state)
+                callback.load_state_dict(state)
 
     def _call_strategy_hook(
         self,
@@ -1737,7 +1783,7 @@ class Trainer(
     def _log_api_event(event: str) -> None:
         torch._C._log_api_usage_once("lightning.trainer." + event)
 
-    def __init_profiler(self, profiler: Optional[Union[BaseProfiler, str]]) -> None:
+    def __init_profiler(self, profiler: Optional[Union[Profiler, str]]) -> None:
         if isinstance(profiler, str):
             PROFILERS = {
                 "simple": SimpleProfiler,
@@ -1753,7 +1799,7 @@ class Trainer(
                 )
             profiler_class = PROFILERS[profiler]
             profiler = profiler_class()
-        self.profiler: BaseProfiler = profiler or PassThroughProfiler()
+        self.profiler: Profiler = profiler or PassThroughProfiler()
 
     def __setup_profiler(self) -> None:
         local_rank = self.local_rank if self.world_size > 1 else None
@@ -1770,8 +1816,11 @@ class Trainer(
         )
         rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
 
-        num_ipus = self.ipus if self.ipus is not None else 0
+        num_ipus = self.num_devices if isinstance(self.accelerator, IPUAccelerator) else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
+
+        num_hpus = self.num_devices if isinstance(self.accelerator, HPUAccelerator) else 0
+        rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
 
         if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
             rank_zero_warn(
@@ -1790,6 +1839,12 @@ class Trainer(
             rank_zero_warn(
                 "IPU available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='ipu', devices={IPUAccelerator.auto_device_count()})`."
+            )
+
+        if _HPU_AVAILABLE and not isinstance(self.accelerator, HPUAccelerator):
+            rank_zero_warn(
+                "HPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='hpu', devices={HPUAccelerator.auto_device_count()})`."
             )
 
     """
@@ -2011,12 +2066,37 @@ class Trainer(
         return getattr(self.strategy, "num_nodes", 1)
 
     @property
+    def device_ids(self) -> List[int]:
+        """List of device indexes per node."""
+        devices = getattr(self.strategy, "parallel_devices", [self.strategy.root_device])
+        device_ids = []
+        for idx, device in enumerate(devices):
+            if isinstance(device, torch.device):
+                device_ids.append(device.index or idx)
+            elif isinstance(device, int):
+                device_ids.append(device)
+        return device_ids
+
+    @property
+    def num_devices(self) -> int:
+        """Number of devices the trainer uses per node."""
+        return len(self.device_ids)
+
+    @property
     def num_processes(self) -> int:
-        return self._accelerator_connector.num_processes
+        rank_zero_deprecation(
+            "`Trainer.num_processes` is deprecated in v1.6 and will be removed in v1.8. "
+            "Please use `Trainer.num_devices` instead."
+        )
+        return self.num_devices
 
     @property
     def root_gpu(self) -> Optional[int]:
-        return self._accelerator_connector.root_gpu
+        rank_zero_deprecation(
+            "`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
+            "Please use `Trainer.strategy.root_device.index` instead."
+        )
+        return self.strategy.root_device.index if isinstance(self.accelerator, GPUAccelerator) else None
 
     @property
     def tpu_cores(self) -> int:
@@ -2024,21 +2104,35 @@ class Trainer(
 
     @property
     def ipus(self) -> int:
-        return self._accelerator_connector.num_ipus
+        rank_zero_deprecation(
+            "`Trainer.ipus` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.num_devices` instead."
+        )
+        return self.num_devices if isinstance(self.accelerator, IPUAccelerator) else 0
 
     @property
     def num_gpus(self) -> int:
-        return self._accelerator_connector.num_gpus
+        rank_zero_deprecation(
+            "`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.num_devices` instead."
+        )
+        return self.num_devices if isinstance(self.accelerator, GPUAccelerator) else 0
 
     @property
-    def devices(self) -> Optional[Union[List[int], str, int]]:
-        return self._accelerator_connector.devices
+    def devices(self) -> int:
+        rank_zero_deprecation(
+            "`Trainer.devices` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
+        )
+        return self.num_devices
 
     @property
     def data_parallel_device_ids(self) -> Optional[List[int]]:
-        return (
-            self._accelerator_connector.parallel_device_ids if self._accelerator_connector.parallel_device_ids else None
+        rank_zero_deprecation(
+            "`Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.device_ids` instead."
         )
+        return self.device_ids if isinstance(self.accelerator, GPUAccelerator) else None
 
     @property
     def lightning_module(self) -> "pl.LightningModule":
@@ -2101,6 +2195,10 @@ class Trainer(
 
     @property
     def gpus(self) -> Optional[Union[List[int], str, int]]:
+        rank_zero_deprecation(
+            "`Trainer.gpus` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
+        )
         return self._accelerator_connector.gpus
 
     @property
@@ -2142,6 +2240,10 @@ class Trainer(
 
     @property
     def use_amp(self) -> bool:
+        rank_zero_deprecation(
+            "`Trainer.use_amp` is deprecated in v1.6.0 and will be removed in v1.8.0."
+            " Please use `Trainer.amp_backend` instead."
+        )
         return self.precision == 16
 
     @property
@@ -2339,16 +2441,19 @@ class Trainer(
         )
         self._predicted_ckpt_path = ckpt_path
 
-    def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
+    def save_checkpoint(
+        self, filepath: _PATH, weights_only: bool = False, storage_options: Optional[Any] = None
+    ) -> None:
         r"""
         Runs routine to create a checkpoint.
 
         Args:
             filepath: Path where checkpoint is saved.
             weights_only: If ``True``, will only save the model weights.
+            storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
 
         """
-        self._checkpoint_connector.save_checkpoint(filepath, weights_only)
+        self._checkpoint_connector.save_checkpoint(filepath, weights_only=weights_only, storage_options=storage_options)
 
     """
     Parsing properties
