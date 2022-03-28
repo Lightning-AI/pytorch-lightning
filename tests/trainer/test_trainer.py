@@ -2231,3 +2231,53 @@ def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_
     trainer = Trainer(**trainer_kwargs)
     assert trainer.device_ids == expected_device_ids
     assert trainer.num_devices == len(expected_device_ids)
+
+
+@pytest.mark.parametrize(
+    "trainer_kwargs",
+    [
+        {"accelerator": "gpu", "devices": 2},
+        {"accelerator": "gpu", "devices": [0, 2]},
+        {"accelerator": "gpu", "devices": "2"},
+        {"accelerator": "gpu", "devices": "0,"},
+    ],
+)
+def test_trainer_gpus(monkeypatch, trainer_kwargs):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 4)
+    trainer = Trainer(**trainer_kwargs)
+    assert trainer.gpus == trainer_kwargs["devices"]
+
+
+@pytest.mark.parametrize(
+    ["trainer_kwargs", "expected_num_processes"],
+    [
+        ({}, 1),
+        ({"devices": 1}, 1),
+        ({"devices": 4}, 4),
+        ({"accelerator": "cpu", "devices": 1}, 0),
+        ({"accelerator": "gpu", "devices": 4}, 4),
+    ],
+)
+def test_trainer_num_processes(monkeypatch, trainer_kwargs, expected_num_processes):
+    if trainer_kwargs.get("accelerator") == "gpu":
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+        monkeypatch.setattr(torch.cuda, "device_count", lambda: 16)
+    trainer = Trainer(**trainer_kwargs)
+    trainer.num_processes == expected_num_processes
+
+
+@pytest.mark.parametrize(
+    ["trainer_kwargs", "expected_ipus"],
+    [
+        ({}, 0),
+        ({"devices": 1}, 0),
+        ({"accelerator": "ipu", "devices": 1}, 1),
+        ({"accelerator": "ipu", "devices": 8}, 8),
+    ],
+)
+def test_trainer_config_ipus(monkeypatch, trainer_kwargs, expected_ipus):
+    monkeypatch.setattr(pytorch_lightning.accelerators.ipu.IPUAccelerator, "is_available", lambda _: True)
+    monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
+    trainer = Trainer(**trainer_kwargs)
+    trainer.ipus == expected_ipus
