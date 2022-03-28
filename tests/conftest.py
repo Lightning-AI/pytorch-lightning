@@ -195,6 +195,14 @@ def pytest_collection_modifyitems(items):
             # has `@RunIf(ipu=True)`
             if marker.name == "skipif" and marker.kwargs.get("ipu")
         ]
+    elif os.getenv("PL_RUN_HPU_TESTS", "0") == "1":
+        items[:] = [
+            item
+            for item in items
+            for marker in item.own_markers
+            # has `@RunIf(hpu=True)`
+            if marker.name == "skipif" and marker.kwargs.get("hpu")
+        ]
 
 
 def pytest_addoption(parser):

@@ -37,14 +37,17 @@ jobs:
       displayName: 'Install dependencies'
 
     - bash: |
+        export PL_RUN_HPU_TESTS=1
         python -m pytest -sv tests/accelerators/test_hpu.py --forked --junitxml=hpu1_test-results.xml
       displayName: 'Single card HPU test'
 
     - bash: |
+        export PL_RUN_HPU_TESTS=1
         python -m pytest -sv tests/accelerators/test_hpu.py --forked --hpus 8 --junitxml=hpu8_test-results.xml
       displayName: 'Multi card(8) HPU test'
 
     - bash: |
+        export PL_RUN_HPU_TESTS=1
         python -m pytest -sv tests/plugins/precision/hpu/test_hpu.py --hmp-bf16 'tests/plugins/precision/hpu/ops_bf16.txt' --hmp-fp32 'tests/plugins/precision/hpu/ops_fp32.txt' --forked --junitxml=hpu1_precision_test-results.xml
       displayName: 'HPU precision test'
 
