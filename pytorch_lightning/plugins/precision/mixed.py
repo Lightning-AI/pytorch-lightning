@@ -27,6 +27,8 @@ class MixedPrecisionPlugin(PrecisionPlugin):
             This property is deprecated in 1.6 and will be removed in 1.7.
             Please use instance checks against the plugin class instead.
 
+        AMP-Backend used by this plugin. Typically one of AMPType.NATIVE | AMPType.APEX
+
         """
 
     precision: Union[str, int] = "mixed"
