@@ -341,6 +341,12 @@ class QuantizationAwareTraining(Callback):
         return attribs
 
     def load_before_model(self, pl_module: "pl.LightningModule", state_dict: Dict[str, Any]) -> None:
+        """Special hook that gets called by the CheckpointConnector *before* the model gets loaded.
+
+        This hook replaces the :meth:`on_load_checkpoint` and :meth:`load_state_dict` callback methods which get called
+        after the model has already loaded the weights. For quantization, we need to convert the model first before
+        that happens, assuming the previous training used quantization.
+        """
         for k, v in state_dict.items():
             setattr(self, f"_{k}", v)
         self._prepare_model(pl_module)
