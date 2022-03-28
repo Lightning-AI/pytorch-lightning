@@ -15,7 +15,10 @@
 import logging
 import os
 
+import torch.distributed
+
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_9_1
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 
 log = logging.getLogger(__name__)
@@ -58,6 +61,8 @@ class TorchElasticEnvironment(ClusterEnvironment):
     @staticmethod
     def detect() -> bool:
         """Returns ``True`` if the current process was launched using the torchelastic command."""
+        if _TORCH_GREATER_EQUAL_1_9_1:
+            return torch.distributed.is_torchelastic_launched()
         required_env_vars = {"RANK", "GROUP_RANK", "LOCAL_RANK", "LOCAL_WORLD_SIZE"}
         return required_env_vars.issubset(os.environ.keys())
 

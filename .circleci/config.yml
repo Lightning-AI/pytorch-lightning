@@ -116,7 +116,7 @@ jobs:
     docker:
       - image: circleci/python:3.7
     environment:
-      - XLA_VER: 1.8
+      - XLA_VER: 1.9
       - PYTHON_VER: 3.7
       - MAX_CHECKS: 240
       - CHECK_SPEEP: 5

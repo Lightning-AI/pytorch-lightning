@@ -25,7 +25,6 @@ from torch import Tensor
 from torch.utils.hooks import RemovableHandle
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.warnings import WarningCache
 
 log = logging.getLogger(__name__)
@@ -407,15 +406,14 @@ def get_human_readable_count(number: int) -> str:
 
 
 def _is_lazy_weight_tensor(p: Tensor) -> bool:
-    if _TORCH_GREATER_EQUAL_1_8:
-        from torch.nn.parameter import UninitializedParameter
+    from torch.nn.parameter import UninitializedParameter
 
-        if isinstance(p, UninitializedParameter):
-            warning_cache.warn(
-                "A layer with UninitializedParameter was found. "
-                "Thus, the total number of parameters detected may be inaccurate."
-            )
-            return True
+    if isinstance(p, UninitializedParameter):
+        warning_cache.warn(
+            "A layer with UninitializedParameter was found. "
+            "Thus, the total number of parameters detected may be inaccurate."
+        )
+        return True
     return False
 
 

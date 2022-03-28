@@ -6,9 +6,9 @@
 
 .. _checkpointing:
 
-##############################
-Saving and Loading Checkpoints
-##############################
+#############
+Checkpointing
+#############
 
 Lightning provides functions to save and load checkpoints.
 
@@ -28,9 +28,25 @@ A Lightning checkpoint has everything needed to restore a training session inclu
 - LightningModule's state_dict
 - State of all optimizers
 - State of all learning rate schedulers
-- State of all callbacks
+- State of all callbacks (for stateful callbacks)
+- State of datamodule (for stateful datamodules)
 - The hyperparameters used for that model if passed in as hparams (Argparse.Namespace)
 - State of Loops (if using Fault-Tolerant training)
+
+
+Individual Component States
+===========================
+
+Each component can save and load its state by implementing the PyTorch ``state_dict``, ``load_state_dict`` stateful protocol.
+For details on implementing your own stateful callbacks and datamodules, refer to the individual docs pages at :doc:`callbacks <../extensions/callbacks>` and :doc:`datamodules <../extensions/datamodules>`.
+
+
+Operating on Global Checkpoint Component States
+===============================================
+
+If you need to operate on the global component state (i.e. the entire checkpoint dictionary), you can read/add/delete/modify custom states in your checkpoints before they are being saved or loaded.
+For this you can override :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint` and :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint` in your ``LightningModule``
+or :meth:`~pytorch_lightning.callbacks.base.Callback.on_save_checkpoint` and :meth:`~pytorch_lightning.callbacks.base.Callback.on_load_checkpoint` methods in your ``Callback``.
 
 
 *****************
@@ -100,14 +116,6 @@ Lightning automatically ensures that the model is saved only on the main process
 Not using :meth:`~pytorch_lightning.trainer.trainer.Trainer.save_checkpoint` can lead to unexpected behavior and potential deadlock. Using other saving functions will result in all devices attempting to save the checkpoint. As a result, we highly recommend using the Trainer's save functionality.
 If using custom saving functions cannot be avoided, we recommend using the :func:`~pytorch_lightning.utilities.rank_zero.rank_zero_only` decorator to ensure saving occurs only on the main process. Note that this will only work if all ranks hold the exact same state and won't work when using
 model parallel distributed strategies such as deepspeed or sharded training.
-
-
-Modifying Checkpoint When Saving and Loading
-============================================
-
-You can add/delete/modify custom states in your checkpoints before they are being saved or loaded. For this you can override :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint`
-and :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint` in your ``LightningModule`` or :meth:`~pytorch_lightning.callbacks.base.Callback.on_save_checkpoint` and
-:meth:`~pytorch_lightning.callbacks.base.Callback.on_load_checkpoint` methods in your ``Callback``.
 
 
 Checkpointing Hyperparameters

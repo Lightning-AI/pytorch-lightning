@@ -73,6 +73,7 @@ def prepare_for_backward(model: DistributedDataParallel, output: Any) -> None:
         # unused parameters. Only if `find_unused_parameters` is set.
         args = list(_find_tensors(output)) if model.find_unused_parameters else []
         reducer = cast(torch._C._distributed_c10d.Reducer, model.reducer)
+        reducer._rebuild_buckets()  # avoids "INTERNAL ASSERT FAILED" with `find_unused_parameters=False`
         reducer.prepare_for_backward(args)
     else:
         model.require_forward_param_sync = False  # type: ignore[assignment]

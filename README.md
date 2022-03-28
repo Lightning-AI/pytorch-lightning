@@ -27,7 +27,7 @@ ______________________________________________________________________
 [![DockerHub](https://img.shields.io/docker/pulls/pytorchlightning/pytorch_lightning.svg)](https://hub.docker.com/r/pytorchlightning/pytorch_lightning)
 [![codecov](https://codecov.io/gh/PyTorchLightning/pytorch-lightning/branch/master/graph/badge.svg)](https://codecov.io/gh/PyTorchLightning/pytorch-lightning)
 
-[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=stable)](https://pytorch-lightning.readthedocs.io/en/stable/starter/new-project.html)
+[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=stable)](https://pytorch-lightning.readthedocs.io/en/latest/)
 [![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-12iz3cds1-uyyyBYJLiaL2bqVmMN7n~A)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/PytorchLightning/pytorch-lightning/blob/master/LICENSE)
 
@@ -229,17 +229,17 @@ Here are some examples:
 ```python
 # 8 GPUs
 # no code changes needed
-trainer = Trainer(max_epochs=1, gpus=8)
+trainer = Trainer(max_epochs=1, accelerator="gpu", devices=8)
 
 # 256 GPUs
-trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
+trainer = Trainer(max_epochs=1, accelerator="gpu", devices=8, num_nodes=32)
 ```
 
 <summary>Train on TPUs without code changes</summary>
 
 ```python
 # no code changes needed
-trainer = Trainer(tpu_cores=8)
+trainer = Trainer(accelerator="tpu", devices=8)
 ```
 
 <summary>16-bit precision</summary>
@@ -429,7 +429,7 @@ Grid AI is our platform for training models at scale on the cloud!
 To use grid, take your regular command:
 
 ```
-python my_model.py --learning_rate 1e-6 --layers 2 --gpus 4
+python my_model.py --learning_rate 1e-6 --layers 2 --accelerator 'gpu' --devices 4
 ```
 
 And change it to use the grid train command:
