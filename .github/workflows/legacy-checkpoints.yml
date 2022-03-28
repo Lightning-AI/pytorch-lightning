@@ -12,11 +12,10 @@ jobs:
 
     - uses: actions/setup-python@v2
       with:
-        python-version: 3.9
+        python-version: 3.8
 
-    - name: Install dependencies
+    - name: Install AWS CLI
       run: |
-        pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
         pip install awscli
 
     - name: Configure AWS credentials
@@ -26,7 +25,7 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY_ID }}
         aws-region: us-east-1
 
-    - name: Generate checkpoint
+    - name: Generate checkpoints
       run: |
         while IFS= read -r line; do
             bash legacy/generate_checkpoints.sh $line
