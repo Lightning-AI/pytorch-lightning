@@ -231,8 +231,7 @@ def apply_to_collections(
             )
         if not (
             len(dataclasses.fields(data1)) == len(dataclasses.fields(data2))
-            and all(map(lambda f1, f2: isinstance(f1, type(f2)),
-             dataclasses.fields(data1), dataclasses.fields(data2)))
+            and all(map(lambda f1, f2: isinstance(f1, type(f2)), dataclasses.fields(data1), dataclasses.fields(data2)))
         ):
             raise TypeError("Dataclasses fields do not match.")
         # make a deepcopy of the data,

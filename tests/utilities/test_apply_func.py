@@ -33,7 +33,7 @@ class Feature:
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, Feature):
             return NotImplemented
-        
+
         return torch.equal(self.input_ids, o.input_ids) and np.equal(self.segment_ids, o.segment_ids).all()
 
 
@@ -50,7 +50,7 @@ class ModelExample:
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, ModelExample):
             return NotImplemented
-        
+
         return (
             self.example_ids == o.example_ids
             and self.feature == o.feature
@@ -87,7 +87,7 @@ class WithInitVar:
             return NotImplemented
         elif isinstance(self.dummy, torch.Tensor):
             return torch.equal(self.dummy, o.dummy)
-        
+
         return self.dummy == o.dummy
 
 
@@ -106,7 +106,7 @@ class WithClassAndInitVar:
             return NotImplemented
         elif isinstance(self.dummy, torch.Tensor):
             return torch.equal(self.dummy, o.dummy)
-        
+
         return self.dummy == o.dummy
 
 
