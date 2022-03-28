@@ -651,7 +651,7 @@ Community
 *********
 
 Our community of core maintainers and thousands of expert researchers is active on our
-`Slack <https://join.slack.com/t/pytorch-lightning/shared_invite/zt-pw5v393p-qRaDgEk24~EjiZNBpSQFgQ>`_
+`Slack <https://join.slack.com/t/pytorch-lightning/shared_invite/zt-12iz3cds1-uyyyBYJLiaL2bqVmMN7n~A>`_
 and `GitHub Discussions <https://github.com/PyTorchLightning/pytorch-lightning/discussions>`_. Drop by
 to hang out, ask Lightning questions or even discuss research!
 
