@@ -63,15 +63,14 @@ Notes (Optional):
 ## Developing docs
 
 When developing the docs, building docs can be VERY slow locally because of the notebook tutorials.
-To speed this up, enable this flag in `path/to/pytorch-lighting/docs/conf.py`
+To speed this up, enable this flag in before building docs:
 
 ```python
 # builds notebooks which is slow
-_FAST_DOCS_DEV = False
+export PL_FAST_DOCS_DEV=0
 
 # fast notebook build which is fast
-_FAST_DOCS_DEV = True
-```
+export PL_FAST_DOCS_DEV=1
 
 ## docs CSS/theme
 
