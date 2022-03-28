@@ -59,10 +59,11 @@ def test_compare_version(monkeypatch):
 def test_imports():
     try:
         import apex  # noqa
-
-        assert _APEX_AVAILABLE
     except ModuleNotFoundError:
         assert not _APEX_AVAILABLE
+    else:
+        assert _APEX_AVAILABLE
+
     try:
         import bagua  # noqa
 
