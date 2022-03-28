@@ -48,7 +48,7 @@ def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
 def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mock, tmpdir):
     """Test that the epoch metrics are logged before the `on_evaluation_end` hook is fired."""
     order = []
-    update_eval_epoch_metrics_mock.side_effect = lambda: order.append("log_epoch_metrics")
+    update_eval_epoch_metrics_mock.side_effect = lambda _: order.append("log_epoch_metrics")
 
     class LessBoringModel(BoringModel):
         def on_validation_end(self):
