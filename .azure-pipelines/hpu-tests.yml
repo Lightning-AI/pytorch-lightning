@@ -45,7 +45,7 @@ jobs:
       displayName: 'Multi card(8) HPU test'
 
     - bash: |
-        python -m pytest -sv tests/plugins/precision/hpu/test_hpu.py --hmp-bf16 'tests/plugins/precision/hpu/ops_bf16.txt' --hmp-fp32 'tests/plugins/precision/hpu/ops_fp32.txt' --forked --junitxml=hpu1_precision_test-results.xml"
+        python -m pytest -sv tests/plugins/precision/hpu/test_hpu.py --hmp-bf16 'tests/plugins/precision/hpu/ops_bf16.txt' --hmp-fp32 'tests/plugins/precision/hpu/ops_fp32.txt' --forked --junitxml=hpu1_precision_test-results.xml
       displayName: 'HPU precision test'
 
     - bash: |
