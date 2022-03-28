@@ -76,3 +76,4 @@ export PL_FAST_DOCS_DEV=1
 
 To change the CSS theme of the docs, go [here](https://github.com/PyTorchLightning/lightning_sphinx_theme).
 Apologies in advance... this is a bit complex to build and requires basic understanding of javascript/npm.
+```
