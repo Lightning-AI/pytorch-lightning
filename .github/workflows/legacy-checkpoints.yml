@@ -18,6 +18,8 @@ jobs:
       run: |
         pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
         pip install awscli
+        sudo apt-get update
+        sudo apt-get install -y gdb
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
