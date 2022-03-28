@@ -696,8 +696,8 @@ See Also:
 gpus
 ^^^^
 
-.. warning:: Setting `Trainer(gpus=x)` is deprecated in v1.6 and will be removed"
-    in v2.0. Please use `Trainer(accelerator='gpu', devices=x)` instead.
+.. warning:: Setting `Trainer(gpus=x)` is deprecated in v1.6 and will be removed
+    in v2.0. Please use `Trainer(accelerator="gpu", devices=x)` instead.
 
 .. raw:: html
 
