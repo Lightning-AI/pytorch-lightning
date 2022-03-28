@@ -55,14 +55,12 @@ def test_set_epoch_called_eval_predict(tmpdir):
         return DataLoader(dataset, sampler=sampler)
 
     model = BoringModel()
-
-    train_dataloader = _get_dataloader()
-    val_dataloader = _get_dataloader()
-
     trainer = Trainer(
         default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=2, enable_model_summary=False
     )
 
+    train_dataloader = _get_dataloader()
+    val_dataloader = _get_dataloader()
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
     # One for each epoch
     assert train_dataloader.sampler.set_epoch.call_count == 2
