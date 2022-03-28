@@ -183,8 +183,8 @@ pygments_style = None
 # html_theme = 'bizstyle'
 # https://sphinx-themes.org
 html_theme = "pt_lightning_sphinx_theme"
-# html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
-html_theme_path = ["/Users/williamfalcon/Developer/opensource/lightning_sphinx_theme"]
+html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
+# html_theme_path = ["/Users/williamfalcon/Developer/opensource/lightning_sphinx_theme"]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
