@@ -344,6 +344,7 @@ class ModelCheckpoint(Callback):
                 " therefore `best_model_score`, `kth_best_model_path`, `kth_value`, `last_model_path` and"
                 " `best_k_models` won't be reloaded. Only `best_model_path` will be reloaded."
             )
+
         self.best_model_path = state_dict["best_model_path"]
 
     def save_checkpoint(self, trainer: "pl.Trainer") -> None:  # pragma: no-cover
