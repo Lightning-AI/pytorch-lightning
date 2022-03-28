@@ -264,7 +264,7 @@ class QuantizationAwareTraining(Callback):
         for fake_quant, observer_enabled in self._last_fake_quant_to_observer_enabled.items():
             fake_quant.observer_enabled.copy_(observer_enabled)
 
-    def _prepare_model(self, model: torch.nn.Module) -> None:
+    def _prepare_model(self, model: nn.Module) -> None:
         if self._module_prepared:
             return
         # QuantStub converts tensors from floating point to quantized
@@ -381,7 +381,7 @@ class QuantizationAwareTraining(Callback):
         keys = {"_qconfig", "_observer_type", "_collect_quantization", "_modules_to_fuse", "_input_compatible"}
         return {n: getattr(self, n) for n in keys}
 
-    def _load_before_model(self, model: torch.nn.Module, state_dict: Dict[str, Any]) -> None:
+    def _load_before_model(self, model: nn.Module, state_dict: Dict[str, Any]) -> None:
         """Special hook that gets called by the CheckpointConnector *before* the model gets loaded.
 
         This hook replaces the :meth:`on_load_checkpoint` and :meth:`load_state_dict` callback methods which get called
