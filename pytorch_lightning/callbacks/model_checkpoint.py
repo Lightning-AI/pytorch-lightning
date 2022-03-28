@@ -147,7 +147,7 @@ class ModelCheckpoint(Callback):
         then you should create multiple ``ModelCheckpoint`` callbacks.
 
         If the checkpoint's ``dirpath`` changed from what it was before while resuming the training,
-        only ``last_model_path`` and ``best_model_path`` will be reloaded and a warning will be issued.
+        only ``best_model_path`` will be reloaded and a warning will be issued.
 
     Raises:
         MisconfigurationException:
@@ -337,13 +337,14 @@ class ModelCheckpoint(Callback):
             self.kth_best_model_path = state_dict.get("kth_best_model_path", self.kth_best_model_path)
             self.kth_value = state_dict.get("kth_value", self.kth_value)
             self.best_k_models = state_dict.get("best_k_models", self.best_k_models)
+            self.last_model_path = state_dict.get("last_model_path", self.last_model_path)
         else:
             warnings.warn(
                 f"The dirpath has changed from {dirpath_from_ckpt!r} to {self.dirpath!r},"
-                " therefore `best_model_score`, `kth_best_model_path`, `kth_value` and `best_k_models`"
-                " won't be reloaded. Only `last_model_path` and `best_model_path` will be reloaded."
+                " therefore `best_model_score`, `kth_best_model_path`, `kth_value`, `last_model_path` and"
+                " `best_k_models` won't be reloaded. Only `best_model_path` will be reloaded."
             )
-        self.last_model_path = state_dict.get("last_model_path", self.last_model_path)
+
         self.best_model_path = state_dict["best_model_path"]
 
     def save_checkpoint(self, trainer: "pl.Trainer") -> None:  # pragma: no-cover
