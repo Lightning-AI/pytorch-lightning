@@ -173,6 +173,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for Habana Accelerator (HPU) ([#11808](https://github.com/PyTorchLightning/pytorch-lightning/pull/11808))
 
 
+- Added support for quantization of multi-input models and forward method `**kwargs` ([#7979](https://github.com/PyTorchLightning/pytorch-lightning/pull/7979))
+
+
 ### Changed
 
 - Drop PyTorch 1.7 support ([#12191](https://github.com/PyTorchLightning/pytorch-lightning/pull/12191)), ([#12432](https://github.com/PyTorchLightning/pytorch-lightning/pull/12432))
@@ -927,6 +930,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed logging to loggers with multiple eval dataloaders ([#12454](https://github.com/PyTorchLightning/pytorch-lightning/pull/12454))
 
 
+- Fixed support loading a checkpoint with QAT ([#11346](https://github.com/PyTorchLightning/pytorch-lightning/pull/11346))
+
+
+- Added support for quantization of models with multiple inputs/outputs and forward method kwargs ([#7979](https://github.com/PyTorchLightning/pytorch-lightning/pull/7979))
+
+
 ## [1.5.10] - 2022-02-08
 
 ### Fixed
@@ -1515,7 +1524,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `metric_attribute` to `LightningModule.log` function ([#7966](https://github.com/PyTorchLightning/pytorch-lightning/pull/7966))
 - Added a warning if `Trainer(log_every_n_steps)` is a value too high for the training dataloader ([#7734](https://github.com/PyTorchLightning/pytorch-lightning/pull/7734))
 - Added LightningCLI support for argument links applied on instantiation ([#7895](https://github.com/PyTorchLightning/pytorch-lightning/pull/7895))
-- Added support for quantization of multi-input models and forward method `**kwargs` ([#7979](https://github.com/PyTorchLightning/pytorch-lightning/pull/7979))
 - Added LightningCLI support for configurable callbacks that should always be present ([#7964](https://github.com/PyTorchLightning/pytorch-lightning/pull/7964))
 - Added DeepSpeed Infinity Support, and updated to DeepSpeed 0.4.0 ([#7234](https://github.com/PyTorchLightning/pytorch-lightning/pull/7234))
 - Added support for `torch.nn.UninitializedParameter` in `ModelSummary` ([#7642](https://github.com/PyTorchLightning/pytorch-lightning/pull/7642))
@@ -1541,7 +1549,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for `devices` flag to Trainer ([#8440](https://github.com/PyTorchLightning/pytorch-lightning/pull/8440))
 - Added private `prevent_trainer_and_dataloaders_deepcopy` context manager on the `LightningModule` ([#8472](https://github.com/PyTorchLightning/pytorch-lightning/pull/8472))
 - Added support for providing callables to the Lightning CLI instead of types ([#8400](https://github.com/PyTorchLightning/pytorch-lightning/pull/8400))
-- Added support for quantization of models with multiple inputs/outputs and forward method kwargs ([#7979](https://github.com/PyTorchLightning/pytorch-lightning/pull/7979))
 
 ### Changed
 
