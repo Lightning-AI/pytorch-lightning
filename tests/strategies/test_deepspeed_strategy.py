@@ -690,7 +690,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization
         model = ModelParallelClassificationModel()
     else:
         model = ManualModelParallelClassificationModel()
-    trainer = Trainer(default_root_dir=tmpdir, gpus=2, strategy=DeepSpeedStrategy(stage=3), precision=16)
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy=DeepSpeedStrategy(stage=3), precision=16)
 
     results = trainer.test(model, datamodule=dm, ckpt_path=ck.best_model_path)
     assert results[0]["test_acc"] > 0.7
