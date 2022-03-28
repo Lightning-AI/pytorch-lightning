@@ -1,3 +1,5 @@
+:orphan:
+
 Common use cases
 ================
 
