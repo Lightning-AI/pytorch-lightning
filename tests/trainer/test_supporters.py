@@ -311,7 +311,7 @@ def test_nested_calc_num_data(input_data, compute_func, expected_length):
     assert calculated_length == expected_length
 
 
-@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "PL_TRAINER_GPUS": "2"})
+@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("torch.cuda.is_available", return_value=True)
 @pytest.mark.parametrize("use_fault_tolerant", [False, True])
@@ -348,8 +348,7 @@ def test_combined_data_loader_validation_test(
     )
 
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(use_fault_tolerant))}):
-        with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
-            trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, strategy="ddp", accelerator="gpu", devices=2)
+        trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, strategy="ddp", accelerator="gpu", devices=2)
         dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=True)
         _count = 0
         _has_fastforward_sampler = False
