@@ -6,9 +6,9 @@
 .. _amp:
 
 
-#########
-Precision
-#########
+###############
+N-Bit Precision
+###############
 
 There are numerous benefits to using numerical formats with lower precision than the 32-bit floating-point or higher precision such as 64-bit floating-point.
 
