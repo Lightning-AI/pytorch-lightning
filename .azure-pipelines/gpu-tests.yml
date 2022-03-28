@@ -56,8 +56,6 @@ jobs:
         pip install bagua-cuda102==0.9.0
         pip install . --requirement requirements/devel.txt
         pip list
-        apt-get update
-        apt-get install -y gdb
       displayName: 'Install dependencies'
 
     - bash: |
