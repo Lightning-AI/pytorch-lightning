@@ -166,7 +166,7 @@ class DataConnector:
         for m in [model, ref_model]:
             m.trainer = proxy(self.trainer)
             # Remove setting use_amp in v1.8
-            m.use_amp = isinstance(self.trainer.strategy.precision_plugin, MixedPrecisionPlugin)
+            m._use_amp = isinstance(self.trainer.strategy.precision_plugin, MixedPrecisionPlugin)
             m.precision = self.trainer.precision
 
     def attach_dataloaders(
