@@ -381,7 +381,7 @@ def test_autocast():
     lite._precision_plugin.forward_context().__exit__.assert_called()
 
 
-@RunIf(min_gpus=2, deepspeed=True, standalone=True)
+@RunIf(min_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multiple_models():
     class Lite(LightningLite):
         def run(self):

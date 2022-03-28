@@ -22,14 +22,7 @@ from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 import torch
 from torch import Tensor
-
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
-
-if _TORCH_GREATER_EQUAL_1_8:
-    from torch.quantization import FakeQuantizeBase
-else:
-    # For torch 1.7.
-    from torch.quantization import FakeQuantize as FakeQuantizeBase
+from torch.quantization import FakeQuantizeBase
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
@@ -98,6 +91,10 @@ class QuantizationAwareTraining(Callback):
 
     .. warning:: ``QuantizationAwareTraining`` is in beta and subject to change.
 
+    The ``LightningModule`` is prepared for QAT training in the ``on_fit_start`` hook. Checkpoints saved during training
+    include already collected stats to perform the Quantization conversion, but it doesn't contain the quantized or
+    fused model/layers. The quantization is performed in the ``on_fit_end`` hook so the model needs to be saved after
+    training finishes if quantization is desired.
 
     Args:
 
@@ -185,7 +182,7 @@ class QuantizationAwareTraining(Callback):
             )
         self._collect_quantization = collect_quantization
 
-        self.modules_to_fuse = modules_to_fuse
+        self._modules_to_fuse = modules_to_fuse
         self._input_compatible = input_compatible
         self._convert_on_fit_end = quantize_on_fit_end
 
@@ -200,11 +197,12 @@ class QuantizationAwareTraining(Callback):
         self._forward_calls = 0
         self._fake_quant_to_initial_state_dict = {}
         self._last_fake_quant_to_observer_enabled = {}
+        self._module_prepared = False
 
     def _check_feasible_fuse(self, model: "pl.LightningModule") -> bool:
-        if not self.modules_to_fuse:
+        if not self._modules_to_fuse:
             return False
-        for group in self.modules_to_fuse:
+        for group in self._modules_to_fuse:
             if not all(_recursive_hasattr(model, m) for m in group):
                 raise MisconfigurationException(
                     f"You have requested to fuse {group} but one or more of them is not your model attributes"
@@ -224,44 +222,50 @@ class QuantizationAwareTraining(Callback):
         for fake_quant, observer_enabled in self._last_fake_quant_to_observer_enabled.items():
             fake_quant.observer_enabled.copy_(observer_enabled)
 
-    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def _prepare_model(self, model: torch.nn.Module) -> None:
+        if self._module_prepared:
+            return
         # QuantStub converts tensors from floating point to quantized
-        pl_module.quant = torch.quantization.QuantStub()
+        model.quant = torch.quantization.QuantStub()
         # DeQuantStub converts tensors from quantized to floating point
-        pl_module.dequant = torch.quantization.DeQuantStub()
+        model.dequant = torch.quantization.DeQuantStub()
         # manually specify where tensors will be converted from quantized
         # to floating point in the quantized model
-        self.__module_forward = pl_module.forward
-        pl_module.forward = wrap_qat_forward_context(
-            quant_cb=self, model=pl_module, func=pl_module.forward, trigger_condition=self._collect_quantization
+        self.__module_forward = model.forward
+        model.forward = wrap_qat_forward_context(
+            quant_cb=self, model=model, func=model.forward, trigger_condition=self._collect_quantization
         )
 
         # attach a global qconfig, which contains information about what kind
         # of observers to attach. Use 'fbgemm' for server inference
         if isinstance(self._qconfig, str):
             if self._observer_type == "histogram":
-                pl_module.qconfig = torch.quantization.get_default_qconfig(self._qconfig)
+                model.qconfig = torch.quantization.get_default_qconfig(self._qconfig)
             elif self._observer_type == "average":
                 # version=None corresponds to using FakeQuantize rather than
                 # FusedMovingAvgObsFakeQuantize which was introduced in PT1.10
                 # details in https://github.com/pytorch/pytorch/issues/64564
                 extra_kwargs = dict(version=None) if _TORCH_GREATER_EQUAL_1_10 else {}
-                pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig, **extra_kwargs)
+                model.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig, **extra_kwargs)
 
         elif isinstance(self._qconfig, QConfig):
-            pl_module.qconfig = self._qconfig
+            model.qconfig = self._qconfig
 
-        if self._check_feasible_fuse(pl_module):
-            torch.quantization.fuse_modules(pl_module, self.modules_to_fuse, inplace=True)
+        if self._check_feasible_fuse(model):
+            torch.quantization.fuse_modules(model, self._modules_to_fuse, inplace=True)
 
         # Prepare the model for QAT. This inserts observers and fake_quants in
         # the model that will observe weight and activation tensors during calibration.
-        torch.quantization.prepare_qat(pl_module, inplace=True)
+        torch.quantization.prepare_qat(model, inplace=True)
 
-        fake_quants = tuple(module for module in pl_module.modules() if isinstance(module, FakeQuantizeBase))
+        fake_quants = tuple(module for module in model.modules() if isinstance(module, FakeQuantizeBase))
         self._fake_quant_to_initial_state_dict = {
             fake_quant: copy.deepcopy(fake_quant.state_dict()) for fake_quant in fake_quants
         }
+        self._module_prepared = True
+
+    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
+        self._prepare_model(pl_module)
 
     def on_fit_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not self._convert_on_fit_end:
@@ -318,3 +322,18 @@ class QuantizationAwareTraining(Callback):
     def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if "predict" in self._observer_disabled_stages:
             self._restore_last_observer_enabled()
+
+    def state_dict(self) -> Dict[str, Any]:
+        keys = {"_qconfig", "_observer_type", "_collect_quantization", "_modules_to_fuse", "_input_compatible"}
+        return {n: getattr(self, n) for n in keys}
+
+    def _load_before_model(self, model: torch.nn.Module, state_dict: Dict[str, Any]) -> None:
+        """Special hook that gets called by the CheckpointConnector *before* the model gets loaded.
+
+        This hook replaces the :meth:`on_load_checkpoint` and :meth:`load_state_dict` callback methods which get called
+        after the model has already loaded the weights. For quantization, we need to convert the model first before that
+        happens, assuming the previous training used quantization.
+        """
+        for k, v in state_dict.items():
+            setattr(self, k, v)
+        self._prepare_model(model)

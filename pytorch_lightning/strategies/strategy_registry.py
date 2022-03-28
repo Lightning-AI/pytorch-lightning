@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import importlib
-import inspect
 from inspect import getmembers, isclass
-from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.registry import _is_register_method_overridden
 
 
 class _StrategyRegistry(dict):
@@ -116,22 +115,8 @@ class _StrategyRegistry(dict):
 StrategyRegistry = _StrategyRegistry()
 
 
-def is_register_strategies_overridden(strategy: type) -> bool:
-
-    method_name = "register_strategies"
-    strategy_attr = getattr(strategy, method_name)
-    previous_super_cls = inspect.getmro(strategy)[1]
-
-    if issubclass(previous_super_cls, Strategy):
-        super_attr = getattr(previous_super_cls, method_name)
-    else:
-        return False
-
-    return strategy_attr.__code__ is not super_attr.__code__
-
-
-def call_register_strategies(root: Path, base_module: str) -> None:
+def call_register_strategies(base_module: str) -> None:
     module = importlib.import_module(base_module)
     for _, mod in getmembers(module, isclass):
-        if issubclass(mod, Strategy) and is_register_strategies_overridden(mod):
+        if issubclass(mod, Strategy) and _is_register_method_overridden(mod, Strategy, "register_strategies"):
             mod.register_strategies(StrategyRegistry)
