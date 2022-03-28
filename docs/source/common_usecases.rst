@@ -11,15 +11,15 @@ Common use cases
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Lightning checkpoints have everything you need to save and restore your models
-   :header: Checkpointing
-   :button_link: common/checkpointing.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
    :description: Learn to train Lightning models on the cloud
    :header: Cloud training
    :button_link:  clouds/cloud_training.html
+   :card_style: text-container-small
+
+.. customcalloutitem::
+   :description: Lightning checkpoints have everything you need to save and restore your models
+   :header: Checkpointing
+   :button_link: common/checkpointing.html
    :card_style: text-container-small
 
 .. customcalloutitem::
@@ -62,6 +62,12 @@ Common use cases
    :description: Enable fault-tolerant training in clusters/clouds where machines might fail (ie: pre-emtible machines)
    :header: Fault-tolerant training
    :button_link: advanced/fault_tolerant_training.html
+   :card_style: text-container-small
+
+.. customcalloutitem::
+   :description: Make your models more flexible by enabling command-line arguments
+   :header: Hyperparameters (via command-line)
+   :button_link: common/hyperparameters.html
    :card_style: text-container-small
 
 .. customcalloutitem::

@@ -144,26 +144,26 @@ Or read the `advanced install guide <starter/installation.html>`_
    :caption: Common Use Cases
 
    clouds/cloud_training
+   common/checkpointing
    clouds/cluster
    common/debugging
    common/early_stopping
+   advanced/training_tricks
+   common/evaluation
+   advanced/fault_tolerant_training
    common/hyperparameters
    common/production_inference
    common/lightning_cli
    common/loggers
    advanced/model_parallel
    advanced/precision
-   common/checkpointing
-   advanced/fault_tolerant_training
    common/optimization
    advanced/profiler
-   advanced/strategy_registry
-   common/remote_fs
-   advanced/training_tricks
-   advanced/pruning_quantization
    common/progress_bar
+   advanced/pruning_quantization
+   common/remote_fs
+   advanced/strategy_registry
    advanced/transfer_learning
-   common/evaluation
 
 .. toctree::
    :maxdepth: 1
