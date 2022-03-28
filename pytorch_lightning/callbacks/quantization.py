@@ -104,8 +104,9 @@ class QuantizationAwareTraining(Callback):
     The model enters the process as a "vanilla model" and it is prepared for QAT training in the ``on_fit_start`` hook.
     Note that any saved checkpoint includes already collected stats for performing Quantization conversion,
     but not any already quantized and/or fused modules/layers.
-    The quantization is performed in the ``on_fit_end`` hook and so the model needs to be saved independently after the training is finished.
-    If a user wants to continue any past training we encourage to create a Trainer with ``resume_from_checkpoint``.
+    The quantization is performed in the ``on_fit_end`` hook and so the model needs to be saved independently after
+    the training is finished. If a user wants to continue any past training we encourage to create a Trainer with
+    ``resume_from_checkpoint``.
 
     Args:
 
