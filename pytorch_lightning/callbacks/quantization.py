@@ -235,43 +235,43 @@ class QuantizationAwareTraining(Callback):
         for fake_quant, observer_enabled in self._last_fake_quant_to_observer_enabled.items():
             fake_quant.observer_enabled.copy_(observer_enabled)
 
-    def _prepare_model(self, pl_module: "pl.LightningModule") -> None:
+    def _prepare_model(self, model: torch.nn.Module) -> None:
         if self.__module_prepared:
             return
         # QuantStub converts tensors from floating point to quantized
-        pl_module.quant = torch.quantization.QuantStub()
+        model.quant = torch.quantization.QuantStub()
         # DeQuantStub converts tensors from quantized to floating point
-        pl_module.dequant = torch.quantization.DeQuantStub()
+        model.dequant = torch.quantization.DeQuantStub()
         # manually specify where tensors will be converted from quantized
         # to floating point in the quantized model
-        self.__module_forward = pl_module.forward
-        pl_module.forward = wrap_qat_forward_context(
-            quant_cb=self, model=pl_module, func=pl_module.forward, trigger_condition=self._collect_quantization
+        self.__module_forward = model.forward
+        model.forward = wrap_qat_forward_context(
+            quant_cb=self, model=model, func=model.forward, trigger_condition=self._collect_quantization
         )
 
         # attach a global qconfig, which contains information about what kind
         # of observers to attach. Use 'fbgemm' for server inference
         if isinstance(self._qconfig, str):
             if self._observer_type == "histogram":
-                pl_module.qconfig = torch.quantization.get_default_qconfig(self._qconfig)
+                model.qconfig = torch.quantization.get_default_qconfig(self._qconfig)
             elif self._observer_type == "average":
                 # version=None corresponds to using FakeQuantize rather than
                 # FusedMovingAvgObsFakeQuantize which was introduced in PT1.10
                 # details in https://github.com/pytorch/pytorch/issues/64564
                 extra_kwargs = dict(version=None) if _TORCH_GREATER_EQUAL_1_10 else {}
-                pl_module.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig, **extra_kwargs)
+                model.qconfig = torch.quantization.get_default_qat_qconfig(self._qconfig, **extra_kwargs)
 
         elif isinstance(self._qconfig, QConfig):
-            pl_module.qconfig = self._qconfig
+            model.qconfig = self._qconfig
 
-        if self._check_feasible_fuse(pl_module):
-            torch.quantization.fuse_modules(pl_module, self._modules_to_fuse, inplace=True)
+        if self._check_feasible_fuse(model):
+            torch.quantization.fuse_modules(model, self._modules_to_fuse, inplace=True)
 
         # Prepare the model for QAT. This inserts observers and fake_quants in
         # the model that will observe weight and activation tensors during calibration.
-        torch.quantization.prepare_qat(pl_module, inplace=True)
+        torch.quantization.prepare_qat(model, inplace=True)
 
-        fake_quants = tuple(module for module in pl_module.modules() if isinstance(module, FakeQuantizeBase))
+        fake_quants = tuple(module for module in model.modules() if isinstance(module, FakeQuantizeBase))
         self._fake_quant_to_initial_state_dict = {
             fake_quant: copy.deepcopy(fake_quant.state_dict()) for fake_quant in fake_quants
         }
@@ -341,7 +341,7 @@ class QuantizationAwareTraining(Callback):
         attribs = {n: getattr(self, f"_{n}") for n in arg_names}
         return attribs
 
-    def load_before_model(self, pl_module: "pl.LightningModule", state_dict: Dict[str, Any]) -> None:
+    def load_before_model(self, model: torch.nn.Module, state_dict: Dict[str, Any]) -> None:
         """Special hook that gets called by the CheckpointConnector *before* the model gets loaded.
 
         This hook replaces the :meth:`on_load_checkpoint` and :meth:`load_state_dict` callback methods which get called
@@ -350,4 +350,4 @@ class QuantizationAwareTraining(Callback):
         """
         for k, v in state_dict.items():
             setattr(self, f"_{k}", v)
-        self._prepare_model(pl_module)
+        self._prepare_model(model)
