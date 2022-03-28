@@ -6,31 +6,68 @@
 Welcome to PyTorch Lightning
 ============================
 
-TODO: write why lightning is not
+.. raw:: html
+
+   <div class="row" style='font-size: 14px'>
+      <div class='col-md-6'>
+
+.. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/mov.gif
+    :alt: Animation showing how to convert a standard training loop to a Lightning loop
 
 
-----
+.. raw:: html
+
+      </div>
+      <div class='col-md-6'>
+
+PyTorch Lightning is the deep learning framework for professional AI researchers and machine learning engineers who need maximal flexibility without sacrificing performance at scale.
+
+.. raw:: html
+
+      </div>
+   </div>
+
+.. raw:: html
+
+   <hr class="docutils" style="margin: 50px 0 50px 0">
 
 
 Install Lightning 
 -----------------
 
-For pip users (tip: pip also works inside conda environments)
+
+.. raw:: html
+
+   <div class="row" style='font-size: 14px'>
+      <div class='col-md-6'>
+
+For pip (and conda) users
 
 .. code-block:: bash
 
     pip install pytorch-lightning
 
+.. raw:: html
 
-For conda (miniconda, anaconda) users
+      </div>
+      <div class='col-md-6'>
+
+Or directly from conda
 
 .. code-block:: bash
 
     conda install pytorch-lightning -c conda-forge
 
+.. raw:: html
+
+      </div>
+   </div>
+
 Or read the `advanced install guide <starter/installation.html>`_
 
-----
+.. raw:: html
+
+   <hr class="docutils" style="margin: 50px 0 50px 0">
 
 .. raw:: html
 
@@ -46,13 +83,13 @@ Or read the `advanced install guide <starter/installation.html>`_
    :button_text: Continue 
 
 .. customcalloutitem::
-   :description: Learn the key concepts to help you organize your PyTorch code as PyTorch Lightning
+   :description: Easily organize your existing PyTorch code as PyTorch Lightning in a few hours.
    :header: PyTorch to PyTorch Lightning
    :button_link: starter/converting.html
    :button_text: Continue
 
 .. customcalloutitem::
-   :description: Learn how to use Lightning for anything from NLP, Computer vision to RL and meta learning. Lightning works for ALL research areas.
+   :description: From NLP, Computer vision to RL and meta learning - see how to use Lightning in ALL research areas.
    :header: Examples
    :button_link: tutorials.html
    :button_text: Continue
@@ -64,13 +101,13 @@ Or read the `advanced install guide <starter/installation.html>`_
    :button_text: Continue
 
 .. customcalloutitem::
-   :description: Learn how to do anything from hyperparameters sweeps to cloud training to Pruning and Quantization.
+   :description: From hyperparameters sweeps to cloud training to Pruning and Quantization - Lightning covers the key use-cases.
    :header: Common usecases
    :button_link: common_usecases.html
    :button_text: Continue
 
 .. customcalloutitem::
-   :description: Learn how we benchmark against non-organized PyTorch
+   :description: Learn how to benchmark PyTorch Lightning.
    :header: Benchmarking
    :button_link: benchmarking/benchmarks.html
    :button_text: Continue

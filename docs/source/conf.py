@@ -24,7 +24,7 @@ import pt_lightning_sphinx_theme
 # -----------------------
 # VARIABLES WHEN WORKING ON DOCS... MAKE THIS TRUE TO BUILD FASTER
 # -----------------------
-_FAST_DOCS_DEV = True
+_FAST_DOCS_DEV = False
 
 # -----------------------
 # BUILD stuff
