@@ -242,6 +242,26 @@ Example::
 
     Trainer(accelerator=MyOwnAcc())
 
+.. note::
+
+    If the ``devices`` flag is not defined, it will assume ``devices`` to be ``"auto"`` and fetch the ``auto_device_count``
+    from the accelerator.
+
+    .. code-block:: python
+
+        # This is part of the built-in `GPUAccelerator`
+        class GPUAccelerator(Accelerator):
+            """Accelerator for GPU devices."""
+
+            @staticmethod
+            def auto_device_count() -> int:
+                """Get the devices when set to auto."""
+                return torch.cuda.device_count()
+
+
+        # Training with GPU Accelerator using total number of gpus available on the system
+        Trainer(accelerator="gpu")
+
 .. warning:: Passing training strategies (e.g., ``"ddp"``) to ``accelerator`` has been deprecated in v1.5.0
     and will be removed in v1.7.0. Please use the ``strategy`` argument instead.
 
@@ -579,6 +599,26 @@ based on the accelerator type (``"cpu", "gpu", "tpu", "ipu", "auto"``).
 
     # Training with IPU Accelerator using 4 ipus
     trainer = Trainer(devices="auto", accelerator="ipu")
+
+.. note::
+
+    If the ``devices`` flag is not defined, it will assume ``devices`` to be ``"auto"`` and fetch the ``auto_device_count``
+    from the accelerator.
+
+    .. code-block:: python
+
+        # This is part of the built-in `GPUAccelerator`
+        class GPUAccelerator(Accelerator):
+            """Accelerator for GPU devices."""
+
+            @staticmethod
+            def auto_device_count() -> int:
+                """Get the devices when set to auto."""
+                return torch.cuda.device_count()
+
+
+        # Training with GPU Accelerator using total number of gpus available on the system
+        Trainer(accelerator="gpu")
 
 enable_checkpointing
 ^^^^^^^^^^^^^^^^^^^^
