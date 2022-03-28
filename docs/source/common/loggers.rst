@@ -244,14 +244,6 @@ To display any existing dashboards, sweeps or reports directly in your notebook 
 
     # Display a project workspace
     %wandb USERNAME/PROJECT
-    # Display a single run
-    %wandb USERNAME/PROJECT/runs/RUN_ID
-    # Display a sweep
-    %wandb USERNAME/PROJECT/sweeps/SWEEP_ID
-    # Display a report
-    %wandb USERNAME/PROJECT/reports/REPORT_ID
-    # Specify the height of embedded iframe
-    %wandb USERNAME/PROJECT -h 2048
 
 More information is available `here <https://docs.wandb.ai/guides/track/jupyter>`__.
 
