@@ -26,9 +26,9 @@ from tests.strategies.test_dp import CustomClassificationModelDP
 @pytest.mark.parametrize(
     "trainer_kwargs",
     (
-        pytest.param(dict(gpus=1), marks=RunIf(min_gpus=1)),
-        pytest.param(dict(strategy="dp", gpus=2), marks=RunIf(min_gpus=2)),
-        pytest.param(dict(strategy="ddp_spawn", gpus=2), marks=RunIf(min_gpus=2)),
+        pytest.param(dict(accelerator="gpu", devices=1), marks=RunIf(min_gpus=1)),
+        pytest.param(dict(strategy="dp", accelerator="gpu", devices=2), marks=RunIf(min_gpus=2)),
+        pytest.param(dict(strategy="ddp_spawn", accelerator="gpu", devices=2), marks=RunIf(min_gpus=2)),
     ),
 )
 def test_evaluate(tmpdir, trainer_kwargs):

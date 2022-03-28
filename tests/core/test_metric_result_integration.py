@@ -99,7 +99,7 @@ def _ddp_test_fn(rank, worldsize):
         assert epoch_log == {"b": cumulative_sum * worldsize, "a_epoch": cumulative_sum * worldsize}
 
 
-@RunIf(skip_windows=True, min_gpus=2)
+@RunIf(min_gpus=2, skip_windows=True)
 def test_result_reduce_ddp():
     """Make sure result logging works with DDP."""
     tutils.set_random_main_port()

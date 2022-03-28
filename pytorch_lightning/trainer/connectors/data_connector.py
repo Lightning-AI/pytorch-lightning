@@ -220,35 +220,19 @@ class DataConnector:
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
         if dataloader.num_workers > 0 and using_spawn:
-            # checks for the attr persistent_workers available in pytorch >= 1.7
-            if hasattr(dataloader, "persistent_workers"):
-                if not dataloader.persistent_workers:
-                    rank_zero_warn(
-                        "num_workers>0, persistent_workers=False, and strategy=ddp_spawn"
-                        " may result in data loading bottlenecks."
-                        " Consider setting persistent_workers=True"
-                        " (this is a limitation of Python .spawn() and PyTorch)"
-                    )
-            else:
+            if not dataloader.persistent_workers:
                 rank_zero_warn(
-                    "num_workers>0 and strategy=ddp_spawn do not mix well"
-                    " and may result in data loading bottlenecks."
-                    " Consider setting strategy=ddp to use num_workers>0"
+                    "num_workers>0, persistent_workers=False, and strategy=ddp_spawn"
+                    " may result in data loading bottlenecks."
+                    " Consider setting persistent_workers=True"
                     " (this is a limitation of Python .spawn() and PyTorch)"
                 )
 
         elif dataloader.num_workers == 0 and using_spawn:
-            # checks for the attr persistent_workers available in pytorch >= 1.7
-            if hasattr(dataloader, "persistent_workers"):
-                if not dataloader.persistent_workers:
-                    rank_zero_warn(
-                        "strategy=ddp_spawn and num_workers=0 may result in data loading bottlenecks."
-                        " Consider setting num_workers>0 and persistent_workers=True"
-                    )
-            else:
+            if not dataloader.persistent_workers:
                 rank_zero_warn(
                     "strategy=ddp_spawn and num_workers=0 may result in data loading bottlenecks."
-                    " Consider setting strategy=ddp and set num_workers>0"
+                    " Consider setting num_workers>0 and persistent_workers=True"
                 )
 
         elif dataloader.num_workers <= 2 < num_cpus and not using_spawn:

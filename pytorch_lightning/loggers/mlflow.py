@@ -87,7 +87,7 @@ class MLFlowLogger(LightningLoggerBase):
                 self.logger.experiment.whatever_ml_flow_supports(...)
 
     Args:
-        experiment_name: The name of the experiment
+        experiment_name: The name of the experiment.
         run_name: Name of the new run. The `run_name` is internally stored as a ``mlflow.runName`` tag.
             If the ``mlflow.runName`` tag has already been set in `tags`, the value is overridden by the `run_name`.
         tracking_uri: Address of local or remote tracking server.
@@ -100,6 +100,7 @@ class MLFlowLogger(LightningLoggerBase):
         prefix: A string to put at the beginning of metric keys.
         artifact_location: The location to store run artifacts. If not provided, the server picks an appropriate
             default.
+        run_id: The run identifier of the experiment. If not provided, a new run is started.
 
     Raises:
         ModuleNotFoundError:
@@ -117,6 +118,7 @@ class MLFlowLogger(LightningLoggerBase):
         save_dir: Optional[str] = "./mlruns",
         prefix: str = "",
         artifact_location: Optional[str] = None,
+        run_id: Optional[str] = None,
     ):
         if mlflow is None:
             raise ModuleNotFoundError(
@@ -130,10 +132,12 @@ class MLFlowLogger(LightningLoggerBase):
         self._experiment_id = None
         self._tracking_uri = tracking_uri
         self._run_name = run_name
-        self._run_id = None
+        self._run_id = run_id
         self.tags = tags
         self._prefix = prefix
         self._artifact_location = artifact_location
+
+        self._initialized = False
 
         self._mlflow_client = MlflowClient(tracking_uri)
 
@@ -149,6 +153,16 @@ class MLFlowLogger(LightningLoggerBase):
             self.logger.experiment.some_mlflow_function()
 
         """
+
+        if self._initialized:
+            return self._mlflow_client
+
+        if self._run_id is not None:
+            run = self._mlflow_client.get_run(self._run_id)
+            self._experiment_id = run.info.experiment_id
+            self._initialized = True
+            return self._mlflow_client
+
         if self._experiment_id is None:
             expt = self._mlflow_client.get_experiment_by_name(self._experiment_name)
             if expt is not None:
@@ -169,6 +183,7 @@ class MLFlowLogger(LightningLoggerBase):
                 self.tags[MLFLOW_RUN_NAME] = self._run_name
             run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=resolve_tags(self.tags))
             self._run_id = run.info.run_id
+        self._initialized = True
         return self._mlflow_client
 
     @property

@@ -160,7 +160,7 @@ def test_pruning_callback(
     )
 
 
-@RunIf(standalone=True, min_gpus=2)
+@RunIf(min_gpus=2, standalone=True)
 @pytest.mark.parametrize("parameters_to_prune", (False, True))
 @pytest.mark.parametrize("use_global_unstructured", (False, True))
 def test_pruning_callback_ddp(tmpdir, parameters_to_prune, use_global_unstructured):
@@ -181,7 +181,7 @@ def test_pruning_callback_ddp_spawn(tmpdir):
     )
 
 
-@RunIf(skip_windows=True, skip_49370=True)
+@RunIf(skip_windows=True)
 def test_pruning_callback_ddp_cpu(tmpdir):
     train_with_pruning_callback(tmpdir, parameters_to_prune=True, strategy="ddp_spawn", accelerator="cpu", devices=2)
 
