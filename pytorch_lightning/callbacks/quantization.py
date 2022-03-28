@@ -91,23 +91,10 @@ class QuantizationAwareTraining(Callback):
 
     .. warning:: ``QuantizationAwareTraining`` is in beta and subject to change.
 
-    The model set for quantization can appear in one of these stages::
-
-        TRAINER TRANSITIONS
-                          ( on_fit_start )               ( on_fit_end )
-        MODEL STATES
-            vanilla model   --------->    QuantAwareTrain     --->     quantized model
-                                |               |
-                      Trainer --|               |
-            ( resume_from_checkpoint )          v
-                       ^-----------------QAT checkpoints
-
-    The model enters the process as a "vanilla model" and it is prepared for QAT training in the ``on_fit_start`` hook.
-    Note that any saved checkpoint includes already collected stats for performing Quantization conversion,
-    but not any already quantized and/or fused modules/layers.
-    The quantization is performed in the ``on_fit_end`` hook and so the model needs to be saved independently after
-    the training is finished. If a user wants to continue any past training we encourage to create a Trainer with
-    ``resume_from_checkpoint``.
+    The ``LightningModule`` is prepared for QAT training in the ``on_fit_start`` hook. Checkpoints saved during training
+    include already collected stats to perform the Quantization conversion, but it doesn't contain the quantized or
+    fused model/layers. The quantization is performed in the ``on_fit_end`` hook so the model needs to be saved after
+    training finishes if quantization is desired.
 
     Args:
 
@@ -210,7 +197,7 @@ class QuantizationAwareTraining(Callback):
         self._forward_calls = 0
         self._fake_quant_to_initial_state_dict = {}
         self._last_fake_quant_to_observer_enabled = {}
-        self.__module_prepared = False
+        self._module_prepared = False
 
     def _check_feasible_fuse(self, model: "pl.LightningModule") -> bool:
         if not self._modules_to_fuse:
@@ -236,7 +223,7 @@ class QuantizationAwareTraining(Callback):
             fake_quant.observer_enabled.copy_(observer_enabled)
 
     def _prepare_model(self, model: torch.nn.Module) -> None:
-        if self.__module_prepared:
+        if self._module_prepared:
             return
         # QuantStub converts tensors from floating point to quantized
         model.quant = torch.quantization.QuantStub()
@@ -275,7 +262,7 @@ class QuantizationAwareTraining(Callback):
         self._fake_quant_to_initial_state_dict = {
             fake_quant: copy.deepcopy(fake_quant.state_dict()) for fake_quant in fake_quants
         }
-        self.__module_prepared = True
+        self._module_prepared = True
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
         self._prepare_model(pl_module)
@@ -337,11 +324,10 @@ class QuantizationAwareTraining(Callback):
             self._restore_last_observer_enabled()
 
     def state_dict(self) -> Dict[str, Any]:
-        arg_names = ("qconfig", "observer_type", "collect_quantization", "modules_to_fuse", "input_compatible")
-        attribs = {n: getattr(self, f"_{n}") for n in arg_names}
-        return attribs
+        keys = {"_qconfig", "_observer_type", "_collect_quantization", "_modules_to_fuse", "_input_compatible"}
+        return {n: getattr(self, n) for n in keys}
 
-    def load_before_model(self, model: torch.nn.Module, state_dict: Dict[str, Any]) -> None:
+    def _load_before_model(self, model: torch.nn.Module, state_dict: Dict[str, Any]) -> None:
         """Special hook that gets called by the CheckpointConnector *before* the model gets loaded.
 
         This hook replaces the :meth:`on_load_checkpoint` and :meth:`load_state_dict` callback methods which get called
@@ -349,5 +335,5 @@ class QuantizationAwareTraining(Callback):
         happens, assuming the previous training used quantization.
         """
         for k, v in state_dict.items():
-            setattr(self, f"_{k}", v)
+            setattr(self, k, v)
         self._prepare_model(model)

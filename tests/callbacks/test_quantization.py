@@ -62,7 +62,7 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     quant_score = torch.mean(torch.tensor([mape(qmodel(x), y) for x, y in dm.test_dataloader()]))
     # test that the test score is almost the same as with pure training
     assert torch.allclose(org_score, quant_score, atol=0.45)
-    ckpt_path = str(trainer.checkpoint_callback.best_model_path)
+    model_path = trainer.checkpoint_callback.best_model_path
     curr_epoch = trainer.current_epoch
 
     trainer_args.update(dict(max_epochs=1, enable_checkpointing=False))
@@ -78,15 +78,15 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     assert size_ratio < 0.65
 
     # todo: make it work also with strict loading
-    qmodel2 = RegressionModel.load_from_checkpoint(ckpt_path, strict=False)
+    qmodel2 = RegressionModel.load_from_checkpoint(model_path, strict=False)
     quant2_score = torch.mean(torch.tensor([mape(qmodel2(x), y) for x, y in dm.test_dataloader()]))
     assert torch.allclose(org_score, quant2_score, atol=0.45)
 
-    # test without and with void Qaunt callback...
+    # test without and with QAT callback
     trainer_args.update(max_epochs=curr_epoch + 1)
     qmodel2 = RegressionModel()
     trainer = Trainer(callbacks=[QuantizationAwareTraining()], **trainer_args)
-    trainer.fit(qmodel2, datamodule=dm, ckpt_path=ckpt_path)
+    trainer.fit(qmodel2, datamodule=dm, ckpt_path=model_path)
     quant2_score = torch.mean(torch.tensor([mape(qmodel2(x), y) for x, y in dm.test_dataloader()]))
     # test that the test score is almost the same as with pure training
     assert torch.allclose(org_score, quant2_score, atol=0.45)
@@ -98,7 +98,7 @@ def test_quantize_torchscript(tmpdir):
     dm = RegressDataModule()
     qmodel = RegressionModel()
     qcb = QuantizationAwareTraining(input_compatible=False)
-    trainer = Trainer(callbacks=[qcb], default_root_dir=str(tmpdir), max_epochs=1)
+    trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(qmodel, datamodule=dm)
 
     batch = iter(dm.test_dataloader()).next()
