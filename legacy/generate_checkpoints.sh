@@ -23,7 +23,7 @@ do
   python -m pip --version
   python -m pip list | grep -e torch -e learn
 
-  python "$LEGACY_PATH/simple_classif_training.py"
+  python "$LEGACY_PATH/simple_classif_training.py" > /dev/null 2> &1
   cp "$LEGACY_PATH/simple_classif_training.py" ${LEGACY_PATH}/checkpoints/$pl_ver
 
   mv ${LEGACY_PATH}/checkpoints/$pl_ver/lightning_logs/version_0/checkpoints/*.ckpt $LEGACY_PATH/checkpoints/$pl_ver/
