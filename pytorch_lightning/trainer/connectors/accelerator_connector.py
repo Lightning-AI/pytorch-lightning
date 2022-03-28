@@ -616,7 +616,7 @@ class AcceleratorConnector:
         hvd.init()
         if isinstance(self.accelerator, GPUAccelerator):
             # Horovod assigns one local GPU per process
-            self._parallel_devices = list(range(hvd.local_size()))
+            self._parallel_devices = [torch.device(f"cuda:{i}") for i in range(hvd.local_size())]
         else:
             self._parallel_devices = [torch.device("cpu")] * hvd.local_size()
 
