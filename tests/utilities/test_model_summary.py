@@ -307,7 +307,6 @@ def test_model_size_precision(tmpdir):
     assert model.pre_calculated_model_size == summary.model_size
 
 
-@RunIf(min_torch="1.8")
 def test_lazy_model_summary():
     """Test that the model summary can work with lazy layers."""
     lazy_model = LazyModel()

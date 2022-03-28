@@ -23,7 +23,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.types import _DEVICE
 
 _log = logging.getLogger(__name__)
@@ -70,9 +69,7 @@ class GPUAccelerator(Accelerator):
             FileNotFoundError:
                 If nvidia-smi installation not found
         """
-        if _TORCH_GREATER_EQUAL_1_8:
-            return torch.cuda.memory_stats(device)
-        return get_nvidia_gpu_stats(device)
+        return torch.cuda.memory_stats(device)
 
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
@@ -93,13 +90,16 @@ class GPUAccelerator(Accelerator):
     def is_available() -> bool:
         return torch.cuda.device_count() > 0
 
-    @staticmethod
-    def name() -> str:
-        """Name of the Accelerator."""
-        return "gpu"
+    @classmethod
+    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+        accelerator_registry.register(
+            "gpu",
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )
 
 
-def get_nvidia_gpu_stats(device: _DEVICE) -> Dict[str, float]:
+def get_nvidia_gpu_stats(device: _DEVICE) -> Dict[str, float]:  # pragma: no-cover
     """Get GPU stats including memory, fan speed, and temperature from nvidia-smi.
 
     Args:

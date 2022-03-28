@@ -28,6 +28,7 @@ class Accelerator(ABC):
     - GPU
     - TPU
     - IPU
+    - HPU
     """
 
     def setup_environment(self, root_device: torch.device) -> None:
@@ -75,7 +76,6 @@ class Accelerator(ABC):
     def is_available() -> bool:
         """Detect if the hardware is available."""
 
-    @staticmethod
-    @abstractmethod
-    def name() -> str:
-        """Name of the Accelerator."""
+    @classmethod
+    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+        pass
