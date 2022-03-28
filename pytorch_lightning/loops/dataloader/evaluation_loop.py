@@ -229,7 +229,7 @@ class EvaluationLoop(DataLoaderLoop):
             self.trainer.reset_val_dataloader()
             dataloaders = self.trainer.val_dataloaders
 
-        if dataloaders:
+        if dataloaders is not None:
             self.epoch_loop._initialize_batch_idx_tracker(len(dataloaders))
 
     def _on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
