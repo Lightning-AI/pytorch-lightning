@@ -59,7 +59,7 @@ class TestModel(BoringModel):
         assert self.log_name.format(rank=self.local_rank) in self.logger.logs, "Expected rank to be logged"
 
 
-@RunIf(skip_windows=True, skip_49370=True)
+@RunIf(skip_windows=True)
 def test_all_rank_logging_ddp_cpu(tmpdir):
     """Check that all ranks can be logged from."""
     model = TestModel()

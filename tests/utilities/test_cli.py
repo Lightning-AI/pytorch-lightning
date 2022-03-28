@@ -51,7 +51,7 @@ from pytorch_lightning.utilities.cli import (
     SaveConfigCallback,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCHVISION_AVAILABLE
+from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import no_warning_call
@@ -180,7 +180,9 @@ def test_parse_args_parsing_complex_types(cli_args, expected, instantiate):
         assert Trainer.from_argparse_args(args)
 
 
-@pytest.mark.parametrize(["cli_args", "expected_gpu"], [("--gpus 1", [0]), ("--gpus 0,", [0]), ("--gpus 0,1", [0, 1])])
+@pytest.mark.parametrize(
+    ["cli_args", "expected_gpu"], [("--gpus 1", [0]), ("--gpus 0,", [0]), ("--gpus 1,", [1]), ("--gpus 0,1", [0, 1])]
+)
 def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
     """Test parsing of gpus and instantiation of Trainer."""
     monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
@@ -192,7 +194,7 @@ def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
         args = parser.parse_args()
 
     trainer = Trainer.from_argparse_args(args)
-    assert trainer.data_parallel_device_ids == expected_gpu
+    assert trainer.device_ids == expected_gpu
 
 
 @pytest.mark.skipif(
@@ -580,10 +582,7 @@ class EarlyExitTestModel(BoringModel):
 @pytest.mark.parametrize("logger", (False, True))
 @pytest.mark.parametrize("strategy", ("ddp_spawn", "ddp"))
 def test_cli_distributed_save_config_callback(tmpdir, logger, strategy):
-    if _TORCH_GREATER_EQUAL_1_8:
-        from torch.multiprocessing import ProcessRaisedException
-    else:
-        ProcessRaisedException = Exception
+    from torch.multiprocessing import ProcessRaisedException
 
     with mock.patch("sys.argv", ["any.py", "fit"]), pytest.raises(
         (MisconfigurationException, ProcessRaisedException), match=r"Error on fit start"
