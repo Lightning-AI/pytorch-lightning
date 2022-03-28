@@ -18,16 +18,18 @@ from tests.helpers import BoringModel
 
 
 @pytest.mark.parametrize(
-    "max_epochs,expected_val_loop_calls,expected_val_batches",
-    [(1, 1, [2]), (4, 2, [0, 2, 0, 2]), (5, 3, [0, 2, 0, 2, 2])],
+    "max_epochs,expected_val_loop_calls,expected_val_batches,limit_val_batches",
+    [(1, 1, [2], 2), (4, 2, [0, 2, 0, 2], 2), (5, 3, [0, 2, 0, 2, 2], 2), (1, 0, [0], 0)],
 )
-def test_check_val_every_n_epoch(tmpdir, max_epochs, expected_val_loop_calls, expected_val_batches):
+def test_check_val_every_n_epoch(tmpdir, max_epochs, expected_val_loop_calls, expected_val_batches, limit_val_batches):
     class TestModel(BoringModel):
         val_epoch_calls = 0
         val_batches = []
+        val_enabled = None
 
         def on_train_epoch_end(self, *args, **kwargs):
             self.val_batches.append(self.trainer.progress_bar_callback.total_val_batches)
+            self.val_enabled = trainer.fit_loop.epoch_loop._should_check_val_epoch()
 
         def on_validation_epoch_start(self) -> None:
             self.val_epoch_calls += 1
@@ -37,7 +39,7 @@ def test_check_val_every_n_epoch(tmpdir, max_epochs, expected_val_loop_calls, ex
         default_root_dir=tmpdir,
         max_epochs=max_epochs,
         num_sanity_val_steps=0,
-        limit_val_batches=2,
+        limit_val_batches=limit_val_batches,
         check_val_every_n_epoch=2,
         logger=False,
     )
@@ -46,3 +48,4 @@ def test_check_val_every_n_epoch(tmpdir, max_epochs, expected_val_loop_calls, ex
 
     assert model.val_epoch_calls == expected_val_loop_calls
     assert model.val_batches == expected_val_batches
+    assert model.val_enabled is not None and model.val_enabled == (limit_val_batches > 0)

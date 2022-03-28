@@ -1181,7 +1181,7 @@ def test_check_val_every_n_epochs_top_k_integration(tmpdir):
         logger=False,
     )
     trainer.fit(model)
-    assert set(os.listdir(tmpdir)) == {"epoch=1.ckpt", "epoch=3.ckpt"}
+    assert set(os.listdir(tmpdir)) == {"epoch=1.ckpt", "epoch=3.ckpt", "epoch=4.ckpt"}
 
 
 def test_model_checkpoint_saveload_ckpt(tmpdir):
