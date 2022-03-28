@@ -66,37 +66,42 @@ def test_imports():
 
     try:
         import bagua  # noqa
-
-        assert _BAGUA_AVAILABLE
     except ModuleNotFoundError:
         assert not _BAGUA_AVAILABLE
+    else:
+        assert _BAGUA_AVAILABLE
+
     try:
         import deepspeed  # noqa
-
-        assert _DEEPSPEED_AVAILABLE
     except ModuleNotFoundError:
         assert not _DEEPSPEED_AVAILABLE
+    else:
+        assert _DEEPSPEED_AVAILABLE
+
     try:
         import fairscale.nn  # noqa
-
-        assert _FAIRSCALE_AVAILABLE
     except ModuleNotFoundError:
         assert not _FAIRSCALE_AVAILABLE
+    else:
+        assert _FAIRSCALE_AVAILABLE
+
     try:
         import horovod.torch  # noqa
-
-        assert _HOROVOD_AVAILABLE
     except ModuleNotFoundError:
         assert not _HOROVOD_AVAILABLE
+    else:
+        assert _HOROVOD_AVAILABLE
+
     try:
         import omegaconf  # noqa
-
-        assert _OMEGACONF_AVAILABLE
     except ModuleNotFoundError:
         assert not _OMEGACONF_AVAILABLE
+    else:
+        assert _OMEGACONF_AVAILABLE
+
     try:
         import poptorch  # noqa
-
-        assert _POPTORCH_AVAILABLE
     except ModuleNotFoundError:
         assert not _POPTORCH_AVAILABLE
+    else:
+        assert _POPTORCH_AVAILABLE
