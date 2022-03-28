@@ -23,9 +23,11 @@ class MixedPrecisionPlugin(PrecisionPlugin):
 
     @property
     def backend(self) -> AMPType:
-        """Deprecated in v1.6.
+        """
+        .. deprecated:: v1.6
+            This property is deprecated in 1.6 and will be removed in 1.7.
+            Please use instance checks against the plugin class instead.
 
-        Switch to instance check instead
         """
 
     precision: Union[str, int] = "mixed"
