@@ -438,13 +438,13 @@ class AcceleratorConnector:
             )
         if gpus is not None:
             rank_zero_deprecation(
-                f"Setting `Trainer(gpus={gpus})` is deprecated in v1.6 and will be removed"
-                f" in v2.0. Please use `Trainer(accelerator='gpu', devices={gpus})` instead."
+                f"Setting `Trainer(gpus={gpus!r})` is deprecated in v1.6 and will be removed"
+                f" in v2.0. Please use `Trainer(accelerator='gpu', devices={gpus!r})` instead."
             )
         if tpu_cores is not None:
             rank_zero_deprecation(
-                f"Setting `Trainer(tpu_cores={tpu_cores})` is deprecated in v1.6 and will be removed"
-                f" in v2.0. Please use `Trainer(accelerator='tpu', devices={tpu_cores})` instead."
+                f"Setting `Trainer(tpu_cores={tpu_cores!r})` is deprecated in v1.6 and will be removed"
+                f" in v2.0. Please use `Trainer(accelerator='tpu', devices={tpu_cores!r})` instead."
             )
         if ipus is not None:
             rank_zero_deprecation(
