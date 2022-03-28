@@ -503,8 +503,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def _should_check_val_epoch(self):
         return (
             self.trainer.enable_validation
-            and (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
-            or (self.trainer.current_epoch + 1) == self.trainer.max_epochs
+            and ((self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
+            or (self.trainer.current_epoch + 1) == self.trainer.max_epochs)
         )
 
     def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
