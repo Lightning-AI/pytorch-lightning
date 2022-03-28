@@ -337,6 +337,8 @@ class EvaluationLoop(DataLoaderLoop):
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
         metrics = sorted({k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys})
+        if not metrics:
+            return
         headers = [f"DataLoader {i}" for i in range(len(results))]
 
         # fallback is useful for testing of printed output

@@ -217,7 +217,7 @@ as well as custom accelerator instances.
     # CPU accelerator
     trainer = Trainer(accelerator="cpu")
 
-    # Training with GPU Accelerator using 2 gpus
+    # Training with GPU Accelerator using 2 GPUs
     trainer = Trainer(devices=2, accelerator="gpu")
 
     # Training with TPU Accelerator using 8 tpu cores
@@ -350,16 +350,16 @@ auto_select_gpus
 
 |
 
-If enabled and `gpus` is an integer, pick available gpus automatically.
+If enabled and ``devices`` is an integer, pick available GPUs automatically.
 This is especially useful when GPUs are configured to be in "exclusive mode",
 such that only one process at a time can access them.
 
 Example::
 
-    # no auto selection (picks first 2 gpus on system, may fail if other process is occupying)
+    # no auto selection (picks first 2 GPUs on system, may fail if other process is occupying)
     trainer = Trainer(accelerator="gpu", devices=2, auto_select_gpus=False)
 
-    # enable auto selection (will find two available gpus on system)
+    # enable auto selection (will find two available GPUs on system)
     trainer = Trainer(accelerator="gpu", devices=2, auto_select_gpus=True)
 
     # specifies all GPUs regardless of its availability
@@ -696,8 +696,8 @@ See Also:
 gpus
 ^^^^
 
-.. warning:: Setting `Trainer(gpus=x)` is deprecated in v1.6 and will be removed"
-    in v2.0. Please use `Trainer(accelerator='gpu', devices=x)` instead.
+.. warning:: Setting `Trainer(gpus=x)` is deprecated in v1.6 and will be removed
+    in v2.0. Please use `Trainer(accelerator="gpu", devices=x)` instead.
 
 .. raw:: html
 
@@ -1189,7 +1189,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     trainer = Trainer(precision=32)
 
     # 16-bit precision
-    trainer = Trainer(precision=16, gpus=1)  # works only on CUDA
+    trainer = Trainer(precision=16, accelerator="gpu", devices=1)  # works only on CUDA
 
     # bfloat16 precision
     trainer = Trainer(precision="bf16")
@@ -1214,7 +1214,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
         :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
         # turn on 16-bit
-        trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16, gpus=1)
+        trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16, accelerator="gpu", devices=1)
 
 
 process_position
@@ -1412,7 +1412,7 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
 
 .. code-block:: python
 
-    # Training with the DistributedDataParallel strategy on 4 gpus
+    # Training with the DistributedDataParallel strategy on 4 GPUs
     trainer = Trainer(strategy="ddp", accelerator="gpu", devices=4)
 
     # Training with the DDP Spawn strategy using 4 cpu processes
