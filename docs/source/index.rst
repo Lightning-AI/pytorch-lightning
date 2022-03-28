@@ -66,7 +66,7 @@ Or read the `advanced install guide <starter/installation.html>`_
 .. customcalloutitem::
    :description: Learn how to do anything from hyperparameters sweeps to cloud training to Pruning and Quantization.
    :header: Common usecases
-   :button_link: usecases.html
+   :button_link: common_usecases.html
    :button_text: Continue
 
 .. customcalloutitem::
