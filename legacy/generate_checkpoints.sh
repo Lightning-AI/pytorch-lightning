@@ -25,7 +25,7 @@ do
   # activate and install PL version
   source "$ENV_PATH/bin/activate"
   # there are problem to load ckpt in older versions since they are saved the newer versions
-  pip install "pytorch_lightning==$pl_ver" "torch" "torchmetrics" "scikit-learn" --quiet
+  pip install "pytorch_lightning==$pl_ver" "torch" "scikit-learn" --quiet
 
   python --version
   pip --version
