@@ -24,7 +24,7 @@ import pt_lightning_sphinx_theme
 # -----------------------
 # VARIABLES WHEN WORKING ON DOCS... MAKE THIS TRUE TO BUILD FASTER
 # -----------------------
-_FAST_DOCS_DEV = bool(os.getenv("PL_FAST_DOCS_DEV"), 0)
+_PL_FAST_DOCS_DEV = bool(int(os.getenv("PL_FAST_DOCS_DEV", 0)))
 
 # -----------------------
 # BUILD stuff
@@ -167,7 +167,7 @@ exclude_patterns = [
     "notebooks/sample-template*",
 ]
 
-if _FAST_DOCS_DEV:
+if _PL_FAST_DOCS_DEV:
     exclude_patterns.append("notebooks/*")
     exclude_patterns.append("tutorials.rst")
 
