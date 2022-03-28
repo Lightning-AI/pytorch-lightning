@@ -426,7 +426,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Deprecated
 
-- Deprecated `amp_backend` property of the `Trainer` in favor of instance-checks ([#12069](https://github.com/PyTorchLightning/pytorch-lightning/pull/12069)) 
+- Deprecated `amp_backend` property of the `Trainer` in favor of instance-checks ([#12069](https://github.com/PyTorchLightning/pytorch-lightning/pull/12069))
 
 - Deprecated `backend` property of `MixedPrecisionPlugin` in favor of instance-checks ([#12069](https://github.com/PyTorchLightning/pytorch-lightning/pull/12069))
 
