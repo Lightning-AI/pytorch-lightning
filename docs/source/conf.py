@@ -16,21 +16,33 @@ import glob
 import os
 import shutil
 import sys
+import warnings
 from importlib.util import module_from_spec, spec_from_file_location
 
 import pt_lightning_sphinx_theme
 
+# -----------------------
+# VARIABLES WHEN WORKING ON DOCS... MAKE THIS TRUE TO BUILD FASTER
+# -----------------------
+_PL_FAST_DOCS_DEV = bool(int(os.getenv("PL_FAST_DOCS_DEV", 0)))
+
+# -----------------------
+# BUILD stuff
+# -----------------------
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, "..", "..")
 PATH_RAW_NB = os.path.join(PATH_ROOT, "_notebooks")
-PATH_IPYNB = os.path.join(PATH_HERE, "notebooks")
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
 sys.path.append(os.path.join(PATH_RAW_NB, ".actions"))
 
+_SHOULD_COPY_NOTEBOOKS = True
+
+
 try:
-    from helpers import HelperCLI  # noqa: E401 E402
-except Exception:
-    raise ModuleNotFoundError("To build the code, please run: `git submodule update --init --recursive`")
+    from assistant import AssistantCLI
+except ImportError:
+    _SHOULD_COPY_NOTEBOOKS = False
+    warnings.warn("To build the code, please run: `git submodule update --init --recursive`", stacklevel=2)
 
 FOLDER_GENERATED = "generated"
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
@@ -42,8 +54,10 @@ about = module_from_spec(spec)
 spec.loader.exec_module(about)
 
 # -- Project documents -------------------------------------------------------
-
-HelperCLI.copy_notebooks(PATH_RAW_NB, PATH_IPYNB)
+if _SHOULD_COPY_NOTEBOOKS:
+    AssistantCLI.copy_notebooks(
+        PATH_RAW_NB, PATH_HERE, "notebooks", patterns=[".", "course_UvA-DL", "lightning_examples"]
+    )
 
 
 def _transform_changelog(path_in: str, path_out: str) -> None:
@@ -107,6 +121,12 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_paramlinks",
     "sphinx_togglebutton",
+    "pt_lightning_sphinx_theme.extensions.lightning_tutorials",
+]
+
+# Suppress warnings about duplicate labels (needed for PL tutorials)
+suppress_warnings = [
+    "autosectionlabel.*",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -144,9 +164,13 @@ language = None
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
     f"{FOLDER_GENERATED}/PULL_REQUEST_TEMPLATE.md",
-    "notebooks/course_UvA-DL/*",
     "notebooks/sample-template*",
 ]
+
+if _PL_FAST_DOCS_DEV:
+    exclude_patterns.append("notebooks/*")
+    exclude_patterns.append("tutorials.rst")
+
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
@@ -160,6 +184,7 @@ pygments_style = None
 # https://sphinx-themes.org
 html_theme = "pt_lightning_sphinx_theme"
 html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
+# html_theme_path = ["/Users/williamfalcon/Developer/opensource/lightning_sphinx_theme"]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -265,6 +290,8 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "PIL": ("https://pillow.readthedocs.io/en/stable/", None),
     "torchmetrics": ("https://torchmetrics.readthedocs.io/en/stable/", None),
+    "fairscale": ("https://fairscale.readthedocs.io/en/latest/", None),
+    "graphcore": ("https://docs.graphcore.ai/en/latest/", None),
 }
 
 # -- Options for todo extension ----------------------------------------------
@@ -292,7 +319,7 @@ def setup(app):
 # Ignoring Third-party packages
 # https://stackoverflow.com/questions/15889621/sphinx-how-to-exclude-imports-in-automodule
 def package_list_from_file(file):
-    """List up package name (not containing version and extras) from a package list file"""
+    """List up package name (not containing version and extras) from a package list file."""
     mocked_packages = []
     with open(file) as fp:
         for ln in fp.readlines():
@@ -365,11 +392,11 @@ from torch import nn
 import pytorch_lightning as pl
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.utilities import (
-    _NATIVE_AMP_AVAILABLE,
     _APEX_AVAILABLE,
     _XLA_AVAILABLE,
     _TPU_AVAILABLE,
     _TORCHVISION_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_10,
     _module_available,
 )
 _JSONARGPARSE_AVAILABLE = _module_available("jsonargparse")

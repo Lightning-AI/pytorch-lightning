@@ -15,6 +15,7 @@ import os
 from unittest.mock import DEFAULT, patch
 
 import pytest
+from torch import tensor
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
@@ -104,11 +105,11 @@ def test_comet_logger_manual_experiment_key(comet):
     api_key = "key"
     experiment_key = "96346da91469407a85641afe5766b554"
 
-    instantation_environ = {}
+    instantiation_environ = {}
 
     def save_os_environ(*args, **kwargs):
-        nonlocal instantation_environ
-        instantation_environ = os.environ.copy()
+        nonlocal instantiation_environ
+        instantiation_environ = os.environ.copy()
 
         return DEFAULT
 
@@ -122,7 +123,7 @@ def test_comet_logger_manual_experiment_key(comet):
             _ = logger.experiment
             comet_experiment.assert_called_once_with(api_key=api_key, project_name=None)
 
-    assert instantation_environ["COMET_EXPERIMENT_KEY"] == experiment_key
+    assert instantiation_environ["COMET_EXPERIMENT_KEY"] == experiment_key
 
 
 @patch("pytorch_lightning.loggers.comet.CometOfflineExperiment")
@@ -155,7 +156,7 @@ def test_comet_logger_dirs_creation(comet, comet_experiment, tmpdir, monkeypatch
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == (tmpdir / "test" / "1" / "checkpoints")
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {"epoch=0-step=2.ckpt"}
+    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {"epoch=0-step=3.ckpt"}
     assert trainer.log_dir == logger.save_dir
 
 
@@ -220,3 +221,14 @@ def test_comet_epoch_logging(comet, comet_experiment, tmpdir, monkeypatch):
     logger = CometLogger(project_name="test", save_dir=tmpdir)
     logger.log_metrics({"test": 1, "epoch": 1}, step=123)
     logger.experiment.log_metrics.assert_called_once_with({"test": 1}, epoch=1, step=123)
+
+
+@patch("pytorch_lightning.loggers.comet.CometExperiment")
+@patch("pytorch_lightning.loggers.comet.comet_ml")
+def test_comet_metrics_safe(comet, tmpdir, monkeypatch):
+    """Test that CometLogger.log_metrics doesn't do inplace modification of metrics."""
+    _patch_comet_atexit(monkeypatch)
+    logger = CometLogger(project_name="test", save_dir=tmpdir)
+    metrics = {"tensor": tensor([[1.0, 0.0], [0.0, 1.0]], requires_grad=True), "epoch": 1}
+    logger.log_metrics(metrics)
+    assert metrics["tensor"].requires_grad

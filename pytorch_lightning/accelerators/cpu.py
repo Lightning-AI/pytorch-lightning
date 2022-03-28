@@ -11,29 +11,59 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pytorch_lightning as pl
+from typing import Any, Dict, List, Union
+
+import torch
+
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.plugins.precision import MixedPrecisionPlugin
+from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.types import _DEVICE
 
 
 class CPUAccelerator(Accelerator):
     """Accelerator for CPU devices."""
 
-    def setup(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
+    def setup_environment(self, root_device: torch.device) -> None:
         """
         Raises:
             MisconfigurationException:
-                If AMP is used with CPU, or if the selected device is not CPU.
+                If the selected device is not CPU.
         """
-        if isinstance(self.precision_plugin, MixedPrecisionPlugin):
-            raise MisconfigurationException(
-                " Mixed precision is currenty only supported with the AMP backend"
-                " and AMP + CPU is not supported. Please use a GPU option or"
-                " change precision setting."
-            )
+        super().setup_environment(root_device)
+        if root_device.type != "cpu":
+            raise MisconfigurationException(f"Device should be CPU, got {root_device} instead.")
 
-        if "cpu" not in str(self.root_device):
-            raise MisconfigurationException(f"Device should be CPU, got {self.root_device} instead.")
+    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
+        """CPU device stats aren't supported yet."""
+        return {}
 
-        return super().setup(trainer, model)
+    @staticmethod
+    def parse_devices(devices: Union[int, str, List[int]]) -> int:
+        """Accelerator device parsing logic."""
+        devices = device_parser.parse_cpu_cores(devices)
+        return devices
+
+    @staticmethod
+    def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
+        """Gets parallel devices for the Accelerator."""
+        devices = device_parser.parse_cpu_cores(devices)
+        return [torch.device("cpu")] * devices
+
+    @staticmethod
+    def auto_device_count() -> int:
+        """Get the devices when set to auto."""
+        return 1
+
+    @staticmethod
+    def is_available() -> bool:
+        """CPU is always available for execution."""
+        return True
+
+    @classmethod
+    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+        accelerator_registry.register(
+            "cpu",
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )

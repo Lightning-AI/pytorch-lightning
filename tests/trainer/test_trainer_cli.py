@@ -17,16 +17,16 @@ from argparse import ArgumentParser, Namespace
 from unittest import mock
 
 import pytest
+import torch
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.utilities import argparse
-from tests.helpers.runif import RunIf
 
 
 @mock.patch("argparse.ArgumentParser.parse_args")
 def test_default_args(mock_argparse, tmpdir):
-    """Tests default argument parser for Trainer"""
+    """Tests default argument parser for Trainer."""
     mock_argparse.return_value = Namespace(**Trainer.default_attributes())
 
     # logger file to get meta
@@ -43,11 +43,9 @@ def test_default_args(mock_argparse, tmpdir):
     assert trainer.max_epochs == 5
 
 
-@pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], ["--weights_save_path=./"], []])
+@pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], []])
 def test_add_argparse_args_redefined(cli_args: list):
-    """Redefines some default Trainer arguments via the cli and
-    tests the Trainer initialization correctness.
-    """
+    """Redefines some default Trainer arguments via the cli and tests the Trainer initialization correctness."""
     parser = ArgumentParser(add_help=False)
     parser = Trainer.add_argparse_args(parent_parser=parser)
 
@@ -66,7 +64,7 @@ def test_add_argparse_args_redefined(cli_args: list):
     assert isinstance(trainer, Trainer)
 
 
-@pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], ["--weights_save_path=./"], []])
+@pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], []])
 def test_add_argparse_args(cli_args: list):
     """Simple test ensuring Trainer.add_argparse_args works."""
     parser = ArgumentParser(add_help=False)
@@ -115,34 +113,21 @@ def test_add_argparse_args_redefined_error(cli_args: list, monkeypatch):
 @pytest.mark.parametrize(
     ["cli_args", "expected"],
     [
-        pytest.param(
-            "--auto_lr_find --auto_scale_batch_size power", {"auto_lr_find": True, "auto_scale_batch_size": "power"}
-        ),
-        pytest.param(
+        ("--auto_lr_find --auto_scale_batch_size power", {"auto_lr_find": True, "auto_scale_batch_size": "power"}),
+        (
             "--auto_lr_find any_string --auto_scale_batch_size",
             {"auto_lr_find": "any_string", "auto_scale_batch_size": True},
         ),
-        pytest.param(
-            "--auto_lr_find TRUE --auto_scale_batch_size FALSE", {"auto_lr_find": True, "auto_scale_batch_size": False}
-        ),
-        pytest.param(
-            "--auto_lr_find t --auto_scale_batch_size ON", {"auto_lr_find": True, "auto_scale_batch_size": True}
-        ),
-        pytest.param(
-            "--auto_lr_find 0 --auto_scale_batch_size n", {"auto_lr_find": False, "auto_scale_batch_size": False}
-        ),
-        pytest.param(
+        ("--auto_lr_find TRUE --auto_scale_batch_size FALSE", {"auto_lr_find": True, "auto_scale_batch_size": False}),
+        ("--auto_lr_find t --auto_scale_batch_size ON", {"auto_lr_find": True, "auto_scale_batch_size": True}),
+        ("--auto_lr_find 0 --auto_scale_batch_size n", {"auto_lr_find": False, "auto_scale_batch_size": False}),
+        (
             "",
             {
                 # These parameters are marked as Optional[...] in Trainer.__init__, with None as default.
                 # They should not be changed by the argparse interface.
                 "min_steps": None,
-                "max_steps": None,
-                "log_gpu_memory": None,
                 "accelerator": None,
-                "weights_save_path": None,
-                "truncated_bptt_steps": None,
-                "resume_from_checkpoint": None,
                 "profiler": None,
             },
         ),
@@ -161,7 +146,6 @@ def test_argparse_args_parsing(cli_args, expected):
     assert Trainer.from_argparse_args(args)
 
 
-@RunIf(min_python="3.7.0")
 @pytest.mark.parametrize(
     "cli_args,expected",
     [("", False), ("--fast_dev_run=0", False), ("--fast_dev_run=True", True), ("--fast_dev_run 2", 2)],
@@ -177,37 +161,38 @@ def test_argparse_args_parsing_fast_dev_run(cli_args, expected):
 
 
 @pytest.mark.parametrize(
-    ["cli_args", "expected_parsed", "expected_device_ids"],
-    [pytest.param("", None, None), pytest.param("--gpus 1", 1, [0]), pytest.param("--gpus 0,", "0,", [0])],
+    ["cli_args", "expected_parsed"],
+    [("", None), ("--accelerator gpu --devices 1", "1"), ("--accelerator gpu --devices 0,", "0,")],
 )
-@RunIf(min_gpus=1)
-def test_argparse_args_parsing_gpus(cli_args, expected_parsed, expected_device_ids):
+def test_argparse_args_parsing_devices(cli_args, expected_parsed, monkeypatch):
     """Test multi type argument with bool."""
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 1)
+
     cli_args = cli_args.split(" ") if cli_args else []
     with mock.patch("argparse._sys.argv", ["any.py"] + cli_args):
         parser = ArgumentParser(add_help=False)
         parser = Trainer.add_argparse_args(parent_parser=parser)
         args = Trainer.parse_argparser(parser)
 
-    assert args.gpus == expected_parsed
-    trainer = Trainer.from_argparse_args(args)
-    assert trainer.data_parallel_device_ids == expected_device_ids
+    assert args.devices == expected_parsed
+    assert Trainer.from_argparse_args(args)
 
 
-@RunIf(min_python="3.7.0")
 @pytest.mark.parametrize(
     ["cli_args", "extra_args"],
     [
-        pytest.param({}, {}),
-        pytest.param({"logger": False}, {}),
-        pytest.param({"logger": False}, {"logger": True}),
-        pytest.param({"logger": False}, {"checkpoint_callback": True}),
+        ({}, {}),
+        ({"logger": False}, {}),
+        ({"logger": False}, {"logger": True}),
+        ({"logger": False}, {"enable_checkpointing": True}),
     ],
 )
 def test_init_from_argparse_args(cli_args, extra_args):
     unknown_args = dict(unknown_arg=0)
 
-    # unkown args in the argparser/namespace should be ignored
+    # unknown args in the argparser/namespace should be ignored
     with mock.patch("pytorch_lightning.Trainer.__init__", autospec=True, return_value=None) as init:
         trainer = Trainer.from_argparse_args(Namespace(**cli_args, **unknown_args), **extra_args)
         expected = dict(cli_args)

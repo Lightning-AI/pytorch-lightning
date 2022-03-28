@@ -33,7 +33,8 @@ DEFAULT_VALID_LABELS = (7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27
 
 
 def _create_synth_kitti_dataset(path_dir: str, image_dims: tuple = (1024, 512)):
-    """Create synthetic dataset with random images, just to simulate that the dataset have been already downloaded."""
+    """Create synthetic dataset with random images, just to simulate that the dataset have been already
+    downloaded."""
     path_dir_images = os.path.join(path_dir, KITTI.IMAGE_PATH)
     path_dir_masks = os.path.join(path_dir, KITTI.MASK_PATH)
     for p_dir in (path_dir_images, path_dir_masks):
@@ -46,8 +47,8 @@ def _create_synth_kitti_dataset(path_dir: str, image_dims: tuple = (1024, 512)):
 
 
 class KITTI(Dataset):
-    """
-    Class for KITTI Semantic Segmentation Benchmark dataset
+    """Class for KITTI Semantic Segmentation Benchmark dataset.
+
     Dataset link - http://www.cvlibs.net/datasets/kitti/eval_semseg.php?benchmark=semantics2015
 
     There are 34 classes in the given labels. However, not all of them are useful for training
@@ -128,9 +129,7 @@ class KITTI(Dataset):
         return img, mask
 
     def encode_segmap(self, mask):
-        """
-        Sets void classes to zero so they won't be considered for training
-        """
+        """Sets void classes to zero so they won't be considered for training."""
         for voidc in self.void_labels:
             mask[mask == voidc] = self.ignore_index
         for validc in self.valid_labels:
@@ -140,9 +139,7 @@ class KITTI(Dataset):
         return mask
 
     def get_filenames(self, path):
-        """
-        Returns a list of absolute paths to images inside given `path`
-        """
+        """Returns a list of absolute paths to images inside given `path`"""
         files_list = []
         for filename in os.listdir(path):
             files_list.append(os.path.join(path, filename))
@@ -150,8 +147,7 @@ class KITTI(Dataset):
 
 
 class SegModel(pl.LightningModule):
-    """
-    Semantic Segmentation Module
+    """Semantic Segmentation Module.
 
     This is a basic semantic segmentation module implemented with Lightning.
     It uses CrossEntropyLoss as the default loss function. May be replaced with

@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Diagnose your system and show basic information
+"""Diagnose your system and show basic information.
 
 This server mainly to get detail info for better bug reporting.
-
 """
 
 import os

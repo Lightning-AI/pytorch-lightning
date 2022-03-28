@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG PYTHON_VERSION=3.7
-ARG PYTORCH_VERSION=1.6
+ARG PYTHON_VERSION=3.9
+ARG PYTORCH_VERSION=1.8
 
 FROM pytorchlightning/pytorch_lightning:base-cuda-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 

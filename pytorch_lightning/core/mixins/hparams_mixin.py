@@ -15,7 +15,7 @@ import copy
 import inspect
 import types
 from argparse import Namespace
-from typing import Optional, Sequence, Union
+from typing import Any, MutableMapping, Optional, Sequence, Union
 
 from pytorch_lightning.core.saving import ALLOWED_CONFIG_TYPES, PRIMITIVE_TYPES
 from pytorch_lightning.utilities import AttributeDict
@@ -28,11 +28,11 @@ class HyperparametersMixin:
 
     def __init__(self) -> None:
         super().__init__()
-        self._log_hyperparams = True
+        self._log_hyperparams = False
 
     def save_hyperparameters(
         self,
-        *args,
+        *args: Any,
         ignore: Optional[Union[Sequence[str], str]] = None,
         frame: Optional[types.FrameType] = None,
         logger: bool = True,
@@ -101,10 +101,12 @@ class HyperparametersMixin:
         self._log_hyperparams = logger
         # the frame needs to be created in this file.
         if not frame:
-            frame = inspect.currentframe().f_back
+            current_frame = inspect.currentframe()
+            if current_frame:
+                frame = current_frame.f_back
         save_hyperparameters(self, *args, ignore=ignore, frame=frame)
 
-    def _set_hparams(self, hp: Union[dict, Namespace, str]) -> None:
+    def _set_hparams(self, hp: Union[MutableMapping, Namespace, str]) -> None:
         hp = self._to_hparams_dict(hp)
 
         if isinstance(hp, dict) and isinstance(self.hparams, dict):
@@ -113,7 +115,7 @@ class HyperparametersMixin:
             self._hparams = hp
 
     @staticmethod
-    def _to_hparams_dict(hp: Union[dict, Namespace, str]):
+    def _to_hparams_dict(hp: Union[MutableMapping, Namespace, str]) -> Union[MutableMapping, AttributeDict]:
         if isinstance(hp, Namespace):
             hp = vars(hp)
         if isinstance(hp, dict):
@@ -125,13 +127,25 @@ class HyperparametersMixin:
         return hp
 
     @property
-    def hparams(self) -> Union[AttributeDict, dict, Namespace]:
+    def hparams(self) -> Union[AttributeDict, MutableMapping]:
+        """The collection of hyperparameters saved with :meth:`save_hyperparameters`. It is mutable by the user.
+        For the frozen set of initial hyperparameters, use :attr:`hparams_initial`.
+
+        Returns:
+            Mutable hyperparameters dictionary
+        """
         if not hasattr(self, "_hparams"):
             self._hparams = AttributeDict()
         return self._hparams
 
     @property
     def hparams_initial(self) -> AttributeDict:
+        """The collection of hyperparameters saved with :meth:`save_hyperparameters`. These contents are read-only.
+        Manual updates to the saved hyperparameters can instead be performed through :attr:`hparams`.
+
+        Returns:
+            AttributeDict: immutable initial hyperparameters
+        """
         if not hasattr(self, "_hparams_initial"):
             return AttributeDict()
         # prevent any change

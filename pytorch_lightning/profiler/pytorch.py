@@ -15,18 +15,19 @@
 import inspect
 import logging
 import os
-from functools import partial
+from functools import lru_cache, partial
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
 
 import torch
 from torch import nn, Tensor
 from torch.autograd.profiler import record_function
 
-from pytorch_lightning.profiler.base import BaseProfiler
-from pytorch_lightning.utilities import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.profiler.profiler import Profiler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
+from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE, _TORCH_GREATER_EQUAL_1_9
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.warnings import WarningCache
 
 if TYPE_CHECKING:
     from torch.autograd.profiler import EventList
@@ -38,13 +39,14 @@ if _KINETO_AVAILABLE:
     from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
 
 log = logging.getLogger(__name__)
+warning_cache = WarningCache()
 
 _PROFILER = Union[torch.autograd.profiler.profile, torch.cuda.profiler.profile, torch.autograd.profiler.emit_nvtx]
 
 
 class RegisterRecordFunction:
-    """
-    While profiling autograd operations, this class will add labels for module names around the forward function.
+    """While profiling autograd operations, this class will add labels for module names around the forward
+    function.
 
     The Lightning PyTorch Profiler will activate this feature automatically. It can be deactivated as follows:
 
@@ -67,7 +69,8 @@ class RegisterRecordFunction:
         self._handles: Dict[str, List["RemovableHandle"]] = {}
 
     def _start_recording_forward(self, _: nn.Module, input: Tensor, record_name: str) -> Tensor:
-        record = record_function(record_name)
+        # Add [pl][module] in name for pytorch profiler to recognize
+        record = record_function("[pl][module]" + record_name)
         record.__enter__()
         self._records[record_name] = record
         return input
@@ -98,10 +101,8 @@ class RegisterRecordFunction:
 
 
 class ScheduleWrapper:
-    """
-    This class is used to override the schedule logic from the profiler and perform
-    recording for both `training_step`, `validation_step`.
-    """
+    """This class is used to override the schedule logic from the profiler and perform recording for both
+    `training_step`, `validation_step`."""
 
     def __init__(self, schedule: Callable) -> None:
         if not _KINETO_AVAILABLE:
@@ -116,88 +117,102 @@ class ScheduleWrapper:
         self._current_action = current_action
 
     def reset(self):
-        self._num_optimizer_step_and_closure = 0
+        # handle properly `fast_dev_run`. PyTorch Profiler will fail otherwise.
+        self._num_training_step = 0
         self._num_validation_step = 0
         self._num_test_step = 0
         self._num_predict_step = 0
-        self._optimizer_step_and_closure_reached_end = False
+        self._training_step_reached_end = False
         self._validation_step_reached_end = False
         self._test_step_reached_end = False
         self._predict_step_reached_end = False
         # used to stop profiler when `ProfilerAction.RECORD_AND_SAVE` is reached.
         self._current_action: Optional[str] = None
+        self._prev_schedule_action: Optional[ProfilerAction] = None
         self._start_action_name: Optional[str] = None
 
     @property
+    def is_training(self):
+        return self._current_action.endswith("training_step")
+
+    @property
+    def is_validating(self):
+        return self._current_action.endswith("validation_step")
+
+    @property
+    def is_testing(self):
+        return self._current_action.endswith("test_step")
+
+    @property
+    def is_predicting(self):
+        return self._current_action.endswith("predict_step")
+
+    @property
     def num_step(self) -> int:
-        if self._current_action is not None and self._current_action.startswith("optimizer_step_and_closure_"):
-            return self._num_optimizer_step_and_closure
-        if self._current_action == "validation_step":
+        if self.is_training:
+            return self._num_training_step
+        if self.is_validating:
             return self._num_validation_step
-        if self._current_action == "test_step":
+        if self.is_testing:
             return self._num_test_step
-        if self._current_action == "predict_step":
+        if self.is_predicting:
             return self._num_predict_step
         return 0
 
     def _step(self) -> None:
-        if self._current_action is not None and self._current_action.startswith("optimizer_step_and_closure_"):
-            self._num_optimizer_step_and_closure += 1
-        elif self._current_action == "validation_step":
-            if self._start_action_name == "on_fit_start":
-                if self._num_optimizer_step_and_closure > 0:
+        if self.is_training:
+            self._num_training_step += 1
+        elif self.is_validating:
+            if self._start_action_name.endswith("on_fit_start"):
+                if self._num_training_step > 0:
                     self._num_validation_step += 1
             else:
                 self._num_validation_step += 1
-        elif self._current_action == "test_step":
+        elif self.is_testing:
             self._num_test_step += 1
-        elif self._current_action == "predict_step":
+        elif self.is_predicting:
             self._num_predict_step += 1
 
     @property
     def has_finished(self) -> bool:
-        if self._current_action is not None and self._current_action.startswith("optimizer_step_and_closure_"):
-            return self._optimizer_step_and_closure_reached_end
-        if self._current_action == "validation_step":
+        if self.is_training:
+            return self._training_step_reached_end
+        if self.is_validating:
             return self._validation_step_reached_end
-        if self._current_action == "test_step":
+        if self.is_testing:
             return self._test_step_reached_end
-        if self._current_action == "predict_step":
+        if self.is_predicting:
             return self._predict_step_reached_end
         return False
 
     def __call__(self, num_step: int) -> "ProfilerAction":
         # ignore the provided input. Keep internal state instead.
-        if self.has_finished:
+        if self._current_action is None or self.has_finished:
             return ProfilerAction.NONE
 
         self._step()
-        action = self._schedule(self.num_step)
+        action = self._schedule(max(self.num_step, 0))
+        if self._prev_schedule_action == ProfilerAction.RECORD and action == ProfilerAction.WARMUP:
+            # Work around the corner case when validation starts before train.
+            # In this case, the action is RECORD in validation loop, and then call into the train
+            # and the action is still WARMUP in train and pytorch will recognize this as error.
+            action = ProfilerAction.RECORD
         if action == ProfilerAction.RECORD_AND_SAVE:
-            if self._current_action is not None and self._current_action.startswith("optimizer_step_and_closure_"):
-                self._optimizer_step_and_closure_reached_end = True
-            elif self._current_action == "validation_step":
+            if self.is_training:
+                self._training_step_reached_end = True
+            elif self.is_validating:
                 self._validation_step_reached_end = True
-            elif self._current_action == "test_step":
+            elif self.is_testing:
                 self._test_step_reached_end = True
-            elif self._current_action == "predict_step":
+            elif self.is_predicting:
                 self._predict_step_reached_end = True
+        self._prev_schedule_action = action
         return action
 
 
-class PyTorchProfiler(BaseProfiler):
+class PyTorchProfiler(Profiler):
 
-    RECORD_FUNCTIONS = {
-        "training_step_and_backward",
-        "training_step",
-        "backward",
-        "validation_step",
-        "test_step",
-        "predict_step",
-    }
-    RECORD_FUNCTION_PREFIX = "optimizer_step_and_closure_"
-    STEP_FUNCTIONS = {"validation_step", "test_step", "predict_step"}
-    STEP_FUNCTION_PREFIX = "optimizer_step_and_closure_"
+    STEP_FUNCTIONS = {"training_step", "validation_step", "test_step", "predict_step"}
     AVAILABLE_SORT_KEYS = {
         "cpu_time",
         "cuda_time",
@@ -209,7 +224,6 @@ class PyTorchProfiler(BaseProfiler):
         "self_cuda_memory_usage",
         "count",
     }
-    START_RECORD_FUNCTIONS = {"on_fit_start", "on_validation_start", "on_test_start", "on_predict_start"}
 
     def __init__(
         self,
@@ -220,14 +234,11 @@ class PyTorchProfiler(BaseProfiler):
         export_to_chrome: bool = True,
         row_limit: int = 20,
         sort_by_key: Optional[str] = None,
-        record_functions: Set[str] = None,
         record_module_names: bool = True,
-        profiled_functions: Optional[List] = None,
-        output_filename: Optional[str] = None,
         **profiler_kwargs: Any,
     ) -> None:
-        """
-        This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of
+        """This profiler uses PyTorch's Autograd Profiler and lets you inspect the cost of.
+
         different operators inside your model - both on the CPU and GPU
 
         Args:
@@ -262,9 +273,6 @@ class PyTorchProfiler(BaseProfiler):
                 ``cuda_time_total``, ``cpu_memory_usage``, ``cuda_memory_usage``,
                 ``self_cpu_memory_usage``, ``self_cuda_memory_usage``, ``count``.
 
-            record_functions: Set of profiled functions which will create a context manager on.
-                Any other will be pass through.
-
             record_module_names: Whether to add module names while recording autograd operation.
 
             profiler_kwargs: Keyword arguments for the PyTorch profiler. This depends on your PyTorch version
@@ -275,18 +283,13 @@ class PyTorchProfiler(BaseProfiler):
                 If arg ``schedule`` is not a ``Callable``.
                 If arg ``schedule`` does not return a ``torch.profiler.ProfilerAction``.
         """
-        super().__init__(dirpath=dirpath, filename=filename, output_filename=output_filename)
-
-        record_functions = self.__deprecation_check(profiled_functions, record_functions)
+        super().__init__(dirpath=dirpath, filename=filename)
 
         self._group_by_input_shapes = group_by_input_shapes and profiler_kwargs.get("record_shapes", False)
         self._emit_nvtx = emit_nvtx
         self._export_to_chrome = export_to_chrome
         self._row_limit = row_limit
         self._sort_by_key = sort_by_key or f"{'cuda' if profiler_kwargs.get('use_cuda', False) else 'cpu'}_time_total"
-        self._user_record_functions = record_functions
-        self._record_functions_start = self._user_record_functions | self.START_RECORD_FUNCTIONS
-        self._record_functions = self._user_record_functions | self.RECORD_FUNCTIONS
         self._record_module_names = record_module_names
         self._profiler_kwargs = profiler_kwargs
 
@@ -320,6 +323,7 @@ class PyTorchProfiler(BaseProfiler):
                 raise MisconfigurationException(
                     f"Schedule should return a `torch.profiler.ProfilerAction`. Found: {action}"
                 )
+        self._default_schedule()
         schedule = schedule if has_schedule else self._default_schedule()
         self._schedule = ScheduleWrapper(schedule) if schedule is not None else schedule
         self._profiler_kwargs["schedule"] = self._schedule
@@ -331,28 +335,28 @@ class PyTorchProfiler(BaseProfiler):
         with_stack = profiler_kwargs.get("with_stack", False) or self._export_to_flame_graph
         self._profiler_kwargs["with_stack"] = with_stack
 
-    def __deprecation_check(
-        self, profiled_functions: Optional[List[str]], record_functions: Optional[Set[str]]
-    ) -> Set[str]:
-        if record_functions is None:
-            record_functions = set()
+    @property
+    def _total_steps(self) -> int:
+        trainer = self._lightning_module.trainer
+        if self._schedule.is_training:
+            return trainer.num_training_batches
+        if self._schedule.is_validating:
+            return sum(trainer.num_val_batches) + sum(trainer.num_sanity_val_batches)
+        if self._schedule.is_testing:
+            return sum(trainer.num_test_batches)
+        if self._schedule.is_predicting:
+            return sum(trainer.num_predict_batches)
 
-        if profiled_functions is not None:
-            rank_zero_deprecation(
-                "`PyTorchProfiler.profiled_functions` has been renamed to"
-                " `record_functions` in v1.3 and will be removed in v1.5"
-            )
-            if not record_functions:
-                record_functions |= set(profiled_functions)
-            else:
-                raise MisconfigurationException(
-                    "You set `PytorchProfiler.profiled_functions` and `PyTorchProfiler.record_functions`."
-                    "  Please use only the later."
-                )
-
-        return record_functions
+    def _should_override_schedule(self) -> bool:
+        return (
+            self._lightning_module is not None
+            and self._schedule is not None
+            and self._total_steps < 5
+            and self._schedule._schedule == self._default_schedule()
+        )
 
     @staticmethod
+    @lru_cache(1)
     def _default_schedule() -> Optional[callable]:
         if _KINETO_AVAILABLE:
             # Those schedule defaults allow the profiling overhead to be negligible over training time.
@@ -369,14 +373,11 @@ class PyTorchProfiler(BaseProfiler):
         return activities
 
     def start(self, action_name: str) -> None:
-        if self.profiler is None and action_name in self._record_functions_start:
-
+        if self.profiler is None:
             # close profiler if it is already opened. might happen if 2 profilers
             # are created and the first one did not call `describe`
-            try:
-                torch.autograd._disable_profiler()  # noqa
-            except (AttributeError, RuntimeError):
-                pass
+            if torch.autograd._profiler_enabled():
+                torch.autograd._disable_profiler()
 
             if self._schedule is not None:
                 self._schedule.setup(action_name)
@@ -390,15 +391,13 @@ class PyTorchProfiler(BaseProfiler):
             if self._parent_profiler is not None:
                 self._parent_profiler.__enter__()
 
-            if self._register is not None:
-                self._register.__enter__()
+        if self._lightning_module is not None and self._register is None and self._record_module_names:
+            self._register = RegisterRecordFunction(self._lightning_module)
+            self._register.__enter__()
 
-        if (
-            self.profiler is not None
-            and (action_name in self._record_functions or action_name.startswith(self.RECORD_FUNCTION_PREFIX))
-            and action_name not in self._recording_map
-        ):
-            recording = record_function(action_name)
+        if self.profiler is not None and action_name not in self._recording_map:
+            # Add [pl][profile] in name for pytorch profiler to recognize
+            recording = record_function("[pl][profile]" + action_name)
             recording.__enter__()
             self._recording_map[action_name] = recording
 
@@ -410,11 +409,19 @@ class PyTorchProfiler(BaseProfiler):
         if not _KINETO_AVAILABLE or self._emit_nvtx:
             return
 
-        if self.profiler is not None and (
-            action_name in self.STEP_FUNCTIONS or action_name.startswith(self.STEP_FUNCTION_PREFIX)
-        ):
+        if self.profiler is not None and any(action_name.endswith(func) for func in self.STEP_FUNCTIONS):
             if self._schedule is not None:
                 self._schedule.pre_step(action_name)
+
+            # the default schedule requires a minimum of 5 steps to properly work: `wait=1, warmup=1, active=3`.
+            # otherwise, this will raise a `segmentation fault`.
+            if self._should_override_schedule():
+                warning_cache.warn(
+                    "The PyTorch Profiler default schedule will be overridden as there is not enough "
+                    "steps to properly record traces."
+                )
+                self._schedule = None
+                self.profiler.schedule = torch.profiler.profiler._default_schedule_fn
 
             def on_trace_ready(profiler):
                 if self.dirpath is not None:
@@ -438,6 +445,8 @@ class PyTorchProfiler(BaseProfiler):
             if self._schedule is not None:
                 self.profiler.step_num = self._schedule.num_step
             self.profiler.step()
+            if _TORCH_GREATER_EQUAL_1_9:
+                self.profiler.add_metadata("Framework", "pytorch-lightning")
 
     def summary(self) -> str:
         if not self._profiler_kwargs.get("enabled", True) or self._emit_nvtx:
@@ -468,8 +477,6 @@ class PyTorchProfiler(BaseProfiler):
             self.profiler = self._create_profiler(
                 torch.profiler.profile if _KINETO_AVAILABLE else torch.autograd.profiler.profile
             )
-        if self._record_module_names and self._lightning_module is not None:
-            self._register = RegisterRecordFunction(self._lightning_module)
 
     def _create_profiler(self, profiler: Type[_PROFILER]) -> _PROFILER:
         init_parameters = inspect.signature(profiler.__init__).parameters
@@ -501,7 +508,7 @@ class PyTorchProfiler(BaseProfiler):
     def teardown(self, stage: Optional[str] = None) -> None:
         self._delete_profilers()
 
-        for k in self._recording_map:
+        for k in list(self._recording_map):
             self.stop(k)
         self._recording_map = {}
 

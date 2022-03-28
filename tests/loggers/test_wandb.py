@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import pickle
-from argparse import ArgumentParser
 from unittest import mock
 
 import pytest
@@ -22,12 +21,16 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
+from tests.helpers.utils import no_warning_call
 
 
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
-def test_wandb_logger_init(wandb):
+def test_wandb_logger_init(wandb, monkeypatch):
     """Verify that basic functionality of wandb logger works.
-    Wandb doesn't work well with pytest so we have to mock it out here."""
+
+    Wandb doesn't work well with pytest so we have to mock it out here.
+    """
+    import pytorch_lightning.loggers.wandb as imports
 
     # test wandb.init called when there is no W&B run
     wandb.run = None
@@ -50,9 +53,17 @@ def test_wandb_logger_init(wandb):
     wandb.init().log.reset_mock()
     wandb.init.reset_mock()
     wandb.run = wandb.init()
-    logger = WandbLogger()
+
+    monkeypatch.setattr(imports, "_WANDB_GREATER_EQUAL_0_12_10", True)
+    with pytest.warns(UserWarning, match="There is a wandb run already in progress"):
+        logger = WandbLogger()
+    # check that no new run is created
+    with no_warning_call(UserWarning, match="There is a wandb run already in progress"):
+        _ = logger.experiment
+
     # verify default resume value
     assert logger._wandb_init["resume"] == "allow"
+
     logger.log_metrics({"acc": 1.0}, step=3)
     wandb.init.assert_called_once()
     wandb.init().log.assert_called_once_with({"acc": 1.0, "trainer/global_step": 3})
@@ -69,8 +80,8 @@ def test_wandb_logger_init(wandb):
     )
 
     # watch a model
-    logger.watch("model", "log", 10)
-    wandb.init().watch.assert_called_once_with("model", log="log", log_freq=10)
+    logger.watch("model", "log", 10, False)
+    wandb.init().watch.assert_called_once_with("model", log="log", log_freq=10, log_graph=False)
 
     assert logger.name == wandb.init().project_name()
     assert logger.version == wandb.init().id
@@ -78,8 +89,8 @@ def test_wandb_logger_init(wandb):
 
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_wandb_pickle(wandb, tmpdir):
-    """
-    Verify that pickling trainer with wandb logger works.
+    """Verify that pickling trainer with wandb logger works.
+
     Wandb doesn't work well with pytest so we have to mock it out here.
     """
 
@@ -114,11 +125,16 @@ def test_wandb_pickle(wandb, tmpdir):
 
 
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
-def test_wandb_logger_dirs_creation(wandb, tmpdir):
+def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
+    import pytorch_lightning.loggers.wandb as imports
+
+    monkeypatch.setattr(imports, "_WANDB_GREATER_EQUAL_0_12_10", True)
+    wandb.run = None
     logger = WandbLogger(save_dir=str(tmpdir), offline=True)
-    assert logger.version is None
-    assert logger.name is None
+    # the logger get initialized
+    assert logger.version == wandb.init().id
+    assert logger.name == wandb.init().project_name()
 
     # mock return values of experiment
     wandb.run = None
@@ -140,13 +156,16 @@ def test_wandb_logger_dirs_creation(wandb, tmpdir):
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.dirpath == str(tmpdir / "project" / version / "checkpoints")
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {"epoch=0-step=2.ckpt"}
+    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {"epoch=0-step=3.ckpt"}
     assert trainer.log_dir == logger.save_dir
 
 
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
-def test_wandb_log_model(wandb, tmpdir):
+def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
+    import pytorch_lightning.loggers.wandb as imports
+
+    monkeypatch.setattr(imports, "_WANDB_GREATER_EQUAL_0_10_22", True)
 
     wandb.run = None
     model = BoringModel()
@@ -180,13 +199,10 @@ def test_wandb_log_model(wandb, tmpdir):
     assert not wandb.init().log_artifact.called
 
     # test correct metadata
-    import pytorch_lightning.loggers.wandb as pl_wandb
-
-    pl_wandb._WANDB_GREATER_EQUAL_0_10_22 = True
     wandb.init().log_artifact.reset_mock()
     wandb.init.reset_mock()
     wandb.Artifact.reset_mock()
-    logger = pl_wandb.WandbLogger(log_model=True)
+    logger = WandbLogger(log_model=True)
     logger.experiment.id = "1"
     logger.experiment.project_name.return_value = "project"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
@@ -196,7 +212,7 @@ def test_wandb_log_model(wandb, tmpdir):
         type="model",
         metadata={
             "score": None,
-            "original_filename": "epoch=1-step=5-v3.ckpt",
+            "original_filename": "epoch=1-step=6-v3.ckpt",
             "ModelCheckpoint": {
                 "monitor": None,
                 "mode": "min",
@@ -209,38 +225,77 @@ def test_wandb_log_model(wandb, tmpdir):
     )
 
 
-def test_wandb_sanitize_callable_params(tmpdir):
-    """
-    Callback function are not serializiable. Therefore, we get them a chance to return
-    something and if the returned type is not accepted, return None.
-    """
-    opt = "--max_epochs 1".split(" ")
-    parser = ArgumentParser()
-    parser = Trainer.add_argparse_args(parent_parser=parser)
-    params = parser.parse_args(opt)
+@mock.patch("pytorch_lightning.loggers.wandb.wandb")
+def test_wandb_log_media(wandb, tmpdir):
+    """Test that the logger creates the folders and files in the right place."""
 
-    def return_something():
-        return "something"
+    wandb.run = None
 
-    params.something = return_something
+    # test log_text with columns and data
+    columns = ["input", "label", "prediction"]
+    data = [["cheese", "english", "english"], ["fromage", "french", "spanish"]]
+    logger = WandbLogger()
+    logger.log_text(key="samples", columns=columns, data=data)
+    wandb.Table.assert_called_once_with(
+        columns=["input", "label", "prediction"],
+        data=[["cheese", "english", "english"], ["fromage", "french", "spanish"]],
+        dataframe=None,
+    )
+    wandb.init().log.assert_called_once_with({"samples": wandb.Table()})
 
-    def wrapper_something():
-        return return_something
+    # test log_text with dataframe
+    wandb.Table.reset_mock()
+    wandb.init().log.reset_mock()
+    df = 'pandas.DataFrame({"col1": [1, 2], "col2": [3, 4]})'  # TODO: incompatible numpy/pandas versions in test env
+    logger.log_text(key="samples", dataframe=df)
+    wandb.Table.assert_called_once_with(
+        columns=None,
+        data=None,
+        dataframe=df,
+    )
+    wandb.init().log.assert_called_once_with({"samples": wandb.Table()})
 
-    params.wrapper_something_wo_name = lambda: lambda: "1"
-    params.wrapper_something = wrapper_something
+    # test log_image
+    wandb.init().log.reset_mock()
+    logger.log_image(key="samples", images=["1.jpg", "2.jpg"])
+    wandb.Image.assert_called_with("2.jpg")
+    wandb.init().log.assert_called_once_with({"samples": [wandb.Image(), wandb.Image()]})
 
-    params = WandbLogger._convert_params(params)
-    params = WandbLogger._flatten_dict(params)
-    params = WandbLogger._sanitize_callable_params(params)
-    assert params["gpus"] == "None"
-    assert params["something"] == "something"
-    assert params["wrapper_something"] == "wrapper_something"
-    assert params["wrapper_something_wo_name"] == "<lambda>"
+    # test log_image with step
+    wandb.init().log.reset_mock()
+    logger.log_image(key="samples", images=["1.jpg", "2.jpg"], step=5)
+    wandb.Image.assert_called_with("2.jpg")
+    wandb.init().log.assert_called_once_with({"samples": [wandb.Image(), wandb.Image()], "trainer/global_step": 5})
+
+    # test log_image with captions
+    wandb.init().log.reset_mock()
+    wandb.Image.reset_mock()
+    logger.log_image(key="samples", images=["1.jpg", "2.jpg"], caption=["caption 1", "caption 2"])
+    wandb.Image.assert_called_with("2.jpg", caption="caption 2")
+    wandb.init().log.assert_called_once_with({"samples": [wandb.Image(), wandb.Image()]})
+
+    # test log_image without a list
+    with pytest.raises(TypeError, match="""Expected a list as "images", found <class 'str'>"""):
+        logger.log_image(key="samples", images="1.jpg")
+
+    # test log_image with wrong number of captions
+    with pytest.raises(ValueError, match="Expected 2 items but only found 1 for caption"):
+        logger.log_image(key="samples", images=["1.jpg", "2.jpg"], caption=["caption 1"])
+
+    # test log_table
+    wandb.Table.reset_mock()
+    wandb.init().log.reset_mock()
+    logger.log_table(key="samples", columns=columns, data=data, dataframe=df, step=5)
+    wandb.Table.assert_called_once_with(
+        columns=columns,
+        data=data,
+        dataframe=df,
+    )
+    wandb.init().log.assert_called_once_with({"samples": wandb.Table(), "trainer/global_step": 5})
 
 
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_wandb_logger_offline_log_model(wandb, tmpdir):
-    """Test that log_model=True raises an error in offline mode"""
+    """Test that log_model=True raises an error in offline mode."""
     with pytest.raises(MisconfigurationException, match="checkpoints cannot be uploaded in offline mode"):
         _ = WandbLogger(save_dir=str(tmpdir), offline=True, log_model=True)

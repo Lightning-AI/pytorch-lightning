@@ -11,25 +11,46 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import Callable
-from typing import Any
+from typing import Any, Dict, List, Union
 
-from torch.optim import Optimizer
+import torch
 
-import pytorch_lightning as pl
 from pytorch_lightning.accelerators.accelerator import Accelerator
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities import _IPU_AVAILABLE
 
 
 class IPUAccelerator(Accelerator):
     """Accelerator for IPUs."""
 
-    def setup_optimizers(self, trainer: "pl.Trainer") -> None:
-        super().setup_optimizers(trainer)
+    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+        """IPU device stats aren't supported yet."""
+        return {}
 
-        if len(self.optimizers) > 1:
-            raise MisconfigurationException("IPUs currently only support one optimizer.")
+    @staticmethod
+    def parse_devices(devices: int) -> int:
+        """Accelerator device parsing logic."""
+        return devices
 
-    def optimizer_step(self, optimizer: Optimizer, opt_idx: int, lambda_closure: Callable, **kwargs: Any) -> None:
-        # Optimizer step is handled by the IPU accelerator.
-        lambda_closure()
+    @staticmethod
+    def get_parallel_devices(devices: int) -> List[int]:
+        """Gets parallel devices for the Accelerator."""
+        return list(range(devices))
+
+    @staticmethod
+    def auto_device_count() -> int:
+        """Get the devices when set to auto."""
+        # TODO (@kaushikb11): 4 is the minimal unit they are shipped in.
+        # Update this when api is exposed by the Graphcore team.
+        return 4
+
+    @staticmethod
+    def is_available() -> bool:
+        return _IPU_AVAILABLE
+
+    @classmethod
+    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+        accelerator_registry.register(
+            "ipu",
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )

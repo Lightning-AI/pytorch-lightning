@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities used for parameter parsing."""
+
 import copy
 import inspect
 import pickle
@@ -19,19 +21,18 @@ from argparse import Namespace
 from dataclasses import fields, is_dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 
+from torch import nn
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.warnings import rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 
 def str_to_bool_or_str(val: str) -> Union[str, bool]:
-    """Possibly convert a string representation of truth to bool.
-    Returns the input otherwise.
-    Based on the python implementation distutils.utils.strtobool
+    """Possibly convert a string representation of truth to bool. Returns the input otherwise. Based on the python
+    implementation distutils.utils.strtobool.
 
-    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
-    are 'n', 'no', 'f', 'false', 'off', and '0'.
+    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values are 'n', 'no', 'f', 'false', 'off', and '0'.
     """
     lower = val.lower()
     if lower in ("y", "yes", "t", "true", "on", "1"):
@@ -84,17 +85,17 @@ def str_to_bool_or_int(val: str) -> Union[bool, int, str]:
 
 
 def is_picklable(obj: object) -> bool:
-    """Tests if an object can be pickled"""
+    """Tests if an object can be pickled."""
 
     try:
         pickle.dumps(obj)
         return True
-    except (pickle.PickleError, AttributeError):
+    except (pickle.PickleError, AttributeError, RuntimeError):
         return False
 
 
 def clean_namespace(hparams: Union[Dict[str, Any], Namespace]) -> None:
-    """Removes all unpicklable entries from hparams"""
+    """Removes all unpicklable entries from hparams."""
 
     hparams_dict = hparams
     if isinstance(hparams, Namespace):
@@ -108,13 +109,15 @@ def clean_namespace(hparams: Union[Dict[str, Any], Namespace]) -> None:
 
 
 def parse_class_init_keys(cls: Type["pl.LightningModule"]) -> Tuple[str, Optional[str], Optional[str]]:
-    """Parse key words for standard self, *args and **kwargs
+    """Parse key words for standard ``self``, ``*args`` and ``**kwargs``.
 
-    >>> class Model():
-    ...     def __init__(self, hparams, *my_args, anykw=42, **my_kwargs):
-    ...         pass
-    >>> parse_class_init_keys(Model)
-    ('self', 'my_args', 'my_kwargs')
+    Examples:
+
+        >>> class Model():
+        ...     def __init__(self, hparams, *my_args, anykw=42, **my_kwargs):
+        ...         pass
+        >>> parse_class_init_keys(Model)
+        ('self', 'my_args', 'my_kwargs')
     """
     init_parameters = inspect.signature(cls.__init__).parameters
     # docs claims the params are always ordered
@@ -159,8 +162,7 @@ def get_init_args(frame: types.FrameType) -> Dict[str, Any]:
 def collect_init_args(
     frame: types.FrameType, path_args: List[Dict[str, Any]], inside: bool = False
 ) -> List[Dict[str, Any]]:
-    """
-    Recursively collects the arguments passed to the child constructors in the inheritance tree.
+    """Recursively collects the arguments passed to the child constructors in the inheritance tree.
 
     Args:
         frame: the current stack frame
@@ -220,15 +222,29 @@ def save_hyperparameters(
     if is_dataclass(obj):
         init_args = {f.name: getattr(obj, f.name) for f in fields(obj)}
     else:
-        init_args = get_init_args(frame)
-    assert init_args, "failed to inspect the obj init"
+        init_args = {}
+        for local_args in collect_init_args(frame, []):
+            init_args.update(local_args)
 
-    if ignore is not None:
-        if isinstance(ignore, str):
-            ignore = [ignore]
-        if isinstance(ignore, (list, tuple)):
-            ignore = [arg for arg in ignore if isinstance(arg, str)]
-        init_args = {k: v for k, v in init_args.items() if k not in ignore}
+    if ignore is None:
+        ignore = []
+    elif isinstance(ignore, str):
+        ignore = [ignore]
+    elif isinstance(ignore, (list, tuple)):
+        ignore = [arg for arg in ignore if isinstance(arg, str)]
+
+    ignore = list(set(ignore))
+
+    for k in list(init_args):
+        if k in ignore:
+            del init_args[k]
+            continue
+
+        if isinstance(init_args[k], nn.Module):
+            rank_zero_warn(
+                f"Attribute {k!r} is an instance of `nn.Module` and is already saved during checkpointing."
+                f" It is recommended to ignore them using `self.save_hyperparameters(ignore=[{k}!r])`."
+            )
 
     if not args:
         # take all arguments
@@ -246,26 +262,25 @@ def save_hyperparameters(
             obj._hparams_name = "kwargs"
 
     # `hparams` are expected here
-    if hp:
-        obj._set_hparams(hp)
-    # make deep copy so  there is not other runtime changes reflected
+    obj._set_hparams(hp)
+    # make deep copy so there is not other runtime changes reflected
     obj._hparams_initial = copy.deepcopy(obj._hparams)
 
 
 class AttributeDict(Dict):
-    """Extended dictionary accesisable with dot notation.
+    """Extended dictionary accessible with dot notation.
 
     >>> ad = AttributeDict({'key1': 1, 'key2': 'abc'})
     >>> ad.key1
     1
     >>> ad.update({'my-key': 3.14})
-    >>> ad.update(mew_key=42)
+    >>> ad.update(new_key=42)
     >>> ad.key1 = 2
     >>> ad
     "key1":    2
     "key2":    abc
-    "mew_key": 42
     "my-key":  3.14
+    "new_key": 42
     """
 
     def __getattr__(self, key: str) -> Optional[Any]:
@@ -288,9 +303,10 @@ class AttributeDict(Dict):
 
 
 def _lightning_get_all_attr_holders(model: "pl.LightningModule", attribute: str) -> List[Any]:
-    """
-    Special attribute finding for Lightning. Gets all of the objects or dicts that holds attribute.
-    Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule.
+    """Special attribute finding for Lightning.
+
+    Gets all of the objects or dicts that holds attribute. Checks for attribute in model namespace, the old hparams
+    namespace/dict, and the datamodule.
     """
     trainer = getattr(model, "trainer", None)
 
@@ -313,10 +329,10 @@ def _lightning_get_all_attr_holders(model: "pl.LightningModule", attribute: str)
 
 
 def _lightning_get_first_attr_holder(model: "pl.LightningModule", attribute: str) -> Optional[Any]:
-    """
-    Special attribute finding for Lightning.  Gets the object or dict that holds attribute, or None.
-    Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule,
-    returns the last one that has it.
+    """Special attribute finding for Lightning.
+
+    Gets the object or dict that holds attribute, or None. Checks for attribute in model namespace, the old hparams
+    namespace/dict, and the datamodule, returns the last one that has it.
     """
     holders = _lightning_get_all_attr_holders(model, attribute)
     if len(holders) == 0:
@@ -326,17 +342,16 @@ def _lightning_get_first_attr_holder(model: "pl.LightningModule", attribute: str
 
 
 def lightning_hasattr(model: "pl.LightningModule", attribute: str) -> bool:
-    """
-    Special hasattr for Lightning. Checks for attribute in model namespace,
-    the old hparams namespace/dict, and the datamodule.
+    """Special hasattr for Lightning.
+
+    Checks for attribute in model namespace, the old hparams namespace/dict, and the datamodule.
     """
     return _lightning_get_first_attr_holder(model, attribute) is not None
 
 
 def lightning_getattr(model: "pl.LightningModule", attribute: str) -> Optional[Any]:
-    """
-    Special getattr for Lightning. Checks for attribute in model namespace,
-    the old hparams namespace/dict, and the datamodule.
+    """Special getattr for Lightning. Checks for attribute in model namespace, the old hparams namespace/dict, and
+    the datamodule.
 
     Raises:
         AttributeError:
@@ -356,9 +371,7 @@ def lightning_getattr(model: "pl.LightningModule", attribute: str) -> Optional[A
 
 
 def lightning_setattr(model: "pl.LightningModule", attribute: str, value: Any) -> None:
-    """
-    Special setattr for Lightning. Checks for attribute in model namespace
-    and the old hparams namespace/dict.
+    """Special setattr for Lightning. Checks for attribute in model namespace and the old hparams namespace/dict.
     Will also set the attribute on datamodule, if it exists.
 
     Raises:

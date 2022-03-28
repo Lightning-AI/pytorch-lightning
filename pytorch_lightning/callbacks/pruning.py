@@ -30,8 +30,8 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import rank_zero_debug, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_only
 
 log = logging.getLogger(__name__)
 
@@ -78,9 +78,8 @@ class ModelPruning(Callback):
         verbose: int = 0,
         prune_on_train_epoch_end: bool = True,
     ) -> None:
-        """
-        Model pruning Callback, using PyTorch's prune utilities.
-        This callback is responsible of pruning networks parameters during training.
+        """Model pruning Callback, using PyTorch's prune utilities. This callback is responsible of pruning
+        networks parameters during training.
 
         To learn more about pruning with PyTorch, please take a look at
         `this tutorial <https://pytorch.org/tutorials/intermediate/pruning_tutorial.html>`_.
@@ -132,7 +131,7 @@ class ModelPruning(Callback):
             make_pruning_permanent: Whether to remove all reparametrization pre-hooks and apply masks
                 when training ends or the model is saved.
 
-            use_lottery_ticket_hypothesis: See `The lottery ticket hypothesis <https://arxiv.org/pdf/1803.03635.pdf>`_:
+            use_lottery_ticket_hypothesis: See `The lottery ticket hypothesis <https://arxiv.org/abs/1803.03635>`_:
 
                 - ``bool``. Whether to apply it or not.
                 - ``Callable[[epoch], bool]``. For dynamic values. Will be called every epoch.
@@ -167,7 +166,7 @@ class ModelPruning(Callback):
         self._parameter_names = parameter_names or self.PARAMETER_NAMES
         self._global_kwargs: Dict[str, Any] = {}
         self._original_layers: Optional[Dict[int, _LayerRef]] = None
-        self._pruning_fn_name: Optional[str] = None
+        self._pruning_method_name: Optional[str] = None
 
         for name in self._parameter_names:
             if name not in self.PARAMETER_NAMES:
@@ -232,41 +231,36 @@ class ModelPruning(Callback):
         self._verbose = verbose
 
     def filter_parameters_to_prune(self, parameters_to_prune: _PARAM_LIST = ()) -> _PARAM_LIST:
-        """
-        This function can be overridden to control which module to prune.
-        """
+        """This function can be overridden to control which module to prune."""
         return parameters_to_prune
 
     def _create_pruning_fn(self, pruning_fn: str, **kwargs: Any) -> Union[Callable, pytorch_prune.BasePruningMethod]:
-        """
-        This function takes `pruning_fn`, a function name.
+        """This function takes `pruning_fn`, a function name.
 
-        IF use_global_unstructured, pruning_fn will be resolved into its associated ``PyTorch BasePruningMethod``
-        ELSE, pruning_fn will be resolved into its function counterpart from `torch.nn.utils.prune`.
-
+        IF use_global_unstructured, pruning_fn will be resolved into its associated ``PyTorch BasePruningMethod`` ELSE,
+        pruning_fn will be resolved into its function counterpart from `torch.nn.utils.prune`.
         """
-        pruning_fn = (
+        pruning_meth = (
             _PYTORCH_PRUNING_METHOD[pruning_fn]
             if self._use_global_unstructured
             else _PYTORCH_PRUNING_FUNCTIONS[pruning_fn]
         )
-        assert callable(pruning_fn)
+        assert callable(pruning_meth), "Selected pruning method is not callable"
         if self._use_global_unstructured:
             self._global_kwargs = kwargs
         # save the function __name__ now because partial does not include it
         # and there are issues setting the attribute manually in ddp.
-        self._pruning_fn_name = pruning_fn.__name__
+        self._pruning_method_name = pruning_meth.__name__
         if self._use_global_unstructured:
-            return pruning_fn
-        return ModelPruning._wrap_pruning_fn(pruning_fn, **kwargs)
+            return pruning_meth
+        return ModelPruning._wrap_pruning_fn(pruning_meth, **kwargs)
 
     @staticmethod
     def _wrap_pruning_fn(pruning_fn: Callable, **kwargs: Any) -> Callable:
         return partial(pruning_fn, **kwargs)
 
     def make_pruning_permanent(self, module: nn.Module) -> None:
-        """
-        Removes pruning buffers from any pruned modules
+        """Removes pruning buffers from any pruned modules.
 
         Adapted from https://github.com/pytorch/pytorch/blob/1.7.1/torch/nn/utils/prune.py#L1176-L1180
         """
@@ -354,7 +348,7 @@ class ModelPruning(Callback):
         prev_total_zeros = sum(zeros for zeros, _ in prev)
         curr_total_zeros = sum(zeros for zeros, _ in curr)
         log.info(
-            f"Applied `{self._pruning_fn_name}`. Pruned:"
+            f"Applied `{self._pruning_method_name}`. Pruned:"
             f" {prev_total_zeros}/{total_params} ({prev_total_zeros / total_params:.2%}) ->"
             f" {curr_total_zeros}/{total_params} ({curr_total_zeros / total_params:.2%})"
         )
@@ -363,12 +357,12 @@ class ModelPruning(Callback):
                 prev_mask_zeros, prev_mask_size = prev[i]
                 curr_mask_zeros, curr_mask_size = curr[i]
                 log.info(
-                    f"Applied `{self._pruning_fn_name}` to `{module!r}.{name}` with amount={amount}. Pruned:"
+                    f"Applied `{self._pruning_method_name}` to `{module!r}.{name}` with amount={amount}. Pruned:"
                     f" {prev_mask_zeros} ({prev_mask_zeros / prev_mask_size:.2%}) ->"
                     f" {curr_mask_zeros} ({curr_mask_zeros / curr_mask_size:.2%})"
                 )
 
-    def on_before_accelerator_backend_setup(self, trainer: "pl.Trainer", pl_module: LightningModule) -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         parameters_to_prune = self.sanitize_parameters_to_prune(
             pl_module, self._parameters_to_prune, parameter_names=self._parameter_names
         )
@@ -431,21 +425,19 @@ class ModelPruning(Callback):
         return apply_to_collection(state_dict, torch.Tensor, move_to_cpu)
 
     def on_save_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: LightningModule, checkpoint: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
+    ) -> Optional[dict]:
         if self._make_pruning_permanent:
             rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint")
             # manually prune the weights so training can keep going with the same buffers
             checkpoint["state_dict"] = self._make_pruning_permanent_on_state_dict(pl_module)
-        return checkpoint
 
     @staticmethod
     def sanitize_parameters_to_prune(
         pl_module: LightningModule, parameters_to_prune: _PARAM_LIST = (), parameter_names: Sequence[str] = ()
     ) -> _PARAM_LIST:
-        """
-        This function is responsible of sanitizing ``parameters_to_prune`` and ``parameter_names``.
-        If ``parameters_to_prune is None``, it will be generated with all parameters of the model.
+        """This function is responsible of sanitizing ``parameters_to_prune`` and ``parameter_names``. If
+        ``parameters_to_prune is None``, it will be generated with all parameters of the model.
 
         Raises:
             MisconfigurationException:

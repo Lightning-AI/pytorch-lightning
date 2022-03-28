@@ -11,22 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities used for collections."""
+
 import dataclasses
 import operator
 from abc import ABC
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 from collections.abc import Mapping, Sequence
-from copy import copy
+from copy import copy, deepcopy
 from functools import partial
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_AVAILABLE
+from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_LEGACY
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
-if _TORCHTEXT_AVAILABLE:
+if _TORCHTEXT_LEGACY:
     if _compare_version("torchtext", operator.ge, "0.9.0"):
         from torchtext.legacy.data import Batch
     else:
@@ -35,19 +38,20 @@ else:
     Batch = type(None)
 
 
-def to_dtype_tensor(value, dtype: torch.dtype = None, device: torch.device = None):
-    if device is None:
-        raise MisconfigurationException("device (torch.device) should be provided.")
+_CPU_DEVICES = ("cpu", torch.device("cpu"))
+
+
+def to_dtype_tensor(
+    value: Union[int, float, List[Union[int, float]]], dtype: torch.dtype, device: Union[str, torch.device]
+) -> torch.Tensor:
     return torch.tensor(value, dtype=dtype, device=device)
 
 
-def from_numpy(value, device: torch.device = None):
-    if device is None:
-        raise MisconfigurationException("device (torch.device) should be provided.")
+def from_numpy(value: np.ndarray, device: Union[str, torch.device]) -> torch.Tensor:
     return torch.from_numpy(value).to(device)
 
 
-CONVERSION_DTYPES = [
+CONVERSION_DTYPES: List[Tuple[Any, Callable[[Any, Any], torch.Tensor]]] = [
     # bool -> uint8 as bool -> torch.bool triggers RuntimeError: Unsupported data type for NCCL process group
     (bool, partial(to_dtype_tensor, dtype=torch.uint8)),
     (int, partial(to_dtype_tensor, dtype=torch.int)),
@@ -61,22 +65,21 @@ def _is_namedtuple(obj: object) -> bool:
     return isinstance(obj, tuple) and hasattr(obj, "_asdict") and hasattr(obj, "_fields")
 
 
-def _is_dataclass_instance(obj):
+def _is_dataclass_instance(obj: object) -> bool:
     # https://docs.python.org/3/library/dataclasses.html#module-level-decorators-classes-and-functions
     return dataclasses.is_dataclass(obj) and not isinstance(obj, type)
 
 
 def apply_to_collection(
     data: Any,
-    dtype: Union[type, tuple],
+    dtype: Union[type, Any, Tuple[Union[type, Any]]],
     function: Callable,
-    *args,
-    wrong_dtype: Optional[Union[type, tuple]] = None,
+    *args: Any,
+    wrong_dtype: Optional[Union[type, Tuple[type]]] = None,
     include_none: bool = True,
-    **kwargs
+    **kwargs: Any,
 ) -> Any:
-    """
-    Recursively applies a function to all elements of a certain dtype.
+    """Recursively applies a function to all elements of a certain dtype.
 
     Args:
         data: the collection to apply the function to
@@ -101,9 +104,13 @@ def apply_to_collection(
     if isinstance(data, Mapping):
         out = []
         for k, v in data.items():
-            v = apply_to_collection(v, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            v = apply_to_collection(
+                v, dtype, function, *args, wrong_dtype=wrong_dtype, include_none=include_none, **kwargs
+            )
             if include_none or v is not None:
                 out.append((k, v))
+        if isinstance(data, defaultdict):
+            return elem_type(data.default_factory, OrderedDict(out))
         return elem_type(OrderedDict(out))
 
     is_namedtuple = _is_namedtuple(data)
@@ -111,18 +118,46 @@ def apply_to_collection(
     if is_namedtuple or is_sequence:
         out = []
         for d in data:
-            v = apply_to_collection(d, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            v = apply_to_collection(
+                d, dtype, function, *args, wrong_dtype=wrong_dtype, include_none=include_none, **kwargs
+            )
             if include_none or v is not None:
                 out.append(v)
         return elem_type(*out) if is_namedtuple else elem_type(out)
 
     if _is_dataclass_instance(data):
-        out = {}
-        for field in data.__dataclass_fields__:
-            v = apply_to_collection(getattr(data, field), dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
-            if include_none or v is not None:
-                out[field] = v
-        return elem_type(**out)
+        # make a deepcopy of the data,
+        # but do not deepcopy mapped fields since the computation would
+        # be wasted on values that likely get immediately overwritten
+        fields = {}
+        memo = {}
+        for field in dataclasses.fields(data):
+            field_value = getattr(data, field.name)
+            fields[field.name] = (field_value, field.init)
+            memo[id(field_value)] = field_value
+        result = deepcopy(data, memo=memo)
+        # apply function to each field
+        for field_name, (field_value, field_init) in fields.items():
+            if field_init:
+                v = apply_to_collection(
+                    field_value,
+                    dtype,
+                    function,
+                    *args,
+                    wrong_dtype=wrong_dtype,
+                    include_none=include_none,
+                    **kwargs,
+                )
+            if not field_init or (not include_none and v is None):  # retain old value
+                v = getattr(data, field_name)
+            try:
+                setattr(result, field_name, v)
+            except dataclasses.FrozenInstanceError as e:
+                raise MisconfigurationException(
+                    "A frozen dataclass was passed to `apply_to_collection` but this is not allowed."
+                    " HINT: is your batch a frozen dataclass?"
+                ) from e
+        return result
 
     # data is neither of dtype, nor a collection
     return data
@@ -131,14 +166,13 @@ def apply_to_collection(
 def apply_to_collections(
     data1: Optional[Any],
     data2: Optional[Any],
-    dtype: Union[type, tuple],
+    dtype: Union[type, Any, Tuple[Union[type, Any]]],
     function: Callable,
-    *args,
-    wrong_dtype: Optional[Union[type, tuple]] = None,
-    **kwargs
+    *args: Any,
+    wrong_dtype: Optional[Union[type, Tuple[type]]] = None,
+    **kwargs: Any,
 ) -> Any:
-    """
-    Zips two collections and applies a function to their items of a certain dtype.
+    """Zips two collections and applies a function to their items of a certain dtype.
 
     Args:
         data1: The first collection
@@ -157,7 +191,9 @@ def apply_to_collections(
         AssertionError:
             If sequence collections have different data sizes.
     """
-    if data1 is None and data2 is not None:
+    if data1 is None:
+        if data2 is None:
+            return
         # in case they were passed reversed
         data1, data2 = data2, None
 
@@ -190,9 +226,10 @@ def apply_to_collections(
 
 
 class TransferableDataType(ABC):
-    """
-    A custom type for data that can be moved to a torch device via `.to(...)`.
+    """A custom type for data that can be moved to a torch device via ``.to(...)``.
+
     Example:
+
         >>> isinstance(dict, TransferableDataType)
         False
         >>> isinstance(torch.rand(2, 3), TransferableDataType)
@@ -208,20 +245,19 @@ class TransferableDataType(ABC):
     """
 
     @classmethod
-    def __subclasshook__(cls, subclass):
+    def __subclasshook__(cls, subclass: Any) -> Union[bool, Any]:
         if cls is TransferableDataType:
             to = getattr(subclass, "to", None)
             return callable(to)
         return NotImplemented
 
 
-def move_data_to_device(batch: Any, device: torch.device):
-    """
-    Transfers a collection of data to the given device. Any object that defines a method
-    ``to(device)`` will be moved and all other objects in the collection will be left untouched.
+def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
+    """Transfers a collection of data to the given device. Any object that defines a method ``to(device)`` will be
+    moved and all other objects in the collection will be left untouched.
 
     Args:
-        batch: A tensor or collection of tensors or anything that has a method `.to(...)`.
+        batch: A tensor or collection of tensors or anything that has a method ``.to(...)``.
             See :func:`apply_to_collection` for a list of supported collection types.
         device: The device to which the data should be moved
 
@@ -233,10 +269,15 @@ def move_data_to_device(batch: Any, device: torch.device):
         - :class:`torch.device`
     """
 
-    def batch_to(data):
+    def batch_to(data: Any) -> Any:
         # try to move torchtext data first
-        if _TORCHTEXT_AVAILABLE and isinstance(data, Batch):
-
+        if _TORCHTEXT_LEGACY and isinstance(data, Batch):
+            # TODO: also remove the torchtext dependency with Lightning 1.8
+            rank_zero_deprecation(
+                "The `torchtext.legacy.Batch` object is deprecated and Lightning will remove support for it in v1.8."
+                " We recommend you to migrate away from Batch by following the TorchText README:"
+                " https://github.com/pytorch/text#bc-breaking-legacy"
+            )
             # Shallow copy because each Batch has a reference to Dataset which contains all examples
             device_data = copy(data)
             for field, field_value in data.dataset.fields.items():
@@ -246,25 +287,25 @@ def move_data_to_device(batch: Any, device: torch.device):
                 setattr(device_data, field, device_field)
             return device_data
 
-        kwargs = dict(non_blocking=True) if isinstance(data, torch.Tensor) else {}
+        kwargs = {}
+        # Don't issue non-blocking transfers to CPU
+        if isinstance(data, torch.Tensor) and device not in _CPU_DEVICES:
+            kwargs["non_blocking"] = True
         data_output = data.to(device, **kwargs)
         if data_output is not None:
             return data_output
         # user wrongly implemented the `TransferableDataType` and forgot to return `self`.
         return data
 
-    dtype = (TransferableDataType, Batch) if _TORCHTEXT_AVAILABLE else TransferableDataType
+    dtype = (TransferableDataType, Batch) if _TORCHTEXT_LEGACY else TransferableDataType
     return apply_to_collection(batch, dtype=dtype, function=batch_to)
 
 
-def convert_to_tensors(data: Any, device: torch.device) -> Any:
-    if device is None:
-        raise MisconfigurationException("`torch.device` should be provided.")
-
+def convert_to_tensors(data: Any, device: Union[str, torch.device]) -> Any:
     for src_dtype, conversion_func in CONVERSION_DTYPES:
         data = apply_to_collection(data, src_dtype, conversion_func, device=device)
 
-    def _move_to_device_and_make_contiguous(t: torch.Tensor, device: torch.device) -> torch.Tensor:
+    def _move_to_device_and_make_contiguous(t: torch.Tensor, device: Union[str, torch.device]) -> torch.Tensor:
         return t.to(device).contiguous()
 
     data = apply_to_collection(data, torch.Tensor, _move_to_device_and_make_contiguous, device=device)

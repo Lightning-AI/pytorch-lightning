@@ -29,14 +29,18 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import DeviceType, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import AttributeDict
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class GPUStatsMonitor(Callback):
     r"""
+    .. deprecated:: v1.5
+        The `GPUStatsMonitor` callback was deprecated in v1.5 and will be removed in v1.7.
+        Please use the `DeviceStatsMonitor` callback instead.
+
     Automatically monitors and logs GPU stats during training stage. ``GPUStatsMonitor``
     is a callback and in order to use it you need to assign a logger in the ``Trainer``.
 
@@ -91,6 +95,11 @@ class GPUStatsMonitor(Callback):
     ):
         super().__init__()
 
+        rank_zero_deprecation(
+            "The `GPUStatsMonitor` callback was deprecated in v1.5 and will be removed in v1.7."
+            " Please use the `DeviceStatsMonitor` callback instead."
+        )
+
         if shutil.which("nvidia-smi") is None:
             raise MisconfigurationException(
                 "Cannot use GPUStatsMonitor callback because NVIDIA driver is not installed."
@@ -114,33 +123,33 @@ class GPUStatsMonitor(Callback):
         self._gpu_ids: List[str] = []  # will be assigned later in setup()
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
-        if not trainer.logger:
+        if not trainer.loggers:
             raise MisconfigurationException("Cannot use GPUStatsMonitor callback with Trainer that has no logger.")
 
-        if trainer._device_type != DeviceType.GPU:
+        if trainer.strategy.root_device.type != "cuda":
             raise MisconfigurationException(
-                "You are using GPUStatsMonitor but are not running on GPU"
-                f" since gpus attribute in Trainer is set to {trainer.gpus}."
+                "You are using GPUStatsMonitor but are not running on GPU."
+                f" The root device type is {trainer.strategy.root_device.type}."
             )
 
         # The logical device IDs for selected devices
-        self._device_ids: List[int] = sorted(set(trainer.data_parallel_device_ids))
+        self._device_ids = sorted(set(trainer.device_ids))
 
         # The unmasked real GPU IDs
-        self._gpu_ids: List[int] = self._get_gpu_ids(self._device_ids)
+        self._gpu_ids = self._get_gpu_ids(self._device_ids)
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        self._snap_intra_step_time = None
-        self._snap_inter_step_time = None
+        self._snap_intra_step_time: Optional[float] = None
+        self._snap_inter_step_time: Optional[float] = None
 
     @rank_zero_only
     def on_train_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int
     ) -> None:
         if self._log_stats.intra_step_time:
             self._snap_intra_step_time = time.time()
 
-        if not self._should_log(trainer):
+        if not trainer._logger_connector.should_update_logs:
             return
 
         gpu_stat_keys = self._get_gpu_stat_keys()
@@ -151,7 +160,8 @@ class GPUStatsMonitor(Callback):
             # First log at beginning of second step
             logs["batch_time/inter_step (ms)"] = (time.time() - self._snap_inter_step_time) * 1000
 
-        trainer.logger.log_metrics(logs, step=trainer.global_step)
+        for logger in trainer.loggers:
+            logger.log_metrics(logs, step=trainer.fit_loop.epoch_loop._batches_that_stepped)
 
     @rank_zero_only
     def on_train_batch_end(
@@ -161,12 +171,11 @@ class GPUStatsMonitor(Callback):
         outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
     ) -> None:
         if self._log_stats.inter_step_time:
             self._snap_inter_step_time = time.time()
 
-        if not self._should_log(trainer):
+        if not trainer._logger_connector.should_update_logs:
             return
 
         gpu_stat_keys = self._get_gpu_stat_keys() + self._get_gpu_device_stat_keys()
@@ -176,26 +185,35 @@ class GPUStatsMonitor(Callback):
         if self._log_stats.intra_step_time and self._snap_intra_step_time:
             logs["batch_time/intra_step (ms)"] = (time.time() - self._snap_intra_step_time) * 1000
 
-        trainer.logger.log_metrics(logs, step=trainer.global_step)
+        for logger in trainer.loggers:
+            logger.log_metrics(logs, step=trainer.fit_loop.epoch_loop._batches_that_stepped)
 
     @staticmethod
     def _get_gpu_ids(device_ids: List[int]) -> List[str]:
-        """Get the unmasked real GPU IDs"""
+        """Get the unmasked real GPU IDs."""
         # All devices if `CUDA_VISIBLE_DEVICES` unset
         default = ",".join(str(i) for i in range(torch.cuda.device_count()))
         cuda_visible_devices: List[str] = os.getenv("CUDA_VISIBLE_DEVICES", default=default).split(",")
         return [cuda_visible_devices[device_id].strip() for device_id in device_ids]
 
     def _get_gpu_stats(self, queries: List[str]) -> List[List[float]]:
+        if not queries:
+            return []
+
         """Run nvidia-smi to get the gpu stats"""
         gpu_query = ",".join(queries)
         format = "csv,nounits,noheader"
         gpu_ids = ",".join(self._gpu_ids)
         result = subprocess.run(
-            [shutil.which("nvidia-smi"), f"--query-gpu={gpu_query}", f"--format={format}", f"--id={gpu_ids}"],
+            [
+                # it's ok to suppress the warning here since we ensure nvidia-smi exists during init
+                shutil.which("nvidia-smi"),  # type: ignore
+                f"--query-gpu={gpu_query}",
+                f"--format={format}",
+                f"--id={gpu_ids}",
+            ],
             encoding="utf-8",
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,  # for backward compatibility with python version 3.6
+            capture_output=True,
             check=True,
         )
 
@@ -205,15 +223,14 @@ class GPUStatsMonitor(Callback):
             except ValueError:
                 return 0.0
 
-        stats = result.stdout.strip().split(os.linesep)
-        stats = [[_to_float(x) for x in s.split(", ")] for s in stats]
+        stats = [[_to_float(x) for x in s.split(", ")] for s in result.stdout.strip().split(os.linesep)]
         return stats
 
     @staticmethod
     def _parse_gpu_stats(
         device_ids: List[int], stats: List[List[float]], keys: List[Tuple[str, str]]
     ) -> Dict[str, float]:
-        """Parse the gpu stats into a loggable dict"""
+        """Parse the gpu stats into a loggable dict."""
         logs = {}
         for i, device_id in enumerate(device_ids):
             for j, (x, unit) in enumerate(keys):
@@ -221,7 +238,7 @@ class GPUStatsMonitor(Callback):
         return logs
 
     def _get_gpu_stat_keys(self) -> List[Tuple[str, str]]:
-        """Get the GPU stats keys"""
+        """Get the GPU stats keys."""
         stat_keys = []
 
         if self._log_stats.gpu_utilization:
@@ -233,7 +250,7 @@ class GPUStatsMonitor(Callback):
         return stat_keys
 
     def _get_gpu_device_stat_keys(self) -> List[Tuple[str, str]]:
-        """Get the device stats keys"""
+        """Get the device stats keys."""
         stat_keys = []
 
         if self._log_stats.fan_speed:
@@ -243,7 +260,3 @@ class GPUStatsMonitor(Callback):
             stat_keys.extend([("temperature.gpu", "°C"), ("temperature.memory", "°C")])
 
         return stat_keys
-
-    @staticmethod
-    def _should_log(trainer) -> bool:
-        return (trainer.global_step + 1) % trainer.log_every_n_steps == 0 or trainer.should_stop

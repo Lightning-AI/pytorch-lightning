@@ -17,34 +17,17 @@ from unittest import mock
 import pytest
 import torch
 
-from pytorch_lightning import callbacks, seed_everything, Trainer
+from pytorch_lightning import callbacks, Trainer
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-@mock.patch.dict(os.environ, {"PL_DEV_DEBUG": "1"})
-def test_mc_called(tmpdir):
-    seed_everything(1234)
-
-    # -----------------
-    # TRAIN LOOP ONLY
-    # -----------------
-    train_step_only_model = BoringModel()
-    train_step_only_model.validation_step = None
-
+def test_disabled_checkpointing(tmpdir):
     # no callback
-    trainer = Trainer(max_epochs=3, checkpoint_callback=False)
-    trainer.fit(train_step_only_model)
-    assert len(trainer.dev_debugger.checkpoint_callback_history) == 0
-
-    # -----------------
-    # TRAIN + VAL LOOP ONLY
-    # -----------------
-    val_train_model = BoringModel()
-    # no callback
-    trainer = Trainer(max_epochs=3, checkpoint_callback=False)
-    trainer.fit(val_train_model)
-    assert len(trainer.dev_debugger.checkpoint_callback_history) == 0
+    trainer = Trainer(max_epochs=3, enable_checkpointing=False)
+    assert not trainer.checkpoint_callbacks
+    trainer.fit(BoringModel())
+    assert not trainer.checkpoint_callbacks
 
 
 @mock.patch("torch.save")
@@ -57,10 +40,10 @@ def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_inter
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=epochs,
-        weights_summary=None,
+        enable_model_summary=False,
         val_check_interval=val_check_interval,
         limit_val_batches=1,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
     )
     trainer.fit(model)
 
@@ -92,30 +75,21 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
         callbacks=[callbacks.ModelCheckpoint(dirpath=tmpdir, monitor="my_loss", save_top_k=k, save_last=save_last)],
         default_root_dir=tmpdir,
         max_epochs=epochs,
-        weights_summary=None,
+        enable_model_summary=False,
         val_check_interval=val_check_interval,
     )
     trainer.fit(model)
 
     if save_last:
-        # last epochs are saved every step (so double the save calls) and once `on_train_end`
-        expected = expected * 2 + 1
+        # last epochs are saved every step (so double the save calls)
+        expected = expected * 2
     assert save_mock.call_count == expected
 
 
 @mock.patch("torch.save")
-@RunIf(special=True, min_gpus=2)
-def test_top_k_ddp_0(save_mock, tmpdir):
-    _top_k_ddp(save_mock, tmpdir, k=1, epochs=1, val_check_interval=1.0, expected=1)
-
-
-@mock.patch("torch.save")
-@RunIf(special=True, min_gpus=2)
-def test_top_k_ddp_1(save_mock, tmpdir):
-    _top_k_ddp(save_mock, tmpdir, k=2, epochs=2, val_check_interval=0.3, expected=4)
-
-
-def _top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
+@RunIf(min_gpus=2, standalone=True)
+@pytest.mark.parametrize(["k", "epochs", "val_check_interval", "expected"], [(1, 1, 1.0, 1), (2, 2, 0.3, 4)])
+def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
             local_rank = int(os.getenv("LOCAL_RANK"))
@@ -128,7 +102,7 @@ def _top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
                 self.log("my_loss_2", (1 + local_rank), on_epoch=True, rank_zero_only=True)
             data = str(self.global_rank)
             obj = [[data], (data,), set(data)]
-            out = self.trainer.training_type_plugin.broadcast(obj)
+            out = self.trainer.strategy.broadcast(obj)
             assert obj == [[str(self.global_rank)], (str(self.global_rank),), set(str(self.global_rank))]
             assert out == [["0"], ("0",), set("0")]
 
@@ -136,12 +110,13 @@ def _top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
     trainer = Trainer(
         callbacks=[callbacks.ModelCheckpoint(dirpath=tmpdir, monitor="my_loss_step", save_top_k=k, mode="max")],
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         max_epochs=epochs,
-        weights_summary=None,
+        enable_model_summary=False,
         val_check_interval=val_check_interval,
-        accelerator="ddp",
-        gpus=2,
+        strategy="ddp",
+        accelerator="gpu",
+        devices=2,
         limit_train_batches=64,
         limit_val_batches=32,
     )

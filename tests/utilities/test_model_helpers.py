@@ -16,7 +16,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from pytorch_lightning import LightningDataModule, Trainer
+from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from tests.helpers import BoringDataModule, BoringModel
 
@@ -77,14 +77,3 @@ def test_is_overridden():
     # `partial` support
     model.training_step = partial(model.training_step)
     assert is_overridden("training_step", model)
-
-    # `_PatchDataLoader.patch_loader_code` support
-    class TestModel(BoringModel):
-        def on_fit_start(self):
-            assert is_overridden("train_dataloader", self)
-            self.on_fit_start_called = True
-
-    model = TestModel()
-    trainer = Trainer(fast_dev_run=1)
-    trainer.fit(model, train_dataloader=model.train_dataloader())
-    assert model.on_fit_start_called

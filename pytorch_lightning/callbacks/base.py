@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 r"""
-Abstract base class used to build new callbacks.
+Base class used to build new callbacks.
 
 """
 
-import abc
 from typing import Any, Dict, List, Optional, Type
 
 import torch
@@ -26,7 +25,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
-class Callback(abc.ABC):
+class Callback:
     r"""
     Abstract base class used to build new callbacks.
 
@@ -34,64 +33,88 @@ class Callback(abc.ABC):
     """
 
     @property
-    def state_id(self) -> str:
-        """
-        Identifier for the state of the callback. Used to store and retrieve a callback's state from the
-        checkpoint dictionary by ``checkpoint["callbacks"][state_id]``. Implementations of a callback need to
-        provide a unique state id if 1) the callback has state and 2) it is desired to maintain the state of
-        multiple instances of that callback.
+    def state_key(self) -> str:
+        """Identifier for the state of the callback.
+
+        Used to store and retrieve a callback's state from the checkpoint dictionary by
+        ``checkpoint["callbacks"][state_key]``. Implementations of a callback need to provide a unique state key if 1)
+        the callback has state and 2) it is desired to maintain the state of multiple instances of that callback.
         """
         return self.__class__.__qualname__
 
     @property
-    def _legacy_state_id(self) -> Type["Callback"]:
-        """State identifier for checkpoints saved prior to version 1.5.0."""
+    def _legacy_state_key(self) -> Type["Callback"]:
+        """State key for checkpoints saved prior to version 1.5.0."""
         return type(self)
 
+    def _generate_state_key(self, **kwargs: Any) -> str:
+        """Formats a set of key-value pairs into a state key string with the callback class name prefixed. Useful
+        for defining a :attr:`state_key`.
+
+        Args:
+            **kwargs: A set of key-value pairs. Must be serializable to :class:`str`.
+        """
+        return f"{self.__class__.__qualname__}{repr(kwargs)}"
+
     def on_configure_sharded_model(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called before configure sharded model"""
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use `setup()` instead.
+
+        Called before configure sharded model.
+        """
 
     def on_before_accelerator_backend_setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called before accelerator is being setup"""
-        pass
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use ``setup()`` instead.
+
+        Called before accelerator is being setup.
+        """
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
-        """Called when fit, validate, test, predict, or tune begins"""
-        pass
+        """Called when fit, validate, test, predict, or tune begins."""
 
     def teardown(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
-        """Called when fit, validate, test, predict, or tune ends"""
-        pass
+        """Called when fit, validate, test, predict, or tune ends."""
 
     def on_init_start(self, trainer: "pl.Trainer") -> None:
-        """Called when the trainer initialization begins, model has not yet been set."""
-        pass
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8.
+
+        Called when the trainer initialization begins, model has not yet been set.
+        """
 
     def on_init_end(self, trainer: "pl.Trainer") -> None:
-        """Called when the trainer initialization ends, model has not yet been set."""
-        pass
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8.
+
+        Called when the trainer initialization ends, model has not yet been set.
+        """
 
     def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when fit begins"""
-        pass
+        """Called when fit begins."""
 
     def on_fit_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when fit ends"""
-        pass
+        """Called when fit ends."""
 
     def on_sanity_check_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the validation sanity check starts."""
-        pass
 
     def on_sanity_check_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the validation sanity check ends."""
-        pass
 
     def on_train_batch_start(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
+        self,
+        trainer: "pl.Trainer",
+        pl_module: "pl.LightningModule",
+        batch: Any,
+        batch_idx: int,
+        unused: int = 0,
     ) -> None:
         """Called when the train batch begins."""
-        pass
 
     def on_train_batch_end(
         self,
@@ -100,14 +123,12 @@ class Callback(abc.ABC):
         outputs: STEP_OUTPUT,
         batch: Any,
         batch_idx: int,
-        dataloader_idx: int,
+        unused: int = 0,
     ) -> None:
         """Called when the train batch ends."""
-        pass
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the train epoch begins."""
-        pass
 
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the train epoch ends.
@@ -117,49 +138,65 @@ class Callback(abc.ABC):
         1. Implement `training_epoch_end` in the `LightningModule` and access outputs via the module OR
         2. Cache data across train batch hooks inside the callback implementation to post-process in this hook.
         """
-        pass
 
     def on_validation_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the val epoch begins."""
-        pass
 
     def on_validation_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the val epoch ends."""
-        pass
 
     def on_test_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the test epoch begins."""
-        pass
 
     def on_test_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the test epoch ends."""
-        pass
 
     def on_predict_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the predict epoch begins."""
-        pass
 
     def on_predict_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: List[Any]) -> None:
         """Called when the predict epoch ends."""
-        pass
 
     def on_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when either of train/val/test epoch begins."""
-        pass
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use
+            ``on_<train/validation/test>_epoch_start`` instead.
+
+        Called when either of train/val/test epoch begins.
+        """
 
     def on_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when either of train/val/test epoch ends."""
-        pass
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use
+            ``on_<train/validation/test>_epoch_end`` instead.
+
+        Called when either of train/val/test epoch ends.
+        """
 
     def on_batch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when the training batch begins."""
-        pass
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use
+            ``on_train_batch_start`` instead.
+
+        Called when the training batch begins.
+        """
+
+    def on_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        r"""
+        .. deprecated:: v1.6
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use
+            ``on_train_batch_end`` instead.
+
+        Called when the training batch ends.
+        """
 
     def on_validation_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
         """Called when the validation batch begins."""
-        pass
 
     def on_validation_batch_end(
         self,
@@ -171,13 +208,11 @@ class Callback(abc.ABC):
         dataloader_idx: int,
     ) -> None:
         """Called when the validation batch ends."""
-        pass
 
     def on_test_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
         """Called when the test batch begins."""
-        pass
 
     def on_test_batch_end(
         self,
@@ -189,13 +224,11 @@ class Callback(abc.ABC):
         dataloader_idx: int,
     ) -> None:
         """Called when the test batch ends."""
-        pass
 
     def on_predict_batch_start(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int, dataloader_idx: int
     ) -> None:
         """Called when the predict batch begins."""
-        pass
 
     def on_predict_batch_end(
         self,
@@ -207,61 +240,81 @@ class Callback(abc.ABC):
         dataloader_idx: int,
     ) -> None:
         """Called when the predict batch ends."""
-        pass
-
-    def on_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when the training batch ends."""
-        pass
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the train begins."""
-        pass
 
     def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the train ends."""
-        pass
 
     def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when the pretrain routine begins."""
-        pass
+        r"""
+        .. deprecated:: v1.6
+
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use ``on_fit_start`` instead.
+
+        Called when the pretrain routine begins.
+        """
 
     def on_pretrain_routine_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when the pretrain routine ends."""
-        pass
+        r"""
+        .. deprecated:: v1.6
+
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use ``on_fit_start`` instead.
+
+        Called when the pretrain routine ends.
+        """
 
     def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the validation loop begins."""
-        pass
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the validation loop ends."""
-        pass
 
     def on_test_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the test begins."""
-        pass
 
     def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the test ends."""
-        pass
 
     def on_predict_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the predict begins."""
-        pass
 
     def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when predict ends."""
-        pass
 
     def on_keyboard_interrupt(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when the training is interrupted by ``KeyboardInterrupt``."""
+        r"""
+        .. deprecated:: v1.5
+            This callback hook was deprecated in v1.5 in favor of `on_exception` and will be removed in v1.7.
+
+        Called when any trainer execution is interrupted by KeyboardInterrupt.
+        """
+
+    def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
+        """Called when any trainer execution is interrupted by an exception."""
+
+    def state_dict(self) -> Dict[str, Any]:
+        """Called when saving a checkpoint, implement to generate callback's ``state_dict``.
+
+        Returns:
+            A dictionary containing callback state.
+        """
+        return {}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        """Called when loading a checkpoint, implement to reload callback state given callback's ``state_dict``.
+
+        Args:
+            state_dict: the callback state returned by ``state_dict``.
+        """
         pass
 
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
-    ) -> dict:
-        """
-        Called when saving a model checkpoint, use to persist state.
+    ) -> Optional[dict]:
+        r"""
+        Called when saving a checkpoint to give you a chance to store anything else you might want to save.
 
         Args:
             trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
@@ -269,14 +322,19 @@ class Callback(abc.ABC):
             checkpoint: the checkpoint dictionary that will be saved.
 
         Returns:
-            The callback state.
+            None or the callback state. Support for returning callback state will be removed in v1.8.
+
+        .. deprecated:: v1.6
+            Returning a value from this method was deprecated in v1.6 and will be removed in v1.8.
+            Implement ``Callback.state_dict`` instead to return state.
+            In v1.8 ``Callback.on_save_checkpoint`` can only return None.
         """
-        pass
 
     def on_load_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
     ) -> None:
-        """Called when loading a model checkpoint, use to reload state.
+        r"""
+        Called when loading a model checkpoint, use to reload state.
 
         Args:
             trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
@@ -287,23 +345,24 @@ class Callback(abc.ABC):
             The ``on_load_checkpoint`` won't be called with an undefined state.
             If your ``on_load_checkpoint`` hook behavior doesn't rely on a state,
             you will still need to override ``on_save_checkpoint`` to return a ``dummy state``.
+
+        .. deprecated:: v1.6
+            This callback hook will change its signature and behavior in v1.8.
+            If you wish to load the state of the callback, use ``Callback.load_state_dict`` instead.
+            In v1.8 ``Callback.on_load_checkpoint(checkpoint)`` will receive the entire loaded
+            checkpoint dictionary instead of only the callback state from the checkpoint.
         """
-        pass
 
     def on_before_backward(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", loss: torch.Tensor) -> None:
         """Called before ``loss.backward()``."""
-        pass
 
     def on_after_backward(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called after ``loss.backward()`` and before optimizers are stepped."""
-        pass
 
     def on_before_optimizer_step(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", optimizer: Optimizer, opt_idx: int
     ) -> None:
         """Called before ``optimizer.step()``."""
-        pass
 
     def on_before_zero_grad(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", optimizer: Optimizer) -> None:
-        """Called after ``optimizer.step()`` and before ``optimizer.zero_grad()``."""
-        pass
+        """Called before ``optimizer.zero_grad()``."""

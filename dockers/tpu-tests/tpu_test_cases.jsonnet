@@ -8,7 +8,7 @@ local tputests = base.BaseTest {
   mode: 'postsubmit',
   configMaps: [],
 
-  timeout: 900, # 15 minutes, in seconds.
+  timeout: 1200, # 20 minutes, in seconds.
 
   image: 'pytorchlightning/pytorch_lightning',
   imageTag: 'base-xla-py{PYTHON_VERSION}-torch{PYTORCH_VERSION}',
@@ -33,9 +33,11 @@ local tputests = base.BaseTest {
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
       export XRT_TPU_CONFIG="tpu_worker;0;${KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS:7}"
       coverage run --source=pytorch_lightning -m pytest -v --capture=no \
+          tests/strategies/test_tpu_spawn.py \
           tests/profiler/test_xla_profiler.py \
           pytorch_lightning/utilities/xla_device.py \
-          tests/accelerators/test_tpu_backend.py \
+          tests/accelerators/test_tpu.py \
+          tests/callbacks/test_device_stats_monitor.py \
           tests/models/test_tpu.py
       test_exit_code=$?
       echo "\n||| END PYTEST LOGS |||\n"

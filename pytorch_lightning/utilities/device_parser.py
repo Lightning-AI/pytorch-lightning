@@ -11,18 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import operator
 from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
 
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
-from pytorch_lightning.utilities import _TPU_AVAILABLE, rank_zero_deprecation
+from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _compare_version
+from pytorch_lightning.utilities.types import _DEVICE
 
 
-def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
+def determine_root_gpu_device(gpus: List[_DEVICE]) -> Optional[_DEVICE]:
     """
     Args:
         gpus: non-empty list of ints representing which gpus to use
@@ -50,6 +50,20 @@ def determine_root_gpu_device(gpus: List[int]) -> Optional[int]:
     return root_gpu
 
 
+def _parse_devices(
+    gpus: Optional[Union[List[int], str, int]],
+    auto_select_gpus: bool,
+    tpu_cores: Optional[Union[List[int], str, int]],
+) -> Tuple[Optional[List[int]], Optional[Union[List[int], int]]]:
+    if auto_select_gpus and isinstance(gpus, int):
+        gpus = pick_multiple_gpus(gpus)
+
+    # TODO (@seannaren, @kaushikb11): Include IPU parsing logic here
+    gpu_ids = parse_gpu_ids(gpus)
+    tpu_cores = parse_tpu_cores(tpu_cores)
+    return gpu_ids, tpu_cores
+
+
 def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[int]]:
     """
     Parses the GPU ids given in the format as accepted by the
@@ -57,7 +71,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
 
     Args:
         gpus: An int -1 or string '-1' indicate that all available GPUs should be used.
-            A list of ints or a string containing list of comma separated integers
+            A list of unique ints or a string containing list of comma separated unique integers
             indicates specific GPUs to use.
             An int 0 means that no GPUs should be used.
             Any int N > 0 indicates that GPUs [0..N) should be used.
@@ -65,18 +79,15 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     Returns:
         a list of gpus to be used or ``None`` if no GPUs were requested
 
-    If no GPUs are available but the value of gpus variable indicates request for GPUs
-    then a MisconfigurationException is raised.
+    Raises:
+        MisconfigurationException:
+            If no GPUs are available but the value of gpus variable indicates request for GPUs
     """
     # Check that gpus param is None, Int, String or List
     _check_data_type(gpus)
 
     # Handle the case when no gpus are requested
-    if gpus is None or isinstance(gpus, int) and gpus == 0:
-        return None
-
-    if _compare_version("pytorch_lightning", operator.ge, "1.5") and isinstance(gpus, str) and gpus.strip() == "0":
-        # TODO: in v1.5 combine this with the above if statement
+    if gpus is None or (isinstance(gpus, int) and gpus == 0) or str(gpus).strip() in ("0", "[]"):
         return None
 
     # We know user requested GPUs therefore if some of the
@@ -85,13 +96,17 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     gpus = _normalize_parse_gpu_input_to_list(gpus)
     if not gpus:
         raise MisconfigurationException("GPUs requested but none are available.")
-    if TorchElasticEnvironment.is_using_torchelastic() and len(gpus) != 1 and len(_get_all_available_gpus()) == 1:
+    if TorchElasticEnvironment.detect() and len(gpus) != 1 and len(_get_all_available_gpus()) == 1:
         # omit sanity check on torchelastic as by default shows one visible GPU per process
         return gpus
+
+    # Check that gpus are unique. Duplicate gpus are not supported by the backend.
+    _check_unique(gpus)
+
     return _sanitize_gpu_ids(gpus)
 
 
-def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[int, List[int]]]:
+def parse_tpu_cores(tpu_cores: Optional[Union[int, str, List[int]]]) -> Optional[Union[int, List[int]]]:
     """
     Parses the tpu_cores given in the format as accepted by the
     :class:`~pytorch_lightning.trainer.Trainer`.
@@ -123,6 +138,29 @@ def parse_tpu_cores(tpu_cores: Union[int, str, List]) -> Optional[Union[int, Lis
     return tpu_cores
 
 
+def parse_cpu_cores(cpu_cores: Union[int, str, List[int]]) -> int:
+    """Parses the cpu_cores given in the format as accepted by the ``devices`` argument in the
+    :class:`~pytorch_lightning.trainer.Trainer`.
+
+    Args:
+        cpu_cores: An int > 0.
+
+    Returns:
+        an int representing the number of processes
+
+    Raises:
+        MisconfigurationException:
+            If cpu_cores is not an int > 0
+    """
+    if isinstance(cpu_cores, str) and cpu_cores.strip().isdigit():
+        cpu_cores = int(cpu_cores)
+
+    if not isinstance(cpu_cores, int) or cpu_cores <= 0:
+        raise MisconfigurationException("`devices` selected with `CPUAccelerator` should be an int > 0.")
+
+    return cpu_cores
+
+
 def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[int, List[int]]:
     if not isinstance(s, str):
         return s
@@ -130,22 +168,12 @@ def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[in
         return -1
     if "," in s:
         return [int(x.strip()) for x in s.split(",") if len(x) > 0]
-    num_gpus = int(s.strip())
-    if _compare_version("pytorch_lightning", operator.lt, "1.5"):
-        rank_zero_deprecation(
-            f"Parsing of the Trainer argument gpus='{s}' (string) will change in the future."
-            " In the current version of Lightning, this will select"
-            f" CUDA device with index {num_gpus}, but from v1.5 it will select gpus"
-            f" {list(range(num_gpus))} (same as gpus={s} (int))."
-        )
-        return [num_gpus]
-    return num_gpus
+    return int(s.strip())
 
 
 def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:
-    """
-    Checks that each of the GPUs in the list is actually available.
-    Raises a MisconfigurationException if any of the GPUs is not available.
+    """Checks that each of the GPUs in the list is actually available. Raises a MisconfigurationException if any of
+    the GPUs is not available.
 
     Args:
         gpus: list of ints corresponding to GPU indices
@@ -161,7 +189,7 @@ def _sanitize_gpu_ids(gpus: List[int]) -> List[int]:
     for gpu in gpus:
         if gpu not in all_available_gpus:
             raise MisconfigurationException(
-                f"You requested GPUs: {gpus}\n But your machine only has: {all_available_gpus}"
+                f"You requested gpu: {gpus}\n But your machine only has: {all_available_gpus}"
             )
     return gpus
 
@@ -188,10 +216,23 @@ def _get_all_available_gpus() -> List[int]:
     return list(range(torch.cuda.device_count()))
 
 
-def _check_data_type(device_ids: Any) -> None:
+def _check_unique(device_ids: List[int]) -> None:
+    """Checks that the device_ids are unique.
+
+    Args:
+        device_ids: list of ints corresponding to gpus indices
+
+    Raises:
+        MisconfigurationException:
+            If ``device_ids`` of GPUs aren't unique
     """
-    Checks that the device_ids argument is one of: None, Int, String or List.
-    Raises a MisconfigurationException otherwise.
+    if len(device_ids) != len(set(device_ids)):
+        raise MisconfigurationException("Device ID's (GPU) must be unique.")
+
+
+def _check_data_type(device_ids: Any) -> None:
+    """Checks that the device_ids argument is one of: None, Int, String or List. Raises a MisconfigurationException
+    otherwise.
 
     Args:
         device_ids: gpus/tpu_cores parameter as passed to the Trainer
@@ -226,3 +267,24 @@ def _parse_tpu_cores_str(tpu_cores: str) -> Union[int, List[int]]:
     if tpu_cores in ("1", "8"):
         return int(tpu_cores)
     return [int(x.strip()) for x in tpu_cores.split(",") if len(x) > 0]
+
+
+def parse_hpus(devices: Optional[Union[int, str, List[int]]]) -> Optional[int]:
+    """
+    Parses the hpus given in the format as accepted by the
+    :class:`~pytorch_lightning.trainer.Trainer` for the `devices` flag.
+
+    Args:
+        devices: An integer that indicates the number of Gaudi devices to be used
+
+    Returns:
+        Either an integer or ``None`` if no devices were requested
+
+    Raises:
+        MisconfigurationException:
+            If devices aren't of type `int` or `str`
+    """
+    if devices is not None and not isinstance(devices, (int, str)):
+        raise MisconfigurationException("`devices` for `HPUAccelerator` must be int, string or None.")
+
+    return int(devices) if isinstance(devices, str) else devices

@@ -39,7 +39,7 @@ Argparser Best Practices
 ^^^^^^^^^^^^^^^^^^^^^^^^
 It is best practice to layer your arguments in three sections.
 
-1.  Trainer args (``gpus``, ``num_nodes``, etc...)
+1.  Trainer args (``accelerator``, ``devices``, ``num_nodes``, etc...)
 2.  Model specific arguments (``layer_dim``, ``num_layers``, ``learning_rate``, etc...)
 3.  Program arguments (``data_path``, ``cluster_email``, etc...)
 
@@ -78,7 +78,7 @@ Now in your main trainer file, add the ``Trainer`` args, the program args, and a
     parser = LitModel.add_model_specific_args(parser)
 
     # add all the available trainer options to argparse
-    # ie: now --gpus --num_nodes ... --fast_dev_run all work in the cli
+    # ie: now --accelerator --devices --num_nodes ... --fast_dev_run all work in the cli
     parser = Trainer.add_argparse_args(parser)
 
     args = parser.parse_args()
@@ -87,7 +87,7 @@ Now you can call run your program like so:
 
 .. code-block:: bash
 
-    python trainer_main.py --gpus 2 --num_nodes 2 --conda_env 'my_env' --encoder_layers 12
+    python trainer_main.py --accelerator 'gpu' --devices 2 --num_nodes 2 --conda_env 'my_env' --encoder_layers 12
 
 Finally, make sure to start the training like so:
 
@@ -97,7 +97,7 @@ Finally, make sure to start the training like so:
     trainer = Trainer.from_argparse_args(args, early_stopping_callback=...)
 
     # NOT like this
-    trainer = Trainer(gpus=hparams.gpus, ...)
+    trainer = Trainer(accelerator=hparams.accelerator, devices=hparams.devices, ...)
 
     # init the model with Namespace directly
     model = LitModel(args)
@@ -113,67 +113,75 @@ LightningModule hyperparameters
 Often times we train many versions of a model. You might share that model or come back to it a few months later
 at which point it is very useful to know how that model was trained (i.e.: what learning rate, neural network, etc...).
 
-Lightning has a few ways of saving that information for you in checkpoints and yaml files. The goal here is to
+Lightning has a standardized way of saving the information for you in checkpoints and YAML files. The goal here is to
 improve readability and reproducibility.
 
-1.  The first way is to ask lightning to save the values of anything in the __init__ for you to the checkpoint. This also
-    makes those values available via `self.hparams`.
+save_hyperparameters
+""""""""""""""""""""
 
-    .. code-block:: python
+Use :meth:`~pytorch_lightning.core.lightning.LightningModule.save_hyperparameters` within your
+:class:`~pytorch_lightning.core.lightning.LightningModule`'s ``__init__`` method.
+It will enable Lightning to store all the provided arguments under the ``self.hparams`` attribute.
+These hyperparameters will also be stored within the model checkpoint, which simplifies model re-instantiation after training.
 
-        class LitMNIST(LightningModule):
-            def __init__(self, layer_1_dim=128, learning_rate=1e-2, **kwargs):
-                super().__init__()
-                # call this to save (layer_1_dim=128, learning_rate=1e-4) to the checkpoint
-                self.save_hyperparameters()
+.. code-block:: python
 
-                # equivalent
-                self.save_hyperparameters("layer_1_dim", "learning_rate")
+    class LitMNIST(LightningModule):
+        def __init__(self, layer_1_dim=128, learning_rate=1e-2):
+            super().__init__()
+            # call this to save (layer_1_dim=128, learning_rate=1e-4) to the checkpoint
+            self.save_hyperparameters()
 
-                # Now possible to access layer_1_dim from hparams
-                self.hparams.layer_1_dim
+            # equivalent
+            self.save_hyperparameters("layer_1_dim", "learning_rate")
 
-
-2.  Sometimes your init might have objects or other parameters you might not want to save.
-    In that case, choose only a few
-
-    .. code-block:: python
-
-        class LitMNIST(LightningModule):
-            def __init__(self, loss_fx, generator_network, layer_1_dim=128 ** kwargs):
-                super().__init__()
-                self.layer_1_dim = layer_1_dim
-                self.loss_fx = loss_fx
-
-                # call this to save (layer_1_dim=128) to the checkpoint
-                self.save_hyperparameters("layer_1_dim")
+            # Now possible to access layer_1_dim from hparams
+            self.hparams.layer_1_dim
 
 
-        # to load specify the other args
-        model = LitMNIST.load_from_checkpoint(PATH, loss_fx=torch.nn.SomeOtherLoss, generator_network=MyGenerator())
+In addition, loggers that support it will automatically log the contents of ``self.hparams``.
+
+Excluding hyperparameters
+"""""""""""""""""""""""""
+
+By default, every parameter of the ``__init__`` method will be considered a hyperparameter to the LightningModule.
+However, sometimes some parameters need to be excluded from saving, for example when they are not serializable.
+Those parameters should be provided back when reloading the LightningModule.
+In this case, exclude them explicitly:
+
+.. code-block:: python
+
+    class LitMNIST(LightningModule):
+        def __init__(self, loss_fx, generator_network, layer_1_dim=128):
+            super().__init__()
+            self.layer_1_dim = layer_1_dim
+            self.loss_fx = loss_fx
+
+            # call this to save only (layer_1_dim=128) to the checkpoint
+            self.save_hyperparameters("layer_1_dim")
+
+            # equivalent
+            self.save_hyperparameters(ignore=["loss_fx", "generator_network"])
 
 
-3.  You can also save full objects such as `dict` or `Namespace` to the checkpoint.
+load_from_checkpoint
+""""""""""""""""""""
 
-    .. code-block:: python
+LightningModules that have hyperparameters automatically saved with :meth:`~pytorch_lightning.core.lightning.LightningModule.save_hyperparameters`
+can conveniently be loaded and instantiated directly from a checkpoint with :meth:`~pytorch_lightning.core.lightning.LightningModule.load_from_checkpoint`:
 
-        # using a argparse.Namespace
-        class LitMNIST(LightningModule):
-            def __init__(self, conf, *args, **kwargs):
-                super().__init__()
-                self.save_hyperparameters(conf)
+.. code-block:: python
 
-                self.layer_1 = nn.Linear(28 * 28, self.hparams.layer_1_dim)
-                self.layer_2 = nn.Linear(self.hparams.layer_1_dim, self.hparams.layer_2_dim)
-                self.layer_3 = nn.Linear(self.hparams.layer_2_dim, 10)
+    # to load specify the other args
+    model = LitMNIST.load_from_checkpoint(PATH, loss_fx=torch.nn.SomeOtherLoss, generator_network=MyGenerator())
 
 
-        conf = OmegaConf.create(...)
-        model = LitMNIST(conf)
+If parameters were excluded, they need to be provided at the time of loading:
 
-        # Now possible to access any stored variables from hparams
-        model.hparams.anything
+.. code-block:: python
 
+    # the excluded parameters were `loss_fx` and `generator_network`
+    model = LitMNIST.load_from_checkpoint(PATH, loss_fx=torch.nn.SomeOtherLoss, generator_network=MyGenerator())
 
 
 ----------
@@ -191,7 +199,7 @@ To recap, add ALL possible trainer flags to the argparser and init the ``Trainer
     trainer = Trainer.from_argparse_args(hparams)
 
     # or if you need to pass in callbacks
-    trainer = Trainer.from_argparse_args(hparams, checkpoint_callback=..., callbacks=[...])
+    trainer = Trainer.from_argparse_args(hparams, enable_checkpointing=..., callbacks=[...])
 
 ----------
 

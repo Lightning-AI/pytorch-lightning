@@ -11,18 +11,37 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities for Argument Parsing within Lightning Components."""
+
 import inspect
 import os
+from abc import ABC
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
+from ast import literal_eval
 from contextlib import suppress
-from typing import Any, Dict, List, Tuple, Union
+from functools import wraps
+from typing import Any, Callable, cast, Dict, List, Tuple, Type, TypeVar, Union
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_int, str_to_bool_or_str
 
+_T = TypeVar("_T", bound=Callable[..., Any])
 
-def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
-    """Create an instance from CLI arguments.
-    Eventually use varibles from OS environement which are defined as "PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"
+
+class ParseArgparserDataType(ABC):
+    def __init__(self, *_: Any, **__: Any) -> None:
+        pass
+
+    @classmethod
+    def parse_argparser(cls, args: "ArgumentParser") -> Any:
+        pass
+
+
+def from_argparse_args(
+    cls: Type[ParseArgparserDataType], args: Union[Namespace, ArgumentParser], **kwargs: Any
+) -> ParseArgparserDataType:
+    """Create an instance from CLI arguments. Eventually use variables from OS environment which are defined as
+    ``"PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"``.
 
     Args:
         cls: Lightning class
@@ -31,7 +50,8 @@ def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
         **kwargs: Additional keyword arguments that may override ones in the parser or namespace.
             These must be valid Trainer arguments.
 
-    Example:
+    Examples:
+
         >>> from pytorch_lightning import Trainer
         >>> parser = ArgumentParser(add_help=False)
         >>> parser = Trainer.add_argparse_args(parser)
@@ -52,7 +72,7 @@ def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs):
     return cls(**trainer_kwargs)
 
 
-def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
+def parse_argparser(cls: Type["pl.Trainer"], arg_parser: Union[ArgumentParser, Namespace]) -> Namespace:
     """Parse CLI arguments, required for custom bool types."""
     args = arg_parser.parse_args() if isinstance(arg_parser, ArgumentParser) else arg_parser
 
@@ -77,10 +97,11 @@ def parse_argparser(cls, arg_parser: Union[ArgumentParser, Namespace]) -> Namesp
     return Namespace(**modified_args)
 
 
-def parse_env_variables(cls, template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
+def parse_env_variables(cls: Type["pl.Trainer"], template: str = "PL_%(cls_name)s_%(cls_argument)s") -> Namespace:
     """Parse environment arguments if they are defined.
 
-    Example:
+    Examples:
+
         >>> from pytorch_lightning import Trainer
         >>> parse_env_variables(Trainer)
         Namespace()
@@ -101,12 +122,12 @@ def parse_env_variables(cls, template: str = "PL_%(cls_name)s_%(cls_argument)s")
             # todo: specify the possible exception
             with suppress(Exception):
                 # converting to native types like int/float/bool
-                val = eval(val)
+                val = literal_eval(val)
             env_args[arg_name] = val
     return Namespace(**env_args)
 
 
-def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
+def get_init_arguments_and_types(cls: Any) -> List[Tuple[str, Tuple, Any]]:
     r"""Scans the class signature and returns argument names, types and default values.
 
     Returns:
@@ -126,7 +147,7 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
         arg_default = cls_default_params[arg].default
         try:
             arg_types = tuple(arg_type.__args__)
-        except AttributeError:
+        except (AttributeError, TypeError):
             arg_types = (arg_type,)
 
         name_type_default.append((arg, arg_types, arg_default))
@@ -134,7 +155,7 @@ def get_init_arguments_and_types(cls) -> List[Tuple[str, Tuple, Any]]:
     return name_type_default
 
 
-def _get_abbrev_qualified_cls_name(cls):
+def _get_abbrev_qualified_cls_name(cls: Any) -> str:
     assert isinstance(cls, type), repr(cls)
     if cls.__module__.startswith("pytorch_lightning."):
         # Abbreviate.
@@ -143,7 +164,9 @@ def _get_abbrev_qualified_cls_name(cls):
     return f"{cls.__module__}.{cls.__qualname__}"
 
 
-def add_argparse_args(cls, parent_parser: ArgumentParser, *, use_argument_group=True) -> ArgumentParser:
+def add_argparse_args(
+    cls: Type["pl.Trainer"], parent_parser: ArgumentParser, *, use_argument_group: bool = True
+) -> Union[_ArgumentGroup, ArgumentParser]:
     r"""Extends existing argparse by default attributes for ``cls``.
 
     Args:
@@ -169,14 +192,14 @@ def add_argparse_args(cls, parent_parser: ArgumentParser, *, use_argument_group=
 
     Examples:
 
-        # Option 1: Default usage.
+        >>> # Option 1: Default usage.
         >>> import argparse
         >>> from pytorch_lightning import Trainer
         >>> parser = argparse.ArgumentParser()
         >>> parser = Trainer.add_argparse_args(parser)
         >>> args = parser.parse_args([])
 
-        # Option 2: Disable use_argument_group (old behavior).
+        >>> # Option 2: Disable use_argument_group (old behavior).
         >>> import argparse
         >>> from pytorch_lightning import Trainer
         >>> parser = argparse.ArgumentParser()
@@ -187,7 +210,7 @@ def add_argparse_args(cls, parent_parser: ArgumentParser, *, use_argument_group=
         raise RuntimeError("Please only pass an ArgumentParser instance.")
     if use_argument_group:
         group_name = _get_abbrev_qualified_cls_name(cls)
-        parser = parent_parser.add_argument_group(group_name)
+        parser: Union[_ArgumentGroup, ArgumentParser] = parent_parser.add_argument_group(group_name)
     else:
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
 
@@ -207,16 +230,16 @@ def add_argparse_args(cls, parent_parser: ArgumentParser, *, use_argument_group=
     args_help = _parse_args_from_docstring(cls.__init__.__doc__ or cls.__doc__ or "")
 
     for arg, arg_types, arg_default in args_and_types:
-        arg_types = [at for at in allowed_types if at in arg_types]
+        arg_types = tuple(at for at in allowed_types if at in arg_types)
         if not arg_types:
             # skip argument with not supported type
             continue
-        arg_kwargs = {}
+        arg_kwargs: Dict[str, Any] = {}
         if bool in arg_types:
             arg_kwargs.update(nargs="?", const=True)
             # if the only arg type is bool
             if len(arg_types) == 1:
-                use_type = str_to_bool
+                use_type: Callable[[str], Union[bool, int, float, str]] = str_to_bool
             elif int in arg_types:
                 use_type = str_to_bool_or_int
             elif str in arg_types:
@@ -238,6 +261,10 @@ def add_argparse_args(cls, parent_parser: ArgumentParser, *, use_argument_group=
         if arg == "track_grad_norm":
             use_type = float
 
+        # hack for precision
+        if arg == "precision":
+            use_type = _precision_allowed_type
+
         parser.add_argument(
             f"--{arg}", dest=arg, default=arg_default, type=use_type, help=args_help.get(arg), **arg_kwargs
         )
@@ -249,7 +276,7 @@ def add_argparse_args(cls, parent_parser: ArgumentParser, *, use_argument_group=
 
 def _parse_args_from_docstring(docstring: str) -> Dict[str, str]:
     arg_block_indent = None
-    current_arg = None
+    current_arg = ""
     parsed = {}
     for line in docstring.split("\n"):
         stripped = line.lstrip()
@@ -270,20 +297,45 @@ def _parse_args_from_docstring(docstring: str) -> Dict[str, str]:
     return parsed
 
 
-def _gpus_allowed_type(x) -> Union[int, str]:
+def _gpus_allowed_type(x: str) -> Union[int, str]:
     if "," in x:
         return str(x)
     return int(x)
 
 
-def _gpus_arg_default(x) -> Union[int, str]:  # pragma: no-cover
-    # unused, but here for backward compatibility with old checkpoints that need to be able to
-    # unpickle the function from the checkpoint, as it was not filtered out in versions < 1.2.8
-    # see: https://github.com/PyTorchLightning/pytorch-lightning/pull/6898
-    pass
-
-
-def _int_or_float_type(x) -> Union[int, float]:
+def _int_or_float_type(x: Union[int, float, str]) -> Union[int, float]:
     if "." in str(x):
         return float(x)
     return int(x)
+
+
+def _precision_allowed_type(x: Union[int, str]) -> Union[int, str]:
+    """
+    >>> _precision_allowed_type("32")
+    32
+    >>> _precision_allowed_type("bf16")
+    'bf16'
+    """
+    try:
+        return int(x)
+    except ValueError:
+        return x
+
+
+def _defaults_from_env_vars(fn: _T) -> _T:
+    @wraps(fn)
+    def insert_env_defaults(self: Any, *args: Any, **kwargs: Any) -> Any:
+        cls = self.__class__  # get the class
+        if args:  # in case any args passed move them to kwargs
+            # parse only the argument names
+            cls_arg_names = [arg[0] for arg in get_init_arguments_and_types(cls)]
+            # convert args to kwargs
+            kwargs.update(dict(zip(cls_arg_names, args)))
+        env_variables = vars(parse_env_variables(cls))
+        # update the kwargs by env variables
+        kwargs = dict(list(env_variables.items()) + list(kwargs.items()))
+
+        # all args were already moved to kwargs
+        return fn(self, **kwargs)
+
+    return cast(_T, insert_env_defaults)

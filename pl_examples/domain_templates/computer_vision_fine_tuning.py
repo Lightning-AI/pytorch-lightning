@@ -11,12 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Computer vision example on Transfer Learning.
-This computer vision example illustrates how one could fine-tune a pre-trained
-network (by default, a ResNet50 is used) using pytorch-lightning. For the sake
-of this example, the 'cats and dogs dataset' (~60MB, see `DATA_URL` below) and
-the proposed network (denoted by `TransferLearningModel`, see below) is
-trained for 15 epochs.
+"""Computer vision example on Transfer Learning. This computer vision example illustrates how one could fine-tune a
+pre-trained network (by default, a ResNet50 is used) using pytorch-lightning. For the sake of this example, the
+'cats and dogs dataset' (~60MB, see `DATA_URL` below) and the proposed network (denoted by `TransferLearningModel`,
+see below) is trained for 15 epochs.
 
 The training consists of three stages.
 
@@ -36,6 +34,9 @@ the classifier is trained with lr = 1e-4.
 
 Note:
     See: https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
+
+To run:
+    python computer_vision_fine_tuning.py fit
 """
 
 import logging
@@ -57,8 +58,8 @@ import pytorch_lightning as pl
 from pl_examples import cli_lightning_logo
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.callbacks.finetuning import BaseFinetuning
-from pytorch_lightning.utilities import rank_zero_info
 from pytorch_lightning.utilities.cli import LightningCLI
+from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
 log = logging.getLogger(__name__)
 DATA_URL = "https://storage.googleapis.com/mledu-datasets/cats_and_dogs_filtered.zip"
@@ -83,7 +84,7 @@ class MilestonesFinetuning(BaseFinetuning):
             )
 
         elif epoch == self.milestones[1]:
-            # unfreeze remaing layers
+            # unfreeze remaining layers
             self.unfreeze_and_add_param_group(
                 modules=pl_module.feature_extractor[:-5], optimizer=optimizer, train_bn=self.train_bn
             )
@@ -91,7 +92,7 @@ class MilestonesFinetuning(BaseFinetuning):
 
 class CatDogImageDataModule(LightningDataModule):
     def __init__(self, dl_path: Union[str, Path] = "data", num_workers: int = 0, batch_size: int = 8):
-        """CatDogImageDataModule
+        """CatDogImageDataModule.
 
         Args:
             dl_path: root directory where to download the data
@@ -166,7 +167,7 @@ class TransferLearningModel(pl.LightningModule):
         num_workers: int = 6,
         **kwargs,
     ) -> None:
-        """TransferLearningModel
+        """TransferLearningModel.
 
         Args:
             backbone: Name (as in ``torchvision.models``) of the feature extractor
@@ -208,7 +209,10 @@ class TransferLearningModel(pl.LightningModule):
         self.loss_func = F.binary_cross_entropy_with_logits
 
     def forward(self, x):
-        """Forward pass. Returns logits."""
+        """Forward pass.
+
+        Returns logits.
+        """
 
         # 1. Feature extraction:
         x = self.feature_extractor(x)
@@ -264,23 +268,17 @@ class TransferLearningModel(pl.LightningModule):
 
 class MyLightningCLI(LightningCLI):
     def add_arguments_to_parser(self, parser):
-        parser.add_class_arguments(MilestonesFinetuning, "finetuning")
+        parser.add_lightning_class_args(MilestonesFinetuning, "finetuning")
         parser.link_arguments("data.batch_size", "model.batch_size")
         parser.link_arguments("finetuning.milestones", "model.milestones")
         parser.link_arguments("finetuning.train_bn", "model.train_bn")
         parser.set_defaults(
             {
                 "trainer.max_epochs": 15,
-                "trainer.weights_summary": None,
-                "trainer.progress_bar_refresh_rate": 1,
+                "trainer.enable_model_summary": False,
                 "trainer.num_sanity_val_steps": 0,
             }
         )
-
-    def instantiate_trainer(self):
-        finetuning_callback = MilestonesFinetuning(**self.config_init["finetuning"])
-        self.trainer_defaults["callbacks"] = [finetuning_callback]
-        super().instantiate_trainer()
 
 
 def cli_main():

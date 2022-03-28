@@ -9,7 +9,7 @@
 Loggers
 *******
 
-Lightning supports the most popular logging frameworks (TensorBoard, Comet, etc...). TensorBoard is used by default,
+Lightning supports the most popular logging frameworks (TensorBoard, Comet, Neptune, etc...). TensorBoard is used by default,
 but you can pass to the :class:`~pytorch_lightning.trainer.trainer.Trainer` any combination of the following loggers.
 
 .. note::
@@ -52,7 +52,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
         save_dir=".",  # Optional
         project_name="default_project",  # Optional
         rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
-        experiment_name="default",  # Optional
+        experiment_name="lightning_logs",  # Optional
     )
     trainer = Trainer(logger=comet_logger)
 
@@ -88,7 +88,7 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 
     from pytorch_lightning.loggers import MLFlowLogger
 
-    mlf_logger = MLFlowLogger(experiment_name="default", tracking_uri="file:./ml-runs")
+    mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
     trainer = Trainer(logger=mlf_logger)
 
 .. seealso::
@@ -107,33 +107,49 @@ First, install the package:
 
     pip install neptune-client
 
+or with conda:
+
+.. code-block:: bash
+
+    conda install -c conda-forge neptune-client
+
 Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
 
-.. testcode::
+.. code-block:: python
 
     from pytorch_lightning.loggers import NeptuneLogger
 
     neptune_logger = NeptuneLogger(
         api_key="ANONYMOUS",  # replace with your own
-        project_name="shared/pytorch-lightning-integration",
-        experiment_name="default",  # Optional,
-        params={"max_epochs": 10},  # Optional,
-        tags=["pytorch-lightning", "mlp"],  # Optional,
+        project="common/pytorch-lightning-integration",  # format "<WORKSPACE/PROJECT>"
+        tags=["training", "resnet"],  # optional
     )
     trainer = Trainer(logger=neptune_logger)
 
 The :class:`~pytorch_lightning.loggers.NeptuneLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. testcode::
+.. code-block:: python
 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
-            some_img = fake_image()
-            self.logger.experiment.add_image("generated_images", some_img, 0)
+            # generic recipe for logging custom metadata (neptune specific)
+            metadata = ...
+            self.logger.experiment["your/metadata/structure"].log(metadata)
+
+Note that syntax: ``self.logger.experiment["your/metadata/structure"].log(metadata)``
+is specific to Neptune and it extends logger capabilities.
+Specifically, it allows you to log various types of metadata like scores, files,
+images, interactive visuals, CSVs, etc. Refer to the
+`Neptune docs <https://docs.neptune.ai/you-should-know/logging-metadata#essential-logging-methods>`_
+for more detailed explanations.
+
+You can always use regular logger methods: ``log_metrics()`` and ``log_hyperparams()`` as these are also supported.
 
 .. seealso::
     :class:`~pytorch_lightning.loggers.NeptuneLogger` docs.
+
+    Logger `user guide <https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning>`_.
 
 ----------------
 
@@ -164,42 +180,6 @@ The :class:`~pytorch_lightning.loggers.TensorBoardLogger` is available anywhere 
 
 ----------------
 
-Test Tube
-=========
-
-`Test Tube <https://github.com/williamFalcon/test-tube>`_ is a
-`TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_  logger but with nicer file structure.
-To use :class:`~pytorch_lightning.loggers.TestTubeLogger` as your logger do the following.
-First, install the package:
-
-.. code-block:: bash
-
-    pip install test_tube
-
-Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
-
-.. code-block:: python
-
-    from pytorch_lightning.loggers import TestTubeLogger
-
-    logger = TestTubeLogger("tb_logs", name="my_model")
-    trainer = Trainer(logger=logger)
-
-The :class:`~pytorch_lightning.loggers.TestTubeLogger` is available anywhere except ``__init__`` in your
-:class:`~pytorch_lightning.core.lightning.LightningModule`.
-
-.. testcode::
-
-    class MyModule(LightningModule):
-        def any_lightning_module_function_or_hook(self):
-            some_img = fake_image()
-            self.logger.experiment.add_image("generated_images", some_img, 0)
-
-.. seealso::
-    :class:`~pytorch_lightning.loggers.TestTubeLogger` docs.
-
-----------------
-
 Weights and Biases
 ==================
 
@@ -227,15 +207,20 @@ Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.
 The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except ``__init__`` in your
 :class:`~pytorch_lightning.core.lightning.LightningModule`.
 
-.. testcode::
+.. code-block:: python
 
     class MyModule(LightningModule):
         def any_lightning_module_function_or_hook(self):
             some_img = fake_image()
-            self.log({"generated_images": [wandb.Image(some_img, caption="...")]})
+            # Option 1
+            self.logger.experiment.log({"generated_images": [wandb.Image(some_img, caption="...")]})
+            # Option 2 for specifically logging images
+            self.logger.log_image(key="generated_images", images=[some_img])
 
 .. seealso::
-    :class:`~pytorch_lightning.loggers.WandbLogger` docs.
+    - :class:`~pytorch_lightning.loggers.WandbLogger` docs.
+    - `W&B Documentation <https://docs.wandb.ai/integrations/lightning>`__
+    - `Demo in Google Colab <http://wandb.me/lightning>`__ with hyperparameter search and model logging
 
 ----------------
 
@@ -247,10 +232,10 @@ Lightning supports the use of multiple loggers, just pass a list to the
 
 .. code-block:: python
 
-    from pytorch_lightning.loggers import TensorBoardLogger, TestTubeLogger
+    from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 
-    logger1 = TensorBoardLogger("tb_logs", name="my_model")
-    logger2 = TestTubeLogger("tb_logs", name="my_model")
+    logger1 = TensorBoardLogger(save_dir="tb_logs", name="my_model")
+    logger2 = WandbLogger(save_dir="tb_logs", name="my_model")
     trainer = Trainer(logger=[logger1, logger2])
 
 The loggers are available as a list anywhere except ``__init__`` in your

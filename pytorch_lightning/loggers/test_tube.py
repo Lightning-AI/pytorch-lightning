@@ -20,8 +20,9 @@ from typing import Any, Dict, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import _module_available, rank_zero_warn
-from pytorch_lightning.utilities.distributed import rank_zero_only
+from pytorch_lightning.utilities import _module_available
+from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
 
 _TESTTUBE_AVAILABLE = _module_available("test_tube")
 
@@ -35,6 +36,10 @@ class TestTubeLogger(LightningLoggerBase):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format
     but using a nicer folder structure (see `full docs <https://williamfalcon.github.io/test-tube>`_).
+
+    Warning:
+        The test-tube package is no longer maintained and PyTorch Lightning will remove the :class:´TestTubeLogger´
+        in v1.7.0.
 
     Install it with pip:
 
@@ -79,7 +84,7 @@ class TestTubeLogger(LightningLoggerBase):
         prefix: A string to put at the beginning of metric keys.
 
     Raises:
-        ImportError:
+        ModuleNotFoundError:
             If required TestTube package is not installed on the device.
     """
 
@@ -97,8 +102,12 @@ class TestTubeLogger(LightningLoggerBase):
         log_graph: bool = False,
         prefix: str = "",
     ):
+        rank_zero_deprecation(
+            "The TestTubeLogger is deprecated since v1.5 and will be removed in v1.7. We recommend switching to the"
+            " `pytorch_lightning.loggers.TensorBoardLogger` as an alternative."
+        )
         if Experiment is None:
-            raise ImportError(
+            raise ModuleNotFoundError(
                 "You want to use `test_tube` logger which is not installed yet,"
                 " install it with `pip install test-tube`."
             )
@@ -144,14 +153,14 @@ class TestTubeLogger(LightningLoggerBase):
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
         # TODO: HACK figure out where this is being set to true
         self.experiment.debug = self.debug
-        params = self._convert_params(params)
-        params = self._flatten_dict(params)
+        params = _convert_params(params)
+        params = _flatten_dict(params)
         self.experiment.argparse(Namespace(**params))
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         # TODO: HACK figure out where this is being set to true
-        metrics = self._add_prefix(metrics)
+        metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
         self.experiment.debug = self.debug
         self.experiment.log(metrics, global_step=step)
 
@@ -168,7 +177,6 @@ class TestTubeLogger(LightningLoggerBase):
                     "Could not log computational graph since neither the"
                     " `model.example_input_array` attribute is set nor"
                     " `input_array` was given",
-                    UserWarning,
                 )
 
     @rank_zero_only
@@ -197,10 +205,20 @@ class TestTubeLogger(LightningLoggerBase):
 
     @property
     def save_dir(self) -> Optional[str]:
+        """Gets the save directory.
+
+        Returns:
+            The path to the save directory.
+        """
         return self._save_dir
 
     @property
     def name(self) -> str:
+        """Gets the experiment name.
+
+        Returns:
+             The experiment name if the experiment exists, else the name specified in the constructor.
+        """
         if self._experiment is None:
             return self._name
 
@@ -208,6 +226,11 @@ class TestTubeLogger(LightningLoggerBase):
 
     @property
     def version(self) -> int:
+        """Gets the experiment version.
+
+        Returns:
+             The experiment version if the experiment exists, else the next version.
+        """
         if self._experiment is None:
             return self._version
 

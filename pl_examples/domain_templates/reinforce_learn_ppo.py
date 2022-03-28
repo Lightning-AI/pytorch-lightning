@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-PyTorch Lightning implementation of Proximal Policy Optimization (PPO)
+"""PyTorch Lightning implementation of Proximal Policy Optimization (PPO)
+
 <https://arxiv.org/abs/1707.06347>
 Paper authors: John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, Oleg Klimov
 
-The example implements PPO compatible to work with any continous or discrete action-space environments via OpenAI Gym.
+The example implements PPO compatible to work with any continuous or discrete action-space environments via OpenAI Gym.
 
 To run the template, just run:
 `python reinforce_learn_ppo.py`
@@ -42,9 +42,7 @@ from pl_examples import cli_lightning_logo
 
 
 def create_mlp(input_shape: Tuple[int], n_actions: int, hidden_size: int = 128):
-    """
-    Simple Multi-Layer Perceptron network
-    """
+    """Simple Multi-Layer Perceptron network."""
     network = nn.Sequential(
         nn.Linear(input_shape[0], hidden_size),
         nn.ReLU(),
@@ -57,10 +55,8 @@ def create_mlp(input_shape: Tuple[int], n_actions: int, hidden_size: int = 128):
 
 
 class ActorCategorical(nn.Module):
-    """
-    Policy network, for discrete action spaces, which returns a distribution
-    and an action given an observation
-    """
+    """Policy network, for discrete action spaces, which returns a distribution and an action given an
+    observation."""
 
     def __init__(self, actor_net):
         """
@@ -80,24 +76,21 @@ class ActorCategorical(nn.Module):
         return pi, actions
 
     def get_log_prob(self, pi: Categorical, actions: torch.Tensor):
-        """
-        Takes in a distribution and actions and returns log prob of actions under the distribution
+        """Takes in a distribution and actions and returns log prob of actions under the distribution.
 
         Args:
             pi: torch distribution
             actions: actions taken by distribution
 
         Returns:
-            log probability of the acition under pi
+            log probability of the action under pi
         """
         return pi.log_prob(actions)
 
 
-class ActorContinous(nn.Module):
-    """
-    Policy network, for continous action spaces, which returns a distribution
-    and an action given an observation
-    """
+class ActorContinuous(nn.Module):
+    """Policy network, for continuous action spaces, which returns a distribution and an action given an
+    observation."""
 
     def __init__(self, actor_net, act_dim):
         """
@@ -119,26 +112,24 @@ class ActorContinous(nn.Module):
         return pi, actions
 
     def get_log_prob(self, pi: Normal, actions: torch.Tensor):
-        """
-        Takes in a distribution and actions and returns log prob of actions under the distribution
+        """Takes in a distribution and actions and returns log prob of actions under the distribution.
 
         Args:
             pi: torch distribution
             actions: actions taken by distribution
 
         Returns:
-            log probability of the acition under pi
+            log probability of the action under pi
         """
         return pi.log_prob(actions).sum(axis=-1)
 
 
 class ExperienceSourceDataset(IterableDataset):
-    """
-    Implementation from PyTorch Lightning Bolts:
-    https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/datamodules/experience_source.py
+    """Implementation from PyTorch Lightning Bolts: https://github.com/PyTorchLightning/lightning-
+    bolts/blob/master/pl_bolts/datamodules/experience_source.py.
 
-    Basic experience source dataset. Takes a generate_batch function that returns an iterator.
-    The logic for the experience source and how the batch is generated is defined the Lightning model itself
+    Basic experience source dataset. Takes a generate_batch function that returns an iterator. The logic for the
+    experience source and how the batch is generated is defined the Lightning model itself
     """
 
     def __init__(self, generate_batch: Callable):
@@ -150,8 +141,7 @@ class ExperienceSourceDataset(IterableDataset):
 
 
 class PPOLightning(pl.LightningModule):
-    """
-    PyTorch Lightning implementation of PPO.
+    """PyTorch Lightning implementation of PPO.
 
     Example:
         model = PPOLightning("CartPole-v0")
@@ -208,13 +198,13 @@ class PPOLightning(pl.LightningModule):
         if isinstance(self.env.action_space, gym.spaces.box.Box):
             act_dim = self.env.action_space.shape[0]
             actor_mlp = create_mlp(self.env.observation_space.shape, act_dim)
-            self.actor = ActorContinous(actor_mlp, act_dim)
+            self.actor = ActorContinuous(actor_mlp, act_dim)
         elif isinstance(self.env.action_space, gym.spaces.discrete.Discrete):
             actor_mlp = create_mlp(self.env.observation_space.shape, self.env.action_space.n)
             self.actor = ActorCategorical(actor_mlp)
         else:
             raise NotImplementedError(
-                "Env action space should be of type Box (continous) or Discrete (categorical)."
+                "Env action space should be of type Box (continuous) or Discrete (categorical)."
                 f" Got type: {type(self.env.action_space)}"
             )
 
@@ -236,8 +226,7 @@ class PPOLightning(pl.LightningModule):
         self.state = torch.FloatTensor(self.env.reset())
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        Passes in a state x through the network and returns the policy and a sampled action
+        """Passes in a state x through the network and returns the policy and a sampled action.
 
         Args:
             x: environment state
@@ -251,7 +240,7 @@ class PPOLightning(pl.LightningModule):
         return pi, action, value
 
     def discount_rewards(self, rewards: List[float], discount: float) -> List[float]:
-        """Calculate the discounted rewards of all rewards in list
+        """Calculate the discounted rewards of all rewards in list.
 
         Args:
             rewards: list of rewards/advantages
@@ -271,7 +260,7 @@ class PPOLightning(pl.LightningModule):
         return list(reversed(cumul_reward))
 
     def calc_advantage(self, rewards: List[float], values: List[float], last_value: float) -> List[float]:
-        """Calculate the advantage given rewards, state values, and the last value of episode
+        """Calculate the advantage given rewards, state values, and the last value of episode.
 
         Args:
             rewards: list of episode rewards
@@ -320,7 +309,7 @@ class PPOLightning(pl.LightningModule):
             terminal = len(self.ep_rewards) == self.max_episode_len
 
             if epoch_end or done or terminal:
-                # if trajectory ends abtruptly, boostrap value of next state
+                # if trajectory ends abtruptly, bootstrap value of next state
                 if (terminal or epoch_end) and not done:
                     self.state = self.state.to(device=self.device)
                     with torch.no_grad():
@@ -387,8 +376,7 @@ class PPOLightning(pl.LightningModule):
         return loss_critic
 
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx, optimizer_idx):
-        """
-        Carries out a single update to actor and critic network from a batch of replay buffer.
+        """Carries out a single update to actor and critic network from a batch of replay buffer.
 
         Args:
             batch: batch of replay buffer/trajectory data
@@ -420,28 +408,26 @@ class PPOLightning(pl.LightningModule):
             return loss_critic
 
     def configure_optimizers(self) -> List[Optimizer]:
-        """Initialize Adam optimizer"""
+        """Initialize Adam optimizer."""
         optimizer_actor = torch.optim.Adam(self.actor.parameters(), lr=self.lr_actor)
         optimizer_critic = torch.optim.Adam(self.critic.parameters(), lr=self.lr_critic)
 
         return optimizer_actor, optimizer_critic
 
     def optimizer_step(self, *args, **kwargs):
-        """
-        Run 'nb_optim_iters' number of iterations of gradient descent on actor and critic
-        for each data sample.
-        """
+        """Run 'nb_optim_iters' number of iterations of gradient descent on actor and critic for each data
+        sample."""
         for _ in range(self.nb_optim_iters):
             super().optimizer_step(*args, **kwargs)
 
     def _dataloader(self) -> DataLoader:
-        """Initialize the Replay Buffer dataset used for retrieving experiences"""
+        """Initialize the Replay Buffer dataset used for retrieving experiences."""
         dataset = ExperienceSourceDataset(self.generate_trajectory_samples)
         dataloader = DataLoader(dataset=dataset, batch_size=self.batch_size)
         return dataloader
 
     def train_dataloader(self) -> DataLoader:
-        """Get train loader"""
+        """Get train loader."""
         return self._dataloader()
 
     @staticmethod

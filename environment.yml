@@ -26,10 +26,10 @@ channels:
     - conda-forge
 
 dependencies:
-    - python>=3.6
+    - python>=3.7
     - pip>20.1
     - numpy>=1.17.2
-    - pytorch>=1.6
+    - pytorch>=1.8.*
     - future>=0.17.1
     - PyYAML>=5.1
     - tqdm>=4.41.0
@@ -40,16 +40,15 @@ dependencies:
     #- nvidia-apex  # missing for py3.8
     - scikit-learn>=0.20.0
     - matplotlib>=3.1.1
-    - omegaconf>=2.0.1
-    - torchtext>=0.6
+    - omegaconf>=2.0.5
+    - torchtext>=0.9.*
 
     # Examples
-    - torchvision>=0.6
+    - torchvision>=0.9.*
 
     - pip:
         - test-tube>=0.7.5
         - mlflow>=1.0.0
         - comet_ml>=3.1.12
         - wandb>=0.8.21
-        - neptune-client>=0.4.109
-        - onnxruntime>=1.3.0
+        - neptune-client>=0.10.0

@@ -24,14 +24,14 @@ from pytorch_lightning.plugins.environments import KubeflowEnvironment
 def test_default_attributes():
     """Test the default attributes when no environment variables are set."""
     env = KubeflowEnvironment()
-    assert env.creates_children()
+    assert env.creates_processes_externally
 
     with pytest.raises(KeyError):
         # MASTER_ADDR is required
-        env.master_address()
+        env.main_address
     with pytest.raises(KeyError):
         # MASTER_PORT is required
-        env.master_port()
+        env.main_port
     with pytest.raises(KeyError):
         # WORLD_SIZE is required
         env.world_size()
@@ -54,8 +54,8 @@ def test_default_attributes():
 def test_attributes_from_environment_variables(caplog):
     """Test that the torchelastic cluster environment takes the attributes from the environment variables."""
     env = KubeflowEnvironment()
-    assert env.master_address() == "1.2.3.4"
-    assert env.master_port() == 500
+    assert env.main_address == "1.2.3.4"
+    assert env.main_port == 500
     assert env.world_size() == 20
     assert env.global_rank() == 1
     assert env.local_rank() == 0
@@ -84,8 +84,8 @@ def test_attributes_from_environment_variables(caplog):
         "RANK": "1",
     },
 )
-def test_is_using_kubeflow():
-    assert KubeflowEnvironment.is_using_kubeflow()
+def test_detect_kubeflow():
+    assert KubeflowEnvironment.detect()
 
 
 @mock.patch.dict(
@@ -99,5 +99,5 @@ def test_is_using_kubeflow():
         "GROUP_RANK": "1",
     },
 )
-def test_is_using_kubeflow_torchelastic():
-    assert not KubeflowEnvironment.is_using_kubeflow()
+def test_detect_torchelastic_over_kubeflow():
+    assert not KubeflowEnvironment.detect()

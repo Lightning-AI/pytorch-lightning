@@ -40,8 +40,7 @@ class WriteInterval(LightningEnum):
 
 
 class BasePredictionWriter(Callback):
-    """
-    Base class to implement how the predictions should be stored.
+    """Base class to implement how the predictions should be stored.
 
     Args:
         write_interval: When to write.
@@ -108,8 +107,7 @@ class BasePredictionWriter(Callback):
     ) -> None:
         if not self.interval.on_batch:
             return
-        is_distributed = trainer.accelerator_connector.is_distributed
-        batch_indices = trainer.predict_loop.epoch_loop.current_batch_indices if is_distributed else None
+        batch_indices = trainer.predict_loop.epoch_loop.current_batch_indices
         self.write_on_batch_end(trainer, pl_module, outputs, batch_indices, batch, batch_idx, dataloader_idx)
 
     def on_predict_epoch_end(
@@ -117,6 +115,5 @@ class BasePredictionWriter(Callback):
     ) -> None:
         if not self.interval.on_epoch:
             return
-        is_distributed = trainer.accelerator_connector.is_distributed
-        epoch_batch_indices = trainer.predict_loop.epoch_batch_indices if is_distributed else None
+        epoch_batch_indices = trainer.predict_loop.epoch_batch_indices
         self.write_on_epoch_end(trainer, pl_module, trainer.predict_loop.predictions, epoch_batch_indices)

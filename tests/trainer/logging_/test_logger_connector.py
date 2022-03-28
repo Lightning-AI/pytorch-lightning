@@ -11,18 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
 from unittest import mock
 
 import pytest
 import torch
 from torch.utils.data import DataLoader
-from torchmetrics import Accuracy, AveragePrecision
+from torchmetrics import Accuracy, AveragePrecision, MeanAbsoluteError, MeanSquaredError
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import FxValidator
-from pytorch_lightning.trainer.connectors.logger_connector.result import MetricSource, ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
+from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -30,9 +31,9 @@ from tests.models.test_hooks import get_members
 
 
 def test_fx_validator(tmpdir):
-    funcs_name = sorted(get_members(Callback))
+    funcs_name = get_members(Callback)
 
-    callbacks_func = [
+    callbacks_func = {
         "on_before_backward",
         "on_after_backward",
         "on_before_optimizer_step",
@@ -48,11 +49,14 @@ def test_fx_validator(tmpdir):
         "on_init_end",
         "on_init_start",
         "on_keyboard_interrupt",
+        "on_exception",
         "on_load_checkpoint",
+        "load_state_dict",
         "on_pretrain_routine_end",
         "on_pretrain_routine_start",
         "on_sanity_check_end",
         "on_sanity_check_start",
+        "state_dict",
         "on_save_checkpoint",
         "on_test_batch_end",
         "on_test_batch_start",
@@ -80,9 +84,9 @@ def test_fx_validator(tmpdir):
         "on_predict_start",
         "setup",
         "teardown",
-    ]
+    }
 
-    not_supported = [
+    not_supported = {
         "on_before_accelerator_backend_setup",
         "on_fit_end",
         "on_fit_start",
@@ -90,7 +94,9 @@ def test_fx_validator(tmpdir):
         "on_init_end",
         "on_init_start",
         "on_keyboard_interrupt",
+        "on_exception",
         "on_load_checkpoint",
+        "load_state_dict",
         "on_pretrain_routine_end",
         "on_pretrain_routine_start",
         "on_sanity_check_end",
@@ -101,19 +107,19 @@ def test_fx_validator(tmpdir):
         "on_predict_epoch_end",
         "on_predict_epoch_start",
         "on_predict_start",
+        "state_dict",
         "on_save_checkpoint",
         "on_test_end",
         "on_train_end",
         "on_validation_end",
         "setup",
         "teardown",
-    ]
+    }
 
-    assert funcs_name == sorted(
-        callbacks_func
-    ), "Detected new callback function. Need to add its logging permission to FxValidator and update this test"
+    # Detected new callback function. Need to add its logging permission to FxValidator and update this test
+    assert funcs_name == callbacks_func
 
-    validator = FxValidator()
+    validator = _FxValidator()
 
     for func_name in funcs_name:
         # This summarizes where and what is currently possible to log using `self.log`
@@ -138,17 +144,159 @@ def test_fx_validator(tmpdir):
             and func_name not in ["on_train_end", "on_test_end", "on_validation_end"]
         )
         if allowed:
-            validator.check_logging(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
+            validator.check_logging_levels(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
             if not is_start and is_stage:
-                with pytest.raises(MisconfigurationException, match="You can't"):
-                    validator.check_logging(fx_name=func_name, on_step=True, on_epoch=on_epoch)
+                with pytest.raises(MisconfigurationException, match="must be one of"):
+                    validator.check_logging_levels(fx_name=func_name, on_step=True, on_epoch=on_epoch)
         else:
             assert func_name in not_supported
-            with pytest.raises(MisconfigurationException, match="function doesn't support"):
-                validator.check_logging(fx_name=func_name, on_step=on_step, on_epoch=on_epoch)
+            with pytest.raises(MisconfigurationException, match="You can't"):
+                validator.check_logging(fx_name=func_name)
 
-    with pytest.raises(RuntimeError, match="`foo` but it is not implemented"):
-        validator.check_logging("foo", False, False)
+    with pytest.raises(RuntimeError, match="Logging inside `foo` is not implemented"):
+        validator.check_logging("foo")
+
+
+class HookedCallback(Callback):
+    def __init__(self, not_supported):
+        def call(hook, trainer=None, model=None, *_, **__):
+            if trainer is None:
+                # `state_dict`, `load_state_dict` do not have the `Trainer` available
+                assert hook in ("state_dict", "load_state_dict")
+                return
+
+            lightning_module = trainer.lightning_module or model
+            if lightning_module is None:
+                # `on_init_{start,end}` do not have the `LightningModule` available
+                assert hook in ("on_init_start", "on_init_end")
+                return
+
+            if hook in not_supported:
+                with pytest.raises(MisconfigurationException, match=not_supported[hook]):
+                    lightning_module.log("anything", 1)
+            else:
+                lightning_module.log(hook, 1)
+
+        for h in get_members(Callback):
+            setattr(self, h, partial(call, h))
+
+
+class HookedModel(BoringModel):
+    def __init__(self, not_supported):
+        super().__init__()
+        pl_module_hooks = get_members(LightningModule)
+        pl_module_hooks.difference_update(
+            {
+                "log",
+                "log_dict",
+                # the following are problematic as they do have `self._current_fx_name` defined some times but
+                # not others depending on where they were called. So we cannot reliably `self.log` in them
+                "on_before_batch_transfer",
+                "transfer_batch_to_device",
+                "on_after_batch_transfer",
+                "get_progress_bar_dict",
+            }
+        )
+        # remove `nn.Module` hooks
+        module_hooks = get_members(torch.nn.Module)
+        pl_module_hooks.difference_update(module_hooks)
+
+        def call(hook, fn, *args, **kwargs):
+            out = fn(*args, **kwargs)
+
+            if hook in not_supported:
+                with pytest.raises(MisconfigurationException, match=not_supported[hook]):
+                    self.log("anything", 1)
+            else:
+                self.log(hook, 1)
+            return out
+
+        for h in pl_module_hooks:
+            attr = getattr(self, h)
+            setattr(self, h, partial(call, h, attr))
+
+
+def test_fx_validator_integration(tmpdir):
+    """Tries to log inside all `LightningModule` and `Callback` hooks to check any expected errors."""
+    not_supported = {
+        None: "`self.trainer` reference is not registered",
+        "on_before_accelerator_backend_setup": "You can't",
+        "setup": "You can't",
+        "configure_sharded_model": "You can't",
+        "on_configure_sharded_model": "You can't",
+        "configure_optimizers": "You can't",
+        "on_fit_start": "You can't",
+        "on_pretrain_routine_start": "You can't",
+        "on_pretrain_routine_end": "You can't",
+        "on_train_dataloader": "You can't",
+        "train_dataloader": "You can't",
+        "on_val_dataloader": "You can't",
+        "val_dataloader": "You can't",
+        "on_validation_end": "You can't",
+        "on_train_end": "You can't",
+        "on_fit_end": "You can't",
+        "teardown": "You can't",
+        "on_sanity_check_start": "You can't",
+        "on_sanity_check_end": "You can't",
+        "prepare_data": "You can't",
+        "configure_callbacks": "You can't",
+        "on_validation_model_eval": "You can't",
+        "on_validation_model_train": "You can't",
+        "lr_scheduler_step": "You can't",
+        "on_save_checkpoint": "You can't",
+        "on_load_checkpoint": "You can't",
+        "on_exception": "You can't",
+        "summarize": "not managed by the `Trainer",
+    }
+    model = HookedModel(not_supported)
+
+    with pytest.warns(UserWarning, match=not_supported[None]):
+        model.log("foo", 1)
+
+    callback = HookedCallback(not_supported)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
+        limit_predict_batches=1,
+        callbacks=callback,
+    )
+    with pytest.deprecated_call(match="on_train_dataloader` is deprecated in v1.5"):
+        trainer.fit(model)
+
+    not_supported.update(
+        {
+            # `lightning_module` ref is now present from the `fit` call
+            "on_before_accelerator_backend_setup": "You can't",
+            "on_test_dataloader": "You can't",
+            "test_dataloader": "You can't",
+            "on_test_model_eval": "You can't",
+            "on_test_model_train": "You can't",
+            "on_test_end": "You can't",
+        }
+    )
+    with pytest.deprecated_call(match="on_test_dataloader` is deprecated in v1.5"):
+        trainer.test(model, verbose=False)
+
+    not_supported.update({k: "result collection is not registered yet" for k in not_supported})
+    not_supported.update(
+        {
+            "on_predict_dataloader": "result collection is not registered yet",
+            "predict_dataloader": "result collection is not registered yet",
+            "on_predict_model_eval": "result collection is not registered yet",
+            "on_predict_start": "result collection is not registered yet",
+            "on_predict_epoch_start": "result collection is not registered yet",
+            "on_predict_batch_start": "result collection is not registered yet",
+            "predict_step": "result collection is not registered yet",
+            "on_predict_batch_end": "result collection is not registered yet",
+            "on_predict_epoch_end": "result collection is not registered yet",
+            "on_predict_end": "result collection is not registered yet",
+        }
+    )
+    with pytest.deprecated_call(match="on_predict_dataloader` is deprecated in v1.5"):
+        trainer.predict(model)
 
 
 @RunIf(min_gpus=2)
@@ -199,14 +347,23 @@ def test_epoch_results_cache_dp(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="dp", gpus=2, limit_train_batches=2, limit_val_batches=2, max_epochs=1
+        default_root_dir=tmpdir,
+        strategy="dp",
+        accelerator="gpu",
+        devices=2,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
     )
     trainer.fit(model)
     trainer.test(model)
 
 
 def test_can_return_tensor_with_more_than_one_element(tmpdir):
-    """Ensure {validation,test}_step return values are not included as callback metrics. #6623"""
+    """Ensure {validation,test}_step return values are not included as callback metrics.
+
+    #6623
+    """
 
     class TestModel(BoringModel):
         def validation_step(self, batch, *args, **kwargs):
@@ -227,7 +384,7 @@ def test_can_return_tensor_with_more_than_one_element(tmpdir):
             assert all(torch.equal(d["test"], torch.tensor([0, 1])) for d in outputs)  # check values
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, progress_bar_refresh_rate=0)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, enable_progress_bar=False)
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
@@ -250,7 +407,7 @@ def test_logging_to_progress_bar_with_reserved_key(tmpdir):
 
 @pytest.mark.parametrize("add_dataloader_idx", [False, True])
 def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
-    """test that auto_add_dataloader_idx argument works"""
+    """test that auto_add_dataloader_idx argument works."""
 
     class TestModel(BoringModel):
         def val_dataloader(self):
@@ -376,9 +533,9 @@ def test_metrics_reset(tmpdir):
         limit_val_batches=2,
         limit_test_batches=2,
         max_epochs=1,
-        progress_bar_refresh_rate=0,
+        enable_progress_bar=False,
         num_sanity_val_steps=2,
-        checkpoint_callback=False,
+        enable_checkpointing=False,
     )
 
     trainer.fit(model)
@@ -393,9 +550,9 @@ def test_metrics_reset(tmpdir):
 
 
 def test_result_collection_on_tensor_with_mean_reduction():
-    result_collection = ResultCollection(True, torch.device("cpu"))
+    result_collection = _ResultCollection(True)
     product = [(True, True), (False, True), (True, False), (False, False)]
-    values = torch.arange(1, 10).float()  # need to convert to float() due to precision issues using torch 1.4
+    values = torch.arange(1, 10)
     batches = values * values
 
     for i, v in enumerate(values):
@@ -411,16 +568,21 @@ def test_result_collection_on_tensor_with_mean_reduction():
                         name += "_prog_bar"
                     if logger:
                         name += "_logger"
-                    result_collection.log(
-                        "training_step",
-                        name,
-                        v,
+                    log_kwargs = dict(
+                        fx="training_step",
+                        name=name,
+                        value=v,
                         on_step=on_step,
                         on_epoch=on_epoch,
                         batch_size=batches[i],
                         prog_bar=prog_bar,
                         logger=logger,
                     )
+                    if not on_step and not on_epoch:
+                        with pytest.raises(MisconfigurationException, match="on_step=False, on_epoch=False"):
+                            result_collection.log(**log_kwargs)
+                    else:
+                        result_collection.log(**log_kwargs)
 
     total_value = sum(values * batches)
     total_batches = sum(batches)
@@ -429,19 +591,19 @@ def test_result_collection_on_tensor_with_mean_reduction():
 
     batch_metrics = result_collection.metrics(True)
     max_ = max(values)
-    assert batch_metrics[MetricSource.PBAR] == {
+    assert batch_metrics["pbar"] == {
         "loss_on_step_on_epoch_prog_bar_step": max_,
         "loss_on_step_on_epoch_prog_bar_logger_step": max_,
         "loss_on_step_prog_bar": max_,
         "loss_on_step_prog_bar_logger": max_,
     }
-    assert batch_metrics[MetricSource.LOG] == {
+    assert batch_metrics["log"] == {
         "loss_on_step_on_epoch_logger_step": max_,
         "loss_on_step_logger": max_,
         "loss_on_step_on_epoch_prog_bar_logger_step": max_,
         "loss_on_step_prog_bar_logger": max_,
     }
-    assert batch_metrics[MetricSource.CALLBACK] == {
+    assert batch_metrics["callback"] == {
         "loss_on_step": max_,
         "loss_on_step_logger": max_,
         "loss_on_step_on_epoch": max_,
@@ -458,19 +620,19 @@ def test_result_collection_on_tensor_with_mean_reduction():
 
     epoch_metrics = result_collection.metrics(False)
     mean = total_value / total_batches
-    assert epoch_metrics[MetricSource.PBAR] == {
+    assert epoch_metrics["pbar"] == {
         "loss_on_epoch_prog_bar": mean,
         "loss_on_epoch_prog_bar_logger": mean,
         "loss_on_step_on_epoch_prog_bar_epoch": mean,
         "loss_on_step_on_epoch_prog_bar_logger_epoch": mean,
     }
-    assert epoch_metrics[MetricSource.LOG] == {
+    assert epoch_metrics["log"] == {
         "loss_on_epoch_logger": mean,
         "loss_on_epoch_prog_bar_logger": mean,
         "loss_on_step_on_epoch_logger_epoch": mean,
         "loss_on_step_on_epoch_prog_bar_logger_epoch": mean,
     }
-    assert epoch_metrics[MetricSource.CALLBACK] == {
+    assert epoch_metrics["callback"] == {
         "loss_on_epoch": mean,
         "loss_on_epoch_logger": mean,
         "loss_on_epoch_prog_bar": mean,
@@ -498,3 +660,51 @@ def test_logged_metrics_has_logged_epoch_value(tmpdir):
 
     # should not get overridden if logged manually
     assert trainer.logged_metrics == {"epoch": -1}
+
+
+def test_result_collection_batch_size_extraction():
+    fx_name = "training_step"
+    log_val = torch.tensor(7.0)
+
+    results = _ResultCollection(training=True, device="cpu")
+    results.batch = torch.randn(1, 4)
+    train_mse = MeanSquaredError()
+    train_mse(torch.randn(4, 5), torch.randn(4, 5))
+    results.log(fx_name, "train_logs", {"mse": train_mse, "log_val": log_val}, on_step=False, on_epoch=True)
+    assert results.batch_size == 1
+    assert isinstance(results["training_step.train_logs"]["mse"].value, MeanSquaredError)
+    assert results["training_step.train_logs"]["log_val"].value == log_val
+
+    results = _ResultCollection(training=True, device="cpu")
+    results.batch = torch.randn(1, 4)
+    results.log(fx_name, "train_log", log_val, on_step=False, on_epoch=True)
+    assert results.batch_size == 1
+    assert results["training_step.train_log"].value == log_val
+    assert results["training_step.train_log"].cumulated_batch_size == 1
+
+
+def test_result_collection_no_batch_size_extraction():
+    results = _ResultCollection(training=True, device="cpu")
+    results.batch = torch.randn(1, 4)
+    fx_name = "training_step"
+    batch_size = 10
+    log_val = torch.tensor(7.0)
+
+    train_mae = MeanAbsoluteError()
+    train_mae(torch.randn(4, 5), torch.randn(4, 5))
+    train_mse = MeanSquaredError()
+    train_mse(torch.randn(4, 5), torch.randn(4, 5))
+    results.log(fx_name, "step_log_val", log_val, on_step=True, on_epoch=False)
+    results.log(fx_name, "epoch_log_val", log_val, on_step=False, on_epoch=True, batch_size=batch_size)
+    results.log(fx_name, "epoch_sum_log_val", log_val, on_step=True, on_epoch=True, reduce_fx="sum")
+    results.log(fx_name, "train_mae", train_mae, on_step=True, on_epoch=False)
+    results.log(fx_name, "train_mse", {"mse": train_mse}, on_step=True, on_epoch=False)
+
+    assert results.batch_size is None
+    assert isinstance(results["training_step.train_mse"]["mse"].value, MeanSquaredError)
+    assert isinstance(results["training_step.train_mae"].value, MeanAbsoluteError)
+    assert results["training_step.step_log_val"].value == log_val
+    assert results["training_step.step_log_val"].cumulated_batch_size == 0
+    assert results["training_step.epoch_log_val"].value == log_val * batch_size
+    assert results["training_step.epoch_log_val"].cumulated_batch_size == batch_size
+    assert results["training_step.epoch_sum_log_val"].value == log_val

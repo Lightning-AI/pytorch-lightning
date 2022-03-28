@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 from pytorch_lightning.utilities import LightningEnum
+from pytorch_lightning.utilities.enums import _FaultTolerantMode
 
 
 class TrainerStatus(LightningEnum):
@@ -45,8 +46,7 @@ class TrainerFn(LightningEnum):
 
     @property
     def _setup_fn(self) -> "TrainerFn":
-        """
-        ``FITTING`` is used instead of ``TUNING`` as there are no "tune" dataloaders.
+        """``FITTING`` is used instead of ``TUNING`` as there are no "tune" dataloaders.
 
         This is used for the ``setup()`` and ``teardown()`` hooks
         """
@@ -54,8 +54,7 @@ class TrainerFn(LightningEnum):
 
 
 class RunningStage(LightningEnum):
-    """
-    Enum for the current running stage.
+    """Enum for the current running stage.
 
     This stage complements :class:`TrainerFn` by specifying the current running stage for each function.
     More than one running stage value can be set while a :class:`TrainerFn` is running:
@@ -78,14 +77,25 @@ class RunningStage(LightningEnum):
     def evaluating(self) -> bool:
         return self in (self.VALIDATING, self.TESTING)
 
+    @property
+    def dataloader_prefix(self) -> Optional[str]:
+        if self in (self.SANITY_CHECKING, self.TUNING):
+            return None
+        if self == self.VALIDATING:
+            return "val"
+        return self.value
+
 
 @dataclass
 class TrainerState:
-    """Dataclass to encapsulate the current :class:`~pytorch_lightning.trainer.trainer.Trainer` state"""
+    """Dataclass to encapsulate the current :class:`~pytorch_lightning.trainer.trainer.Trainer` state."""
 
     status: TrainerStatus = TrainerStatus.INITIALIZING
     fn: Optional[TrainerFn] = None
     stage: Optional[RunningStage] = None
+
+    # detect the fault tolerant flag
+    _fault_tolerant_mode: _FaultTolerantMode = field(default_factory=_FaultTolerantMode.detect_current_mode)
 
     @property
     def finished(self) -> bool:

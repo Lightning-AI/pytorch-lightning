@@ -42,6 +42,15 @@ def test_trainer_flag(caplog):
         trainer.fit(TestModel())
     assert "callbacks list already contains a Timer" in caplog.text
 
+    # Make sure max_time still honored even if max_epochs == -1
+    trainer = Trainer(max_time=dict(seconds=1), max_epochs=-1)
+    with pytest.raises(SystemExit):
+        trainer.fit(TestModel())
+    timer = [c for c in trainer.callbacks if isinstance(c, Timer)][0]
+    assert timer._duration == 1
+    assert trainer.max_epochs == -1
+    assert trainer.max_steps == -1
+
 
 @pytest.mark.parametrize(
     "duration,expected",
@@ -95,7 +104,7 @@ def test_timer_time_remaining(time_mock):
 
 
 def test_timer_stops_training(tmpdir, caplog):
-    """Test that the timer stops training before reaching max_epochs"""
+    """Test that the timer stops training before reaching max_epochs."""
     model = BoringModel()
     duration = timedelta(milliseconds=100)
     timer = Timer(duration=duration)
@@ -117,14 +126,8 @@ def test_timer_zero_duration_stop(tmpdir, interval):
     timer = Timer(duration=duration, interval=interval)
     trainer = Trainer(default_root_dir=tmpdir, callbacks=[timer])
     trainer.fit(model)
-    if interval == "step":
-        # timer triggers stop on step end
-        assert trainer.global_step == 1
-        assert trainer.current_epoch == 0
-    else:
-        # timer triggers stop on epoch end
-        assert trainer.global_step == len(trainer.train_dataloader)
-        assert trainer.current_epoch == 0
+    assert trainer.global_step == 0
+    assert trainer.current_epoch == 0
 
 
 @pytest.mark.parametrize("min_steps,min_epochs", [(None, 2), (3, None), (3, 2)])
@@ -135,7 +138,7 @@ def test_timer_duration_min_steps_override(tmpdir, min_steps, min_epochs):
     trainer = Trainer(default_root_dir=tmpdir, callbacks=[timer], min_steps=min_steps, min_epochs=min_epochs)
     trainer.fit(model)
     if min_epochs:
-        assert trainer.current_epoch >= min_epochs - 1
+        assert trainer.current_epoch >= min_epochs
     if min_steps:
         assert trainer.global_step >= min_steps - 1
     assert timer.time_elapsed() > duration.total_seconds()
@@ -148,23 +151,23 @@ def test_timer_resume_training(tmpdir):
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)
 
     # initial training
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=100, callbacks=[timer, checkpoint_callback])
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=100,
+        callbacks=[timer, checkpoint_callback],
+    )
     trainer.fit(model)
     assert not timer._offset
     assert timer.time_remaining() <= 0
     assert trainer.current_epoch < 99
     saved_global_step = trainer.global_step
 
-    # resume training (with depleted timer
+    # resume training (with depleted timer)
     timer = Timer(duration=timedelta(milliseconds=200))
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        callbacks=[timer, checkpoint_callback],
-        resume_from_checkpoint=checkpoint_callback.best_model_path,
-    )
-    trainer.fit(model)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=timer)
+    trainer.fit(model, ckpt_path=checkpoint_callback.best_model_path)
     assert timer._offset > 0
-    assert trainer.global_step == saved_global_step + 1
+    assert trainer.global_step == saved_global_step
 
 
 @RunIf(skip_windows=True)

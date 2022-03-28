@@ -11,40 +11,61 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+import shutil
+from collections import ChainMap, OrderedDict
+from functools import partial
+from typing import Any, IO, Iterable, List, Optional, Sequence, Type, Union
 
-from typing import Any, List, Optional, Sequence, Union
-
+import torch
 from deprecate.utils import void
 from torch.utils.data.dataloader import DataLoader
 
+import pytorch_lightning as pl
+from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
-from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
+from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.apply_func import apply_to_collection
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.fetching import (
+    AbstractDataFetcher,
+    DataFetcher,
+    DataLoaderIterDataFetcher,
+    InterBatchParallelDataFetcher,
+)
+from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
+
+if _RICH_AVAILABLE:
+    from rich.console import Console
+    from rich.table import Column, Table
 
 
 class EvaluationLoop(DataLoaderLoop):
     """Loops over all dataloaders for evaluation."""
 
-    def __init__(self):
+    def __init__(self, verbose: bool = True) -> None:
         super().__init__()
-        self.outputs = []
         self.epoch_loop = EvaluationEpochLoop()
+        self.verbose = verbose
 
-        self._results = ResultCollection(training=False)
-        self._max_batches: Optional[Union[int, Sequence[int]]] = None
+        self._results = _ResultCollection(training=False)
+        self._outputs: List[EPOCH_OUTPUT] = []
+        self._logged_outputs: List[_OUT_DICT] = []
+        self._max_batches: List[int] = []
         self._has_run: bool = False
+        self._data_fetcher: Optional[AbstractDataFetcher] = None
 
     @property
     def num_dataloaders(self) -> int:
-        """Returns the total number of dataloaders"""
+        """Returns the total number of dataloaders."""
         # case where user does:
         # return dl1, dl2
         dataloaders = self.dataloaders
-        if dataloaders is None:
-            return 0
         length = len(dataloaders)
         if length > 0 and isinstance(dataloaders[0], (list, tuple)):
             length = len(dataloaders[0])
@@ -52,213 +73,333 @@ class EvaluationLoop(DataLoaderLoop):
 
     @property
     def dataloaders(self) -> Sequence[DataLoader]:
-        """Returns the validation or test dataloaders"""
-        if self.trainer.testing:
-            return self.trainer.test_dataloaders
-        return self.trainer.val_dataloaders
+        """Returns the validation or test dataloaders."""
+        dataloaders = self.trainer.test_dataloaders if self.trainer.testing else self.trainer.val_dataloaders
+        if dataloaders is None:
+            return []
+        return dataloaders
 
     @property
-    def predictions(self):
-        """Returns the predictions from all dataloaders"""
-        return self.epoch_loop.predictions
+    def prefetch_batches(self) -> int:
+        batches = self.trainer.num_test_batches if self.trainer.testing else self.trainer.num_val_batches
+        is_unsized = batches[self.current_dataloader_idx] == float("inf")
+        inter_batch_parallelism = os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1"
+        return 1 if is_unsized or inter_batch_parallelism else 0
 
-    def connect(self, epoch_loop: EvaluationEpochLoop):
+    def connect(self, epoch_loop: EvaluationEpochLoop) -> None:  # type: ignore[override]
         """Connect the evaluation epoch loop with this loop."""
         self.epoch_loop = epoch_loop
 
     @property
     def done(self) -> bool:
-        """Returns whether all dataloaders are processed or evaluation should be skipped altogether"""
+        """Returns whether all dataloaders are processed or evaluation should be skipped altogether."""
         return super().done or self.skip
 
     @property
     def skip(self) -> bool:
         """Returns whether the evaluation should be skipped."""
-        max_batches = self.get_max_batches()
+        max_batches = self._get_max_batches()
         return sum(max_batches) == 0
 
     def reset(self) -> None:
-        """Resets the internal state of the loop"""
-        self._max_batches = self.get_max_batches()
+        """Resets the internal state of the loop."""
+        self._max_batches = self._get_max_batches()
         # bookkeeping
-        self.outputs = []
+        self._outputs = []
+        self._logged_outputs = []
 
         if isinstance(self._max_batches, int):
             self._max_batches = [self._max_batches] * len(self.dataloaders)
 
         super().reset()
+        # when restarting, if we are running `validate` or `test` twice, since there's no concept of `max_epochs` we
+        # need to reset the current state when the loop has finished running
+        if self.done and self.trainer.state.fn != TrainerFn.FITTING:
+            self.dataloader_progress.reset_on_run()
 
     def on_skip(self) -> List:
         return []
 
     def on_run_start(self, *args: Any, **kwargs: Any) -> None:
-        """Runs the ``on_evaluation_model_eval``, ``on_evaluation_start`` and ``on_evaluation_epoch_start`` hooks"""
+        """Runs the ``_on_evaluation_model_eval``, ``_on_evaluation_start`` and ``_on_evaluation_epoch_start``
+        hooks."""
         void(*args, **kwargs)
+
+        data_fetcher_cls = _select_data_fetcher_type(self.trainer)
+        self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)
+
         # hook
-        self.on_evaluation_model_eval()
+        self._on_evaluation_model_eval()
         self.trainer.lightning_module.zero_grad()
-        self.on_evaluation_start()
-        self.on_evaluation_epoch_start()
+        self._on_evaluation_start()
+        self._on_evaluation_epoch_start()
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
-        """Performs evaluation on one single dataloader"""
+        """Performs evaluation on one single dataloader."""
         void(*args, **kwargs)
-        dataloader = self.trainer.accelerator.process_dataloader(self.current_dataloader)
-        dataloader_iter = enumerate(dataloader)
-        dl_max_batches = self._max_batches[self.current_dataloader_idx]
 
-        dl_outputs = self.epoch_loop.run(
-            dataloader_iter, self.current_dataloader_idx, dl_max_batches, self.num_dataloaders
+        dataloader_idx = self.current_dataloader_idx
+        dataloader = self.current_dataloader
+        assert self._data_fetcher is not None
+        self._data_fetcher.setup(
+            dataloader,
+            batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=dataloader_idx),
         )
+        dl_max_batches = self._max_batches[dataloader_idx]
+
+        kwargs = OrderedDict()
+        if self.num_dataloaders > 1:
+            kwargs["dataloader_idx"] = dataloader_idx
+        dl_outputs = self.epoch_loop.run(self._data_fetcher, dl_max_batches, kwargs)
 
         # store batch level output per dataloader
-        if self.should_track_batch_outputs_for_epoch_end:
-            self.outputs.append(dl_outputs)
+        self._outputs.append(dl_outputs)
 
         if not self.trainer.sanity_checking:
             # indicate the loop has run
             self._has_run = True
 
-    def on_run_end(self) -> Any:
-        """Runs the ``on_evaluation_epoch_end`` hook"""
-        outputs = self.outputs
+    def on_advance_end(self) -> None:
+        self.trainer._logger_connector.epoch_end_reached()
 
-        # free memory
-        self.outputs = []
+        self._logged_outputs.append(self.trainer._logger_connector.update_eval_epoch_metrics())
 
-        # with a single dataloader don't pass a 2D list
-        if len(outputs) > 0 and self.num_dataloaders == 1:
-            outputs = outputs[0]
+        super().on_advance_end()
 
-        # lightning module method
-        self.evaluation_epoch_end(outputs)
+    def on_run_end(self) -> List[_OUT_DICT]:
+        """Runs the ``_on_evaluation_epoch_end`` hook."""
+        # if `done` returned True before any iterations were done, this won't have been called in `on_advance_end`
+        self.trainer._logger_connector.epoch_end_reached()
 
         # hook
-        self.on_evaluation_epoch_end()
-
-        # log epoch metrics
-        eval_loop_results = self.trainer.logger_connector.update_eval_epoch_metrics()
+        self._evaluation_epoch_end(self._outputs)
+        self._outputs = []  # free memory
 
         # hook
-        self.on_evaluation_end()
+        self._on_evaluation_epoch_end()
 
-        # save predictions to disk
-        self.epoch_loop.predictions.to_disk()
+        logged_outputs, self._logged_outputs = self._logged_outputs, []  # free memory
+        # include any logged outputs on epoch_end
+        epoch_end_logged_outputs = self.trainer._logger_connector.update_eval_epoch_metrics()
+        all_logged_outputs = dict(ChainMap(*logged_outputs))  # list[dict] -> dict
+        all_logged_outputs.update(epoch_end_logged_outputs)
+        for dl_outputs in logged_outputs:
+            dl_outputs.update(epoch_end_logged_outputs)
+
+        # log metrics
+        self.trainer._logger_connector.log_eval_end_metrics(all_logged_outputs)
+
+        # hook
+        self._on_evaluation_end()
 
         # enable train mode again
-        self.on_evaluation_model_train()
+        self._on_evaluation_model_train()
 
-        return eval_loop_results
+        if self.verbose and self.trainer.is_global_zero:
+            assert self.trainer.state.stage is not None
+            self._print_results(logged_outputs, self.trainer.state.stage)
 
-    def get_max_batches(self) -> List[Union[int, float]]:
-        """Returns the max number of batches for each dataloader"""
+        return logged_outputs
+
+    def teardown(self) -> None:
+        if self._data_fetcher is not None:
+            self._data_fetcher.teardown()
+            self._data_fetcher = None
+        self._results.cpu()
+        self.epoch_loop.teardown()
+
+    def _get_max_batches(self) -> List[int]:
+        """Returns the max number of batches for each dataloader."""
         if self.trainer.testing:
             max_batches = self.trainer.num_test_batches
         else:
             if self.trainer.sanity_checking:
-                self.trainer.num_sanity_val_batches = [
-                    min(self.trainer.num_sanity_val_steps, val_batches) for val_batches in self.trainer.num_val_batches
-                ]
                 max_batches = self.trainer.num_sanity_val_batches
             else:
                 max_batches = self.trainer.num_val_batches
         return max_batches
 
-    def reload_evaluation_dataloaders(self) -> None:
-        """Reloads dataloaders if necessary"""
-        model = self.trainer.lightning_module
+    def _reload_evaluation_dataloaders(self) -> None:
+        """Reloads dataloaders if necessary."""
         if self.trainer.testing:
-            self.trainer.reset_test_dataloader(model)
-        elif self.trainer.val_dataloaders is None or self.trainer._should_reload_dl_epoch:
-            self.trainer.reset_val_dataloader(model)
+            self.trainer.reset_test_dataloader()
+        elif self.trainer.val_dataloaders is None or self.trainer._data_connector._should_reload_val_dl:
+            self.trainer.reset_val_dataloader()
 
-    def on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
-        """Runs ``on_{validation/test}_start`` hooks"""
-        self.should_track_batch_outputs_for_epoch_end: bool = self._should_track_batch_outputs_for_epoch_end()
-
+    def _on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
+        """Runs ``on_{validation/test}_start`` hooks."""
         assert self._results is not None
         self._results.to(device=self.trainer.lightning_module.device)
 
         if self.trainer.testing:
-            self.trainer.call_hook("on_test_start", *args, **kwargs)
+            self.trainer._call_callback_hooks("on_test_start", *args, **kwargs)
+            self.trainer._call_lightning_module_hook("on_test_start", *args, **kwargs)
+            self.trainer._call_strategy_hook("on_test_start", *args, **kwargs)
         else:
-            self.trainer.call_hook("on_validation_start", *args, **kwargs)
+            self.trainer._call_callback_hooks("on_validation_start", *args, **kwargs)
+            self.trainer._call_lightning_module_hook("on_validation_start", *args, **kwargs)
+            self.trainer._call_strategy_hook("on_validation_start", *args, **kwargs)
 
-    def on_evaluation_model_eval(self) -> None:
-        """Sets model to eval mode"""
-        model_ref = self.trainer.lightning_module
+    def _on_evaluation_model_eval(self) -> None:
+        """Sets model to eval mode."""
         if self.trainer.testing:
-            model_ref.on_test_model_eval()
+            self.trainer._call_lightning_module_hook("on_test_model_eval")
         else:
-            model_ref.on_validation_model_eval()
+            self.trainer._call_lightning_module_hook("on_validation_model_eval")
 
-    def on_evaluation_model_train(self) -> None:
-        """Sets model to train mode"""
-        model_ref = self.trainer.lightning_module
+    def _on_evaluation_model_train(self) -> None:
+        """Sets model to train mode."""
         if self.trainer.testing:
-            model_ref.on_test_model_train()
+            self.trainer._call_lightning_module_hook("on_test_model_train")
         else:
-            model_ref.on_validation_model_train()
+            self.trainer._call_lightning_module_hook("on_validation_model_train")
 
-    def on_evaluation_end(self, *args: Any, **kwargs: Any) -> None:
-        """Runs ``on_{validation/test}_end`` hook"""
+    def _on_evaluation_end(self, *args: Any, **kwargs: Any) -> None:
+        """Runs ``on_{validation/test}_end`` hook."""
         if self.trainer.testing:
-            self.trainer.call_hook("on_test_end", *args, **kwargs)
+            self.trainer._call_callback_hooks("on_test_end", *args, **kwargs)
+            self.trainer._call_lightning_module_hook("on_test_end", *args, **kwargs)
+            self.trainer._call_strategy_hook("on_test_end", *args, **kwargs)
         else:
-            self.trainer.call_hook("on_validation_end", *args, **kwargs)
+            self.trainer._call_callback_hooks("on_validation_end", *args, **kwargs)
+            self.trainer._call_lightning_module_hook("on_validation_end", *args, **kwargs)
+            self.trainer._call_strategy_hook("on_validation_end", *args, **kwargs)
 
-        if self.trainer.state.fn != TrainerFn.FITTING:
-            # summarize profile results
-            self.trainer.profiler.describe()
+        # reset the logger connector state
+        self.trainer._logger_connector.reset_results()
 
-        # reset any `torchmetrics.Metric` and the logger connector state
-        self.trainer.logger_connector.reset(metrics=True)
-
-    def on_evaluation_epoch_start(self, *args: Any, **kwargs: Any) -> None:
-        """Runs ``on_epoch_start`` and ``on_{validation/test}_epoch_start`` hooks"""
-        self.trainer.logger_connector.on_epoch_start()
-        self.trainer.call_hook("on_epoch_start", *args, **kwargs)
+    def _on_evaluation_epoch_start(self, *args: Any, **kwargs: Any) -> None:
+        """Runs ``on_epoch_start`` and ``on_{validation/test}_epoch_start`` hooks."""
+        self.trainer._logger_connector.on_epoch_start()
+        self.trainer._call_callback_hooks("on_epoch_start", *args, **kwargs)
+        self.trainer._call_lightning_module_hook("on_epoch_start", *args, **kwargs)
 
         if self.trainer.testing:
-            self.trainer.call_hook("on_test_epoch_start", *args, **kwargs)
+            self.trainer._call_callback_hooks("on_test_epoch_start", *args, **kwargs)
+            self.trainer._call_lightning_module_hook("on_test_epoch_start", *args, **kwargs)
         else:
-            self.trainer.call_hook("on_validation_epoch_start", *args, **kwargs)
+            self.trainer._call_callback_hooks("on_validation_epoch_start", *args, **kwargs)
+            self.trainer._call_lightning_module_hook("on_validation_epoch_start", *args, **kwargs)
 
-    def _should_track_batch_outputs_for_epoch_end(self) -> bool:
-        """Whether the batch outputs should be stored for later usage"""
-        model = self.trainer.lightning_module
-        if self.trainer.testing:
-            return is_overridden("test_epoch_end", model)
-        return is_overridden("validation_epoch_end", model)
-
-    def evaluation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
+    def _evaluation_epoch_end(self, outputs: List[EPOCH_OUTPUT]) -> None:
         """Runs ``{validation/test}_epoch_end``"""
-        # inform logger the batch loop has finished
-        self.trainer.logger_connector.epoch_end_reached()
+        self.trainer._logger_connector._evaluation_epoch_end()
+
+        # with a single dataloader don't pass a 2D list
+        output_or_outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]] = (
+            outputs[0] if len(outputs) > 0 and self.num_dataloaders == 1 else outputs
+        )
 
         # call the model epoch end
-        model = self.trainer.lightning_module
-
-        # unset dataloader_idx in model
-        model._current_dataloader_idx = None
-
         if self.trainer.testing:
-            if is_overridden("test_epoch_end", model):
-                model._current_fx_name = "test_epoch_end"
-                model.test_epoch_end(outputs)
-
+            self.trainer._call_lightning_module_hook("test_epoch_end", output_or_outputs)
         else:
-            if is_overridden("validation_epoch_end", model):
-                model._current_fx_name = "validation_epoch_end"
-                model.validation_epoch_end(outputs)
+            self.trainer._call_lightning_module_hook("validation_epoch_end", output_or_outputs)
 
-    def on_evaluation_epoch_end(self) -> None:
-        """Runs ``on_{validation/test}_epoch_end`` hook"""
+    def _on_evaluation_epoch_end(self) -> None:
+        """Runs ``on_{validation/test}_epoch_end`` hook."""
         hook_name = "on_test_epoch_end" if self.trainer.testing else "on_validation_epoch_end"
-        self.trainer.call_hook(hook_name)
-        self.trainer.call_hook("on_epoch_end")
-        self.trainer.logger_connector.on_epoch_end()
+        self.trainer._call_callback_hooks(hook_name)
+        self.trainer._call_lightning_module_hook(hook_name)
 
-    def teardown(self) -> None:
-        self._results.cpu()
-        self.epoch_loop.teardown()
+        self.trainer._call_callback_hooks("on_epoch_end")
+        self.trainer._call_lightning_module_hook("on_epoch_end")
+        self.trainer._logger_connector.on_epoch_end()
+
+    @staticmethod
+    def _get_keys(data: dict) -> Iterable[str]:
+        if any(isinstance(v, dict) for v in data.values()):
+            for v in data.values():
+                yield from apply_to_collection(v, dict, dict.keys)
+        else:
+            yield from data.keys()
+
+    @staticmethod
+    def _find_value(data: dict, target: str) -> Iterable[Any]:
+        for k, v in data.items():
+            if k == target:
+                yield v
+            elif isinstance(v, dict):
+                yield from EvaluationLoop._find_value(v, target)
+
+    @staticmethod
+    def _print_results(results: List[_OUT_DICT], stage: str, file: Optional[IO[str]] = None) -> None:
+        # remove the dl idx suffix
+        results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
+        metrics = sorted({k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys})
+        if not metrics:
+            return
+        headers = [f"DataLoader {i}" for i in range(len(results))]
+
+        # fallback is useful for testing of printed output
+        term_size = shutil.get_terminal_size(fallback=(120, 30)).columns or 120
+        max_length = int(min(max(len(max(metrics + headers, key=len)), 25), term_size / 2))
+
+        rows: List[List[Any]] = [[] for _ in metrics]
+
+        for result in results:
+            for metric, row in zip(metrics, rows):
+                v = list(EvaluationLoop._find_value(result, metric))
+                if v:
+                    val = v[0]
+                    if isinstance(val, torch.Tensor):
+                        val = val.item() if val.numel() == 1 else val.tolist()
+                    row.append(f"{val}")
+                else:
+                    row.append(" ")
+
+        # keep one column with max length for metrics
+        num_cols = int((term_size - max_length) / max_length)
+
+        for i in range(0, len(headers), num_cols):
+            table_headers = headers[i : (i + num_cols)]
+            table_rows = [row[i : (i + num_cols)] for row in rows]
+
+            table_headers.insert(0, f"{stage} Metric".capitalize())
+
+            if _RICH_AVAILABLE:
+                console = Console(file=file)
+
+                columns = [Column(h, justify="center", style="magenta", width=max_length) for h in table_headers]
+                columns[0].style = "cyan"
+
+                table = Table(*columns)
+                for metric, row in zip(metrics, table_rows):
+                    row.insert(0, metric)
+                    table.add_row(*row)
+                console.print(table)
+            else:
+                row_format = f"{{:^{max_length}}}" * len(table_headers)
+                half_term_size = int(term_size / 2)
+
+                bar = "─" * term_size
+                lines = [bar, row_format.format(*table_headers).rstrip(), bar]
+                for metric, row in zip(metrics, table_rows):
+                    # deal with column overflow
+                    if len(metric) > half_term_size:
+                        while len(metric) > half_term_size:
+                            row_metric = metric[:half_term_size]
+                            metric = metric[half_term_size:]
+                            lines.append(row_format.format(row_metric, *row).rstrip())
+                        lines.append(row_format.format(metric, " ").rstrip())
+                    else:
+                        lines.append(row_format.format(metric, *row).rstrip())
+                lines.append(bar)
+                print(os.linesep.join(lines), file=file)
+
+
+def _select_data_fetcher_type(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:
+    lightning_module = trainer.lightning_module
+    step_fx_name = "test_step" if trainer.testing else "validation_step"
+    step_fx = getattr(lightning_module, step_fx_name)
+    if is_param_in_hook_signature(step_fx, "dataloader_iter", explicit=True):
+        rank_zero_warn(
+            f"Found `dataloader_iter` argument in the `{step_fx_name}`. Note that the support for "
+            "this signature is experimental and the behavior is subject to change."
+        )
+        return DataLoaderIterDataFetcher
+    elif os.getenv("PL_INTER_BATCH_PARALLELISM", "0") == "1":
+        if not isinstance(trainer.accelerator, GPUAccelerator):
+            raise MisconfigurationException("Inter batch parallelism is available only when using Nvidia GPUs.")
+        return InterBatchParallelDataFetcher
+    return DataFetcher

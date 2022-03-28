@@ -15,6 +15,7 @@
 import logging
 import os
 import re
+from typing import Optional
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 
@@ -22,12 +23,23 @@ log = logging.getLogger(__name__)
 
 
 class SLURMEnvironment(ClusterEnvironment):
-    """Cluster environment for training on a cluster managed by SLURM."""
+    """Cluster environment for training on a cluster managed by SLURM.
 
-    def creates_children(self) -> bool:
+    Args:
+        auto_requeue: Whether automatic job resubmission is enabled or not. How and under which conditions a job gets
+            rescheduled gets determined by the owner of this plugin.
+    """
+
+    def __init__(self, auto_requeue: bool = True) -> None:
+        super().__init__()
+        self.auto_requeue = auto_requeue
+
+    @property
+    def creates_processes_externally(self) -> bool:
         return True
 
-    def master_address(self) -> str:
+    @property
+    def main_address(self) -> str:
         # figure out the root node addr
         slurm_nodelist = os.environ.get("SLURM_NODELIST")
         if slurm_nodelist:
@@ -40,15 +52,16 @@ class SLURMEnvironment(ClusterEnvironment):
         log.debug(f"MASTER_ADDR: {os.environ['MASTER_ADDR']}")
         return root_node
 
-    def master_port(self) -> int:
+    @property
+    def main_port(self) -> int:
         # -----------------------
         # SLURM JOB = PORT number
         # -----------------------
         # this way every process knows what port to use
-        default_port = os.environ.get("SLURM_JOB_ID")
-        if default_port:
+        job_id = os.environ.get("SLURM_JOB_ID")
+        if job_id is not None:
             # use the last 4 numbers in the job id as the id
-            default_port = default_port[-4:]
+            default_port = job_id[-4:]
             # all ports should be in the 10k+ range
             default_port = int(default_port) + 15000
         else:
@@ -59,13 +72,36 @@ class SLURMEnvironment(ClusterEnvironment):
         # -----------------------
         # in case the user passed it in
         if "MASTER_PORT" in os.environ:
-            default_port = os.environ["MASTER_PORT"]
+            default_port = int(os.environ["MASTER_PORT"])
         else:
             os.environ["MASTER_PORT"] = str(default_port)
 
         log.debug(f"MASTER_PORT: {os.environ['MASTER_PORT']}")
+        return default_port
 
-        return int(default_port)
+    @staticmethod
+    def detect() -> bool:
+        """Returns ``True`` if the current process was launched on a SLURM cluster."""
+        return "SLURM_NTASKS" in os.environ
+
+    @staticmethod
+    def job_name() -> Optional[str]:
+        return os.environ.get("SLURM_JOB_NAME")
+
+    @staticmethod
+    def job_id() -> Optional[int]:
+        # in interactive mode, don't make logs use the same job id
+        in_slurm_interactive_mode = SLURMEnvironment.job_name() == "bash"
+        if in_slurm_interactive_mode:
+            return None
+
+        job_id = os.environ.get("SLURM_JOB_ID")
+        if job_id is None:
+            return None
+        try:
+            return int(job_id)
+        except ValueError:
+            return None
 
     def world_size(self) -> int:
         return int(os.environ["SLURM_NTASKS"])

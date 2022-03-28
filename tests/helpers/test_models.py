@@ -34,13 +34,15 @@ from tests.helpers.simple_models import ClassificationModel, RegressionModel
     ],
 )
 def test_models(tmpdir, data_class, model_class):
-    """Test simple models"""
+    """Test simple models."""
     dm = data_class() if data_class else data_class
     model = model_class()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     trainer.fit(model, datamodule=dm)
-    trainer.test(model, datamodule=dm)
+
+    if dm is not None:
+        trainer.test(model, datamodule=dm)
 
     model.to_torchscript()
     if data_class:
