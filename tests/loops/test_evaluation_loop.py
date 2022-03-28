@@ -52,7 +52,6 @@ def test_set_epoch_called_eval_predict(tmpdir):
         dataset = RandomDataset(32, 64)
         sampler = RandomSampler(dataset)
         sampler.set_epoch = Mock()
-        sampler.set_epoch.reset_mock()
         return DataLoader(dataset, sampler=sampler)
 
     model = BoringModel()
