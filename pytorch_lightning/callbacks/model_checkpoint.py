@@ -354,7 +354,7 @@ class ModelCheckpoint(Callback):
         """
         rank_zero_deprecation(
             f"`{self.__class__.__name__}.save_checkpoint()` was deprecated in v1.6 and will be removed in v1.8."
-            " You can use `trainer.save_checkpoint()` instead of manually saving a checkpoint."
+            " You can use `trainer.save_checkpoint()` instead to manually save a checkpoint."
         )
         monitor_candidates = self._monitor_candidates(trainer)
         self._save_topk_checkpoint(trainer, monitor_candidates)
