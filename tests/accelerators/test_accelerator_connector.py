@@ -570,14 +570,6 @@ def test_set_devices_if_none_cpu():
     assert trainer.num_devices == 3
 
 
-def test_devices_with_cpu_only_supports_integer():
-
-    with pytest.warns(UserWarning, match="The flag `devices` must be an int"):
-        trainer = Trainer(accelerator="cpu", devices="1,3")
-    assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert trainer.num_devices == 1
-
-
 @pytest.mark.parametrize("training_type", ["ddp2", "dp"])
 def test_unsupported_strategy_types_on_cpu(training_type):
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
