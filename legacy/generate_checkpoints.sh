@@ -17,8 +17,8 @@ ENV_PATH="$LEGACY_PATH/vEnv"
 # iterate over all arguments assuming that each argument is version
 for pl_ver in "$@"
 do
-	echo "processing version: $pl_ver"
-	# mkdir "$LEGACY_PATH/$pl_ver"
+  echo "processing version: $pl_ver"
+  # mkdir "$LEGACY_PATH/$pl_ver"
 
   # create local env
   echo $ENV_PATH
