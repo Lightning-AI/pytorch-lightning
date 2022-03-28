@@ -34,7 +34,7 @@ def _test_collect_states(rank, world_size):
     assert collected_state == {1: {"something": torch.tensor([1])}, 0: {"something": torch.tensor([0])}}
 
 
-@RunIf(skip_windows=True, min_gpus=2, min_torch="1.10")
+@RunIf(min_gpus=2, min_torch="1.10", skip_windows=True)
 def test_collect_states():
     """This test ensures state are properly collected across processes.
 
