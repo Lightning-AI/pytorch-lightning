@@ -19,30 +19,12 @@ from torch import Tensor
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import BatchSampler, DistributedSampler, Sampler
 
-import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.utilities import rank_zero_deprecation
 
 
 class LightningDistributedModule(_LightningModuleWrapperBase):
-    def __init__(self, pl_module: "pl.LightningModule") -> None:
-        """Wraps the user's LightningModule and redirects the forward call to the appropriate method, either
-        ``training_step``, ``validation_step``, ``test_step`` or ``predict``.
-
-        This class is used in combination with :class:`~torch.nn.parallel.DistributedDataParallel`.
-
-        Example:
-
-            ddp_model = torch.nn.parallel.DistributedDataParallel(
-                module=LightningDistributedModule(lightning_module),
-                device_ids=[local_rank],
-                ...
-            )
-
-        Args:
-            pl_module: the model to wrap
-        """
-        super().__init__(pl_module)
+    ...
 
 
 def _find_tensors(

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any
+from typing import Any, Union
 
 import torch
 import torch.nn as nn
@@ -57,7 +57,7 @@ class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Modu
 
 
 class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
-    def __init__(self, pl_module: "pl.LightningModule"):
+    def __init__(self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]) -> None:
         """Wraps the user's LightningModule and redirects the forward call to the appropriate method, either
         ``training_step``, ``validation_step``, ``test_step``, or ``predict_step``.
 
@@ -74,7 +74,9 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         self._ddp_params_and_buffers_to_ignore = [f"module.{p}" for p in _ddp_params_and_buffers_to_ignore]
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        trainer = self.module.trainer
+        pl_module = unwrap_lightning_module(self.module)
+        trainer = pl_module.trainer
+
         if trainer is not None:
             if trainer.training:
                 output = self.module.training_step(*inputs, **kwargs)
@@ -82,7 +84,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
                 # it is done manually in `LightningModule.manual_backward`
                 # `require_backward_grad_sync` will be reset in the
                 # ddp_strategy `post_training_step` hook
-                if not self.module.automatic_optimization:
+                if not pl_module.automatic_optimization:
                     trainer.model.require_backward_grad_sync = False  # type: ignore[assignment]
                 return output
             if trainer.testing:

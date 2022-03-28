@@ -6,7 +6,11 @@ import torch
 from torch.nn import Module
 
 import pytorch_lightning as pl
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, unwrap_lightning_module
+from pytorch_lightning.overrides.base import (
+    _LightningModuleWrapperBase,
+    _LightningPrecisionModuleWrapperBase,
+    unwrap_lightning_module,
+)
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -32,7 +36,7 @@ log = logging.getLogger(__name__)
 
 
 class LightningBaguaModule(_LightningModuleWrapperBase):
-    def __init__(self, pl_module: "pl.LightningModule") -> None:
+    def __init__(self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]) -> None:
         super().__init__(pl_module)
         # Bagua use `bagua_module_name` to distinguish different modules
         self._bagua_module_name = f"{pl_module.__class__.__name__}{id(pl_module)}"
