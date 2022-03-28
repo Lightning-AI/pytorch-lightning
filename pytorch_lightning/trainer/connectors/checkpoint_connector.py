@@ -15,6 +15,7 @@
 import logging
 import os
 import re
+from copy import deepcopy
 from typing import Any, Dict, Optional
 
 import torch
@@ -217,11 +218,31 @@ class CheckpointConnector:
         ):
             prec_plugin.load_state_dict(self._loaded_checkpoint["native_amp_scaling_state"])
 
+    def restore_quantization_callbacks(self) -> None:
+        if not self._loaded_checkpoint:
+            return
+
+        from pytorch_lightning.callbacks.quantization import QuantizationAwareTraining
+
+        callback_states = self._loaded_checkpoint.get("callbacks")
+
+        if callback_states is None:
+            return
+
+        for callback in self.trainer.callbacks:
+            if isinstance(callback, QuantizationAwareTraining):
+
+                state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
+                if state:
+                    state = deepcopy(state)
+                    callback.load_state_dict(state)
+
+                callback.restore(self.trainer.model, state)
+
     def restore_callbacks(self) -> None:
         """Restores all callbacks from the pre-loaded checkpoint."""
-        # FIXME
-        # if not self._loaded_checkpoint:
-        #     return
+        if not self._loaded_checkpoint:
+            return
 
         self.trainer._call_callbacks_on_load_checkpoint(self._loaded_checkpoint)
         self.trainer._call_callbacks_load_state_dict(self._loaded_checkpoint)

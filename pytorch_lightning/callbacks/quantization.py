@@ -334,16 +334,12 @@ class QuantizationAwareTraining(Callback):
         if "predict" in self._observer_disabled_stages:
             self._restore_last_observer_enabled()
 
-    def on_save_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def state_dict(self) -> Dict[str, Any]:
         arg_names = ("qconfig", "observer_type", "collect_quantization", "modules_to_fuse", "input_compatible")
         attribs = {n: getattr(self, f"_{n}") for n in arg_names}
         return attribs
 
-    def on_load_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
-    ) -> None:
-        for k, v in callback_state.items():
+    def restore(self, pl_module, state_dict):
+        for k, v in state_dict.items():
             setattr(self, f"_{k}", v)
         self._prepare_model(pl_module)
