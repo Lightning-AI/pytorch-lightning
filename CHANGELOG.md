@@ -588,12 +588,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `Trainer.num_gpus` in favor of `Trainer.num_devices` when GPU is used ([#12384](https://github.com/PyTorchLightning/pytorch-lightning/pull/12384))
 
 
-- Deprecated `Trainer.ipus` in favor of `Trainer.num_devices` when IPU is used ([#12386](https://github.com/PyTorchLightning/pytorch-lightning/pull/12386))
-
-
-- Deprecated `Trainer.num_processes` in favor of `Trainer.num_devices` ([#12388](https://github.com/PyTorchLightning/pytorch-lightning/pull/12388))
-
-
 - Deprecated `Trainer.data_parallel_device_ids` in favor of `Trainer.device_ids` ([#12072](https://github.com/PyTorchLightning/pytorch-lightning/pull/12072))
 
 
@@ -601,9 +595,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Deprecated passing only the callback state to `Callback.on_load_checkpoint(callback_state)` in favor of passing the callback state to `Callback.load_state_dict` and in 1.8, passing the entire checkpoint dictionary to `Callback.on_load_checkpoint(checkpoint)` ([#11887](https://github.com/PyTorchLightning/pytorch-lightning/pull/11887))
-
-
-- Deprecated `Trainer.gpus` in favor of `Trainer.device_ids` or `Trainer.num_devices` ([#12436](https://github.com/PyTorchLightning/pytorch-lightning/pull/12436))
 
 
 ### Removed
