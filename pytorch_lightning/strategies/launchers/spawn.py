@@ -97,7 +97,6 @@ class _SpawnLauncher(_Launcher):
         kwargs: Any,
         return_queue: SimpleQueue,
     ) -> None:
-        torch._C._set_print_stack_traces_on_fatal_signal(True)
         self._strategy._worker_setup(process_idx)
         results = function(*args, **kwargs)
 
