@@ -65,15 +65,15 @@ Notes (Optional):
 When developing the docs, building docs can be VERY slow locally because of the notebook tutorials.
 To speed this up, enable this flag in before building docs:
 
-```python
+```bash
 # builds notebooks which is slow
 export PL_FAST_DOCS_DEV=0
 
 # fast notebook build which is fast
 export PL_FAST_DOCS_DEV=1
+```
 
 ## docs CSS/theme
 
 To change the CSS theme of the docs, go [here](https://github.com/PyTorchLightning/lightning_sphinx_theme).
 Apologies in advance... this is a bit complex to build and requires basic understanding of javascript/npm.
-```
