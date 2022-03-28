@@ -15,6 +15,7 @@ r"""
 Stochastic Weight Averaging Callback
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 """
+import weakref
 from copy import deepcopy
 from typing import Any, Callable, Dict, List, Optional, Union
 
@@ -129,6 +130,7 @@ class StochasticWeightAveraging(Callback):
         self._swa_scheduler: Optional[SWALR] = None
         self._scheduler_state: Optional[Dict] = None
         self._scheduler_configs: Optional[List] = None
+        self._trainer: Optional[weakref.ref] = None
         self._init_n_averaged = 0
         self._latest_update_epoch = -1
         self.momenta: Optional[Dict[nn.modules.batchnorm._BatchNorm, float]] = None
@@ -172,6 +174,11 @@ class StochasticWeightAveraging(Callback):
 
         if self._scheduler_state is not None:
             self._clear_schedulers(trainer)
+        else:
+            # We're probably not restoring from a checkpoint, but possibly the checkpoint data just
+            # hasn't been loaded yet if strategy.restore_checkpoint_after_setup is True,
+            # so keep a hold of the trainer so that we can defer clearing schedulers if needed.
+            self._trainer = weakref.ref(trainer)
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
         if (not self._initialized) and (self.swa_start <= trainer.current_epoch <= self.swa_end):
@@ -314,31 +321,29 @@ class StochasticWeightAveraging(Callback):
         """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L95-L97."""
         return averaged_model_parameter + (model_parameter - averaged_model_parameter) / (num_averaged + 1)
 
-    def on_save_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
-    ) -> dict:
+    def state_dict(self) -> Dict[str, Any]:
         return {
             "n_averaged": 0 if self.n_averaged is None else self.n_averaged.item(),
             "latest_update_epoch": self._latest_update_epoch,
             "scheduler_state": None if self._swa_scheduler is None else self._swa_scheduler.state_dict(),
-            "average_model_parameters": self._get_average_model_parameters(trainer),
+            "average_model_parameters": None if self._average_model is None else list(self._average_model.parameters()),
         }
 
-    def on_load_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
-    ) -> None:
-        self._init_n_averaged = callback_state["n_averaged"]
-        self._latest_update_epoch = callback_state["latest_update_epoch"]
-        self._scheduler_state = callback_state["scheduler_state"]
-        self._load_average_model_parameters(callback_state["average_model_parameters"])
-        if self._scheduler_state is not None:
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        self._init_n_averaged = state_dict["n_averaged"]
+        self._latest_update_epoch = state_dict["latest_update_epoch"]
+        self._scheduler_state = state_dict["scheduler_state"]
+        self._load_average_model_parameters(state_dict["average_model_parameters"])
+        # If we're loading state after on_fit_start, check if we need to clear schedulers
+        trainer = None if self._trainer is None else self._trainer()
+        if self._scheduler_state is not None and trainer is not None:
             self._clear_schedulers(trainer)
 
     def _clear_schedulers(self, trainer: "pl.Trainer") -> None:
         # If we have scheduler state saved, clear the scheduler configs so that we don't try to
         # load state into the wrong type of schedulers when restoring scheduler checkpoint state.
         # We'll configure the scheduler and re-load its state in on_train_epoch_start.
-        # Note that this is called from both on_load_checkpoint and on_fit_start, to handle when the
+        # Note that this is called from both load_state_dict and on_fit_start, to handle when the
         # training strategy's restore_checkpoint_after_setup is both True and False, and relies
         # on the callback state being restored before the schedulers.
         # See https://github.com/PyTorchLightning/pytorch-lightning/issues/11665 for background.
@@ -346,13 +351,6 @@ class StochasticWeightAveraging(Callback):
             assert len(trainer.lr_scheduler_configs) == 1
             self._scheduler_configs = list(trainer.strategy.lr_scheduler_configs)
             trainer.lr_scheduler_configs.clear()
-
-    def _get_average_model_parameters(self, trainer: "pl.Trainer") -> Optional[List[nn.Parameter]]:
-        if self._average_model is None or not (self.swa_start <= trainer.current_epoch <= self.swa_end):
-            # If we're not within the SWA epochs then when loading checkpoint data we would want
-            # to use parameters from the underlying model rather than the SWA parameters.
-            return
-        return list(self._average_model.parameters())
 
     def _load_average_model_parameters(self, parameter_state: Any) -> None:
         if self._average_model is None or parameter_state is None:
