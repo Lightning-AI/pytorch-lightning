@@ -426,6 +426,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Deprecated
 
+- Deprecated `amp_backend` property of the `Trainer` in favor of instance-checks ([#12069](https://github.com/PyTorchLightning/pytorch-lightning/pull/12069)) 
+
 - Deprecated `backend` property of `MixedPrecisionPlugin` in favor of instance-checks ([#12069](https://github.com/PyTorchLightning/pytorch-lightning/pull/12069))
 
 - Deprecated `training_type_plugin` property in favor of `strategy` in `Trainer` and updated the references ([#11141](https://github.com/PyTorchLightning/pytorch-lightning/pull/11141))
