@@ -68,23 +68,33 @@ def remove_module_hooks(model: torch.nn.Module) -> None:
 
 class LightningDeepSpeedModule(_LightningModuleWrapperBase):
     def __init__(
-        self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: int
+        self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: Union[str, int]
     ) -> None:
         super().__init__(pl_module)
         self.precision = precision
 
     def forward(self, *inputs, **kwargs):
-        if self.precision == 16:
+        if self.precision == PrecisionType.HALF:
             inputs = self._move_float_tensors_to_half(inputs)
+        elif self.precision == PrecisionType.BFLOAT:
+            inputs = self._move_float_tensors_to_bfloat(inputs)
 
         return super().forward(*inputs, **kwargs)
 
     @staticmethod
-    def batch_to(data):
+    def batch_to_half(data):
         return data.half()
 
     def _move_float_tensors_to_half(self, batch: Any):
-        batch = apply_to_collection(batch, (torch.FloatTensor, torch.cuda.FloatTensor), function=self.batch_to)
+        batch = apply_to_collection(batch, (torch.FloatTensor, torch.cuda.FloatTensor), function=self.batch_to_half)
+        return batch
+
+    @staticmethod
+    def batch_to_bfloat(data):
+        return data.bfloat16()
+
+    def _move_float_tensors_to_bfloat(self, batch: Any):
+        batch = apply_to_collection(batch, (torch.FloatTensor, torch.cuda.FloatTensor), function=self.batch_to_bfloat)
         return batch
 
 
@@ -270,7 +280,7 @@ class DeepSpeedStrategy(DDPStrategy):
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
-                "To use the DeepSpeed plugin, you must have DeepSpeed installed. pip install deepspeed"
+                "To use the `DeepSpeedStrategy`, you must have DeepSpeed installed. pip install deepspeed"
             )
 
         super().__init__(
@@ -667,6 +677,8 @@ class DeepSpeedStrategy(DDPStrategy):
             elif "amp" not in self.config and self.precision_plugin.amp_type == AMPType.APEX:
                 rank_zero_info("Enabling DeepSpeed APEX Implementation.")
                 self.config["amp"] = {"enabled": True, "opt_level": self.precision_plugin.amp_level}
+        elif "bf16" not in self.config and self.precision_plugin.precision == PrecisionType.BFLOAT:
+            self.config["bf16"] = {"enabled": True}
 
     def _create_default_config(
         self,

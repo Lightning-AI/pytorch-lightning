@@ -155,10 +155,10 @@ def test_deepspeed_strategy_env(tmpdir, monkeypatch, deepspeed_config):
 
 
 @RunIf(deepspeed=True)
-@pytest.mark.parametrize("precision", [16, "mixed"])
+@pytest.mark.parametrize("precision", [16, "mixed", "bf16"])
 @pytest.mark.parametrize(
     "amp_backend",
-    ["native", pytest.param("apex", marks=RunIf(amp_apex=True))],
+    ["native", pytest.param("apex", marks=RunIf(amp_apex=True)), "native"],
 )
 def test_deepspeed_precision_choice(amp_backend, precision, tmpdir):
     """Test to ensure precision plugin is also correctly chosen.
@@ -1185,3 +1185,20 @@ def test_deepspeed_multi_save_same_filepath(tmpdir):
     ckpt_path = os.path.join(trainer.checkpoint_callback.dirpath, "last.ckpt")
     expected = ["latest", "zero_to_fp32.py", "checkpoint"]
     assert set(expected) == set(os.listdir(ckpt_path))
+
+
+@RunIf(min_gpus=2, standalone=True, deepspeed=True)
+def test_deepspeed_with_bfloat16_precision(tmpdir):
+    """Test that deepspeed works with bfloat16 precision."""
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        strategy="deepspeed",
+        accelerator="gpu",
+        devices=2,
+        fast_dev_run=True,
+        precision="bf16",
+        num_sanity_val_steps=0,
+    )
+    trainer.fit(model)
+    assert model.layer.weight.dtype == torch.bfloat16

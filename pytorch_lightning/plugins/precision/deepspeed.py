@@ -20,6 +20,7 @@ from torch.optim import LBFGS, Optimizer
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
+from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -35,7 +36,15 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     """Precision plugin for DeepSpeed integration."""
 
     def __init__(self, precision: Union[str, int], amp_type: str, amp_level: Optional[str] = None) -> None:
+        supported_precision_values = (16, 32, PrecisionType.BFLOAT.value, PrecisionType.MIXED.value)
+        if precision not in supported_precision_values:
+            raise ValueError(
+                f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported."
+                f" `precision` must be one of: {supported_precision_values}."
+            )
+
         super().__init__()
+
         self.precision = precision
         self.amp_type = amp_type
         self.amp_level = amp_level
