@@ -16,7 +16,7 @@ There are three types of Plugins in Lightning with different responsibilities:
 
 - Precision Plugins
 - CheckpointIO Plugins
-- Cluster Environments (e.g. customized access to the cluster's environment interface)
+- Cluster Environments
 
 
 Precision Plugins
@@ -27,7 +27,7 @@ We provide precision plugins for the users so that they can benefit from numeric
 
 .. code-block:: python
 
-    # precision: FP16Plugin
+    # Training with 16-bit precision
     trainer = Trainer(precision=16)
 
 The full list of built-in precision plugins is listed below.
@@ -51,6 +51,7 @@ The full list of built-in precision plugins is listed below.
     TPUBf16PrecisionPlugin
     TPUPrecisionPlugin
 
+More information regarding precision with Lightning can be found :doc:`here <../advanced/precision>`
 
 CheckpointIO Plugins
 --------------------
@@ -75,7 +76,7 @@ You could learn more about custom checkpointing with Lightning :ref:`here <../co
 Cluster Environments
 --------------------
 
-Clusters (e.g. customized access to the cluster's environment interface)
+Users can define the interface of their own cluster environment based on the requirements of their infrastructure.
 
 .. currentmodule:: pytorch_lightning.plugins.environments
 
