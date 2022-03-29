@@ -23,7 +23,7 @@ COPY ./ ./pytorch-lightning/
 
 # Pull the legacy checkpoints
 RUN cd pytorch-lightning && \
-    wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints_12491.zip -P legacy/ && \
+    wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/ && \
     unzip -o legacy/checkpoints.zip -d legacy/ && \
     ls -l legacy/checkpoints/
 

@@ -55,7 +55,7 @@ jobs:
       working-directory: ./legacy
       run: |
         # enter legacy and update checkpoints from S3
-        curl https://pl-public-data.s3.amazonaws.com/legacy/checkpoints_12491.zip --output checkpoints.zip
+        curl https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip --output checkpoints.zip
         unzip -o checkpoints.zip
         ls -l checkpoints/
 
