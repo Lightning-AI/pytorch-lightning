@@ -24,6 +24,7 @@ from torch import optim
 
 import pytorch_lightning
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CSVLogger, LightningLoggerBase, LoggerCollection
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
@@ -1038,7 +1039,6 @@ def test_trainer_num_processes(monkeypatch, trainer_kwargs, expected_num_process
         ({"accelerator": "gpu", "devices": 1}, [0]),
         ({"accelerator": "gpu", "devices": 2}, [0, 1]),
         ({"accelerator": "gpu", "devices": [1]}, [1]),
-        ({"accelerator": "gpu", "devices": "0"}, None),
         ({"accelerator": "gpu", "devices": "0,"}, [0]),
     ],
 )
@@ -1054,3 +1054,96 @@ def test_trainer_data_parallel_device_ids(monkeypatch, trainer_kwargs, expected_
         " Please use `Trainer.device_ids` instead."
     ):
         assert trainer.data_parallel_device_ids == expected_data_parallel_device_ids
+
+
+def test_deprecated_mc_save_checkpoint():
+    mc = ModelCheckpoint()
+    trainer = Trainer()
+    with mock.patch.object(trainer, "save_checkpoint"), pytest.deprecated_call(
+        match=r"ModelCheckpoint.save_checkpoint\(\)` was deprecated in v1.6"
+    ):
+        mc.save_checkpoint(trainer)
+
+
+def test_v1_8_0_callback_on_load_checkpoint_hook(tmpdir):
+    class TestCallbackLoadHook(Callback):
+        def on_load_checkpoint(self, trainer, pl_module, callback_state):
+            print("overriding on_load_checkpoint")
+
+    model = BoringModel()
+    trainer = Trainer(
+        callbacks=[TestCallbackLoadHook()],
+        max_epochs=1,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
+    with pytest.deprecated_call(
+        match="`TestCallbackLoadHook.on_load_checkpoint` will change its signature and behavior in v1.8."
+        " If you wish to load the state of the callback, use `load_state_dict` instead."
+        r" In v1.8 `on_load_checkpoint\(..., checkpoint\)` will receive the entire loaded"
+        " checkpoint dictionary instead of callback state."
+    ):
+        trainer.fit(model)
+
+
+def test_v1_8_0_callback_on_save_checkpoint_hook(tmpdir):
+    class TestCallbackSaveHookReturn(Callback):
+        def on_save_checkpoint(self, trainer, pl_module, checkpoint):
+            return {"returning": "on_save_checkpoint"}
+
+    class TestCallbackSaveHookOverride(Callback):
+        def on_save_checkpoint(self, trainer, pl_module, checkpoint):
+            print("overriding without returning")
+
+    model = BoringModel()
+    trainer = Trainer(
+        callbacks=[TestCallbackSaveHookReturn()],
+        max_epochs=1,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+    )
+    trainer.fit(model)
+    with pytest.deprecated_call(
+        match="Returning a value from `TestCallbackSaveHookReturn.on_save_checkpoint` is deprecated in v1.6"
+        " and will be removed in v1.8. Please override `Callback.state_dict`"
+        " to return state to be saved."
+    ):
+        trainer.save_checkpoint(tmpdir + "/path.ckpt")
+
+    trainer.callbacks = [TestCallbackSaveHookOverride()]
+    trainer.save_checkpoint(tmpdir + "/pathok.ckpt")
+
+
+@pytest.mark.parametrize(
+    "trainer_kwargs",
+    [
+        {"accelerator": "gpu", "devices": 2},
+        {"accelerator": "gpu", "devices": [0, 2]},
+        {"accelerator": "gpu", "devices": "2"},
+        {"accelerator": "gpu", "devices": "0,"},
+    ],
+)
+def test_trainer_gpus(monkeypatch, trainer_kwargs):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "device_count", lambda: 4)
+    trainer = Trainer(**trainer_kwargs)
+    with pytest.deprecated_call(
+        match="`Trainer.gpus` was deprecated in v1.6 and will be removed in v1.8."
+        " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
+    ):
+        assert trainer.gpus == trainer_kwargs["devices"]
+
+
+def test_trainer_tpu_cores(monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
+    monkeypatch.setattr(pytorch_lightning.accelerators.tpu.TPUAccelerator, "parse_devices", lambda: 8)
+    trainer = Trainer(accelerator="TPU", devices=8)
+    with pytest.deprecated_call(
+        match="`Trainer.tpu_cores` is deprecated in v1.6 and will be removed in v1.8. "
+        "Please use `Trainer.num_devices` instead."
+    ):
+        trainer.tpu_cores == 8

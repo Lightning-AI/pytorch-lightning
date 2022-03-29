@@ -109,7 +109,7 @@ def test_ddp_torch_dist_is_available_in_setup(
             raise SystemExit()
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", gpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=1)
     with pytest.deprecated_call(match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND` was deprecated in v1.6"):
         with pytest.raises(SystemExit):
             trainer.fit(model)
@@ -144,7 +144,8 @@ def test_ddp_wrapper(tmpdir, precision):
         fast_dev_run=True,
         precision=precision,
         strategy="ddp",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         callbacks=CustomCallback(),
     )
     trainer.fit(model)

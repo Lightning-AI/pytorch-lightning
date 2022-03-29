@@ -256,7 +256,7 @@ class WandbLogger(LightningLoggerBase):
         anonymous: Optional[bool] = None,
         version: Optional[str] = None,
         project: Optional[str] = None,
-        log_model: Optional[bool] = False,
+        log_model: Union[str, bool] = False,
         experiment=None,
         prefix: Optional[str] = "",
         **kwargs,

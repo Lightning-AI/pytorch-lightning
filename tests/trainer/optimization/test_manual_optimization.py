@@ -72,7 +72,7 @@ class ManualOptModel(BoringModel):
         ),
         pytest.param(
             {"accelerator": "gpu", "devices": 1, "precision": 16, "amp_backend": "apex", "amp_level": "O2"},
-            marks=RunIf(amp_apex=True, min_gpus=1),
+            marks=RunIf(min_gpus=1, amp_apex=True),
         ),
     ],
 )

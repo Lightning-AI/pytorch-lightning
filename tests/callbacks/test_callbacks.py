@@ -164,15 +164,15 @@ def test_resume_callback_state_saved_by_type_hooks(tmpdir):
     model = BoringModel()
     callback = OldStatefulCallbackHooks(state=111)
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
-    # TODO: catch deprecated call after deprecations introduced (see reference PR #11887)
-    trainer.fit(model)
+    with pytest.deprecated_call():
+        trainer.fit(model)
     ckpt_path = Path(trainer.checkpoint_callback.best_model_path)
     assert ckpt_path.exists()
 
     callback = OldStatefulCallbackHooks(state=222)
     trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback])
-    # TODO: catch deprecated call after deprecations introduced (see reference PR #11887)
-    trainer.fit(model, ckpt_path=ckpt_path)
+    with pytest.deprecated_call():
+        trainer.fit(model, ckpt_path=ckpt_path)
     assert callback.state == 111
 
 
@@ -238,14 +238,14 @@ def test_resume_callback_state_all(tmpdir):
     model = BoringModel()
     callback = AllStatefulCallback(state=111)
     trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
-    # TODO: catch deprecated call after deprecations introduced (see reference PR #11887)
-    trainer.fit(model)
+    with pytest.deprecated_call():
+        trainer.fit(model)
     ckpt_path = Path(trainer.checkpoint_callback.best_model_path)
     assert ckpt_path.exists()
 
     callback = AllStatefulCallback(state=222)
     trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback])
-    # TODO: catch deprecated call after deprecations introduced (see reference PR #11887)
-    trainer.fit(model, ckpt_path=ckpt_path)
+    with pytest.deprecated_call():
+        trainer.fit(model, ckpt_path=ckpt_path)
     assert callback.state == 10
     assert callback.old_state_precedence == 10

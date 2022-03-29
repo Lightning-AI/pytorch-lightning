@@ -27,6 +27,7 @@ from pytorch_lightning.utilities import (
     _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
     _HOROVOD_AVAILABLE,
+    _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _RICH_AVAILABLE,
@@ -68,6 +69,7 @@ class RunIf:
         amp_apex: bool = False,
         tpu: bool = False,
         ipu: bool = False,
+        hpu: bool = False,
         horovod: bool = False,
         horovod_nccl: bool = False,
         skip_windows: bool = False,
@@ -76,7 +78,6 @@ class RunIf:
         fairscale_fully_sharded: bool = False,
         deepspeed: bool = False,
         rich: bool = False,
-        skip_49370: bool = False,
         skip_hanging_spawn: bool = False,
         omegaconf: bool = False,
         slow: bool = False,
@@ -94,6 +95,7 @@ class RunIf:
             amp_apex: Require that NVIDIA/apex is installed.
             tpu: Require that TPU is available.
             ipu: Require that IPU is available.
+            hpu: Require that HPU is available.
             horovod: Require that Horovod is installed.
             horovod_nccl: Require that Horovod is installed with NCCL support.
             skip_windows: Skip for Windows platform.
@@ -102,7 +104,6 @@ class RunIf:
             fairscale_fully_sharded: Require that `fairscale` fully sharded support is available.
             deepspeed: Require that microsoft/DeepSpeed is installed.
             rich: Require that willmcgugan/rich is installed.
-            skip_49370: Skip the test as it's impacted by https://github.com/pytorch/pytorch/issues/49370.
             skip_hanging_spawn: Skip the test as it's impacted by hanging loggers on spawn.
             omegaconf: Require that omry/omegaconf is installed.
             slow: Mark the test as slow, our CI will run it in a separate job.
@@ -149,8 +150,14 @@ class RunIf:
             reasons.append("TPU")
 
         if ipu:
-            conditions.append(not _IPU_AVAILABLE)
+            env_flag = os.getenv("PL_RUN_IPU_TESTS", "0")
+            conditions.append(env_flag != "1" or not _IPU_AVAILABLE)
             reasons.append("IPU")
+            kwargs["ipu"] = True
+
+        if hpu:
+            conditions.append(not _HPU_AVAILABLE)
+            reasons.append("HPU")
 
         if horovod:
             conditions.append(not _HOROVOD_AVAILABLE)
@@ -182,15 +189,6 @@ class RunIf:
         if rich:
             conditions.append(not _RICH_AVAILABLE)
             reasons.append("Rich")
-
-        if skip_49370:
-            # strategy=ddp_spawn, accelerator=cpu, python>=3.9, torch<1.8 does not work
-            py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-            ge_3_9 = Version(py_version) >= Version("3.9")
-            torch_version = get_distribution("torch").version
-            old_torch = Version(torch_version) < Version("1.8")
-            conditions.append(ge_3_9 and old_torch)
-            reasons.append("Impacted by https://github.com/pytorch/pytorch/issues/49370")
 
         if skip_hanging_spawn:
             # strategy=ddp_spawn, accelerator=cpu, python>=3.8, torch<1.9 does not work

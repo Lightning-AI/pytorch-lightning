@@ -223,15 +223,10 @@ a comma separated list of GPU ids:
     Trainer(accelerator="gpu", devices=-1)
 
 The table below lists examples of possible input formats and how they are interpreted by Lightning.
-Note in particular the difference between ``devices=0``, ``devices=[0]`` and ``devices="0"``.
 
 +------------------+-----------+---------------------+---------------------------------+
 | `devices`        | Type      | Parsed              | Meaning                         |
 +==================+===========+=====================+=================================+
-| None             | NoneType  | None                | CPU                             |
-+------------------+-----------+---------------------+---------------------------------+
-| 0                | int       | None                | CPU                             |
-+------------------+-----------+---------------------+---------------------------------+
 | 3                | int       | [0, 1, 2]           | first 3 GPUs                    |
 +------------------+-----------+---------------------+---------------------------------+
 | -1               | int       | [0, 1, 2, ...]      | all available GPUs              |
@@ -239,8 +234,6 @@ Note in particular the difference between ``devices=0``, ``devices=[0]`` and ``d
 | [0]              | list      | [0]                 | GPU 0                           |
 +------------------+-----------+---------------------+---------------------------------+
 | [1, 3]           | list      | [1, 3]              | GPUs 1 and 3                    |
-+------------------+-----------+---------------------+---------------------------------+
-| "0"              | str       | None                | CPU                             |
 +------------------+-----------+---------------------+---------------------------------+
 | "3"              | str       | [0, 1, 2]           | first 3 GPUs                    |
 +------------------+-----------+---------------------+---------------------------------+
@@ -251,8 +244,8 @@ Note in particular the difference between ``devices=0``, ``devices=[0]`` and ``d
 
 .. note::
 
-    When specifying number of gpus as an integer ``devices=k``, setting the trainer flag
-    ``auto_select_gpus=True`` will automatically help you find ``k`` gpus that are not
+    When specifying number of ``devices`` as an integer ``devices=k``, setting the trainer flag
+    ``auto_select_gpus=True`` will automatically help you find ``k`` GPUs that are not
     occupied by other processes. This is especially useful when GPUs are configured
     to be in "exclusive mode", such that only one process at a time can access them.
     For more details see the :doc:`trainer guide <../common/trainer>`.
@@ -289,7 +282,7 @@ Lightning allows multiple ways of training
 - DistributedDataParallel 2 (``strategy='ddp2'``) (DP in a machine, DDP across machines).
 - Horovod (``strategy='horovod'``) (multi-machine, multi-gpu, configured at runtime)
 - Bagua (``strategy='bagua'``) (multiple-gpus across many machines with advanced training algorithms)
-- TPUs (``tpu_cores=8|x``) (tpu or TPU pod)
+- TPUs (``accelerator="tpu", devices=8|x``) (tpu or TPU pod)
 
 .. note::
     If you request multiple GPUs or nodes without setting a mode, DDP Spawn will be automatically used.
@@ -302,7 +295,7 @@ For a deeper understanding of what Lightning is doing, feel free to read this
 Data Parallel
 ^^^^^^^^^^^^^
 :class:`~torch.nn.DataParallel` (DP) splits a batch across k GPUs.
-That is, if you have a batch of 32 and use DP with 2 gpus, each GPU will process 16 samples,
+That is, if you have a batch of 32 and use DP with 2 GPUs, each GPU will process 16 samples,
 after which the root node will aggregate the results.
 
 .. warning:: DP use is discouraged by PyTorch and Lightning. State is not maintained on the replicas created by the
@@ -756,7 +749,7 @@ Let's say you have a batch size of 7 in your dataloader.
         def train_dataloader(self):
             return Dataset(..., batch_size=7)
 
-In DDP, DDP_SPAWN, Deepspeed, DDP_SHARDED, or Horovod your effective batch size will be 7 * gpus * num_nodes.
+In DDP, DDP_SPAWN, Deepspeed, DDP_SHARDED, or Horovod your effective batch size will be 7 * devices * num_nodes.
 
 .. code-block:: python
 
@@ -793,7 +786,7 @@ The reason is that the full batch is visible to all GPUs on the node when using 
 
 Torch Distributed Elastic
 -------------------------
-Lightning supports the use of Torch Distributed Elastic to enable fault-tolerant and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of gpus you want to use in the trainer.
+Lightning supports the use of Torch Distributed Elastic to enable fault-tolerant and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of GPUs you want to use in the trainer.
 
 .. code-block:: python
 

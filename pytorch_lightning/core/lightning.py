@@ -66,7 +66,7 @@ class LightningModule(
     CheckpointHooks,
     Module,
 ):
-    # Below is for property support of JIT in PyTorch 1.7
+    # Below is for property support of JIT
     # since none of these are important when using JIT, we are going to ignore them.
     __jit_unused_properties__ = (
         [
@@ -95,7 +95,7 @@ class LightningModule(
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
         # pointer to the trainer object
-        self.trainer = None
+        self.trainer: Optional["pl.Trainer"] = None
 
         self._use_amp: bool = False
 
@@ -1106,7 +1106,7 @@ class LightningModule(
 
         The :class:`~pytorch_lightning.callbacks.BasePredictionWriter` should be used while using a spawn
         based accelerator. This happens for ``Trainer(strategy="ddp_spawn")``
-        or training on 8 TPU cores with ``Trainer(tpu_cores=8)`` as predictions won't be returned.
+        or training on 8 TPU cores with ``Trainer(accelerator="tpu", devices=8)`` as predictions won't be returned.
 
         Example ::
 
