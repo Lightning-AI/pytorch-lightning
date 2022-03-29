@@ -387,7 +387,7 @@ Choose a training strategy: ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"tpu_spawn"`
     lite = Lite(strategy="ddp_spawn", accelerator="cpu", devices=4)
 
 
-Additionally, you can pass in your custom training type strategy by configuring additional parameters.
+Additionally, you can pass in your custom strategy by configuring additional parameters.
 
 .. code-block:: python
 
