@@ -102,7 +102,7 @@ Or read the `advanced install guide <starter/installation.html>`_
 
 .. customcalloutitem::
    :description: From hyperparameters sweeps to cloud training to Pruning and Quantization - Lightning covers the key use-cases.
-   :header: Common usecases
+   :header: Common Usecases
    :button_link: common_usecases.html
 
 
