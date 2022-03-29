@@ -114,7 +114,6 @@ class PrecisionPlugin(CheckpointHooks):
         trainer._call_callback_hooks("on_before_optimizer_step", optimizer, optimizer_idx)
         trainer._call_lightning_module_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         # TODO: this is done for the entire model but should be changed to per-optimizer
-
         if optimizer_idx == 0:
             self._track_grad_norm(trainer)
         self._clip_gradients(
