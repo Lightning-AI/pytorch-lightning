@@ -155,10 +155,10 @@ def test_deepspeed_strategy_env(tmpdir, monkeypatch, deepspeed_config):
 
 
 @RunIf(deepspeed=True)
-@pytest.mark.parametrize("precision", [16, "mixed", "bf16"])
+@pytest.mark.parametrize("precision", [16, "mixed"])
 @pytest.mark.parametrize(
     "amp_backend",
-    ["native", pytest.param("apex", marks=RunIf(amp_apex=True)), "native"],
+    ["native", pytest.param("apex", marks=RunIf(amp_apex=True))],
 )
 def test_deepspeed_precision_choice(amp_backend, precision, tmpdir):
     """Test to ensure precision plugin is also correctly chosen.
@@ -1200,5 +1200,9 @@ def test_deepspeed_with_bfloat16_precision(tmpdir):
         precision="bf16",
         num_sanity_val_steps=0,
     )
+
+    assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecisionPlugin)
+    assert trainer.strategy.precision_plugin.precision == "bf16"
+
     trainer.fit(model)
     assert model.layer.weight.dtype == torch.bfloat16
