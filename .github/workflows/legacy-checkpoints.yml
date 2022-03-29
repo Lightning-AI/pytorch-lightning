@@ -31,17 +31,18 @@ jobs:
         while IFS= read -r line; do
             bash legacy/generate_checkpoints.sh $line
         done <<< $(cat legacy/back-compatible-versions.txt)
+        zip -r legacy/checkpoints.zip legacy/checkpoints
 
-    - name: Push files to S3
-      working-directory: ./legacy
-      run: |
-        # aws s3 sync legacy/checkpoints/ s3://pl-public-data/legacy/checkpoints/
-        # zip -r checkpoints.zip checkpoints
-        # aws s3 cp checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
-
-    - name: Upload generated checkpoints
+    - name: Upload checkpoints as GitHub Actions' artifact
       uses: actions/upload-artifact@v3
       with:
-        name: legacy-checkpoints-${{ github.sha }}
-        path: legacy/checkpoints/
+        name: checkpoints-${{ github.sha }}
+        path: legacy/checkpoints.zip
       if: always()
+
+    - name: Upload checkpoints to S3
+      run: |
+        # Upload checkpoints without archiving.
+        # aws s3 sync legacy/checkpoints/ s3://pl-public-data/legacy/checkpoints/
+        # Upload checkpoints archived in a zip.
+        # aws s3 cp legacy/checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
