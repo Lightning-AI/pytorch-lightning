@@ -44,7 +44,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
             )
 
         super().__init__()
-
         self.precision = precision
         self.amp_type = amp_type
         self.amp_level = amp_level
