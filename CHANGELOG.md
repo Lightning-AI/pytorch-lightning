@@ -57,7 +57,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
--
+- Removed the `progress_bar_refresh_rate` argument from the Trainer constructor  ([#FIX](https://github.com/PyTorchLightning/pytorch-lightning/pull/FIX))
 
 
 -

@@ -41,7 +41,6 @@ class CallbackConnector:
         checkpoint_callback: Optional[bool],
         enable_checkpointing: bool,
         enable_progress_bar: bool,
-        progress_bar_refresh_rate: Optional[int],
         process_position: int,
         default_root_dir: Optional[str],
         weights_save_path: Optional[str],
@@ -92,15 +91,7 @@ class CallbackConnector:
                 " `process_position` directly to the Trainer's `callbacks` argument instead."
             )
 
-        if progress_bar_refresh_rate is not None:
-            rank_zero_deprecation(
-                f"Setting `Trainer(progress_bar_refresh_rate={progress_bar_refresh_rate})` is deprecated in v1.5 and"
-                " will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with"
-                " `refresh_rate` directly to the Trainer's `callbacks` argument instead. Or, to disable the progress"
-                " bar pass `enable_progress_bar = False` to the Trainer."
-            )
-
-        self._configure_progress_bar(progress_bar_refresh_rate, process_position, enable_progress_bar)
+        self._configure_progress_bar(process_position, enable_progress_bar)
 
         # configure the ModelSummary callback
         self._configure_model_summary_callback(enable_model_summary, weights_summary)
@@ -220,9 +211,7 @@ class CallbackConnector:
         if not existing_swa:
             self.trainer.callbacks = [StochasticWeightAveraging()] + self.trainer.callbacks
 
-    def _configure_progress_bar(
-        self, refresh_rate: Optional[int] = None, process_position: int = 0, enable_progress_bar: bool = True
-    ) -> None:
+    def _configure_progress_bar(self, process_position: int = 0, enable_progress_bar: bool = True) -> None:
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
             raise MisconfigurationException(
@@ -244,12 +233,10 @@ class CallbackConnector:
             )
 
         # Return early if the user intends to disable the progress bar callback
-        if refresh_rate == 0 or not enable_progress_bar:
+        if not enable_progress_bar:
             return
-        if refresh_rate is None:
-            refresh_rate = 1
 
-        progress_bar_callback = TQDMProgressBar(refresh_rate=refresh_rate, process_position=process_position)
+        progress_bar_callback = TQDMProgressBar(process_position=process_position)
         self.trainer.callbacks.append(progress_bar_callback)
 
     def _configure_timer_callback(self, max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None) -> None:
