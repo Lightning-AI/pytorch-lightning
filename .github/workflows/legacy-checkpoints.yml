@@ -34,9 +34,10 @@ jobs:
 
     - name: Generate checkpoints
       run: |
-        while IFS= read -r line; do
-            bash generate_checkpoints.sh $line
-        done <<< $(cat back-compatible-versions.txt)
+        # while IFS= read -r line; do
+        #     bash generate_checkpoints.sh $line
+        # done <<< $(cat back-compatible-versions.txt)
+        bash generate_checkpoints.sh 1.5.0 1.5.1
         zip -r checkpoints.zip checkpoints
 
     - name: Upload checkpoints as GitHub Actions' artifact
