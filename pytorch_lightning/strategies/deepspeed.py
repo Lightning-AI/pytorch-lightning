@@ -74,7 +74,7 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
         self.precision = precision
 
     def forward(self, *inputs, **kwargs):
-        if self.precision == PrecisionType.HALF:
+        if self.precision == 16:
             inputs = self._move_float_tensors_to_half(inputs)
         elif self.precision == PrecisionType.BFLOAT:
             inputs = self._move_float_tensors_to_bfloat(inputs)
