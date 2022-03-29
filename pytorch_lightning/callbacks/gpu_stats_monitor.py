@@ -128,8 +128,8 @@ class GPUStatsMonitor(Callback):
 
         if trainer.strategy.root_device.type != "cuda":
             raise MisconfigurationException(
-                "You are using GPUStatsMonitor but are not running on GPU"
-                f" since gpus attribute in Trainer is set to {trainer.gpus}."
+                "You are using GPUStatsMonitor but are not running on GPU."
+                f" The root device type is {trainer.strategy.root_device.type}."
             )
 
         # The logical device IDs for selected devices

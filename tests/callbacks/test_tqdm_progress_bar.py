@@ -582,7 +582,8 @@ def test_progress_bar_max_val_check_interval(
         max_epochs=1,
         enable_model_summary=False,
         val_check_interval=val_check_interval,
-        gpus=world_size,
+        accelerator="gpu",
+        devices=world_size,
         strategy="ddp",
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
@@ -593,12 +594,14 @@ def test_progress_bar_max_val_check_interval(
     val_checks_per_epoch = total_train_batches / val_check_batch
     total_val_batches = total_val_samples // (val_batch_size * world_size)
     pbar_callback = trainer.progress_bar_callback
-    assert pbar_callback.val_progress_bar.n == total_val_batches
-    assert pbar_callback.val_progress_bar.total == total_val_batches
-    total_val_batches = total_val_batches * val_checks_per_epoch
-    assert pbar_callback.main_progress_bar.n == total_train_batches + total_val_batches
-    assert pbar_callback.main_progress_bar.total == total_train_batches + total_val_batches
-    assert pbar_callback.is_enabled == trainer.is_global_zero
+
+    if trainer.is_global_zero:
+        assert pbar_callback.val_progress_bar.n == total_val_batches
+        assert pbar_callback.val_progress_bar.total == total_val_batches
+        total_val_batches = total_val_batches * val_checks_per_epoch
+        assert pbar_callback.main_progress_bar.n == total_train_batches + total_val_batches
+        assert pbar_callback.main_progress_bar.total == total_train_batches + total_val_batches
+        assert pbar_callback.is_enabled
 
 
 def test_get_progress_bar_metrics(tmpdir: str):

@@ -22,7 +22,7 @@ from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 
-@RunIf(min_gpus=2, deepspeed=True, standalone=True)
+@RunIf(min_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_collate_checkpoint(tmpdir):
     """Test to ensure that with DeepSpeed Stage 3 we can collate the sharded checkpoints into a single file."""
     model = BoringModel()

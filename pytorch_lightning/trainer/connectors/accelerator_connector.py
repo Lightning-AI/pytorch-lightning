@@ -79,13 +79,7 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import (
-    _HOROVOD_AVAILABLE,
-    _HPU_AVAILABLE,
-    _IPU_AVAILABLE,
-    _TORCH_GREATER_EQUAL_1_8,
-    _TPU_AVAILABLE,
-)
+from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE, _HPU_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE
 
 log = logging.getLogger(__name__)
 
@@ -217,10 +211,7 @@ class AcceleratorConnector:
 
     def _init_deterministic(self, deterministic: bool) -> None:
         self.deterministic = deterministic
-        if _TORCH_GREATER_EQUAL_1_8:
-            torch.use_deterministic_algorithms(deterministic)
-        else:
-            torch.set_deterministic(deterministic)
+        torch.use_deterministic_algorithms(deterministic)
         if deterministic:
             # fixing non-deterministic part of horovod
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
@@ -521,7 +512,7 @@ class AcceleratorConnector:
             self._parallel_devices = self.accelerator.get_parallel_devices(self._devices_flag)
 
     def _set_devices_flag_if_auto_passed(self) -> None:
-        if self._devices_flag == "auto" or not self._devices_flag:
+        if self._devices_flag == "auto" or self._devices_flag is None:
             self._devices_flag = self.accelerator.auto_device_count()
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
@@ -625,7 +616,7 @@ class AcceleratorConnector:
         hvd.init()
         if isinstance(self.accelerator, GPUAccelerator):
             # Horovod assigns one local GPU per process
-            self._parallel_devices = list(range(hvd.local_size()))
+            self._parallel_devices = [torch.device(f"cuda:{i}") for i in range(hvd.local_size())]
         else:
             self._parallel_devices = [torch.device("cpu")] * hvd.local_size()
 

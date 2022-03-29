@@ -59,3 +59,21 @@ Notes (Optional):
 - You need to have LaTeX installed for rendering math equations. You can for example install TeXLive by doing one of the following:
   - on Ubuntu (Linux) run `apt-get install texlive` or otherwise follow the instructions on the TeXLive website
   - use the [RTD docker image](https://hub.docker.com/r/readthedocs/build)
+
+## Developing docs
+
+When developing the docs, building docs can be VERY slow locally because of the notebook tutorials.
+To speed this up, enable this flag in before building docs:
+
+```bash
+# builds notebooks which is slow
+export PL_FAST_DOCS_DEV=0
+
+# fast notebook build which is fast
+export PL_FAST_DOCS_DEV=1
+```
+
+## docs CSS/theme
+
+To change the CSS theme of the docs, go [here](https://github.com/PyTorchLightning/lightning_sphinx_theme).
+Apologies in advance... this is a bit complex to build and requires basic understanding of javascript/npm.

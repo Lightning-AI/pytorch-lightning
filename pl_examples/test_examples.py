@@ -28,7 +28,7 @@ ARGS_DEFAULT = (
     "--trainer.limit_predict_batches 2 "
     "--data.batch_size 32 "
 )
-ARGS_GPU = ARGS_DEFAULT + "--trainer.gpus 1 "
+ARGS_GPU = ARGS_DEFAULT + "--trainer.accelerator gpu --trainer.devices 1 "
 
 
 @pytest.mark.skipif(not _DALI_AVAILABLE, reason="Nvidia DALI required")
