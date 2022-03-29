@@ -1445,7 +1445,7 @@ checkpoint, training will start from the beginning of the next epoch.
 strategy
 ^^^^^^^^
 
-Supports passing different training strategies with aliases (ddp, ddp_spawn, etc) as well as custom training type plugins.
+Supports passing different training strategies with aliases (ddp, ddp_spawn, etc) as well as custom strategies.
 
 .. code-block:: python
 
@@ -1455,7 +1455,7 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
     # Training with the DDP Spawn strategy using 4 cpu processes
     trainer = Trainer(strategy="ddp_spawn", accelerator="cpu", devices=4)
 
-.. note:: Additionally, you can pass your custom training type plugins to the ``strategy`` argument.
+.. note:: Additionally, you can pass your custom strategy to the ``strategy`` argument.
 
 .. code-block:: python
 

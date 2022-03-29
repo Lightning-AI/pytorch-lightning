@@ -1496,7 +1496,7 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
 
 
 def test_spawn_predict_return_predictions(tmpdir):
-    """Test that `return_predictions=True` raise a MisconfigurationException with spawn training type plugins."""
+    """Test that `return_predictions=True` raise a MisconfigurationException with spawn strategies."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", strategy="ddp_spawn", devices=2, fast_dev_run=True)
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
