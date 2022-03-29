@@ -121,7 +121,7 @@ def parse_tpu_cores(tpu_cores: Optional[Union[int, str, List[int]]]) -> Optional
 
     Raises:
         MisconfigurationException:
-            If TPU cores aren't 1 or 8 cores, or no TPU devices are found
+            If TPU cores aren't 1, 8 or [<1-8>]
     """
     _check_data_type(tpu_cores)
 
