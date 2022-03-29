@@ -68,8 +68,8 @@ jobs:
       displayName: 'Env details'
 
     - bash: |
-        wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/
-        unzip -o legacy/checkpoints.zip -d legacy/
+        wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints_12491.zip -P legacy/
+        unzip -o legacy/checkpoints_12491.zip -d legacy/
         ls -l legacy/checkpoints/
       displayName: 'Get legacy checkpoints'
 
