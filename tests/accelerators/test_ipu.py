@@ -590,7 +590,7 @@ def test_accelerator_ipu_with_ipus_priority():
 
 @RunIf(ipu=True)
 def test_set_devices_if_none_ipu():
-    with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
+    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         trainer = Trainer(accelerator="ipu", ipus=8)
     assert trainer.num_devices == 8
 

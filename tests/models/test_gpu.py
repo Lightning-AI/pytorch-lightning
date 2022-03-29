@@ -191,7 +191,7 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
 def test_torchelastic_gpu_parsing(mocked_device_count, mocked_is_available, gpus):
     """Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device That we omit
     sanitizing the gpus as only one of the GPUs is visible."""
-    with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
+    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         trainer = Trainer(gpus=gpus)
     assert isinstance(trainer._accelerator_connector.cluster_environment, TorchElasticEnvironment)
     # when use gpu

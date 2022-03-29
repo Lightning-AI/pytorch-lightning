@@ -305,7 +305,7 @@ def test_tpu_cores_with_argparse(cli_args, expected):
 
     for k, v in expected.items():
         assert getattr(args, k) == v
-    with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
+    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         assert Trainer.from_argparse_args(args)
 
 
