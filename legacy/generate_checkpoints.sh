@@ -17,7 +17,7 @@ do
   source $ENV_PATH/bin/activate
 
   # there are problem to load ckpt in older versions since they are saved the newer versions
-  python -m pip install "pytorch_lightning==$pl_ver" torch "torchmetrics" "scikit-learn" --progress-bar off
+  python -m pip install "pytorch_lightning==$pl_ver" torch "torchmetrics" "scikit-learn" --quiet
 
   python --version
   python -m pip --version
