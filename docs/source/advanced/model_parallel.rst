@@ -719,7 +719,7 @@ DDP Optimizations
 
 
 When Using DDP Strategies, Set find_unused_parameters=False
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 By default, we have set ``find_unused_parameters=True`` for compatibility reasons that have been observed in the past (refer to the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
 When enabled, it can result in a performance hit and can be disabled in most cases. Read more about it `here <https://pytorch.org/docs/stable/notes/ddp.html#internal-design>`_.
@@ -732,7 +732,8 @@ When enabled, it can result in a performance hit and can be disabled in most cas
     from pytorch_lightning.strategies import DDPStrategy
 
     trainer = pl.Trainer(
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy=DDPStrategy(find_unused_parameters=False),
     )
 
@@ -741,7 +742,8 @@ When enabled, it can result in a performance hit and can be disabled in most cas
     from pytorch_lightning.strategies import DDPSpawnStrategy
 
     trainer = pl.Trainer(
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy=DDPSpawnStrategy(find_unused_parameters=False),
     )
 
@@ -765,7 +767,7 @@ training and apply special optimizations during runtime.
 
 
 When Using DDP on a Multi-node Cluster, Set NCCL Parameters
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 `NCCL <https://developer.nvidia.com/nccl>`__ is the NVIDIA Collective Communications Library that is used by PyTorch to handle communication across nodes and GPUs. There are reported benefits in terms of speedups when adjusting NCCL parameters as seen in this `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues/7179>`__. In the issue, we see a 30% speed improvement when training the Transformer XLM-RoBERTa and a 15% improvement in training with Detectron2.
 
@@ -894,7 +896,8 @@ When using Post-localSGD, you must also pass ``model_averaging_period`` to allow
 
     model = MyModel()
     trainer = Trainer(
-        gpus=4,
+        accelerator="gpu",
+        devices=4,
         strategy=DDPStrategy(
             ddp_comm_state=post_localSGD.PostLocalSGDState(
                 process_group=None,

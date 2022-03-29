@@ -243,7 +243,7 @@ def save_hyperparameters(
         if isinstance(init_args[k], nn.Module):
             rank_zero_warn(
                 f"Attribute {k!r} is an instance of `nn.Module` and is already saved during checkpointing."
-                " It is recommended to ignore them using `self.save_hyperparameters(ignore=[k!r])`."
+                f" It is recommended to ignore them using `self.save_hyperparameters(ignore=[{k}!r])`."
             )
 
     if not args:

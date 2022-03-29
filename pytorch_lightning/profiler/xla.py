@@ -15,10 +15,10 @@ import logging
 from typing import Dict
 
 from pytorch_lightning.profiler.profiler import Profiler
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, _TPU_AVAILABLE
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
-if _TPU_AVAILABLE and _TORCH_GREATER_EQUAL_1_8:
+if _TPU_AVAILABLE:
     import torch_xla.debug.profiler as xp
 
 log = logging.getLogger(__name__)
@@ -45,8 +45,6 @@ class XLAProfiler(Profiler):
         """
         if not _TPU_AVAILABLE:
             raise MisconfigurationException("`XLAProfiler` is only supported on TPUs")
-        if not _TORCH_GREATER_EQUAL_1_8:
-            raise MisconfigurationException("`XLAProfiler` is only supported with `torch-xla >= 1.8`")
         super().__init__(dirpath=None, filename=None)
         self.port = port
         self._recording_map: Dict = {}
