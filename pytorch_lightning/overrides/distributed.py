@@ -12,36 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from typing import Any, cast, Iterator, List, Sized, Union
+from typing import Any, cast, Iterable, Iterator, List, Sized, Union
 
 import torch
 from torch import Tensor
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import BatchSampler, DistributedSampler, Sampler
 
-import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.utilities import rank_zero_deprecation
 
 
 class LightningDistributedModule(_LightningModuleWrapperBase):
-    def __init__(self, pl_module: "pl.LightningModule") -> None:
-        """Wraps the user's LightningModule and redirects the forward call to the appropriate method, either
-        ``training_step``, ``validation_step``, ``test_step`` or ``predict``. This class is used in combination
-        with :class:`~torch.nn.parallel.DistributedDataParallel` as shown in the example.
-
-        Example:
-
-            ddp_model = torch.nn.parallel.DistributedDataParallel(
-                module=LightningDistributedModule(lightning_module),
-                device_ids=[local_rank],
-                ...
-            )
-
-        Args:
-            pl_module: the model to wrap
-        """
-        super().__init__(pl_module)
+    ...
 
 
 def _find_tensors(
@@ -164,5 +147,5 @@ class IndexBatchSamplerWrapper:
         return self._sampler.batch_size
 
     @property
-    def sampler(self) -> Sampler:
+    def sampler(self) -> Union[Sampler, Iterable]:
         return self._sampler.sampler

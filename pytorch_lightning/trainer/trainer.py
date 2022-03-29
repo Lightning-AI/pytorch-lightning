@@ -409,7 +409,7 @@ class Trainer(
                     Please pass the path to ``Trainer.fit(..., ckpt_path=...)`` instead.
 
             strategy: Supports different training strategies with aliases
-                as well custom training type plugins.
+                as well custom strategies.
                 Default: ``None``.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
@@ -614,10 +614,8 @@ class Trainer(
 
         self._terminate_on_nan = terminate_on_nan
         self.gradient_clip_val: Union[int, float] = gradient_clip_val
-        self.gradient_clip_algorithm = (
-            GradClipAlgorithmType(gradient_clip_algorithm.lower())
-            if gradient_clip_algorithm is not None
-            else gradient_clip_algorithm
+        self.gradient_clip_algorithm: Optional[GradClipAlgorithmType] = (
+            GradClipAlgorithmType(gradient_clip_algorithm.lower()) if gradient_clip_algorithm is not None else None
         )
         self.track_grad_norm: float = float(track_grad_norm)
 
@@ -1170,7 +1168,7 @@ class Trainer(
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
 
-        # attach model to the training type plugin
+        # attach model to the strategy
         self.strategy.connect(model)
 
         self._callback_connector._attach_model_callbacks()
@@ -2053,17 +2051,17 @@ class Trainer(
 
     @property
     def local_rank(self) -> int:
-        # some training types define a local rank
+        # some strategies define a local rank
         return getattr(self.strategy, "local_rank", 0)
 
     @property
     def node_rank(self) -> int:
-        # some training types define a node rank
+        # some strategies define a node rank
         return getattr(self.strategy, "node_rank", 0)
 
     @property
     def world_size(self) -> int:
-        # some training types define a world size
+        # some strategies define a world size
         return getattr(self.strategy, "world_size", 1)
 
     @property

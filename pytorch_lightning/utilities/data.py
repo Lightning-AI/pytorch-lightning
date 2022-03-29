@@ -170,7 +170,9 @@ def get_len(dataloader: DataLoader) -> Union[int, float]:
     return float("inf")
 
 
-def _update_dataloader(dataloader: DataLoader, sampler: Sampler, mode: Optional[RunningStage] = None) -> DataLoader:
+def _update_dataloader(
+    dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
+) -> DataLoader:
     dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler, mode=mode)
     dl_cls = type(dataloader)
     try:

@@ -69,6 +69,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             closure_loss: the loss value obtained from the closure
             optimizer: current optimizer being used. ``None`` if using manual optimization
         """
+        assert model.trainer is not None
         opt = optimizer or model.trainer.optimizers
         with amp.scale_loss(closure_loss, opt) as closure_loss:
             super().backward(model, closure_loss, optimizer, *args, **kwargs)
