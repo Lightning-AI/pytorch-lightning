@@ -433,22 +433,22 @@ class AcceleratorConnector:
         `accelerator_flag`."""
         if num_processes is not None:
             rank_zero_deprecation(
-                f"Setting `Trainer(num_processes={num_processes})` is deprecated in v1.6 and will be removed"
+                f"Setting `Trainer(num_processes={num_processes})` is deprecated in v1.7 and will be removed"
                 f" in v2.0. Please use `Trainer(accelerator='cpu', devices={num_processes})` instead."
             )
         if gpus is not None:
             rank_zero_deprecation(
-                f"Setting `Trainer(gpus={gpus!r})` is deprecated in v1.6 and will be removed"
+                f"Setting `Trainer(gpus={gpus!r})` is deprecated in v1.7 and will be removed"
                 f" in v2.0. Please use `Trainer(accelerator='gpu', devices={gpus!r})` instead."
             )
         if tpu_cores is not None:
             rank_zero_deprecation(
-                f"Setting `Trainer(tpu_cores={tpu_cores!r})` is deprecated in v1.6 and will be removed"
+                f"Setting `Trainer(tpu_cores={tpu_cores!r})` is deprecated in v1.7 and will be removed"
                 f" in v2.0. Please use `Trainer(accelerator='tpu', devices={tpu_cores!r})` instead."
             )
         if ipus is not None:
             rank_zero_deprecation(
-                f"Setting `Trainer(ipus={ipus})` is deprecated in v1.6 and will be removed"
+                f"Setting `Trainer(ipus={ipus})` is deprecated in v1.7 and will be removed"
                 f" in v2.0. Please use `Trainer(accelerator='ipu', devices={ipus})` instead."
             )
         self._gpus: Optional[Union[List[int], str, int]] = gpus

@@ -23,14 +23,14 @@ from tests.helpers import BoringModel
 
 
 def test_v2_0_0_deprecated_num_processes():
-    with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
+    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         _ = Trainer(num_processes=2)
 
 
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
 def test_v2_0_0_deprecated_gpus(*_):
-    with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
+    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         _ = Trainer(gpus=0)
 
 
@@ -38,14 +38,14 @@ def test_v2_0_0_deprecated_gpus(*_):
 @mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.parse_devices", return_value=8)
 def test_v2_0_0_deprecated_tpu_cores(mock_is_available, mock_parse_devices, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities.device_parser, "_TPU_AVAILABLE", True)
-    with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
+    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         _ = Trainer(tpu_cores=8)
 
 
 @mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
 def test_v2_0_0_deprecated_ipus(_, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", True)
-    with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
+    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         _ = Trainer(ipus=4)
 
 
