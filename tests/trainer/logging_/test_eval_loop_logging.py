@@ -25,7 +25,6 @@ import torch
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.loggers.csv_logs import CSVLogger
 from pytorch_lightning.loops.dataloader import EvaluationLoop
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -940,17 +939,10 @@ def test_rich_print_results(inputs, expected):
     assert out.getvalue() == expected.lstrip()
 
 
+@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
 @pytest.mark.parametrize("num_dataloaders", [1, 2])
-def test_eval_step_logging(tmpdir, num_dataloaders):
-    class CustomLogger(CSVLogger):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.logged_metrics = collections.defaultdict(lambda: collections.defaultdict(list))
-
-        def log_metrics(self, metrics, step):
-            for key in metrics:
-                self.logged_metrics[key]["logged_values"].append(metrics[key])
-                self.logged_metrics[key]["logged_steps"].append(step)
+def test_eval_step_logging(mock_log_metrics, tmpdir, num_dataloaders):
+    """Test that eval step during fit/validate/test is updated correctly."""
 
     class CustomBoringModel(BoringModel):
         def validation_step(self, batch, batch_idx, dataloader_idx=None):
@@ -965,7 +957,6 @@ def test_eval_step_logging(tmpdir, num_dataloaders):
         def test_dataloader(self):
             return [super().test_dataloader()] * num_dataloaders
 
-    logger = CustomLogger(tmpdir)
     limit_batches = 4
     max_epochs = 3
     trainer = Trainer(
@@ -974,7 +965,6 @@ def test_eval_step_logging(tmpdir, num_dataloaders):
         limit_train_batches=1,
         limit_val_batches=limit_batches,
         limit_test_batches=limit_batches,
-        logger=logger,
     )
     model = CustomBoringModel()
     model.validation_epoch_end = None
@@ -984,11 +974,24 @@ def test_eval_step_logging(tmpdir, num_dataloaders):
     trainer.validate(model)
     trainer.test(model)
 
-    for dl_idx in range(num_dataloaders):
-        suffix = f"/dataloader_idx_{dl_idx}" if num_dataloaders == 2 else ""
-        assert logger.logged_metrics[f"val_log_fit{suffix}"]["logged_values"] == list(range(limit_batches)) * max_epochs
-        assert logger.logged_metrics[f"val_log_fit{suffix}"]["logged_steps"] == list(range(limit_batches * max_epochs))
-        assert logger.logged_metrics[f"val_log_validate{suffix}"]["logged_values"] == list(range(limit_batches))
-        assert logger.logged_metrics[f"val_log_validate{suffix}"]["logged_steps"] == list(range(limit_batches))
-        assert logger.logged_metrics[f"test_log{suffix}"]["logged_values"] == list(range(limit_batches))
-        assert logger.logged_metrics[f"test_log{suffix}"]["logged_steps"] == list(range(limit_batches))
+    def get_suffix(dl_idx):
+        return f"/dataloader_idx_{dl_idx}" if num_dataloaders == 2 else ""
+
+    eval_steps = range(limit_batches)
+    fit_calls = [
+        call(metrics={f"val_log_fit{get_suffix(dl_idx)}": float(step)}, step=step + (limit_batches * epoch))
+        for epoch in range(max_epochs)
+        for dl_idx in range(num_dataloaders)
+        for step in eval_steps
+    ]
+    validate_calls = [
+        call(metrics={f"val_log_validate{get_suffix(dl_idx)}": float(val)}, step=val)
+        for dl_idx in range(num_dataloaders)
+        for val in eval_steps
+    ]
+    test_calls = [
+        call(metrics={f"test_log{get_suffix(dl_idx)}": float(val)}, step=val)
+        for dl_idx in range(num_dataloaders)
+        for val in eval_steps
+    ]
+    assert mock_log_metrics.mock_calls == fit_calls + validate_calls + test_calls
