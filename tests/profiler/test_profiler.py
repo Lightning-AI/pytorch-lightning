@@ -28,7 +28,7 @@ from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction, warning_cache
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE, _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE, _TORCH_GREATER_EQUAL_1_11
 from tests.helpers import BoringModel, ManualOptimBoringModel
 from tests.helpers.runif import RunIf
 
@@ -634,7 +634,7 @@ def test_profile_callbacks(tmpdir):
 
 
 @pytest.mark.skipif(
-    not (_TORCH_GREATER_EQUAL_1_8 and hasattr(torch.profiler, "_KinetoProfile")),
+    not (_TORCH_GREATER_EQUAL_1_11 and hasattr(torch.profiler, "_KinetoProfile")),
     reason="Requires PyTorch lower level profiler API",
 )
 def test_kineto_profile(tmpdir):
