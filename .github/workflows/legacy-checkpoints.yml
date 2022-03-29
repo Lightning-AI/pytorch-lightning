@@ -11,6 +11,9 @@ on:
 jobs:
   create-legacy-ckpts:
     runs-on: ubuntu-20.04
+    defaults:
+      run:
+        working-directory: ./legacy
     steps:
     - uses: actions/checkout@v2
 
@@ -32,21 +35,21 @@ jobs:
     - name: Generate checkpoints
       run: |
         while IFS= read -r line; do
-            bash legacy/generate_checkpoints.sh $line
-        done <<< $(cat legacy/back-compatible-versions.txt)
-        zip -r legacy/checkpoints.zip legacy/checkpoints
+            bash generate_checkpoints.sh $line
+        done <<< $(cat back-compatible-versions.txt)
+        zip -r checkpoints.zip checkpoints
 
     - name: Upload checkpoints as GitHub Actions' artifact
       uses: actions/upload-artifact@v3
       with:
         name: checkpoints-${{ github.sha }}
-        path: legacy/checkpoints.zip
+        path: checkpoints/
       if: always()
 
     - name: Upload checkpoints to S3
       run: |
         # Upload checkpoints without archiving.
-        aws s3 sync legacy/checkpoints/ s3://pl-public-data/legacy/checkpoints/
+        # aws s3 sync checkpoints/ s3://pl-public-data/legacy/checkpoints/
         # Upload checkpoints archived in a zip which will be used in our tests.
-        aws s3 cp legacy/checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
+        aws s3 cp checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
       if: ${{ github.event.inputs.push_to_s3 == 'true' }}
