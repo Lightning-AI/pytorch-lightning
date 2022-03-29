@@ -87,6 +87,8 @@ class SwaTestCallback(StochasticWeightAveraging):
         if self.swa_start <= trainer.current_epoch <= self.swa_end:
             swa_epoch = trainer.current_epoch - self.swa_start
             assert self.n_averaged == swa_epoch + 1
+            # Scheduler is stepped once on initialization and then at the end of each epoch
+            assert self._swa_scheduler._step_count == swa_epoch + 2
         elif trainer.current_epoch > self.swa_end:
             assert self.n_averaged == self._max_epochs - self.swa_start
 
@@ -153,7 +155,7 @@ def test_swa_callback_ddp_spawn(tmpdir):
     train_with_swa(tmpdir, strategy="ddp_spawn", accelerator="gpu", devices=2)
 
 
-@RunIf(skip_windows=True, skip_49370=True)
+@RunIf(skip_windows=True)
 def test_swa_callback_ddp_cpu(tmpdir):
     train_with_swa(tmpdir, strategy="ddp_spawn", accelerator="cpu", devices=2)
 

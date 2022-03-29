@@ -116,8 +116,8 @@ Persisting State
 ----------------
 
 Some callbacks require internal state in order to function properly. You can optionally
-choose to persist your callback's state as part of model checkpoint files using the callback hooks
-:meth:`~pytorch_lightning.callbacks.Callback.on_save_checkpoint` and :meth:`~pytorch_lightning.callbacks.Callback.on_load_checkpoint`.
+choose to persist your callback's state as part of model checkpoint files using
+:meth:`~pytorch_lightning.callbacks.Callback.state_dict` and :meth:`~pytorch_lightning.callbacks.Callback.load_state_dict`.
 Note that the returned state must be able to be pickled.
 
 When your callback is meant to be used only as a singleton callback then implementing the above two hooks is enough
@@ -147,10 +147,10 @@ the following example.
             if self.what == "batches":
                 self.state["batches"] += 1
 
-        def on_load_checkpoint(self, trainer, pl_module, callback_state):
-            self.state.update(callback_state)
+        def load_state_dict(self, state_dict):
+            self.state.update(state_dict)
 
-        def on_save_checkpoint(self, trainer, pl_module, checkpoint):
+        def state_dict(self):
             return self.state.copy()
 
 
@@ -422,10 +422,22 @@ on_exception
 .. automethod:: pytorch_lightning.callbacks.Callback.on_exception
     :noindex:
 
+state_dict
+~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.callbacks.Callback.state_dict
+    :noindex:
+
 on_save_checkpoint
 ~~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.callbacks.Callback.on_save_checkpoint
+    :noindex:
+
+load_state_dict
+~~~~~~~~~~~~~~~
+
+.. automethod:: pytorch_lightning.callbacks.Callback.load_state_dict
     :noindex:
 
 on_load_checkpoint

@@ -1,4 +1,3 @@
-# Copyright The PyTorch Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +20,7 @@ import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
+from pytorch_lightning.utilities.imports import _HPU_AVAILABLE, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug as new_rank_zero_debug
 from pytorch_lightning.utilities.rank_zero import rank_zero_only  # noqa: F401
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
@@ -123,6 +122,14 @@ def sync_ddp(
             op = getattr(ReduceOp, reduce_op.upper())
     else:
         op = reduce_op
+
+    # WA for HPU. HPU doesn't support Long types, forcefully set it to float
+    if _HPU_AVAILABLE:
+        is_hpu_backend = os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
+        if is_hpu_backend:
+            if (result.type() == "torch.LongTensor") or (result.type() == "torch.hpu.LongTensor"):
+                new_rank_zero_info("Long tensor unsupported on HPU, casting to float")
+                result = result.float()
 
     # sync all processes before reduction
     torch.distributed.barrier(group=group)
@@ -276,9 +283,6 @@ def register_ddp_comm_hook(
     """
     from pytorch_lightning.utilities import rank_zero_warn
 
-    if not _TORCH_GREATER_EQUAL_1_8:
-        rank_zero_warn("Not registering DDP comm hook. To use communication hooks, please use pytorch>=1.8.0.")
-        return
     if ddp_comm_hook is None:
         return
     # inform mypy that ddp_comm_hook is callable
@@ -299,6 +303,21 @@ def register_ddp_comm_hook(
 
 def tpu_distributed() -> bool:
     return _TPU_AVAILABLE and xm.xrt_world_size() > 1
+
+
+def get_default_process_group_backend_for_device(device: torch.device) -> str:
+    return "nccl" if device.type == "cuda" else "gloo"
+
+
+def _get_process_group_backend_from_env() -> Optional[str]:
+    torch_backend = os.getenv("PL_TORCH_DISTRIBUTED_BACKEND")
+    if torch_backend is not None:
+        rank_zero_deprecation(
+            "Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"
+            " was deprecated in v1.6 and will be removed in v1.8."
+            " Specify `process_group_backend` directly on the strategy constructor."
+        )
+    return torch_backend
 
 
 def init_dist_connection(

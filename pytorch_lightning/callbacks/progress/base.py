@@ -49,12 +49,33 @@ class ProgressBarBase(Callback):
 
     def __init__(self) -> None:
         self._trainer: Optional["pl.Trainer"] = None
+        self._current_eval_dataloader_idx: Optional[int] = None
 
     @property
     def trainer(self) -> "pl.Trainer":
         if self._trainer is None:
             raise TypeError(f"The `{self.__class__.__name__}._trainer` reference has not been set yet.")
         return self._trainer
+
+    @property
+    def sanity_check_description(self) -> str:
+        return "Sanity Checking"
+
+    @property
+    def train_description(self) -> str:
+        return "Training"
+
+    @property
+    def validation_description(self) -> str:
+        return "Validation"
+
+    @property
+    def test_description(self) -> str:
+        return "Testing"
+
+    @property
+    def predict_description(self) -> str:
+        return "Predicting"
 
     @property
     def train_batch_idx(self) -> int:
@@ -71,8 +92,12 @@ class ProgressBarBase(Callback):
         Use this to update your progress bar.
         """
         if self.trainer.state.fn == "fit":
-            return self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.current.processed
-        return self.trainer.validate_loop.epoch_loop.batch_progress.current.processed
+            loop = self.trainer.fit_loop.epoch_loop.val_loop
+        else:
+            loop = self.trainer.validate_loop
+
+        current_batch_idx = loop.epoch_loop.batch_progress.current.processed
+        return current_batch_idx
 
     @property
     def test_batch_idx(self) -> int:
@@ -100,39 +125,55 @@ class ProgressBarBase(Callback):
         return self.trainer.num_training_batches
 
     @property
-    def total_val_batches(self) -> Union[int, float]:
-        """The total number of validation batches, which may change from epoch to epoch.
+    def total_val_batches_current_dataloader(self) -> Union[int, float]:
+        """The total number of validation batches, which may change from epoch to epoch for current dataloader.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the validation
         dataloader is of infinite size.
         """
+        assert self._current_eval_dataloader_idx is not None
         if self.trainer.sanity_checking:
-            return sum(self.trainer.num_sanity_val_batches)
+            return self.trainer.num_sanity_val_batches[self._current_eval_dataloader_idx]
 
-        total_val_batches = 0
-        if self.trainer.enable_validation:
-            is_val_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
-            total_val_batches = sum(self.trainer.num_val_batches) if is_val_epoch else 0
-
-        return total_val_batches
+        return self.trainer.num_val_batches[self._current_eval_dataloader_idx]
 
     @property
-    def total_test_batches(self) -> Union[int, float]:
-        """The total number of testing batches, which may change from epoch to epoch.
+    def total_test_batches_current_dataloader(self) -> Union[int, float]:
+        """The total number of testing batches, which may change from epoch to epoch for current dataloader.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the test dataloader is
         of infinite size.
         """
-        return sum(self.trainer.num_test_batches)
+        assert self._current_eval_dataloader_idx is not None
+        return self.trainer.num_test_batches[self._current_eval_dataloader_idx]
 
     @property
-    def total_predict_batches(self) -> Union[int, float]:
-        """The total number of prediction batches, which may change from epoch to epoch.
+    def total_predict_batches_current_dataloader(self) -> Union[int, float]:
+        """The total number of prediction batches, which may change from epoch to epoch for current dataloader.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the predict dataloader
         is of infinite size.
         """
-        return sum(self.trainer.num_predict_batches)
+        assert self._current_eval_dataloader_idx is not None
+        return self.trainer.num_predict_batches[self._current_eval_dataloader_idx]
+
+    @property
+    def total_val_batches(self) -> Union[int, float]:
+        """The total number of validation batches, which may change from epoch to epoch for all val dataloaders.
+
+        Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the predict dataloader
+        is of infinite size.
+        """
+        assert self._trainer is not None
+        return sum(self.trainer.num_val_batches) if self._trainer.fit_loop.epoch_loop._should_check_val_epoch() else 0
+
+    def has_dataloader_changed(self, dataloader_idx: int) -> bool:
+        old_dataloader_idx = self._current_eval_dataloader_idx
+        self._current_eval_dataloader_idx = dataloader_idx
+        return old_dataloader_idx != dataloader_idx
+
+    def reset_dataloader_idx_tracker(self) -> None:
+        self._current_eval_dataloader_idx = None
 
     def disable(self) -> None:
         """You should provide a way to disable the progress bar."""

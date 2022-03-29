@@ -23,12 +23,13 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.strategies import DDPStrategy
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 from tests.strategies import ddp_model
 from tests.utilities.distributed import call_training_script
 
-CLI_ARGS = "--max_epochs 1 --gpus 2 --strategy ddp"
+CLI_ARGS = "--max_epochs 1 --accelerator gpu --devices 2 --strategy ddp"
 
 
 @RunIf(min_gpus=2)
@@ -84,10 +85,11 @@ def test_torch_distributed_backend_env_variables(tmpdir):
     """This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError."""
     _environ = {"PL_TORCH_DISTRIBUTED_BACKEND": "undefined", "CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2"}
     with patch.dict(os.environ, _environ), patch("torch.cuda.device_count", return_value=2):
-        with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
-            model = BoringModel()
-            trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", gpus=2, logger=False)
-            trainer.fit(model)
+        with pytest.deprecated_call(match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND` was deprecated in v1.6"):
+            with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
+                model = BoringModel()
+                trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", gpus=2, logger=False)
+                trainer.fit(model)
 
 
 @RunIf(skip_windows=True)
@@ -107,9 +109,10 @@ def test_ddp_torch_dist_is_available_in_setup(
             raise SystemExit()
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", gpus=1)
-    with pytest.raises(SystemExit):
-        trainer.fit(model)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=1)
+    with pytest.deprecated_call(match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND` was deprecated in v1.6"):
+        with pytest.raises(SystemExit):
+            trainer.fit(model)
 
 
 @RunIf(min_gpus=2, min_torch="1.8.1", standalone=True)
@@ -141,7 +144,42 @@ def test_ddp_wrapper(tmpdir, precision):
         fast_dev_run=True,
         precision=precision,
         strategy="ddp",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         callbacks=CustomCallback(),
     )
     trainer.fit(model)
+
+
+@pytest.mark.parametrize(
+    ["process_group_backend", "env_var", "device_str", "expected_process_group_backend"],
+    [
+        pytest.param("foo", None, "cpu", "foo"),
+        pytest.param("foo", "BAR", "cpu", "foo"),
+        pytest.param("foo", "BAR", "cuda:0", "foo"),
+        pytest.param(None, "BAR", "cuda:0", "BAR"),
+        pytest.param(None, None, "cuda:0", "nccl"),
+        pytest.param(None, None, "cpu", "gloo"),
+    ],
+)
+def test_ddp_process_group_backend(process_group_backend, env_var, device_str, expected_process_group_backend):
+    """Test settings for process group backend."""
+
+    class MockDDPStrategy(DDPStrategy):
+        def __init__(self, root_device, process_group_backend):
+            self._root_device = root_device
+            super().__init__(process_group_backend=process_group_backend)
+
+        @property
+        def root_device(self):
+            return self._root_device
+
+    strategy = MockDDPStrategy(process_group_backend=process_group_backend, root_device=torch.device(device_str))
+    if not process_group_backend and env_var:
+        with mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": env_var}):
+            with pytest.deprecated_call(
+                match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND` was deprecated in v1.6"
+            ):
+                assert strategy._get_process_group_backend() == expected_process_group_backend
+    else:
+        assert strategy._get_process_group_backend() == expected_process_group_backend

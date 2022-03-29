@@ -42,9 +42,10 @@ from tests.helpers.utils import reset_seed, set_random_main_port  # noqa: E402
 parser = argparse.ArgumentParser()
 parser.add_argument("--trainer-options", required=True)
 parser.add_argument("--on-gpu", action="store_true", default=False)
+parser.add_argument("--check-size", action="store_true", default=False)
 
 
-def run_test_from_config(trainer_options, on_gpu, check_size=True):
+def run_test_from_config(trainer_options, on_gpu, check_size):
     """Trains the default model with the given config."""
     set_random_main_port()
     reset_seed()
@@ -100,11 +101,11 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
     trainer._checkpoint_connector.restore(checkpoint_path)
 
     if on_gpu:
-        trainer = Trainer(gpus=1, strategy="horovod", max_epochs=1)
-        # Test the root_gpu property
-        assert trainer.root_gpu == hvd.local_rank()
+        trainer = Trainer(accelerator="gpu", devices=1, strategy="horovod", max_epochs=1)
+        # test root gpu index
+        assert trainer.strategy.root_device.index == hvd.local_rank()
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    run_test_from_config(json.loads(args.trainer_options), args.on_gpu)
+    run_test_from_config(json.loads(args.trainer_options), args.on_gpu, args.check_size)

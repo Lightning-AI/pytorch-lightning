@@ -15,6 +15,7 @@
 import logging
 import os
 import re
+from copy import deepcopy
 from typing import Any, Dict, Optional
 
 import torch
@@ -167,7 +168,7 @@ class CheckpointConnector:
         model = self.trainer.lightning_module
 
         # hook: give user access to checkpoint if needed.
-        model.on_load_checkpoint(self._loaded_checkpoint)
+        self.trainer._call_lightning_module_hook("on_load_checkpoint", self._loaded_checkpoint)
 
         # TODO: remove this in v1.8.
         # call hpc specific hook
@@ -217,12 +218,39 @@ class CheckpointConnector:
         ):
             prec_plugin.load_state_dict(self._loaded_checkpoint["native_amp_scaling_state"])
 
+    def _restore_quantization_callbacks(self) -> None:
+        """Restores all the ``QuantizationAwareTraining`` callbacks from the pre-loaded checkpoint.
+
+        The implementation is similar to :meth:`restore_callbacks` but calls the QAT callback with a special hook
+        `load_before_model` instead of `load_state_dict`.
+        """
+        if not self._loaded_checkpoint:
+            return
+
+        callback_states = self._loaded_checkpoint.get("callbacks")
+
+        if callback_states is None:
+            return
+
+        from pytorch_lightning.callbacks.quantization import QuantizationAwareTraining  # avoid circular import
+
+        for callback in self.trainer.callbacks:
+            if not isinstance(callback, QuantizationAwareTraining):
+                continue
+
+            state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
+            if state:
+                # The Quantization callbacks have a special method that must be called before restoring the weights
+                # of the model
+                callback._load_before_model(self.trainer.model, deepcopy(state))
+
     def restore_callbacks(self) -> None:
         """Restores all callbacks from the pre-loaded checkpoint."""
         if not self._loaded_checkpoint:
             return
 
         self.trainer._call_callbacks_on_load_checkpoint(self._loaded_checkpoint)
+        self.trainer._call_callbacks_load_state_dict(self._loaded_checkpoint)
 
     def restore_loops(self) -> None:
         """Restores the loop progress from the pre-loaded checkpoint.
@@ -344,7 +372,7 @@ class CheckpointConnector:
 
         if not weights_only:
             # dump callbacks
-            checkpoint["callbacks"] = self.trainer._call_callbacks_on_save_checkpoint(checkpoint)
+            checkpoint["callbacks"] = self.trainer._call_callbacks_state_dict()
 
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
@@ -386,7 +414,13 @@ class CheckpointConnector:
                 checkpoint[datamodule.__class__.__qualname__] = datamodule_state_dict
 
         # on_save_checkpoint hooks
-        model.on_save_checkpoint(checkpoint)
+        if not weights_only:
+            # if state is returned from callback's on_save_checkpoint
+            # it overrides the returned state from callback's state_dict
+            # support for returning state in on_save_checkpoint
+            # will be removed in v1.8
+            self.trainer._call_callbacks_on_save_checkpoint(checkpoint)
+        self.trainer._call_lightning_module_hook("on_save_checkpoint", checkpoint)
         if datamodule is not None:
             datamodule.on_save_checkpoint(checkpoint)
 
