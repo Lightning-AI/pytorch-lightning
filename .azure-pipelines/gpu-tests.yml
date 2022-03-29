@@ -56,6 +56,8 @@ jobs:
         pip install bagua-cuda102==0.9.0
         pip install . --requirement requirements/devel.txt
         pip list
+        apt update
+        apt install -y gdb
       displayName: 'Install dependencies'
 
     - bash: |
@@ -73,7 +75,8 @@ jobs:
       displayName: 'Get legacy checkpoints'
 
     - bash: |
-        python -m pytest tests/callbacks --ignore tests/benchmarks -v
+        # python -m pytest tests/callbacks -v
+        gdb --batch -q -ex r -ex "thread apply all bt" --args $(which python) -m pytest tests/callbacks
       displayName: 'Testing: standard'
 
     - bash: |
