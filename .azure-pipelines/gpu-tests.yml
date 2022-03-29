@@ -73,7 +73,7 @@ jobs:
       displayName: 'Get legacy checkpoints'
 
     - bash: |
-        TORCH_SHOW_CPP_STACKTRACES=1 python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests --ignore tests/benchmarks -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
+        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests --ignore tests/benchmarks -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
       displayName: 'Testing: standard'
 
     - bash: |
