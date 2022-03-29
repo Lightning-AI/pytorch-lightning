@@ -31,7 +31,7 @@ class BoringModel(LightningModule):
         self.layer = nn.Sequential(*[nn.Linear(1, 1) for _ in range(self.hparams.num_layers)])
 
 
-@RunIf(standalone=True, min_torch="1.10.0")
+@RunIf(min_torch="1.10.0", standalone=True)
 def test_init_meta_context():
 
     with init_meta_context():

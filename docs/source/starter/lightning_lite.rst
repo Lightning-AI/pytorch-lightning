@@ -182,7 +182,7 @@ Here is an example while running on 256 GPUs (eight GPUs times 32 nodes).
             self.barrier()
 
 
-    Lite(strategy="ddp", gpus=8, num_nodes=32, accelerator="gpu").run()
+    Lite(strategy="ddp", devices=8, num_nodes=32, accelerator="gpu").run()
 
 
 If you require custom data or model device placement, you can deactivate
@@ -437,7 +437,7 @@ Shorthand for setting ``devices=X`` and ``accelerator="gpu"``.
 .. code-block:: python
 
     # Run on two GPUs
-    lite = Lite(gpus=2)
+    lite = Lite(accelerator="gpu", devices=2)
 
     # Equivalent
     lite = Lite(devices=2, accelerator="gpu")
@@ -451,7 +451,7 @@ Shorthand for ``devices=X`` and ``accelerator="tpu"``.
 .. code-block:: python
 
     # Run on eight TPUs
-    lite = Lite(tpu_cores=8)
+    lite = Lite(accelerator="tpu", devices=8)
 
     # Equivalent
     lite = Lite(devices=8, accelerator="tpu")

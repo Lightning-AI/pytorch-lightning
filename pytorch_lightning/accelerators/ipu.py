@@ -47,7 +47,10 @@ class IPUAccelerator(Accelerator):
     def is_available() -> bool:
         return _IPU_AVAILABLE
 
-    @staticmethod
-    def name() -> str:
-        """Name of the Accelerator."""
-        return "ipu"
+    @classmethod
+    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+        accelerator_registry.register(
+            "ipu",
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )

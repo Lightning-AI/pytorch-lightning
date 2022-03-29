@@ -168,7 +168,7 @@ Below is an example of using both ``wrap`` and ``auto_wrap`` to create your mode
 
 
     model = MyModel()
-    trainer = Trainer(gpus=4, strategy="fsdp", precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy="fsdp", precision=16)
     trainer.fit(model)
 
     trainer.test()
@@ -261,7 +261,7 @@ It is recommended to skip Stage 1 and use Stage 2, which comes with larger memor
     from pytorch_lightning import Trainer
 
     model = MyModel()
-    trainer = Trainer(gpus=4, strategy="deepspeed_stage_1", precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_1", precision=16)
     trainer.fit(model)
 
 
@@ -278,12 +278,12 @@ As a result, benefits can also be seen on a single GPU. Do note that the default
     from pytorch_lightning import Trainer
 
     model = MyModel()
-    trainer = Trainer(gpus=4, strategy="deepspeed_stage_2", precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_2", precision=16)
     trainer.fit(model)
 
 .. code-block:: bash
 
-    python train.py --strategy deepspeed_stage_2 --precision 16 --gpus 4
+    python train.py --strategy deepspeed_stage_2 --precision 16 --accelerator 'gpu' --devices 4
 
 
 .. _deepspeed-zero-stage-2-offload:
@@ -299,7 +299,7 @@ Below we show an example of running `ZeRO-Offload <https://www.deepspeed.ai/tuto
     from pytorch_lightning.strategies import DeepSpeedStrategy
 
     model = MyModel()
-    trainer = Trainer(gpus=4, strategy="deepspeed_stage_2_offload", precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_2_offload", precision=16)
     trainer.fit(model)
 
 
@@ -307,7 +307,7 @@ This can also be done via the command line using a PyTorch Lightning script:
 
 .. code-block:: bash
 
-    python train.py --strategy deepspeed_stage_2_offload --precision 16 --gpus 4
+    python train.py --strategy deepspeed_stage_2_offload --precision 16 --accelerator 'gpu' --devices 4
 
 
 You can also modify the ZeRO-Offload parameters via the strategy as below.
@@ -319,7 +319,8 @@ You can also modify the ZeRO-Offload parameters via the strategy as below.
 
     model = MyModel()
     trainer = Trainer(
-        gpus=4,
+        accelerator="gpu",
+        devices=4,
         strategy=DeepSpeedStrategy(offload_optimizer=True, allgather_bucket_size=5e8, reduce_bucket_size=5e8),
         precision=16,
     )
@@ -353,7 +354,7 @@ For even more speed benefit, DeepSpeed offers an optimized CPU version of ADAM c
 
 
     model = MyModel()
-    trainer = Trainer(gpus=4, strategy="deepspeed_stage_2_offload", precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_2_offload", precision=16)
     trainer.fit(model)
 
 
@@ -396,7 +397,7 @@ Also please have a look at our :ref:`deepspeed-zero-stage-3-tips` which contains
 
 
     model = MyModel()
-    trainer = Trainer(gpus=4, strategy="deepspeed_stage_3", precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_3", precision=16)
     trainer.fit(model)
 
     trainer.test()
@@ -416,7 +417,7 @@ You can also use the Lightning Trainer to run predict or evaluate with DeepSpeed
 
 
     model = MyModel()
-    trainer = Trainer(gpus=4, strategy="deepspeed_stage_3", precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_3", precision=16)
     trainer.test(ckpt_path="my_saved_deepspeed_checkpoint.ckpt")
 
 
@@ -451,7 +452,7 @@ This reduces the time taken to initialize very large models, as well as ensure w
 
 
     model = MyModel()
-    trainer = Trainer(gpus=4, strategy="deepspeed_stage_3", precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_3", precision=16)
     trainer.fit(model)
 
     trainer.test()
@@ -476,13 +477,14 @@ DeepSpeed ZeRO Stage 3 Offloads optimizer state, gradients to the host CPU to re
 
     # Enable CPU Offloading
     model = MyModel()
-    trainer = Trainer(gpus=4, strategy="deepspeed_stage_3_offload", precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_3_offload", precision=16)
     trainer.fit(model)
 
     # Enable CPU Offloading, and offload parameters to CPU
     model = MyModel()
     trainer = Trainer(
-        gpus=4,
+        accelerator="gpu",
+        devices=4,
         strategy=DeepSpeedStrategy(
             stage=3,
             offload_optimizer=True,
@@ -505,13 +507,14 @@ Additionally, DeepSpeed supports offloading to NVMe drives for even larger model
 
     # Enable CPU Offloading
     model = MyModel()
-    trainer = Trainer(gpus=4, strategy="deepspeed_stage_3_offload", precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_3_offload", precision=16)
     trainer.fit(model)
 
     # Enable CPU Offloading, and offload parameters to CPU
     model = MyModel()
     trainer = Trainer(
-        gpus=4,
+        accelerator="gpu",
+        devices=4,
         strategy=DeepSpeedStrategy(
             stage=3,
             offload_optimizer=True,
@@ -588,11 +591,12 @@ This saves memory when training larger models, however requires using a checkpoi
 
     model = MyModel()
 
-    trainer = Trainer(gpus=4, strategy="deepspeed_stage_3_offload", precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_3_offload", precision=16)
 
     # Enable CPU Activation Checkpointing
     trainer = Trainer(
-        gpus=4,
+        accelerator="gpu",
+        devices=4,
         strategy=DeepSpeedStrategy(
             stage=3,
             offload_optimizer=True,  # Enable CPU Offloading
@@ -682,7 +686,7 @@ In some cases you may want to define your own DeepSpeed Config, to access all pa
     }
 
     model = MyModel()
-    trainer = Trainer(gpus=4, strategy=DeepSpeedStrategy(deepspeed_config), precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy=DeepSpeedStrategy(deepspeed_config), precision=16)
     trainer.fit(model)
 
 
@@ -694,7 +698,9 @@ We support taking the config as a json formatted file:
     from pytorch_lightning.strategies import DeepSpeedStrategy
 
     model = MyModel()
-    trainer = Trainer(gpus=4, strategy=DeepSpeedStrategy("/path/to/deepspeed_config.json"), precision=16)
+    trainer = Trainer(
+        accelerator="gpu", devices=4, strategy=DeepSpeedStrategy("/path/to/deepspeed_config.json"), precision=16
+    )
     trainer.fit(model)
 
 
@@ -710,6 +716,75 @@ You can use also use an environment variable via your PyTorch Lightning script:
 
 DDP Optimizations
 ^^^^^^^^^^^^^^^^^
+
+
+When Using DDP Strategies, Set find_unused_parameters=False
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+By default, we have set ``find_unused_parameters=True`` for compatibility reasons that have been observed in the past (refer to the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
+When enabled, it can result in a performance hit and can be disabled in most cases. Read more about it `here <https://pytorch.org/docs/stable/notes/ddp.html#internal-design>`_.
+
+.. tip::
+    It applies to all DDP strategies that support ``find_unused_parameters`` as input.
+
+.. code-block:: python
+
+    from pytorch_lightning.strategies import DDPStrategy
+
+    trainer = pl.Trainer(
+        accelerator="gpu",
+        devices=2,
+        strategy=DDPStrategy(find_unused_parameters=False),
+    )
+
+.. code-block:: python
+
+    from pytorch_lightning.strategies import DDPSpawnStrategy
+
+    trainer = pl.Trainer(
+        accelerator="gpu",
+        devices=2,
+        strategy=DDPSpawnStrategy(find_unused_parameters=False),
+    )
+
+
+DDP Static Graph
+""""""""""""""""
+
+`DDP static graph <https://pytorch.org/blog/pytorch-1.11-released/#stable-ddp-static-graph>`__ assumes that your model
+employs the same set of used/unused parameters in every iteration, so that it can deterministically know the flow of
+training and apply special optimizations during runtime.
+
+.. note::
+    DDP static graph support requires PyTorch>=1.11.0
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.strategies import DDPStrategy
+
+    trainer = Trainer(devices=4, strategy=DDPStrategy(static_graph=True))
+
+
+When Using DDP on a Multi-node Cluster, Set NCCL Parameters
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+`NCCL <https://developer.nvidia.com/nccl>`__ is the NVIDIA Collective Communications Library that is used by PyTorch to handle communication across nodes and GPUs. There are reported benefits in terms of speedups when adjusting NCCL parameters as seen in this `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues/7179>`__. In the issue, we see a 30% speed improvement when training the Transformer XLM-RoBERTa and a 15% improvement in training with Detectron2.
+
+NCCL parameters can be adjusted via environment variables.
+
+.. note::
+
+    AWS and GCP already set default values for these on their clusters. This is typically useful for custom cluster setups.
+
+* `NCCL_NSOCKS_PERTHREAD <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-nsocks-perthread>`__
+* `NCCL_SOCKET_NTHREADS <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-socket-nthreads>`__
+* `NCCL_MIN_NCHANNELS <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-min-nchannels>`__
+
+.. code-block:: bash
+
+    export NCCL_NSOCKS_PERTHREAD=4
+    export NCCL_SOCKET_NTHREADS=2
 
 
 Gradients as Bucket View
@@ -729,7 +804,7 @@ This can reduce peak memory usage and throughput as saved memory will be equal t
     from pytorch_lightning.strategies import DDPStrategy
 
     model = MyModel()
-    trainer = Trainer(gpus=4, strategy=DDPStrategy(gradient_as_bucket_view=True))
+    trainer = Trainer(accelerator="gpu", devices=4, strategy=DDPStrategy(gradient_as_bucket_view=True))
     trainer.fit(model)
 
 DDP Communication Hooks
@@ -737,22 +812,16 @@ DDP Communication Hooks
 
 DDP Communication hooks is an interface to control how gradients are communicated across workers, overriding the standard allreduce in DistributedDataParallel. This allows you to enable performance improving communication hooks when using multiple nodes.
 
-.. note::
-    DDP communication hooks needs pytorch version at least 1.8.0
-
 Enable `FP16 Compress Hook for multi-node throughput improvement <https://pytorch.org/docs/stable/ddp_comm_hooks.html#torch.distributed.algorithms.ddp_comm_hooks.default_hooks.fp16_compress_hook>`__:
 
 .. code-block:: python
 
     from pytorch_lightning import Trainer
     from pytorch_lightning.strategies import DDPStrategy
-    from torch.distributed.algorithms.ddp_comm_hooks import (
-        default_hooks as default,
-        powerSGD_hook as powerSGD,
-    )
+    from torch.distributed.algorithms.ddp_comm_hooks import default_hooks as default
 
     model = MyModel()
-    trainer = Trainer(gpus=4, strategy=DDPStrategy(ddp_comm_hook=default.fp16_compress_hook))
+    trainer = Trainer(accelerator="gpu", devices=4, strategy=DDPStrategy(ddp_comm_hook=default.fp16_compress_hook))
     trainer.fit(model)
 
 Enable `PowerSGD for multi-node throughput improvement <https://pytorch.org/docs/stable/ddp_comm_hooks.html#powersgd-communication-hook>`__:
@@ -769,7 +838,8 @@ Enable `PowerSGD for multi-node throughput improvement <https://pytorch.org/docs
 
     model = MyModel()
     trainer = Trainer(
-        gpus=4,
+        accelerator="gpu",
+        devices=4,
         strategy=DDPStrategy(
             ddp_comm_state=powerSGD.PowerSGDState(
                 process_group=None,
@@ -785,7 +855,7 @@ Enable `PowerSGD for multi-node throughput improvement <https://pytorch.org/docs
 Combine hooks for accumulated benefit:
 
 .. note::
-    DDP communication wrappers needs pytorch version at least 1.9.0
+    DDP communication wrappers support requires PyTorch>=1.9.0
 
 .. code-block:: python
 
@@ -798,7 +868,8 @@ Combine hooks for accumulated benefit:
 
     model = MyModel()
     trainer = Trainer(
-        gpus=4,
+        accelerator="gpu",
+        devices=4,
         strategy=DDPStrategy(
             ddp_comm_state=powerSGD.PowerSGDState(
                 process_group=None,
@@ -807,6 +878,34 @@ Combine hooks for accumulated benefit:
             ),
             ddp_comm_hook=powerSGD.powerSGD_hook,
             ddp_comm_wrapper=default.fp16_compress_wrapper,
+        ),
+    )
+    trainer.fit(model)
+
+
+When using Post-localSGD, you must also pass ``model_averaging_period`` to allow for model parameter averaging:
+
+.. note::
+    Post-localSGD support requires PyTorch>=1.10.0
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.strategies import DDPStrategy
+    from torch.distributed.algorithms.ddp_comm_hooks import post_localSGD_hook as post_localSGD
+
+    model = MyModel()
+    trainer = Trainer(
+        accelerator="gpu",
+        devices=4,
+        strategy=DDPStrategy(
+            ddp_comm_state=post_localSGD.PostLocalSGDState(
+                process_group=None,
+                subgroup=None,
+                start_localSGD_iter=8,
+            ),
+            ddp_comm_hook=post_localSGD.post_localSGD_hook,
+            model_averaging_period=4,
         ),
     )
     trainer.fit(model)

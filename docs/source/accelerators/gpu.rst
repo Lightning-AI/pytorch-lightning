@@ -19,7 +19,7 @@ as Lightning will do it for you.
 .. testcode::
     :skipif: torch.cuda.device_count() < 1
 
-    trainer = Trainer(gpus=1)
+    trainer = Trainer(accelerator="gpu", devices=1)
 
 ----------------
 
@@ -207,52 +207,45 @@ a comma separated list of GPU ids:
     :skipif: torch.cuda.device_count() < 2
 
     # DEFAULT (int) specifies how many GPUs to use per node
-    Trainer(gpus=k)
+    Trainer(accelerator="gpu", devices=k)
 
     # Above is equivalent to
-    Trainer(gpus=list(range(k)))
+    Trainer(accelerator="gpu", devices=list(range(k)))
 
     # Specify which GPUs to use (don't use when running on cluster)
-    Trainer(gpus=[0, 1])
+    Trainer(accelerator="gpu", devices=[0, 1])
 
     # Equivalent using a string
-    Trainer(gpus="0, 1")
+    Trainer(accelerator="gpu", devices="0, 1")
 
     # To use all available GPUs put -1 or '-1'
     # equivalent to list(range(torch.cuda.device_count()))
-    Trainer(gpus=-1)
+    Trainer(accelerator="gpu", devices=-1)
 
 The table below lists examples of possible input formats and how they are interpreted by Lightning.
-Note in particular the difference between `gpus=0`, `gpus=[0]` and `gpus="0"`.
 
-+---------------+-----------+---------------------+---------------------------------+
-| `gpus`        | Type      | Parsed              | Meaning                         |
-+===============+===========+=====================+=================================+
-| None          | NoneType  | None                | CPU                             |
-+---------------+-----------+---------------------+---------------------------------+
-| 0             | int       | None                | CPU                             |
-+---------------+-----------+---------------------+---------------------------------+
-| 3             | int       | [0, 1, 2]           | first 3 GPUs                    |
-+---------------+-----------+---------------------+---------------------------------+
-| -1            | int       | [0, 1, 2, ...]      | all available GPUs              |
-+---------------+-----------+---------------------+---------------------------------+
-| [0]           | list      | [0]                 | GPU 0                           |
-+---------------+-----------+---------------------+---------------------------------+
-| [1, 3]        | list      | [1, 3]              | GPUs 1 and 3                    |
-+---------------+-----------+---------------------+---------------------------------+
-| "0"           | str       | None                | CPU                             |
-+---------------+-----------+---------------------+---------------------------------+
-| "3"           | str       | [0, 1, 2]           | first 3 GPUs                    |
-+---------------+-----------+---------------------+---------------------------------+
-| "1, 3"        | str       | [1, 3]              | GPUs 1 and 3                    |
-+---------------+-----------+---------------------+---------------------------------+
-| "-1"          | str       | [0, 1, 2, ...]      | all available GPUs              |
-+---------------+-----------+---------------------+---------------------------------+
++------------------+-----------+---------------------+---------------------------------+
+| `devices`        | Type      | Parsed              | Meaning                         |
++==================+===========+=====================+=================================+
+| 3                | int       | [0, 1, 2]           | first 3 GPUs                    |
++------------------+-----------+---------------------+---------------------------------+
+| -1               | int       | [0, 1, 2, ...]      | all available GPUs              |
++------------------+-----------+---------------------+---------------------------------+
+| [0]              | list      | [0]                 | GPU 0                           |
++------------------+-----------+---------------------+---------------------------------+
+| [1, 3]           | list      | [1, 3]              | GPUs 1 and 3                    |
++------------------+-----------+---------------------+---------------------------------+
+| "3"              | str       | [0, 1, 2]           | first 3 GPUs                    |
++------------------+-----------+---------------------+---------------------------------+
+| "1, 3"           | str       | [1, 3]              | GPUs 1 and 3                    |
++------------------+-----------+---------------------+---------------------------------+
+| "-1"             | str       | [0, 1, 2, ...]      | all available GPUs              |
++------------------+-----------+---------------------+---------------------------------+
 
 .. note::
 
-    When specifying number of gpus as an integer ``gpus=k``, setting the trainer flag
-    ``auto_select_gpus=True`` will automatically help you find ``k`` gpus that are not
+    When specifying number of ``devices`` as an integer ``devices=k``, setting the trainer flag
+    ``auto_select_gpus=True`` will automatically help you find ``k`` GPUs that are not
     occupied by other processes. This is especially useful when GPUs are configured
     to be in "exclusive mode", such that only one process at a time can access them.
     For more details see the :doc:`trainer guide <../common/trainer>`.
@@ -264,11 +257,17 @@ Select torch distributed backend
 By default, Lightning will select the ``nccl`` backend over ``gloo`` when running on GPUs.
 Find more information about PyTorch's supported backends `here <https://pytorch.org/docs/stable/distributed.html>`__.
 
-Lightning exposes an environment variable ``PL_TORCH_DISTRIBUTED_BACKEND`` for the user to change the backend.
+Lightning allows explicitly specifying the backend via the `process_group_backend` constructor argument on the relevant Strategy classes. By default, Lightning will select the appropriate process group backend based on the hardware used.
 
-.. code-block:: bash
+.. code-block:: python
 
-   PL_TORCH_DISTRIBUTED_BACKEND=gloo python train.py ...
+    from pytorch_lightning.strategies import DDPStrategy
+
+    # Explicitly specify the process group backend if you choose to
+    ddp = DDPStrategy(process_group_backend="nccl")
+
+    # Configure the strategy on the Trainer
+    trainer = Trainer(strategy=ddp, accelerator="gpu", devices=8)
 
 
 ----------
@@ -283,7 +282,7 @@ Lightning allows multiple ways of training
 - DistributedDataParallel 2 (``strategy='ddp2'``) (DP in a machine, DDP across machines).
 - Horovod (``strategy='horovod'``) (multi-machine, multi-gpu, configured at runtime)
 - Bagua (``strategy='bagua'``) (multiple-gpus across many machines with advanced training algorithms)
-- TPUs (``tpu_cores=8|x``) (tpu or TPU pod)
+- TPUs (``accelerator="tpu", devices=8|x``) (tpu or TPU pod)
 
 .. note::
     If you request multiple GPUs or nodes without setting a mode, DDP Spawn will be automatically used.
@@ -296,7 +295,7 @@ For a deeper understanding of what Lightning is doing, feel free to read this
 Data Parallel
 ^^^^^^^^^^^^^
 :class:`~torch.nn.DataParallel` (DP) splits a batch across k GPUs.
-That is, if you have a batch of 32 and use DP with 2 gpus, each GPU will process 16 samples,
+That is, if you have a batch of 32 and use DP with 2 GPUs, each GPU will process 16 samples,
 after which the root node will aggregate the results.
 
 .. warning:: DP use is discouraged by PyTorch and Lightning. State is not maintained on the replicas created by the
@@ -312,7 +311,7 @@ after which the root node will aggregate the results.
     :skipif: torch.cuda.device_count() < 2
 
     # train on 2 GPUs (using DP mode)
-    trainer = Trainer(gpus=2, strategy="dp")
+    trainer = Trainer(accelerator="gpu", devices=2, strategy="dp")
 
 Distributed Data Parallel
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -333,10 +332,10 @@ Distributed Data Parallel
 .. code-block:: python
 
     # train on 8 GPUs (same machine (ie: node))
-    trainer = Trainer(gpus=8, strategy="ddp")
+    trainer = Trainer(accelerator="gpu", devices=8, strategy="ddp")
 
     # train on 32 GPUs (4 nodes)
-    trainer = Trainer(gpus=8, strategy="ddp", num_nodes=4)
+    trainer = Trainer(accelerator="gpu", devices=8, strategy="ddp", num_nodes=4)
 
 This Lightning implementation of DDP calls your script under the hood multiple times with the correct environment
 variables:
@@ -344,9 +343,9 @@ variables:
 .. code-block:: bash
 
     # example for 3 GPUs DDP
-    MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=0 LOCAL_RANK=0 python my_file.py --gpus 3 --etc
-    MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=1 LOCAL_RANK=0 python my_file.py --gpus 3 --etc
-    MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=2 LOCAL_RANK=0 python my_file.py --gpus 3 --etc
+    MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=0 LOCAL_RANK=0 python my_file.py --accelerator 'gpu' --devices 3 --etc
+    MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=1 LOCAL_RANK=0 python my_file.py --accelerator 'gpu' --devices 3 --etc
+    MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=2 LOCAL_RANK=0 python my_file.py --accelerator 'gpu' --devices 3 --etc
 
 We use DDP this way because `ddp_spawn` has a few limitations (due to Python and PyTorch):
 
@@ -381,7 +380,7 @@ In  this case, we can use DDP2 which behaves like DP in a machine and DDP across
 .. code-block:: python
 
     # train on 32 GPUs (4 nodes)
-    trainer = Trainer(gpus=8, strategy="ddp2", num_nodes=4)
+    trainer = Trainer(accelerator="gpu", devices=8, strategy="ddp2", num_nodes=4)
 
 Distributed Data Parallel Spawn
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -399,7 +398,7 @@ project module) you can use the following method:
 .. code-block:: python
 
     # train on 8 GPUs (same machine (ie: node))
-    trainer = Trainer(gpus=8, strategy="ddp_spawn")
+    trainer = Trainer(accelerator="gpu", devices=8, strategy="ddp_spawn")
 
 We STRONGLY discourage this use because it has limitations (due to Python and PyTorch):
 
@@ -450,7 +449,7 @@ You can then call your scripts anywhere
 .. code-block:: bash
 
     cd /project/src
-    python some_file.py --accelerator 'ddp' --gpus 8
+    python some_file.py --accelerator 'gpu' --devices 8 --strategy 'ddp'
 
 
 Horovod
@@ -471,7 +470,7 @@ Horovod can be configured in the training script to run with any number of GPUs 
 .. code-block:: python
 
     # train Horovod on GPU (number of GPUs / machines provided on command-line)
-    trainer = Trainer(strategy="horovod", gpus=1)
+    trainer = Trainer(strategy="horovod", accelerator="gpu", devices=1)
 
     # train Horovod on CPU (number of processes / machines provided on command-line)
     trainer = Trainer(strategy="horovod")
@@ -715,19 +714,19 @@ not allow 16-bit and DP training. We tried to get this to work, but it's an issu
 
 Below are the possible configurations we support.
 
-+-------+---------+----+-----+--------+------------------------------------------------------------+
-| 1 GPU | 1+ GPUs | DP | DDP | 16-bit | command                                                    |
-+=======+=========+====+=====+========+============================================================+
-| Y     |         |    |     |        | `Trainer(gpus=1)`                                          |
-+-------+---------+----+-----+--------+------------------------------------------------------------+
-| Y     |         |    |     | Y      | `Trainer(gpus=1, precision=16)`                            |
-+-------+---------+----+-----+--------+------------------------------------------------------------+
-|       | Y       | Y  |     |        | `Trainer(gpus=k, strategy='dp')`                           |
-+-------+---------+----+-----+--------+------------------------------------------------------------+
-|       | Y       |    | Y   |        | `Trainer(gpus=k, strategy='ddp')`                          |
-+-------+---------+----+-----+--------+------------------------------------------------------------+
-|       | Y       |    | Y   | Y      | `Trainer(gpus=k, strategy='ddp', precision=16)`            |
-+-------+---------+----+-----+--------+------------------------------------------------------------+
++-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
+| 1 GPU | 1+ GPUs | DP  | DDP | 16-bit | command                                                               |
++=======+=========+=====+=====+========+=======================================================================+
+| Y     |         |     |     |        | `Trainer(accelerator="gpu", devices=1)`                               |
++-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
+| Y     |         |     |     | Y      | `Trainer(accelerator="gpu", devices=1, precision=16)`                 |
++-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
+|       | Y       | Y   |     |        | `Trainer(accelerator="gpu", devices=k, strategy='dp')`                |
++-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
+|       | Y       |     | Y   |        | `Trainer(accelerator="gpu", devices=k, strategy='ddp')`               |
++-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
+|       | Y       |     | Y   | Y      | `Trainer(accelerator="gpu", devices=k, strategy='ddp', precision=16)` |
++-------+---------+-----+-----+--------+-----------------------------------------------------------------------+
 
 
 Implement Your Own Distributed (DDP) training
@@ -750,21 +749,21 @@ Let's say you have a batch size of 7 in your dataloader.
         def train_dataloader(self):
             return Dataset(..., batch_size=7)
 
-In DDP, DDP_SPAWN, Deepspeed, DDP_SHARDED, or Horovod your effective batch size will be 7 * gpus * num_nodes.
+In DDP, DDP_SPAWN, Deepspeed, DDP_SHARDED, or Horovod your effective batch size will be 7 * devices * num_nodes.
 
 .. code-block:: python
 
     # effective batch size = 7 * 8
-    Trainer(gpus=8, strategy="ddp")
-    Trainer(gpus=8, strategy="ddp_spawn")
-    Trainer(gpus=8, strategy="ddp_sharded")
-    Trainer(gpus=8, strategy="horovod")
+    Trainer(accelerator="gpu", devices=8, strategy="ddp")
+    Trainer(accelerator="gpu", devices=8, strategy="ddp_spawn")
+    Trainer(accelerator="gpu", devices=8, strategy="ddp_sharded")
+    Trainer(accelerator="gpu", devices=8, strategy="horovod")
 
     # effective batch size = 7 * 8 * 10
-    Trainer(gpus=8, num_nodes=10, strategy="ddp")
-    Trainer(gpus=8, num_nodes=10, strategy="ddp_spawn")
-    Trainer(gpus=8, num_nodes=10, strategy="ddp_sharded")
-    Trainer(gpus=8, num_nodes=10, strategy="horovod")
+    Trainer(accelerator="gpu", devices=8, num_nodes=10, strategy="ddp")
+    Trainer(accelerator="gpu", devices=8, num_nodes=10, strategy="ddp_spawn")
+    Trainer(accelerator="gpu", devices=8, num_nodes=10, strategy="ddp_sharded")
+    Trainer(accelerator="gpu", devices=8, num_nodes=10, strategy="horovod")
 
 In DDP2 or DP, your effective batch size will be 7 * num_nodes.
 The reason is that the full batch is visible to all GPUs on the node when using DDP2.
@@ -772,12 +771,12 @@ The reason is that the full batch is visible to all GPUs on the node when using 
 .. code-block:: python
 
     # effective batch size = 7
-    Trainer(gpus=8, strategy="ddp2")
-    Trainer(gpus=8, strategy="dp")
+    Trainer(accelerator="gpu", devices=8, strategy="ddp2")
+    Trainer(accelerator="gpu", devices=8, strategy="dp")
 
     # effective batch size = 7 * 10
-    Trainer(gpus=8, num_nodes=10, strategy="ddp2")
-    Trainer(gpus=8, strategy="dp")
+    Trainer(accelerator="gpu", devices=8, num_nodes=10, strategy="ddp2")
+    Trainer(accelerator="gpu", devices=8, strategy="dp")
 
 
 .. note:: Huge batch sizes are actually really bad for convergence. Check out:
@@ -787,11 +786,11 @@ The reason is that the full batch is visible to all GPUs on the node when using 
 
 Torch Distributed Elastic
 -------------------------
-Lightning supports the use of Torch Distributed Elastic to enable fault-tolerant and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of gpus you want to use in the trainer.
+Lightning supports the use of Torch Distributed Elastic to enable fault-tolerant and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of GPUs you want to use in the trainer.
 
 .. code-block:: python
 
-    Trainer(gpus=8, strategy="ddp")
+    Trainer(accelerator="gpu", devices=8, strategy="ddp")
 
 To launch a fault-tolerant job, run the following on all nodes.
 

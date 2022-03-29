@@ -39,7 +39,7 @@ Argparser Best Practices
 ^^^^^^^^^^^^^^^^^^^^^^^^
 It is best practice to layer your arguments in three sections.
 
-1.  Trainer args (``gpus``, ``num_nodes``, etc...)
+1.  Trainer args (``accelerator``, ``devices``, ``num_nodes``, etc...)
 2.  Model specific arguments (``layer_dim``, ``num_layers``, ``learning_rate``, etc...)
 3.  Program arguments (``data_path``, ``cluster_email``, etc...)
 
@@ -78,7 +78,7 @@ Now in your main trainer file, add the ``Trainer`` args, the program args, and a
     parser = LitModel.add_model_specific_args(parser)
 
     # add all the available trainer options to argparse
-    # ie: now --gpus --num_nodes ... --fast_dev_run all work in the cli
+    # ie: now --accelerator --devices --num_nodes ... --fast_dev_run all work in the cli
     parser = Trainer.add_argparse_args(parser)
 
     args = parser.parse_args()
@@ -87,7 +87,7 @@ Now you can call run your program like so:
 
 .. code-block:: bash
 
-    python trainer_main.py --gpus 2 --num_nodes 2 --conda_env 'my_env' --encoder_layers 12
+    python trainer_main.py --accelerator 'gpu' --devices 2 --num_nodes 2 --conda_env 'my_env' --encoder_layers 12
 
 Finally, make sure to start the training like so:
 
@@ -97,7 +97,7 @@ Finally, make sure to start the training like so:
     trainer = Trainer.from_argparse_args(args, early_stopping_callback=...)
 
     # NOT like this
-    trainer = Trainer(gpus=hparams.gpus, ...)
+    trainer = Trainer(accelerator=hparams.accelerator, devices=hparams.devices, ...)
 
     # init the model with Namespace directly
     model = LitModel(args)

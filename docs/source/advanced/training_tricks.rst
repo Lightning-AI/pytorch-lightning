@@ -89,7 +89,7 @@ longer training time. Inspired by https://github.com/BlackHC/toma.
     # Autoscale batch size
     trainer = Trainer(auto_scale_batch_size=None | "power" | "binsearch")
 
-    # find the batch size
+    # Find the batch size
     trainer.tune(model)
 
 Currently, this feature supports two modes ``'power'`` scaling and ``'binsearch'``
@@ -105,18 +105,48 @@ search for batch sizes larger than the size of the training dataset.
 
     This feature expects that a ``batch_size`` field is either located as a model attribute
     i.e. ``model.batch_size`` or as a field in your ``hparams`` i.e. ``model.hparams.batch_size``.
-    The field should exist and will be overridden by the results of this algorithm.
-    Additionally, your ``train_dataloader()`` method should depend on this field
-    for this feature to work i.e.
+    Similarly it can work with datamodules too. The field should exist and will be updated by
+    the results of this algorithm. Additionally, your ``train_dataloader()`` method should depend
+    on this field for this feature to work i.e.
 
     .. code-block:: python
 
-        def train_dataloader(self):
-            return DataLoader(train_dataset, batch_size=self.batch_size | self.hparams.batch_size)
+        # using LightningModule
+        class LitModel(LightningModule):
+            def __init__(self, batch_size):
+                super().__init__()
+                self.save_hyperparameters()
+                # or
+                self.batch_size = batch_size
+
+            def train_dataloader(self):
+                return DataLoader(train_dataset, batch_size=self.batch_size | self.hparams.batch_size)
+
+
+        trainer = Trainer(...)
+        model = LitModel(batch_size=32)
+        trainer.tune(model)
+
+        # using LightningDataModule
+        class LitDataModule(LightningDataModule):
+            def __init__(self, batch_size):
+                super().__init__()
+                self.save_hyperparameters()
+                # or
+                self.batch_size = batch_size
+
+            def train_dataloader(self):
+                return DataLoader(train_dataset, batch_size=self.batch_size | self.hparams.batch_size)
+
+
+        trainer = Trainer(...)
+        model = MyModel()
+        datamodule = LitDataModule(batch_size=32)
+        trainer.tune(model, datamodule=datamodule)
 
 .. warning::
 
-    Due to these constraints, this features does *NOT* work when passing dataloaders directly
+    Due to the constraints listed above, this features does *NOT* work when passing dataloaders directly
     to ``.fit()``.
 
 The scaling algorithm has a number of parameters that the user can control by
@@ -178,7 +208,7 @@ rate, a `learning rate finder` can be used. As described in `this paper <https:/
 a learning rate finder does a small run where the learning rate is increased
 after each processed batch and the corresponding loss is logged. The result of
 this is a ``lr`` vs. ``loss`` plot that can be used as guidance for choosing an optimal
-initial lr.
+initial learning rate.
 
 .. warning::
 
@@ -189,16 +219,21 @@ initial lr.
 Using Lightning's built-in LR finder
 ====================================
 
-To enable the learning rate finder, your :doc:`lightning module <../common/lightning_module>` needs to have a ``learning_rate`` or ``lr`` property.
-Then, set ``Trainer(auto_lr_find=True)`` during trainer construction,
-and then call ``trainer.tune(model)`` to run the LR finder. The suggested ``learning_rate``
-will be written to the console and will be automatically set to your :doc:`lightning module <../common/lightning_module>`,
-which can be accessed via ``self.learning_rate`` or ``self.lr``.
+To enable the learning rate finder, your :doc:`lightning module <../common/lightning_module>` needs to
+have a ``learning_rate`` or ``lr`` attribute (or as a field in your ``hparams`` i.e.
+``hparams.learning_rate`` or ``hparams.lr``). Then, set ``Trainer(auto_lr_find=True)``
+during trainer construction, and then call ``trainer.tune(model)`` to run the LR finder.
+The suggested ``learning_rate`` will be written to the console and will be automatically
+set to your :doc:`lightning module <../common/lightning_module>`, which can be accessed
+via ``self.learning_rate`` or ``self.lr``.
+
+.. seealso:: :ref:`trainer.tune <common/trainer:tune>`.
 
 .. code-block:: python
 
     class LitModel(LightningModule):
         def __init__(self, learning_rate):
+            super().__init__()
             self.learning_rate = learning_rate
             self.model = Model(...)
 
@@ -225,7 +260,6 @@ If your model is using an arbitrary value instead of ``self.lr`` or ``self.learn
 
     trainer.tune(model)
 
-
 You can also inspect the results of the learning rate finder or just play around
 with the parameters of the algorithm. This can be done by invoking the
 :meth:`~pytorch_lightning.tuner.tuning.Tuner.lr_find` method. A typical example of this would look like:
@@ -239,7 +273,7 @@ with the parameters of the algorithm. This can be done by invoking the
     lr_finder = trainer.tuner.lr_find(model)
 
     # Results can be found in
-    lr_finder.results
+    print(lr_finder.results)
 
     # Plot with
     fig = lr_finder.plot(suggest=True)
@@ -318,7 +352,7 @@ training type strategy:
     model = Model(...)
     datamodule = MNISTDataModule("data/MNIST")
 
-    trainer = Trainer(gpus=2, strategy="ddp_spawn")
+    trainer = Trainer(accelerator="gpu", devices=2, strategy="ddp_spawn")
     trainer.fit(model, datamodule)
 
 See the `graph-level <https://github.com/pyg-team/pytorch_geometric/blob/master/examples/pytorch_lightning/gin.py>`_ and `node-level <https://github.com/pyg-team/pytorch_geometric/blob/master/examples/pytorch_lightning/graph_sage.py>`_ prediction examples in PyTorch Geometric for practical use-cases.

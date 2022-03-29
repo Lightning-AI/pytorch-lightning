@@ -100,13 +100,14 @@ In Python scripts, it's recommended you use a main function to call the Trainer.
 
     def main(hparams):
         model = LightningModule()
-        trainer = Trainer(gpus=hparams.gpus)
+        trainer = Trainer(accelerator=hparams.accelerator, devices=hparams.devices)
         trainer.fit(model)
 
 
     if __name__ == "__main__":
         parser = ArgumentParser()
-        parser.add_argument("--gpus", default=None)
+        parser.add_argument("--accelerator", default=None)
+        parser.add_argument("--devices", default=None)
         args = parser.parse_args()
 
         main(args)
@@ -115,7 +116,7 @@ So you can run it like so:
 
 .. code-block:: bash
 
-    python main.py --gpus 2
+    python main.py --accelerator 'gpu' --devices 2
 
 .. note::
 
@@ -143,7 +144,7 @@ So you can run it like so:
 
 .. code-block:: bash
 
-    python main.py --gpus 2 --max_steps 10 --limit_train_batches 10 --any_trainer_arg x
+    python main.py --accelerator 'gpu' --devices 2 --max_steps 10 --limit_train_batches 10 --any_trainer_arg x
 
 .. note::
     If you want to stop a training run early, you can press "Ctrl + C" on your keyboard.
@@ -216,7 +217,7 @@ as well as custom accelerator instances.
     # CPU accelerator
     trainer = Trainer(accelerator="cpu")
 
-    # Training with GPU Accelerator using 2 gpus
+    # Training with GPU Accelerator using 2 GPUs
     trainer = Trainer(devices=2, accelerator="gpu")
 
     # Training with TPU Accelerator using 8 tpu cores
@@ -240,6 +241,26 @@ Example::
         ...
 
     Trainer(accelerator=MyOwnAcc())
+
+.. note::
+
+    If the ``devices`` flag is not defined, it will assume ``devices`` to be ``"auto"`` and fetch the ``auto_device_count``
+    from the accelerator.
+
+    .. code-block:: python
+
+        # This is part of the built-in `GPUAccelerator`
+        class GPUAccelerator(Accelerator):
+            """Accelerator for GPU devices."""
+
+            @staticmethod
+            def auto_device_count() -> int:
+                """Get the devices when set to auto."""
+                return torch.cuda.device_count()
+
+
+        # Training with GPU Accelerator using total number of gpus available on the system
+        Trainer(accelerator="gpu")
 
 .. warning:: Passing training strategies (e.g., ``"ddp"``) to ``accelerator`` has been deprecated in v1.5.0
     and will be removed in v1.7.0. Please use the ``strategy`` argument instead.
@@ -349,23 +370,23 @@ auto_select_gpus
 
 |
 
-If enabled and `gpus` is an integer, pick available gpus automatically.
+If enabled and ``devices`` is an integer, pick available GPUs automatically.
 This is especially useful when GPUs are configured to be in "exclusive mode",
 such that only one process at a time can access them.
 
 Example::
 
-    # no auto selection (picks first 2 gpus on system, may fail if other process is occupying)
-    trainer = Trainer(gpus=2, auto_select_gpus=False)
+    # no auto selection (picks first 2 GPUs on system, may fail if other process is occupying)
+    trainer = Trainer(accelerator="gpu", devices=2, auto_select_gpus=False)
 
-    # enable auto selection (will find two available gpus on system)
-    trainer = Trainer(gpus=2, auto_select_gpus=True)
+    # enable auto selection (will find two available GPUs on system)
+    trainer = Trainer(accelerator="gpu", devices=2, auto_select_gpus=True)
 
     # specifies all GPUs regardless of its availability
-    Trainer(gpus=-1, auto_select_gpus=False)
+    Trainer(accelerator="gpu", devices=-1, auto_select_gpus=False)
 
     # specifies all available GPUs (if only one GPU is not occupied, uses one gpu)
-    Trainer(gpus=-1, auto_select_gpus=True)
+    Trainer(accelerator="gpu", devices=-1, auto_select_gpus=True)
 
 auto_lr_find
 ^^^^^^^^^^^^
@@ -579,6 +600,26 @@ based on the accelerator type (``"cpu", "gpu", "tpu", "ipu", "auto"``).
     # Training with IPU Accelerator using 4 ipus
     trainer = Trainer(devices="auto", accelerator="ipu")
 
+.. note::
+
+    If the ``devices`` flag is not defined, it will assume ``devices`` to be ``"auto"`` and fetch the ``auto_device_count``
+    from the accelerator.
+
+    .. code-block:: python
+
+        # This is part of the built-in `GPUAccelerator`
+        class GPUAccelerator(Accelerator):
+            """Accelerator for GPU devices."""
+
+            @staticmethod
+            def auto_device_count() -> int:
+                """Get the devices when set to auto."""
+                return torch.cuda.device_count()
+
+
+        # Training with GPU Accelerator using total number of gpus available on the system
+        Trainer(accelerator="gpu")
+
 enable_checkpointing
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -694,6 +735,9 @@ See Also:
 
 gpus
 ^^^^
+
+.. warning:: Setting `Trainer(gpus=x)` is deprecated in v1.6 and will be removed
+    in v2.0. Please use `Trainer(accelerator="gpu", devices=x)` instead.
 
 .. raw:: html
 
@@ -1185,7 +1229,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     trainer = Trainer(precision=32)
 
     # 16-bit precision
-    trainer = Trainer(precision=16, gpus=1)  # works only on CUDA
+    trainer = Trainer(precision=16, accelerator="gpu", devices=1)  # works only on CUDA
 
     # bfloat16 precision
     trainer = Trainer(precision="bf16")
@@ -1210,7 +1254,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
         :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
         # turn on 16-bit
-        trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16, gpus=1)
+        trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16, accelerator="gpu", devices=1)
 
 
 process_position
@@ -1408,7 +1452,7 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
 
 .. code-block:: python
 
-    # Training with the DistributedDataParallel strategy on 4 gpus
+    # Training with the DistributedDataParallel strategy on 4 GPUs
     trainer = Trainer(strategy="ddp", accelerator="gpu", devices=4)
 
     # Training with the DDP Spawn strategy using 4 cpu processes

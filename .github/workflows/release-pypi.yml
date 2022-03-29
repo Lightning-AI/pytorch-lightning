@@ -92,9 +92,9 @@ jobs:
       with:
         python-version: 3.9
 
-    - name: Weekly reset caching
-      run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
-      id: times
+    - name: Reset caching
+      run: python -c "import time; days = time.time() / 60 / 60 / 24; print(f'TIME_PERIOD=d{int(days / 2) * 2}')" >> $GITHUB_ENV
+      shell: bash
 
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -102,8 +102,8 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-${{ hashFiles('requirements.txt') }}
-        restore-keys: ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-
+        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-${{ hashFiles('requirements.txt') }}
+        restore-keys: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-
 
     - name: Install dependencies
       run: |
