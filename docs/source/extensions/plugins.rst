@@ -71,7 +71,7 @@ Below is a list of built-in plugins for checkpointing.
     TorchCheckpointIO
     XLACheckpointIO
 
-You could learn more about custom checkpointing with Lightning :ref:`here <../common/checkpointing:Customize Checkpointing>`.
+You could learn more about custom checkpointing with Lightning :ref:`here <customize_checkpointing>`.
 
 Cluster Environments
 --------------------

@@ -315,6 +315,7 @@ and the Lightning Team will be happy to integrate/help integrate it.
 
 -----------
 
+.. _customize_checkpointing:
 
 ***********************
 Customize Checkpointing
