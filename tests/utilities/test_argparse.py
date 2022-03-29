@@ -19,7 +19,7 @@ from pytorch_lightning.utilities.argparse import (
 
 
 class ArgparseExample:
-    def __init__(self, a: int = 0, b: str = "", c: bool = False):
+    def __init__(self, a: int, b: str = "", c: bool = False):
         self.a = a
         self.b = b
         self.c = c
@@ -146,6 +146,14 @@ class AddArgparseArgsExampleClassGeneric:
     def __init__(self, invalid_class: SomeClass):
         pass
 
+class AddArgparseArgsExampleClassNoDefault:
+    """
+    Args:
+        my_parameter: A thing.
+    """
+    def __init__(self, my_parameter: int):
+        pass
+
 
 def extract_help_text(parser):
     help_str_buffer = io.StringIO()
@@ -160,6 +168,7 @@ def extract_help_text(parser):
         [AddArgparseArgsExampleClass, "AddArgparseArgsExampleClass"],
         [AddArgparseArgsExampleClassViaInit, "AddArgparseArgsExampleClassViaInit"],
         [AddArgparseArgsExampleClassNoDoc, "AddArgparseArgsExampleClassNoDoc"],
+        [AddArgparseArgsExampleClassNoDefault, "AddArgparseArgsExampleClassNoDefault"],
     ],
 )
 def test_add_argparse_args(cls, name):
@@ -184,6 +193,15 @@ def test_add_argparse_args(cls, name):
     args = parser.parse_args(fake_argv)
     assert args.main_arg == "abc"
     assert args.my_parameter == 2
+
+    fake_argv = ["--main_arg=abc"]
+    if cls is AddArgparseArgsExampleClassNoDefault:
+        with pytest.raises(SystemExit):
+            args = parser.parse_args(fake_argv)
+    else:
+        args = parser.parse_args(fake_argv)
+        assert args.main_arg == "abc"
+        assert args.my_parameter == 0
 
 
 def test_negative_add_argparse_args():
