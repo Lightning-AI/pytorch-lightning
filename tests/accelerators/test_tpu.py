@@ -53,7 +53,7 @@ def test_resume_training_on_cpu(tmpdir):
     """Checks if training can be resumed from a saved checkpoint on CPU."""
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, tpu_cores=8)
+    trainer = Trainer(max_epochs=1, accelerator="tpu", devices=8)
     trainer.fit(model)
 
     model_path = trainer.checkpoint_callback.best_model_path
@@ -76,7 +76,7 @@ def test_if_test_works_after_train(tmpdir):
 
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(max_epochs=1, accelerator="tpu", devices=8, default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
     assert len(trainer.test(model)) == 1
 
@@ -85,16 +85,15 @@ def test_if_test_works_after_train(tmpdir):
 def test_accelerator_cpu_with_tpu_cores_flag():
     assert TPUAccelerator.is_available()
 
-    trainer = Trainer(accelerator="cpu", tpu_cores=8)
+    trainer = Trainer(accelerator="cpu", devices=8)
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
-    trainer = Trainer(accelerator="tpu", tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
 
 @RunIf(tpu=True)
-@pl_multi_process_test
 @pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", None)])
 def test_accelerator_tpu(accelerator, devices):
     assert TPUAccelerator.is_available()
@@ -103,7 +102,6 @@ def test_accelerator_tpu(accelerator, devices):
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
     assert trainer.num_devices == 8
-    assert trainer.tpu_cores == 8
 
 
 @RunIf(tpu=True)
@@ -114,13 +112,14 @@ def test_accelerator_tpu_with_tpu_cores_priority():
     with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
         trainer = Trainer(accelerator="tpu", devices=1, tpu_cores=tpu_cores)
 
-    assert trainer.tpu_cores == tpu_cores
+    assert isinstance(trainer.accelerator, TPUAccelerator)
+    assert trainer.num_devices == tpu_cores
 
 
 @RunIf(tpu=True)
-@pl_multi_process_test
 def test_set_devices_if_none_tpu():
     trainer = Trainer(accelerator="tpu", tpu_cores=8)
+    assert isinstance(trainer.accelerator, TPUAccelerator)
     assert trainer.num_devices == 8
 
 

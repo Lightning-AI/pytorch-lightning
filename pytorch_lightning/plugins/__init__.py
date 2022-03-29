@@ -2,6 +2,7 @@ from typing import Union
 
 from pytorch_lightning.plugins.environments import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
@@ -9,6 +10,7 @@ from pytorch_lightning.plugins.precision.apex_amp import ApexMixedPrecisionPlugi
 from pytorch_lightning.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
 from pytorch_lightning.plugins.precision.double import DoublePrecisionPlugin
 from pytorch_lightning.plugins.precision.fully_sharded_native_amp import FullyShardedNativeMixedPrecisionPlugin
+from pytorch_lightning.plugins.precision.hpu import HPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.ipu import IPUPrecisionPlugin
 from pytorch_lightning.plugins.precision.native_amp import NativeMixedPrecisionPlugin
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
@@ -39,6 +41,7 @@ __all__ = [
     "CheckpointIO",
     "TorchCheckpointIO",
     "XLACheckpointIO",
+    "HPUCheckpointIO",
     "ApexMixedPrecisionPlugin",
     "DataParallelPlugin",
     "DDP2Plugin",
@@ -51,6 +54,7 @@ __all__ = [
     "HorovodPlugin",
     "IPUPlugin",
     "IPUPrecisionPlugin",
+    "HPUPrecisionPlugin",
     "NativeMixedPrecisionPlugin",
     "PrecisionPlugin",
     "ShardedNativeMixedPrecisionPlugin",

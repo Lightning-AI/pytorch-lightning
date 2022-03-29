@@ -6,9 +6,9 @@
 
 .. _checkpointing:
 
-##############################
-Saving and Loading Checkpoints
-##############################
+#############
+Checkpointing
+#############
 
 Lightning provides functions to save and load checkpoints.
 
@@ -315,6 +315,7 @@ and the Lightning Team will be happy to integrate/help integrate it.
 
 -----------
 
+.. _customize_checkpointing:
 
 ***********************
 Customize Checkpointing

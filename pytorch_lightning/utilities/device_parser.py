@@ -79,8 +79,9 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     Returns:
         a list of gpus to be used or ``None`` if no GPUs were requested
 
-    If no GPUs are available but the value of gpus variable indicates request for GPUs
-    then a MisconfigurationException is raised.
+    Raises:
+        MisconfigurationException:
+            If no GPUs are available but the value of gpus variable indicates request for GPUs
     """
     # Check that gpus param is None, Int, String or List
     _check_data_type(gpus)
@@ -135,6 +136,29 @@ def parse_tpu_cores(tpu_cores: Optional[Union[int, str, List[int]]]) -> Optional
         raise MisconfigurationException("No TPU devices were found.")
 
     return tpu_cores
+
+
+def parse_cpu_cores(cpu_cores: Union[int, str, List[int]]) -> int:
+    """Parses the cpu_cores given in the format as accepted by the ``devices`` argument in the
+    :class:`~pytorch_lightning.trainer.Trainer`.
+
+    Args:
+        cpu_cores: An int > 0.
+
+    Returns:
+        an int representing the number of processes
+
+    Raises:
+        MisconfigurationException:
+            If cpu_cores is not an int > 0
+    """
+    if isinstance(cpu_cores, str) and cpu_cores.strip().isdigit():
+        cpu_cores = int(cpu_cores)
+
+    if not isinstance(cpu_cores, int) or cpu_cores <= 0:
+        raise MisconfigurationException("`devices` selected with `CPUAccelerator` should be an int > 0.")
+
+    return cpu_cores
 
 
 def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[int, List[int]]:
@@ -243,3 +267,24 @@ def _parse_tpu_cores_str(tpu_cores: str) -> Union[int, List[int]]:
     if tpu_cores in ("1", "8"):
         return int(tpu_cores)
     return [int(x.strip()) for x in tpu_cores.split(",") if len(x) > 0]
+
+
+def parse_hpus(devices: Optional[Union[int, str, List[int]]]) -> Optional[int]:
+    """
+    Parses the hpus given in the format as accepted by the
+    :class:`~pytorch_lightning.trainer.Trainer` for the `devices` flag.
+
+    Args:
+        devices: An integer that indicates the number of Gaudi devices to be used
+
+    Returns:
+        Either an integer or ``None`` if no devices were requested
+
+    Raises:
+        MisconfigurationException:
+            If devices aren't of type `int` or `str`
+    """
+    if devices is not None and not isinstance(devices, (int, str)):
+        raise MisconfigurationException("`devices` for `HPUAccelerator` must be int, string or None.")
+
+    return int(devices) if isinstance(devices, str) else devices

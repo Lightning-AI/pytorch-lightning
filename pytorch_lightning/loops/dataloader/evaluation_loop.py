@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 import shutil
-from collections import OrderedDict
+from collections import ChainMap, OrderedDict
 from functools import partial
 from typing import Any, IO, Iterable, List, Optional, Sequence, Type, Union
 
@@ -159,6 +159,18 @@ class EvaluationLoop(DataLoaderLoop):
             # indicate the loop has run
             self._has_run = True
 
+    def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
+        dataloader = self.current_dataloader
+        if (
+            dataloader is not None
+            and getattr(dataloader, "sampler", None)
+            and callable(getattr(dataloader.sampler, "set_epoch", None))
+        ):
+            # set seed for distributed sampler (enables shuffling for each epoch)
+            dataloader.sampler.set_epoch(self.trainer.fit_loop.epoch_progress.current.processed)
+
+        super().on_advance_start(*args, **kwargs)
+
     def on_advance_end(self) -> None:
         self.trainer._logger_connector.epoch_end_reached()
 
@@ -181,11 +193,13 @@ class EvaluationLoop(DataLoaderLoop):
         logged_outputs, self._logged_outputs = self._logged_outputs, []  # free memory
         # include any logged outputs on epoch_end
         epoch_end_logged_outputs = self.trainer._logger_connector.update_eval_epoch_metrics()
+        all_logged_outputs = dict(ChainMap(*logged_outputs))  # list[dict] -> dict
+        all_logged_outputs.update(epoch_end_logged_outputs)
         for dl_outputs in logged_outputs:
             dl_outputs.update(epoch_end_logged_outputs)
 
         # log metrics
-        self.trainer._logger_connector.log_eval_end_metrics()
+        self.trainer._logger_connector.log_eval_end_metrics(all_logged_outputs)
 
         # hook
         self._on_evaluation_end()

@@ -6,7 +6,7 @@ Plugins
 
 .. include:: ../links.rst
 
-Plugins allow custom integrations to the internals of the Trainer such as a custom precision, checkpointing or
+Plugins allow custom integrations to the internals of the Trainer such as custom precision, checkpointing or
 cluster environment implementation.
 
 Under the hood, the Lightning Trainer is using plugins in the training routine, added automatically
@@ -19,10 +19,11 @@ There are three types of Plugins in Lightning with different responsibilities:
 - Cluster Environments
 
 
+*****************
 Precision Plugins
------------------
+*****************
 
-We provide precision plugins for the users so that they can benefit from numerical representations with lower precision than
+We provide precision plugins for you to benefit from numerical representations with lower precision than
 32-bit floating-point or higher precision, such as 64-bit floating-point.
 
 .. code-block:: python
@@ -38,25 +39,29 @@ The full list of built-in precision plugins is listed below.
     :nosignatures:
     :template: classtemplate.rst
 
-    PrecisionPlugin
-    MixedPrecisionPlugin
-    NativeMixedPrecisionPlugin
-    ShardedNativeMixedPrecisionPlugin
     ApexMixedPrecisionPlugin
     DeepSpeedPrecisionPlugin
-    TPUPrecisionPlugin
-    TPUBf16PrecisionPlugin
     DoublePrecisionPlugin
     FullyShardedNativeMixedPrecisionPlugin
+    HPUPrecisionPlugin
     IPUPrecisionPlugin
+    MixedPrecisionPlugin
+    NativeMixedPrecisionPlugin
+    PrecisionPlugin
+    ShardedNativeMixedPrecisionPlugin
+    TPUBf16PrecisionPlugin
+    TPUPrecisionPlugin
 
 More information regarding precision with Lightning can be found :doc:`here <../advanced/precision>`
 
+-----------
+
+********************
 CheckpointIO Plugins
---------------------
+********************
 
 As part of our commitment to extensibility, we have abstracted Lightning's checkpointing logic into the :class:`~pytorch_lightning.plugins.io.CheckpointIO` plugin.
-With this, users have the ability to customize the checkpointing logic to match the needs of their infrastructure.
+With this, you have the ability to customize the checkpointing logic to match the needs of your infrastructure.
 
 Below is a list of built-in plugins for checkpointing.
 
@@ -67,15 +72,19 @@ Below is a list of built-in plugins for checkpointing.
     :template: classtemplate.rst
 
     CheckpointIO
+    HPUCheckpointIO
     TorchCheckpointIO
     XLACheckpointIO
 
-You could learn more about custom checkpointing with Lightning :ref:`here <../common/checkpointing:Customize Checkpointing>`.
+You could learn more about custom checkpointing with Lightning :ref:`here <customize_checkpointing>`.
 
+-----------
+
+********************
 Cluster Environments
---------------------
+********************
 
-Users can define the interface of their own cluster environment based on the requirements of their infrastructure.
+You can define the interface of your own cluster environment based on the requirements of your infrastructure.
 
 .. currentmodule:: pytorch_lightning.plugins.environments
 
@@ -84,8 +93,8 @@ Users can define the interface of their own cluster environment based on the req
     :template: classtemplate.rst
 
     ClusterEnvironment
+    KubeflowEnvironment
     LightningEnvironment
     LSFEnvironment
-    TorchElasticEnvironment
-    KubeflowEnvironment
     SLURMEnvironment
+    TorchElasticEnvironment

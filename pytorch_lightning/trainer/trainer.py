@@ -31,7 +31,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator
+from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, HPUAccelerator, IPUAccelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -77,6 +77,7 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
+    _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
     AMPType,
@@ -195,7 +196,7 @@ class Trainer(
 
         Args:
 
-            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "auto")
+            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "auto")
                 as well as custom accelerator instances.
 
                 .. deprecated:: v1.5
@@ -353,7 +354,7 @@ class Trainer(
                 Default: ``None``.
 
             precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
-                Can be used on CPU, GPU, TPUs or IPUs.
+                Can be used on CPU, GPU, TPUs, HPUs or IPUs.
                 Default: ``32``.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
@@ -597,10 +598,8 @@ class Trainer(
 
         self._terminate_on_nan = terminate_on_nan
         self.gradient_clip_val: Union[int, float] = gradient_clip_val
-        self.gradient_clip_algorithm = (
-            GradClipAlgorithmType(gradient_clip_algorithm.lower())
-            if gradient_clip_algorithm is not None
-            else gradient_clip_algorithm
+        self.gradient_clip_algorithm: Optional[GradClipAlgorithmType] = (
+            GradClipAlgorithmType(gradient_clip_algorithm.lower()) if gradient_clip_algorithm is not None else None
         )
         self.track_grad_norm: float = float(track_grad_norm)
 
@@ -1139,6 +1138,7 @@ class Trainer(
     def _restore_modules_and_callbacks(self, checkpoint_path: Optional[_PATH] = None) -> None:
         # restore modules after setup
         self._checkpoint_connector.resume_start(checkpoint_path)
+        self._checkpoint_connector._restore_quantization_callbacks()
         self._checkpoint_connector.restore_model()
         self._checkpoint_connector.restore_datamodule()
         if self.state.fn == TrainerFn.FITTING:
@@ -1810,13 +1810,14 @@ class Trainer(
             f"GPU available: {torch.cuda.is_available()}, used: {isinstance(self.accelerator, GPUAccelerator)}"
         )
 
-        num_tpu_cores = (
-            self.tpu_cores if self.tpu_cores is not None and isinstance(self.accelerator, TPUAccelerator) else 0
-        )
+        num_tpu_cores = self.num_devices if isinstance(self.accelerator, TPUAccelerator) else 0
         rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
 
         num_ipus = self.num_devices if isinstance(self.accelerator, IPUAccelerator) else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
+
+        num_hpus = self.num_devices if isinstance(self.accelerator, HPUAccelerator) else 0
+        rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
 
         if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
             rank_zero_warn(
@@ -1835,6 +1836,12 @@ class Trainer(
             rank_zero_warn(
                 "IPU available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='ipu', devices={IPUAccelerator.auto_device_count()})`."
+            )
+
+        if _HPU_AVAILABLE and not isinstance(self.accelerator, HPUAccelerator):
+            rank_zero_warn(
+                "HPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='hpu', devices={HPUAccelerator.auto_device_count()})`."
             )
 
     """
@@ -2058,7 +2065,11 @@ class Trainer(
     @property
     def device_ids(self) -> List[int]:
         """List of device indexes per node."""
-        devices = getattr(self.strategy, "parallel_devices", [self.strategy.root_device])
+        devices = (
+            self.strategy.parallel_devices
+            if isinstance(self.strategy, ParallelStrategy)
+            else [self.strategy.root_device]
+        )
         device_ids = []
         for idx, device in enumerate(devices):
             if isinstance(device, torch.device):
@@ -2090,7 +2101,11 @@ class Trainer(
 
     @property
     def tpu_cores(self) -> int:
-        return self._accelerator_connector.tpu_cores
+        rank_zero_deprecation(
+            "`Trainer.tpu_cores` is deprecated in v1.6 and will be removed in v1.8. "
+            "Please use `Trainer.num_devices` instead."
+        )
+        return self.num_devices if isinstance(self.accelerator, TPUAccelerator) else 0
 
     @property
     def ipus(self) -> int:
@@ -2185,6 +2200,10 @@ class Trainer(
 
     @property
     def gpus(self) -> Optional[Union[List[int], str, int]]:
+        rank_zero_deprecation(
+            "`Trainer.gpus` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
+        )
         return self._accelerator_connector.gpus
 
     @property
