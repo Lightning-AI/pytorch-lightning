@@ -146,11 +146,13 @@ class AddArgparseArgsExampleClassGeneric:
     def __init__(self, invalid_class: SomeClass):
         pass
 
+
 class AddArgparseArgsExampleClassNoDefault:
     """
     Args:
         my_parameter: A thing.
     """
+
     def __init__(self, my_parameter: int):
         pass
 
