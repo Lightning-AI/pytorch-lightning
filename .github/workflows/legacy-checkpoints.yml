@@ -44,7 +44,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: checkpoints-${{ github.sha }}
-        path: checkpoints/
+        path: legacy/checkpoints/
       if: always()
 
     - name: Upload checkpoints to S3
