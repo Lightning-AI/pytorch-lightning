@@ -71,7 +71,7 @@ ______________________________________________________________________
 
 ## Continuous Integration
 
-Lightning is rigorously tested across multiple CPUs, GPUs, TPUs, and HPUs and against major Python and PyTorch versions.
+Lightning is rigorously tested across multiple CPUs, GPUs, TPUs, IPUs, and HPUs and against major Python and PyTorch versions.
 
 <details>
   <summary>Current build statuses</summary>
