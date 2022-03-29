@@ -1,9 +1,12 @@
 name: Create Legacy Ckpts
 
-# https://help.github.com/en/actions/reference/events-that-trigger-workflows
-# on:
-#   workflow_dispatch:
-on: push  # FIXME
+on:
+  workflow_dispatch:
+    inputs:
+      push_to_s3:
+        description: 'Push generated checkpoints to S3'
+        required: false
+        type: boolean
 
 jobs:
   create-legacy-ckpts:
@@ -43,6 +46,7 @@ jobs:
     - name: Upload checkpoints to S3
       run: |
         # Upload checkpoints without archiving.
-        # aws s3 sync legacy/checkpoints/ s3://pl-public-data/legacy/checkpoints/
-        # Upload checkpoints archived in a zip.
-        # aws s3 cp legacy/checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
+        aws s3 sync legacy/checkpoints/ s3://pl-public-data/legacy/checkpoints/
+        # Upload checkpoints archived in a zip which will be used in our tests.
+        aws s3 cp legacy/checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
+      if: ${{ github.event.inputs.push_to_s3 == 'true' }}
