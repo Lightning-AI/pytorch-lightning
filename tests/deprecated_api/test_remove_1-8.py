@@ -1139,9 +1139,8 @@ def test_trainer_gpus(monkeypatch, trainer_kwargs):
 
 
 def test_trainer_tpu_cores(monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.accelerators.tpu.TPUAccelerator, "is_available", lambda: True)
-    monkeypatch.setattr(pytorch_lightning.accelerators.tpu.TPUAccelerator, "parse_devices", lambda: 8)
-    trainer = Trainer(accelerator="TPU", devices=8)
+    monkeypatch.setattr(pytorch_lightning.accelerators.tpu.TPUAccelerator, "is_available", lambda _: True)
+    trainer = Trainer(accelerator="tpu", devices=8)
     with pytest.deprecated_call(
         match="`Trainer.tpu_cores` is deprecated in v1.6 and will be removed in v1.8. "
         "Please use `Trainer.num_devices` instead."
