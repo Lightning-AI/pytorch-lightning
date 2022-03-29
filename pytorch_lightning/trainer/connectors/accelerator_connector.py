@@ -79,12 +79,7 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import (
-    _HOROVOD_AVAILABLE,
-    _HPU_AVAILABLE,
-    _IPU_AVAILABLE,
-    _TPU_AVAILABLE,
-)
+from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE, _HPU_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE
 from pytorch_lightning.utilities.meta import get_all_subclasses
 
 log = logging.getLogger(__name__)
