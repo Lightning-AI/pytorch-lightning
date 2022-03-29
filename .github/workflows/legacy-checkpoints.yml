@@ -34,11 +34,9 @@ jobs:
 
     - name: Generate checkpoints
       run: |
-        # while IFS= read -r line; do
-        #     bash generate_checkpoints.sh $line
-        # done <<< $(cat back-compatible-versions.txt)
-        bash generate_checkpoints.sh 1.5.0 1.5.1
-        zip -r checkpoints.zip checkpoints
+        while IFS= read -r line; do
+            bash generate_checkpoints.sh $line
+        done <<< $(cat back-compatible-versions.txt)
 
     - name: Upload checkpoints as GitHub Actions' artifact
       uses: actions/upload-artifact@v3
@@ -52,5 +50,6 @@ jobs:
         # Upload checkpoints without archiving.
         # aws s3 sync checkpoints/ s3://pl-public-data/legacy/checkpoints/
         # Upload checkpoints archived in a zip which will be used in our tests.
-        aws s3 cp checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
+        zip -r checkpoints_12491.zip checkpoints
+        aws s3 cp checkpoints_12491.zip s3://pl-public-data/legacy/ --acl public-read
       if: ${{ github.event.inputs.push_to_s3 == 'true' }}
