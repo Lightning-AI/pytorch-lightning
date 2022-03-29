@@ -620,7 +620,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         "state_dict": ANY,
         "loops": ANY,
     }
-    saved_ckpt = {**loaded_ckpt, "global_step": steps_after_reload, "epoch": 1}
+    saved_ckpt = {**loaded_ckpt, "global_step": steps_after_reload}
     expected = [
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
@@ -650,7 +650,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         dict(name="on_epoch_start"),
         dict(name="Callback.on_train_epoch_start", args=(trainer, model)),
         dict(name="on_train_epoch_start"),
-        *model._train_batch(trainer, model, steps_after_reload, current_batch=1, current_epoch=1),
+        *model._train_batch(trainer, model, steps_after_reload, current_batch=1),
         dict(name="training_epoch_end", args=([dict(loss=ANY)] * train_batches,)),
         dict(name="Callback.on_train_epoch_end", args=(trainer, model)),
         dict(name="Callback.state_dict"),

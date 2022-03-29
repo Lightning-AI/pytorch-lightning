@@ -181,7 +181,7 @@ def test_parse_args_parsing_complex_types(cli_args, expected, instantiate):
 
 
 @pytest.mark.parametrize(
-    ["cli_args", "expected_gpu"], [("--gpus 1", [0]), ("--gpus 0,", [0]), ("--gpus 1,", [1]), ("--gpus 0,1", [0, 1])]
+    ["cli_args", "expected_gpu"], [('--accelerator "gpu" --devices 1', [0]), ('--accelerator "gpu" --devices 0,', [0]), ("--devices 1,", [1]), ('--accelerator "gpu" --devices 0,1', [0, 1])]
 )
 def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
     """Test parsing of gpus and instantiation of Trainer."""
@@ -192,8 +192,7 @@ def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
         parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
         parser.add_lightning_class_args(Trainer, None)
         args = parser.parse_args()
-    with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
-        trainer = Trainer.from_argparse_args(args)
+    trainer = Trainer.from_argparse_args(args)
     assert trainer.device_ids == expected_gpu
 
 

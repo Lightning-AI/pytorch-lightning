@@ -94,7 +94,6 @@ def test_accelerator_cpu_with_tpu_cores_flag():
 
 
 @RunIf(tpu=True)
-@pl_multi_process_test
 @pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", None)])
 def test_accelerator_tpu(accelerator, devices):
     assert TPUAccelerator.is_available()
@@ -103,7 +102,6 @@ def test_accelerator_tpu(accelerator, devices):
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
     assert trainer.num_devices == 8
-    assert trainer.tpu_cores == 8
 
 
 @RunIf(tpu=True)
@@ -114,14 +112,19 @@ def test_accelerator_tpu_with_tpu_cores_priority():
     with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
         trainer = Trainer(accelerator="tpu", devices=1, tpu_cores=tpu_cores)
 
-    assert trainer.tpu_cores == tpu_cores
+    assert isinstance(trainer.accelerator, TPUAccelerator)
+    assert trainer.num_devices == tpu_cores
 
 
 @RunIf(tpu=True)
-@pl_multi_process_test
 def test_set_devices_if_none_tpu():
+<<<<<<< HEAD
     with pytest.deprecated_call(match=r"is deprecated in v1.6 and will be removed in v2.0."):
         trainer = Trainer(accelerator="tpu", tpu_cores=8)
+=======
+    trainer = Trainer(accelerator="tpu", tpu_cores=8)
+    assert isinstance(trainer.accelerator, TPUAccelerator)
+>>>>>>> 534aa174015bade65f3ceb5b9dafbfa743093fa4
     assert trainer.num_devices == 8
 
 
