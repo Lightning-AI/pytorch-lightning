@@ -19,8 +19,9 @@ There are three types of Plugins in Lightning with different responsibilities:
 - Cluster Environments
 
 
+*****************
 Precision Plugins
------------------
+*****************
 
 We provide precision plugins for the users so that they can benefit from numerical representations with lower precision than
 32-bit floating-point or higher precision, such as 64-bit floating-point.
@@ -53,8 +54,13 @@ The full list of built-in precision plugins is listed below.
 
 More information regarding precision with Lightning can be found :doc:`here <../advanced/precision>`
 
+
+-----------
+
+
+********************
 CheckpointIO Plugins
---------------------
+********************
 
 As part of our commitment to extensibility, we have abstracted Lightning's checkpointing logic into the :class:`~pytorch_lightning.plugins.io.CheckpointIO` plugin.
 With this, users have the ability to customize the checkpointing logic to match the needs of their infrastructure.
@@ -68,13 +74,19 @@ Below is a list of built-in plugins for checkpointing.
     :template: classtemplate.rst
 
     CheckpointIO
+    HPUCheckpointIO
     TorchCheckpointIO
     XLACheckpointIO
 
 You could learn more about custom checkpointing with Lightning :ref:`here <customize_checkpointing>`.
 
+
+-----------
+
+
+********************
 Cluster Environments
---------------------
+********************
 
 Users can define the interface of their own cluster environment based on the requirements of their infrastructure.
 
@@ -85,8 +97,8 @@ Users can define the interface of their own cluster environment based on the req
     :template: classtemplate.rst
 
     ClusterEnvironment
+    KubeflowEnvironment
     LightningEnvironment
     LSFEnvironment
-    TorchElasticEnvironment
-    KubeflowEnvironment
     SLURMEnvironment
+    TorchElasticEnvironment
