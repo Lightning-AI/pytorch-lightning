@@ -65,5 +65,5 @@ class CustomDeprecatedLogger(LightningLoggerBase):
 
 
 def test_lightning_logger_base_deprecation_warning():
-    with pytest.deprecated_call(match="The `pl.loggers.base.LightningLoggerBase` is deprecated."):
+    with pytest.deprecated_call(match="The `pytorch_lightning.loggers.base.LightningLoggerBase` is deprecated."):
         CustomDeprecatedLogger()
