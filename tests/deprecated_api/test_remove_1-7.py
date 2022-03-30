@@ -112,7 +112,6 @@ def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=None,
         fast_dev_run=True,
     )
     test_model = TestModel()
@@ -255,11 +254,6 @@ def test_v1_7_0_deprecate_add_get_queue(tmpdir):
 
     with pytest.deprecated_call(match=r"`LightningModule.get_from_queue` method was deprecated in v1.5"):
         trainer.fit(model)
-
-
-def test_v1_7_0_progress_bar_refresh_rate_trainer_constructor(tmpdir):
-    with pytest.deprecated_call(match=r"Setting `Trainer\(progress_bar_refresh_rate=1\)` is deprecated in v1.5"):
-        _ = Trainer(progress_bar_refresh_rate=1)
 
 
 def test_v1_7_0_lightning_logger_base_close(tmpdir):
