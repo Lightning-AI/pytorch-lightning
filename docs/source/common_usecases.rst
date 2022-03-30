@@ -1,7 +1,7 @@
 :orphan:
 
-Common use cases
-================
+Conceptual Guides
+=================
 
 .. include:: links.rst
 

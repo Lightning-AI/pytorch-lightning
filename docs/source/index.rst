@@ -101,8 +101,8 @@ Or read the `advanced install guide <starter/installation.html>`_
 
 
 .. customcalloutitem::
-   :description: From hyperparameters sweeps to cloud training to Pruning and Quantization - Lightning covers the key use-cases.
-   :header: Common usecases
+   :description: Learn how to do everything from hyperparameters sweeps to cloud training to Pruning and Quantization with Lightning.
+   :header: Conceptual Guides
    :button_link: common_usecases.html
 
 
