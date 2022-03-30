@@ -263,7 +263,9 @@ def _check_data_type(device_ids: Any) -> None:
                 incompatible_type = type(_iter).__name__
                 break
 
-    msg = f"Device IDs (GPU/TPU) must be an int, a string, a sequence of ints or None, but you passed {incompatible_type}"
+    msg = (
+        f"Device IDs (GPU/TPU) must be an int, a string, a sequence of ints or None, but you passed {incompatible_type}"
+    )
 
     if is_iterator:
         msg = f"Device IDs (GPU/TPU) must be an int, a string, a sequence of ints or None, but you passed a sequence of {incompatible_type}"
