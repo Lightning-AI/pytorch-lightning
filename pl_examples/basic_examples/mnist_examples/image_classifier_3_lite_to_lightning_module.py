@@ -21,7 +21,7 @@ methods on the LightningLite class.
 
 3. Finally, switch to LightningModule and validate that your results are still reproducible (next script).
 
-Learn more from the documentation: https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.html.
+Learn more from the documentation: https://pytorchlightning.ai/docs/en/latest/starter/lightning_lite.html.
 """
 
 import argparse

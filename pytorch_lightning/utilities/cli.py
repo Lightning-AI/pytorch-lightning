@@ -787,7 +787,7 @@ class LightningCLI:
                 f"`{self.__class__.__name__}.add_configure_optimizers_method_to_model` expects at most one optimizer "
                 f"and one lr_scheduler to be 'AUTOMATIC', but found {optimizers+lr_schedulers}. In this case the user "
                 "is expected to link the argument groups and implement `configure_optimizers`, see "
-                "https://pytorch-lightning.readthedocs.io/en/stable/common/lightning_cli.html"
+                "https://pytorchlightning.ai/docs/en/stable/common/lightning_cli.html"
                 "#optimizers-and-learning-rate-schedulers"
             )
 

@@ -1,7 +1,7 @@
 # Examples
 
 Our most robust examples showing all sorts of implementations
-can be found in our sister library [Lightning Bolts](https://pytorch-lightning.readthedocs.io/en/latest/ecosystem/bolts.html).
+can be found in our sister library [Lightning Bolts](https://pytorchlightning.ai/docs/en/latest/ecosystem/bolts.html).
 
 ______________________________________________________________________
 
@@ -9,7 +9,7 @@ ______________________________________________________________________
 
 5 MNIST examples showing how to gradually convert from pure PyTorch to PyTorch Lightning.
 
-The transition through [LightningLite](https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.html) from pure PyTorch is optional but it might be helpful to learn about it.
+The transition through [LightningLite](https://pytorchlightning.ai/docs/en/latest/starter/lightning_lite.html) from pure PyTorch is optional but it might be helpful to learn about it.
 
 - [MNIST with vanilla PyTorch](./basic_examples/mnist_examples/image_classifier_1_pytorch.py)
 - [MNIST with LightningLite](./basic_examples/mnist_examples/image_classifier_2_lite.py)
@@ -32,7 +32,7 @@ ______________________________________________________________________
 ## Domain Examples
 
 This folder contains older examples. You should instead use the examples
-in [Lightning Bolts](https://pytorch-lightning.readthedocs.io/en/latest/ecosystem/bolts.html)
+in [Lightning Bolts](https://pytorchlightning.ai/docs/en/latest/ecosystem/bolts.html)
 for advanced use cases.
 
 ______________________________________________________________________
@@ -47,7 +47,7 @@ ______________________________________________________________________
 
 ## Loop examples
 
-Contains implementations leveraging [loop customization](https://pytorch-lightning.readthedocs.io/en/latest/extensions/loops.html) to enhance the Trainer with new optimization routines.
+Contains implementations leveraging [loop customization](https://pytorchlightning.ai/docs/en/latest/extensions/loops.html) to enhance the Trainer with new optimization routines.
 
 - [K-fold Cross Validation Loop](./loop_examples/kfold.py): Implementation of cross validation in a loop and special datamodule.
 - [Yield Loop](./loop_examples/yielding_training_step.py): Enables yielding from the training_step like in a Python generator. Useful for automatic optimization with multiple optimizers.

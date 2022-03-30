@@ -11,7 +11,7 @@ ______________________________________________________________________
   <a href="https://www.pytorchlightning.ai/">Website</a> •
   <a href="#key-features">Key Features</a> •
   <a href="#how-to-use">How To Use</a> •
-  <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a> •
+  <a href="https://pytorchlightning.ai/docs/en/stable/">Docs</a> •
   <a href="#examples">Examples</a> •
   <a href="#community">Community</a> •
   <a href="#grid-ai">Grid AI</a> •
@@ -27,7 +27,7 @@ ______________________________________________________________________
 [![DockerHub](https://img.shields.io/docker/pulls/pytorchlightning/pytorch_lightning.svg)](https://hub.docker.com/r/pytorchlightning/pytorch_lightning)
 [![codecov](https://codecov.io/gh/PyTorchLightning/pytorch-lightning/branch/master/graph/badge.svg)](https://codecov.io/gh/PyTorchLightning/pytorch-lightning)
 
-[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=stable)](https://pytorch-lightning.readthedocs.io/en/stable/)
+[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=stable)](https://pytorchlightning.ai/docs/en/stable/)
 [![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-12iz3cds1-uyyyBYJLiaL2bqVmMN7n~A)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/PytorchLightning/pytorch-lightning/blob/master/LICENSE)
 
@@ -65,7 +65,7 @@ Lightning forces the following structure to your code which makes it reusable an
 
 Once you do this, you can train on multiple-GPUs, TPUs, CPUs, IPUs, HPUs and even in 16-bit precision without changing your code!
 
-Get started with our [2 step guide](https://pytorch-lightning.readthedocs.io/en/latest/starter/new-project.html)
+Get started with our [2 step guide](https://pytorchlightning.ai/docs/en/latest/starter/new-project.html)
 
 ______________________________________________________________________
 
@@ -218,7 +218,7 @@ trainer.fit(autoencoder, DataLoader(train), DataLoader(val))
 
 ## Advanced features
 
-Lightning has over [40+ advanced features](https://pytorch-lightning.readthedocs.io/en/latest/common/trainer.html#trainer-flags) designed for professional AI research at scale.
+Lightning has over [40+ advanced features](https://pytorchlightning.ai/docs/en/latest/common/trainer.html#trainer-flags) designed for professional AI research at scale.
 
 Here are some examples:
 
@@ -359,7 +359,7 @@ ______________________________________________________________________
 
 In the Lightning 1.5 release, LightningLite now enables you to leverage all the capabilities of PyTorch Lightning Accelerators without any refactoring to your training loop. Check out the
 [blogpost](https://devblog.pytorchlightning.ai/scale-your-pytorch-code-with-lightninglite-d5692a303f00) and
-[docs](https://pytorch-lightning.readthedocs.io/en/stable/starter/lightning_lite.html) for more info.
+[docs](https://pytorchlightning.ai/docs/en/stable/starter/lightning_lite.html) for more info.
 
 ______________________________________________________________________
 
@@ -367,7 +367,7 @@ ______________________________________________________________________
 
 ###### Hello world
 
-- [MNIST hello world](https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/mnist-hello-world.html)
+- [MNIST hello world](https://pytorchlightning.ai/docs/en/latest/notebooks/lightning_examples/mnist-hello-world.html)
 
 ###### Contrastive Learning
 
@@ -379,7 +379,7 @@ ______________________________________________________________________
 ###### NLP
 
 - [GPT-2](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/convolutional.html#gpt-2)
-- [BERT](https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/text-transformers.html)
+- [BERT](https://pytorchlightning.ai/docs/en/latest/notebooks/lightning_examples/text-transformers.html)
 
 ###### Reinforcement Learning
 
@@ -389,7 +389,7 @@ ______________________________________________________________________
 
 ###### Vision
 
-- [GAN](https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/basic-gan.html)
+- [GAN](https://pytorchlightning.ai/docs/en/latest/notebooks/lightning_examples/basic-gan.html)
 
 ###### Classic ML
 
@@ -402,7 +402,7 @@ ______________________________________________________________________
 
 The lightning community is maintained by
 
-- [10+ core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
+- [10+ core contributors](https://pytorchlightning.ai/docs/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
 - 590+ active community contributors.
 
 Want to help us build Lightning and reduce boilerplate for thousands of researchers? [Learn how to make your first contribution here](https://devblog.pytorchlightning.ai/quick-contribution-guide-86d977171b3a)

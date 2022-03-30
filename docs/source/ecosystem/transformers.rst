@@ -14,7 +14,7 @@ In Lightning Transformers, we offer the following benefits:
 - Backed by `HuggingFace Transformers <https://huggingface.co/transformers/>`_ models and datasets, spanning multiple modalities and tasks within NLP/Audio and Vision.
 - Task Abstraction for Rapid Research & Experimentation - Build your own custom transformer tasks across all modalities with little friction.
 - Powerful config composition backed by `Hydra <https://hydra.cc/>`_ - simply swap out models, optimizers, schedulers task, and many more configurations without touching the code.
-- Seamless Memory and Speed Optimizations - Out-of-the-box training optimizations such as `DeepSpeed ZeRO <https://pytorch-lightning.readthedocs.io/en/latest/multi_gpu.html#deepspeed>`_ or `FairScale Sharded Training <https://pytorch-lightning.readthedocs.io/en/latest/multi_gpu.html#sharded-training>`_ with no code changes.
+- Seamless Memory and Speed Optimizations - Out-of-the-box training optimizations such as `DeepSpeed ZeRO <https://pytorchlightning.ai/docs/en/latest/multi_gpu.html#deepspeed>`_ or `FairScale Sharded Training <https://pytorchlightning.ai/docs/en/latest/multi_gpu.html#sharded-training>`_ with no code changes.
 
 -----------------
 

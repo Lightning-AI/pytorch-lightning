@@ -25,7 +25,7 @@ and replace ``loss.backward()`` with ``self.backward(loss)``.
 
 5. Instantiate your LightningLite and call its ``run`` method.
 
-Learn more from the documentation: https://pytorch-lightning.readthedocs.io/en/latest/starter/lightning_lite.html.
+Learn more from the documentation: https://pytorchlightning.ai/docs/en/latest/starter/lightning_lite.html.
 """
 
 import argparse

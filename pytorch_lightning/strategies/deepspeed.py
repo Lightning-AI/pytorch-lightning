@@ -608,7 +608,7 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.config is None:
             raise MisconfigurationException(
                 "To use DeepSpeed you must pass in a DeepSpeed config dict, or a path to a JSON config."
-                " See: https://pytorch-lightning.readthedocs.io/en/latest/advanced/advanced_gpu.html#deepspeed"
+                " See: https://pytorchlightning.ai/docs/en/latest/advanced/advanced_gpu.html#deepspeed"
             )
         self._format_batch_size_and_grad_accum_config()
         self._format_precision_config()
@@ -768,7 +768,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 "When saving the DeepSpeed Stage 3 checkpoint, "
                 "each worker will save a shard of the checkpoint within a directory. "
                 "If a single file is required after training, "
-                "see https://pytorch-lightning.readthedocs.io/en/latest/advanced/advanced_gpu.html#"
+                "see https://pytorchlightning.ai/docs/en/latest/advanced/advanced_gpu.html#"
                 "deepspeed-zero-stage-3-single-file for instructions."
             )
         # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
