@@ -126,7 +126,7 @@ Or read the `advanced install guide <starter/installation.html>`_
 .. toctree::
    :maxdepth: 1
    :name: start
-   :caption: Getting started
+   :caption: Getting Started
 
    starter/introduction
    starter/installation
@@ -136,7 +136,7 @@ Or read the `advanced install guide <starter/installation.html>`_
 .. toctree::
    :maxdepth: 1
    :name: guides
-   :caption: Best practices
+   :caption: Best Practices
 
    guides/speed
    guides/data
@@ -177,8 +177,8 @@ Or read the `advanced install guide <starter/installation.html>`_
 
 .. toctree::
    :maxdepth: 1
-   :name: Common Use Cases
-   :caption: Common Use Cases
+   :name: Conceptual Guides
+   :caption: Conceptual Guides
 
    clouds/cloud_training
    common/checkpointing
