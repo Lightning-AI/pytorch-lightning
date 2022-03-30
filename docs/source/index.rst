@@ -101,7 +101,7 @@ Or read the `advanced install guide <starter/installation.html>`_
 
 
 .. customcalloutitem::
-   :description: Learn how to do everything from hyperparameters sweeps to cloud training to pruning and quantization with Lightning.
+   :description: Learn how to do everything from hyperparameters sweeps to cloud training to Pruning and Quantization with Lightning.
    :header: Conceptual Guides
    :button_link: common_usecases.html
 
