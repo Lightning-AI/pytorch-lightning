@@ -315,6 +315,7 @@ and the Lightning Team will be happy to integrate/help integrate it.
 
 -----------
 
+.. _customize_checkpointing:
 
 ***********************
 Customize Checkpointing
@@ -392,7 +393,7 @@ Custom Checkpoint IO Plugin
 
 .. note::
 
-    Some ``TrainingTypePlugins`` like ``DeepSpeedStrategy`` do not support custom ``CheckpointIO`` as checkpointing logic is not modifiable.
+    Some strategies like :class:`~pytorch_lightning.strategies.deepspeed.DeepSpeedStrategy` do not support custom :class:`~pytorch_lightning.plugins.io.checkpoint_plugin.CheckpointIO` as checkpointing logic is not modifiable.
 
 -----------
 

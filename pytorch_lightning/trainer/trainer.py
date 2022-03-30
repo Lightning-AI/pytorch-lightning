@@ -401,7 +401,7 @@ class Trainer(
                     Please pass the path to ``Trainer.fit(..., ckpt_path=...)`` instead.
 
             strategy: Supports different training strategies with aliases
-                as well custom training type plugins.
+                as well custom strategies.
                 Default: ``None``.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
@@ -598,10 +598,8 @@ class Trainer(
 
         self._terminate_on_nan = terminate_on_nan
         self.gradient_clip_val: Union[int, float] = gradient_clip_val
-        self.gradient_clip_algorithm = (
-            GradClipAlgorithmType(gradient_clip_algorithm.lower())
-            if gradient_clip_algorithm is not None
-            else gradient_clip_algorithm
+        self.gradient_clip_algorithm: Optional[GradClipAlgorithmType] = (
+            GradClipAlgorithmType(gradient_clip_algorithm.lower()) if gradient_clip_algorithm is not None else None
         )
         self.track_grad_norm: float = float(track_grad_norm)
 
@@ -1154,7 +1152,7 @@ class Trainer(
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
 
-        # attach model to the training type plugin
+        # attach model to the strategy
         self.strategy.connect(model)
 
         self._callback_connector._attach_model_callbacks()
@@ -1812,9 +1810,7 @@ class Trainer(
             f"GPU available: {torch.cuda.is_available()}, used: {isinstance(self.accelerator, GPUAccelerator)}"
         )
 
-        num_tpu_cores = (
-            self.tpu_cores if self.tpu_cores is not None and isinstance(self.accelerator, TPUAccelerator) else 0
-        )
+        num_tpu_cores = self.num_devices if isinstance(self.accelerator, TPUAccelerator) else 0
         rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
 
         num_ipus = self.num_devices if isinstance(self.accelerator, IPUAccelerator) else 0
@@ -2039,17 +2035,17 @@ class Trainer(
 
     @property
     def local_rank(self) -> int:
-        # some training types define a local rank
+        # some strategies define a local rank
         return getattr(self.strategy, "local_rank", 0)
 
     @property
     def node_rank(self) -> int:
-        # some training types define a node rank
+        # some strategies define a node rank
         return getattr(self.strategy, "node_rank", 0)
 
     @property
     def world_size(self) -> int:
-        # some training types define a world size
+        # some strategies define a world size
         return getattr(self.strategy, "world_size", 1)
 
     @property
@@ -2069,7 +2065,11 @@ class Trainer(
     @property
     def device_ids(self) -> List[int]:
         """List of device indexes per node."""
-        devices = getattr(self.strategy, "parallel_devices", [self.strategy.root_device])
+        devices = (
+            self.strategy.parallel_devices
+            if isinstance(self.strategy, ParallelStrategy)
+            else [self.strategy.root_device]
+        )
         device_ids = []
         for idx, device in enumerate(devices):
             if isinstance(device, torch.device):
@@ -2101,7 +2101,11 @@ class Trainer(
 
     @property
     def tpu_cores(self) -> int:
-        return self._accelerator_connector.tpu_cores
+        rank_zero_deprecation(
+            "`Trainer.tpu_cores` is deprecated in v1.6 and will be removed in v1.8. "
+            "Please use `Trainer.num_devices` instead."
+        )
+        return self.num_devices if isinstance(self.accelerator, TPUAccelerator) else 0
 
     @property
     def ipus(self) -> int:

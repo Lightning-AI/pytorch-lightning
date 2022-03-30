@@ -77,25 +77,25 @@ Or read the `advanced install guide <starter/installation.html>`_
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Use this 2-step guide to learn the key concepts.
+   :description: Use this 2-step guide to learn key concepts.
    :header: New to Lightning?
    :button_link:  starter/introduction.html
 
 
 .. customcalloutitem::
-   :description: Easily organize your existing PyTorch code as PyTorch Lightning in a few hours.
+   :description: Easily organize your existing PyTorch code into PyTorch Lightning.
    :header: PyTorch to PyTorch Lightning
    :button_link: starter/converting.html
 
 
 .. customcalloutitem::
-   :description: From NLP, Computer vision to RL and meta learning - see how to use Lightning in ALL research areas.
+   :description: See how Lightning in used in research areas like NLP, Computer Vision, RL and meta learning.
    :header: Examples
    :button_link: tutorials.html
 
 
 .. customcalloutitem::
-   :description: Detailed description of API each package. Assumes you already have basic Lightning knowledge.
+   :description: Detailed descriptions of each API package.
    :header: API Reference
    :button_link: api_references.html
 
