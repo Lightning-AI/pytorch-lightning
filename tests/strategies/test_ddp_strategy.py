@@ -33,11 +33,11 @@ class BoringModelGPU(BoringModel):
         self.start_cuda_memory = torch.cuda.memory_allocated()
 
 
-@RunIf(skip_windows=True, min_gpus=2, standalone=True)
+@RunIf(min_gpus=2, skip_windows=True, standalone=True)
 def test_ddp_with_2_gpus():
     """Tests if device is set correctly when training and after teardown for DDPStrategy."""
     trainer = Trainer(accelerator="gpu", devices=2, strategy="ddp", fast_dev_run=True)
-    # assert training type plugin attributes for device setting
+    # assert strategy attributes for device setting
     assert isinstance(trainer.strategy, DDPStrategy)
     local_rank = trainer.strategy.local_rank
     assert trainer.strategy.root_device == torch.device(f"cuda:{local_rank}")
@@ -68,7 +68,7 @@ def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir):
     """Test correct usage of barriers when device ids do not start at 0 or are not consecutive."""
     model = BoringModel()
     gpus = [1, 3]
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, gpus=gpus, strategy="ddp")
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, accelerator="gpu", devices=gpus, strategy="ddp")
     trainer.fit(model)
     barrier_mock.assert_any_call(device_ids=[gpus[trainer.local_rank]])
 
@@ -87,7 +87,8 @@ def test_incorrect_ddp_script_spawning(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         strategy="ddp",
-        num_processes=2,
+        accelerator="cpu",
+        devices=2,
         plugins=[WronglyImplementedEnvironment()],
     )
     with pytest.raises(
@@ -138,7 +139,7 @@ def test_ddp_dont_configure_sync_batchnorm(trainer_fn):
     model = BoringModelGPU()
     model.layer = torch.nn.BatchNorm1d(10)
     ddp_strategy = DDPStrategy()
-    trainer = Trainer(gpus=1, strategy=ddp_strategy, sync_batchnorm=True)
+    trainer = Trainer(accelerator="gpu", devices=1, strategy=ddp_strategy, sync_batchnorm=True)
     trainer.state.fn = trainer_fn
     trainer.strategy.connect(model)
     trainer.lightning_module.trainer = trainer

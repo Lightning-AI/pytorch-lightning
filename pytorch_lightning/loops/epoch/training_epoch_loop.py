@@ -500,13 +500,15 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # this is a separate method to aid in testing
         return self.trainer.callback_metrics.get(key)
 
+    def _should_check_val_epoch(self):
+        return (
+            self.trainer.enable_validation
+            and (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
+        )
+
     def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
         """Decide if we should run validation."""
-        if not self.trainer.enable_validation:
-            return False
-
-        is_val_check_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
-        if not is_val_check_epoch:
+        if not self._should_check_val_epoch():
             return False
 
         # val_check_batch is inf for iterable datasets with no length defined
