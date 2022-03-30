@@ -522,11 +522,14 @@ class DeepSpeedStrategy(DDPStrategy):
     def model_sharded_context(self) -> Generator[None, None, None]:
         if self.zero_stage_3:
             assert self._config_initialized
-            dtype = (
-                torch.float16
-                if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED)
-                else torch.float32
-            )
+
+            if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED):
+                dtype = torch.float16
+            elif self.precision_plugin.precision == PrecisionType.BFLOAT:
+                dtype = torch.bfloat16
+            else:
+                dtype = torch.float32
+
             model_parallel_context = deepspeed.zero.Init(
                 remote_device=self.remote_device, pin_memory=True, config_dict_or_path=self.config, dtype=dtype
             )

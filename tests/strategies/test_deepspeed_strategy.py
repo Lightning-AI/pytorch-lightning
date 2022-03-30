@@ -1202,12 +1202,13 @@ def test_deepspeed_multi_save_same_filepath(tmpdir):
 
 @RunIf(min_gpus=2, standalone=True, deepspeed=True)
 @pytest.mark.skipif(not _DEEPSPEED_GREATER_EQUAL_0_6, reason="requires deepspeed >= 0.6")
-def test_deepspeed_with_bfloat16_precision(tmpdir):
+@pytest.mark.parametrize("stage", [1, 2, 3])
+def test_deepspeed_with_bfloat16_precision(tmpdir, stage):
     """Test that deepspeed works with bfloat16 precision."""
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        strategy="deepspeed",
+        strategy=f"deepspeed_stage_{stage}",
         accelerator="gpu",
         devices=2,
         fast_dev_run=True,
@@ -1215,8 +1216,8 @@ def test_deepspeed_with_bfloat16_precision(tmpdir):
         num_sanity_val_steps=0,
     )
 
+    trainer.fit(model)
     assert isinstance(trainer.strategy.precision_plugin, DeepSpeedPrecisionPlugin)
     assert trainer.strategy.precision_plugin.precision == "bf16"
-
-    trainer.fit(model)
+    assert trainer.strategy.config["zero_optimization"]["stage"] == stage
     assert model.layer.weight.dtype == torch.bfloat16
