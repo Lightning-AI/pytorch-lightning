@@ -71,16 +71,16 @@ class MockTqdm(Tqdm):
 
 
 @pytest.mark.parametrize(
-    "kwargs",
+    "pbar",
     [
         # won't print but is still set
-        {"callbacks": TQDMProgressBar(refresh_rate=0)},
-        {"callbacks": TQDMProgressBar()},
+        TQDMProgressBar(refresh_rate=0),
+        TQDMProgressBar(),
     ],
 )
-def test_tqdm_progress_bar_on(tmpdir, kwargs):
+def test_tqdm_progress_bar_on(tmpdir, pbar):
     """Test different ways the progress bar can be turned on."""
-    trainer = Trainer(default_root_dir=tmpdir, **kwargs)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=pbar)
 
     progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
     assert len(progress_bars) == 1

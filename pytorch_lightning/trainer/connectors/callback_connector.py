@@ -232,12 +232,9 @@ class CallbackConnector:
                 f" but found `{progress_bar_callback.__class__.__name__}` in callbacks list."
             )
 
-        # Return early if the user intends to disable the progress bar callback
-        if not enable_progress_bar:
-            return
-
-        progress_bar_callback = TQDMProgressBar(process_position=process_position)
-        self.trainer.callbacks.append(progress_bar_callback)
+        if enable_progress_bar:
+            progress_bar_callback = TQDMProgressBar(process_position=process_position)
+            self.trainer.callbacks.append(progress_bar_callback)
 
     def _configure_timer_callback(self, max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None) -> None:
         if max_time is None:

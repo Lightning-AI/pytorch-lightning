@@ -1306,7 +1306,6 @@ See the :doc:`profiler documentation <../advanced/profiler>`. for more details.
     # advanced profiler for function-level stats, equivalent to `profiler=AdvancedProfiler()`
     trainer = Trainer(profiler="advanced")
 
-
 enable_progress_bar
 ^^^^^^^^^^^^^^^^^^^
 
