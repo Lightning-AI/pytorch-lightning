@@ -231,8 +231,8 @@ def _check_unique(device_ids: List[int]) -> None:
 
 
 def _check_data_type(device_ids: Any) -> None:
-    """Checks that the device_ids argument is one of: None, int, string, or sequence of integers. Raises a MisconfigurationException
-    otherwise.
+    """Checks that the device_ids argument is one of: None, int, string, or sequence of integers. Raises a
+    MisconfigurationException otherwise.
 
     Args:
         device_ids: gpus/tpu_cores parameter as passed to the Trainer
