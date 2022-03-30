@@ -34,7 +34,8 @@ def test_logger_collection():
     mock1 = MagicMock()
     mock2 = MagicMock()
 
-    logger = LoggerCollection([mock1, mock2])
+    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
+        logger = LoggerCollection([mock1, mock2])
 
     assert logger[0] == mock1
     assert logger[1] == mock2
@@ -62,14 +63,16 @@ def test_logger_collection_unique_names():
     logger1 = CustomLogger(name=unique_name)
     logger2 = CustomLogger(name=unique_name)
 
-    logger = LoggerCollection([logger1, logger2])
+    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
+        logger = LoggerCollection([logger1, logger2])
 
     assert logger.name == unique_name
 
 
 def test_logger_collection_names_order():
     loggers = [CustomLogger(name=n) for n in ("name1", "name2", "name1", "name3")]
-    logger = LoggerCollection(loggers)
+    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
+        logger = LoggerCollection(loggers)
     assert logger.name == f"{loggers[0].name}_{loggers[1].name}_{loggers[3].name}"
 
 
@@ -78,14 +81,16 @@ def test_logger_collection_unique_versions():
     logger1 = CustomLogger(version=unique_version)
     logger2 = CustomLogger(version=unique_version)
 
-    logger = LoggerCollection([logger1, logger2])
+    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
+        logger = LoggerCollection([logger1, logger2])
 
     assert logger.version == unique_version
 
 
 def test_logger_collection_versions_order():
     loggers = [CustomLogger(version=v) for v in ("1", "2", "1", "3")]
-    logger = LoggerCollection(loggers)
+    with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
+        logger = LoggerCollection(loggers)
     assert logger.version == f"{loggers[0].version}_{loggers[1].version}_{loggers[3].version}"
 
 
@@ -186,10 +191,11 @@ def test_multiple_loggers_pickle(tmpdir):
     trainer = Trainer(logger=[logger1, logger2])
     pkl_bytes = pickle.dumps(trainer)
     trainer2 = pickle.loads(pkl_bytes)
-    trainer2.logger.log_metrics({"acc": 1.0}, 0)
+    for logger in trainer2.loggers:
+        logger.log_metrics({"acc": 1.0}, 0)
 
-    assert trainer2.logger[0].metrics_logged == {"acc": 1.0}
-    assert trainer2.logger[1].metrics_logged == {"acc": 1.0}
+    for logger in trainer2.loggers:
+        assert logger.metrics_logged == {"acc": 1.0}
 
 
 def test_adding_step_key(tmpdir):
