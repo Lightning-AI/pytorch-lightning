@@ -47,7 +47,6 @@ class CallbackConnector:
         weights_save_path: Optional[str],
         enable_model_summary: bool,
         weights_summary: Optional[str],
-        stochastic_weight_avg: bool,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
         accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
     ):
@@ -60,13 +59,6 @@ class CallbackConnector:
             )
 
         self.trainer._weights_save_path = weights_save_path or self.trainer._default_root_dir
-        if stochastic_weight_avg:
-            rank_zero_deprecation(
-                "Setting `Trainer(stochastic_weight_avg=True)` is deprecated in v1.5 and will be removed in v1.7."
-                " Please pass `pytorch_lightning.callbacks.stochastic_weight_avg.StochasticWeightAveraging`"
-                " directly to the Trainer's `callbacks` argument instead."
-            )
-        self.trainer._stochastic_weight_avg = stochastic_weight_avg
 
         # init callbacks
         if isinstance(callbacks, Callback):
@@ -76,9 +68,6 @@ class CallbackConnector:
         # configure checkpoint callback
         # pass through the required args to figure out defaults
         self._configure_checkpoint_callbacks(checkpoint_callback, enable_checkpointing)
-
-        # configure swa callback
-        self._configure_swa_callbacks()
 
         # configure the timer callback.
         # responsible to stop the training when max_time is reached.
@@ -209,16 +198,6 @@ class CallbackConnector:
             model_summary = ModelSummary(max_depth=max_depth)
         self.trainer.callbacks.append(model_summary)
         self.trainer._weights_summary = weights_summary
-
-    def _configure_swa_callbacks(self):
-        if not self.trainer._stochastic_weight_avg:
-            return
-
-        from pytorch_lightning.callbacks.stochastic_weight_avg import StochasticWeightAveraging
-
-        existing_swa = [cb for cb in self.trainer.callbacks if isinstance(cb, StochasticWeightAveraging)]
-        if not existing_swa:
-            self.trainer.callbacks = [StochasticWeightAveraging()] + self.trainer.callbacks
 
     def _configure_progress_bar(
         self, refresh_rate: Optional[int] = None, process_position: int = 0, enable_progress_bar: bool = True
