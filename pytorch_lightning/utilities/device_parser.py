@@ -83,7 +83,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
         MisconfigurationException:
             If no GPUs are available but the value of gpus variable indicates request for GPUs
     """
-    # Check that gpus param is None, Int, String or List
+    # Check that gpus param is None, Int, String or Sequence of Ints
     _check_data_type(gpus)
 
     # Handle the case when no gpus are requested
@@ -231,7 +231,7 @@ def _check_unique(device_ids: List[int]) -> None:
 
 
 def _check_data_type(device_ids: Any) -> None:
-    """Checks that the device_ids argument is one of: None, Int, String or List. Raises a MisconfigurationException
+    """Checks that the device_ids argument is one of: None, int, string, or sequence of integers. Raises a MisconfigurationException
     otherwise.
 
     Args:
@@ -241,10 +241,36 @@ def _check_data_type(device_ids: Any) -> None:
         MisconfigurationException:
             If ``device_ids`` of GPU/TPUs aren't ``int``, ``str``, sequence of ``int`` or ``None``
     """
-    if device_ids is not None and (
-        not isinstance(device_ids, (int, str, MutableSequence, tuple)) or isinstance(device_ids, bool)
-    ):
-        raise MisconfigurationException("Device ID's (GPU/TPU) must be int, string or sequence of ints or None.")
+    # A flag which is set when incompatible input is passed
+    _raise_error_flag = False
+    # If device_ids is an iterator
+    _is_iterator = isinstance(device_ids, (MutableSequence, tuple))
+    # If an iterator, this will contain the type inside the iterator, else the type of device_ids
+    _incompatible_type = None
+
+    if device_ids is None or (_is_iterator and len(device_ids) == 0):
+        return
+
+    if (not _is_iterator and not isinstance(device_ids, (int, str))) or isinstance(device_ids, bool):
+        _raise_error_flag = True
+        _incompatible_type = type(device_ids).__name__
+
+    if _is_iterator:
+        # Iterate through the sequence, and assert it's 1 dimensional and only contains integers
+        for _iter in iter(device_ids):
+            if not isinstance(_iter, int):
+                _raise_error_flag = True
+                _is_iterator = True
+                _incompatible_type = type(_iter).__name__
+                break
+
+    msg = f"Device IDs (GPU/TPU) must be an int, a string, a sequence of ints or None, but you passed {_incompatible_type}"
+
+    if _is_iterator:
+        msg = f"Device IDs (GPU/TPU) must be an int, a string, a sequence of ints or None, but you passed a sequence of {_incompatible_type}"
+
+    if _raise_error_flag:
+        raise MisconfigurationException(msg)
 
 
 def _tpu_cores_valid(tpu_cores: Any) -> bool:
