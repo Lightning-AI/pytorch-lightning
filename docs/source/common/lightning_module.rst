@@ -996,7 +996,7 @@ The list of loggers currently being used by the Trainer.
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        # List of LightningLoggerBase objects
+        # List of Logger objects
         loggers = self.loggers
         for logger in loggers:
             logger.log_metrics({"foo": 1.0})
