@@ -347,7 +347,7 @@ class Trainer(
             profiler: To profile individual steps during training and assist in identifying bottlenecks.
                 Default: ``None``.
 
-            overfit_batches: Overfit a fraction of training data (float) or a set number of batches (int).
+            overfit_batches: Overfit a fraction of training/validation data (float) or a set number of batches (int).
                 Default: ``0.0``.
 
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
@@ -676,13 +676,13 @@ class Trainer(
         self.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
         self.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
         self.overfit_batches = _determine_batch_limits(overfit_batches, "overfit_batches")
-        self._determine_data_use_amount(self.overfit_batches)
+        self._configure_overfit_batches(self.overfit_batches)
 
-    def _determine_data_use_amount(self, overfit_batches: float) -> None:
-        """Use less data for debugging purposes."""
+    def _configure_overfit_batches(self, overfit_batches: Union[int, float]) -> None:
+        """Configure batch limits using `overfit_batches`."""
         if overfit_batches > 0:
             self.limit_train_batches = overfit_batches
-            self.limit_val_batches = 0
+            self.limit_val_batches = overfit_batches
 
     def _setup_on_init(self, num_sanity_val_steps: int) -> None:
         self._log_device_info()
@@ -1865,7 +1865,9 @@ class Trainer(
         self.train_dataloader = self._data_connector._request_dataloader(RunningStage.TRAINING, model=model)
 
         if self.overfit_batches > 0:
-            self.train_dataloader = self._data_connector._resolve_overfit_batches(self.train_dataloader)
+            self.train_dataloader = self._data_connector._resolve_overfit_batches(
+                self.train_dataloader, mode=RunningStage.TRAINING
+            )
 
         # automatically add samplers
         self.train_dataloader = apply_to_collection(
