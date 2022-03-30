@@ -35,7 +35,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 # code when dealing with multiple optimizers (automatic optimization).                      #
 #                                                                                           #
 # Learn more about the loop structure from the documentation:                               #
-# https://pytorchlightning.ai/docs/en/latest/extensions/loops.html                  #
+# https://pytorchlightning.ai/docs/en/latest/extensions/loops.html                          #
 #############################################################################################
 
 

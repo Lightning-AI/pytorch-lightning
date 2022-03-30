@@ -39,7 +39,7 @@ from pytorch_lightning.trainer.states import TrainerFn
 #                           KFold Loop / Cross Validation Example                           #
 # This example demonstrates how to leverage Lightning Loop Customization introduced in v1.5 #
 # Learn more about the loop structure from the documentation:                               #
-# https://pytorchlightning.ai/docs/en/latest/extensions/loops.html                  #
+# https://pytorchlightning.ai/docs/en/latest/extensions/loops.html                          #
 #############################################################################################
 
 
@@ -64,7 +64,7 @@ class BaseKFoldDataModule(LightningDataModule, ABC):
 #                           Step 2 / 5: Implement the KFoldDataModule                       #
 # The `KFoldDataModule` will take a train and test dataset.                                 #
 # On `setup_folds`, folds will be created depending on the provided argument `num_folds`    #
-# Our `setup_fold_index`, the provided train dataset will be split accordingly to        #
+# Our `setup_fold_index`, the provided train dataset will be split accordingly to           #
 # the current fold split.                                                                   #
 #############################################################################################
 
@@ -136,7 +136,7 @@ class EnsembleVotingModel(LightningModule):
 #                           Step 4 / 5: Implement the  KFoldLoop                            #
 # From Lightning v1.5, it is possible to implement your own loop. There is several steps    #
 # to do so which are described in detail within the documentation                           #
-# https://pytorchlightning.ai/docs/en/latest/extensions/loops.html.                 #
+# https://pytorchlightning.ai/docs/en/latest/extensions/loops.html.                         #
 # Here, we will implement an outer fit_loop. It means we will implement subclass the        #
 # base Loop and wrap the current trainer `fit_loop`.                                        #
 #############################################################################################
