@@ -182,7 +182,6 @@ class Trainer(
         replace_sampler_ddp: bool = True,
         detect_anomaly: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
-        prepare_data_per_node: Optional[bool] = None,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         amp_backend: str = "native",
         amp_level: Optional[str] = None,
@@ -315,14 +314,6 @@ class Trainer(
 
             log_every_n_steps: How often to log within steps.
                 Default: ``50``.
-
-            prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
-                Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
-
-                .. deprecated:: v1.5
-                    Deprecated in v1.5.0 and will be removed in v1.7.0
-                    Please set ``prepare_data_per_node`` in ``LightningDataModule`` and/or
-                    ``LightningModule`` directly instead.
 
             process_position: Orders the progress bar when running multiple models on same machine.
 
@@ -565,7 +556,6 @@ class Trainer(
         self._data_connector.on_trainer_init(
             check_val_every_n_epoch,
             reload_dataloaders_every_n_epochs,
-            prepare_data_per_node,
         )
 
         if terminate_on_nan is not None:
