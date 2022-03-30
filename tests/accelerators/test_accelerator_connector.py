@@ -509,12 +509,11 @@ def test_accelerator_cpu(_):
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
 @pytest.mark.parametrize(
-        "gpu_count", [['0'], [0, '1'], ['GPU'], [['0', '1'], [0, 1]]]
+    "gpu_count", [["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]]]
 )
 def test_accelererator_invalid_type_gpus(mock_is_available, mock_device_count, gpu_count):
     with pytest.raises(
-        MisconfigurationException,
-        match=r".* must be an int, a string, a sequence of ints or None, but you .*"
+        MisconfigurationException, match=r".* must be an int, a string, a sequence of ints or None, but you .*"
     ):
         trainer = Trainer(accelerator="gpu", gpus=gpu_count)
 
@@ -522,14 +521,14 @@ def test_accelererator_invalid_type_gpus(mock_is_available, mock_device_count, g
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
 @pytest.mark.parametrize(
-        "devices_count", [['0'], [0, '1'], ['GPU'], [['0', '1'], [0, 1]]]
+    "device_count", [['0'], [0, '1'], ['GPU'], [['0', '1'], [0, 1]]]
 )
-def test_accelererator_invalid_type_devices(mock_is_available, mock_device_count, devices_count):
+def test_accelererator_invalid_type_devices(mock_is_available, mock_device_count, device_count):
     with pytest.raises(
         MisconfigurationException,
         match=r".* must be an int, a string, a sequence of ints or None, but you .*"
     ):
-        trainer = Trainer(accelerator="gpu", devices=devices_count)
+        trainer = Trainer(accelerator="gpu", devices=device_count)
 
 
 @mock.patch("torch.cuda.is_available", return_value=False)
