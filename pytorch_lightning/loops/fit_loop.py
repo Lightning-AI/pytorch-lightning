@@ -131,8 +131,6 @@ class FitLoop(Loop[None]):
             self.epoch_progress.current.processed,
         )
         finished_before_on_train_end = any(v != self.epoch_progress.current.completed for v in values)
-        if finished_before_on_train_end:
-            self.epoch_progress.current.completed = self.epoch_progress.current.processed
         restarting &= finished_before_on_train_end
         Loop.restarting.fset(self, restarting)  # call the parent setter
 
@@ -168,6 +166,9 @@ class FitLoop(Loop[None]):
         # `processed` is increased before `on_train_epoch_end`, the hook where checkpoints are typically saved.
         # we use it here because the checkpoint data won't have `completed` increased yet
         stop_epochs = _is_max_limit_reached(self.epoch_progress.current.processed, self.max_epochs)
+        if stop_epochs:
+            # in case they are not equal, override so `trainer.current_epoch` has the expected value
+            self.epoch_progress.current.completed = self.epoch_progress.current.processed
 
         should_stop = False
         if self.trainer.should_stop:
@@ -324,9 +325,6 @@ class FitLoop(Loop[None]):
         self.trainer._call_callback_hooks("on_train_end")
         self.trainer._call_lightning_module_hook("on_train_end")
         self.trainer._call_strategy_hook("on_train_end")
-
-        # give accelerators a chance to finish
-        self.trainer.strategy.on_train_end()
 
     def teardown(self) -> None:
         if self._data_fetcher is not None:

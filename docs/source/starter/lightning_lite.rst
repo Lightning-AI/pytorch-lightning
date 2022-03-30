@@ -182,7 +182,7 @@ Here is an example while running on 256 GPUs (eight GPUs times 32 nodes).
             self.barrier()
 
 
-    Lite(strategy="ddp", gpus=8, num_nodes=32, accelerator="gpu").run()
+    Lite(strategy="ddp", devices=8, num_nodes=32, accelerator="gpu").run()
 
 
 If you require custom data or model device placement, you can deactivate
@@ -387,7 +387,7 @@ Choose a training strategy: ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"tpu_spawn"`
     lite = Lite(strategy="ddp_spawn", accelerator="cpu", devices=4)
 
 
-Additionally, you can pass in your custom training type strategy by configuring additional parameters.
+Additionally, you can pass in your custom strategy by configuring additional parameters.
 
 .. code-block:: python
 
@@ -451,7 +451,7 @@ Shorthand for ``devices=X`` and ``accelerator="tpu"``.
 .. code-block:: python
 
     # Run on eight TPUs
-    lite = Lite(tpu_cores=8)
+    lite = Lite(accelerator="tpu", devices=8)
 
     # Equivalent
     lite = Lite(devices=8, accelerator="tpu")

@@ -175,6 +175,19 @@ The :class:`~pytorch_lightning.loggers.TensorBoardLogger` is available anywhere 
             some_img = fake_image()
             self.logger.experiment.add_image("generated_images", some_img, 0)
 
+To see your logs, run the following command in the terminal:
+
+.. code-block:: bash
+
+    tensorboard --logdir=<logging_folder>
+
+To visualize tensorboard in a jupyter notebook environment, run the following command in a jupyter cell:
+
+.. code-block:: bash
+
+    %reload_ext tensorboard
+    %tensorboard --logdir=<logging_folder>
+
 .. seealso::
     :class:`~pytorch_lightning.loggers.TensorBoardLogger` docs.
 
@@ -216,6 +229,23 @@ The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except
             self.logger.experiment.log({"generated_images": [wandb.Image(some_img, caption="...")]})
             # Option 2 for specifically logging images
             self.logger.log_image(key="generated_images", images=[some_img])
+
+To visualize using wandb in a jupyter notebook environment use the following magic line command:
+
+.. code-block:: shell
+
+    %%wandb
+
+    # Your training loop here
+
+To display any existing dashboards, sweeps or reports directly in your notebook using the %wandb magic:
+
+.. code-block:: shell
+
+    # Display a project workspace
+    %wandb USERNAME/PROJECT
+
+More information is available `here <https://docs.wandb.ai/guides/track/jupyter>`__.
 
 .. seealso::
     - :class:`~pytorch_lightning.loggers.WandbLogger` docs.

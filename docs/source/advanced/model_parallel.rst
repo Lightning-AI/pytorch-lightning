@@ -296,7 +296,6 @@ Below we show an example of running `ZeRO-Offload <https://www.deepspeed.ai/tuto
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
 
     model = MyModel()
     trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_2_offload", precision=16)
@@ -341,7 +340,6 @@ For even more speed benefit, DeepSpeed offers an optimized CPU version of ADAM c
 
     import pytorch_lightning
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
     from deepspeed.ops.adam import DeepSpeedCPUAdam
 
 
@@ -385,7 +383,6 @@ Also please have a look at our :ref:`deepspeed-zero-stage-3-tips` which contains
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
     from deepspeed.ops.adam import FusedAdam
 
 
@@ -409,7 +406,6 @@ You can also use the Lightning Trainer to run predict or evaluate with DeepSpeed
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
 
 
     class MyModel(pl.LightningModule):
@@ -435,7 +431,6 @@ This reduces the time taken to initialize very large models, as well as ensure w
 
     import torch.nn as nn
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
     from deepspeed.ops.adam import FusedAdam
 
 
@@ -549,7 +544,6 @@ This saves memory when training larger models, however requires using a checkpoi
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
     import deepspeed
 
 
@@ -686,7 +680,7 @@ In some cases you may want to define your own DeepSpeed Config, to access all pa
     }
 
     model = MyModel()
-    trainer = Trainer(accelerator="gpu", devices=4, strategy=DeepSpeedStrategy(deepspeed_config), precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy=DeepSpeedStrategy(config=deepspeed_config), precision=16)
     trainer.fit(model)
 
 
@@ -699,7 +693,7 @@ We support taking the config as a json formatted file:
 
     model = MyModel()
     trainer = Trainer(
-        accelerator="gpu", devices=4, strategy=DeepSpeedStrategy("/path/to/deepspeed_config.json"), precision=16
+        accelerator="gpu", devices=4, strategy=DeepSpeedStrategy(config="/path/to/deepspeed_config.json"), precision=16
     )
     trainer.fit(model)
 
@@ -716,6 +710,75 @@ You can use also use an environment variable via your PyTorch Lightning script:
 
 DDP Optimizations
 ^^^^^^^^^^^^^^^^^
+
+
+When Using DDP Strategies, Set find_unused_parameters=False
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+By default, we have set ``find_unused_parameters=True`` for compatibility reasons that have been observed in the past (refer to the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
+When enabled, it can result in a performance hit and can be disabled in most cases. Read more about it `here <https://pytorch.org/docs/stable/notes/ddp.html#internal-design>`_.
+
+.. tip::
+    It applies to all DDP strategies that support ``find_unused_parameters`` as input.
+
+.. code-block:: python
+
+    from pytorch_lightning.strategies import DDPStrategy
+
+    trainer = pl.Trainer(
+        accelerator="gpu",
+        devices=2,
+        strategy=DDPStrategy(find_unused_parameters=False),
+    )
+
+.. code-block:: python
+
+    from pytorch_lightning.strategies import DDPSpawnStrategy
+
+    trainer = pl.Trainer(
+        accelerator="gpu",
+        devices=2,
+        strategy=DDPSpawnStrategy(find_unused_parameters=False),
+    )
+
+
+DDP Static Graph
+""""""""""""""""
+
+`DDP static graph <https://pytorch.org/blog/pytorch-1.11-released/#stable-ddp-static-graph>`__ assumes that your model
+employs the same set of used/unused parameters in every iteration, so that it can deterministically know the flow of
+training and apply special optimizations during runtime.
+
+.. note::
+    DDP static graph support requires PyTorch>=1.11.0
+
+.. code-block:: python
+
+    from pytorch_lightning import Trainer
+    from pytorch_lightning.strategies import DDPStrategy
+
+    trainer = Trainer(devices=4, strategy=DDPStrategy(static_graph=True))
+
+
+When Using DDP on a Multi-node Cluster, Set NCCL Parameters
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+`NCCL <https://developer.nvidia.com/nccl>`__ is the NVIDIA Collective Communications Library that is used by PyTorch to handle communication across nodes and GPUs. There are reported benefits in terms of speedups when adjusting NCCL parameters as seen in this `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues/7179>`__. In the issue, we see a 30% speed improvement when training the Transformer XLM-RoBERTa and a 15% improvement in training with Detectron2.
+
+NCCL parameters can be adjusted via environment variables.
+
+.. note::
+
+    AWS and GCP already set default values for these on their clusters. This is typically useful for custom cluster setups.
+
+* `NCCL_NSOCKS_PERTHREAD <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-nsocks-perthread>`__
+* `NCCL_SOCKET_NTHREADS <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-socket-nthreads>`__
+* `NCCL_MIN_NCHANNELS <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-min-nchannels>`__
+
+.. code-block:: bash
+
+    export NCCL_NSOCKS_PERTHREAD=4
+    export NCCL_SOCKET_NTHREADS=2
 
 
 Gradients as Bucket View
@@ -827,7 +890,8 @@ When using Post-localSGD, you must also pass ``model_averaging_period`` to allow
 
     model = MyModel()
     trainer = Trainer(
-        gpus=4,
+        accelerator="gpu",
+        devices=4,
         strategy=DDPStrategy(
             ddp_comm_state=post_localSGD.PostLocalSGDState(
                 process_group=None,
@@ -839,20 +903,3 @@ When using Post-localSGD, you must also pass ``model_averaging_period`` to allow
         ),
     )
     trainer.fit(model)
-
-DDP Static Graph
-""""""""""""""""
-
-`DDP static graph <https://pytorch.org/blog/pytorch-1.11-released/#stable-ddp-static-graph>`__ assumes that your model
-employs the same set of used/unused parameters in every iteration, so that it can deterministically know the flow of
-training and apply special optimizations during runtime.
-
-.. note::
-    DDP static graph support requires PyTorch>=1.11.0
-
-.. code-block:: python
-
-    from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DDPStrategy
-
-    trainer = Trainer(devices=4, strategy=DDPStrategy(static_graph=True))

@@ -28,6 +28,7 @@ class Accelerator(ABC):
     - GPU
     - TPU
     - IPU
+    - HPU
     """
 
     def setup_environment(self, root_device: torch.device) -> None:
