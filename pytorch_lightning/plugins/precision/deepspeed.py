@@ -22,7 +22,7 @@ from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
+from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE, _DEEPSPEED_GREATER_EQUAL_0_6
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -37,6 +37,12 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def __init__(self, precision: Union[str, int], amp_type: str, amp_level: Optional[str] = None) -> None:
         supported_precision_values = (16, 32, PrecisionType.BFLOAT.value, PrecisionType.MIXED.value)
+        if precision == PrecisionType.BFLOAT and not _DEEPSPEED_GREATER_EQUAL_0_6:
+            raise MisconfigurationException(
+                f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported"
+                f" with `deepspeed < v0.6`. Please upgrade it using `pip install -U deepspeed`."
+            )
+
         if precision not in supported_precision_values:
             raise ValueError(
                 f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported."
