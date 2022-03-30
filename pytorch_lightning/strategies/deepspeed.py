@@ -681,6 +681,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 rank_zero_info("Enabling DeepSpeed APEX Implementation.")
                 self.config["amp"] = {"enabled": True, "opt_level": self.precision_plugin.amp_level}
         elif "bf16" not in self.config and self.precision_plugin.precision == PrecisionType.BFLOAT:
+            rank_zero_info("Enabling DeepSpeed BF16.")
             self.config["bf16"] = {"enabled": True}
 
     def _create_default_config(
