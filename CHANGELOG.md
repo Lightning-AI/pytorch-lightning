@@ -57,7 +57,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
--
+- Remove deprecated `stochastic_weight_averaging` flag from `Trainer` ([#12535](https://github.com/PyTorchLightning/pytorch-lightning/pull/12535))
 
 
 -
