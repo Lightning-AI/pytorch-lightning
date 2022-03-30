@@ -242,34 +242,34 @@ def _check_data_type(device_ids: Any) -> None:
             If ``device_ids`` of GPU/TPUs aren't ``int``, ``str``, sequence of ``int`` or ``None``
     """
     # A flag which is set when incompatible input is passed
-    _raise_error_flag = False
+    raise_error_flag = False
     # If device_ids is an iterator
-    _is_iterator = isinstance(device_ids, (MutableSequence, tuple))
+    is_iterator = isinstance(device_ids, (MutableSequence, tuple))
     # If an iterator, this will contain the type inside the iterator, else the type of device_ids
-    _incompatible_type = None
+    incompatible_type = None
 
-    if device_ids is None or (_is_iterator and len(device_ids) == 0):
+    if device_ids is None or (is_iterator and len(device_ids) == 0):
         return
 
-    if (not _is_iterator and not isinstance(device_ids, (int, str))) or isinstance(device_ids, bool):
-        _raise_error_flag = True
-        _incompatible_type = type(device_ids).__name__
+    if (not is_iterator and not isinstance(device_ids, (int, str))) or isinstance(device_ids, bool):
+        raise_error_flag = True
+        incompatible_type = type(device_ids).__name__
 
-    if _is_iterator:
+    if is_iterator:
         # Iterate through the sequence, and assert it's 1 dimensional and only contains integers
         for _iter in iter(device_ids):
             if not isinstance(_iter, int):
-                _raise_error_flag = True
-                _is_iterator = True
-                _incompatible_type = type(_iter).__name__
+                raise_error_flag = True
+                is_iterator = True
+                incompatible_type = type(_iter).__name__
                 break
 
-    msg = f"Device IDs (GPU/TPU) must be an int, a string, a sequence of ints or None, but you passed {_incompatible_type}"
+    msg = f"Device IDs (GPU/TPU) must be an int, a string, a sequence of ints or None, but you passed {incompatible_type}"
 
-    if _is_iterator:
-        msg = f"Device IDs (GPU/TPU) must be an int, a string, a sequence of ints or None, but you passed a sequence of {_incompatible_type}"
+    if is_iterator:
+        msg = f"Device IDs (GPU/TPU) must be an int, a string, a sequence of ints or None, but you passed a sequence of {incompatible_type}"
 
-    if _raise_error_flag:
+    if raise_error_flag:
         raise MisconfigurationException(msg)
 
 
