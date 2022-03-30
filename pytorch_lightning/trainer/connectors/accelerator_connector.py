@@ -627,6 +627,7 @@ class AcceleratorConnector:
             # TODO lazy initialized and setup horovod strategy `global_rank`
             self._handle_horovod()
         if isinstance(self._strategy_flag, str):
+            self._strategy_flag = self._strategy_flag.lower()
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         elif isinstance(self._strategy_flag, Strategy):
             self.strategy = self._strategy_flag
