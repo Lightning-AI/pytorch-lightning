@@ -224,7 +224,7 @@ class AcceleratorConnector:
         self,
         strategy: Optional[Union[str, Strategy]],
         accelerator: Optional[Union[str, Accelerator]],
-        precision: Union[int, str],
+        precision: Union[int, str, PrecisionPlugin],
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]],
         amp_type: str,
         amp_level: Optional[str],
