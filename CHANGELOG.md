@@ -60,7 +60,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated `progress_bar_refresh_rate` argument from the `Trainer` constructor ([#12514](https://github.com/PyTorchLightning/pytorch-lightning/pull/12514))
 
 
-- Removed deprecated `pytorch_lightning.callbacks.gpu_stats.GPUStatsMonitor` ([#12554](https://github.com/PyTorchLightning/pytorch-lightning/pull/12554)) 
+- Removed deprecated `pytorch_lightning.callbacks.gpu_stats.GPUStatsMonitor` ([#12554](https://github.com/PyTorchLightning/pytorch-lightning/pull/12554))
 
 
 -
