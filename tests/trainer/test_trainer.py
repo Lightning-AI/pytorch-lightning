@@ -904,33 +904,6 @@ def test_disabled_validation(tmpdir):
     assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
 
 
-@mock.patch("torch.Tensor.backward")
-def test_nan_loss_detection(backward_mock, tmpdir):
-    class CurrentModel(BoringModel):
-        test_batch_inf = 3
-
-        def training_step(self, batch, batch_idx):
-            output = super().training_step(batch, batch_idx)
-            if batch_idx == self.test_batch_inf:
-                if isinstance(output, dict):
-                    output["loss"] *= torch.tensor(math.inf)  # make loss infinite
-                else:
-                    output /= 0
-            return output
-
-    model = CurrentModel()
-
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_inf + 1))
-
-    with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is.*"):
-        trainer.fit(model)
-        assert trainer.global_step == model.test_batch_inf
-        assert backward_mock.call_count == model.test_batch_inf
-
-    for param in model.parameters():
-        assert torch.isfinite(param).all()
-
-
 @pytest.mark.parametrize("track_grad_norm", [0, torch.tensor(1), "nan"])
 def test_invalid_track_grad_norm(tmpdir, track_grad_norm):
     with pytest.raises(MisconfigurationException, match="`track_grad_norm` must be a positive number or 'inf'"):
