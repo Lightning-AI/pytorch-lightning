@@ -38,6 +38,11 @@ jobs:
 
     - bash: |
         export PL_RUN_HPU_TESTS=1
+        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests --ignore tests/benchmarks -v --junitxml=hpu_test-results.xml
+      displayName: 'Testing: standard'
+
+    - bash: |
+        export PL_RUN_HPU_TESTS=1
         python -m pytest -sv tests/accelerators/test_hpu.py --forked --junitxml=hpu1_test-results.xml
       displayName: 'Single card HPU test'
 
