@@ -187,7 +187,6 @@ class Trainer(
         amp_level: Optional[str] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
-        stochastic_weight_avg: bool = False,
     ) -> None:
         r"""
         Customize every aspect of training via flags.
@@ -444,15 +443,6 @@ class Trainer(
                 and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
                 reload when reaching the minimum length of datasets.
                 Default: ``"max_size_cycle"``.
-
-            stochastic_weight_avg: Whether to use `Stochastic Weight Averaging (SWA)
-                <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>`_.
-                Default: ``False``.
-
-                .. deprecated:: v1.5
-                    ``stochastic_weight_avg`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please pass :class:`~pytorch_lightning.callbacks.stochastic_weight_avg.StochasticWeightAveraging`
-                    directly to the Trainer's ``callbacks`` argument instead.
         """
         super().__init__()
         Trainer._log_api_event("init")
@@ -532,7 +522,6 @@ class Trainer(
             weights_save_path,
             enable_model_summary,
             weights_summary,
-            stochastic_weight_avg,
             max_time,
             accumulate_grad_batches,
         )
