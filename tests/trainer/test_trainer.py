@@ -920,8 +920,7 @@ def test_nan_loss_detection(backward_mock, tmpdir):
 
     model = CurrentModel()
 
-    with pytest.deprecated_call(match="terminate_on_nan` was deprecated in v1.5"):
-        trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_inf + 1), terminate_on_nan=True)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_inf + 1))
 
     with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is.*"):
         trainer.fit(model)
@@ -930,13 +929,6 @@ def test_nan_loss_detection(backward_mock, tmpdir):
 
     for param in model.parameters():
         assert torch.isfinite(param).all()
-
-
-def test_invalid_terminate_on_nan(tmpdir):
-    with pytest.raises(TypeError, match="`terminate_on_nan` should be a bool"), pytest.deprecated_call(
-        match="terminate_on_nan` was deprecated in v1.5"
-    ):
-        Trainer(default_root_dir=tmpdir, terminate_on_nan="False")
 
 
 @pytest.mark.parametrize("track_grad_norm", [0, torch.tensor(1), "nan"])
@@ -957,8 +949,7 @@ def test_nan_params_detection(backward_mock, tmpdir):
 
     model = CurrentModel()
 
-    with pytest.deprecated_call(match="terminate_on_nan` was deprecated in v1.5"):
-        trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_nan + 1), terminate_on_nan=True)
+    trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_nan + 1))
 
     with pytest.raises(ValueError, match=r".*Detected nan and/or inf values in `layer.bias`.*"):
         trainer.fit(model)

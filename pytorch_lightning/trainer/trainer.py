@@ -188,7 +188,6 @@ class Trainer(
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
         stochastic_weight_avg: bool = False,
-        terminate_on_nan: Optional[bool] = None,
     ) -> None:
         r"""
         Customize every aspect of training via flags.
@@ -396,13 +395,6 @@ class Trainer(
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
                 Default: ``False``.
 
-            terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
-                end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
-
-                .. deprecated:: v1.5
-                    Trainer argument ``terminate_on_nan`` was deprecated in v1.5 and will be removed in 1.7.
-                    Please use ``detect_anomaly`` instead.
-
             detect_anomaly: Enable anomaly detection for the autograd engine.
                 Default: ``False``.
 
@@ -556,14 +548,6 @@ class Trainer(
             prepare_data_per_node,
         )
 
-        if terminate_on_nan is not None:
-            rank_zero_deprecation(
-                "Trainer argument `terminate_on_nan` was deprecated in v1.5 and will be removed in 1.7."
-                " Please use `Trainer(detect_anomaly=True)` instead."
-            )
-            if not isinstance(terminate_on_nan, bool):
-                raise TypeError(f"`terminate_on_nan` should be a bool, got {terminate_on_nan}.")
-
         # gradient clipping
         if gradient_clip_val is not None and not isinstance(gradient_clip_val, (int, float)):
             raise TypeError(f"`gradient_clip_val` should be an int or a float. Got {gradient_clip_val}.")
@@ -584,7 +568,6 @@ class Trainer(
                 f"`track_grad_norm` must be a positive number or 'inf' (infinity norm). Got {track_grad_norm}."
             )
 
-        self._terminate_on_nan = terminate_on_nan
         self.gradient_clip_val: Union[int, float] = gradient_clip_val
         self.gradient_clip_algorithm: Optional[GradClipAlgorithmType] = (
             GradClipAlgorithmType(gradient_clip_algorithm.lower()) if gradient_clip_algorithm is not None else None
@@ -2815,19 +2798,6 @@ class Trainer(
 
         max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
         return max_estimated_steps
-
-    @property
-    def terminate_on_nan(self) -> bool:
-        rank_zero_deprecation("`Trainer.terminate_on_nan` is deprecated in v1.5 and will be removed in 1.7.")
-        return self._terminate_on_nan
-
-    @terminate_on_nan.setter
-    def terminate_on_nan(self, val: bool) -> None:
-        rank_zero_deprecation(
-            f"Setting `Trainer.terminate_on_nan = {val}` is deprecated in v1.5 and will be removed in 1.7."
-            f" Please set `Trainer(detect_anomaly={val})` instead."
-        )
-        self._terminate_on_nan = val  # : 212
 
 
 def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> Union[int, float]:
