@@ -513,7 +513,7 @@ def test_accelererator_invalid_type_gpus(mock_is_available, mock_device_count, g
     with pytest.raises(
         MisconfigurationException, match=r".* must be an int, a string, a sequence of ints or None, but you .*"
     ):
-        trainer = Trainer(accelerator="gpu", gpus=gpu_count)
+        _ = Trainer(accelerator="gpu", gpus=gpu_count)
 
 
 @mock.patch("torch.cuda.is_available", return_value=True)
@@ -523,7 +523,7 @@ def test_accelererator_invalid_type_devices(mock_is_available, mock_device_count
     with pytest.raises(
         MisconfigurationException, match=r".* must be an int, a string, a sequence of ints or None, but you .*"
     ):
-        trainer = Trainer(accelerator="gpu", devices=device_count)
+        _ = Trainer(accelerator="gpu", devices=device_count)
 
 
 @mock.patch("torch.cuda.is_available", return_value=False)
