@@ -34,6 +34,7 @@ warning_cache = WarningCache()
 
 class DeepSpeedPrecisionPlugin(PrecisionPlugin):
     """Precision plugin for DeepSpeed integration.
+
     Args:
         precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
 
@@ -48,7 +49,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
         ValueError:
             If unsupported ``precision`` is provided.
-
     """
 
     def __init__(self, precision: Union[str, int], amp_type: str, amp_level: Optional[str] = None) -> None:
