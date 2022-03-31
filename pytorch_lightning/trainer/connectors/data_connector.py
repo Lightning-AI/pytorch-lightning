@@ -371,6 +371,9 @@ class DataConnector:
         # always get the loaders first so we can count how many there are
         dataloaders = self._request_dataloader(mode, model=model)
 
+        if self.trainer.overfit_batches > 0:
+            dataloaders = self._resolve_overfit_batches(dataloaders, mode)
+
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
 
@@ -456,7 +459,7 @@ class DataConnector:
         return dataloader
 
     @staticmethod
-    def _resolve_overfit_batches(dataloader: Collection[DataLoader]) -> Collection[DataLoader]:
+    def _resolve_overfit_batches(dataloaders: Collection[DataLoader], mode: RunningStage) -> Collection[DataLoader]:
         all_have_sequential_sampler = True
 
         def resolve_has_no_sequential_sampler(dataloader: DataLoader):
@@ -465,20 +468,20 @@ class DataConnector:
                 dataloader.sampler, SequentialSampler
             )
 
-        apply_to_collection(dataloader, DataLoader, resolve_has_no_sequential_sampler)
+        apply_to_collection(dataloaders, DataLoader, resolve_has_no_sequential_sampler)
 
         if not all_have_sequential_sampler:
             rank_zero_warn(
                 "You requested to overfit but enabled training dataloader shuffling."
-                " We are turning off the training dataloader shuffling for you."
+                f" We are turning off the {mode.dataloader_prefix} dataloader shuffling for you."
             )
 
             def replace_sampler(dataloader: DataLoader) -> DataLoader:
-                return _update_dataloader(dataloader, SequentialSampler(dataloader.dataset), mode=RunningStage.TRAINING)
+                return _update_dataloader(dataloader, sampler=SequentialSampler(dataloader.dataset), mode=mode)
 
-            dataloader = apply_to_collection(dataloader, DataLoader, replace_sampler)
+            dataloaders = apply_to_collection(dataloaders, DataLoader, replace_sampler)
 
-        return dataloader
+        return dataloaders
 
     @staticmethod
     def _check_eval_shuffling(dataloader, mode):
