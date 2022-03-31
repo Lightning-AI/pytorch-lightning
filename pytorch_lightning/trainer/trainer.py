@@ -167,7 +167,7 @@ class Trainer(
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
         sync_batchnorm: bool = False,
-        precision: Union[int, str, PrecisionPlugin] = 32,
+        precision: Optional[Union[int, str, PrecisionPlugin]] = None,
         enable_model_summary: bool = True,
         weights_summary: Optional[str] = "top",
         weights_save_path: Optional[str] = None,  # TODO: Remove in 1.8
@@ -251,7 +251,6 @@ class Trainer(
 
             check_val_every_n_epoch: Check val every n train epochs.
                 Default: ``1``.
-
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
@@ -345,7 +344,6 @@ class Trainer(
             precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16),
                 as well as ``PrecisionPlugin`` instances.
                 Can be used on CPU, GPU, TPUs, HPUs or IPUs.
-                Default: ``32``.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
                 If both max_epochs and max_steps are not specified, defaults to ``max_epochs = 1000``.

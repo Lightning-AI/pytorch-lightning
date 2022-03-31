@@ -415,6 +415,10 @@ class AcceleratorConnector:
                 f"You have asked for `amp_level={amp_level!r}` but it's only supported with `amp_backend='apex'`."
             )
 
+        if self._precision_flag is None and self._precision_plugin_flag is None:
+            # Set default precision as ``32``, if no precision is specified
+            self._precision_flag = 32
+
     def _check_device_config_and_set_final_flags(
         self,
         devices: Optional[Union[List[int], str, int]],
