@@ -143,65 +143,6 @@ class ModelIO:
             **kwargs,
         )
 
-    @classmethod
-    def _load_state(cls, checkpoint: Dict[str, Any], strict: bool = True, **cls_kwargs_new):
-        cls_spec = inspect.getfullargspec(cls.__init__)
-        cls_init_args_name = inspect.signature(cls.__init__).parameters.keys()
-
-        self_var, args_var, kwargs_var = parse_class_init_keys(cls)
-        drop_names = [n for n in (self_var, args_var, kwargs_var) if n]
-        cls_init_args_name = list(filter(lambda n: n not in drop_names, cls_init_args_name))
-
-        cls_kwargs_loaded = {}
-        # pass in the values we saved automatically
-        if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
-
-            # 1. (backward compatibility) Try to restore model hparams from checkpoint using old/past keys
-            for _old_hparam_key in CHECKPOINT_PAST_HPARAMS_KEYS:
-                cls_kwargs_loaded.update(checkpoint.get(_old_hparam_key, {}))
-
-            # 2. Try to restore model hparams from checkpoint using the new key
-            _new_hparam_key = cls.CHECKPOINT_HYPER_PARAMS_KEY
-            cls_kwargs_loaded.update(checkpoint.get(_new_hparam_key))
-
-            # 3. Ensure that `cls_kwargs_old` has the right type, back compatibility between dict and Namespace
-            cls_kwargs_loaded = _convert_loaded_hparams(
-                cls_kwargs_loaded, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE)
-            )
-
-            # 4. Update cls_kwargs_new with cls_kwargs_old, such that new has higher priority
-            args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
-            if args_name and args_name in cls_init_args_name:
-                cls_kwargs_loaded = {args_name: cls_kwargs_loaded}
-
-        _cls_kwargs = {}
-        _cls_kwargs.update(cls_kwargs_loaded)
-        _cls_kwargs.update(cls_kwargs_new)
-
-        if not cls_spec.varkw:
-            # filter kwargs according to class init unless it allows any argument via kwargs
-            _cls_kwargs = {k: v for k, v in _cls_kwargs.items() if k in cls_init_args_name}
-
-        model = cls(**_cls_kwargs)
-
-        # give model a chance to load something
-        model.on_load_checkpoint(checkpoint)
-
-        # load the state_dict on the model automatically
-        keys = model.load_state_dict(checkpoint["state_dict"], strict=strict)
-
-        if not strict:
-            if keys.missing_keys:
-                rank_zero_warn(
-                    f"Found keys that are in the model state dict but not in the checkpoint: {keys.missing_keys}"
-                )
-            if keys.unexpected_keys:
-                rank_zero_warn(
-                    f"Found keys that are not in the model state dict but in the checkpoint: {keys.unexpected_keys}"
-                )
-
-        return model
-
     # -------------------------
     # OPTIONAL HOOKS
     # -------------------------
