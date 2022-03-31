@@ -33,16 +33,32 @@ warning_cache = WarningCache()
 
 
 class DeepSpeedPrecisionPlugin(PrecisionPlugin):
-    """Precision plugin for DeepSpeed integration."""
+    """Precision plugin for DeepSpeed integration.
+    Args:
+        precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
+
+        amp_type: The mixed precision backend to use ("native" or "apex").
+
+        amp_level: The optimization level to use (O1, O2, etc...). By default it will be set to "O2"
+            if ``amp_type`` is set to "apex".
+
+    Raises:
+        MisconfigurationException:
+            If using ``bfloat16`` precision and ``deepspeed<v0.6``.
+
+        ValueError:
+            If unsupported ``precision`` is provided.
+
+    """
 
     def __init__(self, precision: Union[str, int], amp_type: str, amp_level: Optional[str] = None) -> None:
-        supported_precision_values = (16, 32, PrecisionType.BFLOAT.value, PrecisionType.MIXED.value)
         if precision == PrecisionType.BFLOAT and not _DEEPSPEED_GREATER_EQUAL_0_6:
             raise MisconfigurationException(
                 f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported"
                 f" with `deepspeed < v0.6`. Please upgrade it using `pip install -U deepspeed`."
             )
 
+        supported_precision_values = (16, 32, PrecisionType.BFLOAT.value, PrecisionType.MIXED.value)
         if precision not in supported_precision_values:
             raise ValueError(
                 f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported."

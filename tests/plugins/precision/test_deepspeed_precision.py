@@ -11,22 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
+
 import pytest
 
 from pytorch_lightning.plugins.precision.deepspeed import DeepSpeedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _DEEPSPEED_GREATER_EQUAL_0_6
-from tests.helpers.runif import RunIf
 
 
-@RunIf(deepspeed=True)
 def test_invalid_precision_with_deepspeed_precision():
     with pytest.raises(ValueError, match="is not supported. `precision` must be one of"):
         DeepSpeedPrecisionPlugin(precision=64, amp_type="native")
 
 
-@RunIf(deepspeed=True)
-@pytest.mark.skipif(_DEEPSPEED_GREATER_EQUAL_0_6, reason="requires deepspeed < 0.6")
+@mock.patch("pytorch_lightning.plugins.precision.deepspeed._DEEPSPEED_GREATER_EQUAL_0_6", False)
 def test_incompatible_bfloat16_raises_error_with_deepspeed_version():
     with pytest.raises(MisconfigurationException, match="is not supported with `deepspeed < v0.6`"):
         DeepSpeedPrecisionPlugin(precision="bf16", amp_type="native")
