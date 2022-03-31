@@ -146,7 +146,6 @@ class Trainer(
         tpu_cores: Optional[Union[List[int], str, int]] = None,
         ipus: Optional[int] = None,
         log_gpu_memory: Optional[str] = None,  # TODO: Remove in 1.7
-        progress_bar_refresh_rate: Optional[int] = None,  # TODO: remove in v1.7
         enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
@@ -188,7 +187,6 @@ class Trainer(
         amp_level: Optional[str] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
-        stochastic_weight_avg: bool = False,
         terminate_on_nan: Optional[bool] = None,
     ) -> None:
         r"""
@@ -331,16 +329,6 @@ class Trainer(
                     Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``process_position``
                     directly to the Trainer's ``callbacks`` argument instead.
 
-            progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
-                Ignored when a custom progress bar is passed to :paramref:`~Trainer.callbacks`. Default: None, means
-                a suitable value will be chosen based on the environment (terminal, Google COLAB, etc.).
-
-                .. deprecated:: v1.5
-                    ``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``refresh_rate``
-                    directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
-                    pass ``enable_progress_bar = False`` to the Trainer.
-
             enable_progress_bar: Whether to enable to progress bar by default.
                 Default: ``False``.
 
@@ -463,15 +451,6 @@ class Trainer(
                 and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
                 reload when reaching the minimum length of datasets.
                 Default: ``"max_size_cycle"``.
-
-            stochastic_weight_avg: Whether to use `Stochastic Weight Averaging (SWA)
-                <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>`_.
-                Default: ``False``.
-
-                .. deprecated:: v1.5
-                    ``stochastic_weight_avg`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please pass :class:`~pytorch_lightning.callbacks.stochastic_weight_avg.StochasticWeightAveraging`
-                    directly to the Trainer's ``callbacks`` argument instead.
         """
         super().__init__()
         Trainer._log_api_event("init")
@@ -546,13 +525,11 @@ class Trainer(
             checkpoint_callback,
             enable_checkpointing,
             enable_progress_bar,
-            progress_bar_refresh_rate,
             process_position,
             default_root_dir,
             weights_save_path,
             enable_model_summary,
             weights_summary,
-            stochastic_weight_avg,
             max_time,
             accumulate_grad_batches,
         )

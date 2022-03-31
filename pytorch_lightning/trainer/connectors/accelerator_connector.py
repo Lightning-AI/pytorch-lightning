@@ -244,6 +244,9 @@ class AcceleratorConnector:
         if plugins is not None:
             plugins = [plugins] if not isinstance(plugins, list) else plugins
 
+        if isinstance(strategy, str):
+            strategy = strategy.lower()
+
         if strategy is not None:
             self._strategy_flag = strategy
             if strategy == "ddp_cpu":
