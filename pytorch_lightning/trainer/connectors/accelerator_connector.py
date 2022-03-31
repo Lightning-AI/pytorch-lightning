@@ -309,7 +309,8 @@ class AcceleratorConnector:
                     if isinstance(plugin, PrecisionPlugin):
                         raise MisconfigurationException(
                             f"You have passed `Trainer(precision={precision})`"
-                            f" and you can only specify one precision, but you have passed {plugin} as a plugin."
+                            " and you can only specify one precision, but you",
+                            f" have also passed {plugin.__class__.__name__} as a plugin.",
                         )
 
         if plugins:
