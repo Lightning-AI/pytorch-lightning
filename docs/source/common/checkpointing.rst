@@ -31,6 +31,7 @@ A Lightning checkpoint has everything needed to restore a training session inclu
 - State of all callbacks (for stateful callbacks)
 - State of datamodule (for stateful datamodules)
 - The hyperparameters used for that model if passed in as hparams (Argparse.Namespace)
+- The hyperparameters used for that datamodule if passed in as hparams (Argparse.Namespace)
 - State of Loops (if using Fault-Tolerant training)
 
 
