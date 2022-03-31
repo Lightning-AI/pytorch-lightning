@@ -384,11 +384,6 @@ def test_v1_7_0_deprecated_slurm_job_id():
 
 
 @RunIf(min_gpus=1)
-def test_v1_7_0_deprecate_gpu_stats_monitor(tmpdir):
-    with pytest.deprecated_call(match="The `GPUStatsMonitor` callback was deprecated in v1.5"):
-        _ = GPUStatsMonitor()
-
-
 def test_v1_7_0_deprecate_xla_stats_monitor(monkeypatch):
     monkeypatch.setattr(pytorch_lightning.callbacks.xla_stats_monitor, "_TPU_AVAILABLE", True)
     with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
