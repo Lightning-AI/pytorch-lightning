@@ -130,11 +130,6 @@ def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
         _ = Trainer(prepare_data_per_node=False)
 
 
-def test_v1_7_0_stochastic_weight_avg_trainer_constructor(tmpdir):
-    with pytest.deprecated_call(match=r"Setting `Trainer\(stochastic_weight_avg=True\)` is deprecated in v1.5"):
-        _ = Trainer(stochastic_weight_avg=True)
-
-
 @pytest.mark.parametrize("terminate_on_nan", [True, False])
 def test_v1_7_0_trainer_terminate_on_nan(tmpdir, terminate_on_nan):
     with pytest.deprecated_call(
