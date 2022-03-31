@@ -57,11 +57,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
+- Removed the deprecated `progress_bar_refresh_rate` argument from the `Trainer` constructor ([#12514](https://github.com/PyTorchLightning/pytorch-lightning/pull/12514))
 - Remove deprecated `prepare_data_per_node` flag from `Trainer` ([#12536](https://github.com/PyTorchLightning/pytorch-lightning/pull/12536))
-
-
-
--
 
 
 -
