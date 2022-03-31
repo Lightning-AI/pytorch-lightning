@@ -22,25 +22,22 @@ from pytorch_lightning.strategies.single_hpu import SingleHPUStrategy
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
-
-@pytest.fixture
-def hmp_params(request):
-    return {
-        "opt_level": "O1",
-        "verbose": False,
-        "bf16_file_path": request.config.getoption("--hmp-bf16"),
-        "fp32_file_path": request.config.getoption("--hmp-fp32"),
-    }
+HMP_PARAMS = {
+    "opt_level": "O1",
+    "verbose": False,
+    "bf16_file_path": "ops_bf16.txt",
+    "fp32_file_path": "ops_fp32.txt",
+}
 
 
 @RunIf(hpu=True)
-def test_precision_plugin(hmp_params):
-    plugin = HPUPrecisionPlugin(precision="bf16", **hmp_params)
+def test_precision_plugin():
+    plugin = HPUPrecisionPlugin(precision="bf16", **HMP_PARAMS)
     assert plugin.precision == "bf16"
 
 
 @RunIf(hpu=True)
-def test_mixed_precision(tmpdir, hmp_params: dict):
+def test_mixed_precision(tmpdir):
     class TestCallback(Callback):
         def setup(self, trainer: Trainer, pl_module: LightningModule, stage: Optional[str] = None) -> None:
             assert trainer.strategy.model.precision == "bf16"
@@ -52,7 +49,7 @@ def test_mixed_precision(tmpdir, hmp_params: dict):
         fast_dev_run=True,
         accelerator="hpu",
         devices=1,
-        plugins=[HPUPrecisionPlugin(precision="bf16", **hmp_params)],
+        plugins=[HPUPrecisionPlugin(precision="bf16", **HMP_PARAMS)],
         callbacks=TestCallback(),
     )
     assert isinstance(trainer.strategy, SingleHPUStrategy)
@@ -63,7 +60,7 @@ def test_mixed_precision(tmpdir, hmp_params: dict):
 
 
 @RunIf(hpu=True)
-def test_pure_half_precision(tmpdir, hmp_params: dict):
+def test_pure_half_precision(tmpdir):
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
             assert trainer.strategy.model.precision == 16
@@ -78,7 +75,7 @@ def test_pure_half_precision(tmpdir, hmp_params: dict):
         fast_dev_run=True,
         accelerator="hpu",
         devices=1,
-        plugins=[HPUPrecisionPlugin(precision=16, **hmp_params)],
+        plugins=[HPUPrecisionPlugin(precision=16, **HMP_PARAMS)],
         callbacks=TestCallback(),
     )
 
