@@ -361,7 +361,7 @@ class DataHooks:
                 self.split = data_split
                 self.some_state = some_other_state()
 
-        In DDP ``prepare_data`` can be called in two ways
+        In a distributed environment, ``prepare_data`` can be called in two ways
         (using :ref:`prepare_data_per_node<common/lightning_module:prepare_data_per_node>`)
 
         1. Once per node. This is the default and is only called on LOCAL_RANK=0.
