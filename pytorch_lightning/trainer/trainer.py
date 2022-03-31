@@ -167,7 +167,7 @@ class Trainer(
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
         sync_batchnorm: bool = False,
-        precision: Union[int, str] = 32,
+        precision: Union[int, str, PrecisionPlugin] = 32,
         enable_model_summary: bool = True,
         weights_summary: Optional[str] = "top",
         weights_save_path: Optional[str] = None,  # TODO: Remove in 1.8
@@ -342,7 +342,8 @@ class Trainer(
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
                 Default: ``None``.
 
-            precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
+            precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16),
+                as well as ``PrecisionPlugin`` instances.
                 Can be used on CPU, GPU, TPUs, HPUs or IPUs.
                 Default: ``32``.
 

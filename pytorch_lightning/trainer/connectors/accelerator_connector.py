@@ -95,7 +95,7 @@ class AcceleratorConnector:
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
-        precision: Union[int, str] = 32,
+        precision: Union[int, str, PrecisionPlugin] = 32,
         amp_type: str = "native",
         amp_level: Optional[str] = None,
         sync_batchnorm: bool = False,
@@ -165,7 +165,7 @@ class AcceleratorConnector:
         # For devices: Assign gpus, ipus, etc. to the accelerator flag and devices flag
         self._strategy_flag: Optional[Union[Strategy, str]] = None
         self._accelerator_flag: Optional[Union[Accelerator, str]] = None
-        self._precision_flag: Optional[Union[int, str]] = None
+        self._precision_flag: Optional[Union[int, str, PrecisionPlugin]] = None
         self._precision_plugin_flag: Optional[PrecisionPlugin] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
         self._parallel_devices: List[Union[int, torch.device]] = []
@@ -296,11 +296,21 @@ class AcceleratorConnector:
                 self._strategy_flag = accelerator
 
         if precision is not None:
-            if str(precision) not in self._precision_types:
+            if isinstance(precision, PrecisionPlugin):
+                self._precision_plugin_flag = precision
+            elif str(precision) not in self._precision_types:
                 raise MisconfigurationException(
                     f"Precision {repr(precision)} is invalid. Allowed precision values: {self._precision_types}"
                 )
-            self._precision_flag = precision
+            else:
+                self._precision_flag = precision
+            if plugins:
+                for plugin in plugins:
+                    if isinstance(plugin, PrecisionPlugin):
+                        raise MisconfigurationException(
+                            f"You have passed `Trainer(precision={precision})`"
+                            f" and you can only specify one precision, but you have passed {plugin} as a plugin."
+                        )
 
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
@@ -315,6 +325,10 @@ class AcceleratorConnector:
 
                 elif isinstance(plugin, PrecisionPlugin):
                     self._precision_plugin_flag = plugin
+                    rank_zero_deprecation(
+                        f"Passing {plugin} for precision to the `plugins` flag in Trainer has been deprecated"
+                        f" in v1.7 and will be removed in v2.0. Use `Trainer(precision={plugin})` instead."
+                    )
                     plugins_flags_types[PrecisionPlugin.__name__] += 1
                 elif isinstance(plugin, CheckpointIO):
                     self.checkpoint_io = plugin
