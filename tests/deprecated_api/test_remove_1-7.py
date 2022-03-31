@@ -22,7 +22,6 @@ import torch
 
 import pytorch_lightning
 from pytorch_lightning import Callback, LightningDataModule, Trainer
-from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.callbacks.progress import ProgressBar
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
