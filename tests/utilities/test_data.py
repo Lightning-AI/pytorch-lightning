@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import pytest
 import torch
 from torch.utils.data.dataloader import DataLoader
@@ -18,6 +19,7 @@ from pytorch_lightning.utilities.data import (
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.utils import no_warning_call
+from torch import Tensor
 
 
 def test_extract_batch_size():
@@ -36,6 +38,11 @@ def test_extract_batch_size():
         with pytest.raises(MisconfigurationException, match="We could not infer the batch_size"):
             extract_batch_size(batch)
 
+    @dataclass
+    class CustomDataclass:
+        a: Tensor
+        b: Tensor
+
     # Warning not raised
     batch = torch.zeros(11, 10, 9, 8)
     _check_warning_not_raised(batch, 11)
@@ -46,12 +53,18 @@ def test_extract_batch_size():
     batch = [torch.zeros(11, 10)]
     _check_warning_not_raised(batch, 11)
 
+    batch = CustomDataclass(torch.zeros(11, 10), torch.zeros(11, 10))
+    _check_warning_not_raised(batch, 11)
+
     batch = {"test": [{"test": [torch.zeros(11, 10)]}]}
     _check_warning_not_raised(batch, 11)
 
     # Warning raised
     batch = {"a": [torch.tensor(1), torch.tensor(2)], "b": torch.tensor([1, 2, 3, 4])}
     _check_warning_raised(batch, 1)
+
+    batch = CustomDataclass(torch.zeros(11, 10), torch.zeros(1))
+    _check_warning_raised(batch, 11)
 
     batch = {"test": [{"test": [torch.zeros(11, 10), torch.zeros(10, 10)]}]}
     _check_warning_raised(batch, 11)

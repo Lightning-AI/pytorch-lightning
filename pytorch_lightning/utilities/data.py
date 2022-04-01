@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from dataclasses import is_dataclass
 import functools
 import inspect
 import os
@@ -46,6 +47,11 @@ def _extract_batch_size(batch: BType) -> Generator[int, None, None]:
     elif isinstance(batch, (Iterable, Mapping)) and not isinstance(batch, str):
         if isinstance(batch, Mapping):
             batch = batch.values()
+
+        for sample in batch:
+            yield from _extract_batch_size(sample)
+    elif is_dataclass(batch):
+        batch = [getattr(batch, field) for field in batch.__dataclass_fields__]
 
         for sample in batch:
             yield from _extract_batch_size(sample)
