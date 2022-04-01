@@ -81,12 +81,15 @@ Or read the `advanced install guide <starter/installation.html>`_
    :header: New to Lightning?
    :button_link:  starter/introduction.html
 
-
 .. customcalloutitem::
    :description: Easily organize your existing PyTorch code as PyTorch Lightning in a few hours.
    :header: PyTorch to PyTorch Lightning
    :button_link: starter/converting.html
 
+.. customcalloutitem::
+   :description: 10 levels that teach you Lightning to match the level of complexity that your research or job requires.
+   :header: Leveling up!
+   :button_link:  expertise_levels.html
 
 .. customcalloutitem::
    :description: From NLP, Computer vision to RL and meta learning - see how to use Lightning in ALL research areas.
