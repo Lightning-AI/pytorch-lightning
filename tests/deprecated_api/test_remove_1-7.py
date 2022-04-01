@@ -45,12 +45,6 @@ from tests.loggers.test_base import CustomLogger
 from tests.plugins.environments.test_lsf_environment import _make_rankfile
 
 
-def test_v1_7_0_deprecated_lightning_module_summarize(tmpdir):
-    model = BoringModel()
-    with pytest.deprecated_call(match="The `LightningModule.summarize` method is deprecated in v1.5"):
-        model.summarize(max_depth=1)
-
-
 def test_v1_7_0_moved_model_summary_and_layer_summary(tmpdir):
     _soft_unimport_module("pytorch_lightning.core.memory")
     with pytest.deprecated_call(match="to `pytorch_lightning.utilities.model_summary` since v1.5"):
