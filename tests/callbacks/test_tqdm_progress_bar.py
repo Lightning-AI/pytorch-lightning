@@ -591,7 +591,7 @@ def test_progress_bar_max_val_check_interval(
     assert pbar_callback.is_enabled
 
 
-@RunIf(standalone=True)
+@RunIf(min_gpus=2, standalone=True)
 @pytest.mark.parametrize(
     "val_check_interval",
     [0.2, 0.5],
@@ -613,6 +613,7 @@ def test_progress_bar_max_val_check_interval_ddp(tmpdir, val_check_interval):
         enable_model_summary=False,
         val_check_interval=val_check_interval,
         devices=world_size,
+        accelerator="gpu",
         strategy="ddp",
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
