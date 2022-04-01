@@ -81,12 +81,15 @@ Or read the `advanced install guide <starter/installation.html>`_
    :header: New to Lightning?
    :button_link:  starter/introduction.html
 
+.. customcalloutitem::
+   :description: Learn Lightning at 4 levels of expertise: Introductory, intermediate, advanced and expert.
+   :header: Level up!
+   :button_link:  expertise_levels.html
 
 .. customcalloutitem::
-   :description: Easily organize your existing PyTorch code into PyTorch Lightning.
-   :header: PyTorch to PyTorch Lightning
+   :description: Easily organize your existing PyTorch code as PyTorch Lightning in a few hours.
+   :header: Organize PyTorch as PyTorch Lightning
    :button_link: starter/converting.html
-
 
 .. customcalloutitem::
    :description: See how Lightning is used in research areas like NLP, Computer Vision, RL and meta learning.
@@ -132,6 +135,16 @@ Or read the `advanced install guide <starter/installation.html>`_
    starter/installation
    starter/converting
    starter/lightning_lite
+
+.. toctree::
+   :maxdepth: 1
+   :name: levels
+   :caption: Expertise Levels
+
+   levels/introductory
+   levels/intermediate
+   levels/advanced
+   levels/expert
 
 .. toctree::
    :maxdepth: 1
