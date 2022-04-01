@@ -70,7 +70,7 @@ The ``run`` function contains custom training loop used to train ``MyModel`` on 
     run(args)
 
 
-Checkout MNIST training example with :class:`~pytorch_lightning.lite.LightningLite`  `here https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_2_lite.py>`_
+Checkout MNIST training example with :class:`~pytorch_lightning.lite.LightningLite`  :ref:`here https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_2_lite.py>`_
 
 ----------
 
