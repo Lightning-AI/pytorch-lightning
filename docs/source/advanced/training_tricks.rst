@@ -67,7 +67,7 @@ read `this post <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-we
 .. testcode::
 
     # Enable Stochastic Weight Averaging using the callback
-    trainer = Trainer(callbacks=[StochasticWeightAveraging(...)])
+    trainer = Trainer(callbacks=[StochasticWeightAveraging(swa_lrs=1e-2, ...)])
 
 ----------
 
