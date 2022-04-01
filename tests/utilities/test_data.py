@@ -1,6 +1,8 @@
 from dataclasses import dataclass
+
 import pytest
 import torch
+from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import Trainer
@@ -19,7 +21,6 @@ from pytorch_lightning.utilities.data import (
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.utils import no_warning_call
-from torch import Tensor
 
 
 def test_extract_batch_size():

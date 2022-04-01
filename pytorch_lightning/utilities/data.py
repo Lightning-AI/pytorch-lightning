@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from dataclasses import is_dataclass
 import functools
 import inspect
 import os
 from contextlib import contextmanager
+from dataclasses import is_dataclass
 from functools import partial
 from itertools import chain
 from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Set, Type, Union
