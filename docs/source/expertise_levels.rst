@@ -1,7 +1,7 @@
 :orphan:
 
-Leveling up
-===========
+Level up
+========
 Learn enough Lightning to match the level of expertise required by your research or job.
 
 ----
@@ -22,7 +22,7 @@ Introductory level teaches you the basics of the framework. Researchers and mach
 .. customcalloutitem::
    :description: Learn the two key ideas that enable you to build the majority of models.
    :header: Level 1
-   :button_link: common/checkpointing.html
+   :button_link: levels/introductory_level_1.html
    :card_style: text-container-small
 
 .. customcalloutitem::

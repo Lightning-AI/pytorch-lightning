@@ -83,7 +83,7 @@ Or read the `advanced install guide <starter/installation.html>`_
 
 .. customcalloutitem::
    :description: Learn Lightning at 4 levels of expertise: Introductory, intermediate, advanced and expert.
-   :header: Leveling up!
+   :header: Level up!
    :button_link:  expertise_levels.html
 
 .. customcalloutitem::
@@ -135,6 +135,16 @@ Or read the `advanced install guide <starter/installation.html>`_
    starter/installation
    starter/converting
    starter/lightning_lite
+
+.. toctree::
+   :maxdepth: 1
+   :name: levels
+   :caption: Expertise Levels
+
+   levels/introductory
+   levels/intermediate
+   levels/advanced
+   levels/expert
 
 .. toctree::
    :maxdepth: 1
