@@ -17,7 +17,6 @@ import torch
 
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
-from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _DEVICE
 
@@ -79,8 +78,9 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
     Returns:
         a list of gpus to be used or ``None`` if no GPUs were requested
 
-    If no GPUs are available but the value of gpus variable indicates request for GPUs
-    then a MisconfigurationException is raised.
+    Raises:
+        MisconfigurationException:
+            If no GPUs are available but the value of gpus variable indicates request for GPUs
     """
     # Check that gpus param is None, Int, String or List
     _check_data_type(gpus)
@@ -121,7 +121,7 @@ def parse_tpu_cores(tpu_cores: Optional[Union[int, str, List[int]]]) -> Optional
 
     Raises:
         MisconfigurationException:
-            If TPU cores aren't 1 or 8 cores, or no TPU devices are found
+            If TPU cores aren't 1, 8 or [<1-8>]
     """
     _check_data_type(tpu_cores)
 
@@ -131,10 +131,30 @@ def parse_tpu_cores(tpu_cores: Optional[Union[int, str, List[int]]]) -> Optional
     if not _tpu_cores_valid(tpu_cores):
         raise MisconfigurationException("`tpu_cores` can only be 1, 8 or [<1-8>]")
 
-    if tpu_cores is not None and not _TPU_AVAILABLE:
-        raise MisconfigurationException("No TPU devices were found.")
-
     return tpu_cores
+
+
+def parse_cpu_cores(cpu_cores: Union[int, str, List[int]]) -> int:
+    """Parses the cpu_cores given in the format as accepted by the ``devices`` argument in the
+    :class:`~pytorch_lightning.trainer.Trainer`.
+
+    Args:
+        cpu_cores: An int > 0.
+
+    Returns:
+        an int representing the number of processes
+
+    Raises:
+        MisconfigurationException:
+            If cpu_cores is not an int > 0
+    """
+    if isinstance(cpu_cores, str) and cpu_cores.strip().isdigit():
+        cpu_cores = int(cpu_cores)
+
+    if not isinstance(cpu_cores, int) or cpu_cores <= 0:
+        raise MisconfigurationException("`devices` selected with `CPUAccelerator` should be an int > 0.")
+
+    return cpu_cores
 
 
 def _normalize_parse_gpu_string_input(s: Union[int, str, List[int]]) -> Union[int, List[int]]:

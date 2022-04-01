@@ -244,6 +244,9 @@ class AcceleratorConnector:
         if plugins is not None:
             plugins = [plugins] if not isinstance(plugins, list) else plugins
 
+        if isinstance(strategy, str):
+            strategy = strategy.lower()
+
         if strategy is not None:
             self._strategy_flag = strategy
             if strategy == "ddp_cpu":
@@ -512,7 +515,7 @@ class AcceleratorConnector:
             self._parallel_devices = self.accelerator.get_parallel_devices(self._devices_flag)
 
     def _set_devices_flag_if_auto_passed(self) -> None:
-        if self._devices_flag == "auto" or not self._devices_flag:
+        if self._devices_flag == "auto" or self._devices_flag is None:
             self._devices_flag = self.accelerator.auto_device_count()
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
@@ -616,7 +619,7 @@ class AcceleratorConnector:
         hvd.init()
         if isinstance(self.accelerator, GPUAccelerator):
             # Horovod assigns one local GPU per process
-            self._parallel_devices = list(range(hvd.local_size()))
+            self._parallel_devices = [torch.device(f"cuda:{i}") for i in range(hvd.local_size())]
         else:
             self._parallel_devices = [torch.device("cpu")] * hvd.local_size()
 

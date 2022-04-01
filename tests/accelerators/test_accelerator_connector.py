@@ -446,8 +446,7 @@ def test_ipython_compatible_dp_strategy_gpu(_, monkeypatch):
 
 
 @mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
-@mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.parse_devices", return_value=8)
-def test_ipython_compatible_strategy_tpu(mock_devices, mock_tpu_acc_avail, monkeypatch):
+def test_ipython_compatible_strategy_tpu(mock_tpu_acc_avail, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     trainer = Trainer(accelerator="tpu")
     assert trainer.strategy.launcher is None or trainer.strategy.launcher.is_interactive_compatible
@@ -568,14 +567,6 @@ def test_set_devices_if_none_cpu():
 
     trainer = Trainer(accelerator="cpu", devices=3)
     assert trainer.num_devices == 3
-
-
-def test_devices_with_cpu_only_supports_integer():
-
-    with pytest.warns(UserWarning, match="The flag `devices` must be an int"):
-        trainer = Trainer(accelerator="cpu", devices="1,3")
-    assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert trainer.num_devices == 1
 
 
 @pytest.mark.parametrize("training_type", ["ddp2", "dp"])
@@ -902,8 +893,7 @@ def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock
 
 
 @mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
-@mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.parse_devices", return_value=8)
-def test_unsupported_tpu_choice(mock_devices, mock_tpu_acc_avail):
+def test_unsupported_tpu_choice(mock_tpu_acc_avail):
 
     with pytest.raises(MisconfigurationException, match=r"accelerator='tpu', precision=64\)` is not implemented"):
         Trainer(accelerator="tpu", precision=64)

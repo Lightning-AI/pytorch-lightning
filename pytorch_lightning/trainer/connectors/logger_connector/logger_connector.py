@@ -174,13 +174,13 @@ class LoggerConnector:
         self._logged_metrics.update(metrics["log"])
         return metrics["log"]
 
-    def log_eval_end_metrics(self) -> None:
+    def log_eval_end_metrics(self, metrics: _OUT_DICT) -> None:
         assert self._epoch_end_reached
         if self.trainer.sanity_checking:
             return
 
         # log all the metrics as a single dict
-        self.log_metrics(self.metrics["log"])
+        self.log_metrics(metrics)
 
     """
     Train metric updates

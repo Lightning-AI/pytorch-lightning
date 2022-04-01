@@ -79,7 +79,7 @@ class AMPTestModel(BoringModel):
 @pytest.mark.parametrize("precision", [16, "bf16"])
 @pytest.mark.parametrize("devices", [1, 2])
 def test_amp_cpus(tmpdir, strategy, precision, devices):
-    """Make sure combinations of AMP and training types work if supported."""
+    """Make sure combinations of AMP and strategies work if supported."""
     tutils.reset_seed()
 
     trainer = Trainer(
@@ -104,7 +104,7 @@ def test_amp_cpus(tmpdir, strategy, precision, devices):
 @pytest.mark.parametrize("precision", [16, "bf16"])
 @pytest.mark.parametrize("devices", [1, 2])
 def test_amp_gpus(tmpdir, strategy, precision, devices):
-    """Make sure combinations of AMP and training types work if supported."""
+    """Make sure combinations of AMP and strategies work if supported."""
     tutils.reset_seed()
 
     trainer = Trainer(
