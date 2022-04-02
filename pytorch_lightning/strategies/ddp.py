@@ -27,6 +27,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
+from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
@@ -477,3 +478,28 @@ class DDPStrategy(ParallelStrategy):
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
+
+
+import xpulib
+
+
+class XPUAccelerator(Accelerator):
+
+    @staticmethod
+    def parse_devices(devices: Any) -> Any:
+        return devices
+
+    @staticmethod
+    def get_parallel_devices(devices: Any) -> Any:
+        return [torch.device("xpu", idx) for idx in devices]
+
+    @staticmethod
+    def auto_device_count() -> int:
+        return xpulib.available_devices()
+
+    @staticmethod
+    def is_available() -> bool:
+        return xpulib.is_available()
+
+    def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+        return {}

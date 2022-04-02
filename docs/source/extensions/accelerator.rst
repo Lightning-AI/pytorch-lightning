@@ -1,10 +1,10 @@
 .. _accelerator:
 
-############
-Accelerators
-############
+###########
+Accelerator
+###########
 
-Accelerators connect a Lightning Trainer to arbitrary hardware (CPUs, GPUs, TPUs, IPUs, ...).
+The Accelerator connects a Lightning Trainer to arbitrary hardware (CPUs, GPUs, TPUs, IPUs, ...).
 Currently there are accelerators for:
 
 - CPU
@@ -22,25 +22,68 @@ Whenever the Trainer, the loops or any other component in Lightning needs to tal
 We expose Accelerators and Strategies mainly for expert users who want to extend Lightning to work with new
 hardware and distributed training or clusters.
 
-Here is how you extend an existing Accelerator:
 
-.. testcode::
-    :skipif: torch.cuda.device_count() < 2
+----------
+
+Custom Accelerators
+-------------------
+
+Here is how you create a new Accelerator.
+Let's pretend we want to integrate the fictional XPU accelerator and we have access to its hardware through a library
+``xpulib``.
+
+.. code-block:: python
+
+    import xpulib
+
+
+    class XPUAccelerator(Accelerator):
+        """Experimental support for XPU, optimized for large-scale machine learning."""
+
+        @staticmethod
+        def parse_devices(devices: Any) -> Any:
+            # Put parsing logic here how devices can be passed into the Trainer via the `devices` argument
+            return devices
+
+        @staticmethod
+        def get_parallel_devices(devices: Any) -> Any:
+            # Here, convert the device indices to actual device objects
+            return [torch.device("xpu", idx) for idx in devices]
+
+        @staticmethod
+        def auto_device_count() -> int:
+            # Return a value for auto-device selection when `Trainer(devices="auto")`
+            return xpulib.available_devices()
+
+        @staticmethod
+        def is_available() -> bool:
+            return xpulib.is_available()
+
+        def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
+            # Return optional device statistics for loggers
+            return {}
+
+
+Finally, add the XPUAccelerator to the Trainer:
+
+.. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.accelerators import GPUAccelerator
-    from pytorch_lightning.plugins import NativeMixedPrecisionPlugin
-    from pytorch_lightning.strategies import DDPStrategy
 
-    accelerator = GPUAccelerator()
-    precision_plugin = NativeMixedPrecisionPlugin(precision=16, device="cuda")
-    training_strategy = DDPStrategy(accelerator=accelerator, precision_plugin=precision_plugin)
-    trainer = Trainer(strategy=training_strategy, devices=2)
+    accelerator = XPUAccelerator()
+    trainer = Trainer(accelerator=accelerator, devices=2)
 
 
 :doc:`Learn more about Strategies and how they interact with the Accelerator <../extensions/strategy>`.
 
+
 ----------
+
+Registering Accelerators
+------------------------
+
+
+
 
 
 Accelerator API
