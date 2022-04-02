@@ -394,9 +394,6 @@ class Trainer(
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
                 Default: ``False``.
 
-            detect_anomaly: Enable anomaly detection for the autograd engine.
-                Default: ``False``.
-
             tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on (1)
                 Default: ``None``.
 
