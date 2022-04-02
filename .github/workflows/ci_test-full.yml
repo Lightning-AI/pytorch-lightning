@@ -76,7 +76,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
 
-    - uses: actions/pull-legacy-checkpoints
+    - uses: ./.github/actions/pull-legacy-checkpoints
 
     - name: Install dependencies
       run: |
