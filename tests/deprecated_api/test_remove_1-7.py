@@ -125,11 +125,6 @@ def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
         _ = trainer.progress_bar_dict
 
 
-def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
-    with pytest.deprecated_call(match="Setting `prepare_data_per_node` with the trainer flag is deprecated in v1.5.0"):
-        _ = Trainer(prepare_data_per_node=False)
-
-
 @pytest.mark.parametrize("terminate_on_nan", [True, False])
 def test_v1_7_0_trainer_terminate_on_nan(tmpdir, terminate_on_nan):
     with pytest.deprecated_call(
