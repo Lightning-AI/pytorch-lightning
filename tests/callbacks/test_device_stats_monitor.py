@@ -25,10 +25,9 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-@RunIf(min_torch="1.8")
 @RunIf(min_gpus=1)
 def test_device_stats_gpu_from_torch(tmpdir):
-    """Test GPU stats are logged using a logger with Pytorch >= 1.8.0."""
+    """Test GPU stats are logged using a logger."""
     model = BoringModel()
     device_stats = DeviceStatsMonitor()
 
@@ -36,36 +35,6 @@ def test_device_stats_gpu_from_torch(tmpdir):
         @rank_zero_only
         def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
             fields = ["allocated_bytes.all.freed", "inactive_split.all.peak", "reserved_bytes.large_pool.peak"]
-            for f in fields:
-                assert any(f in h for h in metrics.keys())
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=7,
-        log_every_n_steps=1,
-        accelerator="gpu",
-        devices=1,
-        callbacks=[device_stats],
-        logger=DebugLogger(tmpdir),
-        enable_checkpointing=False,
-        enable_progress_bar=False,
-    )
-
-    trainer.fit(model)
-
-
-@RunIf(max_torch="1.7")
-@RunIf(min_gpus=1)
-def test_device_stats_gpu_from_nvidia(tmpdir):
-    """Test GPU stats are logged using a logger with Pytorch < 1.8.0."""
-    model = BoringModel()
-    device_stats = DeviceStatsMonitor()
-
-    class DebugLogger(CSVLogger):
-        @rank_zero_only
-        def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-            fields = ["utilization.gpu", "memory.used", "memory.free", "utilization.memory"]
             for f in fields:
                 assert any(f in h for h in metrics.keys())
 

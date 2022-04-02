@@ -29,16 +29,22 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.launchers.spawn import _SpawnLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8
-from pytorch_lightning.utilities.distributed import distributed_available
+from pytorch_lightning.utilities.distributed import (
+    _get_process_group_backend_from_env,
+    distributed_available,
+    get_default_process_group_backend_for_device,
+)
 from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
-from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.distributed import (
+    init_dist_connection,
+    ReduceOp,
+    register_ddp_comm_hook,
+    sync_ddp_if_available,
+)
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-
-if _TORCH_GREATER_EQUAL_1_8:
-    from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 
 log = logging.getLogger(__name__)
 
@@ -59,6 +65,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         ddp_comm_state: Optional[object] = None,
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
+        process_group_backend: Optional[str] = None,
         **kwargs: Any,
     ):
         super().__init__(
@@ -74,6 +81,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._local_rank = 0
+        self._process_group_backend: Optional[str] = process_group_backend
 
     @property
     def num_nodes(self) -> int:
@@ -105,6 +113,10 @@ class DDPSpawnStrategy(ParallelStrategy):
     def _is_single_process_single_device(self):
         return True
 
+    @property
+    def process_group_backend(self) -> Optional[str]:
+        return self._process_group_backend
+
     def _configure_launcher(self):
         self._launcher = _SpawnLauncher(self)
 
@@ -115,13 +127,15 @@ class DDPSpawnStrategy(ParallelStrategy):
         # move the model to the correct device
         self.model_to_device()
 
+        trainer_fn = self.lightning_module.trainer.state.fn
+        if trainer_fn != TrainerFn.FITTING:
+            return
+
         if self._layer_sync:
             self.model = self._layer_sync.apply(self.model)
 
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
-        trainer_fn = self.lightning_module.trainer.state.fn
-        if trainer_fn == TrainerFn.FITTING:
-            self.configure_ddp()
+        self.configure_ddp()
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
@@ -139,8 +153,14 @@ class DDPSpawnStrategy(ParallelStrategy):
         reset_seed()
         self.set_world_ranks(process_idx)
         rank_zero_only.rank = self.global_rank
-        init_dist_connection(
-            self.cluster_environment, self.torch_distributed_backend, self.global_rank, self.world_size
+        self._process_group_backend = self._get_process_group_backend()
+        init_dist_connection(self.cluster_environment, self._process_group_backend, self.global_rank, self.world_size)
+
+    def _get_process_group_backend(self) -> str:
+        return (
+            self._process_group_backend
+            or _get_process_group_backend_from_env()
+            or get_default_process_group_backend_for_device(self.root_device)
         )
 
     def pre_configure_ddp(self):
@@ -149,20 +169,11 @@ class DDPSpawnStrategy(ParallelStrategy):
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
         # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
-        if not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get(
-            "find_unused_parameters", False
-        ):
-            # TODO: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
-            rank_zero_warn(
-                "From PyTorch 1.7.0, Lightning `manual_optimization` needs to set `find_unused_parameters=True` to"
-                " properly work with DDP. Using `find_unused_parameters=True`."
-            )
-            self._ddp_kwargs["find_unused_parameters"] = True
 
     def _register_ddp_hooks(self) -> None:
         # currently, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
-        if _TORCH_GREATER_EQUAL_1_8 and self.root_device.type == "cuda" and self._is_single_process_single_device:
+        if self.root_device.type == "cuda" and self._is_single_process_single_device:
             register_ddp_comm_hook(
                 model=self.model,
                 ddp_comm_state=self._ddp_comm_state,
@@ -183,7 +194,7 @@ class DDPSpawnStrategy(ParallelStrategy):
     def barrier(self, *args, **kwargs) -> None:
         if not distributed_available():
             return
-        if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
+        if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
         else:
             torch.distributed.barrier()
@@ -264,15 +275,34 @@ class DDPSpawnStrategy(ParallelStrategy):
         )
 
     def teardown(self) -> None:
+        log.detail(f"{self.__class__.__name__}: tearing down strategy")
         super().teardown()
+
         if isinstance(self.model, DistributedDataParallel):
+            if (
+                _TORCH_GREATER_EQUAL_1_11
+                and not self.model.static_graph
+                and self.model._get_ddp_logging_data().get("can_set_static_graph")
+            ):
+                rank_zero_info(
+                    "Your model can run with static graph optimizations. For future training runs, we suggest you"
+                    f" pass `Trainer(..., strategy={self.__class__.__name__}(static_graph=True))` to enable them."
+                )
+            # unwrap model
             self.model = self.lightning_module
 
-        if self._layer_sync:
+        if (
+            self.lightning_module.trainer is not None
+            and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+            and self._layer_sync
+        ):
+            # `self.lightning_module.trainer` can be None if teardown gets called on an exception before
+            # the trainer gets set on the LightningModule
             self.model = self._layer_sync.revert(self.model)
 
         if self.root_device.type == "cuda":
             # GPU teardown
+            log.detail(f"{self.__class__.__name__}: moving model to CPU")
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()

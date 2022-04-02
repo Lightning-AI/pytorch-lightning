@@ -115,9 +115,11 @@ Built-In Training Strategies
     DataParallelStrategy
     DeepSpeedStrategy
     HorovodStrategy
+    HPUParallelStrategy
     IPUStrategy
     ParallelStrategy
     SingleDeviceStrategy
+    SingleHPUStrategy
     SingleTPUStrategy
     Strategy
     TPUSpawnStrategy

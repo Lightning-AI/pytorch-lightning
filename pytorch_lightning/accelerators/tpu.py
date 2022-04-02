@@ -65,7 +65,10 @@ class TPUAccelerator(Accelerator):
     def is_available() -> bool:
         return _TPU_AVAILABLE
 
-    @staticmethod
-    def name() -> str:
-        """Name of the Accelerator."""
-        return "tpu"
+    @classmethod
+    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+        accelerator_registry.register(
+            "tpu",
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )

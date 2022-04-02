@@ -40,6 +40,7 @@ def test_mlflow_logger_exists(client, mlflow, tmpdir):
 
     run1 = MagicMock()
     run1.info.run_id = "run-id-1"
+    run1.info.experiment_id = "exp-id-1"
 
     run2 = MagicMock()
     run2.info.run_id = "run-id-2"
@@ -115,6 +116,27 @@ def test_mlflow_run_name_setting(client, mlflow, tmpdir):
 
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
 @mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
+def test_mlflow_run_id_setting(client, mlflow, tmpdir):
+    """Test that the run_id argument uses the provided run_id."""
+
+    run = MagicMock()
+    run.info.run_id = "run-id"
+    run.info.experiment_id = "experiment-id"
+
+    # simulate existing run
+    client.return_value.get_run = MagicMock(return_value=run)
+
+    # run_id exists uses the existing run
+    logger = MLFlowLogger("test", run_id=run.info.run_id, save_dir=tmpdir)
+    _ = logger.experiment
+    client.return_value.get_run.assert_called_with(run.info.run_id)
+    assert logger.experiment_id == run.info.experiment_id
+    assert logger.run_id == run.info.run_id
+    client.reset_mock(return_value=True)
+
+
+@mock.patch("pytorch_lightning.loggers.mlflow.mlflow")
+@mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient")
 def test_mlflow_log_dir(client, mlflow, tmpdir):
     """Test that the trainer saves checkpoints in the logger's save dir."""
 
@@ -136,7 +158,7 @@ def test_mlflow_log_dir(client, mlflow, tmpdir):
     assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
     assert trainer.checkpoint_callback.dirpath == (tmpdir / "exp-id" / "run-id" / "checkpoints")
-    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {"epoch=0-step=0.ckpt"}
+    assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {"epoch=0-step=1.ckpt"}
     assert trainer.log_dir == logger.save_dir
 
 
@@ -159,8 +181,7 @@ def test_mlflow_logger_dirs_creation(tmpdir):
         assert set(os.listdir(tmpdir / exp_id)) == {run_id, "meta.yaml"}
 
     class CustomModel(BoringModel):
-        def training_epoch_end(self, *args, **kwargs):
-            super().training_epoch_end(*args, **kwargs)
+        def on_train_epoch_end(self, *args, **kwargs):
             self.log("epoch", self.current_epoch)
 
     model = CustomModel()
@@ -177,7 +198,7 @@ def test_mlflow_logger_dirs_creation(tmpdir):
     assert "epoch" in os.listdir(tmpdir / exp_id / run_id / "metrics")
     assert set(os.listdir(tmpdir / exp_id / run_id / "params")) == model.hparams.keys()
     assert trainer.checkpoint_callback.dirpath == (tmpdir / exp_id / run_id / "checkpoints")
-    assert os.listdir(trainer.checkpoint_callback.dirpath) == [f"epoch=0-step={limit_batches - 1}.ckpt"]
+    assert os.listdir(trainer.checkpoint_callback.dirpath) == [f"epoch=0-step={limit_batches}.ckpt"]
 
 
 @mock.patch("pytorch_lightning.loggers.mlflow.mlflow")

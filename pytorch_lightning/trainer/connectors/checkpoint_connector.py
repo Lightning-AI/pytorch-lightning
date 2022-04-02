@@ -15,6 +15,7 @@
 import logging
 import os
 import re
+from copy import deepcopy
 from typing import Any, Dict, Optional
 
 import torch
@@ -167,7 +168,7 @@ class CheckpointConnector:
         model = self.trainer.lightning_module
 
         # hook: give user access to checkpoint if needed.
-        model.on_load_checkpoint(self._loaded_checkpoint)
+        self.trainer._call_lightning_module_hook("on_load_checkpoint", self._loaded_checkpoint)
 
         # TODO: remove this in v1.8.
         # call hpc specific hook
@@ -217,12 +218,39 @@ class CheckpointConnector:
         ):
             prec_plugin.load_state_dict(self._loaded_checkpoint["native_amp_scaling_state"])
 
+    def _restore_quantization_callbacks(self) -> None:
+        """Restores all the ``QuantizationAwareTraining`` callbacks from the pre-loaded checkpoint.
+
+        The implementation is similar to :meth:`restore_callbacks` but calls the QAT callback with a special hook
+        `load_before_model` instead of `load_state_dict`.
+        """
+        if not self._loaded_checkpoint:
+            return
+
+        callback_states = self._loaded_checkpoint.get("callbacks")
+
+        if callback_states is None:
+            return
+
+        from pytorch_lightning.callbacks.quantization import QuantizationAwareTraining  # avoid circular import
+
+        for callback in self.trainer.callbacks:
+            if not isinstance(callback, QuantizationAwareTraining):
+                continue
+
+            state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
+            if state:
+                # The Quantization callbacks have a special method that must be called before restoring the weights
+                # of the model
+                callback._load_before_model(self.trainer.model, deepcopy(state))
+
     def restore_callbacks(self) -> None:
         """Restores all callbacks from the pre-loaded checkpoint."""
         if not self._loaded_checkpoint:
             return
 
         self.trainer._call_callbacks_on_load_checkpoint(self._loaded_checkpoint)
+        self.trainer._call_callbacks_load_state_dict(self._loaded_checkpoint)
 
     def restore_loops(self) -> None:
         """Restores the loop progress from the pre-loaded checkpoint.
@@ -232,16 +260,20 @@ class CheckpointConnector:
         if not self._loaded_checkpoint:
             return
 
-        self.trainer.fit_loop.global_step = self._loaded_checkpoint["global_step"]
-        # set the `current_epoch` value for old checkpoints without the progress tracking state.
+        fit_loop = self.trainer.fit_loop
+        # set the `global_step` value for checkpoints before v1.6 without the progress tracking state.
         # it will be overwritten by the loop's state if it was also saved
-        self.trainer.fit_loop.epoch_progress.current.completed = self._loaded_checkpoint["epoch"]
+        optimizer_loop = fit_loop.epoch_loop.batch_loop.optimizer_loop
+        optimizer_loop.optim_progress.optimizer.step.total.completed = self._loaded_checkpoint["global_step"]
+        # set the `current_epoch` value for checkpoints before v1.6 without the progress tracking state.
+        # it will be overwritten by the loop's state if it was also saved
+        fit_loop.epoch_progress.current.completed = self._loaded_checkpoint["epoch"]
 
         assert self.trainer.state.fn is not None
         state_dict = self._loaded_checkpoint.get("loops")
         if state_dict is not None:
             if self.trainer.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
-                self.trainer.fit_loop.load_state_dict(state_dict["fit_loop"])
+                fit_loop.load_state_dict(state_dict["fit_loop"])
             elif self.trainer.state.fn == TrainerFn.VALIDATING:
                 self.trainer.validate_loop.load_state_dict(state_dict["validate_loop"])
             elif self.trainer.state.fn == TrainerFn.TESTING:
@@ -330,9 +362,9 @@ class CheckpointConnector:
         model = self.trainer.lightning_module
 
         checkpoint = {
-            # the epoch is saved for compatibility but it's not relevant for restoration
+            # the epoch and global step are saved for compatibility but they are not relevant for restoration
             "epoch": self.trainer.current_epoch,
-            "global_step": self.trainer.global_step + model.automatic_optimization,
+            "global_step": self.trainer.global_step,
             "pytorch-lightning_version": pl.__version__,
             "state_dict": self._get_lightning_module_state_dict(),
             "loops": self._get_loops_state_dict(),
@@ -340,7 +372,7 @@ class CheckpointConnector:
 
         if not weights_only:
             # dump callbacks
-            checkpoint["callbacks"] = self.trainer._call_callbacks_on_save_checkpoint(checkpoint)
+            checkpoint["callbacks"] = self.trainer._call_callbacks_state_dict()
 
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):
@@ -382,7 +414,13 @@ class CheckpointConnector:
                 checkpoint[datamodule.__class__.__qualname__] = datamodule_state_dict
 
         # on_save_checkpoint hooks
-        model.on_save_checkpoint(checkpoint)
+        if not weights_only:
+            # if state is returned from callback's on_save_checkpoint
+            # it overrides the returned state from callback's state_dict
+            # support for returning state in on_save_checkpoint
+            # will be removed in v1.8
+            self.trainer._call_callbacks_on_save_checkpoint(checkpoint)
+        self.trainer._call_lightning_module_hook("on_save_checkpoint", checkpoint)
         if datamodule is not None:
             datamodule.on_save_checkpoint(checkpoint)
 
@@ -393,15 +431,18 @@ class CheckpointConnector:
 
         return checkpoint
 
-    def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
+    def save_checkpoint(
+        self, filepath: _PATH, weights_only: bool = False, storage_options: Optional[Any] = None
+    ) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
             filepath: write-target file's path
             weights_only: saving model weights only
+            storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
         """
         _checkpoint = self.dump_checkpoint(weights_only)
-        self.trainer.strategy.save_checkpoint(_checkpoint, filepath)
+        self.trainer.strategy.save_checkpoint(_checkpoint, filepath, storage_options=storage_options)
 
     def _get_lightning_module_state_dict(self) -> Dict[str, torch.Tensor]:
         metrics = (

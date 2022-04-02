@@ -69,19 +69,6 @@ class FitLoop(Loop[None]):
         self._data_fetcher: Optional[AbstractDataFetcher] = None
 
     @property
-    def global_step(self) -> int:
-        """Returns the global step."""
-        lightning_module = self.trainer.lightning_module
-        if lightning_module is None or lightning_module.automatic_optimization:
-            return self.epoch_loop.global_step
-        return self.epoch_loop.batch_loop.manual_loop.optim_step_progress.total.completed
-
-    @global_step.setter
-    def global_step(self, value: int) -> None:
-        """Sets the global step (forwards to epoch_loop)"""
-        self.epoch_loop.global_step = value
-
-    @property
     def total_batch_idx(self) -> int:
         """Returns the current batch index (across epochs)"""
         return self.epoch_loop.total_batch_idx
@@ -144,8 +131,6 @@ class FitLoop(Loop[None]):
             self.epoch_progress.current.processed,
         )
         finished_before_on_train_end = any(v != self.epoch_progress.current.completed for v in values)
-        if finished_before_on_train_end:
-            self.epoch_progress.current.completed = self.epoch_progress.current.processed
         restarting &= finished_before_on_train_end
         Loop.restarting.fset(self, restarting)  # call the parent setter
 
@@ -177,16 +162,19 @@ class FitLoop(Loop[None]):
     def done(self) -> bool:
         """Evaluates when to leave the loop."""
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
-        stop_steps = _is_max_limit_reached(self.global_step, self.max_steps)
+        stop_steps = _is_max_limit_reached(self.epoch_loop.global_step, self.max_steps)
         # `processed` is increased before `on_train_epoch_end`, the hook where checkpoints are typically saved.
         # we use it here because the checkpoint data won't have `completed` increased yet
         stop_epochs = _is_max_limit_reached(self.epoch_progress.current.processed, self.max_epochs)
+        if stop_epochs:
+            # in case they are not equal, override so `trainer.current_epoch` has the expected value
+            self.epoch_progress.current.completed = self.epoch_progress.current.processed
 
         should_stop = False
         if self.trainer.should_stop:
             # early stopping
             met_min_epochs = self.epoch_progress.current.processed >= self.min_epochs if self.min_epochs else True
-            met_min_steps = self.global_step >= self.min_steps if self.min_steps else True
+            met_min_steps = self.epoch_loop.global_step >= self.min_steps if self.min_steps else True
             if met_min_epochs and met_min_steps:
                 should_stop = True
             else:
@@ -272,7 +260,7 @@ class FitLoop(Loop[None]):
         """Runs one whole epoch."""
         log.detail(f"{self.__class__.__name__}: advancing loop")
         assert self.trainer.train_dataloader is not None
-        dataloader = self.trainer.strategy.process_dataloader(self.trainer.train_dataloader)
+        dataloader = self.trainer.train_dataloader
         assert self._data_fetcher is not None
         self._data_fetcher.setup(
             dataloader, batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=0)
@@ -289,7 +277,7 @@ class FitLoop(Loop[None]):
         if is_overridden("training_epoch_end", model) and self._outputs:
             epoch_end_outputs = self.epoch_loop._prepare_outputs_training_epoch_end(
                 self._outputs,
-                automatic=model.automatic_optimization,
+                lightning_module=model,
                 num_optimizers=len(self.trainer.optimizers),
             )
             # run lightning module hook training_epoch_end
@@ -319,14 +307,12 @@ class FitLoop(Loop[None]):
 
         self.epoch_progress.increment_completed()
 
-        # the global step is manually decreased here due to backwards compatibility with existing loggers
-        # as they expect that the same step is used when logging epoch end metrics even when the batch loop has
-        # finished. this means the attribute does not exactly track the number of optimizer steps applied.
-        # TODO(@carmocca): deprecate and rename so users don't get confused
-        self.global_step -= 1
+        # we manually decrease here because loggers expect that the same step is used when logging epoch-end metrics
+        # even when the batch loop has finished
+        self.epoch_loop._batches_that_stepped -= 1
         # log epoch metrics
         self.trainer._logger_connector.update_train_epoch_metrics()
-        self.global_step += 1
+        self.epoch_loop._batches_that_stepped += 1
 
         # if fault tolerant is enabled and process has been notified, exit.
         self.trainer._exit_gracefully_on_signal()
@@ -339,9 +325,6 @@ class FitLoop(Loop[None]):
         self.trainer._call_callback_hooks("on_train_end")
         self.trainer._call_lightning_module_hook("on_train_end")
         self.trainer._call_strategy_hook("on_train_end")
-
-        # give accelerators a chance to finish
-        self.trainer.strategy.on_train_end()
 
     def teardown(self) -> None:
         if self._data_fetcher is not None:

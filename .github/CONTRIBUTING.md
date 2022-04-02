@@ -103,7 +103,7 @@ _**Note**, even if you do not find the solution, sending a PR with a test coveri
 
 Want to keep Lightning healthy? Love seeing those green tests? So do we! How to we keep it that way? We write tests! We value tests contribution even more than new features.
 
-Most of the tests in PyTorch Lightning train a random `BoringModel` under various trainer conditions (ddp, ddp2+amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-pw5v393p-qRaDgEk24~EjiZNBpSQFgQ)
+Most of the tests in PyTorch Lightning train a random `BoringModel` under various trainer conditions (ddp, ddp2+amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-12iz3cds1-uyyyBYJLiaL2bqVmMN7n~A)
 
 ______________________________________________________________________
 
@@ -130,108 +130,11 @@ In case you adding new dependencies, make sure that they are compatible with the
 
 ### Documentation
 
-We are using Sphinx with Napoleon extension.
-Moreover, we set Google style to follow with type convention.
-
-- [Napoleon formatting with Google style](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html)
-- [ReStructured Text (reST)](https://docs.pylonsproject.org/projects/docs-style-guide/)
-- [Paragraph-level markup](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html#paragraphs)
-
-See following short example of a sample function taking one position string and optional
-
-```python
-from typing import Optional
-
-
-def my_func(param_a: int, param_b: Optional[float] = None) -> str:
-    """Sample function.
-
-    Args:
-        param_a: first parameter
-        param_b: second parameter
-
-    Return:
-        sum of both numbers
-
-    Example::
-
-        Sample doctest example...
-        >>> my_func(1, 2)
-        3
-
-    Note:
-        If you want to add something.
-    """
-    p = param_b if param_b else 0
-    return str(param_a + p)
-```
-
-When updating the docs make sure to build them first locally and visually inspect the html files (in the browser) for
-formatting errors. In certain cases, a missing blank line or a wrong indent can lead to a broken layout.
-Run these commands
-
-```bash
-git submodule update --init --recursive
-pip install -r requirements/docs.txt
-make clean
-cd docs
-make html
-```
-
-and open `docs/build/html/index.html` in your browser.
-
-Notes:
-
-- You need to have LaTeX installed for rendering math equations. You can for example install TeXLive by doing one of the following:
-  - on Ubuntu (Linux) run `apt-get install texlive` or otherwise follow the instructions on the TeXLive website
-  - use the [RTD docker image](https://hub.docker.com/r/readthedocs/build)
-- with PL used class meta you need to use python 3.7 or higher
-
-When you send a PR the continuous integration will run tests and build the docs. You can access a preview of the html pages in the
-_Artifacts_ tab in CircleCI when you click on the task named _ci/circleci: Build-Docs_ at the bottom of the PR page.
+To learn about development of docs, check out the docs [README.md](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/README.md).
 
 ### Testing
 
-**Local:** Testing your work locally will help you speed up the process since it allows you to focus on particular (failing) test-cases.
-To setup a local development environment, install both local and test dependencies:
-
-```bash
-python -m pip install ".[dev, examples]"
-python -m pip install pre-commit
-pre-commit install
-```
-
-Additionally, for testing backward compatibility with older versions of PyTorch Lightning, you also need to download all saved version-checkpoints from the public AWS storage. Run the following script to get all saved version-checkpoints:
-
-```bash
-wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/
-unzip -o legacy/checkpoints.zip -d legacy/
-```
-
-Note: These checkpoints are generated to set baselines for maintaining backward compatibility with legacy versions of PyTorch Lightning. Details of checkpoints for back-compatibility can be found [here](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/legacy/README.md).
-
-You can run the full test-case in your terminal via this make script:
-
-```bash
-make test
-```
-
-Note: if your computer does not have multi-GPU nor TPU these tests are skipped.
-
-**GitHub Actions:** For convenience, you can also use your own GHActions building which will be triggered with each commit.
-This is useful if you do not test against all required dependency versions.
-
-**Docker:** Another option is to utilize the [pytorch lightning cuda base docker image](https://hub.docker.com/repository/docker/pytorchlightning/pytorch_lightning/tags?page=1&name=cuda). You can then run:
-
-```bash
-python -m pytest pytorch_lightning tests pl_examples -v
-```
-
-You can also run a single test as follows:
-
-```bash
-python -m pytest -v tests/trainer/test_trainer_cli.py::test_default_args
-```
+To learn about tests, check out the tests [README.md](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/tests/README.md).
 
 ### Pull Request
 

@@ -106,7 +106,7 @@ class CustomClassificationModelDP(ClassificationModel):
 def test_model_properties_fit_ckpt_path(tmpdir):
     """Test that properties like `current_epoch` and `global_step` in model and trainer are always the same."""
     model = BoringModel()
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_last=True)
     trainer_args = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -241,8 +241,7 @@ def test_correct_step_and_epoch(tmpdir):
 
     ckpt = torch.load(ckpt_path)
     assert ckpt["epoch"] == first_max_epochs
-    # TODO(@carmocca): should not need `+1`
-    assert ckpt["global_step"] == first_max_epochs * train_batches + 1
+    assert ckpt["global_step"] == first_max_epochs * train_batches
 
     max_epochs = first_max_epochs + 2
     trainer = Trainer(
@@ -255,13 +254,11 @@ def test_correct_step_and_epoch(tmpdir):
     class TestModel(BoringModel):
         def on_train_start(self) -> None:
             assert self.trainer.current_epoch == first_max_epochs
-            # TODO(@carmocca): should not need `+1`
-            assert self.trainer.global_step == first_max_epochs * train_batches + 1
+            assert self.trainer.global_step == first_max_epochs * train_batches
 
     trainer.fit(TestModel(), ckpt_path=ckpt_path)
     assert trainer.current_epoch == max_epochs
-    # TODO(@carmocca): should not need `+1`
-    assert trainer.global_step == max_epochs * train_batches + 1
+    assert trainer.global_step == max_epochs * train_batches
 
 
 def test_fit_twice(tmpdir):
@@ -400,7 +397,8 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
         limit_val_batches=5,
         callbacks=[checkpoint],
         logger=logger,
-        gpus=[0, 1],
+        accelerator="gpu",
+        devices=[0, 1],
         strategy="dp",
         default_root_dir=tmpdir,
     )
@@ -446,7 +444,8 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
         limit_val_batches=2,
         callbacks=[checkpoint],
         logger=logger,
-        gpus=[0, 1],
+        accelerator="gpu",
+        devices=[0, 1],
         strategy="ddp_spawn",
         default_root_dir=tmpdir,
     )
@@ -565,7 +564,7 @@ def test_dp_resume(tmpdir):
     model = CustomClassificationModelDP(lr=0.1)
     dm = ClassifDataModule()
 
-    trainer_options = dict(max_epochs=1, gpus=2, strategy="dp", default_root_dir=tmpdir)
+    trainer_options = dict(max_epochs=1, accelerator="gpu", devices=2, strategy="dp", default_root_dir=tmpdir)
 
     # get logger
     logger = tutils.get_default_logger(tmpdir)

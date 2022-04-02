@@ -13,7 +13,7 @@ This would make benchmarking non-reproducible as optimization has been interrupt
 With Fault Tolerant Training, when ``Trainer.fit()`` fails in the middle of an epoch during training or validation,
 Lightning will restart exactly where it failed, and everything will be restored.
 
-Fault Tolerance requires PyTorch 1.7 or higher and can be enabled as follows:
+Fault tolerance can be enabled as follows:
 
 .. code-block:: bash
 
