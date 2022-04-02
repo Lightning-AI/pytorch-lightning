@@ -1,0 +1,20 @@
+name: 'Pull Legacy Checkpoints'
+description: 'Pull legacy checkpoints for testing backward compatibility.'
+
+inputs:
+  url:
+    description: a link to the legacy checkpoints
+    required: false
+    default: 'https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip'
+
+runs:
+  using: 'composite'
+  steps:
+
+  - name: Download and unarchive checkpoints
+    run: |
+      # wget is simpler but does not work on Windows
+      python -c "from urllib.request import urlretrieve; urlretrieve(${{ inputs.url }}, 'legacy/checkpoints.zip')"
+      ls -l legacy/
+      unzip -o legacy/checkpoints.zip legacy/
+      ls -l legacy/checkpoints/
