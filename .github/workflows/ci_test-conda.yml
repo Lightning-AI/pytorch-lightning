@@ -51,7 +51,8 @@ jobs:
         # sanity check
         python requirements/check-avail-extras.py
 
-    - uses: ./.github/actions/pull-legacy-checkpoints
+    - name: Pull legacy checkpoints
+      uses: ./.github/actions/pull-legacy-checkpoints
 
     - name: Tests
       run: |

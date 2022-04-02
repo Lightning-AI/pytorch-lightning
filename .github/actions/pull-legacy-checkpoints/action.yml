@@ -13,6 +13,8 @@ runs:
 
   - name: Download and unarchive checkpoints
     run: |
+      # create a directory if it doesn't exist
+      mkdir -p legacy
       # wget is simpler but does not work on Windows
       python -c "from urllib.request import urlretrieve; urlretrieve('${{ inputs.url }}', 'legacy/checkpoints.zip')"
       ls -l legacy/
