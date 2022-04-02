@@ -170,6 +170,3 @@ Since the strategy also hosts the Accelerator and various plugins, you can custo
     precision_plugin = MyPrecisionPlugin()
     strategy = CustomDDPStrategy(accelerator=accelerator, precision_plugin=precision_plugin)
     trainer = Trainer(strategy=strategy)
-
-
-----------
