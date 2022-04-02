@@ -910,30 +910,6 @@ def test_invalid_track_grad_norm(tmpdir, track_grad_norm):
         Trainer(default_root_dir=tmpdir, track_grad_norm=track_grad_norm)
 
 
-@mock.patch("torch.Tensor.backward")
-def test_nan_params_detection(backward_mock, tmpdir):
-    class CurrentModel(BoringModel):
-        test_batch_nan = 3
-
-        def on_after_backward(self):
-            if self.global_step == self.test_batch_nan:
-                # simulate parameter that became nan
-                torch.nn.init.constant_(self.layer.bias, math.nan)
-
-    model = CurrentModel()
-
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_nan + 1))
-
-    with pytest.raises(ValueError, match=r".*Detected nan and/or inf values in `layer.bias`.*"):
-        trainer.fit(model)
-        assert trainer.global_step == model.test_batch_nan
-        assert backward_mock.call_count == model.test_batch_nan + 1
-
-    # after aborting the training loop, model still has nan-valued params
-    params = torch.cat([param.view(-1) for param in model.parameters()])
-    assert not torch.isfinite(params).all()
-
-
 def test_on_exception_hook(tmpdir):
     """Test the on_exception callback hook and the trainer interrupted flag."""
 
