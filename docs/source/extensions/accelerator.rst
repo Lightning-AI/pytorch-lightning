@@ -25,8 +25,8 @@ hardware and distributed training or clusters.
 
 ----------
 
-Custom Accelerators
--------------------
+Create a Custom Accelerator
+---------------------------
 
 Here is how you create a new Accelerator.
 Let's pretend we want to integrate the fictional XPU accelerator and we have access to its hardware through a library
@@ -42,7 +42,8 @@ Let's pretend we want to integrate the fictional XPU accelerator and we have acc
 
         @staticmethod
         def parse_devices(devices: Any) -> Any:
-            # Put parsing logic here how devices can be passed into the Trainer via the `devices` argument
+            # Put parsing logic here how devices can be passed into the Trainer
+            # via the `devices` argument
             return devices
 
         @staticmethod
@@ -74,7 +75,7 @@ Finally, add the XPUAccelerator to the Trainer:
     trainer = Trainer(accelerator=accelerator, devices=2)
 
 
-:doc:`Learn more about Strategies and how they interact with the Accelerator <../extensions/strategy>`.
+:doc:`Learn more about Strategies <../extensions/strategy>` and how they interact with the Accelerator.
 
 
 ----------
@@ -82,9 +83,29 @@ Finally, add the XPUAccelerator to the Trainer:
 Registering Accelerators
 ------------------------
 
+If you wish to switch to a custom accelerator from the CLI without code changes, you can use the :class:`~pytorch_lightning.accelerators.registry.AcceleratorRegistry` to register your new accelerator under a shorthand name like so:
+
+.. code-block:: python
+
+    from pytorch_lightning.accelerators import AcceleratorRegistry
+
+    AcceleratorRegistry.register("xpu", XPUAccelerator, description="XPU Accelerator")
+
+You can put this code at the top of your training script for example.
+Now, this is possible:
+
+.. code-block:: python
+
+    trainer = Trainer(accelerator="xpu")
+
+Or if you are using the Lightning CLI, for example:
+
+.. code-block:: bash
+
+    python train.py fit --trainer.accelerator=xpu --trainer.devices=2
 
 
-
+----------
 
 Accelerator API
 ---------------
