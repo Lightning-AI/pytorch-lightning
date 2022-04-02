@@ -18,3 +18,4 @@ runs:
       ls -l legacy/
       unzip -o legacy/checkpoints.zip legacy/
       ls -l legacy/checkpoints/
+    shell: bash
