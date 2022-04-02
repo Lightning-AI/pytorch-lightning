@@ -37,12 +37,9 @@ One to handle differences from the training routine and one to handle different 
 We expose Accelerators and Plugins mainly for expert users who want to extend Lightning to work with new
 hardware and distributed training or clusters.
 
+.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/strategies/strategies-overview.jpeg
+    :alt: Illustration of the Strategy as a composition of the Accelerator and several plugins
 
-.. image:: ../_static/images/accelerator/overview.svg
-
-
-.. warning:: The Accelerator API is in beta and subject to change.
-    For help setting up custom plugins/accelerators, please reach out to us at **support@pytorchlightning.ai**
 
 ----------
 
