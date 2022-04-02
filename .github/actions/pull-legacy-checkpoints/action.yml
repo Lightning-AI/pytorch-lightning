@@ -14,7 +14,7 @@ runs:
   - name: Download and unarchive checkpoints
     run: |
       # wget is simpler but does not work on Windows
-      python -c "from urllib.request import urlretrieve; urlretrieve(${{ inputs.url }}, 'legacy/checkpoints.zip')"
+      python -c "from urllib.request import urlretrieve; urlretrieve('${{ inputs.url }}', 'legacy/checkpoints.zip')"
       ls -l legacy/
       unzip -o legacy/checkpoints.zip legacy/
       ls -l legacy/checkpoints/
