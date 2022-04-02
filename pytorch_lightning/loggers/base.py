@@ -38,7 +38,7 @@ class LightningLoggerBase(Logger):
 
     def __init__(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
         rank_zero_deprecation(
-            "The `pytorch_lightning.loggers.base.LightningLoggerBase` is deprecated. "
-            " Please use `pytorch_lightning.loggers.logger.Logger` instead."
+            "The `pytorch_lightning.loggers.base.LightningLoggerBase` is deprecated in v1.7"
+            " and will be removed in v1.9. Please use `pytorch_lightning.loggers.logger.Logger` instead."
         )
         super().__init__(*args, **kwargs)
