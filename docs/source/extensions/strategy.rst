@@ -18,7 +18,7 @@ The Strategy in PyTorch Lightning handles the following responsibilities:
 
 A Strategy is a composition of one :doc:`Accelerator <../extensions/accelerator>`, one :doc:`Precision Plugin <../extensions/plugins>`, a :doc:`CheckpointIO <../extensions/plugins>` plugin and other optional plugins such as the :doc:`ClusterEnvironment <../extensions/plugins>`.
 
-.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/strategies/strategies-overview.jpeg
+.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/strategies/overview.jpeg
     :alt: Illustration of the Strategy as a composition of the Accelerator and several plugins
 
 We expose Strategies mainly for expert users that want to extend Lightning for new hardware support or new distributed backends (e.g. a backend not yet supported by `PyTorch <https://pytorch.org/docs/stable/distributed.html#backends>`_ itself).
@@ -120,43 +120,6 @@ The below table lists all relevant strategies available Lightning with their cor
      - Strategy for training on a single TPU device.
 
 
-ParallelStrategy
-SingleDeviceStrategy
-Strategy
-
-
-
-
-****************************
-Built-In Training Strategies
-****************************
-
-.. currentmodule:: pytorch_lightning.strategies
-
-.. autosummary::
-    :nosignatures:
-    :template: classtemplate.rst
-
-    BaguaStrategy
-    DDP2Strategy
-    DDPFullyShardedStrategy
-    DDPShardedStrategy
-    DDPSpawnShardedStrategy
-    DDPSpawnStrategy
-    DDPStrategy
-    DataParallelStrategy
-    DeepSpeedStrategy
-    HorovodStrategy
-    HPUParallelStrategy
-    IPUStrategy
-    ParallelStrategy
-    SingleDeviceStrategy
-    SingleHPUStrategy
-    SingleTPUStrategy
-    Strategy
-    TPUSpawnStrategy
-
-
 ----------
 
 
@@ -164,7 +127,13 @@ Built-In Training Strategies
 Create a Custom Strategy
 ************************
 
-Expert users may choose to extend an existing strategy by overriding its methods.
+Every strategy in Lightning is a subclass of one of the main base classes: :class:`~pytorch_lightning.strategies.Strategy`, :class:`~pytorch_lightning.strategies.SingleDeviceStrategy` or :class:`~pytorch_lightning.strategies.ParallelStrategy`.
+
+.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/strategies/hierarchy.jpeg
+    :alt: Strategy base classes
+
+As an expert user, you may choose to extend either an existing built-in Strategy or create a completely new one by
+subclassing the base classes.
 
 .. code-block:: python
 
@@ -178,23 +147,29 @@ Expert users may choose to extend an existing strategy by overriding its methods
                 device_ids=...,
             )
 
-or by subclassing the base class :class:`~pytorch_lightning.strategies.Strategy` to create new ones. These custom strategies
-can then be passed into the ``Trainer`` directly via the ``strategy`` parameter.
+        def setup(self, trainer):
+            # you can access the accelerator and plugins directly
+            self.accelerator.setup()
+            self.precision_plugin.connect(...)
+
+
+The custom strategy can then be passed into the ``Trainer`` directly via the ``strategy`` parameter.
 
 .. code-block:: python
 
-    # custom plugins
+    # custom strategy
     trainer = Trainer(strategy=CustomDDPStrategy())
 
-    # fully custom accelerator and plugins
+
+Since the strategy also hosts the Accelerator and various plugins, you can customize all of them to work together as you like:
+
+.. code-block:: python
+
+    # custom strategy, with new accelerator and plugins
     accelerator = MyAccelerator()
     precision_plugin = MyPrecisionPlugin()
-    training_strategy = CustomDDPStrategy(accelerator=accelerator, precision_plugin=precision_plugin)
-    trainer = Trainer(strategy=training_strategy)
+    strategy = CustomDDPStrategy(accelerator=accelerator, precision_plugin=precision_plugin)
+    trainer = Trainer(strategy=strategy)
 
-
-The complete list of built-in strategies is listed below.
 
 ----------
-
-

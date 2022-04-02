@@ -3,22 +3,26 @@
 ############
 Accelerators
 ############
-Accelerators connect a Lightning Trainer to arbitrary accelerators (CPUs, GPUs, TPUs, IPUs). Accelerators
-also manage distributed communication through :ref:`Plugins` (like DP, DDP, HPC cluster) and
-can also be configured to run on arbitrary clusters or to link up to arbitrary
-computational strategies like 16-bit precision via AMP and Apex.
 
-An Accelerator is meant to deal with one type of hardware.
+Accelerators connect a Lightning Trainer to arbitrary hardware (CPUs, GPUs, TPUs, IPUs, ...).
 Currently there are accelerators for:
 
 - CPU
-- GPU
-- TPU
-- IPU
-- HPU
+- :doc:`GPU <../accelerators/gpu>`
+- :doc:`TPU <../accelerators/tpu>`
+- :doc:`IPU <../accelerators/ipu>`
+- :doc:`HPU <../accelerators/hpu>`
 
-Each Accelerator gets two plugins upon initialization:
-One to handle differences from the training routine and one to handle different precisions.
+The Accelerator is part of the Strategy which manages communication across multiple devices (distributed communication).
+Whenever the Trainer, the loops or any other component in Lightning needs to talk to hardware, it calls into the Strategy and the Strategy calls into the Accelerator.
+
+.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/strategies/overview.jpeg
+    :alt: Illustration of the Strategy as a composition of the Accelerator and several plugins
+
+We expose Accelerators and Strategies mainly for expert users who want to extend Lightning to work with new
+hardware and distributed training or clusters.
+
+Here is how you extend an existing Accelerator:
 
 .. testcode::
     :skipif: torch.cuda.device_count() < 2
@@ -34,12 +38,7 @@ One to handle differences from the training routine and one to handle different 
     trainer = Trainer(strategy=training_strategy, devices=2)
 
 
-We expose Accelerators and Plugins mainly for expert users who want to extend Lightning to work with new
-hardware and distributed training or clusters.
-
-.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/strategies/strategies-overview.jpeg
-    :alt: Illustration of the Strategy as a composition of the Accelerator and several plugins
-
+:doc:`Learn more about Strategies and how they interact with the Accelerator <../extensions/strategy>`.
 
 ----------
 
