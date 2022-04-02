@@ -76,14 +76,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
 
-    - name: Pull checkpoints from S3
-      working-directory: ./legacy
-      run: |
-        # wget is simpler but does not work on Windows
-        python -c "from urllib.request import urlretrieve ; urlretrieve('https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip', 'checkpoints.zip')"
-        ls -l .
-        unzip -o checkpoints.zip
-        ls -l checkpoints/
+    - uses: actions/pull-legacy-checkpoints
 
     - name: Install dependencies
       run: |
