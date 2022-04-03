@@ -37,7 +37,7 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.logger import _name, _version
-from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import _METRIC, _PATH, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -147,7 +147,7 @@ class ModelCheckpoint(Callback):
         then you should create multiple ``ModelCheckpoint`` callbacks.
 
         If the checkpoint's ``dirpath`` changed from what it was before while resuming the training,
-        only ``last_model_path`` and ``best_model_path`` will be reloaded and a warning will be issued.
+        only ``best_model_path`` will be reloaded and a warning will be issued.
 
     Raises:
         MisconfigurationException:
@@ -337,13 +337,14 @@ class ModelCheckpoint(Callback):
             self.kth_best_model_path = state_dict.get("kth_best_model_path", self.kth_best_model_path)
             self.kth_value = state_dict.get("kth_value", self.kth_value)
             self.best_k_models = state_dict.get("best_k_models", self.best_k_models)
+            self.last_model_path = state_dict.get("last_model_path", self.last_model_path)
         else:
             warnings.warn(
                 f"The dirpath has changed from {dirpath_from_ckpt!r} to {self.dirpath!r},"
-                " therefore `best_model_score`, `kth_best_model_path`, `kth_value` and `best_k_models`"
-                " won't be reloaded. Only `last_model_path` and `best_model_path` will be reloaded."
+                " therefore `best_model_score`, `kth_best_model_path`, `kth_value`, `last_model_path` and"
+                " `best_k_models` won't be reloaded. Only `best_model_path` will be reloaded."
             )
-        self.last_model_path = state_dict.get("last_model_path", self.last_model_path)
+
         self.best_model_path = state_dict["best_model_path"]
 
     def save_checkpoint(self, trainer: "pl.Trainer") -> None:  # pragma: no-cover
@@ -352,7 +353,10 @@ class ModelCheckpoint(Callback):
         This method runs on all ranks. It is the responsibility of `trainer.save_checkpoint` to correctly handle the
         behaviour in distributed training, i.e., saving only on rank 0 for data parallel use cases.
         """
-        # TODO: unused method. deprecate it
+        rank_zero_deprecation(
+            f"`{self.__class__.__name__}.save_checkpoint()` was deprecated in v1.6 and will be removed in v1.8."
+            " Instead, you can use `trainer.save_checkpoint()` to manually save a checkpoint."
+        )
         monitor_candidates = self._monitor_candidates(trainer)
         self._save_topk_checkpoint(trainer, monitor_candidates)
         self._save_last_checkpoint(trainer, monitor_candidates)

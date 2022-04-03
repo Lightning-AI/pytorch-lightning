@@ -217,7 +217,7 @@ as well as custom accelerator instances.
     # CPU accelerator
     trainer = Trainer(accelerator="cpu")
 
-    # Training with GPU Accelerator using 2 gpus
+    # Training with GPU Accelerator using 2 GPUs
     trainer = Trainer(devices=2, accelerator="gpu")
 
     # Training with TPU Accelerator using 8 tpu cores
@@ -241,6 +241,26 @@ Example::
         ...
 
     Trainer(accelerator=MyOwnAcc())
+
+.. note::
+
+    If the ``devices`` flag is not defined, it will assume ``devices`` to be ``"auto"`` and fetch the ``auto_device_count``
+    from the accelerator.
+
+    .. code-block:: python
+
+        # This is part of the built-in `GPUAccelerator`
+        class GPUAccelerator(Accelerator):
+            """Accelerator for GPU devices."""
+
+            @staticmethod
+            def auto_device_count() -> int:
+                """Get the devices when set to auto."""
+                return torch.cuda.device_count()
+
+
+        # Training with GPU Accelerator using total number of gpus available on the system
+        Trainer(accelerator="gpu")
 
 .. warning:: Passing training strategies (e.g., ``"ddp"``) to ``accelerator`` has been deprecated in v1.5.0
     and will be removed in v1.7.0. Please use the ``strategy`` argument instead.
@@ -350,16 +370,16 @@ auto_select_gpus
 
 |
 
-If enabled and `gpus` is an integer, pick available gpus automatically.
+If enabled and ``devices`` is an integer, pick available GPUs automatically.
 This is especially useful when GPUs are configured to be in "exclusive mode",
 such that only one process at a time can access them.
 
 Example::
 
-    # no auto selection (picks first 2 gpus on system, may fail if other process is occupying)
+    # no auto selection (picks first 2 GPUs on system, may fail if other process is occupying)
     trainer = Trainer(accelerator="gpu", devices=2, auto_select_gpus=False)
 
-    # enable auto selection (will find two available gpus on system)
+    # enable auto selection (will find two available GPUs on system)
     trainer = Trainer(accelerator="gpu", devices=2, auto_select_gpus=True)
 
     # specifies all GPUs regardless of its availability
@@ -580,6 +600,26 @@ based on the accelerator type (``"cpu", "gpu", "tpu", "ipu", "auto"``).
     # Training with IPU Accelerator using 4 ipus
     trainer = Trainer(devices="auto", accelerator="ipu")
 
+.. note::
+
+    If the ``devices`` flag is not defined, it will assume ``devices`` to be ``"auto"`` and fetch the ``auto_device_count``
+    from the accelerator.
+
+    .. code-block:: python
+
+        # This is part of the built-in `GPUAccelerator`
+        class GPUAccelerator(Accelerator):
+            """Accelerator for GPU devices."""
+
+            @staticmethod
+            def auto_device_count() -> int:
+                """Get the devices when set to auto."""
+                return torch.cuda.device_count()
+
+
+        # Training with GPU Accelerator using total number of gpus available on the system
+        Trainer(accelerator="gpu")
+
 enable_checkpointing
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -695,9 +735,6 @@ See Also:
 
 gpus
 ^^^^
-
-.. warning:: Setting `Trainer(gpus=x)` is deprecated in v1.6 and will be removed"
-    in v2.0. Please use `Trainer(accelerator='gpu', devices=x)` instead.
 
 .. raw:: html
 
@@ -1080,8 +1117,8 @@ overfit_batches
 
 |
 
-Uses this much data of the training set. If nonzero, will turn off validation.
-If the training dataloaders have `shuffle=True`, Lightning will automatically disable it.
+Uses this much data of the training & validation set.
+If the training & validation dataloaders have ``shuffle=True``, Lightning will automatically disable it.
 
 Useful for quickly debugging or trying to overfit on purpose.
 
@@ -1090,7 +1127,7 @@ Useful for quickly debugging or trying to overfit on purpose.
     # default used by the Trainer
     trainer = Trainer(overfit_batches=0.0)
 
-    # use only 1% of the train set
+    # use only 1% of the train & val set
     trainer = Trainer(overfit_batches=0.01)
 
     # overfit on 10 of the same batches
@@ -1134,39 +1171,6 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
     trainer = Trainer(plugins=[MyCluster()], ...)
 
-
-prepare_data_per_node
-^^^^^^^^^^^^^^^^^^^^^
-.. warning:: ``prepare_data_per_node`` has been deprecated in v1.5 and will be removed in v1.7.
-    Please set its value inside ``LightningDataModule`` and/or ``LightningModule`` directly described
-    in the following code:
-
-    .. testcode::
-
-        class LitDataModule(LightningDataModule):
-            def __init__(self):
-                super().__init__()
-                self.prepare_data_per_node = True
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/prepare_data_per_node.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/prepare_data_per_node.mp4"></video>
-
-|
-
-If set to ``True`` will call ``prepare_data()`` on LOCAL_RANK=0 for every node.
-If set to ``False`` will only call from NODE_RANK=0, LOCAL_RANK=0.
-
-.. testcode::
-
-    # default
-    Trainer(prepare_data_per_node=True)
-
-    # use only NODE_RANK=0, LOCAL_RANK=0
-    Trainer(prepare_data_per_node=False)
-
 precision
 ^^^^^^^^^
 
@@ -1189,7 +1193,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
     trainer = Trainer(precision=32)
 
     # 16-bit precision
-    trainer = Trainer(precision=16, gpus=1)  # works only on CUDA
+    trainer = Trainer(precision=16, accelerator="gpu", devices=1)  # works only on CUDA
 
     # bfloat16 precision
     trainer = Trainer(precision="bf16")
@@ -1214,7 +1218,7 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
         :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
         # turn on 16-bit
-        trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16, gpus=1)
+        trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16, accelerator="gpu", devices=1)
 
 
 process_position
@@ -1268,37 +1272,6 @@ See the :doc:`profiler documentation <../advanced/profiler>`. for more details.
 
     # advanced profiler for function-level stats, equivalent to `profiler=AdvancedProfiler()`
     trainer = Trainer(profiler="advanced")
-
-progress_bar_refresh_rate
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. warning:: ``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
-    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``refresh_rate``
-    directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
-    pass ``enable_progress_bar = False`` to the Trainer.
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/progress_bar%E2%80%A8_refresh_rate.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/progress_bar_refresh_rate.mp4"></video>
-
-|
-
-How often to refresh progress bar (in steps).
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(progress_bar_refresh_rate=1)
-
-    # disable progress bar
-    trainer = Trainer(progress_bar_refresh_rate=0)
-
-Note:
-    - In Google Colab notebooks, faster refresh rates (lower number) is known to crash them because of their screen refresh rates.
-      Lightning will set it to 20 in these environments if the user does not provide a value.
-    - This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
 enable_progress_bar
 ^^^^^^^^^^^^^^^^^^^
@@ -1408,17 +1381,17 @@ checkpoint, training will start from the beginning of the next epoch.
 strategy
 ^^^^^^^^
 
-Supports passing different training strategies with aliases (ddp, ddp_spawn, etc) as well as custom training type plugins.
+Supports passing different training strategies with aliases (ddp, ddp_spawn, etc) as well as custom strategies.
 
 .. code-block:: python
 
-    # Training with the DistributedDataParallel strategy on 4 gpus
+    # Training with the DistributedDataParallel strategy on 4 GPUs
     trainer = Trainer(strategy="ddp", accelerator="gpu", devices=4)
 
     # Training with the DDP Spawn strategy using 4 cpu processes
     trainer = Trainer(strategy="ddp_spawn", accelerator="cpu", devices=4)
 
-.. note:: Additionally, you can pass your custom training type plugins to the ``strategy`` argument.
+.. note:: Additionally, you can pass your custom strategy to the ``strategy`` argument.
 
 .. code-block:: python
 

@@ -58,6 +58,11 @@ def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmpdir):
             sampler = NonSequentialSampler(dataset)
             return torch.utils.data.DataLoader(dataset, sampler=sampler)
 
+        def val_dataloader(self):
+            dataset = RandomDataset(32, 64)
+            sampler = NonSequentialSampler(dataset)
+            return torch.utils.data.DataLoader(dataset, sampler=sampler)
+
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, overfit_batches=2)
 
@@ -65,6 +70,7 @@ def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmpdir):
         trainer.fit(model)
 
     assert isinstance(trainer.train_dataloader.loaders.sampler, SequentialSampler)
+    assert isinstance(trainer.val_dataloaders[0].sampler, SequentialSampler)
 
 
 @pytest.mark.parametrize(
@@ -82,7 +88,11 @@ def test_overfit_batch_limits_eval(stage, mode, overfit_batches):
 
     loader_num_batches, dataloaders = trainer._data_connector._reset_eval_dataloader(stage, model=model)
     if stage == RunningStage.VALIDATING:
-        assert loader_num_batches[0] == 0
+        assert (
+            loader_num_batches[0] == overfit_batches
+            if isinstance(overfit_batches, int)
+            else len(dm.val_dataloader()) * overfit_batches
+        )
     else:
         assert loader_num_batches[0] == len(eval_loader)
         assert isinstance(dataloaders[0].sampler, SequentialSampler)

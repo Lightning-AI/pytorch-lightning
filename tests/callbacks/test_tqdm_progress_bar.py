@@ -71,33 +71,25 @@ class MockTqdm(Tqdm):
 
 
 @pytest.mark.parametrize(
-    "kwargs",
+    "pbar",
     [
         # won't print but is still set
-        {"callbacks": TQDMProgressBar(refresh_rate=0)},
-        {"callbacks": TQDMProgressBar()},
-        {"progress_bar_refresh_rate": 1},
+        TQDMProgressBar(refresh_rate=0),
+        TQDMProgressBar(),
     ],
 )
-def test_tqdm_progress_bar_on(tmpdir, kwargs):
+def test_tqdm_progress_bar_on(tmpdir, pbar):
     """Test different ways the progress bar can be turned on."""
-    if "progress_bar_refresh_rate" in kwargs:
-        with pytest.deprecated_call(match=r"progress_bar_refresh_rate=.*` is deprecated"):
-            trainer = Trainer(default_root_dir=tmpdir, **kwargs)
-    else:
-        trainer = Trainer(default_root_dir=tmpdir, **kwargs)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=pbar)
 
     progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
     assert len(progress_bars) == 1
     assert progress_bars[0] is trainer.progress_bar_callback
 
 
-@pytest.mark.parametrize("kwargs", [{"enable_progress_bar": False}, {"progress_bar_refresh_rate": 0}])
-def test_tqdm_progress_bar_off(tmpdir, kwargs):
-    """Test different ways the progress bar can be turned off."""
-    if "progress_bar_refresh_rate" in kwargs:
-        pytest.deprecated_call(match=r"progress_bar_refresh_rate=.*` is deprecated").__enter__()
-    trainer = Trainer(default_root_dir=tmpdir, **kwargs)
+def test_tqdm_progress_bar_off(tmpdir):
+    """Test turning the progress bar off."""
+    trainer = Trainer(default_root_dir=tmpdir, enable_progress_bar=False)
     progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
     assert not len(progress_bars)
 
@@ -263,15 +255,13 @@ def test_tqdm_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
             self.test_batches_seen += 1
 
     pbar = CurrentProgressBar(refresh_rate=refresh_rate)
-    with pytest.deprecated_call(match=r"progress_bar_refresh_rate=101\)` is deprecated"):
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            callbacks=[pbar],
-            progress_bar_refresh_rate=101,  # should not matter if custom callback provided
-            limit_train_batches=1.0,
-            num_sanity_val_steps=2,
-            max_epochs=3,
-        )
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[pbar],
+        limit_train_batches=1.0,
+        num_sanity_val_steps=2,
+        max_epochs=3,
+    )
     assert trainer.progress_bar_callback.refresh_rate == refresh_rate
 
     trainer.fit(model)
@@ -348,10 +338,6 @@ def test_tqdm_progress_bar_value_on_colab(tmpdir):
     assert trainer.progress_bar_callback.refresh_rate == 20
 
     trainer = Trainer(default_root_dir=tmpdir, callbacks=TQDMProgressBar(refresh_rate=19))
-    assert trainer.progress_bar_callback.refresh_rate == 19
-
-    with pytest.deprecated_call(match=r"progress_bar_refresh_rate=19\)` is deprecated"):
-        trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=19)
     assert trainer.progress_bar_callback.refresh_rate == 19
 
 
@@ -582,7 +568,8 @@ def test_progress_bar_max_val_check_interval(
         max_epochs=1,
         enable_model_summary=False,
         val_check_interval=val_check_interval,
-        gpus=world_size,
+        accelerator="gpu",
+        devices=world_size,
         strategy="ddp",
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
@@ -593,12 +580,14 @@ def test_progress_bar_max_val_check_interval(
     val_checks_per_epoch = total_train_batches / val_check_batch
     total_val_batches = total_val_samples // (val_batch_size * world_size)
     pbar_callback = trainer.progress_bar_callback
-    assert pbar_callback.val_progress_bar.n == total_val_batches
-    assert pbar_callback.val_progress_bar.total == total_val_batches
-    total_val_batches = total_val_batches * val_checks_per_epoch
-    assert pbar_callback.main_progress_bar.n == total_train_batches + total_val_batches
-    assert pbar_callback.main_progress_bar.total == total_train_batches + total_val_batches
-    assert pbar_callback.is_enabled == trainer.is_global_zero
+
+    if trainer.is_global_zero:
+        assert pbar_callback.val_progress_bar.n == total_val_batches
+        assert pbar_callback.val_progress_bar.total == total_val_batches
+        total_val_batches = total_val_batches * val_checks_per_epoch
+        assert pbar_callback.main_progress_bar.n == total_train_batches + total_val_batches
+        assert pbar_callback.main_progress_bar.total == total_train_batches + total_val_batches
+        assert pbar_callback.is_enabled
 
 
 def test_get_progress_bar_metrics(tmpdir: str):

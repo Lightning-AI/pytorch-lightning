@@ -42,12 +42,16 @@ from pytorch_lightning.utilities.distributed import (
     get_default_process_group_backend_for_device,
 )
 from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import (
+    init_dist_connection,
+    ReduceOp,
+    register_ddp_comm_hook,
+    sync_ddp_if_available,
+)
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
 from pytorch_lightning.utilities.imports import (
     _FAIRSCALE_AVAILABLE,
     _IS_WINDOWS,
-    _TORCH_GREATER_EQUAL_1_8,
     _TORCH_GREATER_EQUAL_1_9,
     _TORCH_GREATER_EQUAL_1_10,
     _TORCH_GREATER_EQUAL_1_11,
@@ -58,8 +62,6 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
-if _TORCH_GREATER_EQUAL_1_8:
-    from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 if _TORCH_GREATER_EQUAL_1_10:
     from torch.distributed.algorithms.model_averaging.averagers import ModelAverager
 
@@ -213,9 +215,7 @@ class DDPStrategy(ParallelStrategy):
         log.detail(f"{self.__class__.__name__}: registering ddp hooks")
         # In 1.8, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # Since 1.9, DDP communication hooks can work on all backends.
-        if _TORCH_GREATER_EQUAL_1_9 or (
-            _TORCH_GREATER_EQUAL_1_8 and self.root_device.type == "cuda" and self._is_single_process_single_device
-        ):
+        if _TORCH_GREATER_EQUAL_1_9 or (self.root_device.type == "cuda" and self._is_single_process_single_device):
             register_ddp_comm_hook(
                 model=self.model,
                 ddp_comm_state=self._ddp_comm_state,
@@ -280,11 +280,8 @@ class DDPStrategy(ParallelStrategy):
         if not _TORCH_GREATER_EQUAL_1_10 or self._model_averager is None:
             return optimizer_output
 
-        for group in optimizer.param_groups:
-            for param in group["params"]:
-                if param.grad is None:
-                    continue
-                self._model_averager.average_parameters(iter(param))
+        params = [param for group in optimizer.param_groups for param in group["params"] if param.grad is not None]
+        self._model_averager.average_parameters(iter(params))
 
         return optimizer_output
 
@@ -302,7 +299,7 @@ class DDPStrategy(ParallelStrategy):
     def barrier(self, *args, **kwargs) -> None:
         if not distributed_available():
             return
-        if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
+        if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
         else:
             torch.distributed.barrier()

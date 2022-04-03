@@ -23,7 +23,7 @@ import torch.distributed
 
 from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
-from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.imports import _IS_WINDOWS
 from tests import _PATH_DATASETS
 
 
@@ -114,10 +114,7 @@ def teardown_process_group():
 def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
     yield
-    if _TORCH_GREATER_EQUAL_1_8:
-        torch.use_deterministic_algorithms(False)
-    else:
-        torch.set_deterministic(False)
+    torch.use_deterministic_algorithms(False)
 
 
 @pytest.fixture
