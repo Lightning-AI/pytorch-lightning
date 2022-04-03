@@ -271,7 +271,7 @@ def add_argparse_args(
             default=arg_default,
             type=use_type,
             help=args_help.get(arg),
-            required=arg_default == inspect._empty,
+            required=(arg_default == inspect._empty),
             **arg_kwargs,
         )
 
