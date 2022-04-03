@@ -199,7 +199,7 @@ def test_add_argparse_args(cls, name):
     fake_argv = ["--main_arg=abc"]
     if cls is AddArgparseArgsExampleClassNoDefault:
         with pytest.raises(SystemExit):
-            args = parser.parse_args(fake_argv)
+            parser.parse_args(fake_argv)
     else:
         args = parser.parse_args(fake_argv)
         assert args.main_arg == "abc"
