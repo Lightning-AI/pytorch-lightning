@@ -736,6 +736,9 @@ See Also:
 gpus
 ^^^^
 
+.. warning:: ``gpus=x`` has been deprecated in v1.7 and will be removed in v2.0.
+    Please use ``accelerator='gpu'`` and ``devices=x`` instead.
+
 .. raw:: html
 
     <video width="50%" max-width="400px" controls
@@ -1054,6 +1057,9 @@ Number of GPU nodes for distributed training.
 
 num_processes
 ^^^^^^^^^^^^^
+
+.. warning:: ``num_processes=x`` has been deprecated in v1.7 and will be removed in v2.0.
+    Please use ``accelerator='cpu'`` and ``devices=x`` instead.
 
 .. raw:: html
 
@@ -1456,6 +1462,9 @@ track_grad_norm
 
 tpu_cores
 ^^^^^^^^^
+
+.. warning:: ``tpu_cores=x`` has been deprecated in v1.7 and will be removed in v2.0.
+    Please use ``accelerator='tpu'`` and ``devices=x`` instead.
 
 .. raw:: html
 

@@ -432,6 +432,9 @@ Configure the devices to run on. Can be of type:
 gpus
 ====
 
+.. warning:: ``gpus=x`` has been deprecated in v1.7 and will be removed in v2.0.
+    Please use ``accelerator='gpu'`` and ``devices=x`` instead.
+
 Shorthand for setting ``devices=X`` and ``accelerator="gpu"``.
 
 .. code-block:: python
@@ -445,6 +448,9 @@ Shorthand for setting ``devices=X`` and ``accelerator="gpu"``.
 
 tpu_cores
 =========
+
+.. warning:: ``tpu_cores=x`` has been deprecated in v1.7 and will be removed in v2.0.
+    Please use ``accelerator='tpu'`` and ``devices=x`` instead.
 
 Shorthand for ``devices=X`` and ``accelerator="tpu"``.
 
