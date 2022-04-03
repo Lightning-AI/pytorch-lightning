@@ -45,6 +45,7 @@ from pytorch_lightning.strategies import (
     ParallelStrategy,
     SingleDeviceStrategy,
 )
+from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.runif import RunIf
 
@@ -949,7 +950,16 @@ def test_parallel_devices_in_strategy_confilict_with_accelerator(parallel_device
         Trainer(strategy=DDPStrategy(parallel_devices=parallel_devices), accelerator=accelerator)
 
 
-@pytest.mark.parametrize("deterministic", [True, False, "warn"])
+@pytest.mark.parametrize(
+    "deterministic",
+    [
+        True,
+        False,
+        pytest.param(
+            "warn", marks=pytest.mark.skipif(not _TORCH_GREATER_EQUAL_1_11, reason="torch>=1.11.0 is required")
+        ),
+    ],
+)
 def test_deterministic_init(deterministic):
     trainer = Trainer(accelerator="auto", deterministic=deterministic)
     assert trainer._accelerator_connector.deterministic == deterministic
