@@ -45,12 +45,6 @@ from tests.loggers.test_base import CustomLogger
 from tests.plugins.environments.test_lsf_environment import _make_rankfile
 
 
-def test_v1_7_0_deprecated_lightning_module_summarize(tmpdir):
-    model = BoringModel()
-    with pytest.deprecated_call(match="The `LightningModule.summarize` method is deprecated in v1.5"):
-        model.summarize(max_depth=1)
-
-
 def test_v1_7_0_moved_get_memory_profile_and_get_gpu_memory_map(tmpdir):
     _soft_unimport_module("pytorch_lightning.core.memory")
     with pytest.deprecated_call(match="to `pytorch_lightning.utilities.memory` since v1.5"):
@@ -117,11 +111,6 @@ def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
 
     with pytest.deprecated_call(match=r"`trainer.progress_bar_dict` is deprecated in v1.5"):
         _ = trainer.progress_bar_dict
-
-
-def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
-    with pytest.deprecated_call(match="Setting `prepare_data_per_node` with the trainer flag is deprecated in v1.5.0"):
-        _ = Trainer(prepare_data_per_node=False)
 
 
 @pytest.mark.parametrize("terminate_on_nan", [True, False])
