@@ -166,13 +166,14 @@ class LightningLite(ABC):
             The tuple of the wrapped model and list of optimizers, in the same order they were passed in.
         """
         self._validate_setup(model, optimizers)
+        original_model = model
 
         if move_to_device:
             model = self._move_model_to_device(model=model, optimizers=list(optimizers))
 
         # Let accelerator/plugin wrap and connect the models and optimizers
         model, optimizers = self._strategy._setup_model_and_optimizers(model, list(optimizers))
-        model = _LiteModule(model, self._precision_plugin)
+        model = _LiteModule(model, self._precision_plugin, original_module=original_model)
         optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
         self._models_setup += 1
         if optimizers:
