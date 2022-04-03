@@ -40,14 +40,16 @@ def test_lightning_logger_base_deprecation_warning():
             pass
 
     with pytest.deprecated_call(
-        match="The `pytorch_lightning.loggers.base.LightningLoggerBase` is deprecated in v1.7 and will be removed in v1.9."
+        match="The `pytorch_lightning.loggers.base.LightningLoggerBase` is deprecated in v1.7"
+        " and will be removed in v1.9."
     ):
         CustomDeprecatedLogger()
 
 
 def test_lightning_logger_base_rank_zero_experiment_deprecation_warning():
     with pytest.deprecated_call(
-        match="The `pytorch_lightning.loggers.base.rank_zero_experiment` is deprecated in v1.7 and will be removed in v1.9."
+        match="The `pytorch_lightning.loggers.base.rank_zero_experiment` is deprecated in v1.7"
+        " and will be removed in v1.9."
     ):
         logger_base.rank_zero_experiment(None)
 
