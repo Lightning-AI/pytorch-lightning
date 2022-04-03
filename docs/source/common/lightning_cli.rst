@@ -815,7 +815,7 @@ With the encoder-decoder example model above a possible YAML that uses variable 
 
 .. note::
 
-    OmegaConf's interpolation only works within a single config file. Trying to interpolate accross command line
+    OmegaConf's interpolation only works within a single config file. Trying to interpolate across command line
     arguments or using it in `parser.set_defaults` will not work. More up to date information about the interpolation
     support can be found `here <https://jsonargparse.readthedocs.io/en/stable/#variable-interpolation>__`.
 
