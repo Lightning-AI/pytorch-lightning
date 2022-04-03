@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Callable
+
 import pytorch_lightning.loggers.logger as logger
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
@@ -83,4 +84,3 @@ def merge_dicts(*args, **kwargs) -> None:  # type: ignore[no-untyped-def]
         " and will be removed in v1.9. Please use `pytorch_lightning.loggers.logger.merge_dicts` instead."
     )
     return logger.merge_dicts(*args, **kwargs)
-
