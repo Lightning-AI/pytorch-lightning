@@ -11,11 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.loggers.logger import Logger
+from typing import Callable
+import pytorch_lightning.loggers.logger as logger
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
-class LightningLoggerBase(Logger):
+def rank_zero_experiment(*args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+    rank_zero_deprecation(
+        "The `pytorch_lightning.loggers.base.rank_zero_experiment` is deprecated in v1.7"
+        " and will be removed in v1.9. Please use `pytorch_lightning.loggers.logger.rank_zero_experiment` instead."
+    )
+    return logger.rank_zero_experiment(*args, **kwargs)
+
+
+class LightningLoggerBase(logger.Logger):
     """Base class for experiment loggers.
 
     Args:
@@ -42,3 +51,36 @@ class LightningLoggerBase(Logger):
             " and will be removed in v1.9. Please use `pytorch_lightning.loggers.logger.Logger` instead."
         )
         super().__init__(*args, **kwargs)
+
+
+class LoggerCollection(logger.LoggerCollection):
+    def __init__(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+        super().__init__(*args, **kwargs)
+
+
+class DummyExperiment(logger.DummyExperiment):
+    def __init__(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+        rank_zero_deprecation(
+            "The `pytorch_lightning.loggers.base.DummyExperiment` is deprecated in v1.7"
+            " and will be removed in v1.9. Please use `pytorch_lightning.loggers.logger.DummyExperiment` instead."
+        )
+        super().__init__(*args, **kwargs)
+
+
+class DummyLogger(logger.DummyLogger):
+    def __init__(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+        rank_zero_deprecation(
+            "The `pytorch_lightning.loggers.base.DummyLogger` is deprecated in v1.7"
+            " and will be removed in v1.9. Please use `pytorch_lightning.loggers.logger.DummyLogger` instead."
+        )
+
+        super().__init__(*args, **kwargs)
+
+
+def merge_dicts(*args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+    rank_zero_deprecation(
+        "The `pytorch_lightning.loggers.base.merge_dicts` is deprecated in v1.7"
+        " and will be removed in v1.9. Please use `pytorch_lightning.loggers.logger.merge_dicts` instead."
+    )
+    return logger.merge_dicts(*args, **kwargs)
+
