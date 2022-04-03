@@ -146,7 +146,6 @@ class Trainer(
         tpu_cores: Optional[Union[List[int], str, int]] = None,  # TODO: Remove in 2.0
         ipus: Optional[int] = None,  # TODO: Remove in 2.0
         log_gpu_memory: Optional[str] = None,  # TODO: Remove in 1.7
-        progress_bar_refresh_rate: Optional[int] = None,  # TODO: remove in v1.7
         enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
@@ -182,13 +181,11 @@ class Trainer(
         replace_sampler_ddp: bool = True,
         detect_anomaly: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
-        prepare_data_per_node: Optional[bool] = None,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         amp_backend: str = "native",
         amp_level: Optional[str] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
-        stochastic_weight_avg: bool = False,
         terminate_on_nan: Optional[bool] = None,
     ) -> None:
         r"""
@@ -320,14 +317,6 @@ class Trainer(
             log_every_n_steps: How often to log within steps.
                 Default: ``50``.
 
-            prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
-                Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
-
-                .. deprecated:: v1.5
-                    Deprecated in v1.5.0 and will be removed in v1.7.0
-                    Please set ``prepare_data_per_node`` in ``LightningDataModule`` and/or
-                    ``LightningModule`` directly instead.
-
             process_position: Orders the progress bar when running multiple models on same machine.
 
                 .. deprecated:: v1.5
@@ -335,23 +324,13 @@ class Trainer(
                     Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``process_position``
                     directly to the Trainer's ``callbacks`` argument instead.
 
-            progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
-                Ignored when a custom progress bar is passed to :paramref:`~Trainer.callbacks`. Default: None, means
-                a suitable value will be chosen based on the environment (terminal, Google COLAB, etc.).
-
-                .. deprecated:: v1.5
-                    ``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``refresh_rate``
-                    directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
-                    pass ``enable_progress_bar = False`` to the Trainer.
-
             enable_progress_bar: Whether to enable to progress bar by default.
                 Default: ``False``.
 
             profiler: To profile individual steps during training and assist in identifying bottlenecks.
                 Default: ``None``.
 
-            overfit_batches: Overfit a fraction of training data (float) or a set number of batches (int).
+            overfit_batches: Overfit a fraction of training/validation data (float) or a set number of batches (int).
                 Default: ``0.0``.
 
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
@@ -479,15 +458,6 @@ class Trainer(
                 and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
                 reload when reaching the minimum length of datasets.
                 Default: ``"max_size_cycle"``.
-
-            stochastic_weight_avg: Whether to use `Stochastic Weight Averaging (SWA)
-                <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>`_.
-                Default: ``False``.
-
-                .. deprecated:: v1.5
-                    ``stochastic_weight_avg`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please pass :class:`~pytorch_lightning.callbacks.stochastic_weight_avg.StochasticWeightAveraging`
-                    directly to the Trainer's ``callbacks`` argument instead.
         """
         super().__init__()
         Trainer._log_api_event("init")
@@ -562,13 +532,11 @@ class Trainer(
             checkpoint_callback,
             enable_checkpointing,
             enable_progress_bar,
-            progress_bar_refresh_rate,
             process_position,
             default_root_dir,
             weights_save_path,
             enable_model_summary,
             weights_summary,
-            stochastic_weight_avg,
             max_time,
             accumulate_grad_batches,
         )
@@ -581,7 +549,6 @@ class Trainer(
         self._data_connector.on_trainer_init(
             check_val_every_n_epoch,
             reload_dataloaders_every_n_epochs,
-            prepare_data_per_node,
         )
 
         if terminate_on_nan is not None:
@@ -692,13 +659,13 @@ class Trainer(
         self.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
         self.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
         self.overfit_batches = _determine_batch_limits(overfit_batches, "overfit_batches")
-        self._determine_data_use_amount(self.overfit_batches)
+        self._configure_overfit_batches(self.overfit_batches)
 
-    def _determine_data_use_amount(self, overfit_batches: float) -> None:
-        """Use less data for debugging purposes."""
+    def _configure_overfit_batches(self, overfit_batches: Union[int, float]) -> None:
+        """Configure batch limits using `overfit_batches`."""
         if overfit_batches > 0:
             self.limit_train_batches = overfit_batches
-            self.limit_val_batches = 0
+            self.limit_val_batches = overfit_batches
 
     def _setup_on_init(self, num_sanity_val_steps: int) -> None:
         self._log_device_info()
@@ -1881,7 +1848,9 @@ class Trainer(
         self.train_dataloader = self._data_connector._request_dataloader(RunningStage.TRAINING, model=model)
 
         if self.overfit_batches > 0:
-            self.train_dataloader = self._data_connector._resolve_overfit_batches(self.train_dataloader)
+            self.train_dataloader = self._data_connector._resolve_overfit_batches(
+                self.train_dataloader, mode=RunningStage.TRAINING
+            )
 
         # automatically add samplers
         self.train_dataloader = apply_to_collection(
