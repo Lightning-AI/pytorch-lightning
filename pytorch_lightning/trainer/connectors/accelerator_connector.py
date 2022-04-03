@@ -71,6 +71,7 @@ from pytorch_lightning.strategies import (
 )
 from pytorch_lightning.utilities import (
     _StrategyType,
+    _TORCH_GREATER_EQUAL_1_11,
     AMPType,
     device_parser,
     LightningEnum,
@@ -211,10 +212,10 @@ class AcceleratorConnector:
 
     def _init_deterministic(self, deterministic: Union[bool, str]) -> None:
         self.deterministic = deterministic
-        deterministic_kwargs = dict(mode=deterministic)
-        if deterministic == "warn":
-            deterministic_kwargs = dict(mode=True, warn_only=True)
-        torch.use_deterministic_algorithms(**deterministic_kwargs)
+        if _TORCH_GREATER_EQUAL_1_11 and deterministic == "warn":
+            torch.use_deterministic_algorithms(mode=True, warn_only=True)
+        else:
+            torch.use_deterministic_algorithms(deterministic)
         if deterministic:
             # fixing non-deterministic part of horovod
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
