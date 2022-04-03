@@ -31,7 +31,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator
+from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, HPUAccelerator, IPUAccelerator, TPUAccelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -54,6 +54,7 @@ from pytorch_lightning.profiler import (
     AdvancedProfiler,
     BaseProfiler,
     PassThroughProfiler,
+    Profiler,
     PyTorchProfiler,
     SimpleProfiler,
     XLAProfiler,
@@ -76,6 +77,7 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.tuner.lr_finder import _LRFinder
 from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
+    _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
     AMPType,
@@ -100,7 +102,7 @@ from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
-from pytorch_lightning.utilities.seed import reset_seed
+from pytorch_lightning.utilities.seed import isolate_rng
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
     _EVALUATE_OUTPUT,
@@ -144,7 +146,6 @@ class Trainer(
         tpu_cores: Optional[Union[List[int], str, int]] = None,
         ipus: Optional[int] = None,
         log_gpu_memory: Optional[str] = None,  # TODO: Remove in 1.7
-        progress_bar_refresh_rate: Optional[int] = None,  # TODO: remove in v1.7
         enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
@@ -169,7 +170,7 @@ class Trainer(
         precision: Union[int, str] = 32,
         enable_model_summary: bool = True,
         weights_summary: Optional[str] = "top",
-        weights_save_path: Optional[str] = None,
+        weights_save_path: Optional[str] = None,  # TODO: Remove in 1.8
         num_sanity_val_steps: int = 2,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, str]] = None,
@@ -180,13 +181,11 @@ class Trainer(
         replace_sampler_ddp: bool = True,
         detect_anomaly: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
-        prepare_data_per_node: Optional[bool] = None,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         amp_backend: str = "native",
         amp_level: Optional[str] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
-        stochastic_weight_avg: bool = False,
         terminate_on_nan: Optional[bool] = None,
     ) -> None:
         r"""
@@ -194,7 +193,7 @@ class Trainer(
 
         Args:
 
-            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "auto")
+            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "auto")
                 as well as custom accelerator instances.
 
                 .. deprecated:: v1.5
@@ -314,14 +313,6 @@ class Trainer(
             log_every_n_steps: How often to log within steps.
                 Default: ``50``.
 
-            prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
-                Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
-
-                .. deprecated:: v1.5
-                    Deprecated in v1.5.0 and will be removed in v1.7.0
-                    Please set ``prepare_data_per_node`` in ``LightningDataModule`` and/or
-                    ``LightningModule`` directly instead.
-
             process_position: Orders the progress bar when running multiple models on same machine.
 
                 .. deprecated:: v1.5
@@ -329,30 +320,20 @@ class Trainer(
                     Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``process_position``
                     directly to the Trainer's ``callbacks`` argument instead.
 
-            progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
-                Ignored when a custom progress bar is passed to :paramref:`~Trainer.callbacks`. Default: None, means
-                a suitable value will be chosen based on the environment (terminal, Google COLAB, etc.).
-
-                .. deprecated:: v1.5
-                    ``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``refresh_rate``
-                    directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
-                    pass ``enable_progress_bar = False`` to the Trainer.
-
             enable_progress_bar: Whether to enable to progress bar by default.
                 Default: ``False``.
 
             profiler: To profile individual steps during training and assist in identifying bottlenecks.
                 Default: ``None``.
 
-            overfit_batches: Overfit a fraction of training data (float) or a set number of batches (int).
+            overfit_batches: Overfit a fraction of training/validation data (float) or a set number of batches (int).
                 Default: ``0.0``.
 
             plugins: Plugins allow modification of core behavior like ddp and amp, and enable custom lightning plugins.
                 Default: ``None``.
 
             precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
-                Can be used on CPU, GPU, TPUs or IPUs.
+                Can be used on CPU, GPU, TPUs, HPUs or IPUs.
                 Default: ``32``.
 
             max_epochs: Stop training once this number of epochs is reached. Disabled by default (None).
@@ -399,7 +380,7 @@ class Trainer(
                     Please pass the path to ``Trainer.fit(..., ckpt_path=...)`` instead.
 
             strategy: Supports different training strategies with aliases
-                as well custom training type plugins.
+                as well custom strategies.
                 Default: ``None``.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
@@ -447,6 +428,11 @@ class Trainer(
                 Can be remote file paths such as `s3://mybucket/path` or 'hdfs://path/'
                 Defaults to `default_root_dir`.
 
+                .. deprecated:: v1.6
+                    ``weights_save_path`` has been deprecated in v1.6 and will be removed in v1.8. Please pass
+                    ``dirpath`` directly to the :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint`
+                    callback.
+
             move_metrics_to_cpu: Whether to force internal logged metrics to be moved to cpu.
                 This can save some gpu memory, but can make training slower. Use with attention.
                 Default: ``False``.
@@ -456,15 +442,6 @@ class Trainer(
                 and smaller datasets reload when running out of their data. In 'min_size' mode, all the datasets
                 reload when reaching the minimum length of datasets.
                 Default: ``"max_size_cycle"``.
-
-            stochastic_weight_avg: Whether to use `Stochastic Weight Averaging (SWA)
-                <https://pytorch.org/blog/pytorch-1.6-now-includes-stochastic-weight-averaging/>`_.
-                Default: ``False``.
-
-                .. deprecated:: v1.5
-                    ``stochastic_weight_avg`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please pass :class:`~pytorch_lightning.callbacks.stochastic_weight_avg.StochasticWeightAveraging`
-                    directly to the Trainer's ``callbacks`` argument instead.
         """
         super().__init__()
         Trainer._log_api_event("init")
@@ -495,7 +472,7 @@ class Trainer(
             amp_level=amp_level,
             plugins=plugins,
         )
-        self.logger_connector = LoggerConnector(self, log_gpu_memory)
+        self._logger_connector = LoggerConnector(self, log_gpu_memory)
         self._callback_connector = CallbackConnector(self)
         self._checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
         self._signal_connector = SignalConnector(self)
@@ -539,13 +516,11 @@ class Trainer(
             checkpoint_callback,
             enable_checkpointing,
             enable_progress_bar,
-            progress_bar_refresh_rate,
             process_position,
             default_root_dir,
             weights_save_path,
             enable_model_summary,
             weights_summary,
-            stochastic_weight_avg,
             max_time,
             accumulate_grad_batches,
         )
@@ -558,7 +533,6 @@ class Trainer(
         self._data_connector.on_trainer_init(
             check_val_every_n_epoch,
             reload_dataloaders_every_n_epochs,
-            prepare_data_per_node,
         )
 
         if terminate_on_nan is not None:
@@ -591,10 +565,8 @@ class Trainer(
 
         self._terminate_on_nan = terminate_on_nan
         self.gradient_clip_val: Union[int, float] = gradient_clip_val
-        self.gradient_clip_algorithm = (
-            GradClipAlgorithmType(gradient_clip_algorithm.lower())
-            if gradient_clip_algorithm is not None
-            else gradient_clip_algorithm
+        self.gradient_clip_algorithm: Optional[GradClipAlgorithmType] = (
+            GradClipAlgorithmType(gradient_clip_algorithm.lower()) if gradient_clip_algorithm is not None else None
         )
         self.track_grad_norm: float = float(track_grad_norm)
 
@@ -609,7 +581,7 @@ class Trainer(
 
         # init logger flags
         self._loggers: List[LightningLoggerBase]
-        self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
+        self._logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
         self.val_check_interval: Union[int, float]
@@ -671,13 +643,13 @@ class Trainer(
         self.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
         self.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
         self.overfit_batches = _determine_batch_limits(overfit_batches, "overfit_batches")
-        self._determine_data_use_amount(self.overfit_batches)
+        self._configure_overfit_batches(self.overfit_batches)
 
-    def _determine_data_use_amount(self, overfit_batches: float) -> None:
-        """Use less data for debugging purposes."""
+    def _configure_overfit_batches(self, overfit_batches: Union[int, float]) -> None:
+        """Configure batch limits using `overfit_batches`."""
         if overfit_batches > 0:
             self.limit_train_batches = overfit_batches
-            self.limit_val_batches = 0
+            self.limit_val_batches = overfit_batches
 
     def _setup_on_init(self, num_sanity_val_steps: int) -> None:
         self._log_device_info()
@@ -1120,7 +1092,10 @@ class Trainer(
             model, train_dataloaders=train_dataloaders, val_dataloaders=val_dataloaders, datamodule=datamodule
         )
 
-        result = self.tuner._tune(model, scale_batch_size_kwargs=scale_batch_size_kwargs, lr_find_kwargs=lr_find_kwargs)
+        with isolate_rng():
+            result = self.tuner._tune(
+                model, scale_batch_size_kwargs=scale_batch_size_kwargs, lr_find_kwargs=lr_find_kwargs
+            )
 
         assert self.state.stopped
         self.tuning = False
@@ -1130,6 +1105,7 @@ class Trainer(
     def _restore_modules_and_callbacks(self, checkpoint_path: Optional[_PATH] = None) -> None:
         # restore modules after setup
         self._checkpoint_connector.resume_start(checkpoint_path)
+        self._checkpoint_connector._restore_quantization_callbacks()
         self._checkpoint_connector.restore_model()
         self._checkpoint_connector.restore_datamodule()
         if self.state.fn == TrainerFn.FITTING:
@@ -1143,7 +1119,7 @@ class Trainer(
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
 
-        # attach model to the training type plugin
+        # attach model to the strategy
         self.strategy.connect(model)
 
         self._callback_connector._attach_model_callbacks()
@@ -1202,8 +1178,8 @@ class Trainer(
         # ----------------------------
 
         # reset logger connector
-        self.logger_connector.reset_results()
-        self.logger_connector.reset_metrics()
+        self._logger_connector.reset_results()
+        self._logger_connector.reset_metrics()
 
         # strategy will configure model and move it to the device
         self.strategy.setup(self)
@@ -1294,7 +1270,7 @@ class Trainer(
         # loop should never be `None` here but it can because we don't know the trainer stage with `ddp_spawn`
         if loop is not None:
             loop.teardown()
-        self.logger_connector.teardown()
+        self._logger_connector.teardown()
         self._signal_connector.teardown()
 
     def run_stage(self) -> None:
@@ -1333,7 +1309,8 @@ class Trainer(
     def _run_train(self) -> None:
         self._pre_training_routine()
 
-        self._run_sanity_check()
+        with isolate_rng():
+            self._run_sanity_check()
 
         # enable train mode
         self.model.train()
@@ -1388,8 +1365,8 @@ class Trainer(
             self.sanity_checking = True
 
             # reset logger connector
-            self.logger_connector.reset_results()
-            self.logger_connector.reset_metrics()
+            self._logger_connector.reset_results()
+            self._logger_connector.reset_metrics()
 
             self._call_callback_hooks("on_sanity_check_start")
 
@@ -1406,16 +1383,12 @@ class Trainer(
             self._call_callback_hooks("on_sanity_check_end")
 
             # reset logger connector
-            self.logger_connector.reset_results()
-            self.logger_connector.reset_metrics()
+            self._logger_connector.reset_results()
+            self._logger_connector.reset_metrics()
 
             # reset the progress tracking state after sanity checking. we don't need to set the state before
             # because sanity check only runs when we are not restarting
             _reset_progress(val_loop)
-
-            # reset the seed to what it was before sanity check
-            # prevents sanity check to affect random sampling in training
-            reset_seed()
 
             # restore the previous stage when the sanity check if finished
             self.state.stage = stage
@@ -1555,22 +1528,6 @@ class Trainer(
             if callable(model_fx):
                 output = model_fx(*args, **kwargs)
 
-            # *Bad code alert*
-            # The `Accelerator` mostly calls the `Strategy` but some of those calls are deprecated.
-            # The following logic selectively chooses which hooks are called on each object.
-            # In the case of `setup` and `teardown`, the hooks on the `LightningModule` should not call the hooks of the
-            # same name in these objects as they are meant to be managed outside of the `LightningModule` lifecycle.
-            # All of this should be fixed by #8506
-
-            # call the accelerator hook
-            if hook_name in ("on_train_start",) and hasattr(self.accelerator, hook_name):
-                accelerator_hook = getattr(self.accelerator, hook_name)
-                accelerator_output = accelerator_hook(*args, **kwargs)
-                # Rely on the accelerator output if lightningModule hook returns nothing
-                # Required for cases such as DataParallel where we reduce the output for the user
-                # todo: move this data parallel logic into the data parallel strategy
-                output = accelerator_output if output is None else output
-
             # call the strategy hook
             if hook_name not in ("setup", "teardown", "on_train_start") and hasattr(self.strategy, hook_name):
                 strategy_hook = getattr(self.strategy, hook_name)
@@ -1616,7 +1573,7 @@ class Trainer(
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        log.detail(f"{self.__class__.__name__}: calling callback hook: {hook_name}")
+        log.debug(f"{self.__class__.__name__}: calling callback hook: {hook_name}")
         # TODO: remove if block in v1.8
         if hook_name in ("on_init_start", "on_init_end"):
             # these `Callback` hooks are the only ones that do not take a lightning module.
@@ -1672,19 +1629,41 @@ class Trainer(
             else:
                 callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx)
 
-    def _call_callbacks_on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> Dict[str, dict]:
-        """Called when saving a model checkpoint.
-
-        Calls every callback's `on_save_checkpoint` hook. We have a dedicated function for this rather than using
-        `_call_callback_hooks` because we have special logic for returning callback_states.
-        """
-        callback_states = {}
+    def _call_callbacks_state_dict(self) -> Dict[str, dict]:
+        """Called when saving a model checkpoint, calls and returns every callback's `state_dict`, keyed by
+        `Callback.state_key`."""
+        callback_state_dicts = {}
         for callback in self.callbacks:
-            # TODO: Add profiling for on_save_checkpoint hook
-            state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
+            state_dict = callback.state_dict()
+            if state_dict:
+                callback_state_dicts[callback.state_key] = state_dict
+        return callback_state_dicts
+
+    def _call_callbacks_on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        """Called when saving a model checkpoint, calls every callback's `on_save_checkpoint` hook.
+
+        Will be removed in v1.8: If state is returned, we insert the callback state into
+        ``checkpoint["callbacks"][Callback.state_key]``. It overrides ``state_dict`` if already present.
+        """
+        pl_module = self.lightning_module
+        if pl_module:
+            prev_fx_name = pl_module._current_fx_name
+            pl_module._current_fx_name = "on_save_checkpoint"
+
+        for callback in self.callbacks:
+            with self.profiler.profile(f"[Callback]{callback.state_key}.on_save_checkpoint"):
+                state = callback.on_save_checkpoint(self, self.lightning_module, checkpoint)
             if state:
-                callback_states[callback.state_key] = state
-        return callback_states
+                rank_zero_deprecation(
+                    f"Returning a value from `{callback.__class__.__name__}.on_save_checkpoint` is deprecated in v1.6"
+                    " and will be removed in v1.8. Please override `Callback.state_dict`"
+                    " to return state to be saved."
+                )
+                checkpoint["callbacks"][callback.state_key] = state
+
+        if pl_module:
+            # restore current_fx when nested context
+            pl_module._current_fx_name = prev_fx_name
 
     def _call_callbacks_on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
         """Called when loading a model checkpoint.
@@ -1692,6 +1671,11 @@ class Trainer(
         Calls every callback's `on_load_checkpoint` hook. We have a dedicated function for this rather than using
         `_call_callback_hooks` because we have special logic for getting callback_states.
         """
+        pl_module = self.lightning_module
+        if pl_module:
+            prev_fx_name = pl_module._current_fx_name
+            pl_module._current_fx_name = "on_load_checkpoint"
+
         callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
 
         if callback_states is None:
@@ -1711,8 +1695,25 @@ class Trainer(
             state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
             if state:
                 state = deepcopy(state)
-                # TODO: Add profiling for on_load_checkpoint hook
-                callback.on_load_checkpoint(self, self.lightning_module, state)
+                with self.profiler.profile(f"[Callback]{callback.state_key}.on_load_checkpoint"):
+                    callback.on_load_checkpoint(self, self.lightning_module, state)
+
+        if pl_module:
+            # restore current_fx when nested context
+            pl_module._current_fx_name = prev_fx_name
+
+    def _call_callbacks_load_state_dict(self, checkpoint: Dict[str, Any]) -> None:
+        """Called when loading a model checkpoint, calls every callback's `load_state_dict`."""
+        callback_states: Dict[Union[Type, str], Dict] = checkpoint.get("callbacks")
+
+        if callback_states is None:
+            return
+
+        for callback in self.callbacks:
+            state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
+            if state:
+                state = deepcopy(state)
+                callback.load_state_dict(state)
 
     def _call_strategy_hook(
         self,
@@ -1748,7 +1749,7 @@ class Trainer(
     def _log_api_event(event: str) -> None:
         torch._C._log_api_usage_once("lightning.trainer." + event)
 
-    def __init_profiler(self, profiler: Optional[Union[BaseProfiler, str]]) -> None:
+    def __init_profiler(self, profiler: Optional[Union[Profiler, str]]) -> None:
         if isinstance(profiler, str):
             PROFILERS = {
                 "simple": SimpleProfiler,
@@ -1764,7 +1765,7 @@ class Trainer(
                 )
             profiler_class = PROFILERS[profiler]
             profiler = profiler_class()
-        self.profiler: BaseProfiler = profiler or PassThroughProfiler()
+        self.profiler: Profiler = profiler or PassThroughProfiler()
 
     def __setup_profiler(self) -> None:
         local_rank = self.local_rank if self.world_size > 1 else None
@@ -1776,13 +1777,14 @@ class Trainer(
             f"GPU available: {torch.cuda.is_available()}, used: {isinstance(self.accelerator, GPUAccelerator)}"
         )
 
-        num_tpu_cores = (
-            self.tpu_cores if self.tpu_cores is not None and isinstance(self.accelerator, TPUAccelerator) else 0
-        )
+        num_tpu_cores = self.num_devices if isinstance(self.accelerator, TPUAccelerator) else 0
         rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
 
-        num_ipus = self.ipus if self.ipus is not None else 0
+        num_ipus = self.num_devices if isinstance(self.accelerator, IPUAccelerator) else 0
         rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
+
+        num_hpus = self.num_devices if isinstance(self.accelerator, HPUAccelerator) else 0
+        rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
 
         if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
             rank_zero_warn(
@@ -1801,6 +1803,12 @@ class Trainer(
             rank_zero_warn(
                 "IPU available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='ipu', devices={IPUAccelerator.auto_device_count()})`."
+            )
+
+        if _HPU_AVAILABLE and not isinstance(self.accelerator, HPUAccelerator):
+            rank_zero_warn(
+                "HPU available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='hpu', devices={HPUAccelerator.auto_device_count()})`."
             )
 
     """
@@ -1824,7 +1832,9 @@ class Trainer(
         self.train_dataloader = self._data_connector._request_dataloader(RunningStage.TRAINING, model=model)
 
         if self.overfit_batches > 0:
-            self.train_dataloader = self._data_connector._resolve_overfit_batches(self.train_dataloader)
+            self.train_dataloader = self._data_connector._resolve_overfit_batches(
+                self.train_dataloader, mode=RunningStage.TRAINING
+            )
 
         # automatically add samplers
         self.train_dataloader = apply_to_collection(
@@ -1994,17 +2004,17 @@ class Trainer(
 
     @property
     def local_rank(self) -> int:
-        # some training types define a local rank
+        # some strategies define a local rank
         return getattr(self.strategy, "local_rank", 0)
 
     @property
     def node_rank(self) -> int:
-        # some training types define a node rank
+        # some strategies define a node rank
         return getattr(self.strategy, "node_rank", 0)
 
     @property
     def world_size(self) -> int:
-        # some training types define a world size
+        # some strategies define a world size
         return getattr(self.strategy, "world_size", 1)
 
     @property
@@ -2022,34 +2032,81 @@ class Trainer(
         return getattr(self.strategy, "num_nodes", 1)
 
     @property
+    def device_ids(self) -> List[int]:
+        """List of device indexes per node."""
+        devices = (
+            self.strategy.parallel_devices
+            if isinstance(self.strategy, ParallelStrategy)
+            else [self.strategy.root_device]
+        )
+        device_ids = []
+        for idx, device in enumerate(devices):
+            if isinstance(device, torch.device):
+                device_ids.append(device.index or idx)
+            elif isinstance(device, int):
+                device_ids.append(device)
+        return device_ids
+
+    @property
+    def num_devices(self) -> int:
+        """Number of devices the trainer uses per node."""
+        return len(self.device_ids)
+
+    @property
     def num_processes(self) -> int:
-        return self._accelerator_connector.num_processes
+        rank_zero_deprecation(
+            "`Trainer.num_processes` is deprecated in v1.6 and will be removed in v1.8. "
+            "Please use `Trainer.num_devices` instead."
+        )
+        return self.num_devices
 
     @property
     def root_gpu(self) -> Optional[int]:
-        return self._accelerator_connector.root_gpu
+        rank_zero_deprecation(
+            "`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
+            "Please use `Trainer.strategy.root_device.index` instead."
+        )
+        return self.strategy.root_device.index if isinstance(self.accelerator, GPUAccelerator) else None
 
     @property
     def tpu_cores(self) -> int:
-        return self._accelerator_connector.tpu_cores
+        rank_zero_deprecation(
+            "`Trainer.tpu_cores` is deprecated in v1.6 and will be removed in v1.8. "
+            "Please use `Trainer.num_devices` instead."
+        )
+        return self.num_devices if isinstance(self.accelerator, TPUAccelerator) else 0
 
     @property
     def ipus(self) -> int:
-        return self._accelerator_connector.num_ipus
+        rank_zero_deprecation(
+            "`Trainer.ipus` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.num_devices` instead."
+        )
+        return self.num_devices if isinstance(self.accelerator, IPUAccelerator) else 0
 
     @property
     def num_gpus(self) -> int:
-        return self._accelerator_connector.num_gpus
+        rank_zero_deprecation(
+            "`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.num_devices` instead."
+        )
+        return self.num_devices if isinstance(self.accelerator, GPUAccelerator) else 0
 
     @property
-    def devices(self) -> Optional[Union[List[int], str, int]]:
-        return self._accelerator_connector.devices
+    def devices(self) -> int:
+        rank_zero_deprecation(
+            "`Trainer.devices` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
+        )
+        return self.num_devices
 
     @property
     def data_parallel_device_ids(self) -> Optional[List[int]]:
-        return (
-            self._accelerator_connector.parallel_device_ids if self._accelerator_connector.parallel_device_ids else None
+        rank_zero_deprecation(
+            "`Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.device_ids` instead."
         )
+        return self.device_ids if isinstance(self.accelerator, GPUAccelerator) else None
 
     @property
     def lightning_module(self) -> "pl.LightningModule":
@@ -2112,6 +2169,10 @@ class Trainer(
 
     @property
     def gpus(self) -> Optional[Union[List[int], str, int]]:
+        rank_zero_deprecation(
+            "`Trainer.gpus` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
+        )
         return self._accelerator_connector.gpus
 
     @property
@@ -2153,6 +2214,10 @@ class Trainer(
 
     @property
     def use_amp(self) -> bool:
+        rank_zero_deprecation(
+            "`Trainer.use_amp` is deprecated in v1.6.0 and will be removed in v1.8.0."
+            " Please use `Trainer.amp_backend` instead."
+        )
         return self.precision == 16
 
     @property
@@ -2210,6 +2275,20 @@ class Trainer(
         """
         The default root location to save weights (checkpoints), e.g., when the
         :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` does not define a file path.
+
+        .. deprecated:: v1.6
+            `Trainer.weights_save_path` has been deprecated in v1.6 and will be removed in v1.8.
+        """
+        rank_zero_deprecation("`Trainer.weights_save_path` has been deprecated in v1.6 and will be removed in v1.8.")
+        return self._weights_save_path_internal
+
+    # TODO: Remove _weights_save_path_internal in v1.8
+    @property
+    def _weights_save_path_internal(self) -> str:
+        """This is an internal implementation of weights_save_path which allows weights_save_path to be used
+        internally by the framework without emitting a deprecation warning.
+
+        To be removed in v1.8.
         """
         if get_filesystem(self._weights_save_path).protocol == "file":
             return os.path.normpath(self._weights_save_path)
@@ -2336,16 +2415,19 @@ class Trainer(
         )
         self._predicted_ckpt_path = ckpt_path
 
-    def save_checkpoint(self, filepath: _PATH, weights_only: bool = False) -> None:
+    def save_checkpoint(
+        self, filepath: _PATH, weights_only: bool = False, storage_options: Optional[Any] = None
+    ) -> None:
         r"""
         Runs routine to create a checkpoint.
 
         Args:
             filepath: Path where checkpoint is saved.
             weights_only: If ``True``, will only save the model weights.
+            storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
 
         """
-        self._checkpoint_connector.save_checkpoint(filepath, weights_only)
+        self._checkpoint_connector.save_checkpoint(filepath, weights_only=weights_only, storage_options=storage_options)
 
     """
     Parsing properties
@@ -2465,7 +2547,11 @@ class Trainer(
 
     @property
     def global_step(self) -> int:
-        return self.fit_loop.global_step
+        """The number of optimizer steps taken (does not reset each epoch).
+
+        This includes multiple optimizers and TBPTT steps (if enabled).
+        """
+        return self.fit_loop.epoch_loop.global_step
 
     @property
     def current_epoch(self) -> int:
@@ -2604,7 +2690,9 @@ class Trainer(
                 " This behavior will change in v1.8 when LoggerCollection is removed, and"
                 " trainer.logger will return the first logger in trainer.loggers"
             )
-            return LoggerCollection(self.loggers)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                return LoggerCollection(self.loggers)
 
     @logger.setter
     def logger(self, logger: Optional[LightningLoggerBase]) -> None:
@@ -2625,15 +2713,15 @@ class Trainer(
 
     @property
     def callback_metrics(self) -> dict:
-        return self.logger_connector.callback_metrics
+        return self._logger_connector.callback_metrics
 
     @property
     def logged_metrics(self) -> dict:
-        return self.logger_connector.logged_metrics
+        return self._logger_connector.logged_metrics
 
     @property
     def progress_bar_metrics(self) -> dict:
-        return self.logger_connector.progress_bar_metrics
+        return self._logger_connector.progress_bar_metrics
 
     @property
     def _results(self) -> Optional[_ResultCollection]:

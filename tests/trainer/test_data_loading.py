@@ -104,7 +104,7 @@ class TestSpawnBoringModel(BoringModel):
     def train_dataloader(self):
         return DataLoader(RandomDataset(32, 64), num_workers=self.num_workers)
 
-    def on_pretrain_routine_start(self):
+    def on_fit_start(self):
         self._resout = StringIO()
         self.ctx = redirect_stderr(self._resout)
         self.ctx.__enter__()
@@ -129,7 +129,7 @@ class TestSpawnBoringModel(BoringModel):
             assert warn_str in msg
 
 
-@RunIf(skip_windows=True, skip_49370=True)
+@RunIf(skip_windows=True)
 @pytest.mark.parametrize("num_workers", [0, 1])
 def test_dataloader_warnings(tmpdir, num_workers):
     trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=4)
@@ -378,5 +378,5 @@ def test_non_sequential_sampler_warning_is_raised_for_eval_dataloader(val_dl):
     trainer = Trainer()
     model = BoringModel()
     trainer._data_connector.attach_data(model, val_dataloaders=val_dl)
-    with pytest.warns(PossibleUserWarning, match="recommended .* turn this off for val/test/predict"):
+    with pytest.warns(PossibleUserWarning, match="recommended .* turn shuffling off for val/test/predict"):
         trainer._data_connector._reset_eval_dataloader(RunningStage.VALIDATING, model)

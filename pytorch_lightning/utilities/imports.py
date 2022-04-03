@@ -53,13 +53,9 @@ def _module_available(module_path: str) -> bool:
     if not _package_available(module_names[0]):
         return False
     try:
-        module = importlib.import_module(module_names[0])
-    except ImportError:
+        importlib.import_module(module_path)
+    except ModuleNotFoundError:
         return False
-    for name in module_names[1:]:
-        if not hasattr(module, name):
-            return False
-        module = getattr(module, name)
     return True
 
 
@@ -89,11 +85,13 @@ def _compare_version(package: str, op: Callable, version: str, use_base_version:
 
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
-_TORCH_GREATER_EQUAL_1_8 = _compare_version("torch", operator.ge, "1.8.0")
+_PYTHON_GREATER_EQUAL_3_8_0 = _compare_version("python", operator.ge, "3.8.0")
 _TORCH_GREATER_EQUAL_1_8_1 = _compare_version("torch", operator.ge, "1.8.1")
 _TORCH_GREATER_EQUAL_1_9 = _compare_version("torch", operator.ge, "1.9.0")
+_TORCH_GREATER_EQUAL_1_9_1 = _compare_version("torch", operator.ge, "1.9.1")
 _TORCH_GREATER_EQUAL_1_10 = _compare_version("torch", operator.ge, "1.10.0")
-# _TORCH_GREATER_EQUAL_DEV_1_11 = _compare_version("torch", operator.ge, "1.11.0", use_base_version=True)
+_TORCH_LESSER_EQUAL_1_10_2 = _compare_version("torch", operator.le, "1.10.2")
+_TORCH_GREATER_EQUAL_1_11 = _compare_version("torch", operator.ge, "1.11.0")
 
 _APEX_AVAILABLE = _module_available("apex.amp")
 _BAGUA_AVAILABLE = _package_available("bagua")
@@ -111,6 +109,7 @@ _NEPTUNE_AVAILABLE = _package_available("neptune")
 _NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", operator.ge, "0.9.0")
 _OMEGACONF_AVAILABLE = _package_available("omegaconf")
 _POPTORCH_AVAILABLE = _package_available("poptorch")
+_HABANA_FRAMEWORK_AVAILABLE = _package_available("habana_frameworks")
 _RICH_AVAILABLE = _package_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
 _TORCHTEXT_AVAILABLE = _package_available("torchtext")
@@ -132,6 +131,13 @@ if _POPTORCH_AVAILABLE:
     _IPU_AVAILABLE = poptorch.ipuHardwareIsAvailable()
 else:
     _IPU_AVAILABLE = False
+
+if _HABANA_FRAMEWORK_AVAILABLE:
+    from habana_frameworks.torch.utils.library_loader import is_habana_avaialble
+
+    _HPU_AVAILABLE = is_habana_avaialble()
+else:
+    _HPU_AVAILABLE = False
 
 
 # experimental feature within PyTorch Lightning.

@@ -651,12 +651,6 @@ def test_fast_forward_sampler_with_distributed_sampler_and_iterative_dataset():
     )
 
 
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@RunIf(max_torch="1.7")
-def test_fault_tolerant_not_supported():
-    assert not _fault_tolerant_training()
-
-
 def create_iterable_dataset(batch_size, num_workers, attr_name="iter_sampler", wrap: bool = True):
     dataset = RangeIterableDataset(range(50), num_workers=num_workers, batch_size=batch_size, attr_name=attr_name)
     if wrap:
@@ -1452,7 +1446,7 @@ class RandomFaultTolerantDataset(RandomGetItemDataset):
 
 
 class RandomFaultTolerantSampler(RandomSampler):
-    def __init__(self, *args, seed: int = 0, generator=None, **kwargs):
+    def __init__(self, *args, seed: int = 0, **kwargs):
         generator = torch.Generator().manual_seed(seed)
         super().__init__(*args, generator=generator, **kwargs)
         self.counter = 0
@@ -1558,7 +1552,7 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
     seed_everything(42)
     model = TestModel(should_fail=True)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
-    with suppress(CustomException):
+    with pytest.raises(CustomException):
         trainer.fit(model)
     trainer.train_dataloader = None
     failed_batches = model.batches

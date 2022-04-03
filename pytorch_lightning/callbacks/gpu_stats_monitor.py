@@ -128,13 +128,12 @@ class GPUStatsMonitor(Callback):
 
         if trainer.strategy.root_device.type != "cuda":
             raise MisconfigurationException(
-                "You are using GPUStatsMonitor but are not running on GPU"
-                f" since gpus attribute in Trainer is set to {trainer.gpus}."
+                "You are using GPUStatsMonitor but are not running on GPU."
+                f" The root device type is {trainer.strategy.root_device.type}."
             )
 
         # The logical device IDs for selected devices
-        # ignoring mypy check because `trainer.data_parallel_device_ids` is None when using CPU
-        self._device_ids = sorted(set(trainer.data_parallel_device_ids))  # type: ignore
+        self._device_ids = sorted(set(trainer.device_ids))
 
         # The unmasked real GPU IDs
         self._gpu_ids = self._get_gpu_ids(self._device_ids)
@@ -150,7 +149,7 @@ class GPUStatsMonitor(Callback):
         if self._log_stats.intra_step_time:
             self._snap_intra_step_time = time.time()
 
-        if not trainer.logger_connector.should_update_logs:
+        if not trainer._logger_connector.should_update_logs:
             return
 
         gpu_stat_keys = self._get_gpu_stat_keys()
@@ -162,7 +161,7 @@ class GPUStatsMonitor(Callback):
             logs["batch_time/inter_step (ms)"] = (time.time() - self._snap_inter_step_time) * 1000
 
         for logger in trainer.loggers:
-            logger.log_metrics(logs, step=trainer.global_step)
+            logger.log_metrics(logs, step=trainer.fit_loop.epoch_loop._batches_that_stepped)
 
     @rank_zero_only
     def on_train_batch_end(
@@ -176,7 +175,7 @@ class GPUStatsMonitor(Callback):
         if self._log_stats.inter_step_time:
             self._snap_inter_step_time = time.time()
 
-        if not trainer.logger_connector.should_update_logs:
+        if not trainer._logger_connector.should_update_logs:
             return
 
         gpu_stat_keys = self._get_gpu_stat_keys() + self._get_gpu_device_stat_keys()
@@ -187,7 +186,7 @@ class GPUStatsMonitor(Callback):
             logs["batch_time/intra_step (ms)"] = (time.time() - self._snap_intra_step_time) * 1000
 
         for logger in trainer.loggers:
-            logger.log_metrics(logs, step=trainer.global_step)
+            logger.log_metrics(logs, step=trainer.fit_loop.epoch_loop._batches_that_stepped)
 
     @staticmethod
     def _get_gpu_ids(device_ids: List[int]) -> List[str]:

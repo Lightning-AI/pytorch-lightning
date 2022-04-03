@@ -13,13 +13,40 @@ concurrency:
 jobs:
   mypy:
     runs-on: ubuntu-20.04
+    #strategy:
+    #  fail-fast: false
+    #  matrix:
+    #    include:
+    #      - {python-version: "3.8", pytorch-version: "1.8"}
+    #      - {python-version: "3.9", pytorch-version: "1.10"}
     steps:
-      - uses: actions/checkout@master
-      - uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
-      - name: Install dependencies
-        run: |
-          pip install '.[dev]'
-          pip list
-      - run: mypy --install-types --non-interactive
+    - uses: actions/checkout@master
+    - uses: actions/setup-python@v2
+      with:
+        # python-version: ${{ matrix.python-version }}
+        python-version: 3.9
+
+    # Note: This uses an internal pip API and may not always work
+    # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
+    - name: Cache pip
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      env:
+        # TORCH_VERSION: ${{ matrix.pytorch-version }}
+        TORCH_VERSION: "1.10"
+      run: |
+        pip install "torch==$TORCH_VERSION" --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+        # adjust versions according installed Torch version
+        python ./requirements/adjust-versions.py requirements/extra.txt
+        python ./requirements/adjust-versions.py requirements/examples.txt
+        pip install '.[dev]' --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip list
+
+    - name: Type check
+      run: mypy --install-types --non-interactive

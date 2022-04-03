@@ -6,9 +6,9 @@
 .. _amp:
 
 
-#########
-Precision
-#########
+###############
+N-Bit Precision
+###############
 
 There are numerous benefits to using numerical formats with lower precision than the 32-bit floating-point or higher precision such as 64-bit floating-point.
 
@@ -20,7 +20,7 @@ Higher precision, such as the 64-bit floating-point, can be used for highly sens
 Following are the precisions available in Lightning along with their supported Accelerator:
 
 .. list-table:: Precision with Accelerators
-   :widths: 20 20 20 20 20
+   :widths: 20 20 20 20 20 20
    :header-rows: 1
 
    * - Precision
@@ -28,17 +28,21 @@ Following are the precisions available in Lightning along with their supported A
      - GPU
      - TPU
      - IPU
+     - HPU
    * - 16
      - No
      - Yes
      - No
      - Yes
+     - No
    * - BFloat16
      - Yes
      - Yes
      - Yes
      - No
+     - Yes
    * - 32
+     - Yes
      - Yes
      - Yes
      - Yes
@@ -46,6 +50,7 @@ Following are the precisions available in Lightning along with their supported A
    * - 64
      - Yes
      - Yes
+     - No
      - No
      - No
 
@@ -90,7 +95,7 @@ delivers all of these benefits while ensuring that no task-specific accuracy is 
                 return loss
 
 
-        trainer = Trainer(gpus=1, precision=32)
+        trainer = Trainer(accelerator="gpu", devices=1, precision=32)
 
 
 FP16 Mixed Precision
@@ -106,7 +111,7 @@ In most cases, mixed precision uses FP16. Supported `PyTorch operations <https:/
 .. testcode::
     :skipif: not torch.cuda.is_available()
 
-    Trainer(gpus=1, precision=16)
+    Trainer(accelerator="gpu", devices=1, precision=16)
 
 
 PyTorch Native
@@ -133,14 +138,14 @@ NVIDIA APEX
 .. testcode::
     :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
-    Trainer(gpus=1, amp_backend="apex", precision=16)
+    Trainer(accelerator="gpu", devices=1, amp_backend="apex", precision=16)
 
 Set the `NVIDIA optimization level <https://nvidia.github.io/apex/amp.html#opt-levels>`__ via the trainer.
 
 .. testcode::
     :skipif: not _APEX_AVAILABLE or not torch.cuda.is_available()
 
-    Trainer(gpus=1, amp_backend="apex", amp_level="O2", precision=16)
+    Trainer(accelerator="gpu", devices=1, amp_backend="apex", amp_level="O2", precision=16)
 
 
 BFloat16 Mixed Precision
@@ -161,7 +166,7 @@ Under the hood, we use `torch.autocast <https://pytorch.org/docs/stable/amp.html
 .. testcode::
     :skipif: not _TORCH_GREATER_EQUAL_1_10 or not torch.cuda.is_available()
 
-    Trainer(gpus=1, precision="bf16")
+    Trainer(accelerator="gpu", devices=1, precision="bf16")
 
 It is also possible to use BFloat16 mixed precision on the CPU, relying on MKLDNN under the hood.
 
@@ -224,4 +229,4 @@ You can also customize and pass your own Precision Plugin by subclassing the :cl
 ***************
 
 It is possible to further reduce the precision using third-party libraries like `bitsandbytes <https://github.com/facebookresearch/bitsandbytes>`_. Although,
-Lightning doesn't support it out of the box yet but you can still use it by configuring it in your LightningModule and setting ``Trainer(precision=32)``.
+Lightning doesn't support it out of the box yet but you can still use it by configuring it in your :class:`~pytorch_lightning.core.lightning.LightningModule` and setting ``Trainer(precision=32)``.

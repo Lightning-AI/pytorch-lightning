@@ -15,11 +15,13 @@ Currently there are accelerators for:
 - GPU
 - TPU
 - IPU
+- HPU
 
 Each Accelerator gets two plugins upon initialization:
 One to handle differences from the training routine and one to handle different precisions.
 
 .. testcode::
+    :skipif: torch.cuda.device_count() < 2
 
     from pytorch_lightning import Trainer
     from pytorch_lightning.accelerators import GPUAccelerator
@@ -28,8 +30,8 @@ One to handle differences from the training routine and one to handle different 
 
     accelerator = GPUAccelerator()
     precision_plugin = NativeMixedPrecisionPlugin(precision=16, device="cuda")
-    training_type_plugin = DDPStrategy(accelerator=accelerator, precision_plugin=precision_plugin)
-    trainer = Trainer(strategy=training_type_plugin)
+    training_strategy = DDPStrategy(accelerator=accelerator, precision_plugin=precision_plugin)
+    trainer = Trainer(strategy=training_strategy, devices=2)
 
 
 We expose Accelerators and Plugins mainly for expert users who want to extend Lightning to work with new
@@ -57,5 +59,6 @@ Accelerator API
     Accelerator
     CPUAccelerator
     GPUAccelerator
-    TPUAccelerator
+    HPUAccelerator
     IPUAccelerator
+    TPUAccelerator

@@ -78,23 +78,20 @@ class LoggerConnector:
                 break
 
     @property
-    def should_flush_logs(self) -> bool:
-        should_flush = (self.trainer.global_step + 1) % self.trainer.flush_logs_every_n_steps == 0
-        return should_flush or self.trainer.should_stop
-
-    @property
     def should_update_logs(self) -> bool:
-        should_log_every_n_steps = (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0
-        return should_log_every_n_steps or self.trainer.should_stop
+        # `+ 1` because it can be checked before a step is executed, for example, in `on_train_batch_start`
+        should_log = (self.trainer.fit_loop.epoch_loop._batches_that_stepped + 1) % self.trainer.log_every_n_steps == 0
+        return should_log or self.trainer.should_stop
 
     def configure_logger(self, logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]]) -> None:
-        if isinstance(logger, bool):
+        if not logger:
+            # logger is None or logger is False
+            self.trainer.loggers = []
+        elif logger is True:
             # default logger
-            self.trainer.loggers = (
-                [TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id())]
-                if logger
-                else []
-            )
+            self.trainer.loggers = [
+                TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id())
+            ]
         elif isinstance(logger, Iterable):
             self.trainer.loggers = list(logger)
         else:
@@ -123,7 +120,7 @@ class LoggerConnector:
         if step is None:
             # added metrics for convenience
             scalar_metrics.setdefault("epoch", self.trainer.current_epoch)
-            step = self.trainer.global_step
+            step = self.trainer.fit_loop.epoch_loop._batches_that_stepped
 
         # log actual metrics
         for logger in self.trainer.loggers:
@@ -175,15 +172,15 @@ class LoggerConnector:
         self._progress_bar_metrics.update(metrics["pbar"])
         self._callback_metrics.update(metrics["callback"])
         self._logged_metrics.update(metrics["log"])
-        return metrics["callback"]
+        return metrics["log"]
 
-    def log_eval_end_metrics(self) -> None:
+    def log_eval_end_metrics(self, metrics: _OUT_DICT) -> None:
         assert self._epoch_end_reached
         if self.trainer.sanity_checking:
             return
 
         # log all the metrics as a single dict
-        self.log_metrics(self.metrics["log"])
+        self.log_metrics(metrics)
 
     """
     Train metric updates
@@ -224,7 +221,7 @@ class LoggerConnector:
                 self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True)
             else:
                 gpu_id = int(key.split("/")[0].split(":")[1])
-                if gpu_id in self.trainer._accelerator_connector.parallel_device_ids:
+                if gpu_id in self.trainer.device_ids:
                     self.trainer.lightning_module.log(
                         key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False
                     )

@@ -235,7 +235,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         closure = self._make_closure(split_batch, batch_idx, opt_idx, optimizer)
 
         if (
-            # when the training type plugin handles accumulation, we want to always call the optimizer step
+            # when the strategy handles accumulation, we want to always call the optimizer step
             not self.trainer.strategy.handles_gradient_accumulation
             and self.trainer.fit_loop._should_accumulate()
         ):
@@ -359,7 +359,11 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         else:
             optimizer = self.trainer.strategy._lightning_optimizers[opt_idx]
 
-        self.optim_progress.optimizer.step.increment_ready()
+        # if `strategy.handles_gradient_accumulation`, this method will be called to route into the strategy, but we
+        # need to check again if `should_accumulate` before increasing the counters
+        should_accumulate = self.trainer.fit_loop._should_accumulate()
+        if not should_accumulate:
+            self.optim_progress.optimizer.step.increment_ready()
 
         # model hook
         self.trainer._call_lightning_module_hook(
@@ -374,7 +378,8 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             using_lbfgs=is_lbfgs,
         )
 
-        self.optim_progress.optimizer.step.increment_completed()
+        if not should_accumulate:
+            self.optim_progress.optimizer.step.increment_completed()
 
     def _on_before_zero_grad(self, optimizer: torch.optim.Optimizer) -> None:
         """Calls the ``on_before_zero_grad`` hook.
