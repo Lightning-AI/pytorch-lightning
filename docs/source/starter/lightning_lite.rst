@@ -69,9 +69,6 @@ The ``run`` function contains custom training loop used to train ``MyModel`` on 
 
     run(args)
 
-
-Checkout MNIST training example with :class:`~pytorch_lightning.lite.LightningLite`  `here <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_2_lite.py>`_
-
 ----------
 
 
@@ -127,6 +124,8 @@ Here are five required steps to convert to :class:`~pytorch_lightning.lite.Light
 
 
 That's all. You can now train on any kind of device and scale your training.
+
+Check out this full MNIST training example with :class:`~pytorch_lightning.lite.LightningLite`  `here <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_2_lite.py>`_.
 
 :class:`~pytorch_lightning.lite.LightningLite` takes care of device management, so you don't have to.
 You should remove any device-specific logic within your code.
