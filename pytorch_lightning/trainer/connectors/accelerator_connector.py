@@ -101,7 +101,7 @@ class AcceleratorConnector:
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
-        deterministic: bool = False,
+        deterministic: Union[bool, str] = False,
         num_processes: Optional[int] = None,  # deprecated
         tpu_cores: Optional[Union[List[int], int]] = None,  # deprecated
         ipus: Optional[int] = None,  # deprecated
@@ -209,9 +209,12 @@ class AcceleratorConnector:
         # 6. Instantiate Strategy - Part 2
         self._lazy_init_strategy()
 
-    def _init_deterministic(self, deterministic: bool) -> None:
+    def _init_deterministic(self, deterministic: Union[bool, str]) -> None:
         self.deterministic = deterministic
-        torch.use_deterministic_algorithms(deterministic)
+        deterministic_kwargs = dict(mode=deterministic)
+        if deterministic == "warn":
+            deterministic_kwargs = dict(mode=True, warn_only=True)
+        torch.use_deterministic_algorithms(**deterministic_kwargs)
         if deterministic:
             # fixing non-deterministic part of horovod
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
