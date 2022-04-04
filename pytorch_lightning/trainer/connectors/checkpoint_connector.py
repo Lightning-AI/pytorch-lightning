@@ -399,15 +399,14 @@ class CheckpointConnector:
         # dump hyper-parameters
         for obj in (model, datamodule):
             if obj and obj.hparams:
-                if obj.hparams:
-                    if hasattr(obj, "_hparams_name"):
-                        checkpoint[obj.CHECKPOINT_HYPER_PARAMS_NAME] = obj._hparams_name
-                    # dump arguments
-                    if _OMEGACONF_AVAILABLE and isinstance(obj.hparams, Container):
-                        checkpoint[obj.CHECKPOINT_HYPER_PARAMS_KEY] = obj.hparams
-                        checkpoint[obj.CHECKPOINT_HYPER_PARAMS_TYPE] = type(obj.hparams)
-                    else:
-                        checkpoint[obj.CHECKPOINT_HYPER_PARAMS_KEY] = dict(obj.hparams)
+                if hasattr(obj, "_hparams_name"):
+                    checkpoint[obj.CHECKPOINT_HYPER_PARAMS_NAME] = obj._hparams_name
+                # dump arguments
+                if _OMEGACONF_AVAILABLE and isinstance(obj.hparams, Container):
+                    checkpoint[obj.CHECKPOINT_HYPER_PARAMS_KEY] = obj.hparams
+                    checkpoint[obj.CHECKPOINT_HYPER_PARAMS_TYPE] = type(obj.hparams)
+                else:
+                    checkpoint[obj.CHECKPOINT_HYPER_PARAMS_KEY] = dict(obj.hparams)
 
         # dump stateful datamodule
         datamodule = self.trainer.datamodule
