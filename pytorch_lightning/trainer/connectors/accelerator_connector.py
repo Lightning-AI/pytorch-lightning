@@ -102,6 +102,7 @@ class AcceleratorConnector:
         benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
         deterministic: bool = False,
+        auto_select_gpus: bool = False,
         num_processes: Optional[int] = None,  # deprecated
         tpu_cores: Optional[Union[List[int], int]] = None,  # deprecated
         ipus: Optional[int] = None,  # deprecated
@@ -173,6 +174,7 @@ class AcceleratorConnector:
         self.checkpoint_io: Optional[CheckpointIO] = None
         self._amp_type_flag: Optional[LightningEnum] = None
         self._amp_level_flag: Optional[str] = amp_level
+        self._auto_select_gpus: bool = auto_select_gpus
 
         self._check_config_and_set_final_flags(
             strategy=strategy,

@@ -465,6 +465,7 @@ class Trainer(
             benchmark=benchmark,
             replace_sampler_ddp=replace_sampler_ddp,
             deterministic=deterministic,
+            auto_select_gpus=auto_select_gpus,
             precision=precision,
             amp_type=amp_backend,
             amp_level=amp_level,

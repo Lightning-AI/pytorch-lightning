@@ -99,6 +99,7 @@ class LightningLite(ABC):
             amp_type="native",
             amp_level=None,
             plugins=plugins,
+            auto_select_gpus=False,
         )
         self._strategy = self._accelerator_connector.strategy
         self._accelerator = self._strategy.accelerator
