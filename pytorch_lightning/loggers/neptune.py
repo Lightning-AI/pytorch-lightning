@@ -24,7 +24,7 @@ import os
 import warnings
 from argparse import Namespace
 from functools import reduce
-from typing import Any, Dict, Generator, Optional, Set, Union
+from typing import Any, Dict, Generator, Optional, Set, Union, Mapping, Callable, Sequence
 from weakref import ReferenceType
 
 import torch
@@ -265,6 +265,8 @@ class NeptuneLogger(LightningLoggerBase):
         run: Optional["Run"] = None,
         log_model_checkpoints: Optional[bool] = True,
         prefix: str = "training",
+        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
         **neptune_run_kwargs,
     ):
         # verify if user passed proper init arguments
@@ -275,7 +277,7 @@ class NeptuneLogger(LightningLoggerBase):
                 " `pip install neptune-client`."
             )
 
-        super().__init__()
+        super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
         self._log_model_checkpoints = log_model_checkpoints
         self._prefix = prefix
         self._run_name = name

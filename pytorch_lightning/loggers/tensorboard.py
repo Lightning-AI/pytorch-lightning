@@ -19,7 +19,7 @@ TensorBoard Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, Sequence, Mapping, Callable
 
 import numpy as np
 import torch
@@ -94,9 +94,11 @@ class TensorBoardLogger(LightningLoggerBase):
         default_hp_metric: bool = True,
         prefix: str = "",
         sub_dir: Optional[str] = None,
+        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
         **kwargs,
     ):
-        super().__init__()
+        super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
         self._save_dir = save_dir
         self._name = name or ""
         self._version = version
