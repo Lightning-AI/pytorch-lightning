@@ -38,7 +38,7 @@ class DDPShardedStrategy(DDPStrategy):
     """Optimizer and gradient sharded training provided by FairScale."""
 
     strategy_name = "ddp_sharded"
-    _REDUCE_BUFFER_SIZE_DEFAULT: int = 2 ** 23  # 8M
+    _REDUCE_BUFFER_SIZE_DEFAULT: int = 2**23  # 8M
 
     def configure_ddp(self) -> None:
         trainer = self.lightning_module.trainer
