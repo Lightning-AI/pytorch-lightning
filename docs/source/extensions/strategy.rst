@@ -16,7 +16,7 @@ The Strategy in PyTorch Lightning handles the following responsibilities:
 * Handles/owns optimizers and schedulers.
 
 
-A Strategy is a composition of one :doc:`Accelerator <../extensions/accelerator>`, one :doc:`Precision Plugin <../extensions/plugins>`, a :doc:`CheckpointIO <../extensions/plugins>` plugin and other optional plugins such as the :doc:`ClusterEnvironment <../extensions/plugins>`.
+A Strategy is a composition of one :doc:`Accelerator <../extensions/accelerator>`, one :ref:`Precision Plugin <extensions/plugins:Precision Plugins>`, a :ref:`CheckpointIO <extensions/plugins:CheckpointIO Plugins>` plugin and other optional plugins such as the :ref:`ClusterEnvironment <extensions/plugins:Cluster Environments>`.
 
 .. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/strategies/overview.jpeg
     :alt: Illustration of the Strategy as a composition of the Accelerator and several plugins
@@ -63,7 +63,7 @@ Here are some examples:
     trainer = Trainer(accelerator="ipu", devices=8)
 
 
-The below table lists all relevant strategies available Lightning with their corresponding short-hand name:
+The below table lists all relevant strategies available in Lightning with their corresponding short-hand name:
 
 
 .. list-table:: Strategy Classes and Nicknames
