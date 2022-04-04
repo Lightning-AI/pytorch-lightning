@@ -75,15 +75,18 @@ pull_request_rules:
         - approved-reviews-by=awaelchli
         - approved-reviews-by=Borda
         - approved-reviews-by=carmocca
+        - approved-reviews-by=ethanwharris
+        - approved-reviews-by=kaushikb11
+        - approved-reviews-by=rohitgr7
         - approved-reviews-by=tchaton
         - approved-reviews-by=williamFalcon
     actions:
       post_check:
         title: |
           {% if check_succeed %}
-          This PR has Gris.ai approval
+          This PR has Gris.ai approval.
           {% else %}
-          This PR is waiting approval from a Grid person
+          This PR is waiting approval from a Grid.ai person.
           {% endif %}
         summary: |
           {% if not check_succeed %}
