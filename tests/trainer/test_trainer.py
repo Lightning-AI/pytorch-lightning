@@ -26,6 +26,7 @@ from unittest.mock import ANY, call, patch
 import cloudpickle
 import pytest
 import torch
+from torch.multiprocessing import ProcessRaisedException
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
 from torch.utils.data import DataLoader, IterableDataset
@@ -52,7 +53,7 @@ from pytorch_lightning.strategies import (
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
-from pytorch_lightning.utilities.imports import _IS_WINDOWS, _OMEGACONF_AVAILABLE, _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.seed import seed_everything
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.boring_model import RandomIterableDataset, RandomIterableDatasetWithLen
@@ -62,11 +63,6 @@ from tests.helpers.simple_models import ClassificationModel
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
-
-if _TORCH_GREATER_EQUAL_1_8:
-    from torch.multiprocessing import ProcessRaisedException
-else:
-    ProcessRaisedException = Exception
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -403,7 +399,7 @@ def test_model_freeze_unfreeze():
         assert param.requires_grad
 
 
-@pytest.mark.xfail(reason="FIXME(@carmocca): this test wasn't running and is now broken")
+# TODO: move to `test/models/test_restore.py`
 @pytest.mark.parametrize("url_ckpt", [True, False])
 def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Verify resuming from checkpoint runs the right number of epochs."""
@@ -426,11 +422,12 @@ def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ck
             self.num_on_load_checkpoint_called += 1
 
     model = TestModel()
+    max_epochs = 2
     trainer = Trainer(
-        max_epochs=2,
+        max_epochs=max_epochs,
         limit_train_batches=0.65,
         limit_val_batches=1,
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)],
+        callbacks=ModelCheckpoint(dirpath=tmpdir, save_top_k=-1),
         default_root_dir=tmpdir,
         val_check_interval=1.0,
         enable_progress_bar=False,
@@ -439,27 +436,25 @@ def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ck
     )
     trainer.fit(model)
 
-    assert model.num_epochs_end_seen == 2
-    assert model.num_batches_seen == trainer.num_training_batches * 2
+    assert model.num_epochs_end_seen == max_epochs
+    assert model.num_batches_seen == trainer.num_training_batches * max_epochs == trainer.global_step
     assert model.num_on_load_checkpoint_called == 0
 
-    # Other checkpoints can be uncommented if/when resuming mid-epoch is supported
-    checkpoints = Path(trainer.checkpoint_callback.dirpath).glob("*.ckpt")
+    checkpoints = set(Path(trainer.checkpoint_callback.dirpath).glob("*.ckpt"))
     if url_ckpt:
         # transform local paths into url checkpoints
         ip, port = tmpdir_server
         checkpoints = [f"http://{ip}:{port}/" + ckpt.name for ckpt in checkpoints]
 
-    assert checkpoints
+    assert len(checkpoints) == max_epochs
     for ckpt in checkpoints:
-        next_model = TestModel()
+        model = TestModel()
         state = pl_load(ckpt)
-
         # Resume training
-        new_trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
-        new_trainer.fit(next_model, ckpt_path=ckpt)
-        assert state["global_step"] + next_model.num_batches_seen == trainer.num_training_batches * trainer.max_epochs
-        assert next_model.num_on_load_checkpoint_called == 1
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, enable_progress_bar=False)
+        trainer.fit(model, ckpt_path=ckpt)
+        assert state["global_step"] + model.num_batches_seen == trainer.global_step
+        assert model.num_on_load_checkpoint_called == 1
 
 
 def test_trainer_max_steps_and_epochs(tmpdir):
@@ -1101,17 +1096,13 @@ def test_invalid_gradient_clip_algo(tmpdir):
         Trainer(default_root_dir=tmpdir, gradient_clip_algorithm="norm2")
 
 
-def test_gpu_choice(tmpdir):
-    trainer_options = dict(default_root_dir=tmpdir)
-    # Only run if CUDA is available
-    if not torch.cuda.is_available():
-        return
-
+@RunIf(min_gpus=1)
+def test_gpu_choice():
     num_gpus = torch.cuda.device_count()
-    Trainer(**trainer_options, accelerator="gpu", devices=num_gpus, auto_select_gpus=True)
+    Trainer(accelerator="gpu", devices=num_gpus, auto_select_gpus=True)
 
     with pytest.raises(MisconfigurationException, match=r".*But your machine only has.*"):
-        Trainer(**trainer_options, accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
+        Trainer(accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
 
 
 @pytest.mark.parametrize("limit_val_batches", [0.0, 1, 1.0, 0.5, 5])
@@ -1500,9 +1491,8 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
     assert len(predictions) == 8
 
 
-@pytest.mark.skipif(_IS_WINDOWS and not _TORCH_GREATER_EQUAL_1_8, reason="torch.distributed support required")
 def test_spawn_predict_return_predictions(tmpdir):
-    """Test that `return_predictions=True` raise a MisconfigurationException with spawn training type plugins."""
+    """Test that `return_predictions=True` raise a MisconfigurationException with spawn strategies."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", strategy="ddp_spawn", devices=2, fast_dev_run=True)
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
@@ -1749,7 +1739,7 @@ class TrainerStagesModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "strategy,num_processes", [(None, 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True, skip_49370=True))]
+    "strategy,num_processes", [(None, 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True))]
 )
 def test_model_in_correct_mode_during_stages(tmpdir, strategy, num_processes):
     model = TrainerStagesModel()
@@ -1770,7 +1760,7 @@ class TestDummyModelForCheckpoint(BoringModel):
         pass
 
 
-@RunIf(skip_windows=True, skip_49370=True)
+@RunIf(skip_windows=True)
 def test_fit_test_synchronization(tmpdir):
     """Test that the trainer synchronizes processes before returning control back to the caller."""
     tutils.set_random_main_port()

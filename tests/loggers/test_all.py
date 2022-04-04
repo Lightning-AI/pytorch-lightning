@@ -101,7 +101,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
 
         def validation_epoch_end(self, outputs) -> None:
             avg_val_loss = torch.stack([x["x"] for x in outputs]).mean()
-            self.log_dict({"early_stop_on": avg_val_loss, "val_loss": avg_val_loss ** 0.5})
+            self.log_dict({"early_stop_on": avg_val_loss, "val_loss": avg_val_loss**0.5})
 
         def test_epoch_end(self, outputs) -> None:
             avg_test_loss = torch.stack([x["y"] for x in outputs]).mean()
@@ -311,7 +311,7 @@ class RankZeroLoggerCheck(Callback):
 
 
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE_WANDB)
-@RunIf(skip_windows=True, skip_49370=True, skip_hanging_spawn=True)
+@RunIf(skip_windows=True, skip_hanging_spawn=True)
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """Test that loggers get replaced by dummy loggers on global rank > 0."""
     _patch_comet_atexit(monkeypatch)

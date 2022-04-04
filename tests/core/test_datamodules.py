@@ -487,14 +487,3 @@ def test_define_as_dataclass():
     assert hasattr(BoringDataModule2, "__repr__")
     assert BoringDataModule2(batch_size=32).prepare_data() is None
     assert BoringDataModule2(batch_size=32) == BoringDataModule2(batch_size=32)
-
-
-def test_inconsistent_prepare_data_per_node(tmpdir):
-    with pytest.raises(MisconfigurationException, match="Inconsistent settings found for `prepare_data_per_node`."):
-        model = BoringModel()
-        dm = BoringDataModule()
-        with pytest.deprecated_call(match="prepare_data_per_node` with the trainer flag is deprecated"):
-            trainer = Trainer(prepare_data_per_node=False)
-        trainer.model = model
-        trainer.datamodule = dm
-        trainer._data_connector.prepare_data()

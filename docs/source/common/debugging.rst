@@ -97,14 +97,13 @@ argument of :class:`~pytorch_lightning.trainer.trainer.Trainer`)
 
 .. testcode::
 
-    # use only 1% of training data (and turn off validation)
+    # use only 1% of training/validation data
     trainer = Trainer(overfit_batches=0.01)
 
     # similar, but with a fixed 10 batches
     trainer = Trainer(overfit_batches=10)
 
-When using this flag, validation will be disabled. We will also replace the sampler
-in the training set to turn off shuffle for you.
+When using this flag, Lightning will also replace the sampler in the training & validation dataloader to turn off shuffle for you.
 
 
 ----------------
