@@ -85,11 +85,11 @@ pull_request_rules:
       post_check:
         title: |
           {% if check_succeed %}
-          This PR has Gris.ai approval.
+          This PR has Grid.ai approval.
           {% else %}
           This PR is waiting approval from a Grid.ai person.
           {% endif %}
         summary: |
           {% if not check_succeed %}
-          Each pull request has to be approved at least by one Grid.ai employee.
+          Each pull request must be approved by at least one Grid.ai team member.
           {% endif %}
