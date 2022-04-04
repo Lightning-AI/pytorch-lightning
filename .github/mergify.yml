@@ -87,7 +87,7 @@ pull_request_rules:
           {% if check_succeed %}
           This PR has Grid.ai approval.
           {% else %}
-          This PR is waiting approval from a Grid.ai person.
+          This PR is waiting for approval from a Grid.ai team member.
           {% endif %}
         summary: |
           {% if not check_succeed %}
