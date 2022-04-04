@@ -399,23 +399,23 @@ class CheckpointConnector:
         # dump hyper-parameters
         if model.hparams:
             if hasattr(model, "_hparams_name"):
-                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
+                checkpoint[model.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
             # dump arguments
             if _OMEGACONF_AVAILABLE and isinstance(model.hparams, Container):
-                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
-                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
+                checkpoint[model.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
+                checkpoint[model.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
             else:
-                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = dict(model.hparams)
+                checkpoint[model.CHECKPOINT_HYPER_PARAMS_KEY] = dict(model.hparams)
 
         if datamodule and datamodule.hparams:
             if hasattr(datamodule, "_hparams_name"):
-                checkpoint[pl.LightningDataModule.CHECKPOINT_HYPER_PARAMS_NAME] = datamodule._hparams_name
+                checkpoint[datamodule.CHECKPOINT_HYPER_PARAMS_NAME] = datamodule._hparams_name
             # dump arguments
             if _OMEGACONF_AVAILABLE and isinstance(datamodule.hparams, Container):
-                checkpoint[pl.LightningDataModule.CHECKPOINT_HYPER_PARAMS_KEY] = datamodule.hparams
-                checkpoint[pl.LightningDataModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(datamodule.hparams)
+                checkpoint[datamodule.CHECKPOINT_HYPER_PARAMS_KEY] = datamodule.hparams
+                checkpoint[datamodule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(datamodule.hparams)
             else:
-                checkpoint[pl.LightningDataModule.CHECKPOINT_HYPER_PARAMS_KEY] = dict(datamodule.hparams)
+                checkpoint[datamodule.CHECKPOINT_HYPER_PARAMS_KEY] = dict(datamodule.hparams)
 
         # dump stateful datamodule
         datamodule = self.trainer.datamodule
