@@ -25,9 +25,9 @@ do
 
   python $LEGACY_PATH/simple_classif_training.py > /dev/null 2>&1
 
-  cp $LEGACY_PATH/simple_classif_training.py ${LEGACY_PATH}/checkpoints/$pl_ver
-  mv ${LEGACY_PATH}/checkpoints/$pl_ver/lightning_logs/version_0/checkpoints/*.ckpt $LEGACY_PATH/checkpoints/$pl_ver/
-  rm -rf ${LEGACY_PATH}/checkpoints/$pl_ver/lightning_logs
+  cp $LEGACY_PATH/simple_classif_training.py $LEGACY_PATH/checkpoints/$pl_ver
+  mv $LEGACY_PATH/checkpoints/$pl_ver/lightning_logs/version_0/checkpoints/*.ckpt $LEGACY_PATH/checkpoints/$pl_ver/
+  rm -rf $LEGACY_PATH/checkpoints/$pl_ver/lightning_logs
 
   deactivate
   rm -rf $ENV_PATH
