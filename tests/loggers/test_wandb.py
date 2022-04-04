@@ -34,9 +34,7 @@ def test_wandb_logger_init(wandb, monkeypatch):
 
     # test wandb.init called when there is no W&B run
     wandb.run = None
-    logger = WandbLogger(
-        name="test_name", save_dir="test_save_dir", version="test_id", project="test_project", resume="never"
-    )
+    logger = WandbLogger(name="test_name", save_dir="test_save_dir", project="test_project", resume="never")
     logger.log_metrics({"acc": 1.0})
     wandb.init.assert_called_once_with(
         name="test_name", dir="test_save_dir", id="test_id", project="test_project", resume="never", anonymous=None
