@@ -68,3 +68,24 @@ pull_request_rules:
       request_reviews:
         teams:
           - "@PyTorchLightning/core-lightning"
+
+  - name: Grid.ai approval
+    conditions:
+      - or:
+        - approved-reviews-by=awaelchli
+        - approved-reviews-by=Borda
+        - approved-reviews-by=carmocca
+        - approved-reviews-by=tchaton
+        - approved-reviews-by=williamFalcon
+    actions:
+      post_check:
+        title: |
+          {% if check_succeed %}
+          This PR has Gris.ai approval
+          {% else %}
+          This PR is waiting approval from a Grid person
+          {% endif %}
+        summary: |
+          {% if not check_succeed %}
+          Each pull request has to be approved at least by one Grid.ai employee.
+          {% endif %}
