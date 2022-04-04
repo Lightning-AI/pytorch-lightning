@@ -75,49 +75,46 @@ The below table lists all relevant strategies available Lightning with their cor
      - Description
    * - bagua
      - :class:`~pytorch_lightning.strategies.BaguaStrategy`
-     - Strategy for training using the Bagua library, with advanced distributed training algorithms and system optimizations.
-   * - ddp2
-     - :class:`~pytorch_lightning.strategies.DDP2Strategy`
-     - DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP.
+     - Strategy for training using the Bagua library, with advanced distributed training algorithms and system optimizations. :ref:`Learn more. <accelerators/gpu:Bagua>`
    * - fsdp
      - :class:`~pytorch_lightning.strategies.DDPFullyShardedStrategy`
-     - Strategy for Fully Sharded Data Parallel provided by FairScale.
+     - Strategy for Fully Sharded Data Parallel provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Fully Sharded Training>`
    * - ddp_sharded
      - :class:`~pytorch_lightning.strategies.DDPShardedStrategy`
-     - Optimizer and gradient sharded training provided by FairScale.
+     - Optimizer and gradient sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Sharded Training>`
    * - ddp_spawn_sharded
      - :class:`~pytorch_lightning.strategies.DDPSpawnShardedStrategy`
-     - Optimizer sharded training provided by FairScale.
+     - Optimizer sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Sharded Training>`
    * - ddp_spawn
      - :class:`~pytorch_lightning.strategies.DDPSpawnStrategy`
-     - Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training finishes.
+     - Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training finishes. :ref:`Learn more. <accelerators/gpu:Distributed Data Parallel Spawn>`
    * - ddp
      - :class:`~pytorch_lightning.strategies.DDPStrategy`
-     - Strategy for multi-process single-device training on one or multiple nodes.
+     - Strategy for multi-process single-device training on one or multiple nodes. :ref:`Learn more. <accelerators/gpu:Distributed Data Parallel>`
    * - dp
      - :class:`~pytorch_lightning.strategies.DataParallelStrategy`
-     - Implements data-parallel training in a single process, i.e., the model gets replicated to each device and each gets a split of the data.
+     - Implements data-parallel training in a single process, i.e., the model gets replicated to each device and each gets a split of the data. :ref:`Learn more. <accelerators/gpu:Data Parallel>`
    * - deepspeed
      - :class:`~pytorch_lightning.strategies.DeepSpeedStrategy`
-     - Provides capabilities to run training using the DeepSpeed library, with training optimizations for large billion parameter models.
+     - Provides capabilities to run training using the DeepSpeed library, with training optimizations for large billion parameter models. :ref:`Learn more. <advanced/model_parallel:deepspeed>`
    * - horovod
      - :class:`~pytorch_lightning.strategies.HorovodStrategy`
-     - Strategy for Horovod distributed training integration.
+     - Strategy for Horovod distributed training integration. :ref:`Learn more. <accelerators/gpu:Horovod>`
    * - hpu_parallel
      - :class:`~pytorch_lightning.strategies.HPUParallelStrategy`
-     - Strategy for distributed training on multiple HPU devices.
+     - Strategy for distributed training on multiple HPU devices. :doc:`Learn more. <../accelerators/hpu>`
    * - hpu_single
      - :class:`~pytorch_lightning.strategies.SingleHPUStrategy`
-     - Strategy for training on a single HPU device.
+     - Strategy for training on a single HPU device. :doc:`Learn more. <../accelerators/hpu>`
    * - ipu_strategy
      - :class:`~pytorch_lightning.strategies.IPUStrategy`
-     - Plugin for training on IPU devices.
+     - Plugin for training on IPU devices. :doc:`Learn more. <../accelerators/ipu>`
    * - tpu_spawn
      - :class:`~pytorch_lightning.strategies.TPUSpawnStrategy`
-     - Strategy for training on multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn` method.
+     - Strategy for training on multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn` method. :doc:`Learn more. <../accelerators/tpu>`
    * - single_tpu
      - :class:`~pytorch_lightning.strategies.SingleTPUStrategy`
-     - Strategy for training on a single TPU device.
+     - Strategy for training on a single TPU device. :doc:`Learn more. <../accelerators/tpu>`
 
 
 ----------
