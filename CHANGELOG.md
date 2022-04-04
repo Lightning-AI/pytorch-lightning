@@ -72,7 +72,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated `prepare_data_per_node` argument from the `Trainer` constructor ([#12536](https://github.com/PyTorchLightning/pytorch-lightning/pull/12536))
 
 
--
+- Removed the `version` argument from the `WandbLogger` constructor ([#12142](https://github.com/PyTorchLightning/pytorch-lightning/pull/12142))
 
 
 -
