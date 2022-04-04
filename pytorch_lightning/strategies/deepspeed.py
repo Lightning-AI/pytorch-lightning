@@ -19,7 +19,7 @@ import os
 import platform
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union, Callable
 
 import torch
 from torch.nn import Module
@@ -75,27 +75,14 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
 
     def forward(self, *inputs, **kwargs):
         if self.precision == 16:
-            inputs = self._move_float_tensors_to_half(inputs)
+            inputs = self._move_float_tensors_to(inputs, torch.Tensor.half)
         elif self.precision == PrecisionType.BFLOAT:
-            inputs = self._move_float_tensors_to_bfloat(inputs)
-
+            inputs = self._move_float_tensors_to(inputs, torch.Tensor.bfloat16)
         return super().forward(*inputs, **kwargs)
 
     @staticmethod
-    def batch_to_half(data):
-        return data.half()
-
-    def _move_float_tensors_to_half(self, batch: Any):
-        batch = apply_to_collection(batch, (torch.FloatTensor, torch.cuda.FloatTensor), function=self.batch_to_half)
-        return batch
-
-    @staticmethod
-    def batch_to_bfloat(data):
-        return data.bfloat16()
-
-    def _move_float_tensors_to_bfloat(self, batch: Any):
-        batch = apply_to_collection(batch, (torch.FloatTensor, torch.cuda.FloatTensor), function=self.batch_to_bfloat)
-        return batch
+    def _move_float_tensors_to(batch: Any, function: Callable[[torch.Tensor], torch.Tensor]) -> Any:
+        return apply_to_collection(batch, (torch.FloatTensor, torch.cuda.FloatTensor), function=function)
 
 
 class DeepSpeedStrategy(DDPStrategy):
