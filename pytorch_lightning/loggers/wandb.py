@@ -316,7 +316,7 @@ class WandbLogger(Logger):
         if self._experiment is not None:
             state["_id"] = getattr(self._experiment, "id", None)
             state["_attach_id"] = getattr(self._experiment, "_attach_id", None)
-            state["_name"] = self._experiment.project_name()
+            state["_name"] = self._experiment.name
 
         # cannot be pickled
         state["_experiment"] = None
@@ -449,7 +449,7 @@ class WandbLogger(Logger):
             The name of the experiment if the experiment exists else the name given to the constructor.
         """
         # don't create an experiment if we don't have one
-        return self._experiment.project_name() if self._experiment else self._name
+        return self._experiment.name if self._experiment else self._name
 
     @property
     def version(self) -> Optional[str]:

@@ -118,7 +118,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
     if logger_class == WandbLogger:
         # required mocks for Trainer
         logger.experiment.id = "foo"
-        logger.experiment.project_name.return_value = "bar"
+        logger.experiment.name = "bar"
 
     if logger_class == CometLogger:
         logger.experiment.id = "foo"
