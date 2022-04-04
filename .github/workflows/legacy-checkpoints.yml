@@ -46,7 +46,7 @@ jobs:
 
     - name: Upload checkpoints to S3
       run: |
-        aws s3 sync checkpoints/ s3://pl-public-data/legacy/checkpoints/
+        aws s3 sync --dryrun checkpoints/ s3://pl-public-data/legacy/checkpoints/
         zip -r checkpoints.zip checkpoints
-        aws s3 cp checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
+        aws s3 cp --dryrun checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
       if: ${{ github.event.inputs.push_to_s3 == 'true' }}
