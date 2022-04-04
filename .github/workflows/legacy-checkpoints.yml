@@ -31,7 +31,7 @@ jobs:
 
     - name: Generate checkpoints
       run: |
-        bash generate_checkpoints.sh $(cat back-compatible-versions.txt)
+        bash generate_checkpoints.sh 1.0.0
 
     - name: Upload checkpoints as GitHub Actions' artifact
       uses: actions/upload-artifact@v3
