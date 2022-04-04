@@ -18,7 +18,7 @@ Weights and Biases Logger
 import os
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union, Mapping, Callable, Sequence
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
 from weakref import ReferenceType
 
 import torch.nn as nn

@@ -19,7 +19,7 @@ TensorBoard Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Union, Sequence, Mapping, Callable
+from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
 
 import numpy as np
 import torch

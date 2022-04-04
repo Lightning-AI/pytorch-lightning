@@ -19,7 +19,7 @@ Comet Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Union, Mapping, Callable, Sequence
+from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
 
 import torch
 from torch import is_tensor

@@ -24,7 +24,7 @@ import os
 import warnings
 from argparse import Namespace
 from functools import reduce
-from typing import Any, Dict, Generator, Optional, Set, Union, Mapping, Callable, Sequence
+from typing import Any, Callable, Dict, Generator, Mapping, Optional, Sequence, Set, Union
 from weakref import ReferenceType
 
 import torch
