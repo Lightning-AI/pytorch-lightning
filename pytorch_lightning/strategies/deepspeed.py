@@ -19,7 +19,7 @@ import os
 import platform
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union, Callable
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torch.nn import Module
