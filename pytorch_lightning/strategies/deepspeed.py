@@ -82,7 +82,10 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
 
     @staticmethod
     def _move_float_tensors_to(batch: Any, function: Callable[[torch.Tensor], torch.Tensor]) -> Any:
-        return apply_to_collection(batch, (torch.FloatTensor, torch.cuda.FloatTensor), function=function)
+        if isinstance(batch, torch.Tensor):
+            return function(batch) if torch.is_floating_point(batch) else batch
+
+        return apply_to_collection(batch, torch.Tensor, function=LightningDeepSpeedModule._move_float_tensors_to)
 
 
 class DeepSpeedStrategy(DDPStrategy):
@@ -267,7 +270,8 @@ class DeepSpeedStrategy(DDPStrategy):
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
-                "To use the `DeepSpeedStrategy`, you must have DeepSpeed installed. pip install deepspeed"
+                "To use the `DeepSpeedStrategy`, you must have DeepSpeed installed."
+                " Install it by running `pip install -U deepspeed`."
             )
 
         super().__init__(
@@ -510,7 +514,7 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.zero_stage_3:
             assert self._config_initialized
 
-            if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED):
+            if self.precision_plugin.precision == PrecisionType.HALF:
                 dtype = torch.float16
             elif self.precision_plugin.precision == PrecisionType.BFLOAT:
                 dtype = torch.bfloat16

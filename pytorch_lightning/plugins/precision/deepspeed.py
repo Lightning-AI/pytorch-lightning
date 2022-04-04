@@ -37,9 +37,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     Args:
         precision: Double precision (64), full precision (32), half precision (16) or bfloat16 precision (bf16).
-
         amp_type: The mixed precision backend to use ("native" or "apex").
-
         amp_level: The optimization level to use (O1, O2, etc...). By default it will be set to "O2"
             if ``amp_type`` is set to "apex".
 
@@ -55,14 +53,14 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         if precision == PrecisionType.BFLOAT and not _DEEPSPEED_GREATER_EQUAL_0_6:
             raise MisconfigurationException(
                 f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported"
-                f" with `deepspeed < v0.6`. Please upgrade it using `pip install -U deepspeed`."
+                " with `deepspeed < v0.6`. Please upgrade it using `pip install -U deepspeed`."
             )
 
-        supported_precision_values = (16, 32, PrecisionType.BFLOAT.value, PrecisionType.MIXED.value)
-        if precision not in supported_precision_values:
+        supported_precision = (PrecisionType.HALF, PrecisionType.FLOAT, PrecisionType.BFLOAT)
+        if precision not in supported_precision:
             raise ValueError(
                 f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported."
-                f" `precision` must be one of: {supported_precision_values}."
+                f" `precision` must be one of: {(x.value for x in supported_precision)}."
             )
 
         super().__init__()
