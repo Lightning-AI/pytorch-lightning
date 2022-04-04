@@ -46,7 +46,7 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.31.0
+    rev: v2.31.1
     hooks:
       - id: pyupgrade
         args: [--py37-plus]
@@ -77,14 +77,14 @@ repos:
         name: Format code
 
   - repo: https://github.com/asottile/blacken-docs
-    rev: v1.12.0
+    rev: v1.12.1
     hooks:
       - id: blacken-docs
         args: [--line-length=120]
         additional_dependencies: [black==21.12b0]
 
   - repo: https://github.com/executablebooks/mdformat
-    rev: 0.7.11
+    rev: 0.7.14
     hooks:
       - id: mdformat
         additional_dependencies:
