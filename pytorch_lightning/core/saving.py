@@ -176,13 +176,12 @@ def _load_from_checkpoint(
     map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
     hparams_file: Optional[str] = None,
     strict: Optional[bool] = None,
-    **kwargs,
-):
+    **kwargs: Any,
+) -> Any:
+    if map_location is None:
+        map_location = lambda storage, loc: storage
     with pl_legacy_patch():
-        if map_location is not None:
-            checkpoint = pl_load(checkpoint_path, map_location=map_location)
-        else:
-            checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
+        checkpoint = pl_load(checkpoint_path, map_location=map_location)
 
     if hparams_file is not None:
         extension = hparams_file.split(".")[-1]
@@ -193,14 +192,11 @@ def _load_from_checkpoint(
         else:
             raise ValueError(".csv, .yml or .yaml is required for `hparams_file`")
 
-        hparams["on_gpu"] = False
-
         # overwrite hparams by the given file
         checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = hparams
 
     # for past checkpoint need to add the new key
-    if cls.CHECKPOINT_HYPER_PARAMS_KEY not in checkpoint:
-        checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = {}
+    checkpoint.setdefault(cls.CHECKPOINT_HYPER_PARAMS_KEY, {})
     # override the hparams with values that were passed in
     checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(kwargs)
 
@@ -213,8 +209,8 @@ def _load_state(
     cls: Union["pl.LightningModule", "pl.LightningDataModule"],
     checkpoint: Dict[str, Any],
     strict: Optional[bool] = None,
-    **cls_kwargs_new,
-):
+    **cls_kwargs_new: Any,
+) -> Any:
     cls_spec = inspect.getfullargspec(cls.__init__)
     cls_init_args_name = inspect.signature(cls.__init__).parameters.keys()
 
