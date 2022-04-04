@@ -74,18 +74,21 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
         self.precision = precision
 
     def forward(self, *inputs, **kwargs):
-        if self.precision == 16:
-            inputs = self._move_float_tensors_to(inputs, torch.Tensor.half)
-        elif self.precision == PrecisionType.BFLOAT:
-            inputs = self._move_float_tensors_to(inputs, torch.Tensor.bfloat16)
+        inputs = self._move_float_tensors_to_dtype(inputs, function=self._batch_to)
         return super().forward(*inputs, **kwargs)
 
-    @staticmethod
-    def _move_float_tensors_to(batch: Any, function: Callable[[torch.Tensor], torch.Tensor]) -> Any:
-        if isinstance(batch, torch.Tensor):
-            return function(batch) if torch.is_floating_point(batch) else batch
+    def _batch_to(self, batch: torch.Tensor):
+        if torch.is_floating_point(batch):
+            if self.precision == PrecisionType.HALF:
+                return batch.half()
+            elif self.precision == PrecisionType.BFLOAT:
+                return batch.bfloat16()
 
-        return apply_to_collection(batch, torch.Tensor, function=LightningDeepSpeedModule._move_float_tensors_to)
+        return batch
+
+    @staticmethod
+    def _move_float_tensors_to_dtype(batch: Any, function: Callable[[torch.Tensor], torch.Tensor]) -> Any:
+        return apply_to_collection(batch, torch.Tensor, function=function)
 
 
 class DeepSpeedStrategy(DDPStrategy):
