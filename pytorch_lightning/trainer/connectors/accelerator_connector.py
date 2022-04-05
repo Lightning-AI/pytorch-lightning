@@ -69,6 +69,7 @@ from pytorch_lightning.strategies import (
     StrategyRegistry,
     TPUSpawnStrategy,
 )
+from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _StrategyType,
     AMPType,
@@ -422,7 +423,7 @@ class AcceleratorConnector:
         if self._devices_flag == "auto" and self._accelerator_flag is None:
             raise MisconfigurationException(
                 f"You passed `devices={devices}` but haven't specified"
-                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu'|'hpu)` for the devices mapping"
+                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu'|'hpu')` for the devices mapping"
             )
 
     def _map_deprecated_devices_specific_info_to_accelerator_and_device_flag(
@@ -532,6 +533,8 @@ class AcceleratorConnector:
         self._gpus = self._devices_flag if not self._gpus else self._gpus
         self._tpu_cores = self._devices_flag if not self._tpu_cores else self._tpu_cores
 
+        self._set_devices_flag_if_auto_select_gpus_passed()
+
         self._devices_flag = self.accelerator.parse_devices(self._devices_flag)
         if not self._parallel_devices:
             self._parallel_devices = self.accelerator.get_parallel_devices(self._devices_flag)
@@ -539,6 +542,11 @@ class AcceleratorConnector:
     def _set_devices_flag_if_auto_passed(self) -> None:
         if self._devices_flag == "auto" or self._devices_flag is None:
             self._devices_flag = self.accelerator.auto_device_count()
+
+    def _set_devices_flag_if_auto_select_gpus_passed(self) -> None:
+        if self._auto_select_gpus and isinstance(self._gpus, int) and isinstance(self.accelerator, GPUAccelerator):
+            self._devices_flag = pick_multiple_gpus(self._gpus)
+            log.info(f"Auto select gpus: {self._devices_flag}")
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
         if isinstance(self._cluster_environment_flag, ClusterEnvironment):
