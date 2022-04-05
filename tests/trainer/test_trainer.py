@@ -2256,6 +2256,7 @@ def test_fallback_to_cpu_accelerator_with_devices_auto(monkeypatch, trainer_kwar
     elif trainer_kwargs.get("accelerator") == "tpu":
         monkeypatch.setattr(pytorch_lightning.accelerators.tpu.TPUAccelerator, "is_available", lambda _: True)
 
-    trainer = Trainer(**trainer_kwargs)
+    with pytest.warns(UserWarning, match="falling back to `CPUAccelerator` with the default `devices='auto'`"):
+        trainer = Trainer(**trainer_kwargs)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert trainer.num_devices == CPUAccelerator.auto_device_count()

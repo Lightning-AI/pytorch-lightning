@@ -85,7 +85,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Avoid calling `average_parameters` multiple times per optimizer step ([#12452](https://github.com/PyTorchLightning/pytorch-lightning/pull/12452))
 
 
--
+- Fallback to `CPUAccelerator` when `([], 0, "0")` are passed to the `devices` flag and to keep it consistent with the `gpus`, `tpu_cores` and `ipus` flag ([12619](https://github.com/PyTorchLightning/pytorch-lightning/pull/12619))
 
 
 -
