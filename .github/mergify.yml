@@ -81,6 +81,7 @@ pull_request_rules:
         - approved-reviews-by=rohitgr7
         - approved-reviews-by=tchaton
         - approved-reviews-by=williamFalcon
+        - approved-reviews-by=krshrimali
     actions:
       post_check:
         title: |
