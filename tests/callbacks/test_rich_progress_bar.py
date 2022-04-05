@@ -205,7 +205,7 @@ def test_rich_progress_bar_refresh_rate_disabled(progress_update, tmpdir):
 
 
 @RunIf(rich=True)
-@pytest.mark.parametrize(("refresh_rate", "expected_call_count"), ([(3, 7), (4, 7), (7, 4)]))
+@pytest.mark.parametrize(("refresh_rate", "expected_call_count"), ([(3, 4 + 3), (4, 3 + 3), (7, 2 + 2)]))
 def test_rich_progress_bar_with_refresh_rate(tmpdir, refresh_rate, expected_call_count):
     model = BoringModel()
     trainer = Trainer(
