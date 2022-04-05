@@ -424,6 +424,14 @@ class AcceleratorConnector:
                 " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu'|'hpu)` for the devices mapping"
             )
 
+        if self._devices_flag in ([], 0, "0"):
+            rank_zero_warn(
+                f"`devices={self._devices_flag}` will be ignored,"
+                " falling back to `CPUAccelerator` with the default `devices='auto'`"
+            )
+            self._accelerator_flag = "cpu"
+            self._devices_flag = "auto"
+
     def _map_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
         self,
         devices: Optional[Union[List[int], str, int]],
