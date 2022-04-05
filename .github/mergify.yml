@@ -69,7 +69,7 @@ pull_request_rules:
         teams:
           - "@PyTorchLightning/core-lightning"
 
-  - name: Grid.ai approval
+  - name: Grid.ai employee approval
     conditions:
       - or:
         - approved-reviews-by=awaelchli
@@ -78,10 +78,10 @@ pull_request_rules:
         - approved-reviews-by=edenlightning
         - approved-reviews-by=ethanwharris
         - approved-reviews-by=kaushikb11
+        - approved-reviews-by=krshrimali
         - approved-reviews-by=rohitgr7
         - approved-reviews-by=tchaton
         - approved-reviews-by=williamFalcon
-        - approved-reviews-by=krshrimali
     actions:
       post_check:
         title: |
