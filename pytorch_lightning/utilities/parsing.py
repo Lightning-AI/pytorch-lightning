@@ -223,8 +223,9 @@ def save_hyperparameters(
         init_args = {f.name: getattr(obj, f.name) for f in fields(obj)}
     else:
         init_args = {}
-        for local_args in collect_init_args(frame, []):
-            init_args.update(local_args)
+        if frame.f_code.co_name == "__init__":
+            for local_args in collect_init_args(frame, []):
+                init_args.update(local_args)
 
     if ignore is None:
         ignore = []
