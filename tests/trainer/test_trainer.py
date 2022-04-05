@@ -2227,3 +2227,35 @@ def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_
     trainer = Trainer(**trainer_kwargs)
     assert trainer.device_ids == expected_device_ids
     assert trainer.num_devices == len(expected_device_ids)
+
+
+@pytest.mark.parametrize(
+    "trainer_kwargs",
+    [
+        {"accelerator": "cpu", "devices": []},
+        {"accelerator": "cpu", "devices": 0},
+        {"accelerator": "cpu", "devices": "0"},
+        {"accelerator": "gpu", "devices": []},
+        {"accelerator": "gpu", "devices": 0},
+        {"accelerator": "gpu", "devices": "0"},
+        {"accelerator": "ipu", "devices": []},
+        {"accelerator": "ipu", "devices": 0},
+        {"accelerator": "ipu", "devices": "0"},
+        {"accelerator": "tpu", "devices": []},
+        {"accelerator": "tpu", "devices": 0},
+        {"accelerator": "tpu", "devices": "0"},
+    ],
+)
+def test_fallback_to_cpu_accelerator_with_devices_auto(monkeypatch, trainer_kwargs):
+    if trainer_kwargs.get("accelerator") == "gpu":
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+        monkeypatch.setattr(torch.cuda, "device_count", lambda: 4)
+    elif trainer_kwargs.get("accelerator") == "ipu":
+        monkeypatch.setattr(pytorch_lightning.accelerators.ipu.IPUAccelerator, "is_available", lambda _: True)
+        monkeypatch.setattr(pytorch_lightning.strategies.ipu, "_IPU_AVAILABLE", lambda: True)
+    elif trainer_kwargs.get("accelerator") == "tpu":
+        monkeypatch.setattr(pytorch_lightning.accelerators.tpu.TPUAccelerator, "is_available", lambda _: True)
+
+    trainer = Trainer(**trainer_kwargs)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert trainer.num_devices == CPUAccelerator.auto_device_count()
