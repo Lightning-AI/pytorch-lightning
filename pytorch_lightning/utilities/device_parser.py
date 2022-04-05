@@ -240,42 +240,13 @@ def _check_data_type(device_ids: Any) -> None:
         MisconfigurationException:
             If ``device_ids`` of GPU/TPUs aren't ``int``, ``str``, sequence of ``int`` or ``None``
     """
-    # A flag which is set when incompatible input is passed
-    raise_error_flag = False
-    # If device_ids is an iterator
-    is_iterator = isinstance(device_ids, (MutableSequence, tuple))
-    # If an iterator, this will contain the type inside the iterator, else the type of device_ids
-    incompatible_type = None
-
-    if device_ids is None or (is_iterator and len(device_ids) == 0):
-        return
-
-    if (not is_iterator and not isinstance(device_ids, (int, str))) or isinstance(device_ids, bool):
-        raise_error_flag = True
-        incompatible_type = type(device_ids).__name__
-
-    if is_iterator:
-        # Iterate through the sequence, and assert it's 1 dimensional and only contains integers
-        for _iter in iter(device_ids):
-            if not isinstance(_iter, int):
-                raise_error_flag = True
-                is_iterator = True
-                incompatible_type = type(_iter).__name__
-                break
-
-    msg = (
-        "Device IDs (GPU/TPU) must be an int, a string, a sequence of ints or None,"
-        + f" but you passed {incompatible_type}"
-    )
-
-    if is_iterator:
-        msg = (
-            "Device IDs (GPU/TPU) must be an int, a string, a sequence of ints or None,"
-            + f" but you passed a sequence of {incompatible_type}"
-        )
-
-    if raise_error_flag:
-        raise MisconfigurationException(msg)
+    msg = f"Device IDs (GPU/TPU) must be an int, a string, a sequence of ints or None, but you passed "
+    if isinstance(device_ids, (MutableSequence, tuple)):
+        for id_ in device_ids:
+            if not isinstance(id_, int):
+                raise MisconfigurationException(f"{msg} a sequence of {type(id_).__name__}")
+    elif not isinstance(device_ids, (int, str)):
+        raise MisconfigurationException(f"{msg} {type(device_ids).__name__}")
 
 
 def _tpu_cores_valid(tpu_cores: Any) -> bool:

@@ -511,7 +511,7 @@ def test_accelerator_cpu(_):
 @pytest.mark.parametrize("gpu_count", (["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]]))
 def test_accelererator_invalid_type_gpus(mock_is_available, mock_device_count, gpu_count):
     with pytest.raises(
-        MisconfigurationException, match=r".* must be an int, a string, a sequence of ints or None, but you .*"
+        MisconfigurationException, match=r"must be an int, a string, a sequence of ints or None, but you"
     ):
         _ = Trainer(accelerator="gpu", gpus=gpu_count)
 
@@ -521,7 +521,7 @@ def test_accelererator_invalid_type_gpus(mock_is_available, mock_device_count, g
 @pytest.mark.parametrize("device_count", (["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]]))
 def test_accelererator_invalid_type_devices(mock_is_available, mock_device_count, device_count):
     with pytest.raises(
-        MisconfigurationException, match=r".* must be an int, a string, a sequence of ints or None, but you .*"
+        MisconfigurationException, match=r"must be an int, a string, a sequence of ints or None, but you"
     ):
         _ = Trainer(accelerator="gpu", devices=device_count)
 
