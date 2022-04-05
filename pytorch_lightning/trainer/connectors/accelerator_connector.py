@@ -213,7 +213,7 @@ class AcceleratorConnector:
     def _init_deterministic(self, deterministic: Union[bool, str]) -> None:
         self.deterministic = deterministic
         if _TORCH_GREATER_EQUAL_1_11 and deterministic == "warn":
-            torch.use_deterministic_algorithms(mode=True, warn_only=True)
+            torch.use_deterministic_algorithms(mode=True, warn_only=True)  # type: ignore[call-arg]
         else:
             torch.use_deterministic_algorithms(deterministic)
         if deterministic:
