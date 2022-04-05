@@ -380,7 +380,7 @@ class RichProgressBar(ProgressBarBase):
             self.refresh()
 
     def _should_update(self, current: int, total: Union[int, float]) -> bool:
-        return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
+        return current % self.refresh_rate == 0 or current == total
 
     def on_validation_epoch_end(self, trainer, pl_module):
         if self.val_progress_bar_id is not None and trainer.state.fn == "fit":
