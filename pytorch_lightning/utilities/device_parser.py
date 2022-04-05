@@ -241,7 +241,10 @@ def _check_data_type(device_ids: Any) -> None:
             If ``device_ids`` of GPU/TPUs aren't ``int``, ``str``, sequence of ``int`` or ``None``
     """
     msg = f"Device IDs (GPU/TPU) must be an int, a string, a sequence of ints or None, but you passed "
-    if isinstance(device_ids, (MutableSequence, tuple)):
+
+    if device_ids is None:
+        return
+    elif isinstance(device_ids, (MutableSequence, tuple)):
         for id_ in device_ids:
             if not isinstance(id_, int):
                 raise MisconfigurationException(f"{msg} a sequence of {type(id_).__name__}")
