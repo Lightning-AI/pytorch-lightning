@@ -25,6 +25,8 @@ You can make the Trainer use one or multiple plugins by adding it to the ``plugi
     trainer = Trainer(plugins=[plugin1, plugin2, ...])
 
 
+By default, the plugins get selected based on the rest of the Trainer settings such as the ``strategy``.
+
 
 -----------
 
