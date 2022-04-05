@@ -1158,43 +1158,6 @@ def test_argv_transformation_multiple_callbacks_with_config():
     assert argv == expected
 
 
-@pytest.mark.parametrize(
-    ["args", "expected", "nested_key", "registry"],
-    [
-        (
-            ["--optimizer", "Adadelta"],
-            {"class_path": "torch.optim.adadelta.Adadelta", "init_args": {}},
-            "optimizer",
-            OPTIMIZER_REGISTRY,
-        ),
-        (
-            ["--optimizer", "Adadelta", "--optimizer.lr", "10"],
-            {"class_path": "torch.optim.adadelta.Adadelta", "init_args": {"lr": "10"}},
-            "optimizer",
-            OPTIMIZER_REGISTRY,
-        ),
-        (
-            ["--lr_scheduler", "OneCycleLR"],
-            {"class_path": "torch.optim.lr_scheduler.OneCycleLR", "init_args": {}},
-            "lr_scheduler",
-            LR_SCHEDULER_REGISTRY,
-        ),
-        (
-            ["--lr_scheduler", "OneCycleLR", "--lr_scheduler.anneal_strategy=linear"],
-            {"class_path": "torch.optim.lr_scheduler.OneCycleLR", "init_args": {"anneal_strategy": "linear"}},
-            "lr_scheduler",
-            LR_SCHEDULER_REGISTRY,
-        ),
-    ],
-)
-def test_argv_transformations_with_optimizers_and_lr_schedulers(args, expected, nested_key, registry):
-    base = ["any.py", "--trainer.max_epochs=1"]
-    argv = base + args
-    _populate_registries(False)
-    new_argv = LightningArgumentParser._convert_argv_issue_84(registry.classes, nested_key, argv)
-    assert new_argv == base + [f"--{nested_key}", str(expected)]
-
-
 def test_optimizers_and_lr_schedulers_reload(tmpdir):
     base = ["any.py", "--trainer.max_epochs=1"]
     input = base + [

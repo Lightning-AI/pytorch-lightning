@@ -221,7 +221,6 @@ class LightningArgumentParser(ArgumentParser):
         kwargs = {"instantiate": False, "fail_untyped": False, "skip": {"params"}}
         if isinstance(optimizer_class, tuple):
             self.add_subclass_arguments(optimizer_class, nested_key, **kwargs)
-            self.set_choices(nested_key, optimizer_class)
         else:
             self.add_class_arguments(optimizer_class, nested_key, sub_configs=True, **kwargs)
         self._optimizers[nested_key] = (optimizer_class, link_to)
@@ -246,7 +245,6 @@ class LightningArgumentParser(ArgumentParser):
         kwargs = {"instantiate": False, "fail_untyped": False, "skip": {"optimizer"}}
         if isinstance(lr_scheduler_class, tuple):
             self.add_subclass_arguments(lr_scheduler_class, nested_key, **kwargs)
-            self.set_choices(nested_key, lr_scheduler_class)
         else:
             self.add_class_arguments(lr_scheduler_class, nested_key, sub_configs=True, **kwargs)
         self._lr_schedulers[nested_key] = (lr_scheduler_class, link_to)
@@ -261,8 +259,6 @@ class LightningArgumentParser(ArgumentParser):
             # knowing whether the argument is a list type automatically would be too complex
             if is_list:
                 argv = self._convert_argv_issue_85(classes, k, argv)
-            else:
-                argv = self._convert_argv_issue_84(classes, k, argv)
         self._choices.clear()
         with mock.patch("sys.argv", argv):
             return super().parse_args(*args, **kwargs)
@@ -276,69 +272,6 @@ class LightningArgumentParser(ArgumentParser):
             is_list: Whether the argument is a ``List[object]`` type.
         """
         self._choices[nested_key] = (classes, is_list)
-
-    @staticmethod
-    def _convert_argv_issue_84(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> List[str]:
-        """Placeholder for https://github.com/omni-us/jsonargparse/issues/84.
-
-        Adds support for shorthand notation for ``object`` arguments.
-        """
-        passed_args, clean_argv = {}, []
-        argv_key = f"--{nested_key}"
-        # get the argv args for this nested key
-        i = 0
-        while i < len(argv):
-            arg = argv[i]
-            if arg.startswith(argv_key):
-                if "=" in arg:
-                    key, value = arg.split("=")
-                else:
-                    key = arg
-                    i += 1
-                    value = argv[i]
-                passed_args[key] = value
-            else:
-                clean_argv.append(arg)
-            i += 1
-
-        # the user requested a help message
-        help_key = argv_key + ".help"
-        if help_key in passed_args:
-            argv_class = passed_args[help_key]
-            if "." in argv_class:
-                # user passed the class path directly
-                class_path = argv_class
-            else:
-                # convert shorthand format to the classpath
-                for cls in classes:
-                    if cls.__name__ == argv_class:
-                        class_path = _class_path_from_class(cls)
-                        break
-                else:
-                    raise ValueError(f"Could not generate get the class_path for {repr(argv_class)}")
-            return clean_argv + [help_key, class_path]
-
-        # generate the associated config file
-        argv_class = passed_args.pop(argv_key, "")
-        if not argv_class:
-            # the user passed a config as a str
-            class_path = passed_args[f"{argv_key}.class_path"]
-            init_args_key = f"{argv_key}.init_args"
-            init_args = {k[len(init_args_key) + 1 :]: v for k, v in passed_args.items() if k.startswith(init_args_key)}
-            config = str({"class_path": class_path, "init_args": init_args})
-        elif argv_class.startswith("{") or argv_class in ("None", "True", "False"):
-            # the user passed a config as a dict
-            config = argv_class
-        else:
-            # the user passed the shorthand format
-            init_args = {k[len(argv_key) + 1 :]: v for k, v in passed_args.items()}  # +1 to account for the period
-            for cls in classes:
-                if cls.__name__ == argv_class:
-                    config = str(_global_add_class_path(cls, init_args))
-                    break
-            else:
-                raise ValueError(f"Could not generate a config for {repr(argv_class)}")
-        return clean_argv + [argv_key, config]
 
     @staticmethod
     def _convert_argv_issue_85(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> List[str]:
@@ -602,14 +535,10 @@ class LightningCLI:
         """Adds arguments from the core classes to the parser."""
         parser.add_lightning_class_args(self.trainer_class, "trainer")
         parser.set_choices("trainer.callbacks", CALLBACK_REGISTRY.classes, is_list=True)
-        parser.set_choices("trainer.logger", LOGGER_REGISTRY.classes)
         trainer_defaults = {"trainer." + k: v for k, v in self.trainer_defaults.items() if k != "callbacks"}
         parser.set_defaults(trainer_defaults)
 
         parser.add_lightning_class_args(self._model_class, "model", subclass_mode=self.subclass_mode_model)
-        if self.model_class is None and len(MODEL_REGISTRY):
-            # did not pass a model and there are models registered
-            parser.set_choices("model", MODEL_REGISTRY.classes)
 
         if self.datamodule_class is not None:
             parser.add_lightning_class_args(self._datamodule_class, "data", subclass_mode=self.subclass_mode_data)
@@ -618,7 +547,6 @@ class LightningCLI:
             parser.add_lightning_class_args(
                 self._datamodule_class, "data", subclass_mode=self.subclass_mode_data, required=False
             )
-            parser.set_choices("data", DATAMODULE_REGISTRY.classes)
 
     def _add_arguments(self, parser: LightningArgumentParser) -> None:
         # default + core + custom arguments
@@ -627,9 +555,9 @@ class LightningCLI:
         self.add_arguments_to_parser(parser)
         # add default optimizer args if necessary
         if not parser._optimizers:  # already added by the user in `add_arguments_to_parser`
-            parser.add_optimizer_args(OPTIMIZER_REGISTRY.classes)
+            parser.add_optimizer_args((Optimizer,))
         if not parser._lr_schedulers:  # already added by the user in `add_arguments_to_parser`
-            parser.add_lr_scheduler_args(LR_SCHEDULER_REGISTRY.classes)
+            parser.add_lr_scheduler_args(LRSchedulerTypeTuple)
         self.link_optimizers_and_lr_schedulers(parser)
 
     def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
