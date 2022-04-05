@@ -14,7 +14,7 @@
 import os
 import time
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 import torch.multiprocessing as mp
 
@@ -31,6 +31,9 @@ if _TPU_AVAILABLE:
 else:
     xm, xmp, MpDeviceLoader, rendezvous = [None] * 4
 
+if TYPE_CHECKING:
+    from pytorch_lightning.strategies import Strategy
+
 
 class _XLASpawnLauncher(_SpawnLauncher):
     r"""Spawns processes that run a given function in parallel on XLA supported hardware, and joins them all at the end.
@@ -42,9 +45,20 @@ class _XLASpawnLauncher(_SpawnLauncher):
     Note:
         - This launcher requires all objects to be pickleable.
         - It is important that the entry point to the program/script is guarded by ``if __name__ == "__main__"``.
+
+    Args:
+        strategy: A reference to the strategy that is used together with this launcher
     """
 
-    def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
+    def __init__(self, strategy: "Strategy") -> None:
+        super().__init__(strategy)
+        self._start_method = "fork"
+
+    @property
+    def is_interactive_compatible(self) -> bool:
+        return True
+
+    def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
         """Spawns processes that run the given function in parallel.
 
         The function is allowed to have a return value. However, when all processes join, only the return value
@@ -53,19 +67,17 @@ class _XLASpawnLauncher(_SpawnLauncher):
         Arguments:
             function: The entry point for all spawned processes.
             *args: Optional positional arguments to be passed to the given function.
+            trainer: Optional reference to the :class:`~pytorch_lightning.trainer.trainer.Trainer` for which
+                a selected set of attributes get restored in the main process after processes join.
             **kwargs: Optional keyword arguments to be passed to the given function.
-                If a keyword argument named `trainer` is present and is an instance of
-                :class:`~pytorch_lightning.trainer.trainer.Trainer`, a selected set of attributes from the trainer get
-                restored in the main process after processes join. The `trainer` keyword argument will NOT be passed
-                into the function.
         """
-        trainer = kwargs.pop("trainer", None)
-        context = mp.get_context(self._strategy.start_method or "fork")
+        context = mp.get_context(self._start_method)
         return_queue = context.SimpleQueue()
         xmp.spawn(
             self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
-            **self._strategy.get_mp_spawn_kwargs()
+            nprocs=len(self._strategy.parallel_devices),
+            start_method=self._start_method,
         )
         spawn_output = return_queue.get()
         if trainer is None:

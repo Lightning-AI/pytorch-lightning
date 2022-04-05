@@ -11,13 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import annotations
-
-from typing import Any
+from typing import Any, Dict, List, Union
 
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _DEVICE
 
@@ -35,9 +34,21 @@ class CPUAccelerator(Accelerator):
         if root_device.type != "cpu":
             raise MisconfigurationException(f"Device should be CPU, got {root_device} instead.")
 
-    def get_device_stats(self, device: _DEVICE) -> dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """CPU device stats aren't supported yet."""
         return {}
+
+    @staticmethod
+    def parse_devices(devices: Union[int, str, List[int]]) -> int:
+        """Accelerator device parsing logic."""
+        devices = device_parser.parse_cpu_cores(devices)
+        return devices
+
+    @staticmethod
+    def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
+        """Gets parallel devices for the Accelerator."""
+        devices = device_parser.parse_cpu_cores(devices)
+        return [torch.device("cpu")] * devices
 
     @staticmethod
     def auto_device_count() -> int:
@@ -48,3 +59,11 @@ class CPUAccelerator(Accelerator):
     def is_available() -> bool:
         """CPU is always available for execution."""
         return True
+
+    @classmethod
+    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+        accelerator_registry.register(
+            "cpu",
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )

@@ -163,8 +163,9 @@ def test_custom_optimizer_step_with_multiple_optimizers(tmpdir):
             return loss
 
         def training_epoch_end(self, outputs) -> None:
-            # outputs should be an array with an entry per optimizer
-            assert len(outputs) == 2
+            # outputs should be an array of batches with an entry per optimizer
+            assert len(outputs) == limit_train_batches
+            assert all(len(o) == 2 for o in outputs)
 
         def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, **_):
             # update first optimizer every step

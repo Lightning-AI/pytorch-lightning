@@ -13,6 +13,7 @@
 # limitations under the License.
 from typing import Optional
 
+import pytest
 import torch
 from torch.utils.data import DataLoader
 
@@ -24,10 +25,6 @@ _SKLEARN_AVAILABLE = _module_available("sklearn")
 if _SKLEARN_AVAILABLE:
     from sklearn.datasets import make_classification, make_regression
     from sklearn.model_selection import train_test_split
-else:
-    make_classification = None
-    make_regression = None
-    train_test_split = None
 
 
 class MNISTDataModule(LightningDataModule):
@@ -60,6 +57,8 @@ class MNISTDataModule(LightningDataModule):
 
 class SklearnDataModule(LightningDataModule):
     def __init__(self, sklearn_dataset, x_type, y_type, batch_size: int = 10):
+        if not _SKLEARN_AVAILABLE:
+            pytest.skip("`sklearn` is not available.")
         super().__init__()
         self.batch_size = batch_size
         self._x, self._y = sklearn_dataset
@@ -102,6 +101,8 @@ class SklearnDataModule(LightningDataModule):
 
 class ClassifDataModule(SklearnDataModule):
     def __init__(self, num_features=32, length=800, num_classes=3, batch_size=10):
+        if not _SKLEARN_AVAILABLE:
+            pytest.skip("`sklearn` is not available.")
         data = make_classification(
             n_samples=length, n_features=num_features, n_classes=num_classes, n_clusters_per_class=1, random_state=42
         )
@@ -110,6 +111,8 @@ class ClassifDataModule(SklearnDataModule):
 
 class RegressDataModule(SklearnDataModule):
     def __init__(self, num_features=16, length=800, batch_size=10):
+        if not _SKLEARN_AVAILABLE:
+            pytest.skip("`sklearn` is not available.")
         x, y = make_regression(n_samples=length, n_features=num_features, random_state=42)
         y = [[v] for v in y]
         super().__init__((x, y), x_type=torch.float32, y_type=torch.float32, batch_size=batch_size)

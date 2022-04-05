@@ -19,6 +19,7 @@ import torch
 from torch import Tensor
 from torch.optim import Optimizer
 
+from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.optimization.closure import AbstractClosure, OutputResult
@@ -29,10 +30,9 @@ from pytorch_lightning.loops.utilities import (
     check_finite_loss,
 )
 from pytorch_lightning.trainer.progress import OptimizationProgress
-from pytorch_lightning.utilities import _AcceleratorType, AMPType
+from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
-from pytorch_lightning.utilities.imports import _TPU_AVAILABLE
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -235,7 +235,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         closure = self._make_closure(split_batch, batch_idx, opt_idx, optimizer)
 
         if (
-            # when the training type plugin handles accumulation, we want to always call the optimizer step
+            # when the strategy handles accumulation, we want to always call the optimizer step
             not self.trainer.strategy.handles_gradient_accumulation
             and self.trainer.fit_loop._should_accumulate()
         ):
@@ -359,7 +359,11 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         else:
             optimizer = self.trainer.strategy._lightning_optimizers[opt_idx]
 
-        self.optim_progress.optimizer.step.increment_ready()
+        # if `strategy.handles_gradient_accumulation`, this method will be called to route into the strategy, but we
+        # need to check again if `should_accumulate` before increasing the counters
+        should_accumulate = self.trainer.fit_loop._should_accumulate()
+        if not should_accumulate:
+            self.optim_progress.optimizer.step.increment_ready()
 
         # model hook
         self.trainer._call_lightning_module_hook(
@@ -369,12 +373,13 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             optimizer,
             opt_idx,
             train_step_and_backward_closure,
-            on_tpu=(self.trainer._device_type == _AcceleratorType.TPU and _TPU_AVAILABLE),
+            on_tpu=isinstance(self.trainer.accelerator, TPUAccelerator),
             using_native_amp=(self.trainer.amp_backend == AMPType.NATIVE),
             using_lbfgs=is_lbfgs,
         )
 
-        self.optim_progress.optimizer.step.increment_completed()
+        if not should_accumulate:
+            self.optim_progress.optimizer.step.increment_completed()
 
     def _on_before_zero_grad(self, optimizer: torch.optim.Optimizer) -> None:
         """Calls the ``on_before_zero_grad`` hook.
@@ -414,32 +419,30 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         # give the PL module a result for logging
         lightning_module = self.trainer.lightning_module
 
-        with self.trainer.profiler.profile("model_forward"):
+        step_kwargs = _build_training_step_kwargs(
+            lightning_module, self.trainer.optimizers, split_batch, batch_idx, opt_idx, self._hiddens
+        )
 
-            step_kwargs = _build_training_step_kwargs(
-                lightning_module, self.trainer.optimizers, split_batch, batch_idx, opt_idx, self._hiddens
-            )
+        # manually capture logged metrics
+        training_step_output = self.trainer._call_strategy_hook("training_step", *step_kwargs.values())
+        self.trainer.strategy.post_training_step()
 
-            # manually capture logged metrics
-            training_step_output = self.trainer._call_strategy_hook("training_step", *step_kwargs.values())
-            self.trainer.strategy.post_training_step()
+        model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
+        strategy_output = self.trainer._call_strategy_hook("training_step_end", training_step_output)
+        training_step_output = strategy_output if model_output is None else model_output
 
-            model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
-            strategy_output = self.trainer._call_strategy_hook("training_step_end", training_step_output)
-            training_step_output = strategy_output if model_output is None else model_output
+        self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 
-            self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
+        result = self.output_result_cls.from_training_step_output(
+            training_step_output, self.trainer.accumulate_grad_batches
+        )
 
-            result = self.output_result_cls.from_training_step_output(
-                training_step_output, self.trainer.accumulate_grad_batches
-            )
+        if self.trainer._terminate_on_nan:
+            check_finite_loss(result.closure_loss)
 
-            if self.trainer._terminate_on_nan:
-                check_finite_loss(result.closure_loss)
-
-            if self.trainer.move_metrics_to_cpu:
-                # hiddens and the training step output are not moved as they are not considered "metrics"
-                assert self.trainer._results is not None
-                self.trainer._results.cpu()
+        if self.trainer.move_metrics_to_cpu:
+            # hiddens and the training step output are not moved as they are not considered "metrics"
+            assert self.trainer._results is not None
+            self.trainer._results.cpu()
 
         return result

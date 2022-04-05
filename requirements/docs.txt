@@ -7,10 +7,11 @@ docutils>=0.16
 sphinxcontrib-fulltoc>=1.0
 sphinxcontrib-mockautodoc
 https://github.com/PyTorchLightning/lightning_sphinx_theme/archive/master.zip#egg=pt-lightning-sphinx-theme
-sphinx-autodoc-typehints>=1.0,<1.15  # v1.15 failing on master (#11405)
+sphinx-autodoc-typehints>=1.11,<1.15  # v1.15 failing on master (#11405)
 sphinx-paramlinks>=0.5.1
 sphinx-togglebutton>=0.2
 sphinx-copybutton>=0.3
 typing-extensions  # already in `requirements.txt` but the docs CI job does not install it
+jinja2>=3.0.0,<3.1.0
 
 -r ../_notebooks/.actions/requirements.txt

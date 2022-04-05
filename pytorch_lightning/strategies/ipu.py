@@ -19,7 +19,7 @@ import torch
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -40,7 +40,9 @@ else:
 
 
 class LightningIPUModule(_LightningModuleWrapperBase):
-    def __init__(self, pl_module: "pl.LightningModule", precision: Union[str, int]):
+    def __init__(
+        self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: Union[str, int]
+    ) -> None:
         super().__init__(pl_module)
         self.precision = precision
 
@@ -214,12 +216,13 @@ class IPUStrategy(ParallelStrategy):
     def _convert_to_poptorch_loader(
         self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None
     ) -> "poptorch.DataLoader":
-        dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler)
-        # Override to drop last uneven batch, as IPUs does not support uneven inputs.
-        dl_kwargs["drop_last"] = True
+        if isinstance(dataloader, poptorch.DataLoader):
+            # the user is returning the `poptorch.DataLoader` directly, don't change anything.
+            return dataloader
 
+        dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler)
         opts = self.training_opts if mode == RunningStage.TRAINING else self.inference_opts
-        dataloader = poptorch.DataLoader(**dl_kwargs, options=opts)
+        dataloader = poptorch.DataLoader(opts, **dl_kwargs)
         return dataloader
 
     def _handle_gradient_accumulation_steps(self) -> None:

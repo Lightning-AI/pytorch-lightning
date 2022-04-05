@@ -117,7 +117,7 @@ class TrainerCallbackHookMixin(ABC):
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_fit_start` was deprecated in v1.6 and will be removed in v1.8.
 
-        Called when the trainer initialization begins, model has not yet been set.
+        Called when fit begins.
         """
         rank_zero_deprecation(
             "`TrainerCallbackHookMixin.on_fit_start` was deprecated in v1.6 and will be removed in v1.8."
@@ -130,7 +130,7 @@ class TrainerCallbackHookMixin(ABC):
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_fit_end` was deprecated in v1.6 and will be removed in v1.8.
 
-        Called when the trainer initialization begins, model has not yet been set.
+        Called when fit ends.
         """
         rank_zero_deprecation(
             "`TrainerCallbackHookMixin.on_fit_end` was deprecated in v1.6 and will be removed in v1.8."

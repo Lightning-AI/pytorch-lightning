@@ -26,6 +26,7 @@ from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.distributed import group as dist_group
 from pytorch_lightning.utilities.distributed import ReduceOp
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
@@ -76,6 +77,11 @@ class HorovodStrategy(ParallelStrategy):
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 
+    @property
+    def handles_gradient_accumulation(self) -> bool:
+        """Whether the plugin handles gradient accumulation internally."""
+        return True
+
     def setup(self, trainer: "pl.Trainer") -> None:
         self.model_to_device()
 
@@ -111,7 +117,13 @@ class HorovodStrategy(ParallelStrategy):
         for optimizer in optimizers:
             hvd.broadcast_optimizer_state(optimizer, root_rank=0)
 
-        self.optimizers = self._wrap_optimizers(optimizers)
+        accumulation_scheduler = trainer.accumulation_scheduler
+        if accumulation_scheduler.epochs != [0]:
+            raise MisconfigurationException(
+                "Horovod currently does not support different `accumulate_grad_batches` at different epochs."
+            )
+
+        self.optimizers = self._wrap_optimizers(optimizers, trainer.accumulate_grad_batches)
         for optimizer in self.optimizers:
             # Synchronization will be performed explicitly following backward()
             self._exit_stack.enter_context(optimizer.skip_synchronize())
@@ -181,10 +193,16 @@ class HorovodStrategy(ParallelStrategy):
         for optimizer in self.optimizers:
             optimizer.synchronize()
 
-    def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["hvd.DistributedOptimizer"]:
+    def _wrap_optimizers(
+        self, optimizers: List[Optimizer], accumulate_grad_batches: int
+    ) -> List["hvd.DistributedOptimizer"]:
         """Wraps optimizers to perform gradient aggregation via allreduce."""
         return [
-            hvd.DistributedOptimizer(opt, named_parameters=self._filter_named_parameters(self.lightning_module, opt))
+            hvd.DistributedOptimizer(
+                opt,
+                backward_passes_per_step=accumulate_grad_batches,
+                named_parameters=self._filter_named_parameters(self.lightning_module, opt),
+            )
             if "horovod" not in str(opt.__class__)
             else opt
             for opt in optimizers

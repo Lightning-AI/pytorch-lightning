@@ -8,7 +8,7 @@ local tputests = base.BaseTest {
   mode: 'postsubmit',
   configMaps: [],
 
-  timeout: 900, # 15 minutes, in seconds.
+  timeout: 1200, # 20 minutes, in seconds.
 
   image: 'pytorchlightning/pytorch_lightning',
   imageTag: 'base-xla-py{PYTHON_VERSION}-torch{PYTORCH_VERSION}',

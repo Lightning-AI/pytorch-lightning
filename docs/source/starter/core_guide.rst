@@ -7,7 +7,7 @@
 .. _introduction_guide:
 
 #########################
-Step-by-step walk-through
+Step-by-step Walk-through
 #########################
 This guide will walk you through the core pieces of PyTorch Lightning.
 
@@ -16,7 +16,7 @@ We'll accomplish the following:
 - Implement an MNIST classifier.
 - Use inheritance to implement an AutoEncoder
 
-.. note:: Any DL/ML PyTorch project fits into the Lightning structure. Here we just focus on 3 types
+.. note:: Any DL/ML PyTorch project fits into the Lightning structure. Here we just focus on three types
     of research to illustrate.
 
 --------------
@@ -30,7 +30,7 @@ Installing Lightning
 ====================
 
 
-Lightning is trivial to install. We recommend using conda environments
+Lightning is easy to install. We recommend using conda environments
 
 .. code-block:: bash
 
@@ -51,7 +51,7 @@ Or conda.
 
 -------------
 
-The research
+The Research
 ============
 
 The Model
@@ -99,7 +99,7 @@ Let's first start with the model. In this case, we'll design a 3-layer neural ne
             return x
 
 Notice this is a :doc:`lightning module <../common/lightning_module>` instead of a ``torch.nn.Module``. A LightningModule is
-equivalent to a pure PyTorch Module except it has added functionality. However, you can use it **EXACTLY** the same as you would a PyTorch Module.
+equivalent to a pure PyTorch ``nn.Module`` except it has added functionality. However, you can use it **exactly** the same as you would a PyTorch ``nn.Module``.
 
 .. testcode::
 
@@ -122,7 +122,7 @@ equivalent to a pure PyTorch Module except it has added functionality. However, 
     torch.Size([1, 10])
 
 
-Now we add the ``training_step`` which has all our training loop logic:
+Now, we add the ``training_step`` which has all our training loop logic:
 
 .. testcode::
 
@@ -137,7 +137,7 @@ Now we add the ``training_step`` which has all our training loop logic:
 Optimizer
 ---------
 
-Next we choose which optimizer to use for training our system.
+Next, we choose which optimizer to use for training our system.
 In PyTorch, we do it as follows:
 
 .. code-block:: python
@@ -217,7 +217,7 @@ Lightning operates on pure dataloaders. Here's the PyTorch code for loading MNIS
     Processing...
     Done!
 
-You can use DataLoaders in 3 ways:
+You can use DataLoaders in three ways:
 
 1. Pass DataLoaders to .fit()
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -412,7 +412,7 @@ This code is not restricted which means it can be as complicated as a full seq-2
 
 ----------------
 
-The engineering
+The Engineering
 ===============
 
 Training
@@ -501,8 +501,7 @@ Once your training starts, you can view the logs by using your favorite logger o
 
     tensorboard --logdir ./lightning_logs
 
-
-Which will generate automatic tensorboard logs (or with the logger of your choice).
+this generates automatic tensorboard logs (or with the logger of your choice).
 
 .. figure:: ../_static/images/mnist_imgs/mnist_tb.png
    :alt: mnist CPU bar
@@ -510,7 +509,7 @@ Which will generate automatic tensorboard logs (or with the logger of your choic
 
 |
 
-But you can also use any of the :doc:`number of other loggers <../common/loggers>` we support.
+You can also use any of the :doc:`number of other loggers <../common/loggers>` we support.
 
 
 Train on CPU
@@ -536,7 +535,7 @@ But the beauty is all the magic you can do with the trainer flags. For instance,
 .. code-block:: python
 
     model = LitMNIST()
-    trainer = Trainer(gpus=1)
+    trainer = Trainer(accelerator="gpu", devices=1)
     trainer.fit(model, train_loader)
 
 
@@ -550,7 +549,7 @@ Or you can also train on multiple GPUs.
 .. code-block:: python
 
     model = LitMNIST()
-    trainer = Trainer(gpus=8)
+    trainer = Trainer(accelerator="gpu", devices=8)
     trainer.fit(model, train_loader)
 
 Or multiple nodes
@@ -559,7 +558,7 @@ Or multiple nodes
 
     # (32 GPUs)
     model = LitMNIST()
-    trainer = Trainer(gpus=8, num_nodes=4, strategy="ddp")
+    trainer = Trainer(accelerator="gpu", devices=8, num_nodes=4, strategy="ddp")
     trainer.fit(model, train_loader)
 
 Refer to the :ref:`distributed computing guide for more details <accelerators/gpu:Multi GPU Training>`.
@@ -597,8 +596,7 @@ will cause all sorts of issues.
 To solve this problem, make sure your download code is in the ``prepare_data`` method in the DataModule.
 In this method we do all the preparation we need to do once (instead of on every GPU).
 
-``prepare_data`` can be called in two ways, once per node or only on the root node
-(``Trainer(prepare_data_per_node=False)``).
+``prepare_data`` can be called in two ways, once per node or only on the root node.
 
 .. code-block:: python
 
@@ -646,7 +644,7 @@ Now we can train the LightningModule on a TPU without doing anything else!
 
     dm = MNISTDataModule()
     model = LitMNIST()
-    trainer = Trainer(tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
     trainer.fit(model, dm)
 
 You'll now see the TPU cores booting up.
@@ -689,7 +687,7 @@ Now we can train with a validation loop as well.
     from pytorch_lightning import Trainer
 
     model = LitMNIST()
-    trainer = Trainer(tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
     trainer.fit(model, train_loader, val_loader)
 
 You may have noticed the words **Validation sanity check** logged. This is because Lightning runs 2 batches
@@ -769,7 +767,7 @@ Once you train your model simply call ``.test()``.
     from pytorch_lightning import Trainer
 
     model = LitMNIST()
-    trainer = Trainer(tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
     trainer.fit(model)
 
     # run test set
@@ -792,7 +790,7 @@ You can also run the test from a saved lightning model
 .. code-block:: python
 
     model = LitMNIST.load_from_checkpoint(PATH)
-    trainer = Trainer(tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
     trainer.test(model)
 
 .. note:: Lightning disables gradients, puts model in eval mode, and does everything needed for testing.
@@ -1003,15 +1001,15 @@ Child Modules
 
 ----------
 
-*********************
-Why PyTorch Lightning
-*********************
+**********************
+Why PyTorch Lightning?
+**********************
 
 a. Less boilerplate
 ===================
 
 Research and production code starts with simple code, but quickly grows in complexity
-once you add GPU training, 16-bit, checkpointing, logging, etc...
+once you add GPU training, 16-bit, checkpointing, logging, and so on.
 
 PyTorch Lightning implements these features for you and tests them rigorously to make sure you can
 instead focus on the research idea.

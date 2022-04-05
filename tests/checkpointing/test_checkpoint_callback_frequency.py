@@ -81,13 +81,13 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
     trainer.fit(model)
 
     if save_last:
-        # last epochs are saved every step (so double the save calls) and once `on_train_end`
-        expected = expected * 2 + 1
+        # last epochs are saved every step (so double the save calls)
+        expected = expected * 2
     assert save_mock.call_count == expected
 
 
 @mock.patch("torch.save")
-@RunIf(standalone=True, min_gpus=2)
+@RunIf(min_gpus=2, standalone=True)
 @pytest.mark.parametrize(["k", "epochs", "val_check_interval", "expected"], [(1, 1, 1.0, 1), (2, 2, 0.3, 4)])
 def test_top_k_ddp(save_mock, tmpdir, k, epochs, val_check_interval, expected):
     class TestModel(BoringModel):

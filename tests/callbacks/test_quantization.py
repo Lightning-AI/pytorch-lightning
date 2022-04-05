@@ -16,23 +16,17 @@ from typing import Callable, Union
 
 import pytest
 import torch
+from torch.quantization import FakeQuantizeBase
 from torchmetrics.functional import mean_absolute_percentage_error as mape
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8
 from pytorch_lightning.utilities.memory import get_model_size_mb
 from tests.helpers.boring_model import RandomDataset
 from tests.helpers.datamodules import RegressDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import RegressionModel
-
-if _TORCH_GREATER_EQUAL_1_8:
-    from torch.quantization import FakeQuantizeBase
-else:
-    # For torch 1.7.
-    from torch.quantization import FakeQuantize as FakeQuantizeBase
 
 
 @pytest.mark.parametrize("observe", ["average", "histogram"])
@@ -69,6 +63,7 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     # test that the test score is almost the same as with pure training
     assert torch.allclose(org_score, quant_score, atol=0.45)
     model_path = trainer.checkpoint_callback.best_model_path
+    curr_epoch = trainer.current_epoch
 
     trainer_args.update(dict(max_epochs=1, enable_checkpointing=False))
     if not convert:
@@ -85,6 +80,15 @@ def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     # todo: make it work also with strict loading
     qmodel2 = RegressionModel.load_from_checkpoint(model_path, strict=False)
     quant2_score = torch.mean(torch.tensor([mape(qmodel2(x), y) for x, y in dm.test_dataloader()]))
+    assert torch.allclose(org_score, quant2_score, atol=0.45)
+
+    # test without and with QAT callback
+    trainer_args.update(max_epochs=curr_epoch + 1)
+    qmodel2 = RegressionModel()
+    trainer = Trainer(callbacks=[QuantizationAwareTraining()], **trainer_args)
+    trainer.fit(qmodel2, datamodule=dm, ckpt_path=model_path)
+    quant2_score = torch.mean(torch.tensor([mape(qmodel2(x), y) for x, y in dm.test_dataloader()]))
+    # test that the test score is almost the same as with pure training
     assert torch.allclose(org_score, quant2_score, atol=0.45)
 
 

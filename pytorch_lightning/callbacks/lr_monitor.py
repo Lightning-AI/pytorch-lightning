@@ -104,7 +104,7 @@ class LearningRateMonitor(Callback):
             MisconfigurationException:
                 If ``Trainer`` has no ``logger``.
         """
-        if not trainer.logger:
+        if not trainer.loggers:
             raise MisconfigurationException(
                 "Cannot use `LearningRateMonitor` callback with `Trainer` that has no logger."
             )
@@ -149,8 +149,7 @@ class LearningRateMonitor(Callback):
         self.last_momentum_values = {name + "-momentum": None for name in names_flatten}
 
     def on_train_batch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
-        assert trainer.logger is not None
-        if not trainer.logger_connector.should_update_logs:
+        if not trainer._logger_connector.should_update_logs:
             return
 
         if self.logging_interval != "epoch":
@@ -158,16 +157,17 @@ class LearningRateMonitor(Callback):
             latest_stat = self._extract_stats(trainer, interval)
 
             if latest_stat:
-                trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
+                for logger in trainer.loggers:
+                    logger.log_metrics(latest_stat, step=trainer.fit_loop.epoch_loop._batches_that_stepped)
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", *args: Any, **kwargs: Any) -> None:
-        assert trainer.logger is not None
         if self.logging_interval != "step":
             interval = "epoch" if self.logging_interval is None else "any"
             latest_stat = self._extract_stats(trainer, interval)
 
             if latest_stat:
-                trainer.logger.log_metrics(latest_stat, step=trainer.global_step)
+                for logger in trainer.loggers:
+                    logger.log_metrics(latest_stat, step=trainer.fit_loop.epoch_loop._batches_that_stepped)
 
     def _extract_stats(self, trainer: "pl.Trainer", interval: str) -> Dict[str, float]:
         latest_stat = {}
