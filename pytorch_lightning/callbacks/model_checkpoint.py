@@ -520,6 +520,8 @@ class ModelCheckpoint(Callback):
                 if name not in metrics:
                     metrics[name] = 0
             filename = filename.format(**metrics)
+            # filename cannot contain '/' slash by definition
+            filename = filename.replace('/','_')
 
         if prefix:
             filename = cls.CHECKPOINT_JOIN_CHAR.join([prefix, filename])
