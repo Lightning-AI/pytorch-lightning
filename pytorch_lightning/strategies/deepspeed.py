@@ -86,7 +86,6 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
         return batch
 
 
-
 class DeepSpeedStrategy(DDPStrategy):
     strategy_name = "deepspeed"
     DEEPSPEED_ENV_VAR = "PL_DEEPSPEED_CONFIG_PATH"
