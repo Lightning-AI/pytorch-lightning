@@ -38,9 +38,9 @@ from pytorch_lightning.utilities import grad_norm
         (
             3.14,
             {
-                "grad_3.14_norm/param0": pow(1 + 2 ** 3.14 + 3 ** 3.14, 1 / 3.14),
-                "grad_3.14_norm/param1": pow(4 ** 3.14 + 5 ** 3.14, 1 / 3.14),
-                "grad_3.14_norm_total": pow(1 + 2 ** 3.14 + 3 ** 3.14 + 4 ** 3.14 + 5 ** 3.14, 1 / 3.14),
+                "grad_3.14_norm/param0": pow(1 + 2**3.14 + 3**3.14, 1 / 3.14),
+                "grad_3.14_norm/param1": pow(4**3.14 + 5**3.14, 1 / 3.14),
+                "grad_3.14_norm_total": pow(1 + 2**3.14 + 3**3.14 + 4**3.14 + 5**3.14, 1 / 3.14),
             },
         ),
         (

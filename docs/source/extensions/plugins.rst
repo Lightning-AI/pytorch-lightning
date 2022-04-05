@@ -18,6 +18,19 @@ There are three types of Plugins in Lightning with different responsibilities:
 - CheckpointIO Plugins
 - Cluster Environments
 
+You can make the Trainer use one or multiple plugins by adding it to the ``plugins`` argument like so:
+
+.. code-block:: python
+
+    trainer = Trainer(plugins=[plugin1, plugin2, ...])
+
+
+By default, the plugins get selected based on the rest of the Trainer settings such as the ``strategy``.
+
+
+-----------
+
+.. _precision_plugins:
 
 *****************
 Precision Plugins
@@ -56,6 +69,9 @@ More information regarding precision with Lightning can be found :doc:`here <../
 
 -----------
 
+
+.. _checkpoint_io_plugins:
+
 ********************
 CheckpointIO Plugins
 ********************
@@ -76,9 +92,12 @@ Below is a list of built-in plugins for checkpointing.
     TorchCheckpointIO
     XLACheckpointIO
 
-You could learn more about custom checkpointing with Lightning :ref:`here <customize_checkpointing>`.
+Learn more about custom checkpointing with Lightning :ref:`here <customize_checkpointing>`.
 
 -----------
+
+
+.. _cluster_environment_plugins:
 
 ********************
 Cluster Environments

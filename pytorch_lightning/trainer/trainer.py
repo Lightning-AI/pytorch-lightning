@@ -1154,7 +1154,7 @@ class Trainer(
         # ----------------------------
         # INSPECT THE CORE LOOPS
         # ----------------------------
-        fr"""
+        rf"""
              Lightning internal flow looks like this:
         {Trainer.fit} or {Trainer.test} or {Trainer.predict}  ||
                                 |                             ||
