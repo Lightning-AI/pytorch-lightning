@@ -105,7 +105,7 @@ class AcceleratorConnector:
         deterministic: bool = False,
         auto_select_gpus: bool = False,
         num_processes: Optional[int] = None,  # deprecated
-        tpu_cores: Optional[Union[List[int], int]] = None,  # deprecated
+        tpu_cores: Optional[Union[List[int], str, int]] = None,  # deprecated
         ipus: Optional[int] = None,  # deprecated
         gpus: Optional[Union[List[int], str, int]] = None,  # deprecated
     ) -> None:
