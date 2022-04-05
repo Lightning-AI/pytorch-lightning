@@ -219,7 +219,7 @@ class Trainer(
                 a power search or `binsearch` that estimates the batch size through a binary search.
                 Default: ``False``.
 
-            auto_select_gpus: If enabled and ``gpus`` is an integer, pick available
+            auto_select_gpus: If enabled and ``gpus`` or ``devices`` is an integer, pick available
                 gpus automatically. This is especially useful when
                 GPUs are configured to be in "exclusive mode", such
                 that only one process at a time can access them.
