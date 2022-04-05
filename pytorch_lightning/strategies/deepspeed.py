@@ -85,7 +85,6 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
                 return batch.bfloat16()
         return batch
 
-        return batch
 
 
 class DeepSpeedStrategy(DDPStrategy):
