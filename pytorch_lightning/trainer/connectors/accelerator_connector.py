@@ -107,7 +107,6 @@ class AcceleratorConnector:
         tpu_cores: Optional[Union[List[int], int]] = None,  # deprecated
         ipus: Optional[int] = None,  # deprecated
         gpus: Optional[Union[List[int], str, int]] = None,  # deprecated
-        gpu_ids: Optional[List[int]] = None,  # TODO can be removed
     ) -> None:
         """The AcceleratorConnector parses several Trainer arguments and instantiates the Strategy including other
         components such as the Accelerator and Precision plugins.
