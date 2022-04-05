@@ -83,15 +83,21 @@ Finally, add the XPUAccelerator to the Trainer:
 Registering Accelerators
 ------------------------
 
-If you wish to switch to a custom accelerator from the CLI without code changes, you can use the :class:`~pytorch_lightning.accelerators.registry.AcceleratorRegistry` to register your new accelerator under a shorthand name like so:
+If you wish to switch to a custom accelerator from the CLI without code changes, you can implement the :meth:`~pytorch_lightning.accelerators.accelerator.Accelerator.register_accelerators` class method to register your new accelerator under a shorthand name like so:
 
 .. code-block:: python
 
-    from pytorch_lightning.accelerators import AcceleratorRegistry
+    class XPUAccelerator(Accelerator):
+        ...
 
-    AcceleratorRegistry.register("xpu", XPUAccelerator, description="XPU Accelerator")
+        @classmethod
+        def register_accelerators(cls, accelerator_registry):
+            accelerator_registry.register(
+                "xpu",
+                cls,
+                description=f"XPU Accelerator - optimized for large-scale machine learning.",
+            )
 
-You can put this code at the top of your training script for example.
 Now, this is possible:
 
 .. code-block:: python
