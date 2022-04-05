@@ -56,7 +56,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 " with `deepspeed < v0.6`. Please upgrade it using `pip install -U deepspeed`."
             )
 
-        supported_precision = (PrecisionType.HALF, PrecisionType.FLOAT, PrecisionType.BFLOAT)
+        supported_precision = (PrecisionType.HALF, PrecisionType.FLOAT, PrecisionType.BFLOAT, PrecisionType.MIXED)
         if precision not in supported_precision:
             raise ValueError(
                 f"`Trainer(strategy='deepspeed', precision={precision!r})` is not supported."
