@@ -17,6 +17,7 @@ import os
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
+import torch.nn.functional as F
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
@@ -49,6 +50,7 @@ def gather_all_tensors(result: torch.Tensor, group: Optional[Any] = None) -> Lis
 
     Works on tensors that have the same number of dimensions, but where each dimension may differ. In this case
     tensors are padded, gathered and then trimmed to secure equal workload for all processes.
+
     Args:
         result: the value to sync
         group: the process group to gather results from. Defaults to all processes (world)
@@ -92,6 +94,12 @@ def gather_all_tensors(result: torch.Tensor, group: Optional[Any] = None) -> Lis
     for idx, item_size in enumerate(local_sizes):
         slice_param = [slice(dim_size) for dim_size in item_size]
         gathered_result[idx] = gathered_result[idx][slice_param]
+    return gathered_result
+
+
+def _simple_gather_all_tensors(result: torch.Tensor, group: Any, world_size: int) -> List[torch.Tensor]:
+    gathered_result = [torch.zeros_like(result) for _ in range(world_size)]
+    torch.distributed.all_gather(gathered_result, result, group)
     return gathered_result
 
 
