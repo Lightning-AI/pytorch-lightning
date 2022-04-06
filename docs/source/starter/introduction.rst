@@ -3,11 +3,11 @@
 ################################
 Level 1: Lightning in 15 minutes
 ################################
-**Required background: None**
+**Required background:** None   
+
+**Goal:** In this guide, we'll walk you through the 9 key steps of a typical Lightning workflow.
 
 PyTorch Lightning is the deep learning framework with "batteries included" for professional AI researchers and machine learning engineers who need maximal flexibility while super-charging performance at scale.
-
-This Level 1 guide walks you through the 9 key concepts you need to "learn" Lightning.
 
 ----
 
@@ -15,7 +15,7 @@ This Level 1 guide walks you through the 9 key concepts you need to "learn" Ligh
 1: Code organization
 ********************
 
-Concept 1: When you use Lightning, you're organizing PyTorch code to remove boilerplate and enable scalability.
+When you use Lightning, you're organizing PyTorch code to remove boilerplate and enable scalability.
 
 .. raw:: html
 
@@ -78,7 +78,7 @@ By organizing PyTorch code, lightning enables:
    <div class="row" style='font-size: 14px'>
       <div class='col-md-6'>
 
-For `pip <https://pypi.org/project/pytorch-lightning/>`_ (and conda) users
+For `pip <https://pypi.org/project/pytorch-lightning/>`_ users
 
 .. code-block:: bash
 
@@ -210,9 +210,9 @@ The Lightning :class:`~pytorch_lightning.trainer.Trainer` automates 40+ things i
 
 ----
 
-****************
-6: Trainer flags
-****************
+*******************************
+6: Customize Trainer parameters
+*******************************
 
 Training tips/tricks, custom cluster integrations or even the latest SOTA techniques can be enabled via the Lightning Trainer.
 
@@ -238,11 +238,13 @@ Training tips/tricks, custom cluster integrations or even the latest SOTA techni
 
 ----
 
-********
-7: Hooks
-********
+**************************
+7: Customize training loop
+**************************
 
-Whenever you need control over any part of the training loop, simply override any of the 20+ hooks found in :ref:`lightning_hooks`.
+Explain what the loop is (viz image...) and also show that you can inject code into the loop
+
+Whenever you need to customize any part of the training loop, simply implement any of the 20+ methods (*:ref:`lightning_hooks`*) available in the LightningModule.
 
 .. testcode::
 
@@ -252,11 +254,12 @@ Whenever you need control over any part of the training loop, simply override an
 
 ----
 
-************
-8: Callbacks
-************
+*********************
+8: Extend the Trainer
+*********************
+[IMAGE]
 
-If you need complex modular programs, you can create a callback that can run during the lifecycle of your model.
+If you have multiple lines of code with similar functionalities, you can use callbacks to easily group them together and toggle all of those lines on or off at the same time.
 
 .. code::
 
@@ -264,9 +267,9 @@ If you need complex modular programs, you can create a callback that can run dur
 
 ----
 
-****************
-9: Own your loop
-****************
+*****************************
+9: Control your training loop
+*****************************
 
 For certain types of work at the bleeding-edge of research, Lightning offers experts full control of their training loops in various ways.
 
@@ -304,3 +307,4 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
     </div>
 
 .. End of callout item section
+
