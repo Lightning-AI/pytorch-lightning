@@ -1,7 +1,7 @@
 approvals:
   # check will fail if there is no approval
   minimum: 1
-  groups: 
+  groups:
     - name: GridAI
       minimum: 1
       from:
