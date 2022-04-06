@@ -18,6 +18,7 @@ from collections import Counter
 from typing import Dict, List, Optional, Union
 
 import torch
+from typing_extensions import Literal
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
@@ -71,7 +72,6 @@ from pytorch_lightning.strategies import (
 )
 from pytorch_lightning.utilities import (
     _StrategyType,
-    _TORCH_GREATER_EQUAL_1_11,
     AMPType,
     device_parser,
     LightningEnum,
@@ -80,7 +80,13 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE, _HPU_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE
+from pytorch_lightning.utilities.imports import (
+    _HOROVOD_AVAILABLE,
+    _HPU_AVAILABLE,
+    _IPU_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_11,
+    _TPU_AVAILABLE,
+)
 
 log = logging.getLogger(__name__)
 
@@ -102,7 +108,7 @@ class AcceleratorConnector:
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
-        deterministic: Union[bool, str] = False,
+        deterministic: Union[bool, Literal["warn"]] = False,
         num_processes: Optional[int] = None,  # deprecated
         tpu_cores: Optional[Union[List[int], int]] = None,  # deprecated
         ipus: Optional[int] = None,  # deprecated
@@ -210,10 +216,10 @@ class AcceleratorConnector:
         # 6. Instantiate Strategy - Part 2
         self._lazy_init_strategy()
 
-    def _init_deterministic(self, deterministic: Union[bool, str]) -> None:
+    def _init_deterministic(self, deterministic: Union[bool, Literal["warn"]]) -> None:
         self.deterministic = deterministic
         if _TORCH_GREATER_EQUAL_1_11 and deterministic == "warn":
-            torch.use_deterministic_algorithms(mode=True, warn_only=True)  # type: ignore[call-arg]
+            torch.use_deterministic_algorithms(True, warn_only=True)
         else:
             torch.use_deterministic_algorithms(deterministic)
         if deterministic:

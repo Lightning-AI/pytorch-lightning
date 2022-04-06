@@ -29,6 +29,7 @@ import torch
 from packaging.version import Version
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, HPUAccelerator, IPUAccelerator, TPUAccelerator
@@ -175,7 +176,7 @@ class Trainer(
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, str]] = None,
         benchmark: Optional[bool] = None,
-        deterministic: bool = False,
+        deterministic: Union[bool, Literal["warn"]] = False,
         reload_dataloaders_every_n_epochs: int = 0,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
