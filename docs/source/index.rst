@@ -77,8 +77,8 @@ Or read the `advanced install guide <starter/installation.html>`_
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Use this 2-step guide to learn the key concepts.
-   :header: New to Lightning?
+   :description: Learn the 9 concepts that enable you to build the majority of models.
+   :header: Level 1: Lightning in 15 minutes
    :button_link:  starter/introduction.html
 
 .. customcalloutitem::
@@ -139,7 +139,7 @@ Or read the `advanced install guide <starter/installation.html>`_
 .. toctree::
    :maxdepth: 1
    :name: levels
-   :caption: Expertise Levels
+   :caption: Level up
 
    levels/introductory
    levels/intermediate

@@ -20,7 +20,7 @@ Introductory level teaches you the basics of the framework. Researchers and mach
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Learn the two key ideas that enable you to build the majority of models.
+   :description: Learn the 9 concepts that enable you to build the majority of models.
    :header: Level 1
    :button_link: starter/introduction.html
    :card_style: text-container-small
