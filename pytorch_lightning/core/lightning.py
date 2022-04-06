@@ -45,7 +45,6 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.memory import get_model_size_mb
 from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -77,7 +76,6 @@ class LightningModule(
             "local_rank",
             "logger",
             "loggers",
-            "model_size",
             "automatic_optimization",
             "truncated_bptt_steps",
             "use_amp",
@@ -1927,21 +1925,6 @@ class LightningModule(
         self._running_torchscript = False
 
         return torchscript_module
-
-    @property
-    def model_size(self) -> float:
-        """Returns the model size in MegaBytes (MB)
-
-        Note:
-            This property will not return correct value for Deepspeed (stage 3) and fully-sharded training.
-        """
-        if not self._running_torchscript:  # remove with the deprecation removal
-            rank_zero_deprecation(
-                "The `LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7."
-                " Please use the `pytorch_lightning.utilities.memory.get_model_size_mb`.",
-                stacklevel=5,
-            )
-        return get_model_size_mb(self)
 
     @property
     def use_amp(self) -> bool:

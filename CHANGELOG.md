@@ -63,6 +63,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated `summarize` method from the `LightningModule` ([#12559](https://github.com/PyTorchLightning/pytorch-lightning/pull/12559))
 
 
+- Removed the deprecated `model_size` property from the `LightningModule` class ([#PR_ID](https://github.com/PyTorchLightning/pytorch-lightning/pull/PR_ID))
+
+
 - Removed the deprecated `stochastic_weight_avg` argument from the `Trainer` constructor ([#12535](https://github.com/PyTorchLightning/pytorch-lightning/pull/12535))
 
 

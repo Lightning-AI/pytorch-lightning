@@ -1112,11 +1112,6 @@ Set and access example_input_array, which basically represents a single batch.
         # generate some images using the example_input_array
         gen_images = self.generator(self.example_input_array)
 
-model_size
-~~~~~~~~~~
-
-Get the model file size (in megabytes) using ``self.model_size`` inside LightningModule.
-
 truncated_bptt_steps
 ~~~~~~~~~~~~~~~~~~~~
 
