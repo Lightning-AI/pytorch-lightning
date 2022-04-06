@@ -3,6 +3,7 @@
 ################################
 Level 1: Lightning in 15 minutes
 ################################
+**Required background: None**
 
 PyTorch Lightning is the deep learning framework with "batteries included" for professional AI researchers and machine learning engineers who need maximal flexibility while super-charging performance at scale.
 
@@ -218,10 +219,19 @@ Training tips/tricks, custom cluster integrations or even the latest SOTA techni
 .. code::
 
    # train 1TB+ parameter models with Deepspeed/fsdp
-   trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_2", precision=16)
+   trainer = Trainer(
+       devices=4, 
+       accelerator="gpu", 
+       strategy="deepspeed_stage_2", 
+       precision=16
+    )
 
    # 20+ helpful flags for rapid idea iteration 
-   trainer = Trainer(max_epochs=10, min_epochs=5, overfit_batches=1)
+   trainer = Trainer(
+       max_epochs=10, 
+       min_epochs=5, 
+       overfit_batches=1
+    )
 
    # access the latest state of the art techniques
    trainer = Trainer(callbacks=[StochasticWeightAveraging(...)])
