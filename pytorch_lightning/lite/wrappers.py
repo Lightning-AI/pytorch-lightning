@@ -65,7 +65,9 @@ class _LiteOptimizer:
 
 
 class _LiteModule(DeviceDtypeModuleMixin):
-    def __init__(self, forward_module: nn.Module, precision_plugin: PrecisionPlugin, original_module: Optional[nn.Module] = None) -> None:
+    def __init__(
+        self, forward_module: nn.Module, precision_plugin: PrecisionPlugin, original_module: Optional[nn.Module] = None
+    ) -> None:
         """The LiteModule is a thin wrapper around the :class:`torch.nn.Module` and handles precision / autocast
         automatically for the forward pass.
 
