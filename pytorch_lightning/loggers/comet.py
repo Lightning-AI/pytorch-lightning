@@ -19,7 +19,7 @@ Comet Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Union
+from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
 
 import torch
 from torch import is_tensor
@@ -140,13 +140,15 @@ class CometLogger(LightningLoggerBase):
         experiment_key: Optional[str] = None,
         offline: bool = False,
         prefix: str = "",
+        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
         **kwargs,
     ):
         if comet_ml is None:
             raise ModuleNotFoundError(
                 "You want to use `comet_ml` logger which is not installed yet, install it with `pip install comet-ml`."
             )
-        super().__init__()
+        super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
         self._experiment = None
 
         # Determine online or offline mode based on which arguments were passed to CometLogger
