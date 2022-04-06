@@ -77,12 +77,12 @@ class _LiteModule(DeviceDtypeModuleMixin):
             forward_module: The module to wrap the ``forward`` method on.
             precision_plugin: Reference to the precision plugin for handling precision context
             original_module: The original, unmodified module as passed into the
-                :meth:`pytorch_lightning.lite.lite.LightningLite.setup` method. This is needed when accessing
-                attributes through the :attr:`module` property.
+                :meth:`pytorch_lightning.lite.lite.LightningLite.setup` method. This is needed when attribute lookup
+                on this wrapper should pass through to the original module.
         """
         super().__init__()
         self._forward_module = forward_module
-        self._original_module = original_module
+        self._original_module = original_module or forward_module
         self._precision_plugin = precision_plugin
 
     @property
