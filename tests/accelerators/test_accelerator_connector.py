@@ -505,13 +505,11 @@ def test_accelerator_cpu(_):
         trainer = Trainer(accelerator="cpu", gpus=1)
 
 
-@mock.patch("torch.cuda.is_available", return_value=False)
-@pytest.mark.parametrize("devices", ["0", 0, []])
-def test_passing_zero_and_empty_list_to_devices_flag(_, devices):
-    with pytest.raises(
-        MisconfigurationException, match="can not run on your system since the accelerator is not available."
-    ):
-        Trainer(accelerator="gpu", devices=devices)
+@pytest.mark.parametrize("accelerator", ("cpu", "gpu", "tpu", "ipu"))
+@pytest.mark.parametrize("devices", ("0", 0, []))
+def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
+    with pytest.raises(MisconfigurationException, match="value for devices is not valid for"):
+        Trainer(accelerator=accelerator, devices=devices)
 
 
 @RunIf(min_gpus=1)
