@@ -84,6 +84,7 @@ from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
+    _PYTHON_GREATER_EQUAL_3_8_0,
     _TORCH_GREATER_EQUAL_1_11,
     _TPU_AVAILABLE,
 )
@@ -92,6 +93,12 @@ log = logging.getLogger(__name__)
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
+
+if _PYTHON_GREATER_EQUAL_3_8_0:
+    _LITERAL_WARN = Literal["warn"]
+else:
+    # there's an issue with the LightningCLI's help message using Literal on 3.7
+    _LITERAL_WARN = str
 
 
 class AcceleratorConnector:
@@ -108,7 +115,7 @@ class AcceleratorConnector:
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
-        deterministic: Union[bool, Literal["warn"]] = False,
+        deterministic: Union[bool, _LITERAL_WARN] = False,
         num_processes: Optional[int] = None,  # deprecated
         tpu_cores: Optional[Union[List[int], int]] = None,  # deprecated
         ipus: Optional[int] = None,  # deprecated
@@ -216,7 +223,7 @@ class AcceleratorConnector:
         # 6. Instantiate Strategy - Part 2
         self._lazy_init_strategy()
 
-    def _init_deterministic(self, deterministic: Union[bool, Literal["warn"]]) -> None:
+    def _init_deterministic(self, deterministic: Union[bool, _LITERAL_WARN]) -> None:
         self.deterministic = deterministic
         if _TORCH_GREATER_EQUAL_1_11 and deterministic == "warn":
             torch.use_deterministic_algorithms(True, warn_only=True)

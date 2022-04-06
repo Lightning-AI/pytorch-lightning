@@ -29,7 +29,6 @@ import torch
 from packaging.version import Version
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, HPUAccelerator, IPUAccelerator, TPUAccelerator
@@ -64,7 +63,7 @@ from pytorch_lightning.strategies import ParallelStrategy, Strategy
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
-from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
+from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
@@ -176,7 +175,7 @@ class Trainer(
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, str]] = None,
         benchmark: Optional[bool] = None,
-        deterministic: Union[bool, Literal["warn"]] = False,
+        deterministic: Union[bool, _LITERAL_WARN] = False,
         reload_dataloaders_every_n_epochs: int = 0,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
