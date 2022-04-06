@@ -72,7 +72,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated `prepare_data_per_node` argument from the `Trainer` constructor ([#12536](https://github.com/PyTorchLightning/pytorch-lightning/pull/12536))
 
 
-- Removed the deprecated `pytorch_lightning.core.memory.get_gpu_memory_map` ([#11111](https://github.com/PyTorchLightning/pytorch-lightning/pull/12593))
+- Removed the deprecated `pytorch_lightning.core.memory.get_gpu_memory_map` ([#12644](https://github.com/PyTorchLightning/pytorch-lightning/pull/12644))
 
 
 -
