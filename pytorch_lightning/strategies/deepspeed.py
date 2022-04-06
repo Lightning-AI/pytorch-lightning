@@ -74,7 +74,7 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
         self.precision = precision
 
     def forward(self, *inputs, **kwargs):
-        inputs = apply_to_collection(batch, torch.Tensor, function=self._batch_to)
+        inputs = apply_to_collection(inputs, torch.Tensor, function=self._batch_to)
         return super().forward(*inputs, **kwargs)
 
     def _batch_to(self, batch: torch.Tensor) -> torch.Tensor:
