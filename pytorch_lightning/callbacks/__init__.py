@@ -45,7 +45,6 @@ __all__ = [
     "ModelPruning",
     "ModelSummary",
     "BasePredictionWriter",
-    "ProgressBar",
     "ProgressBarBase",
     "QuantizationAwareTraining",
     "RichModelSummary",
