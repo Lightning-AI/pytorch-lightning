@@ -32,9 +32,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Weekly reset caching
-      run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
-      id: times
+    - name: Reset caching
+      run: python -c "import time; days = time.time() / 60 / 60 / 24; print(f'TIME_PERIOD=d{int(days / 2) * 2}')" >> $GITHUB_ENV
 
     # Note: This uses an internal pip API and may not always work
     # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -46,8 +45,8 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements.txt') }}
-        restore-keys: ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-py${{ matrix.python-version }}-${{ matrix.requires }}-
+        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements.txt') }}
+        restore-keys: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.requires }}-
 
     - name: Install dependencies
       run: |

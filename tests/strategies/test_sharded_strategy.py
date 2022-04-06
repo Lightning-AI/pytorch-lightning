@@ -22,7 +22,14 @@ if _FAIRSCALE_AVAILABLE:
 def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_val, tmpdir):
     """Ensure that clip gradients is only called if the value is greater than 0."""
     model = BoringModel()
-    trainer = Trainer(strategy="ddp_sharded", gpus=1, precision=16, fast_dev_run=True, gradient_clip_val=clip_val)
+    trainer = Trainer(
+        strategy="ddp_sharded",
+        accelerator="gpu",
+        devices=1,
+        precision=16,
+        fast_dev_run=True,
+        gradient_clip_val=clip_val,
+    )
     trainer.fit(model)
     if clip_val > 0:
         mock_oss_clip_grad_norm.assert_called()
@@ -46,7 +53,7 @@ def test_sharded_ddp_choice(tmpdir, strategy, expected):
 )
 def test_ddp_choice_sharded_amp(tmpdir, strategy, expected):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
-    trainer = Trainer(fast_dev_run=True, gpus=1, precision=16, strategy=strategy)
+    trainer = Trainer(fast_dev_run=True, accelerator="gpu", devices=1, precision=16, strategy=strategy)
     assert isinstance(trainer.strategy, expected)
 
 
@@ -54,7 +61,7 @@ def test_ddp_choice_sharded_amp(tmpdir, strategy, expected):
 def test_ddp_sharded_strategy_checkpoint_cpu(tmpdir):
     """Test to ensure that checkpoint is saved correctly."""
     model = BoringModel()
-    trainer = Trainer(strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True)
+    trainer = Trainer(strategy="ddp_sharded_spawn", accelerator="cpu", devices=2, fast_dev_run=True)
 
     trainer.fit(model)
 
@@ -71,7 +78,7 @@ def test_ddp_sharded_strategy_checkpoint_cpu(tmpdir):
 def test_ddp_sharded_strategy_checkpoint_multi_gpu(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs."""
     model = BoringModel()
-    trainer = Trainer(gpus=2, strategy="ddp_sharded_spawn", fast_dev_run=True)
+    trainer = Trainer(accelerator="gpu", devices=2, strategy="ddp_sharded_spawn", fast_dev_run=True)
 
     trainer.fit(model)
 
@@ -88,7 +95,7 @@ def test_ddp_sharded_strategy_checkpoint_multi_gpu(tmpdir):
 def test_ddp_sharded_strategy_finetune(tmpdir):
     """Test to ensure that we can save and restart training (simulate fine-tuning)"""
     model = BoringModel()
-    trainer = Trainer(gpus=2, strategy="ddp_sharded_spawn", fast_dev_run=True)
+    trainer = Trainer(accelerator="gpu", devices=2, strategy="ddp_sharded_spawn", fast_dev_run=True)
     trainer.fit(model)
 
     checkpoint_path = os.path.join(tmpdir, "model.pt")
@@ -103,7 +110,7 @@ def test_ddp_sharded_strategy_finetune(tmpdir):
 def test_ddp_sharded_strategy_fit_ckpt_path(tmpdir):
     """Test to ensure that resuming from checkpoint works."""
     model = BoringModel()
-    trainer = Trainer(strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True)
+    trainer = Trainer(strategy="ddp_sharded_spawn", accelerator="cpu", devices=2, fast_dev_run=True)
 
     trainer.fit(model)
 
@@ -112,7 +119,7 @@ def test_ddp_sharded_strategy_fit_ckpt_path(tmpdir):
 
     model = BoringModel()
 
-    trainer = Trainer(strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True)
+    trainer = Trainer(strategy="ddp_sharded_spawn", accelerator="cpu", devices=2, fast_dev_run=True)
 
     trainer.fit(model, ckpt_path=checkpoint_path)
 
@@ -141,7 +148,7 @@ def test_ddp_sharded_strategy_fit_ckpt_path_downsize_gpus(tmpdir):
 def test_ddp_sharded_strategy_fit_ckpt_path_gpu_to_cpu(tmpdir):
     """Test to ensure that resuming from checkpoint works when going from GPUs- > CPU."""
     model = BoringModel()
-    trainer = Trainer(strategy="ddp_sharded_spawn", gpus=1, fast_dev_run=True)
+    trainer = Trainer(strategy="ddp_sharded_spawn", accelerator="gpu", devices=1, fast_dev_run=True)
 
     trainer.fit(model)
 
@@ -150,13 +157,16 @@ def test_ddp_sharded_strategy_fit_ckpt_path_gpu_to_cpu(tmpdir):
 
     model = BoringModel()
 
-    trainer = Trainer(strategy="ddp_sharded_spawn", num_processes=2, fast_dev_run=True)
+    trainer = Trainer(strategy="ddp_sharded_spawn", accelerator="cpu", devices=2, fast_dev_run=True)
 
     trainer.fit(model, ckpt_path=checkpoint_path)
 
 
 @RunIf(skip_windows=True, standalone=True, fairscale=True)
-@pytest.mark.parametrize("trainer_kwargs", (dict(num_processes=2), pytest.param(dict(gpus=2), marks=RunIf(min_gpus=2))))
+@pytest.mark.parametrize(
+    "trainer_kwargs",
+    (dict(accelerator="cpu", devices=2), pytest.param(dict(accelerator="gpu", devices=2), marks=RunIf(min_gpus=2))),
+)
 def test_ddp_sharded_strategy_test_multigpu(tmpdir, trainer_kwargs):
     """Test to ensure we can use validate and test without fit."""
     model = BoringModel()
@@ -181,18 +191,20 @@ class ManualBoringModel(BoringModel):
         return {"loss": loss}
 
 
-@RunIf(skip_windows=True, standalone=True, fairscale=True, min_gpus=2)
+@RunIf(min_gpus=2, skip_windows=True, standalone=True, fairscale=True)
 def test_ddp_sharded_strategy_manual_optimization_spawn(tmpdir):
     # todo (sean): this test has been split out as running both tests using parametrize causes "Address in use"
     model = ManualBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_sharded_spawn", fast_dev_run=2, gpus=2)
+    trainer = Trainer(
+        default_root_dir=tmpdir, strategy="ddp_sharded_spawn", fast_dev_run=2, accelerator="gpu", devices=2
+    )
     trainer.fit(model)
 
 
-@RunIf(skip_windows=True, standalone=True, fairscale=True, min_gpus=2)
+@RunIf(min_gpus=2, skip_windows=True, standalone=True, fairscale=True)
 def test_ddp_sharded_strategy_manual_optimization(tmpdir):
     model = ManualBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_sharded", fast_dev_run=2, gpus=2)
+    trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_sharded", fast_dev_run=2, accelerator="gpu", devices=2)
     trainer.fit(model)
 
 

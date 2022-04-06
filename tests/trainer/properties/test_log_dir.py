@@ -15,8 +15,7 @@ import os
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
-from pytorch_lightning.loggers.base import DummyLogger
+from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 from tests.helpers.boring_model import BoringModel
 
 
@@ -110,17 +109,16 @@ def test_logdir_custom_logger(tmpdir):
     assert trainer.log_dir == expected
 
 
-def test_logdir_logger_collection(tmpdir):
-    """Tests that the logdir equals the default_root_dir when the logger is a LoggerCollection."""
+def test_logdir_multiple_loggers(tmpdir):
+    """Tests that the logdir equals the default_root_dir when trainer has multiple loggers."""
     default_root_dir = tmpdir / "default_root_dir"
     save_dir = tmpdir / "save_dir"
     model = TestModel(default_root_dir)
     trainer = Trainer(
         default_root_dir=default_root_dir,
         max_steps=2,
-        logger=[TensorBoardLogger(save_dir=save_dir, name="custom_logs"), DummyLogger()],
+        logger=[TensorBoardLogger(save_dir=save_dir, name="custom_logs"), CSVLogger(tmpdir)],
     )
-    assert isinstance(trainer.logger, LoggerCollection)
     assert trainer.log_dir == default_root_dir
 
     trainer.fit(model)

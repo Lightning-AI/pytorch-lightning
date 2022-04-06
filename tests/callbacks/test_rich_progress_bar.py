@@ -286,6 +286,20 @@ def test_rich_progress_bar_counter_with_val_check_interval(tmpdir):
 
 
 @RunIf(rich=True)
+@mock.patch("pytorch_lightning.callbacks.progress.rich_progress._detect_light_colab_theme", return_value=True)
+def test_rich_progress_bar_colab_light_theme_update(*_):
+    theme = RichProgressBar().theme
+    assert theme.description == "black"
+    assert theme.batch_progress == "black"
+    assert theme.metrics == "black"
+
+    theme = RichProgressBar(theme=RichProgressBarTheme(description="blue", metrics="red")).theme
+    assert theme.description == "blue"
+    assert theme.batch_progress == "black"
+    assert theme.metrics == "red"
+
+
+@RunIf(rich=True)
 def test_rich_progress_bar_metric_display_task_id(tmpdir):
     class CustomModel(BoringModel):
         def training_step(self, *args, **kwargs):
@@ -354,15 +368,15 @@ def test_rich_progress_bar_correct_value_epoch_end(tmpdir):
     trainer.fit(model)
     assert pbar.calls["fit"] == [
         ("sanity_check", 0, 0, {"b": 0}),
-        ("train", 0, 0, {}),
         ("train", 0, 1, {}),
-        ("validate", 0, 1, {"b": 1}),  # validation end
+        ("train", 0, 2, {}),
+        ("validate", 0, 2, {"b": 2}),  # validation end
         # epoch end over, `on_epoch=True` metrics are computed
-        ("train", 0, 2, {"a": 1, "b": 1}),  # training epoch end
-        ("train", 1, 2, {"a": 1, "b": 1}),
-        ("train", 1, 3, {"a": 1, "b": 1}),
-        ("validate", 1, 3, {"a": 1, "b": 3}),  # validation end
-        ("train", 1, 4, {"a": 3, "b": 3}),  # training epoch end
+        ("train", 0, 2, {"a": 1, "b": 2}),  # training epoch end
+        ("train", 1, 3, {"a": 1, "b": 2}),
+        ("train", 1, 4, {"a": 1, "b": 2}),
+        ("validate", 1, 4, {"a": 1, "b": 4}),  # validation end
+        ("train", 1, 4, {"a": 3, "b": 4}),  # training epoch end
     ]
 
     trainer.validate(model, verbose=False)

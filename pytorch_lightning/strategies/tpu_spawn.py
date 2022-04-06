@@ -47,7 +47,8 @@ else:
 
 
 class TPUSpawnStrategy(DDPSpawnStrategy):
-    """Strategy for training multiple TPU devices using the :func:`torch.multiprocessing.spawn` method."""
+    """Strategy for training multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn`
+    method."""
 
     strategy_name = "tpu_spawn"
 
@@ -213,12 +214,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
         return output
 
-    def get_mp_spawn_kwargs(self, trainer: Optional["pl.Trainer"] = None) -> Dict[str, Any]:
-        return {
-            "nprocs": len(self.parallel_devices),
-            "start_method": self.start_method,
-        }
-
     def _worker_setup(self, process_idx: int):
         reset_seed()
         self.tpu_local_core_rank = xm.get_local_ordinal()
@@ -257,15 +252,18 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         if self.tpu_global_core_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
             print()
 
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
+    def save_checkpoint(
+        self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
+    ) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
+            storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
         """
         # `xla_model.save` needs to be called on all ranks. It internally checks if the local rank is 0
-        self.checkpoint_io.save_checkpoint(checkpoint, filepath)
+        self.checkpoint_io.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.

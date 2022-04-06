@@ -14,13 +14,13 @@
 import os
 import subprocess
 import sys
-from subprocess import Popen
 from time import sleep
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Optional
 
 import __main__
 import numpy as np
 
+import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.utilities import _HYDRA_AVAILABLE
@@ -68,23 +68,26 @@ class _SubprocessScriptLauncher(_Launcher):
         num_nodes: The total number of nodes that participate in this process group.
     """
 
+    @property
+    def is_interactive_compatible(self) -> bool:
+        return False
+
     def __init__(self, cluster_environment: ClusterEnvironment, num_processes: int, num_nodes: int) -> None:
         super().__init__()
         self.cluster_environment = cluster_environment
         self.num_processes = num_processes
         self.num_nodes = num_nodes
-        self.interactive_ddp_procs: List[Popen] = []
 
-    def launch(self, function: Callable, *args: Any, **kwargs: Any) -> Any:
+    def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
         """Creates new processes, then calls the given function.
 
         Arguments:
             function: A callback function to execute after all processes have been created.
                 It is up to the implementation of this function to synchronize the processes, e.g., with barriers.
             *args: Optional positional arguments to be passed to the given function.
+            trainer: Optional reference to the :class:`~pytorch_lightning.trainer.trainer.Trainer`.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
-        kwargs.pop("trainer", None)
         if not self.cluster_environment.creates_processes_externally:
             self._call_children_scripts()
         return function(*args, **kwargs)
@@ -123,8 +126,6 @@ class _SubprocessScriptLauncher(_Launcher):
 
         os.environ["WORLD_SIZE"] = f"{self.num_processes * self.num_nodes}"
 
-        self.interactive_ddp_procs = []
-
         for local_rank in range(1, self.num_processes):
             env_copy = os.environ.copy()
             env_copy["LOCAL_RANK"] = f"{local_rank}"
@@ -141,8 +142,7 @@ class _SubprocessScriptLauncher(_Launcher):
                     cwd = get_original_cwd()
                     os_cwd = f'"{os.getcwd()}"'
                     command += [f"hydra.run.dir={os_cwd}", f"hydra.job.name=train_ddp_process_{local_rank}"]
-            proc = subprocess.Popen(command, env=env_copy, cwd=cwd)
-            self.interactive_ddp_procs.append(proc)
+            subprocess.Popen(command, env=env_copy, cwd=cwd)
 
             # starting all processes at once can cause issues
             # with dataloaders delay between 1-10 seconds

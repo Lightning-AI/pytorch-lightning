@@ -69,6 +69,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             closure_loss: the loss value obtained from the closure
             optimizer: current optimizer being used. ``None`` if using manual optimization
         """
+        assert model.trainer is not None
         opt = optimizer or model.trainer.optimizers
         with amp.scale_loss(closure_loss, opt) as closure_loss:
             super().backward(model, closure_loss, optimizer, *args, **kwargs)
@@ -98,16 +99,3 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         amp.load_state_dict(state_dict)
-
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """``ApexMixedPrecisionPlugin.on_load_checkpoint`` is deprecated in v1.6.
-
-        Lightning will auto-restore ApexMixedPrecisionPlugin state with ``ApexMixedPrecisionPlugin.load_state_dict``
-        instead
-        """
-
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        """``ApexMixedPrecisionPlugin.on_save_checkpoint`` is deprecated in v1.6.
-
-        Lightning will auto-save ApexMixedPrecisionPlugin state with ``ApexMixedPrecisionPlugin.state_dict`` instead
-        """

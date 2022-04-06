@@ -107,30 +107,28 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
         assert self.trainer is not None
         lightning_module = self.trainer.lightning_module
 
-        with self.trainer.profiler.profile("model_forward"):
+        step_kwargs = _build_training_step_kwargs(
+            lightning_module, self.trainer.optimizers, batch, batch_idx, opt_idx=None, hiddens=self._hiddens
+        )
 
-            step_kwargs = _build_training_step_kwargs(
-                lightning_module, self.trainer.optimizers, batch, batch_idx, opt_idx=None, hiddens=self._hiddens
-            )
+        # manually capture logged metrics
+        training_step_output = self.trainer._call_strategy_hook("training_step", *step_kwargs.values())
+        self.trainer.strategy.post_training_step()
 
-            # manually capture logged metrics
-            training_step_output = self.trainer._call_strategy_hook("training_step", *step_kwargs.values())
-            self.trainer.strategy.post_training_step()
+        del step_kwargs
 
-            del step_kwargs
+        model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
+        strategy_output = self.trainer._call_strategy_hook("training_step_end", training_step_output)
+        training_step_output = strategy_output if model_output is None else model_output
+        self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
 
-            model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
-            strategy_output = self.trainer._call_strategy_hook("training_step_end", training_step_output)
-            training_step_output = strategy_output if model_output is None else model_output
-            self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
+        result = self.output_result_cls.from_training_step_output(training_step_output)
 
-            result = self.output_result_cls.from_training_step_output(training_step_output)
-
-            if self.trainer.move_metrics_to_cpu:
-                # hiddens and the training step output are not moved as they are not considered "metrics"
-                # the user might need them on the correct device for an operation in `training_epoch_end`
-                assert self.trainer._results is not None
-                self.trainer._results.cpu()
+        if self.trainer.move_metrics_to_cpu:
+            # hiddens and the training step output are not moved as they are not considered "metrics"
+            # the user might need them on the correct device for an operation in `training_epoch_end`
+            assert self.trainer._results is not None
+            self.trainer._results.cpu()
 
         self._done = True
         self._output = result.asdict()
@@ -146,6 +144,8 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
 
     def _on_before_step(self) -> None:
         self.optim_step_progress.increment_ready()
+        self.trainer.profiler.start("optimizer_step")
 
     def _on_after_step(self) -> None:
+        self.trainer.profiler.stop("optimizer_step")
         self.optim_step_progress.increment_completed()

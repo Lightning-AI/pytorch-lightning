@@ -161,17 +161,11 @@ class LightningOptimizer:
 
         if closure is None:
             closure = do_nothing_closure
-            profiler_action = "optimizer_step_without_closure"
         elif not callable(closure):
             raise MisconfigurationException("When `optimizer.step(closure)` is called, the closure should be callable")
-        else:
-            profiler_action = "optimizer_step_with_closure"
-        profiler_action += f"_{self._optimizer_idx}"
 
         assert self._strategy is not None
-        assert self._strategy.lightning_module is not None
-        with self._strategy.lightning_module.trainer.profiler.profile(profiler_action):
-            step_output = self._strategy.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
+        step_output = self._strategy.optimizer_step(self._optimizer, self._optimizer_idx, closure, **kwargs)
 
         self._on_after_step()
 
@@ -182,6 +176,7 @@ def _init_optimizers_and_lr_schedulers(
     model: "pl.LightningModule",
 ) -> Tuple[List[Optimizer], List[LRSchedulerConfig], List[int]]:
     """Calls `LightningModule.configure_optimizers` and parses and validates the output."""
+    assert model.trainer is not None
     optim_conf = model.trainer._call_lightning_module_hook("configure_optimizers", pl_module=model)
 
     if optim_conf is None:

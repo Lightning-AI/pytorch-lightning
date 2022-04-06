@@ -248,10 +248,22 @@ class Callback:
         """Called when the train ends."""
 
     def on_pretrain_routine_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when the pretrain routine begins."""
+        r"""
+        .. deprecated:: v1.6
+
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use ``on_fit_start`` instead.
+
+        Called when the pretrain routine begins.
+        """
 
     def on_pretrain_routine_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        """Called when the pretrain routine ends."""
+        r"""
+        .. deprecated:: v1.6
+
+            This callback hook was deprecated in v1.6 and will be removed in v1.8. Use ``on_fit_start`` instead.
+
+        Called when the pretrain routine ends.
+        """
 
     def on_validation_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         """Called when the validation loop begins."""
@@ -282,10 +294,27 @@ class Callback:
     def on_exception(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", exception: BaseException) -> None:
         """Called when any trainer execution is interrupted by an exception."""
 
+    def state_dict(self) -> Dict[str, Any]:
+        """Called when saving a checkpoint, implement to generate callback's ``state_dict``.
+
+        Returns:
+            A dictionary containing callback state.
+        """
+        return {}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        """Called when loading a checkpoint, implement to reload callback state given callback's ``state_dict``.
+
+        Args:
+            state_dict: the callback state returned by ``state_dict``.
+        """
+        pass
+
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
-    ) -> dict:
-        """Called when saving a model checkpoint, use to persist state.
+    ) -> Optional[dict]:
+        r"""
+        Called when saving a checkpoint to give you a chance to store anything else you might want to save.
 
         Args:
             trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
@@ -293,13 +322,19 @@ class Callback:
             checkpoint: the checkpoint dictionary that will be saved.
 
         Returns:
-            The callback state.
+            None or the callback state. Support for returning callback state will be removed in v1.8.
+
+        .. deprecated:: v1.6
+            Returning a value from this method was deprecated in v1.6 and will be removed in v1.8.
+            Implement ``Callback.state_dict`` instead to return state.
+            In v1.8 ``Callback.on_save_checkpoint`` can only return None.
         """
 
     def on_load_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", callback_state: Dict[str, Any]
     ) -> None:
-        """Called when loading a model checkpoint, use to reload state.
+        r"""
+        Called when loading a model checkpoint, use to reload state.
 
         Args:
             trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
@@ -310,6 +345,12 @@ class Callback:
             The ``on_load_checkpoint`` won't be called with an undefined state.
             If your ``on_load_checkpoint`` hook behavior doesn't rely on a state,
             you will still need to override ``on_save_checkpoint`` to return a ``dummy state``.
+
+        .. deprecated:: v1.6
+            This callback hook will change its signature and behavior in v1.8.
+            If you wish to load the state of the callback, use ``Callback.load_state_dict`` instead.
+            In v1.8 ``Callback.on_load_checkpoint(checkpoint)`` will receive the entire loaded
+            checkpoint dictionary instead of only the callback state from the checkpoint.
         """
 
     def on_before_backward(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", loss: torch.Tensor) -> None:
