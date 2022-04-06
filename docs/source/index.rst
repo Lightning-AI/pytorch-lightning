@@ -69,6 +69,9 @@ Or read the `advanced install guide <starter/installation.html>`_
 
    <hr class="docutils" style="margin: 50px 0 50px 0">
 
+New to Lightning
+----------------
+
 .. raw:: html
 
     <div class="tutorials-callout-container">
@@ -80,6 +83,42 @@ Or read the `advanced install guide <starter/installation.html>`_
    :description: Learn the 9 concepts that enable you to build the majority of models.
    :header: Level 1: Lightning in 15 minutes
    :button_link:  starter/introduction.html
+
+.. customcalloutitem::
+   :description: Easily organize your existing PyTorch code as PyTorch Lightning in a few hours.
+   :header: Organize PyTorch as PyTorch Lightning
+   :button_link: starter/converting.html
+
+.. customcalloutitem::
+   :description: Learn how to benchmark PyTorch Lightning.
+   :header: Benchmarking
+   :button_link: benchmarking/benchmarks.html
+
+
+.. raw:: html
+
+        </div>
+    </div>
+
+.. End of callout item section
+
+.. raw:: html
+
+   <hr class="docutils" style="margin: 50px 0 50px 0">
+
+Current Lightning users
+-----------------------
+
+.. raw:: html
+
+   <hr class="docutils" style="margin: 50px 0 50px 0">
+
+.. raw:: html
+
+    <div class="tutorials-callout-container">
+        <div class="row">
+
+.. Add callout items below this line
 
 .. customcalloutitem::
    :description: Learn Lightning at 4 levels of expertise: Introductory, intermediate, advanced and expert.
@@ -95,7 +134,6 @@ Or read the `advanced install guide <starter/installation.html>`_
    :description: See how Lightning is used in research areas like NLP, Computer Vision, RL and meta learning.
    :header: Examples
    :button_link: tutorials.html
-
 
 .. customcalloutitem::
    :description: Detailed descriptions of each API package.

@@ -3,11 +3,11 @@
 ################################
 Level 1: Lightning in 15 minutes
 ################################
-**Required background: None**
+**Required background:** None   
+
+**Goal:** In this guide, we'll walk you through the 9 key steps of a typical Lightning workflow.
 
 PyTorch Lightning is the deep learning framework with "batteries included" for professional AI researchers and machine learning engineers who need maximal flexibility while super-charging performance at scale.
-
-This Level 1 guide walks you through the 9 key concepts you need to "learn" Lightning.
 
 ----
 
@@ -15,7 +15,7 @@ This Level 1 guide walks you through the 9 key concepts you need to "learn" Ligh
 1: Code organization
 ********************
 
-Concept 1: When you use Lightning, you're organizing PyTorch code to remove boilerplate and enable scalability.
+When you use Lightning, you're organizing PyTorch code to remove boilerplate and enable scalability.
 
 .. raw:: html
 
@@ -47,8 +47,8 @@ By organizing PyTorch code, lightning enables:
    :height: 290
 
 .. displayitem::
-   :description: Change between GPU/TPU/HPU etc... without code changes.
-   :header: Use any hardware
+   :description: Use multiple GPUs/TPUs/HPUs etc... without code changes.
+   :header: Simple multi-GPU training
    :col_css: col-md-3
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_hardware.png
    :height: 290
@@ -78,7 +78,7 @@ By organizing PyTorch code, lightning enables:
    <div class="row" style='font-size: 14px'>
       <div class='col-md-6'>
 
-For `pip <https://pypi.org/project/pytorch-lightning/>`_ (and conda) users
+For `pip <https://pypi.org/project/pytorch-lightning/>`_ users
 
 .. code-block:: bash
 
@@ -89,7 +89,7 @@ For `pip <https://pypi.org/project/pytorch-lightning/>`_ (and conda) users
       </div>
       <div class='col-md-6'>
 
-Or directly from `conda <https://anaconda.org/conda-forge/pytorch-lightning>`_
+For `conda <https://anaconda.org/conda-forge/pytorch-lightning>`_ users
 
 .. code-block:: bash
 
@@ -142,6 +142,11 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
 
 .. testcode::
 
+    # define any number of nn.Modules (or use your current ones)
+    encoder = nn.Sequential(nn.Linear(28 * 28, 64), nn.ReLU(), nn.Linear(64, 3))
+    decoder = nn.Sequential(nn.Linear(3, 64), nn.ReLU(), nn.Linear(64, 28 * 28))
+
+    # define the LightningModule
     class LitAutoEncoder(pl.LightningModule):
         def __init__(self, encoder, decoder):
             super().__init__()
@@ -164,10 +169,6 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
             optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
             return optimizer
     
-    # define any number of nn.Modules (or use your current ones)
-    encoder = nn.Sequential(nn.Linear(28 * 28, 64), nn.ReLU(), nn.Linear(64, 3))
-    decoder = nn.Sequential(nn.Linear(3, 64), nn.ReLU(), nn.Linear(64, 28 * 28))
-
     # init the autoencoder
     autoencoder = LitAutoEncoder(encoder, decoder)
 
@@ -177,7 +178,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
 4: Define a dataset
 *******************
 
-Lightning supports ANY plain iterable (`~torch.utils.data.DataLoader`, numpy, etc...) for the train/val/test/predict splits.
+Lightning supports ANY iterable (:class:`~torch.utils.data.DataLoader`, numpy, etc...) for the train/val/test/predict splits.
 
 .. code-block:: python
 
@@ -210,9 +211,9 @@ The Lightning :class:`~pytorch_lightning.trainer.Trainer` automates 40+ things i
 
 ----
 
-****************
-6: Trainer flags
-****************
+*******************************
+6: Customize Trainer parameters
+*******************************
 
 Training tips/tricks, custom cluster integrations or even the latest SOTA techniques can be enabled via the Lightning Trainer.
 
@@ -238,11 +239,15 @@ Training tips/tricks, custom cluster integrations or even the latest SOTA techni
 
 ----
 
-********
-7: Hooks
-********
+**************************
+7: Customize training loop
+**************************
 
-Whenever you need control over any part of the training loop, simply override any of the 20+ hooks found in :ref:`lightning_hooks`.
+.. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/custom_loop.png
+    :width: 600
+    :alt: Injecting custom code in a training loop
+
+Inject custom code anywhere in the Training loop using any of the 20+ methods (:ref:`lightning_hooks`) available in the LightningModule.
 
 .. testcode::
 
@@ -252,11 +257,12 @@ Whenever you need control over any part of the training loop, simply override an
 
 ----
 
-************
-8: Callbacks
-************
+*********************
+8: Extend the Trainer
+*********************
+[IMAGE]
 
-If you need complex modular programs, you can create a callback that can run during the lifecycle of your model.
+If you have multiple lines of code with similar functionalities, you can use callbacks to easily group them together and toggle all of those lines on or off at the same time.
 
 .. code::
 
@@ -264,9 +270,9 @@ If you need complex modular programs, you can create a callback that can run dur
 
 ----
 
-****************
-9: Own your loop
-****************
+*****************************
+9: Control your training loop
+*****************************
 
 For certain types of work at the bleeding-edge of research, Lightning offers experts full control of their training loops in various ways.
 
@@ -304,3 +310,4 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
     </div>
 
 .. End of callout item section
+
