@@ -46,6 +46,7 @@ log = logging.getLogger(__name__)
 
 def gather_all_tensors(result: torch.Tensor, group: Optional[Any] = None) -> List[torch.Tensor]:
     """Function to gather all tensors from several ddp processes onto a list that is broadcasted to all processes.
+
     Works on tensors that have the same number of dimensions, but where each dimension may differ. In this case
     tensors are padded, gathered and then trimmed to secure equal workload for all processes.
     Args:
