@@ -112,6 +112,15 @@ class _LiteModule(DeviceDtypeModuleMixin):
         output = apply_to_collection(output, function=_convert_float_tensor, dtype=Tensor)
         return output
 
+    def __getattr__(self, item: Any) -> Any:
+        try:
+            # __getattr__ gets called as a last resort if the attribute does not exist
+            # call nn.Module's implementation first
+            return super().__getattr__(item)
+        except AttributeError:
+            # If the attribute is not available on the _LiteModule wrapper, redirect to the wrapped nn.Module
+            return getattr(self._original_module, item)
+
 
 class _LiteDataLoader:
     def __init__(self, dataloader: DataLoader, device: Optional[torch.device] = None) -> None:

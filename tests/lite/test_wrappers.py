@@ -33,6 +33,23 @@ def test_lite_module_wraps():
     module = Mock()
     assert _LiteModule(module, Mock()).module is module
 
+    wrapped_module = Mock()
+    original_module = Mock()
+    assert _LiteModule(wrapped_module, Mock(), original_module=original_module).module is original_module
+
+
+def test_lite_module_attribute_lookup():
+    """Test that attribute lookup passes through to the original model when possible."""
+    wrapped_module = Mock()
+    original_module = Mock()
+    original_module.attribute = 1
+    original_module.method = lambda: 2
+
+    lite_module = _LiteModule(wrapped_module, Mock(), original_module=original_module)
+    assert lite_module.attribute == 1
+    assert lite_module.method() == 2
+    assert lite_module.forward.__self__.__class__ == _LiteModule
+
 
 @RunIf(min_gpus=1)
 @pytest.mark.parametrize(
