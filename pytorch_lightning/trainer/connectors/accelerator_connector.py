@@ -493,6 +493,11 @@ class AcceleratorConnector:
                     f" it can only be one of {self._accelerator_types}."
                 )
             self.accelerator = AcceleratorRegistry.get(self._accelerator_flag)
+            
+        if self._devices_flag in ([], 0, "0"):
+            raise MisconfigurationException(
+                f"{self._devices_flag} `devices` is not a valid value for {self.accelerator.__class__.__qualname__}"
+            )
 
         if not self.accelerator.is_available():
             available_accelerator = [
