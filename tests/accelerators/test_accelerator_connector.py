@@ -512,6 +512,30 @@ def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
         Trainer(accelerator=accelerator, devices=devices)
 
 
+@pytest.mark.parametrize("gpus", ("0", 0, []))
+def test_passing_zero_and_empty_list_to_gpus_flag(gpus):
+    with pytest.raises(MisconfigurationException, match="value for devices is not valid for"):
+        Trainer(gpus=gpus)
+
+
+@pytest.mark.parametrize("ipus", ("0", 0, []))
+def test_passing_zero_and_empty_list_to_ipus_flag(ipus):
+    with pytest.raises(MisconfigurationException, match="value for devices is not valid for"):
+        Trainer(ipus=ipus)
+
+
+@pytest.mark.parametrize("tpu_cores", ("0", 0, []))
+def test_passing_zero_and_empty_list_to_tpu_cores_flag(tpu_cores):
+    with pytest.raises(MisconfigurationException, match="value for devices is not valid for"):
+        Trainer(tpu_cores=tpu_cores)
+
+
+@pytest.mark.parametrize("num_processes", ("0", 0, []))
+def test_passing_zero_and_empty_list_to_num_processes_flag(num_processes):
+    with pytest.raises(MisconfigurationException, match="value for devices is not valid for"):
+        Trainer(num_processes=num_processes)
+
+
 @RunIf(min_gpus=1)
 def test_accelerator_gpu():
     trainer = Trainer(accelerator="gpu", devices=1)

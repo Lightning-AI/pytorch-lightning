@@ -435,8 +435,12 @@ class AcceleratorConnector:
         """Sets the `devices_flag` and `accelerator_flag` based on num_processes, gpus, ipus, tpu_cores."""
         self._gpus: Optional[Union[List[int], str, int]] = gpus
         self._tpu_cores: Optional[Union[List[int], str, int]] = tpu_cores
-        deprecated_devices_specific_flag = num_processes or gpus or ipus or tpu_cores
-        if deprecated_devices_specific_flag and deprecated_devices_specific_flag not in ([], 0, "0"):
+        deprecated_devices_specific_flags = list(
+            filter(lambda x: x is not None, [num_processes, gpus, ipus, tpu_cores])
+        )
+        if deprecated_devices_specific_flags:
+            # Last one in the list would be given the highest priority
+            deprecated_devices_specific_flag = deprecated_devices_specific_flags[-1]
             if devices:
                 # TODO: @awaelchli improve error message
                 rank_zero_warn(
@@ -444,9 +448,7 @@ class AcceleratorConnector:
                     f"instead the device specific number {deprecated_devices_specific_flag} will be used"
                 )
 
-            if [(num_processes is not None), (gpus is not None), (ipus is not None), (tpu_cores is not None)].count(
-                True
-            ) > 1:
+            if len(deprecated_devices_specific_flags) > 1:
                 # TODO: @awaelchli improve error message
                 rank_zero_warn("more than one device specific flag has been set")
             self._devices_flag = deprecated_devices_specific_flag
