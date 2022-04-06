@@ -31,7 +31,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Support `strategy` argument being case insensitive ([#12528](https://github.com/PyTorchLightning/pytorch-lightning/pull/12528))
 
 
--
+- Added `MisconfigurationException` when user passes `([]/0/"0")` to the device specific flags (`gpus`, `tpu_cores`, etc) ([#12633](https://github.com/PyTorchLightning/pytorch-lightning/pull/12633))
 
 
 -
@@ -85,7 +85,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Avoid calling `average_parameters` multiple times per optimizer step ([#12452](https://github.com/PyTorchLightning/pytorch-lightning/pull/12452))
 
 
--
+- Raise `MisconfigurationException` when the accelerator is available but the user passes invalid `([]/0/"0")` values to the `devices` flag ([#12633](https://github.com/PyTorchLightning/pytorch-lightning/pull/12633))
 
 
 -

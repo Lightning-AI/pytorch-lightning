@@ -754,7 +754,7 @@ gpus
     trainer = Trainer(gpus=None)
 
     # equivalent
-    trainer = Trainer(gpus=0)
+    trainer = Trainer(accelerator="cpu")
 
 Example::
 
