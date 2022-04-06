@@ -532,8 +532,8 @@ class Trainer(
         # init data flags
         self.check_val_every_n_epoch: int
         self._data_connector.on_trainer_init(
-            reload_dataloaders_every_n_epochs,
             val_check_interval,
+            reload_dataloaders_every_n_epochs,
             check_val_every_n_epoch,
         )
 

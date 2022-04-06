@@ -501,11 +501,12 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         return self.trainer.callback_metrics.get(key)
 
     def _should_check_val_epoch(self):
-        if self.trainer.enable_validation:
+        if not self.trainer.enable_validation:
             return False
 
         # first we check if `check_val_every_n_epoch is `None`, which means
-        # that we run a validation loop after n steps (based on `val_check_interval`)
+        # that we run a validation loop after n global steps (taken from the
+        # Trainer argument `val_check_interval`)
         if self.trainer.check_val_every_n_epoch is None:
             return (self.trainer.global_step + 1) % self.trainer.val_check_batch == 0
 
@@ -531,7 +532,14 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
         elif self.trainer.val_check_batch != float("inf"):
-            is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
+            # if we're checking based on global step, we can start validation
+            # at any point in the training epoch
+            if self.trainer.check_val_every_n_epoch is None:
+                is_val_check_batch = True
+            else:
+                # TODO: clarify the purpose of this check.
+                is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
+
         return is_val_check_batch
 
     def _save_loggers_on_train_batch_end(self) -> None:
