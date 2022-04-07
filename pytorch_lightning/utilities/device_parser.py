@@ -246,10 +246,10 @@ def _check_data_type(device_ids: Any) -> None:
         return
     elif isinstance(device_ids, (MutableSequence, tuple)):
         for id_ in device_ids:
-            if isinstance(id_, bool) or not isinstance(id_, int):
-                raise MisconfigurationException(f"{msg} a sequence of {type(id_).__name__}")
-    elif isinstance(device_ids, bool) or not isinstance(device_ids, (int, str)):
-        raise MisconfigurationException(f"{msg} {type(device_ids).__name__}")
+            if type(id_) is not int:
+                raise MisconfigurationException(f"{msg} a sequence of {type(id_).__name__}.")
+    elif type(device_ids) not in [int, str]:
+        raise MisconfigurationException(f"{msg} {type(device_ids).__name__}.")
 
 
 def _tpu_cores_valid(tpu_cores: Any) -> bool:
