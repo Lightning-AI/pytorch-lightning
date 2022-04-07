@@ -210,21 +210,6 @@ class LoggerConnector:
         assert self.trainer._results is not None
         self.trainer._results.reset(metrics=True)
 
-    def _log_gpus_metrics(self) -> None:
-        """
-        .. deprecated:: v1.5
-            This function was deprecated in v1.5 in favor of
-            `pytorch_lightning.accelerators.gpu._get_nvidia_gpu_stats` and will be removed in v1.7.
-        """
-        for key, mem in self.gpus_metrics.items():
-            if self.log_gpu_memory == "min_max":
-                self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True)
-            else:
-                gpu_id = int(key.split("/")[0].split(":")[1])
-                if gpu_id in self.trainer.device_ids:
-                    self.trainer.lightning_module.log(
-                        key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False
-                    )
 
     """
     Utilities and properties
