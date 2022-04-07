@@ -615,7 +615,7 @@ Before installing anything, use the following templates to try it out live:
         .. raw:: html
 
             <div style='width:150px;height:auto'>
-                <a href="https://colab.research.google.com/github/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/rapid_templates/Rapid_prototyping_general_1.ipynb>">
+                <a href="https://colab.research.google.com/github/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/rapid_templates/Rapid_prototyping_auto.ipynb>">
                     <img alt="open in colab" src="http://bit.ly/pl_colab">
                 </a>
             </div>
@@ -625,7 +625,7 @@ Before installing anything, use the following templates to try it out live:
         .. raw:: html
 
             <div style='width:150px;height:auto'>
-                <a href="https://colab.research.google.com/github/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/rapid_templates/Rapid_prototyping_general_2.ipynb">
+                <a href="https://colab.research.google.com/github/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/rapid_templates/Rapid_prototyping_manual.ipynb">
                     <img alt="open in colab" src="http://bit.ly/pl_colab">
                 </a>
             </div>
