@@ -260,7 +260,11 @@ Inject custom code anywhere in the Training loop using any of the 20+ methods (:
 *********************
 8: Extend the Trainer
 *********************
-[IMAGE]
+
+.. raw:: html
+
+    <video width="100%" max-width="800px" controls autoplay muted playsinline
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cb.m4v"></video>
 
 If you have multiple lines of code with similar functionalities, you can use callbacks to easily group them together and toggle all of those lines on or off at the same time.
 
