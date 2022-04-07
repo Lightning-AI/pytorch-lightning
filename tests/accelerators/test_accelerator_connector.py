@@ -506,8 +506,8 @@ def test_accelerator_cpu(_):
         trainer = Trainer(accelerator="cpu", gpus=1)
 
 
-@mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
+@mock.patch("torch.cuda.is_available", return_value=True)
 @pytest.mark.parametrize("gpu_count", (["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]], [False], False))
 def test_accelererator_invalid_type_gpus(mock_is_available, mock_device_count, gpu_count):
     with pytest.raises(
@@ -516,8 +516,8 @@ def test_accelererator_invalid_type_gpus(mock_is_available, mock_device_count, g
         _ = Trainer(accelerator="gpu", gpus=gpu_count)
 
 
-@mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
+@mock.patch("torch.cuda.is_available", return_value=True)
 @pytest.mark.parametrize("device_count", (["0"], [0, "1"], ["GPU"], [["0", "1"], [0, 1]], [False], False))
 def test_accelererator_invalid_type_devices(mock_is_available, mock_device_count, device_count):
     with pytest.raises(
