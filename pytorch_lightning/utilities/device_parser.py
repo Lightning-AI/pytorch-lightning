@@ -248,7 +248,7 @@ def _check_data_type(device_ids: Any) -> None:
         for id_ in device_ids:
             if type(id_) is not int:
                 raise MisconfigurationException(f"{msg} a sequence of {type(id_).__name__}.")
-    elif type(device_ids) not in [int, str]:
+    elif type(device_ids) not in (int, str):
         raise MisconfigurationException(f"{msg} {type(device_ids).__name__}.")
 
 
