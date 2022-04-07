@@ -181,13 +181,11 @@ class Trainer(
         replace_sampler_ddp: bool = True,
         detect_anomaly: bool = False,
         auto_scale_batch_size: Union[str, bool] = False,
-        prepare_data_per_node: Optional[bool] = None,
         plugins: Optional[Union[PLUGIN_INPUT, List[PLUGIN_INPUT]]] = None,
         amp_backend: str = "native",
         amp_level: Optional[str] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
-        terminate_on_nan: Optional[bool] = None,
     ) -> None:
         r"""
         Customize every aspect of training via flags.
@@ -314,14 +312,6 @@ class Trainer(
             log_every_n_steps: How often to log within steps.
                 Default: ``50``.
 
-            prepare_data_per_node: If True, each LOCAL_RANK=0 will call prepare data.
-                Otherwise only NODE_RANK=0, LOCAL_RANK=0 will prepare data
-
-                .. deprecated:: v1.5
-                    Deprecated in v1.5.0 and will be removed in v1.7.0
-                    Please set ``prepare_data_per_node`` in ``LightningDataModule`` and/or
-                    ``LightningModule`` directly instead.
-
             process_position: Orders the progress bar when running multiple models on same machine.
 
                 .. deprecated:: v1.5
@@ -393,16 +383,6 @@ class Trainer(
                 Default: ``None``.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
-                Default: ``False``.
-
-            terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
-                end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
-
-                .. deprecated:: v1.5
-                    Trainer argument ``terminate_on_nan`` was deprecated in v1.5 and will be removed in 1.7.
-                    Please use ``detect_anomaly`` instead.
-
-            detect_anomaly: Enable anomaly detection for the autograd engine.
                 Default: ``False``.
 
             tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on (1)
@@ -542,16 +522,7 @@ class Trainer(
         self._data_connector.on_trainer_init(
             check_val_every_n_epoch,
             reload_dataloaders_every_n_epochs,
-            prepare_data_per_node,
         )
-
-        if terminate_on_nan is not None:
-            rank_zero_deprecation(
-                "Trainer argument `terminate_on_nan` was deprecated in v1.5 and will be removed in 1.7."
-                " Please use `Trainer(detect_anomaly=True)` instead."
-            )
-            if not isinstance(terminate_on_nan, bool):
-                raise TypeError(f"`terminate_on_nan` should be a bool, got {terminate_on_nan}.")
 
         # gradient clipping
         if gradient_clip_val is not None and not isinstance(gradient_clip_val, (int, float)):
@@ -573,7 +544,6 @@ class Trainer(
                 f"`track_grad_norm` must be a positive number or 'inf' (infinity norm). Got {track_grad_norm}."
             )
 
-        self._terminate_on_nan = terminate_on_nan
         self.gradient_clip_val: Union[int, float] = gradient_clip_val
         self.gradient_clip_algorithm: Optional[GradClipAlgorithmType] = (
             GradClipAlgorithmType(gradient_clip_algorithm.lower()) if gradient_clip_algorithm is not None else None
@@ -1162,7 +1132,7 @@ class Trainer(
         # ----------------------------
         # INSPECT THE CORE LOOPS
         # ----------------------------
-        fr"""
+        rf"""
              Lightning internal flow looks like this:
         {Trainer.fit} or {Trainer.test} or {Trainer.predict}  ||
                                 |                             ||
@@ -2806,19 +2776,6 @@ class Trainer(
 
         max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
         return max_estimated_steps
-
-    @property
-    def terminate_on_nan(self) -> bool:
-        rank_zero_deprecation("`Trainer.terminate_on_nan` is deprecated in v1.5 and will be removed in 1.7.")
-        return self._terminate_on_nan
-
-    @terminate_on_nan.setter
-    def terminate_on_nan(self, val: bool) -> None:
-        rank_zero_deprecation(
-            f"Setting `Trainer.terminate_on_nan = {val}` is deprecated in v1.5 and will be removed in 1.7."
-            f" Please set `Trainer(detect_anomaly={val})` instead."
-        )
-        self._terminate_on_nan = val  # : 212
 
 
 def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> Union[int, float]:
