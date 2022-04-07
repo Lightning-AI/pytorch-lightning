@@ -193,9 +193,6 @@ class LoggerConnector:
         if self.trainer.fit_loop._should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
 
-        # TODO: remove this call in v1.7
-        self._log_gpus_metrics()
-
         # when metrics should be logged
         assert not self._epoch_end_reached
         if self.should_update_logs or self.trainer.fast_dev_run:
