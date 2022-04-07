@@ -59,4 +59,3 @@
 /README.md                       @williamfalcon @edenlightning @borda
 /setup.py                        @williamfalcon @borda
 /pytorch_lightning/__about__.py  @williamfalcon @borda
-/.github/mergify.yml             @williamfalcon @borda
