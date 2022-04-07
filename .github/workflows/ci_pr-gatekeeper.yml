@@ -12,7 +12,6 @@ on:
         review_requested,
         review_request_removed
       ]
-  pull_request_review:
 
 jobs:
   pr-gatekeeper:
