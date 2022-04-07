@@ -142,7 +142,7 @@ def test_gpu_stats_monitor_parse_gpu_stats():
     assert logs == expected
 
 
-@mock.patch.dict(os.environ, {})
+@mock.patch.dict(os.environ, {}, clear=True)
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
 def test_gpu_stats_monitor_get_gpu_ids_cuda_visible_devices_unset(device_count_mock, is_available_mock):
