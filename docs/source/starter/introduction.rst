@@ -47,8 +47,8 @@ By organizing PyTorch code, lightning enables:
    :height: 290
 
 .. displayitem::
-   :description: Change between GPU/TPU/HPU etc... without code changes.
-   :header: Use any hardware
+   :description: Use multiple GPUs/TPUs/HPUs etc... without code changes.
+   :header: Simple multi-GPU training
    :col_css: col-md-3
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_hardware.png
    :height: 290
@@ -89,7 +89,7 @@ For `pip <https://pypi.org/project/pytorch-lightning/>`_ users
       </div>
       <div class='col-md-6'>
 
-Or directly from `conda <https://anaconda.org/conda-forge/pytorch-lightning>`_
+For `conda <https://anaconda.org/conda-forge/pytorch-lightning>`_ users
 
 .. code-block:: bash
 
@@ -142,6 +142,11 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
 
 .. testcode::
 
+    # define any number of nn.Modules (or use your current ones)
+    encoder = nn.Sequential(nn.Linear(28 * 28, 64), nn.ReLU(), nn.Linear(64, 3))
+    decoder = nn.Sequential(nn.Linear(3, 64), nn.ReLU(), nn.Linear(64, 28 * 28))
+
+    # define the LightningModule
     class LitAutoEncoder(pl.LightningModule):
         def __init__(self, encoder, decoder):
             super().__init__()
@@ -164,10 +169,6 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
             optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
             return optimizer
     
-    # define any number of nn.Modules (or use your current ones)
-    encoder = nn.Sequential(nn.Linear(28 * 28, 64), nn.ReLU(), nn.Linear(64, 3))
-    decoder = nn.Sequential(nn.Linear(3, 64), nn.ReLU(), nn.Linear(64, 28 * 28))
-
     # init the autoencoder
     autoencoder = LitAutoEncoder(encoder, decoder)
 
@@ -177,7 +178,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
 4: Define a dataset
 *******************
 
-Lightning supports ANY plain iterable (`~torch.utils.data.DataLoader`, numpy, etc...) for the train/val/test/predict splits.
+Lightning supports ANY iterable (:class:`~torch.utils.data.DataLoader`, numpy, etc...) for the train/val/test/predict splits.
 
 .. code-block:: python
 
@@ -242,9 +243,11 @@ Training tips/tricks, custom cluster integrations or even the latest SOTA techni
 7: Customize training loop
 **************************
 
-Explain what the loop is (viz image...) and also show that you can inject code into the loop
+.. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/custom_loop.png
+    :width: 600
+    :alt: Injecting custom code in a training loop
 
-Whenever you need to customize any part of the training loop, simply implement any of the 20+ methods (*:ref:`lightning_hooks`*) available in the LightningModule.
+Inject custom code anywhere in the Training loop using any of the 20+ methods (:ref:`lightning_hooks`) available in the LightningModule.
 
 .. testcode::
 
