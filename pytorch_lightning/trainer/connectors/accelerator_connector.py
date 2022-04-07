@@ -498,7 +498,8 @@ class AcceleratorConnector:
 
         if self._devices_flag in ([], 0, "0"):
             raise MisconfigurationException(
-                f"`{self._devices_flag}` value for devices is not valid for {self.accelerator.__class__.__qualname__}"
+                f"`Trainer(devices={self._devices_flag!r})` value is not a valid input"
+                f" using {self.accelerator.__class__.__qualname__}"
             )
 
         if not self.accelerator.is_available():
