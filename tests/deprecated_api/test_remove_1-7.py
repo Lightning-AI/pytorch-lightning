@@ -39,8 +39,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
-from tests.loggers.test_base import CustomLogger
 from tests.helpers.runif import RunIf
+from tests.loggers.test_base import CustomLogger
 from tests.plugins.environments.test_lsf_environment import _make_rankfile
 
 
@@ -347,7 +347,6 @@ def test_v1_7_0_deprecated_slurm_job_id():
     trainer = Trainer()
     with pytest.deprecated_call(match="Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0."):
         trainer.slurm_job_id
-
 
 
 @RunIf(min_gpus=1)
