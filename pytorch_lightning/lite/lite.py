@@ -142,7 +142,7 @@ class LightningLite(ABC):
         return self._strategy.is_global_zero
 
     @abstractmethod
-    def run(self) -> Any:
+    def run(self, *args: Any, **kwargs: Any) -> Any:
         """All the code inside this run method gets accelerated by Lite.
 
         You can pass arbitrary arguments to this function when overriding it.
