@@ -31,7 +31,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Support `strategy` argument being case insensitive ([#12528](https://github.com/PyTorchLightning/pytorch-lightning/pull/12528))
 
 
--
+- Marked `swa_lrs` argument in `StochasticWeightAveraging` callback as required ([#12556](https://github.com/PyTorchLightning/pytorch-lightning/pull/12556))
 
 
 -
@@ -72,7 +72,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated `prepare_data_per_node` argument from the `Trainer` constructor ([#12536](https://github.com/PyTorchLightning/pytorch-lightning/pull/12536))
 
 
--
+- Removed the deprecated `terminate_on_nan` argument from the `Trainer` constructor ([#12553](https://github.com/PyTorchLightning/pytorch-lightning/pull/12553))
 
 
 -
@@ -85,13 +85,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Avoid calling `average_parameters` multiple times per optimizer step ([#12452](https://github.com/PyTorchLightning/pytorch-lightning/pull/12452))
 
 
+- Properly pass some Logger's parent's arguments to `super().__init__()` ([#12609](https://github.com/PyTorchLightning/pytorch-lightning/pull/12609))
+
+
+- Fixed an issue where incorrect type warnings appear when the overridden `LightningLite.run` method accepts user-defined arguments ([#12629](https://github.com/PyTorchLightning/pytorch-lightning/pull/12629))
+
+
 - Fixed `rank_zero_only` decorator in LSF environments ([#12587](https://github.com/PyTorchLightning/pytorch-lightning/pull/12587))
-
-
--
-
-
--
 
 
 -
