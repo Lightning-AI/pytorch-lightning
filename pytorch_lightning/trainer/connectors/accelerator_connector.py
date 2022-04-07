@@ -14,6 +14,7 @@
 
 import logging
 import os
+import sys
 from collections import Counter
 from typing import Dict, List, Optional, Union
 
@@ -84,7 +85,6 @@ from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
-    _PYTHON_GREATER_EQUAL_3_8_0,
     _TORCH_GREATER_EQUAL_1_11,
     _TPU_AVAILABLE,
 )
@@ -94,10 +94,10 @@ log = logging.getLogger(__name__)
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
 
-if _PYTHON_GREATER_EQUAL_3_8_0:
+if sys.version_info >= (3, 8):  # mypy doesn't understand `_PYTHON_GREATER_EQUAL_3_8_0`
     _LITERAL_WARN = Literal["warn"]
 else:
-    # there's an issue with the LightningCLI's help message using Literal on 3.7
+    # there's an issue with the LightningCLI's help message using Literal on 3.7. Remove with `jsonargparse>=4.6.0`
     _LITERAL_WARN = str
 
 
