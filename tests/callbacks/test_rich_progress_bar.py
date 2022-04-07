@@ -205,14 +205,28 @@ def test_rich_progress_bar_refresh_rate_disabled(progress_update, tmpdir):
 
 
 @RunIf(rich=True)
-@pytest.mark.parametrize(("refresh_rate", "expected_call_count"), ([(3, 7), (4, 7), (7, 4)]))
-def test_rich_progress_bar_with_refresh_rate(tmpdir, refresh_rate, expected_call_count):
+@pytest.mark.parametrize(
+    "refresh_rate,train_batches,val_batches,expected_call_count",
+    [
+        (3, 6, 6, 4 + 3),
+        (4, 6, 6, 3 + 3),
+        (7, 6, 6, 2 + 2),
+        (1, 2, 3, 5 + 4),
+        (1, 0, 0, 0 + 0),
+        (3, 1, 0, 1 + 0),
+        (3, 1, 1, 1 + 2),
+        (3, 5, 0, 2 + 0),
+        (3, 5, 2, 3 + 2),
+        (6, 5, 2, 2 + 2),
+    ],
+)
+def test_rich_progress_bar_with_refresh_rate(tmpdir, refresh_rate, train_batches, val_batches, expected_call_count):
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         num_sanity_val_steps=0,
-        limit_train_batches=6,
-        limit_val_batches=6,
+        limit_train_batches=train_batches,
+        limit_val_batches=val_batches,
         max_epochs=1,
         callbacks=RichProgressBar(refresh_rate=refresh_rate),
     )
@@ -224,14 +238,16 @@ def test_rich_progress_bar_with_refresh_rate(tmpdir, refresh_rate, expected_call
         trainer.fit(model)
         assert progress_update.call_count == expected_call_count
 
-    fit_main_bar = trainer.progress_bar_callback.progress.tasks[0]
-    fit_val_bar = trainer.progress_bar_callback.progress.tasks[1]
-    assert fit_main_bar.completed == 12
-    assert fit_main_bar.total == 12
-    assert fit_main_bar.visible
-    assert fit_val_bar.completed == 6
-    assert fit_val_bar.total == 6
-    assert not fit_val_bar.visible
+    if train_batches > 0:
+        fit_main_bar = trainer.progress_bar_callback.progress.tasks[0]
+        assert fit_main_bar.completed == train_batches + val_batches
+        assert fit_main_bar.total == train_batches + val_batches
+        assert fit_main_bar.visible
+    if val_batches > 0:
+        fit_val_bar = trainer.progress_bar_callback.progress.tasks[1]
+        assert fit_val_bar.completed == val_batches
+        assert fit_val_bar.total == val_batches
+        assert not fit_val_bar.visible
 
 
 @RunIf(rich=True)

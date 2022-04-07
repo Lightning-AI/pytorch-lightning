@@ -338,7 +338,10 @@ def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     """Checks for pickle issue reported in #6522."""
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=True, profiler="advanced", callbacks=StochasticWeightAveraging()
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        profiler="advanced",
+        callbacks=StochasticWeightAveraging(swa_lrs=1e-2),
     )
     trainer.fit(model)
 
