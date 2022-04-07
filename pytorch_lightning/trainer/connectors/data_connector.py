@@ -460,7 +460,12 @@ class DataConnector:
 
     @staticmethod
     def _check_eval_shuffling(dataloader, mode):
-        if _is_dataloader_shuffled(dataloader):
+        # limit this warning only for samplers assigned automatically when shuffle is set
+        if (
+            hasattr(dataloader, "sampler")
+            and isinstance(dataloader.sampler, (RandomSampler, SequentialSampler))
+            and _is_dataloader_shuffled(dataloader)
+        ):
             rank_zero_warn(
                 f"Your `{mode.dataloader_prefix}_dataloader`'s sampler has shuffling enabled,"
                 " it is strongly recommended that you turn shuffling off for val/test/predict dataloaders.",

@@ -27,6 +27,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
+from tests.helpers.utils import no_warning_call
 
 
 @RunIf(skip_windows=True)
@@ -359,24 +360,32 @@ def test_error_raised_with_float_limited_eval_batches():
 
 
 @pytest.mark.parametrize(
-    "val_dl",
+    "val_dl,raises_exception",
     [
-        DataLoader(dataset=RandomDataset(32, 64), shuffle=True),
-        CombinedLoader(DataLoader(dataset=RandomDataset(32, 64), shuffle=True)),
-        CombinedLoader(
-            [DataLoader(dataset=RandomDataset(32, 64)), DataLoader(dataset=RandomDataset(32, 64), shuffle=True)]
+        (DataLoader(dataset=RandomDataset(32, 64), shuffle=True), True),
+        (DataLoader(dataset=RandomDataset(32, 64), sampler=list(range(64))), False),
+        (CombinedLoader(DataLoader(dataset=RandomDataset(32, 64), shuffle=True)), True),
+        (
+            CombinedLoader(
+                [DataLoader(dataset=RandomDataset(32, 64)), DataLoader(dataset=RandomDataset(32, 64), shuffle=True)]
+            ),
+            True,
         ),
-        CombinedLoader(
-            {
-                "dl1": DataLoader(dataset=RandomDataset(32, 64)),
-                "dl2": DataLoader(dataset=RandomDataset(32, 64), shuffle=True),
-            }
+        (
+            CombinedLoader(
+                {
+                    "dl1": DataLoader(dataset=RandomDataset(32, 64)),
+                    "dl2": DataLoader(dataset=RandomDataset(32, 64), shuffle=True),
+                }
+            ),
+            True,
         ),
     ],
 )
-def test_non_sequential_sampler_warning_is_raised_for_eval_dataloader(val_dl):
+def test_non_sequential_sampler_warning_is_raised_for_eval_dataloader(val_dl, raises_exception):
     trainer = Trainer()
     model = BoringModel()
     trainer._data_connector.attach_data(model, val_dataloaders=val_dl)
-    with pytest.warns(PossibleUserWarning, match="recommended .* turn shuffling off for val/test/predict"):
+    context = pytest.warns if raises_exception else no_warning_call
+    with context(PossibleUserWarning, match="recommended .* turn shuffling off for val/test/predict"):
         trainer._data_connector._reset_eval_dataloader(RunningStage.VALIDATING, model)
