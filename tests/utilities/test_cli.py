@@ -45,8 +45,8 @@ from pytorch_lightning.utilities.cli import (
     LightningArgumentParser,
     LightningCLI,
     LOGGER_REGISTRY,
-    LRSchedulerTypeTuple,
     LR_SCHEDULER_REGISTRY,
+    LRSchedulerTypeTuple,
     MODEL_REGISTRY,
     OPTIMIZER_REGISTRY,
     SaveConfigCallback,
@@ -977,15 +977,16 @@ class TestModel(BoringModel):
 
 
 def test_lightning_cli_model_short_arguments():
-    with mock.patch("sys.argv", ["any.py", "fit", "--model=BoringModel"]), \
-         mock.patch("pytorch_lightning.Trainer._fit_impl") as run, \
-         mock_subclasses(LightningModule, BoringModel, TestModel):
+    with mock.patch("sys.argv", ["any.py", "fit", "--model=BoringModel"]), mock.patch(
+        "pytorch_lightning.Trainer._fit_impl"
+    ) as run, mock_subclasses(LightningModule, BoringModel, TestModel):
         cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.model, BoringModel)
         run.assert_called_once_with(cli.model, ANY, ANY, ANY, ANY)
 
-    with mock.patch("sys.argv", ["any.py", "--model=TestModel", "--model.foo", "123"]), \
-         mock_subclasses(LightningModule, BoringModel, TestModel):
+    with mock.patch("sys.argv", ["any.py", "--model=TestModel", "--model.foo", "123"]), mock_subclasses(
+        LightningModule, BoringModel, TestModel
+    ):
         cli = LightningCLI(run=False)
         assert isinstance(cli.model, TestModel)
         assert cli.model.foo == 123
@@ -1015,16 +1016,17 @@ def test_lightning_cli_datamodule_short_arguments():
         assert cli.datamodule.bar == 5
 
     # with configurable model
-    with mock.patch("sys.argv", ["any.py", "fit", "--model", "BoringModel", "--data=BoringDataModule"]), \
-         mock.patch("pytorch_lightning.Trainer._fit_impl") as run, \
-         mock_subclasses(LightningModule, BoringModel):
+    with mock.patch("sys.argv", ["any.py", "fit", "--model", "BoringModel", "--data=BoringDataModule"]), mock.patch(
+        "pytorch_lightning.Trainer._fit_impl"
+    ) as run, mock_subclasses(LightningModule, BoringModel):
         cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.model, BoringModel)
         assert isinstance(cli.datamodule, BoringDataModule)
         run.assert_called_once_with(cli.model, ANY, ANY, cli.datamodule, ANY)
 
-    with mock.patch("sys.argv", ["any.py", "--model", "BoringModel", "--data=MyDataModule"]), \
-         mock_subclasses(LightningModule, BoringModel):
+    with mock.patch("sys.argv", ["any.py", "--model", "BoringModel", "--data=MyDataModule"]), mock_subclasses(
+        LightningModule, BoringModel
+    ):
         cli = LightningCLI(run=False)
         assert isinstance(cli.model, BoringModel)
         assert isinstance(cli.datamodule, MyDataModule)
