@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Iterable, Optional, Union
+from typing import Any, Iterable, Optional, Union
 
 import torch
 
@@ -40,7 +40,6 @@ class LoggerConnector:
         self._progress_bar_metrics: _PBAR_DICT = {}
         self._logged_metrics: _OUT_DICT = {}
         self._callback_metrics: _OUT_DICT = {}
-        self._gpus_metrics: Dict[str, float] = {}
         self._epoch_end_reached = False
         self._current_fx: Optional[str] = None
         self._batch_idx: Optional[int] = None
