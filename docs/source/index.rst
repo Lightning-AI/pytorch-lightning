@@ -80,20 +80,14 @@ New to Lightning
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Learn the 9 concepts that enable you to build the majority of models.
+   :description: Learn the 8 key steps of a typical Lightning workflow.
    :header: Level 1: Lightning in 15 minutes
    :button_link:  starter/introduction.html
-
-.. customcalloutitem::
-   :description: Easily organize your existing PyTorch code as PyTorch Lightning in a few hours.
-   :header: Organize PyTorch as PyTorch Lightning
-   :button_link: starter/converting.html
 
 .. customcalloutitem::
    :description: Learn how to benchmark PyTorch Lightning.
    :header: Benchmarking
    :button_link: benchmarking/benchmarks.html
-
 
 .. raw:: html
 
@@ -111,14 +105,15 @@ Current Lightning users
 
 .. raw:: html
 
-   <hr class="docutils" style="margin: 50px 0 50px 0">
-
-.. raw:: html
-
     <div class="tutorials-callout-container">
         <div class="row">
 
 .. Add callout items below this line
+
+.. customcalloutitem::
+   :description: Detailed description of API each package. Assumes you already have basic Lightning knowledge.
+   :header: API Reference
+   :button_link: api_references.html
 
 .. customcalloutitem::
    :description: Learn Lightning at 4 levels of expertise: Introductory, intermediate, advanced and expert.
@@ -126,31 +121,19 @@ Current Lightning users
    :button_link:  expertise_levels.html
 
 .. customcalloutitem::
-   :description: Easily organize your existing PyTorch code as PyTorch Lightning in a few hours.
-   :header: Organize PyTorch as PyTorch Lightning
-   :button_link: starter/converting.html
-
-.. customcalloutitem::
-   :description: See how Lightning is used in research areas like NLP, Computer Vision, RL and meta learning.
+   :description: From NLP, Computer vision to RL and meta learning - see how to use Lightning in ALL research areas.
    :header: Examples
    :button_link: tutorials.html
-
-.. customcalloutitem::
-   :description: Detailed descriptions of each API package.
-   :header: API Reference
-   :button_link: api_references.html
-
 
 .. customcalloutitem::
    :description: Learn how to do everything from hyperparameters sweeps to cloud training to Pruning and Quantization with Lightning.
    :header: Conceptual Guides
    :button_link: common_usecases.html
 
-
 .. customcalloutitem::
-   :description: Learn how to benchmark PyTorch Lightning.
-   :header: Benchmarking
-   :button_link: benchmarking/benchmarks.html
+   :description: Convert your current code to Lightning.
+   :header: Convert code to PyTorch Lightning
+   :button_link: starter/converting.html
 
 
 .. raw:: html
@@ -311,12 +294,10 @@ Current Lightning users
    governance
    generated/CHANGELOG.md
 
+
+   * :ref:`genindex`
+   * :ref:`search`
+
 .. raw:: html
 
    </div>
-
-Indices and tables
-------------------
-
-* :ref:`genindex`
-* :ref:`search`

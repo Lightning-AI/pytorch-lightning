@@ -5,17 +5,11 @@ Level 1: Lightning in 15 minutes
 ################################
 **Required background:** None   
 
-**Goal:** In this guide, we'll walk you through the 9 key steps of a typical Lightning workflow.
+**Goal:** In this guide, we'll walk you through the 8 key steps of a typical Lightning workflow.
 
 PyTorch Lightning is the deep learning framework with "batteries included" for professional AI researchers and machine learning engineers who need maximal flexibility while super-charging performance at scale.
 
-----
-
-********************
-1: Code organization
-********************
-
-When you use Lightning, you're organizing PyTorch code to remove boilerplate and enable scalability.
+Lightning organizes PyTorch code to remove boilerplate and unlock scalability.
 
 .. raw:: html
 
@@ -71,7 +65,7 @@ By organizing PyTorch code, lightning enables:
 ----
 
 ****************************
-2: Install PyTorch Lightning
+1: Install PyTorch Lightning
 ****************************
 .. raw:: html
 
@@ -135,7 +129,7 @@ Import the following:
 ----
 
 ***************************
-3: Define a LightningModule
+2: Define a LightningModule
 ***************************
 
 A LightningModule enables your PyTorch nn.Module to play together in complex ways inside the training_step (there is also an optional validation_step and test_step).
@@ -175,7 +169,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
 ----
 
 *******************
-4: Define a dataset
+3: Define a dataset
 *******************
 
 Lightning supports ANY iterable (:class:`~torch.utils.data.DataLoader`, numpy, etc...) for the train/val/test/predict splits.
@@ -188,7 +182,7 @@ Lightning supports ANY iterable (:class:`~torch.utils.data.DataLoader`, numpy, e
 ----
 
 **************************
-5: Start Lightning Trainer
+4: Start Lightning Trainer
 **************************
 
 The Lightning :doc:`Trainer <../common/trainer>` "mixes" any :doc:`LightningModule <../common/lightning_module>` with any dataset and abstracts away all the engineering complexity needed for scale.
@@ -198,7 +192,7 @@ The Lightning :doc:`Trainer <../common/trainer>` "mixes" any :doc:`LightningModu
     trainer = pl.Trainer()
     trainer.fit(model=autoencoder, train_dataloaders=train_loader)
 
-The Lightning :class:`~pytorch_lightning.trainer.Trainer` automates 40+ things including:
+The Lightning :doc:`Trainer <../common/trainer>` automates `40+ tricks <../common/trainer.html#trainer-flags>`_ including:
 
 * Epoch and batch iteration
 * ``optimizer.step()``, ``loss.backward()``, ``optimizer.zero_grad()`` calls
@@ -211,9 +205,9 @@ The Lightning :class:`~pytorch_lightning.trainer.Trainer` automates 40+ things i
 
 ----
 
-*******************************
-6: Customize Trainer parameters
-*******************************
+****************************
+5: Modify Trainer parameters
+****************************
 
 Training tips/tricks, custom cluster integrations or even the latest SOTA techniques can be enabled via the Lightning Trainer.
 
@@ -240,7 +234,7 @@ Training tips/tricks, custom cluster integrations or even the latest SOTA techni
 ----
 
 **************************
-7: Customize training loop
+6: Customize training loop
 **************************
 
 .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/custom_loop.png
@@ -258,7 +252,7 @@ Inject custom code anywhere in the Training loop using any of the 20+ methods (:
 ----
 
 *********************
-8: Extend the Trainer
+7: Extend the Trainer
 *********************
 
 .. raw:: html
@@ -270,12 +264,12 @@ If you have multiple lines of code with similar functionalities, you can use cal
 
 .. code::
 
-   trainer = Trainer(callbacks=[DeviceStatsMonitor()])
+   trainer = Trainer(callbacks=[AWSCheckpoints()])
 
 ----
 
 *****************************
-9: Control your training loop
+8: Control your training loop
 *****************************
 
 For certain types of work at the bleeding-edge of research, Lightning offers experts full control of their training loops in various ways.
@@ -292,6 +286,7 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
    :description: Automated training loop, but you own the optimization steps.
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/manual_opt.png
+   :button_link: ../common/optimization.html#manual-optimization
    :image_height: 220px
    :height: 320
 
@@ -300,6 +295,7 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
    :description: Full control over loop for migrating complex PyTorch projects.
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/lite.png
+   :button_link: lightning_lite.html
    :image_height: 220px
    :height: 320
 
@@ -308,6 +304,7 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
    :description: Enable meta-learning, reinforcement learning, GANs with full control.
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/loops.png
+   :button_link: ../extensions/loops.html
    :image_height: 220px
    :height: 320
 
