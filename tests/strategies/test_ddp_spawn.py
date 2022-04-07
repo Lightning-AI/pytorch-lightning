@@ -61,9 +61,6 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
 
     tpipes.run_model_test(trainer_options, model)
 
-    # test memory helper functions
-    memory.get_memory_profile("min_max")
-
 
 @RunIf(min_gpus=2)
 def test_ddp_all_dataloaders_passed_to_fit(tmpdir):

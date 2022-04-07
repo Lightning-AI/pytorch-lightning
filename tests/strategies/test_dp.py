@@ -99,9 +99,6 @@ def test_multi_gpu_model_dp(tmpdir):
 
     tpipes.run_model_test(trainer_options, model)
 
-    # test memory helper functions
-    memory.get_memory_profile("min_max")
-
 
 class ReductionTestModel(BoringModel):
     def train_dataloader(self):

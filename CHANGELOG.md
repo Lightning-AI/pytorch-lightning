@@ -75,7 +75,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated `terminate_on_nan` argument from the `Trainer` constructor ([#12553](https://github.com/PyTorchLightning/pytorch-lightning/pull/12553))
 
 
--
+- Removed the deprecated `get_memory_profile` argument from the `memory` constructor ([#12553](https://github.com/PyTorchLightning/pytorch-lightning/pull/12553))
 
 
 -
