@@ -101,7 +101,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
 
         def validation_epoch_end(self, outputs) -> None:
             avg_val_loss = torch.stack([x["x"] for x in outputs]).mean()
-            self.log_dict({"early_stop_on": avg_val_loss, "val_loss": avg_val_loss ** 0.5})
+            self.log_dict({"early_stop_on": avg_val_loss, "val_loss": avg_val_loss**0.5})
 
         def test_epoch_end(self, outputs) -> None:
             avg_test_loss = torch.stack([x["y"] for x in outputs]).mean()
