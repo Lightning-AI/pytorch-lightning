@@ -101,7 +101,7 @@ def test_node_rank(tmp_path):
 
 def test_detect():
     """Test the detection of a LSF environment configuration."""
-    with mock.patch.dict(os.environ, {}):
+    with mock.patch.dict(os.environ, {}, clear=True):
         assert not LSFEnvironment.detect()
 
     with mock.patch.dict(
