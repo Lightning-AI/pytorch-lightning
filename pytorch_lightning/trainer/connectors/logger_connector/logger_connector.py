@@ -299,17 +299,6 @@ class LoggerConnector:
         return self.trainer._results.metrics(on_step)
 
     @property
-    def gpus_metrics(self) -> Dict[str, float]:
-        """
-        .. deprecated:: v1.5
-            Will be removed in v1.7.
-        """
-        if isinstance(self.trainer.accelerator, GPUAccelerator) and self.log_gpu_memory:
-            mem_map = memory.get_memory_profile(self.log_gpu_memory)
-            self._gpus_metrics.update(mem_map)
-        return self._gpus_metrics
-
-    @property
     def callback_metrics(self) -> _OUT_DICT:
         if self.trainer._results:
             metrics = self.metrics["callback"]
