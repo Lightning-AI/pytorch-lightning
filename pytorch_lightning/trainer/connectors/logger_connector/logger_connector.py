@@ -27,14 +27,8 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 class LoggerConnector:
-    def __init__(self, trainer: "pl.Trainer", log_gpu_memory: Optional[str] = None) -> None:
+    def __init__(self, trainer: "pl.Trainer") -> None:
         self.trainer = trainer
-        if log_gpu_memory is not None:
-            rank_zero_deprecation(
-                "Setting `log_gpu_memory` with the trainer flag is deprecated in v1.5 and will be removed in v1.7. "
-                "Please monitor GPU stats with the `DeviceStatsMonitor` callback directly instead."
-            )
-        self.log_gpu_memory = log_gpu_memory
         self._val_log_step: int = 0
         self._test_log_step: int = 0
         self._progress_bar_metrics: _PBAR_DICT = {}

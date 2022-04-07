@@ -145,7 +145,6 @@ class Trainer(
         auto_select_gpus: bool = False,
         tpu_cores: Optional[Union[List[int], str, int]] = None,
         ipus: Optional[int] = None,
-        log_gpu_memory: Optional[str] = None,  # TODO: Remove in 1.7
         enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
@@ -303,12 +302,6 @@ class Trainer(
                 of the individual loggers.
                 Default: ``True``.
 
-            log_gpu_memory: None, 'min_max', 'all'. Might slow performance.
-
-                .. deprecated:: v1.5
-                    Deprecated in v1.5.0 and will be removed in v1.7.0
-                    Please use the ``DeviceStatsMonitor`` callback directly instead.
-
             log_every_n_steps: How often to log within steps.
                 Default: ``50``.
 
@@ -461,7 +454,7 @@ class Trainer(
             amp_level=amp_level,
             plugins=plugins,
         )
-        self._logger_connector = LoggerConnector(self, log_gpu_memory)
+        self._logger_connector = LoggerConnector(self)
         self._callback_connector = CallbackConnector(self)
         self._checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
         self._signal_connector = SignalConnector(self)
