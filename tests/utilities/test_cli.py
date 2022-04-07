@@ -31,7 +31,7 @@ from packaging import version
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
-from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
+from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import LightningLoggerBase, TensorBoardLogger
 from pytorch_lightning.plugins.environments import SLURMEnvironment
@@ -458,7 +458,11 @@ def test_lightning_cli_print_config():
     with mock.patch("sys.argv", cli_args), redirect_stdout(out), pytest.raises(SystemExit):
         any_model_any_data_cli()
 
-    outval = yaml.safe_load(out.getvalue())
+    text = out.getvalue()
+    # test dump_header
+    assert text.startswith(f"# pytorch_lightning=={__version__}")
+
+    outval = yaml.safe_load(text)
     assert outval["seed_everything"] == 1234
     assert outval["model"]["class_path"] == "tests.helpers.BoringModel"
     assert outval["data"]["class_path"] == "tests.helpers.BoringDataModule"
