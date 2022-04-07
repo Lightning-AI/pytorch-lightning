@@ -258,7 +258,7 @@ class Trainer(
                 Default: ``False``.
 
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
-                Set to ``warn`` to use deterministic algorithms whenever possible, throwing warnings on operations
+                Set to ``"warn"`` to use deterministic algorithms whenever possible, throwing warnings on operations
                 that don't support deterministic mode (requires Pytorch 1.11+).
                 Default: ``False``.
 
