@@ -40,6 +40,7 @@ from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
 from tests.loggers.test_base import CustomLogger
+from tests.helpers.runif import RunIf
 from tests.plugins.environments.test_lsf_environment import _make_rankfile
 
 
@@ -348,6 +349,8 @@ def test_v1_7_0_deprecated_slurm_job_id():
         trainer.slurm_job_id
 
 
+
+@RunIf(min_gpus=1)
 def test_v1_7_0_deprecate_gpu_stats_monitor(tmpdir):
     with pytest.deprecated_call(match="The `GPUStatsMonitor` callback was deprecated in v1.5"):
         _ = GPUStatsMonitor()
