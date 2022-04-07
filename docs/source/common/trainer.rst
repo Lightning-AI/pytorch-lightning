@@ -1807,3 +1807,18 @@ estimated_stepping_batches
 **************************
 
 Check out :meth:`~pytorch_lightning.trainer.trainer.Trainer.estimated_stepping_batches`.
+
+state
+*****
+
+The current state of the Trainer, including the current function that is running, the stage of
+execution within that function, and the status of the Trainer.
+
+.. code-block:: python
+
+    # fn in ("fit", "validate", "test", "predict", "tune")
+    trainer.state.fn
+    # status in ("initializing", "running", "finished", "interrupted")
+    trainer.state.status
+    # stage in ("train", "sanity_check", "validate", "test", "predict", "tune"
+    trainer.state.stage
