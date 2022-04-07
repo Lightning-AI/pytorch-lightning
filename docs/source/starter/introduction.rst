@@ -541,9 +541,9 @@ Overfit Batches
 .. testcode::
 
     # Automatically overfit the same batches to your model for a sanity test
-    # use only 10 train batches
+    # use only 10 train & val batches
     trainer = Trainer(overfit_batches=10)
-    # use only 20% of total train batches
+    # use only 20% of total train batches and 20% of val batches
     trainer = Trainer(overfit_batches=0.2)
 
 Fast Dev Run

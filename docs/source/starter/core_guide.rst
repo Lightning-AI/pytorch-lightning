@@ -596,8 +596,7 @@ will cause all sorts of issues.
 To solve this problem, make sure your download code is in the ``prepare_data`` method in the DataModule.
 In this method we do all the preparation we need to do once (instead of on every GPU).
 
-``prepare_data`` can be called in two ways, once per node or only on the root node
-(``Trainer(prepare_data_per_node=False)``).
+``prepare_data`` can be called in two ways, once per node or only on the root node.
 
 .. code-block:: python
 
