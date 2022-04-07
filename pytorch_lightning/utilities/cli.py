@@ -542,7 +542,7 @@ class LightningCLI:
 
         if self.datamodule_class is not None:
             parser.add_lightning_class_args(self._datamodule_class, "data", subclass_mode=self.subclass_mode_data)
-        elif len(DATAMODULE_REGISTRY):
+        else:
             # this should not be required because the user might want to use the `LightningModule` dataloaders
             parser.add_lightning_class_args(
                 self._datamodule_class, "data", subclass_mode=self.subclass_mode_data, required=False
