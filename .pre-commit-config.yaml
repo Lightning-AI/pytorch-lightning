@@ -13,7 +13,7 @@
 # limitations under the License.
 
 default_language_version:
-  python: python3.8
+  python: python3
 
 ci:
   autofix_prs: true
