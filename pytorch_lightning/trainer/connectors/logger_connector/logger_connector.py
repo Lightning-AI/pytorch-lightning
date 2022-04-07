@@ -207,7 +207,6 @@ class LoggerConnector:
         assert self.trainer._results is not None
         self.trainer._results.reset(metrics=True)
 
-
     """
     Utilities and properties
     """
