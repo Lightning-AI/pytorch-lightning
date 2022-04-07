@@ -260,7 +260,11 @@ Inject custom code anywhere in the Training loop using any of the 20+ methods (:
 *********************
 8: Extend the Trainer
 *********************
-[IMAGE]
+
+.. raw:: html
+
+    <video width="100%" max-width="800px" controls autoplay muted playsinline
+    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cb.m4v"></video>
 
 If you have multiple lines of code with similar functionalities, you can use callbacks to easily group them together and toggle all of those lines on or off at the same time.
 
@@ -287,22 +291,25 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
    :header: Manual optimization
    :description: Automated training loop, but you own the optimization steps.
    :col_css: col-md-4
-   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_no_boilerplate.png
-   :height: 290
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/manual_opt.png
+   :image_height: 220px
+   :height: 320
 
 .. displayitem::
    :header: Lightning Lite
    :description: Full control over loop for migrating complex PyTorch projects.
    :col_css: col-md-4
-   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_full_control.png
-   :height: 290
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/lite.png
+   :image_height: 220px
+   :height: 320
 
 .. displayitem::
    :header: Loops
    :description: Enable meta-learning, reinforcement learning, GANs with full control.
    :col_css: col-md-4
-   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_hardware.png
-   :height: 290
+   :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/loops.png
+   :image_height: 220px
+   :height: 320
 
 .. raw:: html
 
