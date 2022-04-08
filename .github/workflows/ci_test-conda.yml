@@ -55,30 +55,6 @@ jobs:
         unzip -o checkpoints.zip
         ls -l checkpoints/
 
-    - name: Tests (collect-only)
-      run: |
-        python -m pytest pytorch_lightning --collect-only
-        python -m pytest tests/accelerators/ --collect-only
-        python -m pytest tests/base/ --collect-only
-        python -m pytest tests/benchmarks/ --collect-only
-        python -m pytest tests/callbacks/ --collect-only
-        python -m pytest tests/checkpointing/ --collect-only
-        python -m pytest tests/core/ --collect-only
-        python -m pytest tests/deprecated_api/ --collect-only
-        python -m pytest tests/helpers/ --collect-only
-        python -m pytest tests/loggers/ --collect-only
-        python -m pytest tests/loops/ --collect-only
-        python -m pytest tests/metrics/ --collect-only
-        python -m pytest tests/models/ --collect-only
-        python -m pytest tests/overrides/ --collect-only
-        python -m pytest tests/plugins/ --collect-only
-        python -m pytest tests/profiler/ --collect-only
-        python -m pytest tests/strategies/ --collect-only
-        python -m pytest tests/trainer/ --collect-only
-        python -m pytest tests/tuner/ --collect-only
-        python -m pytest tests/utilities/ --collect-only
-        python -m pytest tests/lite/ --collect-only  # tests/lite is suspicous
-
     - name: Tests
       run: |
         coverage run --source pytorch_lightning -m pytest --timeout 150 pytorch_lightning tests --ignore tests/lite/test_parity.py --ignore tests/lite/test_wrapper.py -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
