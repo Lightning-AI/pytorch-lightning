@@ -111,18 +111,18 @@ Current Lightning users
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Detailed description of API each package. Assumes you already have basic Lightning knowledge.
-   :header: API Reference
-   :button_link: api_references.html
-
-.. customcalloutitem::
    :description: Learn Lightning at 4 levels of expertise: Introductory, intermediate, advanced and expert.
-   :header: Level up!
+   :header: Level Up!
    :button_link:  expertise_levels.html
 
 .. customcalloutitem::
+   :description: Detailed description of API each package. Assumes you already have basic Lightning knowledge.
+   :header: API References
+   :button_link: api_references.html
+
+.. customcalloutitem::
    :description: From NLP, Computer vision to RL and meta learning - see how to use Lightning in ALL research areas.
-   :header: Examples
+   :header: Tutorials
    :button_link: tutorials.html
 
 .. customcalloutitem::
@@ -166,46 +166,31 @@ Current Lightning users
    levels/expert
 
 .. toctree::
-   :maxdepth: 1
-   :name: guides
-   :caption: Best Practices
-
-   guides/speed
-   guides/data
-   starter/style_guide
-   Lightning project template<https://github.com/PyTorchLightning/pytorch-lightning-conference-seed>
-   benchmarking/benchmarks
-
-.. toctree::
    :maxdepth: 2
    :name: pl_docs
-   :caption: Lightning API
+   :caption: Core API
 
    common/lightning_module
    common/trainer
 
 .. toctree::
    :maxdepth: 2
-   :name: docs
-   :caption: Optional Extensions
+   :name: api
+   :caption: API References
 
-   extensions/accelerator
-   extensions/callbacks
-   extensions/datamodules
-   extensions/logging
-   extensions/plugins
-   extensions/strategy
-   extensions/loops
+   api_references
 
 .. toctree::
    :maxdepth: 1
-   :name: Accelerators
-   :caption: Accelerators
+   :name: Tutorials
+   :caption: Tutorials
+   :glob:
 
-   accelerators/gpu
-   accelerators/tpu
-   accelerators/ipu
-   accelerators/hpu
+   notebooks/**/*
+   advanced/transfer_learning
+   PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
+   From PyTorch to PyTorch Lightning [Blog] <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
+   From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
 
 .. toctree::
    :maxdepth: 1
@@ -236,55 +221,8 @@ Current Lightning users
 
 .. toctree::
    :maxdepth: 1
-   :name: Tutorials
-   :caption: Tutorials
-   :glob:
-
-   starter/core_guide
-   PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
-   From PyTorch to PyTorch Lightning [Blog] <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
-   From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
-   notebooks/**/*
-
-.. toctree::
-   :maxdepth: 2
-   :name: api
-   :caption: API References
-
-   api_references
-
-.. toctree::
-   :maxdepth: 1
-   :name: Lightning Ecosystem
-   :caption: Lightning Ecosystem
-
-   ecosystem/metrics
-   ecosystem/flash
-   ecosystem/bolts
-   ecosystem/transformers
-   ecosystem/ecosystem-ci
-
-.. toctree::
-   :maxdepth: 1
-   :name: Examples
-   :caption: Examples
-
-   ecosystem/community_examples
-   ecosystem/asr_nlp_tts
-   Autoencoder <https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/autoencoders.html>
-   BYOL <https://lightning-bolts.readthedocs.io/en/stable/deprecated/callbacks/self_supervised.html#byolmaweightupdate>
-   DQN <https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/reinforce_learn.html#deep-q-network-dqn>
-   GAN <https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/gans.html#basic-gan>
-   GPT-2 <https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/convolutional.html#gpt-2>
-   Image-GPT <https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/convolutional.html#image-gpt>
-   SimCLR <https://lightning-bolts.readthedocs.io/en/stable/deprecated/transforms/self_supervised.html#simclr-transforms>
-   VAE <https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/autoencoders.html#basic-vae>
-
-.. toctree::
-   :maxdepth: 1
    :name: Community
    :caption: Community
-
 
    generated/CODE_OF_CONDUCT.md
    generated/CONTRIBUTING.md
