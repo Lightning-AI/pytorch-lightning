@@ -156,6 +156,11 @@ Conceptual Guides
    :button_link: advanced/transfer_learning.html
    :card_style: text-container-small
 
+.. customcalloutitem::
+   :description: Scale training collaboratively across local machines or pre-emptible cloud compute across the internet
+   :header: Collaborative Training
+   :button_link: advanced/collaborative_training.html
+   :card_style: text-container-small
 
 .. raw:: html
 
