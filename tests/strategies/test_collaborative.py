@@ -119,7 +119,7 @@ def test_scheduler_wrapped(caplog):
     clear=True,
 )
 @mock.patch("hivemind.DHT", autospec=True)
-@mock.patch("lightning_collaborative.server.DHTManager._get_peers", autospec=True)
+@mock.patch("pytorch_lightning.strategies.collaborative.DHTManager._get_peers", autospec=True)
 @mock.patch("http.server.ThreadingHTTPServer", autospec=True)
 def test_env_variables_parsed(mock_dht, mock_peers, mock_server):
     strategy = CollaborativeStrategy(target_batch_size=1)
@@ -133,7 +133,7 @@ def test_env_variables_parsed(mock_dht, mock_peers, mock_server):
 @RunIf(hivemind=True)
 @mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
 @mock.patch("http.server.ThreadingHTTPServer", autospec=True)
-@mock.patch("lightning_collaborative.strategy.CollaborativeStrategy.num_peers", new_callable=PropertyMock)
+@mock.patch("pytorch_lightning.strategies.collaborative.CollaborativeStrategy.num_peers", new_callable=PropertyMock)
 def test_args_passed_to_optimizer(mock_peers, mock_server):
     mock_peers.return_value = 1
     compression = hivemind.ScaledFloat16Compression()
