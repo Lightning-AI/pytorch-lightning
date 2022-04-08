@@ -289,6 +289,7 @@ def test_fx_validator_integration(tmpdir):
             "on_predict_epoch_start": "result collection is not registered yet",
             "on_predict_batch_start": "result collection is not registered yet",
             "predict_step": "result collection is not registered yet",
+            "predict_epoch_end": "result collection is not registered yet",
             "on_predict_batch_end": "result collection is not registered yet",
             "on_predict_epoch_end": "result collection is not registered yet",
             "on_predict_end": "result collection is not registered yet",
