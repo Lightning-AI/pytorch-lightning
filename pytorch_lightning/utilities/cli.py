@@ -575,6 +575,7 @@ class LightningCLI:
 
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
         """Method that instantiates the argument parser."""
+        kwargs.setdefault("dump_header", [f"pytorch_lightning=={pl.__version__}"])
         return LightningArgumentParser(**kwargs)
 
     def setup_parser(

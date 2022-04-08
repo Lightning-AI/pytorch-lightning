@@ -119,23 +119,6 @@ def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
         _ = trainer.progress_bar_dict
 
 
-@pytest.mark.parametrize("terminate_on_nan", [True, False])
-def test_v1_7_0_trainer_terminate_on_nan(tmpdir, terminate_on_nan):
-    with pytest.deprecated_call(
-        match="Trainer argument `terminate_on_nan` was deprecated in v1.5 and will be removed in 1.7"
-    ):
-        trainer = Trainer(terminate_on_nan=terminate_on_nan)
-        assert trainer.terminate_on_nan is terminate_on_nan
-        assert trainer._detect_anomaly is False
-
-    trainer = Trainer()
-    with pytest.deprecated_call(match=r"`Trainer.terminate_on_nan` is deprecated in v1.5"):
-        _ = trainer.terminate_on_nan
-
-    with pytest.deprecated_call(match=r"Setting `Trainer.terminate_on_nan = True` is deprecated in v1.5"):
-        trainer.terminate_on_nan = True
-
-
 def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
     class CustomBoringModel(BoringModel):
         def on_train_dataloader(self):
@@ -350,13 +333,6 @@ def test_v1_7_0_weights_summary_trainer(tmpdir):
 
     with pytest.deprecated_call(match=r"Setting `Trainer.weights_summary` is deprecated in v1.5"):
         t.weights_summary = "blah"
-
-
-def test_v1_7_0_trainer_log_gpu_memory(tmpdir):
-    with pytest.deprecated_call(
-        match="Setting `log_gpu_memory` with the trainer flag is deprecated in v1.5 and will be removed"
-    ):
-        _ = Trainer(log_gpu_memory="min_max")
 
 
 def test_v1_7_0_deprecated_slurm_job_id():
