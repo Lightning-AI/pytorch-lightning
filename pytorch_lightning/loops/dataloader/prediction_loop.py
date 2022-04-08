@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Sequence, Union
+from typing import Any, List, Optional, Sequence
 
 from deprecate.utils import void
 from torch.utils.data import DataLoader
@@ -6,9 +6,8 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
 from pytorch_lightning.loops.epoch.prediction_epoch_loop import PredictionEpochLoop
 from pytorch_lightning.strategies import DDPSpawnStrategy
-from pytorch_lightning.trainer.connectors.logger_connector import result
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import _PREDICT_OUTPUT, EPOCH_OUTPUT
+from pytorch_lightning.utilities.types import _PREDICT_OUTPUT
 
 
 class PredictionLoop(DataLoaderLoop):
