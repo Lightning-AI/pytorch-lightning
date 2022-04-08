@@ -2658,10 +2658,11 @@ class Trainer(
         if len(self.loggers) == 1:
             return self.loggers[0]
         else:
-            rank_zero_warn(
+            rank_zero_deprecation(
                 "Using trainer.logger when Trainer is configured to use multiple loggers."
                 " This behavior will change in v1.8 when LoggerCollection is removed, and"
-                " trainer.logger will return the first logger in trainer.loggers"
+                " trainer.logger will return the first logger in trainer.loggers",
+                stacklevel=5,
             )
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
