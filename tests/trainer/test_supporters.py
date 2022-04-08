@@ -468,7 +468,9 @@ def test_combined_dataloader_for_training_with_ddp(
     )
     expected_length_before_ddp = min(n1, n2) if is_min_size_mode else max(n1, n2)
     expected_length_after_ddp = (
-        math.ceil(expected_length_before_ddp / trainer.devices) if replace_sampler_ddp else expected_length_before_ddp
+        math.ceil(expected_length_before_ddp / trainer.num_devices)
+        if replace_sampler_ddp
+        else expected_length_before_ddp
     )
     trainer.reset_train_dataloader(model=model)
     assert trainer.train_dataloader is not None
