@@ -146,9 +146,12 @@ class RunIf:
 
         if bf16_cuda:
             try:
-                cond = not (_TORCH_GREATER_EQUAL_1_10 and torch.cuda.is_bf16_supported())
-            except AssertionError as e:
-                if "Torch not compiled with CUDA enabled" not in str(e):
+                cond = not (torch.cuda.is_available() and _TORCH_GREATER_EQUAL_1_10 and torch.cuda.is_bf16_supported())
+            except (AssertionError, RuntimeError) as e:
+                # AssertionError: Torch not compiled with CUDA enabled
+                # RuntimeError: Found no NVIDIA driver on your system.
+                is_unrelated = "Found no NVIDIA driver" not in str(e) or "Torch not compiled with CUDA" not in str(e)
+                if is_unrelated:
                     raise e
                 cond = True
 
