@@ -570,10 +570,10 @@ class ModelCheckpoint(Callback):
         """Determines model checkpoint save directory at runtime. References attributes from the trainer's logger
         to determine where to save checkpoints. The path for saving weights is set in this priority:
 
-        1.  The ModelCheckpoint's dirpath if passed in
-        2.  The Trainer's weights_saved_path if passed in (deprecated)
-        3.  The Logger's log_dir if the trainer has loggers
-        4.  The Trainer's default_root_dir if the trainer has no loggers
+        1.  The ``ModelCheckpoint``'s ``dirpath`` if passed in
+        2.  The ``Trainer``'s ``weights_saved_path`` if passed in (deprecated)
+        3.  The ``Logger``'s ``log_dir`` if the trainer has loggers
+        4.  The ``Trainer``'s ``default_root_dir`` if the trainer has no loggers
 
         The path gets extended with subdirectory "checkpoints".
         """
