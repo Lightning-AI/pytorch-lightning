@@ -233,7 +233,7 @@ class ModelHooks:
     def on_predict_epoch_start(self) -> None:
         """Called at the beginning of predicting."""
 
-    def on_predict_epoch_end(self, results: List[Any]) -> None:
+    def on_predict_epoch_end(self) -> None:
         """Called at the end of predicting."""
 
     def on_before_zero_grad(self, optimizer: Optimizer) -> None:
