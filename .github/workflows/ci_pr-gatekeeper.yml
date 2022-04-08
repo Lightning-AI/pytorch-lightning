@@ -6,7 +6,6 @@ on:
 
 jobs:
   pr-gatekeeper:
-    if: github.event.review.state == 'approved'
     name: PR Gatekeeper
     runs-on: ubuntu-latest
     steps:
