@@ -9,7 +9,6 @@ import warnings
 from http.server import BaseHTTPRequestHandler
 from typing import Any, Callable, Dict, List, Optional, Union
 
-import hivemind
 import requests
 import torch
 
@@ -19,7 +18,11 @@ from pytorch_lightning.utilities import _XLA_AVAILABLE, rank_zero_only, rank_zer
 from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _HIVEMIND_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
+
+if _HIVEMIND_AVAILABLE:
+    import hivemind
 
 log = logging.getLogger(__name__)
 
@@ -224,7 +227,7 @@ class CollaborativeStrategy(Strategy):
 
             self.lightning_module.optimizer_zero_grad = override_fn
 
-    def _wrap_schedulers(self, opt, trainer):
+    def _wrap_schedulers(self, opt: "hivemind.Optimizer", trainer: "pl.Trainer") -> None:
         # wrap schedulers so that they only update when the hivemind optimizer updates
         for scheduler_config in trainer.lr_scheduler_configs:
             scheduler_config.scheduler = HiveMindScheduler(
@@ -254,7 +257,7 @@ class CollaborativeStrategy(Strategy):
         return self.opt.tracker.global_progress.num_peers
 
     @property
-    def dht(self) -> hivemind.DHT:
+    def dht(self) -> "hivemind.DHT":
         return self.dht_manager.dht
 
     @property
@@ -316,12 +319,12 @@ class CollaborativeStrategy(Strategy):
 
 
 class HiveMindScheduler:
-    """Wrapper to the scheduler that prevents Lightning from stepping the scheduler too soon.
+    """Wrapper for schedulers to prevent Lightning from stepping the scheduler too soon.
 
-    This code ensures that we only step when the HiveMind optimizer steps.
+    This code ensures that we only step when the HiveMind optimizer reaches the global step.
     """
 
-    def __init__(self, optimizer: hivemind.Optimizer, scheduler):
+    def __init__(self, optimizer: hivemind.Optimizer, scheduler: torch.optim.lr_scheduler._LRScheduler):
         # copy most of the `Scheduler` methods into this instance. `__del__` is skipped in case the scheduler has
         # implemented custom logic which we would not want to call on destruction of the `SwarmyScheduler`
         self.__dict__ = {k: v for k, v in scheduler.__dict__.items() if k not in ("step", "__del__")}
@@ -330,15 +333,15 @@ class HiveMindScheduler:
         self.scheduler = scheduler
         self.current_step = -1
 
-    def step(self, epoch=None):
+    def step(self, epoch: Optional[int] = None) -> None:
         while self.current_step < self.optimizer.local_epoch:
             self.scheduler.step()
             self.current_step += 1
 
-    def load_state_dict(self, state_dict):
+    def load_state_dict(self, state_dict: Dict):
         self.scheduler.load_state_dict(state_dict)
 
-    def state_dict(self):
+    def state_dict(self) -> Dict:
         return self.scheduler.state_dict()
 
 
@@ -404,7 +407,7 @@ class DHTManager:
                 f"CollaborativeStrategy(initial_peers='{','.join(visible_addresses)}')"
             )
 
-    def _log_endpoint_helper_message(self, visible_addresses):
+    def _log_endpoint_helper_message(self, visible_addresses: List[str]) -> None:
         resolved_host = self.host
         if "0.0.0.0" in self.host:
             # use the visible multi-addresses to figure out the IP that has been exposed
@@ -420,7 +423,7 @@ class DHTManager:
             f"CollaborativeStrategy(peer_endpoint='{resolved_host}:{self.port}')"
         )
 
-    def _start_server_process(self, host: str, port: int):
+    def _start_server_process(self, host: str, port: int) -> None:
         dht = self.dht
 
         class DHTHandler(BaseHTTPRequestHandler):
@@ -459,12 +462,12 @@ class DHTManager:
         log.info(f"Received initial peers from collaborative server: {peers}")
         return peers
 
-    def _get_peers(self):
+    def _get_peers(self) -> List[str]:
         url = f"http://{self.peer_endpoint}" if not self.peer_endpoint.startswith("http://") else self.peer_endpoint
         r = requests.get(url)
         return r.text.split(",")
 
-    def _parse_env_vars(self):
+    def _parse_env_vars(self) -> None:
         endpoint = os.environ.get(self.ENDPOINT_ENV, self.endpoint)
         self.endpoint = endpoint == "1" if isinstance(endpoint, str) else endpoint
         self.peer_endpoint = os.environ.get(self.PEER_ENDPOINT_ENV, self.peer_endpoint)
