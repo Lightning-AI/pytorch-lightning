@@ -1,8 +1,8 @@
 :orphan:
 
-################################
-Level 1: Lightning in 15 minutes
-################################
+#######################
+Lightning in 15 minutes
+#######################
 **Required background:** None   
 
 **Goal:** In this guide, we'll walk you through the 8 key steps of a typical Lightning workflow.
