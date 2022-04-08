@@ -121,7 +121,7 @@ class CollaborativeStrategy(Strategy):
 
             host: When creating the endpoint, the host IP to use.
 
-            port: When creting the endpoint, the host port to use.
+            port: When creating the endpoint, the host port to use.
 
             retry_initial_peers: When connecting to the `peer_endpoint`, how many time to retry before raising
             an exception.
@@ -366,6 +366,33 @@ class DHTManager:
         retry_initial_peers: int = 5,
         retry_peer_sleep_duration: int = 5,
     ):
+        """Manages the `hivemind.DHT` connection and provides a side-car endpoint server for initial peer access.
+
+        Arguments:
+
+            host_maddrs: List of multi-addrs to create visible peers for other processes.
+            https://learning-at-home.readthedocs.io/en/latest/user/dht.html#running-across-the-internet
+
+            initial_peers: If connecting to a running process, a list of initial peers needs to be passed in.
+            This can also be set via the env variable `INITIAL_PEERS`.
+
+            endpoint: Enable if a side-car endpoint server is required on the process to server initial peers.
+            This is useful when using some form of orchestration such as torchelastic.
+
+            peer_endpoint: The endpoint to request initial peers from.
+
+            persistent: When using an endpoint, this controls whether other processes that are not the endpoint
+            server log/checkpoint. If `persistent` is True, we do not log/checkpoint from other processes.
+
+            host: When creating the endpoint, the host IP to use.
+
+            port: When creating the endpoint, the host port to use.
+
+            retry_initial_peers: When connecting to the `peer_endpoint`, how many time to retry before raising
+            an exception.
+
+            retry_peer_sleep_duration: When connecting to the `peer_endpoint`, how long to wait between retries.
+        """
         logging.basicConfig()
         log.setLevel(logging.INFO)
         self.persistent = persistent
