@@ -6,9 +6,9 @@ Learn enough Lightning to match the level of expertise required by your research
 
 ----
 
-Introductory
-------------
-Introductory level teaches you the basics of the framework. Researchers and machine learning engineers should start here.
+Core skills
+-----------
+Core skills teaches you the basics of the framework. Researchers and machine learning engineers should start here.
 
 .. include:: links.rst
 
@@ -27,32 +27,32 @@ Introductory level teaches you the basics of the framework. Researchers and mach
 
 .. customcalloutitem::
    :description: Basic model scaling with GPUs, TPUs and half-precision.
-   :header: Level 2: Basic model scaling techniques.
-   :button_link: levels/introductory_level_2.html
+   :header: Level 2: Basic model scaling.
+   :button_link: levels/core_level_2.html
    :card_style: text-container-small
 
 .. customcalloutitem::
    :description: Understand your model with custom loggers and custom metrics.
-   :header: Level 3: Visualize your training progress
-   :button_link: common/checkpointing.html
+   :header: Level 3: Visualize training progress
+   :button_link: levels/core_level_3.html
    :card_style: text-container-small
 
 .. customcalloutitem::
    :description: Built-in techniques to avoid overfitting.
    :header: Level 4: Avoid over/under-fitting
-   :button_link: common/checkpointing.html
+   :button_link: levels/core_level_4.html
    :card_style: text-container-small
 
 .. customcalloutitem::
    :description: Tune and debug your models.
    :header: Level 5: Tuning and debugging
-   :button_link: common/checkpointing.html
+   :button_link: levels/core_level_5.html
    :card_style: text-container-small
 
 .. customcalloutitem::
    :description: Use your model for predictions or put it into production.
-   :header: Level 6: Inference/Deploy your model
-   :button_link: common/checkpointing.html
+   :header: Level 6: Deploy your model
+   :button_link: levels/core_level_6.html
    :card_style: text-container-small
 
 .. raw:: html
@@ -62,8 +62,8 @@ Introductory level teaches you the basics of the framework. Researchers and mach
 
 ----
 
-Intermediate
-------------
+Intermediate skills
+-------------------
 Learn to scale up your models and enable collaborative model development at academic or industry research labs.
 
 .. raw:: html
@@ -104,8 +104,8 @@ Learn to scale up your models and enable collaborative model development at acad
 
 ----
 
-Advanced
---------
+Advanced skills
+---------------
 Reach trillion parameter scale and put models into production.
 
 .. raw:: html
@@ -146,8 +146,8 @@ Reach trillion parameter scale and put models into production.
 
 ----
 
-Expert
-------
+Expert skills
+-------------
 Unlock complex training like meta-learning and reinforcement learning; write custom distributed strategies and even connect newly launched hardware accelerators.
 
 .. raw:: html
