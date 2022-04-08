@@ -18,6 +18,7 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.boring_model import RandomIterableDataset
 
 
 def test_outputs_format(tmpdir):
@@ -155,10 +156,18 @@ def test_warning_valid_train_step_end(tmpdir):
     trainer.fit(model)
 
 
-def test_validation_check_interval_exceed_data_length_correct(tmpdir):
+@pytest.mark.parametrize("use_infinite_dataset", [True, False])
+def test_validation_check_interval_exceed_data_length_correct(tmpdir, use_infinite_dataset):
     batch_size = 32
     data_samples_train = 10
     data_samples_val = 1
+
+    if use_infinite_dataset:
+        train_ds = RandomIterableDataset(size=batch_size, count=2_400_000_000)  # approx inf
+    else:
+        train_ds = RandomDataset(size=batch_size, length=data_samples_train)
+
+    val_ds = RandomDataset(batch_size, data_samples_val)
 
     class TestModel(BoringModel):
         def __init__(self):
@@ -173,10 +182,10 @@ def test_validation_check_interval_exceed_data_length_correct(tmpdir):
             return super().validation_step(*args)
 
         def train_dataloader(self):
-            return DataLoader(RandomDataset(batch_size, data_samples_train))
+            return DataLoader(train_ds)
 
         def val_dataloader(self):
-            return DataLoader(RandomDataset(batch_size, data_samples_val))
+            return DataLoader(val_ds)
 
     model = TestModel()
     trainer = Trainer(
@@ -189,9 +198,13 @@ def test_validation_check_interval_exceed_data_length_correct(tmpdir):
 
     trainer.fit(model)
 
-    # with a data length of 10, a val_check_interval of 15, and max_steps=30, we
-    # should have validated twice
-    assert trainer.current_epoch == 3
+    # with a data length of 10 (or infinite), a val_check_interval of 15, and max_steps=30,
+    # we should have validated twice
+    if use_infinite_dataset:
+        assert trainer.current_epoch == 1
+    else:
+        assert trainer.current_epoch == 3
+
     assert trainer.global_step == 30
     assert sorted(list(model.validation_called_at_step)) == [15, 30]
 
