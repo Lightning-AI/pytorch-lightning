@@ -753,7 +753,7 @@ def test_trainer_model_hook_system_predict(tmpdir):
         dict(name="Callback.on_predict_epoch_start", args=(trainer, model)),
         dict(name="on_predict_epoch_start"),
         *model._predict_batch(trainer, model, batches),
-        dict(name="predict_epoch_end", args=([[ANY] * batches])),
+        dict(name="predict_epoch_end", args=([[ANY] * batches],)),
         dict(name="Callback.on_predict_epoch_end", args=(trainer, model, [[ANY] * batches])),
         dict(name="on_predict_epoch_end"),
         dict(name="Callback.on_predict_end", args=(trainer, model)),
