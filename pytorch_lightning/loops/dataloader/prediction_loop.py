@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Sequence
+from typing import Any, List, Optional, Sequence, Union
 
 from deprecate.utils import void
 from torch.utils.data import DataLoader
@@ -6,8 +6,9 @@ from torch.utils.data import DataLoader
 from pytorch_lightning.loops.dataloader.dataloader_loop import DataLoaderLoop
 from pytorch_lightning.loops.epoch.prediction_epoch_loop import PredictionEpochLoop
 from pytorch_lightning.strategies import DDPSpawnStrategy
+from pytorch_lightning.trainer.connectors.logger_connector import result
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import _PREDICT_OUTPUT
+from pytorch_lightning.utilities.types import _PREDICT_OUTPUT, EPOCH_OUTPUT
 
 
 class PredictionLoop(DataLoaderLoop):
@@ -111,8 +112,16 @@ class PredictionLoop(DataLoaderLoop):
 
     def on_run_end(self) -> Optional[_PREDICT_OUTPUT]:
         """Calls ``on_predict_epoch_end`` and ``on_predict_end`` hooks and returns results from all dataloaders."""
-        results = self._on_predict_epoch_end()
+        results = self.predictions
+
+        self._predict_epoch_end(results)
+        self._on_predict_epoch_end(results)
+
+        if self.return_predictions:
+            results = results[0] if self.num_dataloaders == 1 else results
+
         self._on_predict_end()
+
         return results
 
     def _on_predict_start(self) -> None:
@@ -126,19 +135,14 @@ class PredictionLoop(DataLoaderLoop):
         self.trainer._call_callback_hooks("on_predict_epoch_start")
         self.trainer._call_lightning_module_hook("on_predict_epoch_start")
 
-    def _on_predict_epoch_end(self) -> Optional[_PREDICT_OUTPUT]:
-        """Calls ``on_predict_epoch_end`` hook.
+    def _predict_epoch_end(self, results: List[List[Any]]) -> None:
+        """Calls ``predict_epoch_end`` hook."""
+        self.trainer._call_lightning_module_hook("predict_epoch_end", results)
 
-        Returns:
-            the results for all dataloaders
-        """
-        results = self.predictions
-
+    def _on_predict_epoch_end(self, results: List[List[Any]]) -> None:
+        """Calls ``on_predict_epoch_end`` hook."""
         self.trainer._call_callback_hooks("on_predict_epoch_end", results)
-        self.trainer._call_lightning_module_hook("on_predict_epoch_end", results)
-
-        if self.return_predictions:
-            return results[0] if self.num_dataloaders == 1 else results
+        self.trainer._call_lightning_module_hook("on_predict_epoch_end")
 
     def _on_predict_end(self) -> None:
         """Resets previous gradient status and calls ``on_predict_end`` hook."""
