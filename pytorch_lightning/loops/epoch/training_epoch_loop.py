@@ -501,18 +501,10 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         return self.trainer.callback_metrics.get(key)
 
     def _should_check_val_epoch(self):
-        if not self.trainer.enable_validation:
-            return False
-
-        # first we check if `check_val_every_n_epoch is `None`, which means
-        # that we run a validation loop after n global steps (taken from the
-        # Trainer argument `val_check_interval`)
-        if self.trainer.check_val_every_n_epoch is None:
-            return (self.trainer.global_step + 1) % self.trainer.val_check_batch == 0
-
-        # If it's not `None`, we respect running a validation loop after every n epochs
-        else:
-            return (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
+        return self.trainer.enable_validation and (
+            self.trainer.check_val_every_n_epoch is None
+            or (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
+        )
 
     def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
         """Decide if we should run validation."""
@@ -532,10 +524,13 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
         elif self.trainer.val_check_batch != float("inf"):
-            # if we're checking based on global step, we can start validation
-            # at any point in the training epoch
+            # first we check if `check_val_every_n_epoch is `None`, which means
+            # that we run a validation loop after n global steps (n is taken from the
+            # Trainer argument `val_check_interval`)
             if self.trainer.check_val_every_n_epoch is None:
-                is_val_check_batch = True
+                is_val_check_batch = self.trainer.global_step % self.trainer.val_check_batch == 0
+
+            # If it's not `None`, we respect running a validation loop after every n epochs
             else:
                 # TODO: clarify the purpose of this check.
                 is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0

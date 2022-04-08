@@ -187,14 +187,13 @@ def test_validation_check_interval_exceed_data_length_correct(tmpdir):
         num_sanity_val_steps=0,
     )
 
-    print("\ncalling trainer.fit")
     trainer.fit(model)
 
     # with a data length of 10, a val_check_interval of 15, and max_steps=30, we
     # should have validated twice
     assert trainer.current_epoch == 3
     assert trainer.global_step == 30
-    assert sorted(list(model.validation_called_at_step)) == [14, 29]
+    assert sorted(list(model.validation_called_at_step)) == [15, 30]
 
 
 def test_validation_check_interval_exceed_data_length_wrong(tmpdir):

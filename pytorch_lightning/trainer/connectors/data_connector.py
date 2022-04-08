@@ -73,7 +73,7 @@ class DataConnector:
         self,
         val_check_interval: Union[int, float],
         reload_dataloaders_every_n_epochs: int,
-        check_val_every_n_epoch: Optional[int] = None,
+        check_val_every_n_epoch: Optional[int],
     ) -> None:
         self.trainer.datamodule = None
 
@@ -84,8 +84,8 @@ class DataConnector:
 
         if check_val_every_n_epoch is None and isinstance(val_check_interval, float):
             raise MisconfigurationException(
-                f"val_check_interval should be an integer when check_val_every_n_epoch={check_val_every_n_epoch}. "
-                f"Found val_check_interval={val_check_interval}"
+                f"`Trainer(val_check_interval={val_check_interval!r})` should be an integer "
+                f"when `check_val_every_n_epoch={check_val_every_n_epoch}`. "
             )
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
