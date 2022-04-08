@@ -1,7 +1,7 @@
 
-######
-Expert
-######
+#############
+Expert skills
+#############
 
 Unlock complex training like meta-learning and reinforcement learning; write custom distributed strategies and even connect newly launched hardware accelerators.
 
@@ -15,21 +15,21 @@ Unlock complex training like meta-learning and reinforcement learning; write cus
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Fully own your training loop for advanced SOTA research.
-   :header: Level 1
-   :button_link: common/checkpointing.html
+   :description: Expert-level control for non-standard cutting-edge research
+   :header: Level 15: Fully own the training loop
+   :button_link: expert_level_15.html
    :card_style: text-container-small
 
 .. customcalloutitem::
    :description: Write and integrate custom distributed strategies such as Deepspeed or FSDP.
-   :header: Level 2
-   :button_link: common/checkpointing.html
+   :header: Level 16: Write custom scaling strategies
+   :button_link: expert_level_16.html
    :card_style: text-container-small
 
 .. customcalloutitem::
    :description: Connect arbitrary hardware such as a new [X]-PU
-   :header: Level 3
-   :button_link: common/checkpointing.html
+   :header: Level 17: Add new hardware-accelerators
+   :button_link: expert_level_17.html
    :card_style: text-container-small
 
 .. raw:: html

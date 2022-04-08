@@ -153,16 +153,14 @@ Current Lightning users
    :caption: Getting Started
 
    starter/introduction
-   starter/installation
-   starter/converting
-   starter/lightning_lite
+
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :name: levels
-   :caption: Level up
+   :caption: Level Up
 
-   levels/introductory
+   levels/core_skills
    levels/intermediate
    levels/advanced
    levels/expert
