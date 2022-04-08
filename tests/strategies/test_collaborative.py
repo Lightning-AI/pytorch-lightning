@@ -132,45 +132,45 @@ def test_env_variables_parsed(mock_dht, mock_peers, mock_server):
 
 @RunIf(hivemind=True)
 @mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
-@mock.patch("hivemind.Optimizer", wraps=hivemind.Optimizer)
 @mock.patch("http.server.ThreadingHTTPServer", autospec=True)
 @mock.patch("lightning_collaborative.strategy.CollaborativeStrategy.num_peers", new_callable=PropertyMock)
-def test_args_passed_to_optimizer(mock_peers, mock_server, mock_optimizer):
+def test_args_passed_to_optimizer(mock_peers, mock_server):
     mock_peers.return_value = 1
     compression = hivemind.ScaledFloat16Compression()
+    with mock.patch("hivemind.Optimizer", wraps=hivemind.Optimizer) as mock_optimizer:
 
-    class TestModel(BoringModel):
-        def on_before_backward(self, loss: torch.Tensor) -> None:
-            args, kwargs = mock_optimizer.call_args
-            mock_optimizer.assert_called()
-            arguments = dict(
-                delay_optimizer_step=True,
-                delay_state_averaging=True,
-                state_averaging_compression=compression,
-                grad_compression=compression,
-                offload_optimizer=True,
-                reuse_grad_buffers=True,
+        class TestModel(BoringModel):
+            def on_before_backward(self, loss: torch.Tensor) -> None:
+                args, kwargs = mock_optimizer.call_args
+                mock_optimizer.assert_called()
+                arguments = dict(
+                    delay_optimizer_step=True,
+                    delay_state_averaging=True,
+                    state_averaging_compression=compression,
+                    grad_compression=compression,
+                    offload_optimizer=True,
+                    reuse_grad_buffers=True,
+                    target_batch_size=1,
+                )
+
+                for key, value in arguments.items():
+                    assert key in kwargs
+                    assert value == kwargs[key]
+
+        model = TestModel()
+        trainer = pl.Trainer(
+            strategy=CollaborativeStrategy(
                 target_batch_size=1,
-            )
-
-            for key, value in arguments.items():
-                assert key in kwargs
-                assert value == kwargs[key]
-
-    model = TestModel()
-    trainer = pl.Trainer(
-        strategy=CollaborativeStrategy(
-            target_batch_size=1,
-            reuse_grad_buffers=True,
-            delay_state_averaging=True,
-            delay_optimizer_step=True,
-            offload_optimizer=True,
-            grad_compression=compression,
-            state_averaging_compression=compression,
-        ),
-        fast_dev_run=True,
-    )
-    trainer.fit(model)
+                reuse_grad_buffers=True,
+                delay_state_averaging=True,
+                delay_optimizer_step=True,
+                offload_optimizer=True,
+                grad_compression=compression,
+                state_averaging_compression=compression,
+            ),
+            fast_dev_run=True,
+        )
+        trainer.fit(model)
 
 
 @RunIf(hivemind=True)
