@@ -31,6 +31,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Support `strategy` argument being case insensitive ([#12528](https://github.com/PyTorchLightning/pytorch-lightning/pull/12528))
 
 
+- Changed checkpoints save path in the case of one logger and user-provided weights_save_path from `weights_save_path/name/version/checkpoints` to `weights_save_path/checkpoints` ([#12372](https://github.com/PyTorchLightning/pytorch-lightning/pull/12372))
+
+
+- Changed checkpoints save path in the case of multiple loggers and user-provided weights_save_path from `weights_save_path/name1_name2/version1_version2/checkpoints` to `weights_save_path/checkpoints` ([#12372](https://github.com/PyTorchLightning/pytorch-lightning/pull/12372))
+
+
 - Marked `swa_lrs` argument in `StochasticWeightAveraging` callback as required ([#12556](https://github.com/PyTorchLightning/pytorch-lightning/pull/12556))
 
 

@@ -209,7 +209,7 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
     trainer.fit(model)
     assert trainer._weights_save_path_internal == weights_save_path
     assert trainer.logger.save_dir == save_dir
-    assert trainer.checkpoint_callback.dirpath == weights_save_path / "name" / "version" / "checkpoints"
+    assert trainer.checkpoint_callback.dirpath == weights_save_path / "checkpoints"
     assert trainer.default_root_dir == tmpdir
 
     # no logger given
