@@ -178,10 +178,10 @@ class CollaborativeStrategy(Strategy):
         self.local_rank = 0
         self.world_size = 1
 
-    def _initialize_hivemind(self, trainer: "pl.Trainer") -> None:
-        if len(trainer.optimizers) > 1:
+    def _initialize_hivemind(self) -> None:
+        if len(self.optimizers) > 1:
             raise MisconfigurationException("Hivemind only supports training with one optimizer.")
-        (optimizer,) = trainer.optimizers
+        (optimizer,) = self.optimizers
 
         enabling_features = self.delay_optimizer_step or self.delay_state_averaging or self.offload_optimizer
 
@@ -207,9 +207,9 @@ class CollaborativeStrategy(Strategy):
         )
 
         if not self.scheduler_fn:
-            self._wrap_schedulers(opt, trainer)
+            self._wrap_schedulers(opt)
         opt.load_state_from_peers()
-        trainer.optimizers = [opt]
+        self.optimizers = [opt]
         self.opt = opt
 
         if self.reuse_grad_buffers:
@@ -227,9 +227,9 @@ class CollaborativeStrategy(Strategy):
 
             self.lightning_module.optimizer_zero_grad = override_fn
 
-    def _wrap_schedulers(self, opt: "hivemind.Optimizer", trainer: "pl.Trainer") -> None:
+    def _wrap_schedulers(self, opt: "hivemind.Optimizer") -> None:
         # wrap schedulers so that they only update when the hivemind optimizer updates
-        for scheduler_config in trainer.lr_scheduler_configs:
+        for scheduler_config in self.lr_scheduler_configs:
             scheduler_config.scheduler = HiveMindScheduler(
                 scheduler=scheduler_config.scheduler,
                 optimizer=opt,
@@ -248,7 +248,7 @@ class CollaborativeStrategy(Strategy):
                         "Please provide the batch size to the Strategy (CollaborativeStrategy"
                         f"exception raised: {e}"
                     )
-            self._initialize_hivemind(self.lightning_module.trainer)
+            self._initialize_hivemind()
 
         self.lightning_module.log("num_peers", self.num_peers)
 
