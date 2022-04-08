@@ -99,7 +99,7 @@ The below table lists all relevant strategies available in Lightning with their 
      - Provides capabilities to run training using the DeepSpeed library, with training optimizations for large billion parameter models. :ref:`Learn more. <advanced/model_parallel:deepspeed>`
    * - collaborative
      - :class:`~pytorch_lightning.strategies.CollaborativeStrategy`
-     - Strategy for training using the Hivemind library, training distributed over the internet with unreliable machines. :ref:`Learn more. <advanced/collaborative_training: Collaborative Training>`
+     - Strategy for training using the Hivemind library, training distributed over the internet with unreliable machines. :ref:`Learn more. <advanced/collaborative_training:Collaborative Training>`
    * - horovod
      - :class:`~pytorch_lightning.strategies.HorovodStrategy`
      - Strategy for Horovod distributed training integration. :ref:`Learn more. <accelerators/gpu:Horovod>`
