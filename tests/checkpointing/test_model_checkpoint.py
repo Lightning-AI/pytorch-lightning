@@ -22,7 +22,7 @@ from logging import INFO
 from pathlib import Path
 from typing import Union
 from unittest import mock
-from unittest.mock import call, MagicMock, Mock, patch
+from unittest.mock import call, Mock, patch
 
 import cloudpickle
 import pytest
@@ -834,7 +834,7 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
         val_check_interval=1.0,
         max_epochs=len(monitor),
     )
-    trainer.save_checkpoint = MagicMock()
+    trainer.save_checkpoint = Mock()
 
     trainer.fit(model)
 
@@ -1309,9 +1309,10 @@ def test_none_monitor_saves_correct_best_model_path(tmpdir):
 def test_last_global_step_saved():
     # this should not save anything
     model_checkpoint = ModelCheckpoint(save_top_k=0, save_last=False, monitor="foo")
-    trainer = MagicMock()
-    trainer.callback_metrics = {"foo": 123}
-    model_checkpoint.save_checkpoint(trainer)
+    trainer = Mock()
+    monitor_candidates = {"foo": 123}
+    model_checkpoint._save_topk_checkpoint(trainer, monitor_candidates)
+    model_checkpoint._save_last_checkpoint(trainer, monitor_candidates)
     assert model_checkpoint._last_global_step_saved == 0
 
 

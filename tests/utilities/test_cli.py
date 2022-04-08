@@ -31,7 +31,7 @@ from packaging import version
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
-from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
+from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import LightningLoggerBase, TensorBoardLogger
 from pytorch_lightning.plugins.environments import SLURMEnvironment
@@ -458,7 +458,11 @@ def test_lightning_cli_print_config():
     with mock.patch("sys.argv", cli_args), redirect_stdout(out), pytest.raises(SystemExit):
         any_model_any_data_cli()
 
-    outval = yaml.safe_load(out.getvalue())
+    text = out.getvalue()
+    # test dump_header
+    assert text.startswith(f"# pytorch_lightning=={__version__}")
+
+    outval = yaml.safe_load(text)
     assert outval["seed_everything"] == 1234
     assert outval["model"]["class_path"] == "tests.helpers.BoringModel"
     assert outval["data"]["class_path"] == "tests.helpers.BoringDataModule"
@@ -737,7 +741,7 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_registries, 
             self.optim2 = instantiate_class(self.parameters(), optim2)
             self.scheduler = instantiate_class(self.optim1, scheduler)
 
-    cli_args = ["fit", f"--trainer.default_root_dir={tmpdir}", "--trainer.max_epochs=1", "--lr_scheduler.gamma=0.2"]
+    cli_args = ["fit", f"--trainer.default_root_dir={tmpdir}", "--trainer.max_epochs=1"]
     if use_registries:
         cli_args += [
             "--optim1",
@@ -750,6 +754,7 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_registries, 
         ]
     else:
         cli_args += ["--optim2.class_path=torch.optim.SGD", "--optim2.init_args.lr=0.01"]
+    cli_args += ["--lr_scheduler.gamma=0.2"]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(TestModel)
@@ -1249,9 +1254,8 @@ def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload
         "--lr_scheduler.max_lr=1",
         "--opt1",
         "Adam",
+        "--opt2=ASGD",
         "--opt2.lr=0.1",
-        "--opt2",
-        "ASGD",
         "--lr_scheduler.anneal_strategy=linear",
         "--something",
         "a",

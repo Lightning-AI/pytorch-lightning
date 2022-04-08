@@ -69,7 +69,6 @@ The ``run`` function contains custom training loop used to train ``MyModel`` on 
 
     run(args)
 
-
 ----------
 
 
@@ -124,7 +123,7 @@ Here are five required steps to convert to :class:`~pytorch_lightning.lite.Light
     Lite(...).run(args)
 
 
-That's all. You can now train on any kind of device and scale your training.
+That's all. You can now train on any kind of device and scale your training. Check out `this <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_2_lite.py>`_ full MNIST training example with LightningLite.
 
 :class:`~pytorch_lightning.lite.LightningLite` takes care of device management, so you don't have to.
 You should remove any device-specific logic within your code.
@@ -387,7 +386,7 @@ Choose a training strategy: ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"tpu_spawn"`
     lite = Lite(strategy="ddp_spawn", accelerator="cpu", devices=4)
 
 
-Additionally, you can pass in your custom training type strategy by configuring additional parameters.
+Additionally, you can pass in your custom strategy by configuring additional parameters.
 
 .. code-block:: python
 

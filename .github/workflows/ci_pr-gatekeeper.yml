@@ -1,0 +1,16 @@
+name: 'PR Gatekeeper'
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  pr-gatekeeper:
+    if: github.event.review.state == 'approved'
+    name: PR Gatekeeper
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: octodemo/pr-gatekeeper@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

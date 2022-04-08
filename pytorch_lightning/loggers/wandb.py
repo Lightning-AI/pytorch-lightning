@@ -18,7 +18,7 @@ Weights and Biases Logger
 import os
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
 from weakref import ReferenceType
 
 import torch.nn as nn
@@ -256,9 +256,11 @@ class WandbLogger(LightningLoggerBase):
         anonymous: Optional[bool] = None,
         version: Optional[str] = None,
         project: Optional[str] = None,
-        log_model: Optional[bool] = False,
+        log_model: Union[str, bool] = False,
         experiment=None,
         prefix: Optional[str] = "",
+        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
         **kwargs,
     ):
         if wandb is None:
@@ -281,7 +283,7 @@ class WandbLogger(LightningLoggerBase):
                 "Hint: Upgrade with `pip install --upgrade wandb`."
             )
 
-        super().__init__()
+        super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
         self._offline = offline
         self._log_model = log_model
         self._prefix = prefix

@@ -20,6 +20,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 
+import pytorch_lightning
 from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
@@ -35,18 +36,13 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.strategies import SingleDeviceStrategy
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
 from tests.loggers.test_base import CustomLogger
 from tests.plugins.environments.test_lsf_environment import _make_rankfile
-
-
-def test_v1_7_0_deprecated_lightning_module_summarize(tmpdir):
-    model = BoringModel()
-    with pytest.deprecated_call(match="The `LightningModule.summarize` method is deprecated in v1.5"):
-        model.summarize(max_depth=1)
 
 
 def test_v1_7_0_moved_model_summary_and_layer_summary(tmpdir):
@@ -110,7 +106,6 @@ def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        progress_bar_refresh_rate=None,
         fast_dev_run=True,
     )
     test_model = TestModel()
@@ -122,33 +117,6 @@ def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
 
     with pytest.deprecated_call(match=r"`trainer.progress_bar_dict` is deprecated in v1.5"):
         _ = trainer.progress_bar_dict
-
-
-def test_v1_7_0_trainer_prepare_data_per_node(tmpdir):
-    with pytest.deprecated_call(match="Setting `prepare_data_per_node` with the trainer flag is deprecated in v1.5.0"):
-        _ = Trainer(prepare_data_per_node=False)
-
-
-def test_v1_7_0_stochastic_weight_avg_trainer_constructor(tmpdir):
-    with pytest.deprecated_call(match=r"Setting `Trainer\(stochastic_weight_avg=True\)` is deprecated in v1.5"):
-        _ = Trainer(stochastic_weight_avg=True)
-
-
-@pytest.mark.parametrize("terminate_on_nan", [True, False])
-def test_v1_7_0_trainer_terminate_on_nan(tmpdir, terminate_on_nan):
-    with pytest.deprecated_call(
-        match="Trainer argument `terminate_on_nan` was deprecated in v1.5 and will be removed in 1.7"
-    ):
-        trainer = Trainer(terminate_on_nan=terminate_on_nan)
-        assert trainer.terminate_on_nan is terminate_on_nan
-        assert trainer._detect_anomaly is False
-
-    trainer = Trainer()
-    with pytest.deprecated_call(match=r"`Trainer.terminate_on_nan` is deprecated in v1.5"):
-        _ = trainer.terminate_on_nan
-
-    with pytest.deprecated_call(match=r"Setting `Trainer.terminate_on_nan = True` is deprecated in v1.5"):
-        trainer.terminate_on_nan = True
 
 
 def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
@@ -253,11 +221,6 @@ def test_v1_7_0_deprecate_add_get_queue(tmpdir):
 
     with pytest.deprecated_call(match=r"`LightningModule.get_from_queue` method was deprecated in v1.5"):
         trainer.fit(model)
-
-
-def test_v1_7_0_progress_bar_refresh_rate_trainer_constructor(tmpdir):
-    with pytest.deprecated_call(match=r"Setting `Trainer\(progress_bar_refresh_rate=1\)` is deprecated in v1.5"):
-        _ = Trainer(progress_bar_refresh_rate=1)
 
 
 def test_v1_7_0_lightning_logger_base_close(tmpdir):
@@ -374,13 +337,6 @@ def test_v1_7_0_weights_summary_trainer(tmpdir):
         t.weights_summary = "blah"
 
 
-def test_v1_7_0_trainer_log_gpu_memory(tmpdir):
-    with pytest.deprecated_call(
-        match="Setting `log_gpu_memory` with the trainer flag is deprecated in v1.5 and will be removed"
-    ):
-        _ = Trainer(log_gpu_memory="min_max")
-
-
 def test_v1_7_0_deprecated_slurm_job_id():
     trainer = Trainer()
     with pytest.deprecated_call(match="Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0."):
@@ -393,8 +349,8 @@ def test_v1_7_0_deprecate_gpu_stats_monitor(tmpdir):
         _ = GPUStatsMonitor()
 
 
-@RunIf(tpu=True)
-def test_v1_7_0_deprecate_xla_stats_monitor(tmpdir):
+def test_v1_7_0_deprecate_xla_stats_monitor(monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.callbacks.xla_stats_monitor, "_TPU_AVAILABLE", True)
     with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
         _ = XLAStatsMonitor()
 
@@ -516,3 +472,17 @@ def test_v1_7_0_post_dispatch_hook():
 
     with pytest.deprecated_call(match=escape("`CustomPlugin.post_dispatch()` has been deprecated in v1.6")):
         CustomPlugin(torch.device("cpu"))
+
+
+def test_xla_stats_monitor_tpu_not_used(monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.callbacks.xla_stats_monitor, "_TPU_AVAILABLE", True)
+    with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
+        xla_stats = XLAStatsMonitor()
+
+    trainer = Trainer(accelerator="cpu", callbacks=[xla_stats])
+    model = BoringModel()
+    with pytest.raises(
+        MisconfigurationException,
+        match="You are using XLAStatsMonitor but are not running on TPU. The accelerator is set to CPUAccelerator.",
+    ):
+        trainer.fit(model)

@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
+from unittest.mock import Mock
 
 import torch
 from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.sampler import RandomSampler
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loops import EvaluationEpochLoop
@@ -40,6 +42,34 @@ def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
     trainer.test()
     # sanity + 2 epochs + called once for test
     assert eval_epoch_end_mock.call_count == 4
+
+
+def test_set_epoch_called_eval_predict(tmpdir):
+    """Tests that set_epoch (if the sampler has one) is called on the DataLoader during evaluation and
+    prediction."""
+
+    def _get_dataloader():
+        dataset = RandomDataset(32, 64)
+        sampler = RandomSampler(dataset)
+        sampler.set_epoch = Mock()
+        return DataLoader(dataset, sampler=sampler)
+
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=2, enable_model_summary=False
+    )
+
+    train_dataloader = _get_dataloader()
+    val_dataloader = _get_dataloader()
+    trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
+    # One for each epoch
+    assert train_dataloader.sampler.set_epoch.call_count == 2
+    # One for each epoch + sanity check
+    assert val_dataloader.sampler.set_epoch.call_count == 3
+
+    val_dataloader = _get_dataloader()
+    trainer.validate(model, val_dataloader)
+    assert val_dataloader.sampler.set_epoch.call_count == 1
 
 
 @mock.patch(
