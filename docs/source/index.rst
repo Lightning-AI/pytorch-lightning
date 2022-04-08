@@ -193,6 +193,7 @@ Or read the `advanced install guide <starter/installation.html>`_
    common/lightning_cli
    common/loggers
    advanced/model_parallel
+   advanced/collaborative_training
    advanced/precision
    common/optimization
    advanced/profiler
