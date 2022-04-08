@@ -1,7 +1,7 @@
 
-############
-Intermediate
-############
+###################
+Intermediate skills
+###################
 
 Learn to scale up your models and enable collaborative model development at academic or industry research labs.
 
@@ -17,32 +17,26 @@ Learn to scale up your models and enable collaborative model development at acad
 
 .. customcalloutitem::
    :description: Understand the Lightning Trainer under the hood.
-   :header: Level 1
-   :button_link: common/checkpointing.html
+   :header: Level 7: Lightning Trainer deepdive.
+   :button_link: intermediate_level_7.html
    :card_style: text-container-small
 
 .. customcalloutitem::
-   :description: Intermediate acceleration with multiple GPU machines.
-   :header: Level 2
-   :button_link: common/checkpointing.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Callbacks: Adding arbitrary self-contained programs to modularize your code.
-   :header: Level 3
-   :button_link: common/checkpointing.html
+   :description: Write self-contained programs to extend the Lightning Trainer functionality.
+   :header: Level 8: Extend the Lightning Trainer
+   :button_link: intermediate_level_8.html
    :card_style: text-container-small
 
 .. customcalloutitem::
    :description: Tuning your models and running hyperparameter sweeps
-   :header: Level 4
-   :button_link: common/checkpointing.html
+   :header: Level 9: CLI and hyperparameter sweeps
+   :button_link: intermediate_level_9.html
    :card_style: text-container-small
 
 .. customcalloutitem::
-   :description: Mix and match datasets + models without code changes with DataModules and the Lightning CLI.
-   :header: Level 5
-   :button_link: common/checkpointing.html
+   :description: Mix and match datasets + models without code changes from the CLI.
+   :header: Level 10: Organize your models and datasets
+   :button_link: intermediate_level_10.html
    :card_style: text-container-small
 
 .. raw:: html

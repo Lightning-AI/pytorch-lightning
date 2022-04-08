@@ -1,7 +1,7 @@
 
-########
-Advanced
-########
+###############
+Advanced skills
+###############
 
 Reach trillion parameter scale and put models into production.
 
@@ -15,33 +15,27 @@ Reach trillion parameter scale and put models into production.
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Advanced Trainer: SOTA training and inference techniques via the Lightning Trainer.
-   :header: Level 1
-   :button_link: common/checkpointing.html
+   :description: Learn to use state-of-the-art training and inference techniques via the Lightning Trainer.
+   :header: Level 11: Advanced Lightning Trainer
+   :button_link: advanced_level_11.html
    :card_style: text-container-small
 
 .. customcalloutitem::
-   :description: Advanced acceleration with GPU alternatives like TPUs, IPUs and HPUs.
-   :header: Level 2
-   :button_link: common/checkpointing.html
+   :description: Train 1 trillion+ parameter models.
+   :header: Level 12: Reach 1 trillion+ parameter scale
+   :button_link: advanced_level_12.html
    :card_style: text-container-small
 
 .. customcalloutitem::
-   :description: Putting your model into production.
-   :header: Level 3
-   :button_link: common/checkpointing.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Trillion parameter models with advanced acceleration techniques.
-   :header: Level 4
-   :button_link: common/checkpointing.html
+   :description: Train a model across multiple machines
+   :header: Level 13: Multi-node training
+   :button_link: advanced_level_13.html
    :card_style: text-container-small
 
 .. customcalloutitem::
    :description: Training on the cloud and SLURM clusters.
-   :header: Level 5
-   :button_link: common/checkpointing.html
+   :header: Level 14: Train on the cloud
+   :button_link: advanced_level_14.html
    :card_style: text-container-small
 
 .. raw:: html

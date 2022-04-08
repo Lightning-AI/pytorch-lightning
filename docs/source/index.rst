@@ -158,7 +158,7 @@ Current Lightning users
 .. toctree::
    :maxdepth: 2
    :name: levels
-   :caption: Level up
+   :caption: Level Up
 
    levels/core_skills
    levels/intermediate
