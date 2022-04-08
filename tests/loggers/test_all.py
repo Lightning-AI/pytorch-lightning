@@ -32,7 +32,7 @@ from pytorch_lightning.loggers import (
     TestTubeLogger,
     WandbLogger,
 )
-from pytorch_lightning.loggers.base import DummyExperiment
+from pytorch_lightning.loggers.logger import DummyExperiment
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 from tests.loggers.test_comet import _patch_comet_atexit

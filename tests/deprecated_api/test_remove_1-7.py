@@ -41,7 +41,7 @@ from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
-from tests.loggers.test_base import CustomLogger
+from tests.loggers.test_logger import CustomLogger
 from tests.plugins.environments.test_lsf_environment import _make_rankfile
 
 
@@ -221,9 +221,7 @@ def test_v1_7_0_deprecate_add_get_queue(tmpdir):
 
 def test_v1_7_0_lightning_logger_base_close(tmpdir):
     logger = CustomLogger()
-    with pytest.deprecated_call(
-        match="`LightningLoggerBase.close` method is deprecated in v1.5 and will be removed in v1.7."
-    ):
+    with pytest.deprecated_call(match="`Logger.close` method is deprecated in v1.5 and will be removed in v1.7."):
         logger.close()
     with pytest.deprecated_call(
         match="`LoggerCollection.close` method is deprecated in v1.5 and will be removed in v1.7."
