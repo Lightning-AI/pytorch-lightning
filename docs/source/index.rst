@@ -41,7 +41,7 @@ Install Lightning
    <div class="row" style='font-size: 14px'>
       <div class='col-md-6'>
 
-For pip (and conda) users
+Pip users
 
 .. code-block:: bash
 
@@ -52,7 +52,7 @@ For pip (and conda) users
       </div>
       <div class='col-md-6'>
 
-Or directly from conda
+Conda users
 
 .. code-block:: bash
 

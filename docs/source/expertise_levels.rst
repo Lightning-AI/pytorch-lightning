@@ -20,32 +20,38 @@ Introductory level teaches you the basics of the framework. Researchers and mach
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Learn the 9 concepts that enable you to build the majority of models.
-   :header: Level 1
+   :description: Learn the 8 key steps of a typical Lightning workflow.
+   :header: Level 1: Lightning in 15 minutes.
    :button_link: starter/introduction.html
    :card_style: text-container-small
 
 .. customcalloutitem::
-   :description: Basic acceleration with GPUs.
-   :header: Level 2
+   :description: Basic model scaling with GPUs, TPUs and half-precision.
+   :header: Level 2: Basic model scaling techniques.
    :button_link: levels/introductory_level_2.html
    :card_style: text-container-small
 
 .. customcalloutitem::
-   :description: Understanding your model with logging and custom metrics.
-   :header: Level 3
+   :description: Understand your model with custom loggers and custom metrics.
+   :header: Level 3: Visualize your training progress
    :button_link: common/checkpointing.html
    :card_style: text-container-small
 
 .. customcalloutitem::
    :description: Built-in techniques to avoid overfitting.
-   :header: Level 4
+   :header: Level 4: Avoid over/under-fitting
    :button_link: common/checkpointing.html
    :card_style: text-container-small
 
 .. customcalloutitem::
    :description: Tune and debug your models.
-   :header: Level 5
+   :header: Level 5: Tuning and debugging
+   :button_link: common/checkpointing.html
+   :card_style: text-container-small
+
+.. customcalloutitem::
+   :description: Use your model for predictions or put it into production.
+   :header: Level 6: Inference/Deploy your model
    :button_link: common/checkpointing.html
    :card_style: text-container-small
 
@@ -69,31 +75,25 @@ Learn to scale up your models and enable collaborative model development at acad
 
 .. customcalloutitem::
    :description: Understand the Lightning Trainer under the hood.
-   :header: Level 6
+   :header: Level 7: Lightning Trainer deepdive.
    :button_link: common/checkpointing.html
    :card_style: text-container-small
 
 .. customcalloutitem::
-   :description: Intermediate acceleration with multiple GPU machines.
-   :header: Level 7
-   :button_link: common/checkpointing.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Callbacks: Adding arbitrary self-contained programs to modularize your code.
-   :header: Level 8
+   :description: Write self-contained programs to extend the Lightning Trainer functionality.
+   :header: Level 8: Extend the Lightning Trainer
    :button_link: common/checkpointing.html
    :card_style: text-container-small
 
 .. customcalloutitem::
    :description: Tuning your models and running hyperparameter sweeps
-   :header: Level 9
+   :header: Level 9: CLI and hyperparameter sweeps
    :button_link: common/checkpointing.html
    :card_style: text-container-small
 
 .. customcalloutitem::
-   :description: Mix and match datasets + models without code changes with DataModules and the Lightning CLI.
-   :header: Level 10
+   :description: Mix and match datasets + models without code changes from the CLI.
+   :header: Level 10: Organize your models and datasets
    :button_link: common/checkpointing.html
    :card_style: text-container-small
 
@@ -116,32 +116,26 @@ Reach trillion parameter scale and put models into production.
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Advanced Trainer: SOTA training and inference techniques via the Lightning Trainer.
-   :header: Level 11
+   :description: Learn to use state-of-the-art training and inference techniques via the Lightning Trainer.
+   :header: Level 11: Advanced Lightning Trainer
    :button_link: common/checkpointing.html
    :card_style: text-container-small
 
 .. customcalloutitem::
-   :description: Advanced acceleration with GPU alternatives like TPUs, IPUs and HPUs.
-   :header: Level 12
+   :description: Train 1 trillion+ parameter models.
+   :header: Level 12: Reach 1 trillion+ parameter scale
    :button_link: common/checkpointing.html
    :card_style: text-container-small
 
 .. customcalloutitem::
-   :description: Putting your model into production.
-   :header: Level 13
-   :button_link: common/checkpointing.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Trillion parameter models with advanced acceleration techniques.
-   :header: Level 14
+   :description: Train a model across multiple machines
+   :header: Level 13: Multi-node training
    :button_link: common/checkpointing.html
    :card_style: text-container-small
 
 .. customcalloutitem::
    :description: Training on the cloud and SLURM clusters.
-   :header: Level 15
+   :header: Level 14: Train on the cloud
    :button_link: common/checkpointing.html
    :card_style: text-container-small
 
@@ -164,20 +158,20 @@ Unlock complex training like meta-learning and reinforcement learning; write cus
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Fully own your training loop for advanced SOTA research.
-   :header: Level 16
+   :description: Expert-level control for non-standard cutting-edge research
+   :header: Level 15: Fully own the training loop
    :button_link: common/checkpointing.html
    :card_style: text-container-small
 
 .. customcalloutitem::
    :description: Write and integrate custom distributed strategies such as Deepspeed or FSDP.
-   :header: Level 17
+   :header: Level 16: Write custom scaling strategies
    :button_link: common/checkpointing.html
    :card_style: text-container-small
 
 .. customcalloutitem::
    :description: Connect arbitrary hardware such as a new [X]-PU
-   :header: Level 18
+   :header: Level 17: Add new hardware-accelerators
    :button_link: common/checkpointing.html
    :card_style: text-container-small
 
