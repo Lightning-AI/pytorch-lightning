@@ -1333,10 +1333,7 @@ def predict(
         callbacks=[cb, cb_1] if use_callbacks else [],
     )
     if strategy == "ddp_spawn":
-        with pytest.raises(
-            MisconfigurationException,
-            match="`return_predictions` should be set to `False` when using the `DDPSpawnStrategy` or children class. .*",
-        ):
+        with pytest.raises(ProcessRaisedException, match="`return_predictions` should be set to `False`"):
             trainer.predict(model, datamodule=dm, return_predictions=True)
 
     if datamodule:
