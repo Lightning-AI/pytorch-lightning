@@ -76,7 +76,6 @@ RUN \
     pip install -q fire && \
     # Disable cache \
     CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
-    export BAGUA_CUDA_VERSION=$CUDA_VERSION_MM && \
     pip config set global.cache-dir false && \
     # set particular PyTorch version
     python ./requirements/adjust-versions.py requirements.txt ${PYTORCH_VERSION} && \
@@ -140,6 +139,12 @@ RUN \
     # install DeepSpeed
     pip install deepspeed==0.5.7 && \
     python -c "import deepspeed; print(deepspeed.__version__)"
+
+RUN \
+    # install Bagua
+    CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
+    pip install "bagua-cuda$CUDA_VERSION_MM==0.9.0" && \
+    python -c "import bagua; print(bagua.__version__)"
 
 COPY requirements/check-avail-extras.py check-avail-extras.py
 COPY requirements/check-avail-strategies.py check-avail-strategies.py

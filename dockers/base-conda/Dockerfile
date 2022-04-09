@@ -147,6 +147,12 @@ RUN \
     pip install --no-cache-dir --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip && \
     python -c "from apex import amp"
 
+RUN \
+    # install Bagua
+    CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
+    pip install "bagua-cuda$CUDA_VERSION_MM==0.9.0" && \
+    python -c "import bagua; print(bagua.__version__)"
+
 COPY requirements/check-avail-extras.py check-avail-extras.py
 COPY requirements/check-avail-strategies.py check-avail-strategies.py
 
