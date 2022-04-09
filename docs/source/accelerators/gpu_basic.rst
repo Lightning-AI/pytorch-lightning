@@ -16,7 +16,6 @@ A Graphics Processing Unit (GPU), is a specialized hardware accelerator designed
 
 ----
 
-
 Train on 1 GPU
 --------------
 
