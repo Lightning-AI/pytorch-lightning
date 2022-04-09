@@ -6,6 +6,7 @@ on:
   schedule:
     # At the end of every day
     - cron: "0 0 * * *"
+  push: {}
 
 env:
   PUSH_TO_HUB: true
@@ -92,7 +93,9 @@ jobs:
         include:
           # the config used in '.azure-pipelines/gpu-tests.yml'
           - {python_version: "3.7", pytorch_version: "1.8"}
-          # latest (not used)
+          # latest (used in Tutorials)
+          - {python_version: "3.8", pytorch_version: "1.8"}
+          - {python_version: "3.9", pytorch_version: "1.10"}
           - {python_version: "3.9", pytorch_version: "1.11"}
 
     steps:
