@@ -18,6 +18,7 @@ docs/source/*/generated
 docs/source/notebooks
 docs/source/_static/images/course_UvA-DL
 docs/source/_static/images/lightning_examples
+_notebooks/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
