@@ -1820,5 +1820,5 @@ execution within that function, and the status of the Trainer.
     trainer.state.fn
     # status in ("initializing", "running", "finished", "interrupted")
     trainer.state.status
-    # stage in ("train", "sanity_check", "validate", "test", "predict", "tune"
+    # stage in ("train", "sanity_check", "validate", "test", "predict", "tune")
     trainer.state.stage
