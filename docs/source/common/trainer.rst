@@ -736,9 +736,6 @@ See Also:
 gpus
 ^^^^
 
-.. warning:: Setting `Trainer(gpus=x)` is deprecated in v1.6 and will be removed
-    in v2.0. Please use `Trainer(accelerator="gpu", devices=x)` instead.
-
 .. raw:: html
 
     <video width="50%" max-width="400px" controls
@@ -1120,8 +1117,8 @@ overfit_batches
 
 |
 
-Uses this much data of the training set. If nonzero, will turn off validation.
-If the training dataloaders have `shuffle=True`, Lightning will automatically disable it.
+Uses this much data of the training & validation set.
+If the training & validation dataloaders have ``shuffle=True``, Lightning will automatically disable it.
 
 Useful for quickly debugging or trying to overfit on purpose.
 
@@ -1130,7 +1127,7 @@ Useful for quickly debugging or trying to overfit on purpose.
     # default used by the Trainer
     trainer = Trainer(overfit_batches=0.0)
 
-    # use only 1% of the train set
+    # use only 1% of the train & val set
     trainer = Trainer(overfit_batches=0.01)
 
     # overfit on 10 of the same batches
@@ -1173,39 +1170,6 @@ To define your own behavior, subclass the relevant class and pass it in. Here's 
 
 
     trainer = Trainer(plugins=[MyCluster()], ...)
-
-
-prepare_data_per_node
-^^^^^^^^^^^^^^^^^^^^^
-.. warning:: ``prepare_data_per_node`` has been deprecated in v1.5 and will be removed in v1.7.
-    Please set its value inside ``LightningDataModule`` and/or ``LightningModule`` directly described
-    in the following code:
-
-    .. testcode::
-
-        class LitDataModule(LightningDataModule):
-            def __init__(self):
-                super().__init__()
-                self.prepare_data_per_node = True
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/prepare_data_per_node.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/prepare_data_per_node.mp4"></video>
-
-|
-
-If set to ``True`` will call ``prepare_data()`` on LOCAL_RANK=0 for every node.
-If set to ``False`` will only call from NODE_RANK=0, LOCAL_RANK=0.
-
-.. testcode::
-
-    # default
-    Trainer(prepare_data_per_node=True)
-
-    # use only NODE_RANK=0, LOCAL_RANK=0
-    Trainer(prepare_data_per_node=False)
 
 precision
 ^^^^^^^^^
@@ -1308,37 +1272,6 @@ See the :doc:`profiler documentation <../advanced/profiler>`. for more details.
 
     # advanced profiler for function-level stats, equivalent to `profiler=AdvancedProfiler()`
     trainer = Trainer(profiler="advanced")
-
-progress_bar_refresh_rate
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. warning:: ``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
-    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``refresh_rate``
-    directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
-    pass ``enable_progress_bar = False`` to the Trainer.
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/progress_bar%E2%80%A8_refresh_rate.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/progress_bar_refresh_rate.mp4"></video>
-
-|
-
-How often to refresh progress bar (in steps).
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(progress_bar_refresh_rate=1)
-
-    # disable progress bar
-    trainer = Trainer(progress_bar_refresh_rate=0)
-
-Note:
-    - In Google Colab notebooks, faster refresh rates (lower number) is known to crash them because of their screen refresh rates.
-      Lightning will set it to 20 in these environments if the user does not provide a value.
-    - This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
 enable_progress_bar
 ^^^^^^^^^^^^^^^^^^^
@@ -1448,7 +1381,7 @@ checkpoint, training will start from the beginning of the next epoch.
 strategy
 ^^^^^^^^
 
-Supports passing different training strategies with aliases (ddp, ddp_spawn, etc) as well as custom training type plugins.
+Supports passing different training strategies with aliases (ddp, ddp_spawn, etc) as well as custom strategies.
 
 .. code-block:: python
 
@@ -1458,7 +1391,7 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
     # Training with the DDP Spawn strategy using 4 cpu processes
     trainer = Trainer(strategy="ddp_spawn", accelerator="cpu", devices=4)
 
-.. note:: Additionally, you can pass your custom training type plugins to the ``strategy`` argument.
+.. note:: Additionally, you can pass your custom strategy to the ``strategy`` argument.
 
 .. code-block:: python
 
@@ -1812,7 +1745,7 @@ The list of loggers currently being used by the Trainer.
 
 .. code-block:: python
 
-    # List of LightningLoggerBase objects
+    # List of Logger objects
     loggers = trainer.loggers
     for logger in loggers:
         logger.log_metrics({"foo": 1.0})

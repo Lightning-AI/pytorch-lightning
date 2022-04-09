@@ -90,10 +90,7 @@ class TQDMProgressBar(ProgressBarBase):
 
     Args:
         refresh_rate: Determines at which rate (in number of batches) the progress bars get updated.
-            Set it to ``0`` to disable the display. By default, the :class:`~pytorch_lightning.trainer.trainer.Trainer`
-            uses this implementation of the progress bar and sets the refresh rate to the value provided to the
-            :paramref:`~pytorch_lightning.trainer.trainer.Trainer.progress_bar_refresh_rate` argument in the
-            :class:`~pytorch_lightning.trainer.trainer.Trainer`.
+            Set it to ``0`` to disable the display.
         process_position: Set this to a value greater than ``0`` to offset the progress bars by this many lines.
             This is useful when you have progress bars defined elsewhere and want to show all of them
             together. This corresponds to
@@ -170,11 +167,6 @@ class TQDMProgressBar(ProgressBarBase):
     @property
     def is_disabled(self) -> bool:
         return not self.is_enabled
-
-    @property
-    def _val_processed(self) -> int:
-        # use total in case validation runs more than once per training epoch
-        return self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.total.processed
 
     def disable(self) -> None:
         self._enabled = False

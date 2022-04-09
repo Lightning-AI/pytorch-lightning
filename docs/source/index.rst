@@ -77,32 +77,32 @@ Or read the `advanced install guide <starter/installation.html>`_
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Use this 2-step guide to learn the key concepts.
+   :description: Use this 2-step guide to learn key concepts.
    :header: New to Lightning?
    :button_link:  starter/introduction.html
 
 
 .. customcalloutitem::
-   :description: Easily organize your existing PyTorch code as PyTorch Lightning in a few hours.
+   :description: Easily organize your existing PyTorch code into PyTorch Lightning.
    :header: PyTorch to PyTorch Lightning
    :button_link: starter/converting.html
 
 
 .. customcalloutitem::
-   :description: From NLP, Computer vision to RL and meta learning - see how to use Lightning in ALL research areas.
+   :description: See how Lightning is used in research areas like NLP, Computer Vision, RL and meta learning.
    :header: Examples
    :button_link: tutorials.html
 
 
 .. customcalloutitem::
-   :description: Detailed description of API each package. Assumes you already have basic Lightning knowledge.
+   :description: Detailed descriptions of each API package.
    :header: API Reference
    :button_link: api_references.html
 
 
 .. customcalloutitem::
-   :description: From hyperparameters sweeps to cloud training to Pruning and Quantization - Lightning covers the key use-cases.
-   :header: Common usecases
+   :description: Learn how to do everything from hyperparameters sweeps to cloud training to pruning and quantization with Lightning.
+   :header: Conceptual Guides
    :button_link: common_usecases.html
 
 
@@ -126,7 +126,7 @@ Or read the `advanced install guide <starter/installation.html>`_
 .. toctree::
    :maxdepth: 1
    :name: start
-   :caption: Getting started
+   :caption: Getting Started
 
    starter/introduction
    starter/installation
@@ -136,7 +136,7 @@ Or read the `advanced install guide <starter/installation.html>`_
 .. toctree::
    :maxdepth: 1
    :name: guides
-   :caption: Best practices
+   :caption: Best Practices
 
    guides/speed
    guides/data
@@ -177,8 +177,8 @@ Or read the `advanced install guide <starter/installation.html>`_
 
 .. toctree::
    :maxdepth: 1
-   :name: Common Use Cases
-   :caption: Common Use Cases
+   :name: Conceptual Guides
+   :caption: Conceptual Guides
 
    clouds/cloud_training
    common/checkpointing
