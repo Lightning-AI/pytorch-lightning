@@ -36,8 +36,8 @@ from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
+from pytorch_lightning.loggers import Logger
+from pytorch_lightning.loggers.logger import DummyLogger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
@@ -130,7 +130,7 @@ class Trainer(
     @_defaults_from_env_vars
     def __init__(
         self,
-        logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
+        logger: Union[Logger, Iterable[Logger], bool] = True,
         checkpoint_callback: Optional[bool] = None,
         enable_checkpointing: bool = True,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
@@ -553,7 +553,7 @@ class Trainer(
         self.__init_profiler(profiler)
 
         # init logger flags
-        self._loggers: List[LightningLoggerBase]
+        self._loggers: List[Logger]
         self._logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
@@ -1878,7 +1878,7 @@ class Trainer(
 
         if self.loggers and self.num_training_batches < self.log_every_n_steps:
             rank_zero_warn(
-                f"The number of training samples ({self.num_training_batches}) is smaller than the logging interval"
+                f"The number of training batches ({self.num_training_batches}) is smaller than the logging interval"
                 f" Trainer(log_every_n_steps={self.log_every_n_steps}). Set a lower value for log_every_n_steps if"
                 " you want to see logs for the training epoch.",
                 category=PossibleUserWarning,
@@ -2652,7 +2652,7 @@ class Trainer(
     """
 
     @property
-    def logger(self) -> Optional[LightningLoggerBase]:
+    def logger(self) -> Optional[Logger]:
         if len(self.loggers) == 0:
             return None
         if len(self.loggers) == 1:
@@ -2668,7 +2668,7 @@ class Trainer(
                 return LoggerCollection(self.loggers)
 
     @logger.setter
-    def logger(self, logger: Optional[LightningLoggerBase]) -> None:
+    def logger(self, logger: Optional[Logger]) -> None:
         if not logger:
             self.loggers = []
         elif isinstance(logger, LoggerCollection):
@@ -2677,11 +2677,11 @@ class Trainer(
             self.loggers = [logger]
 
     @property
-    def loggers(self) -> List[LightningLoggerBase]:
+    def loggers(self) -> List[Logger]:
         return self._loggers
 
     @loggers.setter
-    def loggers(self, loggers: Optional[List[LightningLoggerBase]]) -> None:
+    def loggers(self, loggers: Optional[List[Logger]]) -> None:
         self._loggers = loggers if loggers else []
 
     @property

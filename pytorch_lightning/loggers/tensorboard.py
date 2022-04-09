@@ -28,7 +28,7 @@ from torch.utils.tensorboard.summary import hparams
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.saving import save_hparams_to_yaml
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
+from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
@@ -41,7 +41,7 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
 
 
-class TensorBoardLogger(LightningLoggerBase):
+class TensorBoardLogger(Logger):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
 

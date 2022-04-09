@@ -22,8 +22,8 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
-from pytorch_lightning.loggers.base import DummyExperiment, DummyLogger
+from pytorch_lightning.loggers import Logger, LoggerCollection, TensorBoardLogger
+from pytorch_lightning.loggers.logger import DummyExperiment, DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.logger import _convert_params, _sanitize_params
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
@@ -94,7 +94,7 @@ def test_logger_collection_versions_order():
     assert logger.version == f"{loggers[0].version}_{loggers[1].version}_{loggers[3].version}"
 
 
-class CustomLogger(LightningLoggerBase):
+class CustomLogger(Logger):
     def __init__(self, experiment: str = "test", name: str = "name", version: str = "1"):
         super().__init__()
         self._experiment = experiment
