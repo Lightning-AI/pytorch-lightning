@@ -141,11 +141,15 @@ RUN \
     pip install deepspeed==0.5.7 && \
     python -c "import deepspeed; print(deepspeed.__version__)"
 
+COPY requirements/check-avail-extras.py check-avail-extras.py
+COPY requirements/check-avail-strategies.py check-avail-strategies.py
+
 RUN \
     # Show what we have
     pip --version && \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
-    python -c "import horovod.torch" && \
-    python -c "from horovod.torch import nccl_built; nccl_built()"
+    python check-avail-extras.py && \
+    python check-avail-strategies.py && \
+    rm check-avail-*.py
