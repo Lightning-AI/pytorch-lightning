@@ -1,7 +1,7 @@
 .. _hpu:
 
-Habana Gaudi AI Processor (HPU)
-===============================
+Accelerator: HPU training
+=========================
 
 Lightning supports `Habana Gaudi AI Processor (HPU) <https://habana.ai/>`__, for accelerating Deep Learning training workloads.
 
