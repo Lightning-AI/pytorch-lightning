@@ -68,23 +68,21 @@ def remove_module_hooks(model: torch.nn.Module) -> None:
 
 class LightningDeepSpeedModule(_LightningModuleWrapperBase):
     def __init__(
-        self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: int
+        self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: Union[str, int]
     ) -> None:
         super().__init__(pl_module)
         self.precision = precision
 
     def forward(self, *inputs, **kwargs):
-        if self.precision == 16:
-            inputs = self._move_float_tensors_to_half(inputs)
-
+        inputs = apply_to_collection(inputs, torch.Tensor, function=self._batch_to)
         return super().forward(*inputs, **kwargs)
 
-    @staticmethod
-    def batch_to(data):
-        return data.half()
-
-    def _move_float_tensors_to_half(self, batch: Any):
-        batch = apply_to_collection(batch, (torch.FloatTensor, torch.cuda.FloatTensor), function=self.batch_to)
+    def _batch_to(self, batch: torch.Tensor) -> torch.Tensor:
+        if torch.is_floating_point(batch):
+            if self.precision == PrecisionType.HALF:
+                return batch.half()
+            elif self.precision == PrecisionType.BFLOAT:
+                return batch.bfloat16()
         return batch
 
 
@@ -270,7 +268,8 @@ class DeepSpeedStrategy(DDPStrategy):
         """
         if not _DEEPSPEED_AVAILABLE:
             raise MisconfigurationException(
-                "To use the DeepSpeed plugin, you must have DeepSpeed installed. pip install deepspeed"
+                "To use the `DeepSpeedStrategy`, you must have DeepSpeed installed."
+                " Install it by running `pip install -U deepspeed`."
             )
 
         super().__init__(
@@ -512,11 +511,14 @@ class DeepSpeedStrategy(DDPStrategy):
     def model_sharded_context(self) -> Generator[None, None, None]:
         if self.zero_stage_3:
             assert self._config_initialized
-            dtype = (
-                torch.float16
-                if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED)
-                else torch.float32
-            )
+
+            if self.precision_plugin.precision == PrecisionType.HALF:
+                dtype = torch.float16
+            elif self.precision_plugin.precision == PrecisionType.BFLOAT:
+                dtype = torch.bfloat16
+            else:
+                dtype = torch.float32
+
             model_parallel_context = deepspeed.zero.Init(
                 remote_device=self.remote_device, pin_memory=True, config_dict_or_path=self.config, dtype=dtype
             )
@@ -667,6 +669,9 @@ class DeepSpeedStrategy(DDPStrategy):
             elif "amp" not in self.config and self.precision_plugin.amp_type == AMPType.APEX:
                 rank_zero_info("Enabling DeepSpeed APEX Implementation.")
                 self.config["amp"] = {"enabled": True, "opt_level": self.precision_plugin.amp_level}
+        elif "bf16" not in self.config and self.precision_plugin.precision == PrecisionType.BFLOAT:
+            rank_zero_info("Enabling DeepSpeed BF16.")
+            self.config["bf16"] = {"enabled": True}
 
     def _create_default_config(
         self,
