@@ -57,14 +57,6 @@ def test_v1_7_0_moved_get_memory_profile_and_get_gpu_memory_map(tmpdir):
         from pytorch_lightning.core.memory import get_gpu_memory_map, get_memory_profile  # noqa: F401
 
 
-def test_v1_7_0_deprecated_model_size():
-    model = BoringModel()
-    with pytest.deprecated_call(
-        match="LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7"
-    ):
-        _ = model.model_size
-
-
 def test_v1_7_0_datamodule_transform_properties(tmpdir):
     dm = MNISTDataModule()
     with pytest.deprecated_call(match=r"DataModule property `val_transforms` was deprecated in v1.5"):
