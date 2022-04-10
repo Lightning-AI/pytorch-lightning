@@ -198,12 +198,6 @@ def test_manual_optimization_tpus(tmpdir):
 
 
 @RunIf(tpu=True)
-def test_ddp_cpu_not_supported_on_tpus():
-    with pytest.raises(MisconfigurationException, match="`accelerator='ddp_cpu'` is not supported on TPU machines"):
-        Trainer(accelerator="ddp_cpu")
-
-
-@RunIf(tpu=True)
 def test_strategy_choice_tpu_str_ddp_spawn(tmpdir):
     with pytest.raises(ValueError, match="TPUAccelerator` can only be used with a `SingleTPUStrategy`"):
         Trainer(strategy="ddp_spawn", accelerator="tpu", devices=8)
