@@ -40,4 +40,4 @@ class BoringLite(LightningLite):
 
 
 if __name__ == "__main__":
-    BoringLite(accelerator="gpu", devices="2", strategy="bagua").run()
+    BoringLite(accelerator="gpu", devices="2", strategy="ddp").run()
