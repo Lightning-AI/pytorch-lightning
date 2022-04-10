@@ -570,7 +570,7 @@ def test_progress_bar_max_val_check_interval(
         accelerator="gpu",
         devices=world_size,
         strategy="ddp",
-        enable_progress_bar=False,
+        enable_progress_bar=True,
         enable_model_summary=False,
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
