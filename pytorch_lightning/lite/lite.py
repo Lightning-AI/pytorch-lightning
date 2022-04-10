@@ -477,6 +477,7 @@ class LightningLite(ABC):
             _StrategyType.DEEPSPEED,
             _StrategyType.DDP_SHARDED,
             _StrategyType.DDP_SHARDED_SPAWN,
+            _StrategyType.BAGUA,
         )
 
     @staticmethod
