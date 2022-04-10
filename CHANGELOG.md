@@ -66,6 +66,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
+- Removed the deprecated `pytorch_lightning.core.memory.LayerSummary` and `pytorch_lightning.core.memory.ModelSummary` ([#12593](https://github.com/PyTorchLightning/pytorch-lightning/pull/12593))
+
+
 - Removed the deprecated `summarize` method from the `LightningModule` ([#12559](https://github.com/PyTorchLightning/pytorch-lightning/pull/12559))
 
 
