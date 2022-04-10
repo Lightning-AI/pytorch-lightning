@@ -54,6 +54,7 @@ module = [
     "pytorch_lightning.core.saving",
     "pytorch_lightning.distributed.dist",
     "pytorch_lightning.loggers.base",
+    "pytorch_lightning.loggers.logger",
     "pytorch_lightning.loggers.comet",
     "pytorch_lightning.loggers.csv_logs",
     "pytorch_lightning.loggers.mlflow",

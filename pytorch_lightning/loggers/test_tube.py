@@ -19,7 +19,7 @@ from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
 import pytorch_lightning as pl
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
+from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities import _module_available
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
@@ -32,7 +32,7 @@ else:
     Experiment = None
 
 
-class TestTubeLogger(LightningLoggerBase):
+class TestTubeLogger(Logger):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format
     but using a nicer folder structure (see `full docs <https://williamfalcon.github.io/test-tube>`_).
