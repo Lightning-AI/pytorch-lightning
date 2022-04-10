@@ -6,53 +6,16 @@
 .. _amp:
 
 
-###############
-N-Bit Precision
-###############
+##############################
+N-Bit Precision (Intermediate)
+##############################
+**Audience:** Users looking to scale larger models or take advantage of optimized accelerators.
 
-There are numerous benefits to using numerical formats with lower precision than the 32-bit floating-point or higher precision such as 64-bit floating-point.
+----
 
-Lower precision, such as the 16-bit floating-point, requires less memory enabling the training and deployment of large neural networks, enhances data transfer operations since they require
-less memory bandwidth and run batch operations much faster on GPUs that support Tensor Core. [`1 <https://docs.nvidia.com/deeplearning/performance/mixed-precision-training/index.html>`_].
-
-Higher precision, such as the 64-bit floating-point, can be used for highly sensitive use-cases.
-
-Following are the precisions available in Lightning along with their supported Accelerator:
-
-.. list-table:: Precision with Accelerators
-   :widths: 20 20 20 20 20
-   :header-rows: 1
-
-   * - Precision
-     - CPU
-     - GPU
-     - TPU
-     - IPU
-   * - 16
-     - No
-     - Yes
-     - No
-     - Yes
-   * - BFloat16
-     - Yes
-     - Yes
-     - Yes
-     - No
-   * - 32
-     - Yes
-     - Yes
-     - Yes
-     - Yes
-   * - 64
-     - Yes
-     - Yes
-     - No
-     - No
-
-
-***************
-Mixed Precision
-***************
+************************
+What is Mixed Precision?
+************************
 
 PyTorch, like most deep learning frameworks, trains on 32-bit floating-point (FP32) arithmetic by default. However, many deep learning models do not require this to reach complete accuracy. By conducting
 operations in half-precision format while keeping minimum information in single-precision to maintain as much information as possible in crucial areas of the network, mixed precision training delivers
@@ -92,9 +55,11 @@ delivers all of these benefits while ensuring that no task-specific accuracy is 
 
         trainer = Trainer(accelerator="gpu", devices=1, precision=32)
 
+----
 
+********************
 FP16 Mixed Precision
-====================
+********************
 
 In most cases, mixed precision uses FP16. Supported `PyTorch operations <https://pytorch.org/docs/stable/amp.html#op-specific-behavior>`__ automatically run in FP16, saving memory and improving throughput on the supported accelerators.
 
@@ -142,9 +107,11 @@ Set the `NVIDIA optimization level <https://nvidia.github.io/apex/amp.html#opt-l
 
     Trainer(accelerator="gpu", devices=1, amp_backend="apex", amp_level="O2", precision=16)
 
+----
 
+************************
 BFloat16 Mixed Precision
-========================
+************************
 
 .. warning::
 
@@ -170,54 +137,7 @@ It is also possible to use BFloat16 mixed precision on the CPU, relying on MKLDN
 
     Trainer(precision="bf16")
 
-
-****************
-Single Precision
-****************
-
-PyTorch models train with 32-bit floating-point (FP32) arithmetic by default.
-Lightning uses 32-bit by default. You can also set it using:
-
-.. testcode::
-
-    Trainer(precision=32)
-
-
-****************
-Double Precision
-****************
-
-Lightning supports training models with double precision/64-bit. You can set it using:
-
-.. testcode::
-
-    Trainer(precision=64)
-
-.. note::
-
-    Since in deep learning, memory is always a bottleneck, especially when dealing with a large volume of data and with limited resources.
-    It is recommended using single precision for better speed. Although you can still use it if you want for your particular use-case.
-
-
-*****************
-Precision Plugins
-*****************
-
-You can also customize and pass your own Precision Plugin by subclassing the :class:`~pytorch_lightning.plugins.precision.precision_plugin.PrecisionPlugin` class.
-
-- Perform pre and post backward/optimizer step operations such as scaling gradients.
-- Provide context managers for forward, training_step, etc.
-
-.. code-block:: python
-
-    class CustomPrecisionPlugin(PrecisionPlugin):
-        precision = 16
-
-        ...
-
-
-    trainer = Trainer(plugins=[CustomPrecisionPlugin()])
-
+----
 
 ***************
 8-bit Optimizer

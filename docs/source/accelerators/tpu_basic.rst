@@ -1,5 +1,8 @@
 TPU training (Basic)
 ====================
+**Audience:** Users looking to train on single or multiple TPU cores.
+
+----
 
 .. raw:: html
 
@@ -102,8 +105,8 @@ For starting Kaggle projects with TPUs, refer to this `kernel <https://www.kaggl
 
 ----
 
-Performance considerations
---------------------------
+Optimize Performance
+--------------------
 
 The TPU was designed for specific workloads and operations to carry out large volumes of matrix multiplication,
 convolution operations and other commonly used ops in applied deep learning.

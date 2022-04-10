@@ -1,8 +1,8 @@
 .. _strategy:
 
-########
-Strategy
-########
+###################
+What is a Strategy?
+###################
 
 Strategy controls the model distribution across training, evaluation, and prediction to be used by the :doc:`Trainer <../common/trainer>`. It can be controlled by passing different
 strategy with aliases (``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"`` and so on) as well as a custom strategy to the ``strategy`` parameter for Trainer.
@@ -18,10 +18,11 @@ The Strategy in PyTorch Lightning handles the following responsibilities:
 
 :class:`~pytorch_lightning.strategies.strategy.Strategy` also manages the accelerator, precision, and checkpointing plugins.
 
+----
 
-****************************************
-Training Strategies with Various Configs
-****************************************
+###########################
+Enable Different Strategies
+###########################
 
 .. code-block:: python
 
@@ -46,13 +47,11 @@ Training Strategies with Various Configs
     # Training with the default IPU strategy on 8 IPUs
     trainer = Trainer(accelerator="ipu", devices=8)
 
+----
 
-----------
-
-
-************************
+########################
 Create a Custom Strategy
-************************
+########################
 
 Expert users may choose to extend an existing strategy by overriding its methods.
 
@@ -85,12 +84,11 @@ can then be passed into the ``Trainer`` directly via the ``strategy`` parameter.
 
 The complete list of built-in strategies is listed below.
 
-----------
+----
 
-
-****************************
-Built-In Training Strategies
-****************************
+#############################
+Available Training Strategies
+#############################
 
 .. currentmodule:: pytorch_lightning.strategies
 

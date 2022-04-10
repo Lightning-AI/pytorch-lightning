@@ -3,6 +3,35 @@
 Accelerator: TPU training
 =========================
 
-.. include:: tpu_basic.rst
+.. raw:: html
 
-.. include:: tpu_advanced.rst
+    <div class="display-card-container">
+        <div class="row">
+
+.. Add callout items below this line
+
+.. displayitem::
+   :header: Basic
+   :description: Learn the basics of single and multi-TPU core training.
+   :col_css: col-md-4
+   :button_link: tpu_basic.html
+   :height: 150
+
+.. displayitem::
+   :header: Intermediate
+   :description: Scale massive models using cloud TPUs.
+   :col_css: col-md-4
+   :button_link: tpu_intermediate.html
+   :height: 150
+
+.. displayitem::
+   :header: Advanced
+   :description: Dive into XLA and advanced techniques to optimize TPU-powered models.
+   :col_css: col-md-4
+   :button_link: tpu_advanced.html
+   :height: 150
+
+.. raw:: html
+
+        </div>
+    </div>

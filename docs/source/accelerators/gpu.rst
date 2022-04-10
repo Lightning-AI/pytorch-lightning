@@ -17,24 +17,31 @@ Accelerator: GPU training
 .. Add callout items below this line
 
 .. displayitem::
-   :header: GPU training (Basic)
+   :header: Basic
    :description: Learn the basics of single and multi-GPU training.
-   :col_css: col-md-4
+   :col_css: col-md-3
    :button_link: gpu_basic.html
    :height: 150
 
 .. displayitem::
-   :header: GPU training (Advanced)
+   :header: Intermediate
    :description: Learn about different distributed strategies, torchelastic and how to optimize communication layers.
-   :col_css: col-md-4
+   :col_css: col-md-3
+   :button_link: gpu_intermediate.html
+   :height: 150
+
+.. displayitem::
+   :header: Advanced
+   :description: Train 1 trillion+ parameter models with these techniques.
+   :col_css: col-md-3
    :button_link: gpu_advanced.html
    :height: 150
 
 .. displayitem::
-   :header: GPU training (Expert)
-   :description: Train 1 trillion+ parameter models with these techniques.
-   :col_css: col-md-4
-   :button_link: ../advanced/model_parallel.html
+   :header: Expert
+   :description: Develop new strategies for training and deploying larger and larger models.
+   :col_css: col-md-3
+   :button_link: gpu_expert.html
    :height: 150
 
 .. raw:: html
