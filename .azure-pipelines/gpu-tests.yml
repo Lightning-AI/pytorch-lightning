@@ -56,7 +56,7 @@ jobs:
         python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
         pip install fairscale==0.4.5
         pip install deepspeed>=0.6.0
-        pip install bagua-cuda102==0.9.0
+        pip install bagua-cuda111==0.9.0
         pip install . --requirement requirements/devel.txt
         pip list
         whoami
