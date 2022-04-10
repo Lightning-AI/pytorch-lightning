@@ -1783,6 +1783,8 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
         accelerator="gpu",
         devices=2,
         strategy="ddp",
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
 
     # simulate random failure in training_step on rank 0

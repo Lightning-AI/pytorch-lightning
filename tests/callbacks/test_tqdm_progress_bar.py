@@ -566,11 +566,12 @@ def test_progress_bar_max_val_check_interval(
         default_root_dir=tmpdir,
         num_sanity_val_steps=0,
         max_epochs=1,
-        enable_model_summary=False,
         val_check_interval=val_check_interval,
         accelerator="gpu",
         devices=world_size,
         strategy="ddp",
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
 
