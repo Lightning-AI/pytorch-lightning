@@ -358,9 +358,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
         if self.root_device == torch.device("cpu"):
-            raise MisconfigurationException(
-                f"Unsupported accelerator for DeepSpeed: {self.root_device}"
-            )
+            raise MisconfigurationException(f"Unsupported accelerator for DeepSpeed: {self.root_device}")
         optimizers_to_device(self.optimizers, self.root_device)
         self.init_deepspeed()
         self.barrier()
