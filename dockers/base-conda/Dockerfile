@@ -148,6 +148,16 @@ RUN \
     python -c "from apex import amp"
 
 RUN \
+    # install FairScale
+    pip install fairscale==0.4.5 && \
+    python -c "import fairscale; print(fairscale.__version__)"
+
+RUN \
+    # install DeepSpeed
+    pip install deepspeed==0.5.7 && \
+    python -c "import deepspeed; print(deepspeed.__version__)"
+
+RUN \
     # install Bagua
     CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
     pip install "bagua-cuda$CUDA_VERSION_MM==0.9.0" && \
