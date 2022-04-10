@@ -118,7 +118,8 @@ def test_accelerator_tpu_with_tpu_cores_priority():
 
 @RunIf(tpu=True)
 def test_set_devices_if_none_tpu():
-    trainer = Trainer(accelerator="tpu", tpu_cores=8)
+    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
+        trainer = Trainer(accelerator="tpu", tpu_cores=8)
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert trainer.num_devices == 8
 
