@@ -154,7 +154,7 @@ RUN \
 
 RUN \
     # install DeepSpeed
-    pip install deepspeed==0.5.7 && \
+    pip install deepspeed==0.6.0 && \
     python -c "import deepspeed; print(deepspeed.__version__)"
 
 RUN \
