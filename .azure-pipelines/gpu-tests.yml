@@ -32,12 +32,15 @@ jobs:
       image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8"
       # default shm size is 64m. Increase it to avoid:
       # 'Error while creating shared memory: unhandled system error, NCCL version 2.7.8'
-      options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=512m"
+      options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=512m --name ci-container -v /usr/bin/docker:/tmp/docker:ro"
 
     workspace:
       clean: all
 
     steps:
+    - script: |
+        /tmp/docker exec -t -u 0 ci-container sh -c "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confold" -y install sudo"
+      displayName: 'Install Sudo in container (thanks Microsoft!)'
 
     - bash: |
         lspci | egrep 'VGA|3D'
