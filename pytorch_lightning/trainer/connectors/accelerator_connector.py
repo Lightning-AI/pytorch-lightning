@@ -112,11 +112,9 @@ class AcceleratorConnector:
         components such as the Accelerator and Precision plugins.
 
             A. accelerator flag could be:
-                1. strategy class (deprecated in 1.5 will be removed in 1.7)
-                2. strategy str (deprecated in 1.5 will be removed in 1.7)
-                3. accelerator class
-                4. accelerator str
-                5. accelerator auto
+                1. accelerator class
+                2. accelerator str
+                3. accelerator auto
 
             B. strategy flag could be :
                 1. strategy class
@@ -286,14 +284,6 @@ class AcceleratorConnector:
         if accelerator is not None:
             if accelerator in self._accelerator_types or accelerator == "auto" or isinstance(accelerator, Accelerator):
                 self._accelerator_flag = accelerator
-            elif accelerator in self._registered_strategies or isinstance(accelerator, Strategy):
-                rank_zero_deprecation(
-                    f"Passing `Trainer(accelerator={accelerator!r})` has been deprecated"
-                    f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={accelerator!r})` instead."
-                )
-                self._strategy_flag = accelerator
-            elif accelerator == "ddp_cpu" and not self._strategy_flag:
-                self._strategy_flag = accelerator
 
         if precision is not None:
             if str(precision) not in self._precision_types:
