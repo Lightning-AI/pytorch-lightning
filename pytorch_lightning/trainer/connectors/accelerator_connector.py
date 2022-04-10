@@ -74,7 +74,6 @@ from pytorch_lightning.utilities import (
     AMPType,
     device_parser,
     LightningEnum,
-    rank_zero_deprecation,
     rank_zero_info,
     rank_zero_warn,
 )
