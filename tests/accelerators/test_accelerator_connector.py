@@ -53,8 +53,12 @@ def test_accelerator_choice_cpu(tmpdir):
     assert isinstance(trainer.strategy, SingleDeviceStrategy)
 
 
+@pytest.mark.xfail(reason="Should be fixed by #12698")
 def test_accelerator_invalid_choice():
-    with pytest.raises(MisconfigurationException, match="it can only be one of"):
+    with pytest.raises(
+        MisconfigurationException,
+        match="When passing string value for the `accelerator` argument of `Trainer`, it can only be one of",
+    ):
         Trainer(accelerator="invalid")
 
 
