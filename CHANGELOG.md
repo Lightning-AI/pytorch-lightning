@@ -93,8 +93,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated `log_gpu_memory` argument from the `Trainer` constructor ([#12657](https://github.com/PyTorchLightning/pytorch-lightning/pull/12657))
 
 
--
 - Removed the deprecated automatic logging of GPU stats by the logger connector ([#12657](https://github.com/PyTorchLightning/pytorch-lightning/pull/12657))
+
+
+- Removed deprecated `GPUStatsMonitor` callback ([#12554](https://github.com/PyTorchLightning/pytorch-lightning/pull/12554))
+
 
 ### Fixed
 
