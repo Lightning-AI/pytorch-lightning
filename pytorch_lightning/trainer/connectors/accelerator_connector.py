@@ -230,10 +230,9 @@ class AcceleratorConnector:
     ) -> None:
         """This method checks:
 
-        1. strategy: strategy, accelerator and plugin can all be set to strategies
+        1. strategy: strategy and plugin can be set to strategies
         2. accelerator: if the value of the accelerator argument is a type of accelerator (instance or string),
-            set self._accelerator_flag accordingly. If the value is strategy related (instance or string),
-            it gets handled by 1.
+            set self._accelerator_flag accordingly.
         3. precision: The final value of the precision flag may be determined either by the precision argument or
             by a plugin instance.
         4. plugins: a plugin could occur as a value of the strategy argument (handled by 1), or the precision
@@ -256,17 +255,6 @@ class AcceleratorConnector:
                 raise MisconfigurationException(
                     "`Trainer(strategy='tpu_spawn')` is not a valid strategy,"
                     " you can use `Trainer(strategy='ddp_spawn', accelerator='tpu')` instead."
-                )
-            # handle duplications and conflict
-            if isinstance(accelerator, Strategy) and strategy != accelerator:
-                raise MisconfigurationException(
-                    f"Incompatible values set in `strategy` and `accelerator` arguments."
-                    f"Received both strategy={strategy} and accelerator={accelerator}"
-                )
-            if isinstance(accelerator, str) and accelerator in self._registered_strategies and strategy != accelerator:
-                raise MisconfigurationException(
-                    f"strategy {strategy} already set through `strategy` flag,"
-                    f" but have also passed {accelerator} in through the accelerator flag."
                 )
             if plugins:
                 for plugin in plugins:
@@ -411,7 +399,7 @@ class AcceleratorConnector:
         if self._devices_flag == "auto" and self._accelerator_flag is None:
             raise MisconfigurationException(
                 f"You passed `devices={devices}` but haven't specified"
-                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu'|'hpu)` for the devices mapping"
+                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu'|'hpu)` for the devices mapping."
             )
 
     def _map_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
@@ -566,22 +554,6 @@ class AcceleratorConnector:
         # TODO this logic should apply to both str and object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
-        if strategy_flag == "ddp_cpu":
-            if _TPU_AVAILABLE:
-                raise MisconfigurationException(
-                    "`accelerator='ddp_cpu'` is not supported on TPU machines. "
-                    "Learn more: https://github.com/PyTorchLightning/pytorch-lightning/issues/7810"
-                )
-            if self._devices_flag == 1 and self._num_nodes_flag > 1:
-                strategy_flag = DDPStrategy.strategy_name
-            else:
-                strategy_flag = "ddp_spawn"
-            if self._accelerator_flag == "gpu":
-                rank_zero_warn(
-                    "You requested one or more GPUs, but set `accelerator='ddp_cpu'`. Training will not use GPUs."
-                )
-                self._accelerator_flag = "cpu"
-                self.accelerator = CPUAccelerator()
         if strategy_flag in ("ddp_spawn", "ddp_spawn_find_unused_parameters_false") and (
             TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or self._is_slurm_managing_tasks()
         ):
@@ -602,7 +574,7 @@ class AcceleratorConnector:
 
         if not _HOROVOD_AVAILABLE:
             raise MisconfigurationException(
-                'Requested `accelerator="horovod"`, but Horovod is not installed.'
+                'Requested `strategy="horovod"`, but Horovod is not installed.'
                 "Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]"
             )
 
@@ -751,8 +723,7 @@ class AcceleratorConnector:
 
         if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
             raise MisconfigurationException(
-                f"`Trainer(strategy={self.strategy.strategy_name!r})` or"
-                f" `Trainer(accelerator={self.strategy.strategy_name!r})` is not compatible with an interactive"
+                f"`Trainer(strategy={self.strategy.strategy_name!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible strategies:"
                 f" Trainer(strategy=None|{'|'.join(_StrategyType.interactive_compatible_types())})."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
