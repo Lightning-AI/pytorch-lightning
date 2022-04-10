@@ -80,7 +80,7 @@ jobs:
 
     - bash: |
         # python -m pytest tests/callbacks -v
-        gdb --batch -q -ex r -ex "thread apply all bt" --args $(which python) -m pytest tests/callbacks
+        gdb --batch -q -ex r -ex "thread apply all bt" --args $(which python) -m pytest -q tests/callbacks
       displayName: 'Testing: standard'
 
     - bash: |
