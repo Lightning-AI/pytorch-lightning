@@ -10,6 +10,7 @@
 Checkpointing (expert)
 ######################
 
+TODO: I don't understand this...
 
 ***********************
 Customize Checkpointing
@@ -26,8 +27,9 @@ and :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint` met
 what's saved in the checkpoint.
 
 
+******************************
 Built-in Checkpoint IO Plugins
-==============================
+******************************
 
 .. list-table:: Built-in Checkpoint IO Plugins
    :widths: 25 75
@@ -42,8 +44,9 @@ Built-in Checkpoint IO Plugins
      - CheckpointIO that utilizes :func:`xm.save` to save checkpoints for TPU training strategies.
 
 
+***************************
 Custom Checkpoint IO Plugin
-===========================
+***************************
 
 ``CheckpointIO`` can be extended to include your custom save/load functionality to and from a path. The ``CheckpointIO`` object can be passed to either a ``Trainer`` directly or a ``Strategy`` as shown below:
 

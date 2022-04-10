@@ -20,6 +20,8 @@ or `ADL <https://azure.microsoft.com/solutions/data-lake/>`_ on `Azure <https://
 
 PyTorch Lightning uses `fsspec <https://filesystem-spec.readthedocs.io/>`_ internally to handle all filesystem operations.
 
+----
+
 Save a cloud checkpoint
 =======================
 
@@ -31,6 +33,7 @@ To save to a remote filesystem, prepend a protocol like "s3:/" to the root_dir u
     trainer = Trainer(default_root_dir="s3://my_bucket/data/")
     trainer.fit(model)
 
+----
 
 Resume training from a cloud checkpoint
 =======================================

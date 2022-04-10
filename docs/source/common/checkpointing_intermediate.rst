@@ -27,6 +27,17 @@ For fine-grain control over checkpointing behavior, use the :class:`~pytorch_lig
         trainer.fit(model)
         checkpoint_callback.best_model_path
 
+Any value that has been logged via *self.log* in the LightningModule can be monitored.
+
+.. code-block:: python
+
+        class LitModel(pl.LightningModule)
+            def training_step(...):
+                self.log('my_metric', x)
+
+        # 'my_metric' is now able to be monitored
+        checkpoint_callback = ModelCheckpoint(monitor="my_metric")
+
 ----
 
 *****************************
