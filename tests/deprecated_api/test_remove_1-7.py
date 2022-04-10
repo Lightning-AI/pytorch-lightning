@@ -327,7 +327,7 @@ def test_v1_7_0_deprecate_gpu_stats_monitor(tmpdir):
     with pytest.deprecated_call(match="The `GPUStatsMonitor` callback was deprecated in v1.5"):
         _ = GPUStatsMonitor()
 
-  
+
 def test_v1_7_0_progress_bar():
     with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
         _ = ProgressBar()
@@ -445,4 +445,3 @@ def test_v1_7_0_post_dispatch_hook():
 
     with pytest.deprecated_call(match=escape("`CustomPlugin.post_dispatch()` has been deprecated in v1.6")):
         CustomPlugin(torch.device("cpu"))
-
