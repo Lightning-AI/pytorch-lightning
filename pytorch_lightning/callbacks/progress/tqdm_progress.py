@@ -168,11 +168,6 @@ class TQDMProgressBar(ProgressBarBase):
     def is_disabled(self) -> bool:
         return not self.is_enabled
 
-    @property
-    def _val_processed(self) -> int:
-        # use total in case validation runs more than once per training epoch
-        return self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.total.processed
-
     def disable(self) -> None:
         self._enabled = False
 

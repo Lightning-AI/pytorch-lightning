@@ -106,7 +106,7 @@ def record_ddp_fit_model_stats(trainer, model, use_cuda):
 
     if use_cuda:
         torch.cuda.synchronize()
-        max_memory = torch.cuda.max_memory_allocated() / 2 ** 20
+        max_memory = torch.cuda.max_memory_allocated() / 2**20
 
     total_time = time.perf_counter() - time_start
 

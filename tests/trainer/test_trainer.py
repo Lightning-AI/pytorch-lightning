@@ -904,70 +904,10 @@ def test_disabled_validation(tmpdir):
     assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
 
 
-@mock.patch("torch.Tensor.backward")
-def test_nan_loss_detection(backward_mock, tmpdir):
-    class CurrentModel(BoringModel):
-        test_batch_inf = 3
-
-        def training_step(self, batch, batch_idx):
-            output = super().training_step(batch, batch_idx)
-            if batch_idx == self.test_batch_inf:
-                if isinstance(output, dict):
-                    output["loss"] *= torch.tensor(math.inf)  # make loss infinite
-                else:
-                    output /= 0
-            return output
-
-    model = CurrentModel()
-
-    with pytest.deprecated_call(match="terminate_on_nan` was deprecated in v1.5"):
-        trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_inf + 1), terminate_on_nan=True)
-
-    with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is.*"):
-        trainer.fit(model)
-        assert trainer.global_step == model.test_batch_inf
-        assert backward_mock.call_count == model.test_batch_inf
-
-    for param in model.parameters():
-        assert torch.isfinite(param).all()
-
-
-def test_invalid_terminate_on_nan(tmpdir):
-    with pytest.raises(TypeError, match="`terminate_on_nan` should be a bool"), pytest.deprecated_call(
-        match="terminate_on_nan` was deprecated in v1.5"
-    ):
-        Trainer(default_root_dir=tmpdir, terminate_on_nan="False")
-
-
 @pytest.mark.parametrize("track_grad_norm", [0, torch.tensor(1), "nan"])
 def test_invalid_track_grad_norm(tmpdir, track_grad_norm):
     with pytest.raises(MisconfigurationException, match="`track_grad_norm` must be a positive number or 'inf'"):
         Trainer(default_root_dir=tmpdir, track_grad_norm=track_grad_norm)
-
-
-@mock.patch("torch.Tensor.backward")
-def test_nan_params_detection(backward_mock, tmpdir):
-    class CurrentModel(BoringModel):
-        test_batch_nan = 3
-
-        def on_after_backward(self):
-            if self.global_step == self.test_batch_nan:
-                # simulate parameter that became nan
-                torch.nn.init.constant_(self.layer.bias, math.nan)
-
-    model = CurrentModel()
-
-    with pytest.deprecated_call(match="terminate_on_nan` was deprecated in v1.5"):
-        trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_nan + 1), terminate_on_nan=True)
-
-    with pytest.raises(ValueError, match=r".*Detected nan and/or inf values in `layer.bias`.*"):
-        trainer.fit(model)
-        assert trainer.global_step == model.test_batch_nan
-        assert backward_mock.call_count == model.test_batch_nan + 1
-
-    # after aborting the training loop, model still has nan-valued params
-    params = torch.cat([param.view(-1) for param in model.parameters()])
-    assert not torch.isfinite(params).all()
 
 
 def test_on_exception_hook(tmpdir):
@@ -1047,7 +987,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
             # test that gradient is clipped correctly
             parameters = self.parameters()
             grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
-            torch.testing.assert_allclose(grad_norm, torch.tensor(0.05))
+            torch.testing.assert_allclose(grad_norm, torch.tensor(0.05, device=self.device))
             self.assertion_called = True
 
     model = TestModel()
@@ -1078,7 +1018,7 @@ def test_gradient_clipping_by_value(tmpdir, precision):
             parameters = self.parameters()
             grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
             grad_max = torch.max(torch.stack(grad_max_list))
-            torch.testing.assert_allclose(grad_max.abs(), torch.tensor(1e-10))
+            torch.testing.assert_allclose(grad_max.abs(), torch.tensor(1e-10, device=self.device))
             self.assertion_called = True
 
     model = TestModel()
@@ -1096,17 +1036,13 @@ def test_invalid_gradient_clip_algo(tmpdir):
         Trainer(default_root_dir=tmpdir, gradient_clip_algorithm="norm2")
 
 
-def test_gpu_choice(tmpdir):
-    trainer_options = dict(default_root_dir=tmpdir)
-    # Only run if CUDA is available
-    if not torch.cuda.is_available():
-        return
-
+@RunIf(min_gpus=1)
+def test_gpu_choice():
     num_gpus = torch.cuda.device_count()
-    Trainer(**trainer_options, accelerator="gpu", devices=num_gpus, auto_select_gpus=True)
+    Trainer(accelerator="gpu", devices=num_gpus, auto_select_gpus=True)
 
     with pytest.raises(MisconfigurationException, match=r".*But your machine only has.*"):
-        Trainer(**trainer_options, accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
+        Trainer(accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
 
 
 @pytest.mark.parametrize("limit_val_batches", [0.0, 1, 1.0, 0.5, 5])
@@ -1430,8 +1366,9 @@ def test_trainer_predict_1_gpu(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_trainer_predict_ddp_spawn(tmpdir):
-    predict(tmpdir, strategy="ddp_spawn", accelerator="auto", devices=2)
+@pytest.mark.parametrize("accelerator", ["cpu", pytest.param("gpu", marks=RunIf(min_gpus=2))])
+def test_trainer_predict_ddp_spawn(tmpdir, accelerator):
+    predict(tmpdir, strategy="ddp_spawn", accelerator=accelerator, devices=2)
 
 
 @pytest.mark.parametrize("dataset_cls", [RandomDataset, RandomIterableDatasetWithLen, RandomIterableDataset])

@@ -16,7 +16,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
-from tests.loggers.test_base import CustomLogger
+from tests.loggers.test_logger import CustomLogger
 
 
 def test_trainer_loggers_property():
