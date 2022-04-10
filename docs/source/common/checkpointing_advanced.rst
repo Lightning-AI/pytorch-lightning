@@ -60,9 +60,9 @@ Checkpoints can also save the state of :doc:`datamodules <../extensions/datamodu
 
 ----
 
-***************************
-Modify acheckpoint anywhere
-***************************
+****************************
+Modify a checkpoint anywhere
+****************************
 When you need to change the components of a checkpoint before saving or loading, use the :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_save_checkpoint` and :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint` of your ``LightningModule``.
 
 .. code:: python

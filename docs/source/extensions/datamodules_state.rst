@@ -1,5 +1,5 @@
-Save DataModule states
-======================
+Save DataModule state
+=====================
 When a checkpoint is created, it asks every DataModule for their state. If your DataModule defines the *state_dict* and *load_state_dict* methods, the checkpoint will automatically track and restore your DataModules.
 
 .. code:: python
