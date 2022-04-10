@@ -466,3 +466,8 @@ Like LightningModules, DataModules support hyperparameters with the same API.
             opt = optim.Adam(self.parameters(), lr=self.hparams.lr)
 
 Refer to ``save_hyperparameters`` in :doc:`lightning module <../common/lightning_module>` for more details.
+
+
+----
+
+.. include:: datamodules_state.rst
