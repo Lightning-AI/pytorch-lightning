@@ -1,11 +1,10 @@
+import torch
 import torch.nn as nn
 import torch.optim as optim
-from pytorch_lightning import seed_everything
-from pytorch_lightning.lite import LightningLite
-
-import torch
 from torch.utils.data import DataLoader, Dataset
 
+from pytorch_lightning import seed_everything
+from pytorch_lightning.lite import LightningLite
 from pytorch_lightning.strategies import BaguaStrategy
 
 
