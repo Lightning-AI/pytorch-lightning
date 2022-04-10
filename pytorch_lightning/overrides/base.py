@@ -20,10 +20,6 @@ from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
-from pytorch_lightning.utilities.imports import _BAGUA_AVAILABLE
-
-if _BAGUA_AVAILABLE:
-    from bagua.torch_api.data_parallel.distributed import DistributedDataParallel_V1_9_0 as BaguaDistributedDataParallel
 
 
 class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
@@ -112,8 +108,6 @@ def unwrap_lightning_module(wrapped_model: nn.Module) -> "pl.LightningModule":
             further.
     """
     model = wrapped_model
-    if _BAGUA_AVAILABLE and isinstance(model, BaguaDistributedDataParallel):
-        model = unwrap_lightning_module(model.module)
     if isinstance(model, (DistributedDataParallel, DataParallel)):
         model = unwrap_lightning_module(model.module)
     if isinstance(model, (_LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase)):

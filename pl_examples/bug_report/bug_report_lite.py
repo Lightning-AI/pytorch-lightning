@@ -6,6 +6,8 @@ from pytorch_lightning.lite import LightningLite
 import torch
 from torch.utils.data import DataLoader, Dataset
 
+from pytorch_lightning.strategies import BaguaStrategy
+
 
 class RandomDataset(Dataset):
     def __init__(self, size, length):
@@ -40,4 +42,4 @@ class BoringLite(LightningLite):
 
 
 if __name__ == "__main__":
-    BoringLite(accelerator="gpu", devices=2, strategy="bagua").run()
+    BoringLite(accelerator="gpu", devices=2, strategy=BaguaStrategy(algorithm="async")).run()

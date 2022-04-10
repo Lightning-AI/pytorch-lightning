@@ -1,9 +1,10 @@
 import logging
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch.nn import Module
+from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import (
@@ -147,30 +148,29 @@ class BaguaStrategy(DDPStrategy):
         os.environ["WORLD_SIZE"] = str(self.world_size)
         os.environ["LOCAL_RANK"] = str(self.local_rank)
 
-    def _check_qadam_optimizer(self) -> None:
-        has_qadam_optimizer = any([isinstance(opt, QAdamOptimizer) for opt in self.optimizers])
-
-        if not has_qadam_optimizer or len(self.optimizers) > 1 or len(self.lr_scheduler_configs) > 1:
-            raise MisconfigurationException("Bagua QAdam can only accept one QAdamOptimizer and one LR Scheduler.")
-
-        self._bagua_kwargs["q_adam_optimizer"] = self.optimizers[0]
-
     def configure_ddp(self) -> None:
-        model = LightningBaguaModule(self.model)  # type: ignore[arg-type]
-        self._model = self._setup_model(model)
-
-        # start the background communication for async algorithm
         assert self.lightning_module is not None
+        self.model, self.optimizers = self._setup_model_and_optimizers(
+            model=LightningBaguaModule(self.lightning_module),
+            optimizers=self.optimizers,
+        )
+        # start the background communication for async algorithm
         assert self.lightning_module.trainer is not None
         if self.lightning_module.trainer.training and self._bagua_algorithm == "async":
             self.model.bagua_algorithm.resume(self.model)  # type: ignore
 
+    def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
+        if self._bagua_algorithm == "qadam":
+            has_qadam_optimizer = any([isinstance(opt, QAdamOptimizer) for opt in optimizers])
+
+            if not has_qadam_optimizer or len(optimizers) > 1 or len(self.lr_scheduler_configs) > 1:
+                raise MisconfigurationException("Bagua QAdam can only accept one QAdamOptimizer and one LR Scheduler.")
+
+            self._bagua_kwargs["q_adam_optimizer"] = optimizers[0]
+        return super()._setup_model_and_optimizers(model, optimizers)
+
     def _setup_model(self, model: Module) -> "BaguaDistributedDataParallel":
         """Wraps the model into a Bagua distributed module."""
-
-        if self._bagua_algorithm == "qadam":
-            self._check_qadam_optimizer()
-
         algorithm = Algorithm.init(self._bagua_algorithm, **self._bagua_kwargs)
         return BaguaDistributedDataParallel(
             module=model,
