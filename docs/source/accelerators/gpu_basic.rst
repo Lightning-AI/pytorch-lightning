@@ -8,7 +8,7 @@
 
 GPU training (Basic)
 ====================
-**Audience:** Users looking to train on single or multiple GPUs.
+**Audience:** Users looking to save money and run large models faster using single or multiple GPUs.
 
 ----
 
