@@ -106,7 +106,7 @@ class BaguaStrategy(DDPStrategy):
 
     @property
     def lightning_module(self) -> Optional["pl.LightningModule"]:
-        model = self._model
+        model = self.model
         if isinstance(model, BaguaDistributedDataParallel):
             model = model.module
         return unwrap_lightning_module(model) if model is not None else None
@@ -160,6 +160,7 @@ class BaguaStrategy(DDPStrategy):
         self._model = self._setup_model(model)
 
         # start the background communication for async algorithm
+        assert self.lightning_module is not None
         assert self.lightning_module.trainer is not None
         if self.lightning_module.trainer.training and self._bagua_algorithm == "async":
             self.model.bagua_algorithm.resume(self.model)  # type: ignore
@@ -188,6 +189,7 @@ class BaguaStrategy(DDPStrategy):
 
     def teardown(self) -> None:
         # abort the background communication for async algorithm
+        assert self.lightning_module is not None
         assert self.lightning_module.trainer is not None
         if self.lightning_module.trainer.training and self._bagua_algorithm == "async":
             self.model.bagua_algorithm.abort(self.model)  # type: ignore
