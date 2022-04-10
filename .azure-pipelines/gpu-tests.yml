@@ -32,15 +32,12 @@ jobs:
       image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8"
       # default shm size is 64m. Increase it to avoid:
       # 'Error while creating shared memory: unhandled system error, NCCL version 2.7.8'
-      options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=512m --name ci-container -v /usr/bin/docker:/tmp/docker:ro"
+      options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=512m"
 
     workspace:
       clean: all
 
     steps:
-    - script: |
-        /tmp/docker exec -t -u 0 ci-container sh -c "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confold" -y install sudo"
-      displayName: 'Install Sudo in container (thanks Microsoft!)'
 
     - bash: |
         lspci | egrep 'VGA|3D'
@@ -59,9 +56,6 @@ jobs:
         pip install bagua-cuda111==0.9.0
         pip install . --requirement requirements/devel.txt
         pip list
-        whoami
-        sudo apt-get update
-        sudo apt-get install -y gdb
       displayName: 'Install dependencies'
 
     - bash: |
@@ -79,8 +73,7 @@ jobs:
       displayName: 'Get legacy checkpoints'
 
     - bash: |
-        # python -m pytest tests/callbacks -v
-        gdb --batch -q -ex r -ex "thread apply all bt" --args $(which python) -m pytest -q tests/callbacks
+        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests --ignore tests/benchmarks -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
       displayName: 'Testing: standard'
 
     - bash: |
