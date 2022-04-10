@@ -1,8 +1,8 @@
 .. _strategy:
 
-########
-Strategy
-########
+###################
+What is a Strategy?
+###################
 
 A Strategy controls the model distribution across training, evaluation, and prediction to be used by the :doc:`Trainer <../common/trainer>`.
 It can be controlled by passing different strategy with aliases (``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"`` and so on) as well as a custom strategy object to the ``strategy`` parameter for Trainer.
@@ -24,20 +24,11 @@ A Strategy is a composition of one :doc:`Accelerator <../extensions/accelerator>
 We expose Strategies mainly for expert users that want to extend Lightning for new hardware support or new distributed backends (e.g. a backend not yet supported by `PyTorch <https://pytorch.org/docs/stable/distributed.html#backends>`_ itself).
 
 
-----------
+----
 
-*****************************
-Selecting a Built-in Strategy
-*****************************
-
-Built-in strategies can be selected in two ways.
-
-1. Pass the shorthand name to the ``strategy`` Trainer argument
-2. Import a Strategy from :mod:`pytorch_lightning.strategies`, instantiate it and pass it to the ``strategy`` Trainer argument
-
-The latter allows you to configure further options on the specifc strategy.
-Here are some examples:
-
+###########################
+Enable Different Strategies
+###########################
 
 .. code-block:: python
 
@@ -62,67 +53,11 @@ Here are some examples:
     # Training with the default IPU strategy on 8 IPUs
     trainer = Trainer(accelerator="ipu", devices=8)
 
+----
 
-The below table lists all relevant strategies available in Lightning with their corresponding short-hand name:
-
-
-.. list-table:: Strategy Classes and Nicknames
-   :widths: 20 20 20
-   :header-rows: 1
-
-   * - Name
-     - Class
-     - Description
-   * - bagua
-     - :class:`~pytorch_lightning.strategies.BaguaStrategy`
-     - Strategy for training using the Bagua library, with advanced distributed training algorithms and system optimizations. :ref:`Learn more. <accelerators/gpu:Bagua>`
-   * - fsdp
-     - :class:`~pytorch_lightning.strategies.DDPFullyShardedStrategy`
-     - Strategy for Fully Sharded Data Parallel provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Fully Sharded Training>`
-   * - ddp_sharded
-     - :class:`~pytorch_lightning.strategies.DDPShardedStrategy`
-     - Optimizer and gradient sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Sharded Training>`
-   * - ddp_spawn_sharded
-     - :class:`~pytorch_lightning.strategies.DDPSpawnShardedStrategy`
-     - Optimizer sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Sharded Training>`
-   * - ddp_spawn
-     - :class:`~pytorch_lightning.strategies.DDPSpawnStrategy`
-     - Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training finishes. :ref:`Learn more. <accelerators/gpu:Distributed Data Parallel Spawn>`
-   * - ddp
-     - :class:`~pytorch_lightning.strategies.DDPStrategy`
-     - Strategy for multi-process single-device training on one or multiple nodes. :ref:`Learn more. <accelerators/gpu:Distributed Data Parallel>`
-   * - dp
-     - :class:`~pytorch_lightning.strategies.DataParallelStrategy`
-     - Implements data-parallel training in a single process, i.e., the model gets replicated to each device and each gets a split of the data. :ref:`Learn more. <accelerators/gpu:Data Parallel>`
-   * - deepspeed
-     - :class:`~pytorch_lightning.strategies.DeepSpeedStrategy`
-     - Provides capabilities to run training using the DeepSpeed library, with training optimizations for large billion parameter models. :ref:`Learn more. <advanced/model_parallel:deepspeed>`
-   * - horovod
-     - :class:`~pytorch_lightning.strategies.HorovodStrategy`
-     - Strategy for Horovod distributed training integration. :ref:`Learn more. <accelerators/gpu:Horovod>`
-   * - hpu_parallel
-     - :class:`~pytorch_lightning.strategies.HPUParallelStrategy`
-     - Strategy for distributed training on multiple HPU devices. :doc:`Learn more. <../accelerators/hpu>`
-   * - hpu_single
-     - :class:`~pytorch_lightning.strategies.SingleHPUStrategy`
-     - Strategy for training on a single HPU device. :doc:`Learn more. <../accelerators/hpu>`
-   * - ipu_strategy
-     - :class:`~pytorch_lightning.strategies.IPUStrategy`
-     - Plugin for training on IPU devices. :doc:`Learn more. <../accelerators/ipu>`
-   * - tpu_spawn
-     - :class:`~pytorch_lightning.strategies.TPUSpawnStrategy`
-     - Strategy for training on multiple TPU devices using the :func:`torch_xla.distributed.xla_multiprocessing.spawn` method. :doc:`Learn more. <../accelerators/tpu>`
-   * - single_tpu
-     - :class:`~pytorch_lightning.strategies.SingleTPUStrategy`
-     - Strategy for training on a single TPU device. :doc:`Learn more. <../accelerators/tpu>`
-
-
-----------
-
-
-************************
+########################
 Create a Custom Strategy
-************************
+########################
 
 Every strategy in Lightning is a subclass of one of the main base classes: :class:`~pytorch_lightning.strategies.Strategy`, :class:`~pytorch_lightning.strategies.SingleDeviceStrategy` or :class:`~pytorch_lightning.strategies.ParallelStrategy`.
 
@@ -165,5 +100,39 @@ Since the strategy also hosts the Accelerator and various plugins, you can custo
     # custom strategy, with new accelerator and plugins
     accelerator = MyAccelerator()
     precision_plugin = MyPrecisionPlugin()
-    strategy = CustomDDPStrategy(accelerator=accelerator, precision_plugin=precision_plugin)
-    trainer = Trainer(strategy=strategy)
+    training_strategy = CustomDDPStrategy(accelerator=accelerator, precision_plugin=precision_plugin)
+    trainer = Trainer(strategy=training_strategy)
+
+
+The complete list of built-in strategies is listed below.
+
+----
+
+#############################
+Available Training Strategies
+#############################
+
+.. currentmodule:: pytorch_lightning.strategies
+
+.. autosummary::
+    :nosignatures:
+    :template: classtemplate.rst
+
+    BaguaStrategy
+    DDP2Strategy
+    DDPFullyShardedStrategy
+    DDPShardedStrategy
+    DDPSpawnShardedStrategy
+    DDPSpawnStrategy
+    DDPStrategy
+    DataParallelStrategy
+    DeepSpeedStrategy
+    HorovodStrategy
+    HPUParallelStrategy
+    IPUStrategy
+    ParallelStrategy
+    SingleDeviceStrategy
+    SingleHPUStrategy
+    SingleTPUStrategy
+    Strategy
+    TPUSpawnStrategy

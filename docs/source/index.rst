@@ -81,7 +81,7 @@ New to Lightning
 
 .. customcalloutitem::
    :description: Learn the 8 key steps of a typical Lightning workflow.
-   :header: Level 1: Lightning in 15 minutes
+   :header: Lightning in 15 minutes
    :button_link:  starter/introduction.html
 
 .. customcalloutitem::
@@ -100,7 +100,7 @@ New to Lightning
 
    <hr class="docutils" style="margin: 50px 0 50px 0">
 
-Current Lightning users
+Current Lightning Users
 -----------------------
 
 .. raw:: html
@@ -182,8 +182,8 @@ Current Lightning users
 
 .. toctree::
    :maxdepth: 1
-   :name: Tutorials
-   :caption: Tutorials
+   :name: Hands-on Examples
+   :caption: Hands-on Examples
    :glob:
 
    notebooks/**/*
@@ -193,8 +193,8 @@ Current Lightning users
 
 .. toctree::
    :maxdepth: 1
-   :name: Conceptual Guides
-   :caption: Conceptual Guides
+   :name: Concepts Glossary
+   :caption: Concepts Glossary
 
    accelerators/gpu
    accelerators/hpu
@@ -213,7 +213,7 @@ Current Lightning users
    common/lightning_cli
    common/loggers
    advanced/model_parallel
-   advanced/precision
+   precision/precision
    common/optimization
    advanced/profiler
    common/progress_bar

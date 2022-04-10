@@ -8,7 +8,9 @@
 
 GPU training (Basic)
 ====================
+**Audience:** Users looking to train on single or multiple GPUs.
 
+----
 
 What is a GPU?
 --------------
