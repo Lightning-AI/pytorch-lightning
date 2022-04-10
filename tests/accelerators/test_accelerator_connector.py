@@ -109,7 +109,12 @@ def test_custom_cluster_environment_in_slurm_environment(_, tmpdir):
             return True
 
     trainer = Trainer(
-        default_root_dir=tmpdir, plugins=[CustomCluster()], fast_dev_run=True, accelerator="cpu", strategy="ddp", devices=2
+        default_root_dir=tmpdir,
+        plugins=[CustomCluster()],
+        fast_dev_run=True,
+        accelerator="cpu",
+        strategy="ddp",
+        devices=2,
     )
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
