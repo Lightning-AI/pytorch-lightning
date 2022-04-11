@@ -96,7 +96,7 @@ The hyperparameters are saved to the "hyper_parameters" key in the checkpoint
 
 .. code-block:: python
 
-    checkpoint = torch.load(CKPT_PATH)
+    checkpoint = torch.load(checkpoint, map_location=lambda storage, loc: storage)
     print(checkpoint["hyper_parameters"])
     # {"learning_rate": the_value, "another_parameter": the_other_value}
 

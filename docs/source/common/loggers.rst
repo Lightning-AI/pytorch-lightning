@@ -5,9 +5,9 @@
 
 .. _loggers:
 
-####################################
-Track metrics and visualize training
-####################################
+#############################
+Track and visualize artifacts
+#############################
 
 .. raw:: html
 

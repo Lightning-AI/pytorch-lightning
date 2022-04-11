@@ -5,9 +5,9 @@
 
 .. _loggers:
 
-***************
-Logging metrics
-***************
+######################################
+Track and visualize artifacts (expert)
+######################################
 
 - change the logger
 - explain how self.log works
