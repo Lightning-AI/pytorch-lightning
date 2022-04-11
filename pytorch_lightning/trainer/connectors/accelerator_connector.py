@@ -413,6 +413,12 @@ class AcceleratorConnector:
         self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
         self._devices_flag = devices
 
+        if self._devices_flag in ([], 0, "0"):
+            raise MisconfigurationException(
+                f"`Trainer(devices={self._devices_flag!r})` value is not a valid input"
+                f" using {self._accelerator_flag} accelerator."
+            )
+
         # TODO: Delete this method when num_processes, gpus, ipus and tpu_cores gets removed
         self._map_deprecated_devices_specific_info_to_accelerator_and_device_flag(
             devices, num_processes, gpus, ipus, tpu_cores
