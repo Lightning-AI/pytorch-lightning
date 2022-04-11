@@ -8,7 +8,7 @@
 ##########################################
 Track and Visualize Experiments (advanced)
 ##########################################
-A
+**Audience:** Users who want to do advanced speed optimizations by customizing the logging behavior.
 
 ----
 
@@ -30,9 +30,9 @@ To change the default values (ie: version number) shown in the progress bar, ove
 
 ----
 
-********************************
-Alter tracking to speed up model
-********************************
+************************************
+Customize tracking to speed up model
+************************************
 
 
 Modify logging frequency
@@ -71,56 +71,232 @@ TODO: chart
 ******************
 Customize self.log 
 ******************
-The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method has a few options:
 
-* ``on_step``: Logs the metric at the current step.
-* ``on_epoch``: Automatically accumulates and logs at the end of the epoch.
-* ``prog_bar``: Logs to the progress bar (Default: ``False``).
-* ``logger``: Logs to the logger like ``Tensorboard``, or any other custom logger passed to the :class:`~pytorch_lightning.trainer.trainer.Trainer` (Default: ``True``).
-* ``reduce_fx``: Reduction function over step values for end of epoch. Uses :meth:`torch.mean` by default.
-* ``enable_graph``: If True, will not auto detach the graph.
-* ``sync_dist``: If True, reduces the metric across devices. Use with care as this may lead to a significant communication overhead.
-* ``sync_dist_group``: The DDP group to sync across.
-* ``add_dataloader_idx``: If True, appends the index of the current dataloader to the name (when using multiple dataloaders). If False, user needs to give unique names for each dataloader to not mix the values.
-* ``batch_size``: Current batch size used for accumulating logs logged with ``on_epoch=True``. This will be directly inferred from the loaded batch, but for some data structures you might need to explicitly provide it.
-* ``rank_zero_only``: Whether the value will be logged only on rank 0. This will prevent synchronization which would produce a deadlock as not all processes would perform this log call.
+The LightningModule *self.log* method offers many configurations to customize its behavior.
 
-.. list-table:: Default behavior of logging in Callback or LightningModule
-   :widths: 50 25 25
-   :header-rows: 1
+----
 
-   * - Hook
-     - on_step
-     - on_epoch
-   * - on_train_start, on_train_epoch_start, on_train_epoch_end, training_epoch_end
-     - False
-     - True
-   * - on_before_backward, on_after_backward, on_before_optimizer_step, on_before_zero_grad
-     - True
-     - False
-   * - on_train_batch_start, on_train_batch_end, training_step, training_step_end
-     - True
-     - False
-   * - on_validation_start, on_validation_epoch_start, on_validation_epoch_end, validation_epoch_end
-     - False
-     - True
-   * - on_validation_batch_start, on_validation_batch_end, validation_step, validation_step_end
-     - False
-     - True
+add_dataloader_idx
+==================
+**Default:** True
 
-.. note::
+If True, appends the index of the current dataloader to the name (when using multiple dataloaders). If False, user needs to give unique names for each dataloader to not mix the values.
 
-    - The above config for ``validation`` applies for ``test`` hooks as well.
+.. code-block:: python
+  
+  self.log(add_dataloader_idx=True)
 
-    -   Setting ``on_epoch=True`` will cache all your logged values during the full training epoch and perform a
-        reduction in ``on_train_epoch_end``. We recommend using `TorchMetrics <https://torchmetrics.readthedocs.io/>`_, when working with custom reduction.
+----
 
-    -   Setting both ``on_step=True`` and ``on_epoch=True`` will create two keys per metric you log with
-        suffix ``_step`` and ``_epoch`` respectively. You can refer to these keys e.g. in the `monitor`
-        argument of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` or in the graphs plotted to the logger of your choice.
+batch_size
+==========
+**Default:** None
+
+Current batch size used for accumulating logs logged with ``on_epoch=True``. This will be directly inferred from the loaded batch, but for some data structures you might need to explicitly provide it.
+
+.. code-block:: python
+  
+  self.log(batch_size=32)
+
+----
+
+enable_graph
+============
+**Default:** True
+
+If True, will not auto detach the graph.
+
+.. code-block:: python
+  
+  self.log(enable_graph=True)
+
+----
+
+logger
+======
+**Default:** True
+
+Send logs to the logger like ``Tensorboard``, or any other custom logger passed to the :class:`~pytorch_lightning.trainer.trainer.Trainer` (Default: ``True``).
+
+.. code-block:: python
+  
+  self.log(logger=True)
+
+----
+
+on_epoch
+========
+**Default:** It varies
+
+If this is True, that specific *self.log* call accumulates and reduces all metrics to the end of the epoch.
+
+.. code-block:: python
+  
+  self.log(on_epoch=True)
+
+The default value depends in which function this is called
+
+.. code-block:: python
+  
+  def training_step(...):
+    # Default: False
+    self.log(on_epoch=False)
+  
+  def validation_step(...):
+    # Default: True
+    self.log(on_epoch=True)
+  
+  def test_step(...):
+    # Default: True
+    self.log(on_epoch=True)
+  
+----
+
+on_step
+=======
+**Default:** It varies
+
+If this is True, that specific *self.log* call will NOT accumulate metrics. Instead it will generate a timeseries across steps.
+
+.. code-block:: python
+  
+  self.log(on_step=True)
+
+The default value depends in which function this is called
+
+.. code-block:: python
+  
+  def training_step(...):
+    # Default: True
+    self.log(on_step=True)
+  
+  def validation_step(...):
+    # Default: False
+    self.log(on_step=False)
+  
+  def test_step(...):
+    # Default: False
+    self.log(on_step=False)
 
 
-If your work requires to log in an unsupported method, please open an issue with a clear description of why it is blocking you.
+----
+
+prog_bar
+========
+**Default:** False
+
+If set to True, logs will be sent to the progress bar.
+
+.. code-block:: python
+  
+  self.log(prog_bar=True)
+
+----
+
+rank_zero_only
+==============
+**Default:** True
+
+Whether the value will be logged only on rank 0. This will prevent synchronization which would produce a deadlock as not all processes would perform this log call.
+
+.. code-block:: python
+  
+  self.log(rank_zero_only=True)
+
+----
+
+reduce_fx
+=========
+**Default:** :meth:`torch.mean`
+
+Reduction function over step values for end of epoch. Uses :meth:`torch.mean` by default.
+
+.. code-block:: python
+  
+  self.log(reduce_fx=torch.mean)
+
+----
+
+sync_dist
+=========
+**Default:** False
+
+If True, reduces the metric across devices. Use with care as this may lead to a significant communication overhead.
+
+.. code-block:: python
+  
+  self.log(sync_dist=False)
+
+----
+
+sync_dist_group
+===============
+**Default:** None
+
+The DDP group to sync across.
+
+.. code-block:: python
+  
+  import torch.distributed as dist
+
+  group = dist.init_process_group('nccl', rank=self.global_rank, world_size=self.world_size)
+  self.log(sync_dist_group=group)
+
+----
+
+***************************************
+Enable metrics for distributed training
+***************************************
+For certain types of metrics that need complex aggregation, we recommended to build your metric using torchmetric which ensures all the complexities of metric aggregation in distributed environments is handled.
+
+First, implement your metric:
+
+.. code-block:: python
+
+  import torch
+  import torchmetrics
+
+  class MyAccuracy(Metric):
+      def __init__(self, dist_sync_on_step=False):
+          # call `self.add_state`for every internal state that is needed for the metrics computations
+          # dist_reduce_fx indicates the function that should be used to reduce
+          # state from multiple processes
+          super().__init__(dist_sync_on_step=dist_sync_on_step)
+
+          self.add_state("correct", default=torch.tensor(0), dist_reduce_fx="sum")
+          self.add_state("total", default=torch.tensor(0), dist_reduce_fx="sum")
+
+      def update(self, preds: torch.Tensor, target: torch.Tensor):
+          # update metric states
+          preds, target = self._input_format(preds, target)
+          assert preds.shape == target.shape
+
+          self.correct += torch.sum(preds == target)
+          self.total += target.numel()
+
+      def compute(self):
+          # compute final result
+          return self.correct.float() / self.total
+
+To use the metric inside Lightning, 1) initialize it in the init, 2) compute the metric, 3) pass it into *self.log*
+
+.. code-block:: python
+
+  class LitModel(LightningModule):
+
+      def __init__(self):
+          # 1. initialize the metric
+          self.accuracy = MyAccuracy()
+
+      def training_step(self, batch, batch_idx):
+          x, y = batch
+          preds = self(x)
+
+          # 2. compute the metric 
+          self.accuracy(preds, y)
+
+          # 3. log it
+          self.log('train_acc_step', self.accuracy)
 
 ----
 
@@ -146,7 +322,62 @@ To save logs to a remote filesystem, prepend a protocol like "s3:/" to the root_
 
 ----
 
-***************************************
-Enable metrics for distributed training
-***************************************
-A
+*********************************
+Track both step and epoch metrics
+*********************************
+To track the timeseries over steps (*on_step*) as well as the accumulated epoch metric (*on_epoch*), set both to True
+
+.. code-block:: python
+
+  self.log(on_step=True, on_epoch=True)
+
+Setting both to True will generate two graphs with *_step* for the timeseries over steps and *_epoch* for the epoch metric.
+
+# TODO: show images of both
+
+----
+
+**************************************
+Understand self.log automatic behavior
+**************************************
+This table shows the default values of *on_step* and *on_epoch* depending on the *LightningModule* or *Callback* method.
+
+----
+
+In LightningModule
+==================
+
+.. list-table:: Default behavior of logging in ightningModule
+   :widths: 50 25 25
+   :header-rows: 1
+
+   * - Method
+     - on_step
+     - on_epoch
+   * - on_after_backward, on_before_backward, on_before_optimizer_step, on_before_zero_grad, training_step, training_step_end
+     - True
+     - False
+   * - training_epoch_end, test_epoch_end, test_step, test_step_end, validation_epoch_end, validation_step, validation_step_end
+     - False
+     - True
+
+----
+
+In Callback
+===========
+
+.. list-table:: Default behavior of logging in Callback
+   :widths: 50 25 25
+   :header-rows: 1
+
+   * - Method
+     - on_step
+     - on_epoch
+   * - on_after_backward, on_before_backward, on_before_optimizer_step, on_before_zero_grad, on_train_batch_start, on_train_batch_end
+     - True
+     - False
+   * - on_train_epoch_start, on_train_epoch_end, on_train_start, on_validation_batch_start, on_validation_batch_end, on_validation_start, on_validation_epoch_start, on_validation_epoch_end
+     - False
+     - True
+
+.. note:: To add logging to an unsupported method, please open an issue with a clear description of why it is blocking you.
