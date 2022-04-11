@@ -357,12 +357,12 @@ To use shorthand notation, the options need to be registered beforehand. This ca
 which will register all subclasses of :class:`torch.optim.Optimizer`, :class:`torch.optim.lr_scheduler._LRScheduler`,
 :class:`~pytorch_lightning.core.lightning.LightningModule`,
 :class:`~pytorch_lightning.core.datamodule.LightningDataModule`, :class:`~pytorch_lightning.callbacks.Callback`, and
-:class:`~pytorch_lightning.loggers.LightningLoggerBase` across all imported modules. This includes those in your own
+:class:`~pytorch_lightning.loggers.Logger` across all imported modules. This includes those in your own
 code.
 
 Alternatively, if this is left unset, only the subclasses defined in PyTorch's :class:`torch.optim.Optimizer`,
 :class:`torch.optim.lr_scheduler._LRScheduler` and Lightning's :class:`~pytorch_lightning.callbacks.Callback` and
-:class:`~pytorch_lightning.loggers.LightningLoggerBase` subclassess will be registered.
+:class:`~pytorch_lightning.loggers.Logger` subclassess will be registered.
 
 In subsequent sections, we will go over adding specific classes to specific registries as well as how to use
 shorthand notation.
@@ -812,6 +812,12 @@ With the encoder-decoder example model above a possible YAML that uses variable 
       decoder_layers:
       - ${model.encoder_layers}
       - 4
+
+.. note::
+
+    OmegaConf's interpolation only works within a single config file. Trying to interpolate across command line
+    arguments or using it in `parser.set_defaults` will not work. More up to date information about the interpolation
+    support can be found `here <https://jsonargparse.readthedocs.io/en/stable/#variable-interpolation>__`.
 
 
 Optimizers and learning rate schedulers

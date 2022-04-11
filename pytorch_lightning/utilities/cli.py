@@ -117,14 +117,14 @@ def _populate_registries(subclasses: bool) -> None:
             MODEL_REGISTRY(cls)
         for cls in get_all_subclasses(pl.LightningDataModule):
             DATAMODULE_REGISTRY(cls)
-        for cls in get_all_subclasses(pl.loggers.LightningLoggerBase):
+        for cls in get_all_subclasses(pl.loggers.Logger):
             LOGGER_REGISTRY(cls)
     else:
         # manually register torch's subclasses and our subclasses
         OPTIMIZER_REGISTRY.register_classes(torch.optim, Optimizer)
         LR_SCHEDULER_REGISTRY.register_classes(torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler)
         CALLBACK_REGISTRY.register_classes(pl.callbacks, pl.Callback)
-        LOGGER_REGISTRY.register_classes(pl.loggers, pl.loggers.LightningLoggerBase)
+        LOGGER_REGISTRY.register_classes(pl.loggers, pl.loggers.Logger)
     # `ReduceLROnPlateau` does not subclass `_LRScheduler`
     LR_SCHEDULER_REGISTRY(cls=ReduceLROnPlateau)
 
@@ -575,6 +575,7 @@ class LightningCLI:
 
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
         """Method that instantiates the argument parser."""
+        kwargs.setdefault("dump_header", [f"pytorch_lightning=={pl.__version__}"])
         return LightningArgumentParser(**kwargs)
 
     def setup_parser(

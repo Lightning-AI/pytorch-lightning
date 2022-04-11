@@ -37,7 +37,7 @@ class BoringModelGPU(BoringModel):
 def test_ddp_with_2_gpus():
     """Tests if device is set correctly when training and after teardown for DDPStrategy."""
     trainer = Trainer(accelerator="gpu", devices=2, strategy="ddp", fast_dev_run=True)
-    # assert training type plugin attributes for device setting
+    # assert strategy attributes for device setting
     assert isinstance(trainer.strategy, DDPStrategy)
     local_rank = trainer.strategy.local_rank
     assert trainer.strategy.root_device == torch.device(f"cuda:{local_rank}")

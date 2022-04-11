@@ -244,6 +244,9 @@ class AcceleratorConnector:
         if plugins is not None:
             plugins = [plugins] if not isinstance(plugins, list) else plugins
 
+        if isinstance(strategy, str):
+            strategy = strategy.lower()
+
         if strategy is not None:
             self._strategy_flag = strategy
             if strategy == "ddp_cpu":
@@ -411,7 +414,7 @@ class AcceleratorConnector:
         self._devices_flag = devices
 
         # TODO: Delete this method when num_processes, gpus, ipus and tpu_cores gets removed
-        self._map_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
+        self._map_deprecated_devices_specific_info_to_accelerator_and_device_flag(
             devices, num_processes, gpus, ipus, tpu_cores
         )
 
@@ -421,7 +424,7 @@ class AcceleratorConnector:
                 " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu'|'hpu)` for the devices mapping"
             )
 
-    def _map_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
+    def _map_deprecated_devices_specific_info_to_accelerator_and_device_flag(
         self,
         devices: Optional[Union[List[int], str, int]],
         num_processes: Optional[int],
@@ -429,7 +432,28 @@ class AcceleratorConnector:
         ipus: Optional[int],
         tpu_cores: Optional[Union[List[int], str, int]],
     ) -> None:
-        """Sets the `devices_flag` and `accelerator_flag` based on num_processes, gpus, ipus, tpu_cores."""
+        """Emit deprecation warnings for num_processes, gpus, ipus, tpu_cores and set the `devices_flag` and
+        `accelerator_flag`."""
+        if num_processes is not None:
+            rank_zero_deprecation(
+                f"Setting `Trainer(num_processes={num_processes})` is deprecated in v1.7 and will be removed"
+                f" in v2.0. Please use `Trainer(accelerator='cpu', devices={num_processes})` instead."
+            )
+        if gpus is not None:
+            rank_zero_deprecation(
+                f"Setting `Trainer(gpus={gpus!r})` is deprecated in v1.7 and will be removed"
+                f" in v2.0. Please use `Trainer(accelerator='gpu', devices={gpus!r})` instead."
+            )
+        if tpu_cores is not None:
+            rank_zero_deprecation(
+                f"Setting `Trainer(tpu_cores={tpu_cores!r})` is deprecated in v1.7 and will be removed"
+                f" in v2.0. Please use `Trainer(accelerator='tpu', devices={tpu_cores!r})` instead."
+            )
+        if ipus is not None:
+            rank_zero_deprecation(
+                f"Setting `Trainer(ipus={ipus})` is deprecated in v1.7 and will be removed"
+                f" in v2.0. Please use `Trainer(accelerator='ipu', devices={ipus})` instead."
+            )
         self._gpus: Optional[Union[List[int], str, int]] = gpus
         self._tpu_cores: Optional[Union[List[int], str, int]] = tpu_cores
         deprecated_devices_specific_flag = num_processes or gpus or ipus or tpu_cores

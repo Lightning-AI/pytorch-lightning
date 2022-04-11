@@ -904,70 +904,10 @@ def test_disabled_validation(tmpdir):
     assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
 
 
-@mock.patch("torch.Tensor.backward")
-def test_nan_loss_detection(backward_mock, tmpdir):
-    class CurrentModel(BoringModel):
-        test_batch_inf = 3
-
-        def training_step(self, batch, batch_idx):
-            output = super().training_step(batch, batch_idx)
-            if batch_idx == self.test_batch_inf:
-                if isinstance(output, dict):
-                    output["loss"] *= torch.tensor(math.inf)  # make loss infinite
-                else:
-                    output /= 0
-            return output
-
-    model = CurrentModel()
-
-    with pytest.deprecated_call(match="terminate_on_nan` was deprecated in v1.5"):
-        trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_inf + 1), terminate_on_nan=True)
-
-    with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is.*"):
-        trainer.fit(model)
-        assert trainer.global_step == model.test_batch_inf
-        assert backward_mock.call_count == model.test_batch_inf
-
-    for param in model.parameters():
-        assert torch.isfinite(param).all()
-
-
-def test_invalid_terminate_on_nan(tmpdir):
-    with pytest.raises(TypeError, match="`terminate_on_nan` should be a bool"), pytest.deprecated_call(
-        match="terminate_on_nan` was deprecated in v1.5"
-    ):
-        Trainer(default_root_dir=tmpdir, terminate_on_nan="False")
-
-
 @pytest.mark.parametrize("track_grad_norm", [0, torch.tensor(1), "nan"])
 def test_invalid_track_grad_norm(tmpdir, track_grad_norm):
     with pytest.raises(MisconfigurationException, match="`track_grad_norm` must be a positive number or 'inf'"):
         Trainer(default_root_dir=tmpdir, track_grad_norm=track_grad_norm)
-
-
-@mock.patch("torch.Tensor.backward")
-def test_nan_params_detection(backward_mock, tmpdir):
-    class CurrentModel(BoringModel):
-        test_batch_nan = 3
-
-        def on_after_backward(self):
-            if self.global_step == self.test_batch_nan:
-                # simulate parameter that became nan
-                torch.nn.init.constant_(self.layer.bias, math.nan)
-
-    model = CurrentModel()
-
-    with pytest.deprecated_call(match="terminate_on_nan` was deprecated in v1.5"):
-        trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_nan + 1), terminate_on_nan=True)
-
-    with pytest.raises(ValueError, match=r".*Detected nan and/or inf values in `layer.bias`.*"):
-        trainer.fit(model)
-        assert trainer.global_step == model.test_batch_nan
-        assert backward_mock.call_count == model.test_batch_nan + 1
-
-    # after aborting the training loop, model still has nan-valued params
-    params = torch.cat([param.view(-1) for param in model.parameters()])
-    assert not torch.isfinite(params).all()
 
 
 def test_on_exception_hook(tmpdir):
@@ -1047,7 +987,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
             # test that gradient is clipped correctly
             parameters = self.parameters()
             grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
-            torch.testing.assert_allclose(grad_norm, torch.tensor(0.05))
+            torch.testing.assert_allclose(grad_norm, torch.tensor(0.05, device=self.device))
             self.assertion_called = True
 
     model = TestModel()
@@ -1078,7 +1018,7 @@ def test_gradient_clipping_by_value(tmpdir, precision):
             parameters = self.parameters()
             grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
             grad_max = torch.max(torch.stack(grad_max_list))
-            torch.testing.assert_allclose(grad_max.abs(), torch.tensor(1e-10))
+            torch.testing.assert_allclose(grad_max.abs(), torch.tensor(1e-10, device=self.device))
             self.assertion_called = True
 
     model = TestModel()
@@ -1096,17 +1036,13 @@ def test_invalid_gradient_clip_algo(tmpdir):
         Trainer(default_root_dir=tmpdir, gradient_clip_algorithm="norm2")
 
 
-def test_gpu_choice(tmpdir):
-    trainer_options = dict(default_root_dir=tmpdir)
-    # Only run if CUDA is available
-    if not torch.cuda.is_available():
-        return
-
+@RunIf(min_gpus=1)
+def test_gpu_choice():
     num_gpus = torch.cuda.device_count()
-    Trainer(**trainer_options, accelerator="gpu", devices=num_gpus, auto_select_gpus=True)
+    Trainer(accelerator="gpu", devices=num_gpus, auto_select_gpus=True)
 
     with pytest.raises(MisconfigurationException, match=r".*But your machine only has.*"):
-        Trainer(**trainer_options, accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
+        Trainer(accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
 
 
 @pytest.mark.parametrize("limit_val_batches", [0.0, 1, 1.0, 0.5, 5])
@@ -1178,46 +1114,6 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         trainer.fit(model, val_dataloaders=val_dataloaders)
 
         assert mocked.call_count == sum(trainer.num_val_batches)
-
-
-@pytest.mark.parametrize(
-    ["trainer_kwargs", "strategy_cls", "strategy_name", "accelerator_cls", "devices"],
-    [
-        ({"accelerator": None}, SingleDeviceStrategy, "single_device", CPUAccelerator, 1),
-        ({"accelerator": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 1),
-        ({"accelerator": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 1),
-        ({"accelerator": "ddp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
-        ({"accelerator": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 1),
-        ({"accelerator": "ddp_cpu", "num_processes": 2}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 2),
-        ({"accelerator": "ddp2"}, DDPStrategy, "ddp", CPUAccelerator, 1),
-        ({"accelerator": None, "gpus": 1}, SingleDeviceStrategy, "single_device", GPUAccelerator, 1),
-        ({"accelerator": "dp", "gpus": 1}, DataParallelStrategy, "dp", GPUAccelerator, 1),
-        ({"accelerator": "ddp", "gpus": 1}, DDPStrategy, "ddp", GPUAccelerator, 1),
-        ({"accelerator": "ddp_cpu", "num_processes": 2, "gpus": 1}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 2),
-        ({"accelerator": "ddp2", "gpus": 1}, DDP2Strategy, "ddp2", GPUAccelerator, 1),
-        ({"accelerator": None, "gpus": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
-        ({"accelerator": "dp", "gpus": 2}, DataParallelStrategy, "dp", GPUAccelerator, 2),
-        ({"accelerator": "ddp", "gpus": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
-        ({"accelerator": "ddp2", "gpus": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
-        ({"accelerator": "ddp2", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
-        ({"accelerator": "dp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
-    ],
-)
-def test_trainer_config_accelerator(monkeypatch, trainer_kwargs, strategy_cls, strategy_name, accelerator_cls, devices):
-    if trainer_kwargs.get("gpus") is not None:
-        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-        monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
-
-    if trainer_kwargs["accelerator"] in (None, "ddp_cpu"):
-        trainer = Trainer(**trainer_kwargs)
-    else:
-        with pytest.deprecated_call(match=r"accelerator='.*'\)` has been deprecated in v1.5"):
-            trainer = Trainer(**trainer_kwargs)
-
-    assert isinstance(trainer.strategy, strategy_cls)
-    assert strategy_cls.strategy_name == strategy_name
-    assert isinstance(trainer.accelerator, accelerator_cls)
-    assert trainer.num_devices == devices
 
 
 def test_trainer_subclassing():
@@ -1470,8 +1366,9 @@ def test_trainer_predict_1_gpu(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_trainer_predict_ddp_spawn(tmpdir):
-    predict(tmpdir, strategy="ddp_spawn", accelerator="auto", devices=2)
+@pytest.mark.parametrize("accelerator", ["cpu", pytest.param("gpu", marks=RunIf(min_gpus=2))])
+def test_trainer_predict_ddp_spawn(tmpdir, accelerator):
+    predict(tmpdir, strategy="ddp_spawn", accelerator=accelerator, devices=2)
 
 
 @pytest.mark.parametrize("dataset_cls", [RandomDataset, RandomIterableDatasetWithLen, RandomIterableDataset])
@@ -1496,7 +1393,7 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
 
 
 def test_spawn_predict_return_predictions(tmpdir):
-    """Test that `return_predictions=True` raise a MisconfigurationException with spawn training type plugins."""
+    """Test that `return_predictions=True` raise a MisconfigurationException with spawn strategies."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", strategy="ddp_spawn", devices=2, fast_dev_run=True)
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
@@ -1742,12 +1639,10 @@ class TrainerStagesModel(BoringModel):
         assert not self.training
 
 
-@pytest.mark.parametrize(
-    "strategy,num_processes", [(None, 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True))]
-)
-def test_model_in_correct_mode_during_stages(tmpdir, strategy, num_processes):
+@pytest.mark.parametrize("strategy,devices", [(None, 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True))])
+def test_model_in_correct_mode_during_stages(tmpdir, strategy, devices):
     model = TrainerStagesModel()
-    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, num_processes=num_processes, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, accelerator="cpu", devices=devices, fast_dev_run=True)
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
@@ -1771,7 +1666,12 @@ def test_fit_test_synchronization(tmpdir):
     model = TestDummyModelForCheckpoint()
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="x", mode="min", save_top_k=1)
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, strategy="ddp_spawn", num_processes=2, callbacks=[checkpoint]
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        strategy="ddp_spawn",
+        accelerator="cpu",
+        devices=2,
+        callbacks=[checkpoint],
     )
     trainer.fit(model)
     assert os.path.exists(checkpoint.best_model_path), f"Could not find checkpoint at rank {trainer.global_rank}"

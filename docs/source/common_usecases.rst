@@ -1,7 +1,7 @@
 :orphan:
 
-Common use cases
-================
+Conceptual Guides
+=================
 
 .. include:: links.rst
 
@@ -14,7 +14,7 @@ Common use cases
 
 .. customcalloutitem::
    :description: Learn to train Lightning models on the cloud
-   :header: Cloud training
+   :header: Cloud Training
    :button_link:  clouds/cloud_training.html
    :card_style: text-container-small
 
@@ -26,7 +26,7 @@ Common use cases
 
 .. customcalloutitem::
    :description: Learn to train on your university or company's cluster
-   :header: Cluster training
+   :header: Cluster Training
    :button_link: clouds/cluster.html
    :card_style: text-container-small
 
@@ -38,13 +38,13 @@ Common use cases
 
 .. customcalloutitem::
    :description: Save time and money by training until key metrics stop improving or time has elapsed
-   :header: Early stopping
+   :header: Early Stopping
    :button_link: common/early_stopping.html
    :card_style: text-container-small
 
 .. customcalloutitem::
    :description: Here you'll find the latest SOTA training techniques such as SWA, accumulated gradients, etc...
-   :header: Effective training techniques
+   :header: Effective Training Techniques
    :button_link: advanced/training_tricks.html
    :card_style: text-container-small
 
@@ -56,13 +56,13 @@ Common use cases
 
 .. customcalloutitem::
    :description: Before coding a complex model, use lightning-flash to create a baseline in a few lines of code
-   :header: Fast baselines
+   :header: Fast Baselines
    :button_link: ecosystem/flash.html
    :card_style: text-container-small
 
 .. customcalloutitem::
    :description: Enable fault-tolerant training in clusters/clouds where machines might fail (ie: pre-emtible machines)
-   :header: Fault-tolerant training
+   :header: Fault-Tolerant Training
    :button_link: advanced/fault_tolerant_training.html
    :card_style: text-container-small
 
@@ -92,13 +92,13 @@ Common use cases
 
 .. customcalloutitem::
    :description: Use the model registry to mix and match your models and Datamodules
-   :header: Model and Datamodule registry
+   :header: Model and Datamodule Registry
    :button_link: common/lightning_cli.html#multiple-models-and-or-datasets
    :card_style: text-container-small
 
 .. customcalloutitem::
    :description: Train 1TB+ parameter models with these advanced built-in techniques
-   :header: Model parallelism
+   :header: Model Parallelism
    :button_link: advanced/model_parallel.html
    :card_style: text-container-small
 
@@ -134,13 +134,13 @@ Common use cases
 
 .. customcalloutitem::
    :description: Work with data on any local or cloud filesystem such as S3 on AWS, GCS on Google Cloud, or ADL on Azure
-   :header: Remote filesystems
+   :header: Remote Filesystems
    :button_link: common/remote_fs.html
    :card_style: text-container-small
 
 .. customcalloutitem::
    :description: Building the next Deepspeed, FSDP or fancy scaling technique? Add them to Lightning here
-   :header: Strategy registry
+   :header: Strategy Registry
    :button_link: advanced/strategy_registry.html
    :card_style: text-container-small
 
@@ -152,7 +152,7 @@ Common use cases
 
 .. customcalloutitem::
    :description: Use models training on large datasets to achieve better results when you don't have much data
-   :header: Transfer learning (finetuning)
+   :header: Transfer Learning (finetuning)
    :button_link: advanced/transfer_learning.html
    :card_style: text-container-small
 
