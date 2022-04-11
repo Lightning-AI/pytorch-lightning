@@ -139,12 +139,12 @@ class Trainer(
         gradient_clip_algorithm: Optional[str] = None,
         process_position: int = 0,
         num_nodes: int = 1,
-        num_processes: Optional[int] = None,
+        num_processes: Optional[int] = None,  # TODO: Remove in 2.0
         devices: Optional[Union[List[int], str, int]] = None,
-        gpus: Optional[Union[List[int], str, int]] = None,
+        gpus: Optional[Union[List[int], str, int]] = None,  # TODO: Remove in 2.0
         auto_select_gpus: bool = False,
-        tpu_cores: Optional[Union[List[int], str, int]] = None,
-        ipus: Optional[int] = None,
+        tpu_cores: Optional[Union[List[int], str, int]] = None,  # TODO: Remove in 2.0
+        ipus: Optional[int] = None,  # TODO: Remove in 2.0
         enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
@@ -275,6 +275,10 @@ class Trainer(
             gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
                 Default: ``None``.
 
+                .. deprecated:: v1.7
+                    ``gpus`` has been deprecated in v1.7 and will be removed in v2.0.
+                    Please use ``accelerator='gpu'`` and ``devices=x`` instead.
+
             gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=None`` disables
                 gradient clipping. If using Automatic Mixed Precision (AMP), the gradients will be unscaled before.
                 Default: ``None``.
@@ -351,6 +355,10 @@ class Trainer(
             num_processes: Number of processes for distributed training with ``accelerator="cpu"``.
                 Default: ``1``.
 
+                .. deprecated:: v1.7
+                    ``num_processes`` has been deprecated in v1.7 and will be removed in v2.0.
+                    Please use ``accelerator='cpu'`` and ``devices=x`` instead.
+
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders.
                 Default: ``2``.
@@ -381,8 +389,16 @@ class Trainer(
             tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on (1)
                 Default: ``None``.
 
+                .. deprecated:: v1.7
+                    ``tpu_cores`` has been deprecated in v1.7 and will be removed in v2.0.
+                    Please use ``accelerator='tpu'`` and ``devices=x`` instead.
+
             ipus: How many IPUs to train on.
                 Default: ``None``.
+
+                .. deprecated:: v1.7
+                    ``ipus`` has been deprecated in v1.7 and will be removed in v2.0.
+                    Please use ``accelerator='ipu'`` and ``devices=x`` instead.
 
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm. If using
                 Automatic Mixed Precision (AMP), the gradients will be unscaled before logging them.
@@ -430,7 +446,7 @@ class Trainer(
         log.detail(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
         self.state = TrainerState()
 
-        gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
+        _, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
         # init connectors
         self._data_connector = DataConnector(self, multiple_trainloader_mode)
@@ -443,7 +459,6 @@ class Trainer(
             accelerator=accelerator,
             strategy=strategy,
             gpus=gpus,
-            gpu_ids=gpu_ids,
             num_nodes=num_nodes,
             sync_batchnorm=sync_batchnorm,
             benchmark=benchmark,
@@ -1878,7 +1893,7 @@ class Trainer(
 
         if self.loggers and self.num_training_batches < self.log_every_n_steps:
             rank_zero_warn(
-                f"The number of training samples ({self.num_training_batches}) is smaller than the logging interval"
+                f"The number of training batches ({self.num_training_batches}) is smaller than the logging interval"
                 f" Trainer(log_every_n_steps={self.log_every_n_steps}). Set a lower value for log_every_n_steps if"
                 " you want to see logs for the training epoch.",
                 category=PossibleUserWarning,
