@@ -63,7 +63,7 @@ def test_pick_multiple_gpus(nb, expected_gpu_idxs, expected_error):
 
 @RunIf(min_gpus=2)
 @mock.patch("pytorch_lightning.trainer.connectors.accelerator_connector.pick_multiple_gpus", return_value=[1])
-def test_auto_select_gpus_with_devices_flag(pick_gpus_mock):
+def test_auto_select_gpus_with_devices_flag(_):
 
     trainer = Trainer(auto_select_gpus=True, accelerator="gpu", devices=1)
     assert trainer.num_devices == 1
@@ -72,7 +72,7 @@ def test_auto_select_gpus_with_devices_flag(pick_gpus_mock):
 
 @RunIf(min_gpus=2)
 @mock.patch("pytorch_lightning.trainer.connectors.accelerator_connector.pick_multiple_gpus", return_value=[1])
-def test_auto_select_gpus_with_gpus_flag(pick_gpus_mock):
+def test_auto_select_gpus_with_gpus_flag(_):
 
     with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
         trainer = Trainer(auto_select_gpus=True, gpus=1)
