@@ -17,12 +17,12 @@ from unittest.mock import Mock
 
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.logger import Logger
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-class AllRankLogger(LightningLoggerBase):
+class AllRankLogger(Logger):
     """Logger to test all-rank logging (i.e. not just rank 0).
 
     Logs are saved to local variable `logs`.
@@ -136,7 +136,7 @@ def test_first_logger_call_in_subprocess(tmpdir):
 def test_logger_after_fit_predict_test_calls(tmpdir):
     """Make sure logger outputs are finalized after fit, prediction, and test calls."""
 
-    class BufferLogger(LightningLoggerBase):
+    class BufferLogger(Logger):
         def __init__(self):
             super().__init__()
             self.buffer = {}
