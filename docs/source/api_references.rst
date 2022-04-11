@@ -85,7 +85,6 @@ Callbacks API
     Callback
     DeviceStatsMonitor
     EarlyStopping
-    GPUStatsMonitor
     GradientAccumulationScheduler
     LambdaCallback
     LearningRateMonitor

@@ -22,7 +22,6 @@ import torch
 
 import pytorch_lightning
 from pytorch_lightning import Callback, LightningDataModule, Trainer
-from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.callbacks.progress import ProgressBar
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
@@ -40,7 +39,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
-from tests.helpers.runif import RunIf
 from tests.loggers.test_logger import CustomLogger
 from tests.plugins.environments.test_lsf_environment import _make_rankfile
 
@@ -321,12 +319,6 @@ def test_v1_7_0_deprecated_slurm_job_id():
     trainer = Trainer()
     with pytest.deprecated_call(match="Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0."):
         trainer.slurm_job_id
-
-
-@RunIf(min_gpus=1)
-def test_v1_7_0_deprecate_gpu_stats_monitor(tmpdir):
-    with pytest.deprecated_call(match="The `GPUStatsMonitor` callback was deprecated in v1.5"):
-        _ = GPUStatsMonitor()
 
 
 def test_v1_7_0_deprecate_xla_stats_monitor(monkeypatch):
