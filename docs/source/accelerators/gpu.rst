@@ -362,11 +362,10 @@ In these situations you should use `dp` or `ddp_spawn` instead.
 Distributed Data Parallel 2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. deprecated:: v1.7
-
+.. warning::
     The DDP2 strategy is no longer supported. For single-node use, we recommend ``strategy='ddp'`` or
     ``strategy='dp'`` as a replacement. If you need DDP2, you will need ``torch < 1.9``,
-    ``pytorch-lightning < 1.5``, and set it as ``accelerator='ddp2'``."
+    ``pytorch-lightning < 1.5``, and set it as ``accelerator='ddp2'``.
 
 
 In certain cases, it's advantageous to use all batches on the same machine instead of a subset.
