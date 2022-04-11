@@ -362,7 +362,7 @@ def test_error_raised_with_float_limited_eval_batches():
 
 
 @pytest.mark.parametrize(
-    "val_dl,raises_exception",
+    "val_dl,warns",
     [
         (DataLoader(dataset=RandomDataset(32, 64), shuffle=True), True),
         (DataLoader(dataset=RandomDataset(32, 64), sampler=list(range(64))), False),
@@ -384,11 +384,11 @@ def test_error_raised_with_float_limited_eval_batches():
         ),
     ],
 )
-def test_non_sequential_sampler_warning_is_raised_for_eval_dataloader(val_dl, raises_exception):
+def test_non_sequential_sampler_warning_is_raised_for_eval_dataloader(val_dl, warns):
     trainer = Trainer()
     model = BoringModel()
     trainer._data_connector.attach_data(model, val_dataloaders=val_dl)
-    context = pytest.warns if raises_exception else no_warning_call
+    context = pytest.warns if warns else no_warning_call
     with context(PossibleUserWarning, match="recommended .* turn shuffling off for val/test/predict"):
         trainer._data_connector._reset_eval_dataloader(RunningStage.VALIDATING, model)
 
