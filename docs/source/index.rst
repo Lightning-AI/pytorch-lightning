@@ -203,6 +203,7 @@ Current Lightning Users
    clouds/cloud_training
    common/checkpointing
    clouds/cluster
+   common/console_logs
    common/debugging
    common/early_stopping
    advanced/training_tricks

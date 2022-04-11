@@ -8,528 +8,145 @@
 ########################################
 Track and visualize artifacts (advanced)
 ########################################
+A
 
-- change the logger
-- explain how self.log works
-- explain how to customize the progress bar
+----
+
+***********************
+Change the progress bar
+***********************
+To change the default values (ie: version number) shown in the progress bar, override the :meth:`~pytorch_lightning.callbacks.progress.base.ProgressBarBase.get_metrics` method in your logger.
+
+.. code-block:: python
+
+    from pytorch_lightning.callbacks.progress import Tqdm
+
+    class CustomProgressBar(Tqdm):
+        def get_metrics(self, *args, **kwargs):
+            # don't show the version number
+            items = super().get_metrics()
+            items.pop("v_num", None)
+            return items
+
+----
+
+***********************************************
+Modify logging frequency to speed up your model
+***********************************************
 
 
+Modify logging frequency
+========================
 
-Lightning supports the most popular logging frameworks (TensorBoard, Comet, Neptune, etc...). TensorBoard is used by default,
-but you can pass to the :class:`~pytorch_lightning.trainer.trainer.Trainer` any combination of the following loggers.
+Logging a metric on every single batch can slow down training. By default, Lightning logs every 50 rows, or 50 training steps.
+To change this behaviour, set the *log_every_n_steps* :class:`~pytorch_lightning.trainer.trainer.Trainer` flag.
+
+.. testcode::
+
+   k = 10
+   trainer = Trainer(log_every_n_steps=k)
+
+----
+
+Modify flushing frequency
+=========================
+
+Metrics are kept in memory for N steps to improve training efficiency. Every N steps, metrics flush to disk. To change the frequency of this flushing, use the *flush_logs_every_n_steps* Trainer argument.
+
+.. code-block:: python
+
+    # faster training, high memory
+    Trainer(flush_logs_every_n_steps=500)
+    
+    # slower training, low memory
+    Trainer(flush_logs_every_n_steps=500)
+
+The higher *flush_logs_every_n_steps* is, the faster the model will train but the memory will build up until the next flush.
+The smaller *flush_logs_every_n_steps* is, the slower the model will train but memory will be kept to a minimum.
+
+TODO: chart
+
+----
+
+******************
+Customize self.log 
+******************
+The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method has a few options:
+
+* ``on_step``: Logs the metric at the current step.
+* ``on_epoch``: Automatically accumulates and logs at the end of the epoch.
+* ``prog_bar``: Logs to the progress bar (Default: ``False``).
+* ``logger``: Logs to the logger like ``Tensorboard``, or any other custom logger passed to the :class:`~pytorch_lightning.trainer.trainer.Trainer` (Default: ``True``).
+* ``reduce_fx``: Reduction function over step values for end of epoch. Uses :meth:`torch.mean` by default.
+* ``enable_graph``: If True, will not auto detach the graph.
+* ``sync_dist``: If True, reduces the metric across devices. Use with care as this may lead to a significant communication overhead.
+* ``sync_dist_group``: The DDP group to sync across.
+* ``add_dataloader_idx``: If True, appends the index of the current dataloader to the name (when using multiple dataloaders). If False, user needs to give unique names for each dataloader to not mix the values.
+* ``batch_size``: Current batch size used for accumulating logs logged with ``on_epoch=True``. This will be directly inferred from the loaded batch, but for some data structures you might need to explicitly provide it.
+* ``rank_zero_only``: Whether the value will be logged only on rank 0. This will prevent synchronization which would produce a deadlock as not all processes would perform this log call.
+
+.. list-table:: Default behavior of logging in Callback or LightningModule
+   :widths: 50 25 25
+   :header-rows: 1
+
+   * - Hook
+     - on_step
+     - on_epoch
+   * - on_train_start, on_train_epoch_start, on_train_epoch_end, training_epoch_end
+     - False
+     - True
+   * - on_before_backward, on_after_backward, on_before_optimizer_step, on_before_zero_grad
+     - True
+     - False
+   * - on_train_batch_start, on_train_batch_end, training_step, training_step_end
+     - True
+     - False
+   * - on_validation_start, on_validation_epoch_start, on_validation_epoch_end, validation_epoch_end
+     - False
+     - True
+   * - on_validation_batch_start, on_validation_batch_end, validation_step, validation_step_end
+     - False
+     - True
 
 .. note::
 
-    All loggers log by default to `os.getcwd()`. To change the path without creating a logger set
-    `Trainer(default_root_dir='/your/path/to/save/checkpoints')`
+    - The above config for ``validation`` applies for ``test`` hooks as well.
 
-Read more about :doc:`logging <../extensions/logging>` options.
+    -   Setting ``on_epoch=True`` will cache all your logged values during the full training epoch and perform a
+        reduction in ``on_train_epoch_end``. We recommend using `TorchMetrics <https://torchmetrics.readthedocs.io/>`_, when working with custom reduction.
 
-To log arbitrary artifacts like images or audio samples use the `trainer.log_dir` property to resolve
-the path.
+    -   Setting both ``on_step=True`` and ``on_epoch=True`` will create two keys per metric you log with
+        suffix ``_step`` and ``_epoch`` respectively. You can refer to these keys e.g. in the `monitor`
+        argument of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` or in the graphs plotted to the logger of your choice.
 
-.. code-block:: python
 
-    def training_step(self, batch, batch_idx):
-        img = ...
-        log_image(img, self.trainer.log_dir)
+If your work requires to log in an unsupported method, please open an issue with a clear description of why it is blocking you.
 
-Comet.ml
-========
+----
 
-`Comet.ml <https://www.comet.ml/site/>`_ is a third-party logger.
-To use :class:`~pytorch_lightning.loggers.CometLogger` as your logger do the following.
-First, install the package:
+********************************
+Log to a custom cloud filesystem
+********************************
+Lightning is integrated with the major remote file systems including local filesystems and several cloud storage providers such as
+`S3 <https://aws.amazon.com/s3/>`_ on `AWS <https://aws.amazon.com/>`_, `GCS <https://cloud.google.com/storage>`_ on `Google Cloud <https://cloud.google.com/>`_,
+or `ADL <https://azure.microsoft.com/solutions/data-lake/>`_ on `Azure <https://azure.microsoft.com/>`_.
 
-.. code-block:: bash
+PyTorch Lightning uses `fsspec <https://filesystem-spec.readthedocs.io/>`_ internally to handle all filesystem operations.
 
-    pip install comet-ml
-
-Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
-
-.. testcode::
-
-    import os
-    from pytorch_lightning.loggers import CometLogger
-
-    comet_logger = CometLogger(
-        api_key=os.environ.get("COMET_API_KEY"),
-        workspace=os.environ.get("COMET_WORKSPACE"),  # Optional
-        save_dir=".",  # Optional
-        project_name="default_project",  # Optional
-        rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
-        experiment_name="lightning_logs",  # Optional
-    )
-    trainer = Trainer(logger=comet_logger)
-
-The :class:`~pytorch_lightning.loggers.CometLogger` is available anywhere except ``__init__`` in your
-:class:`~pytorch_lightning.core.lightning.LightningModule`.
-
-.. testcode::
-
-    class MyModule(LightningModule):
-        def any_lightning_module_function_or_hook(self):
-            some_img = fake_image()
-            self.logger.experiment.add_image("generated_images", some_img, 0)
-
-.. seealso::
-    :class:`~pytorch_lightning.loggers.CometLogger` docs.
-
-----------------
-
-MLflow
-======
-
-`MLflow <https://mlflow.org/>`_ is a third-party logger.
-To use :class:`~pytorch_lightning.loggers.MLFlowLogger` as your logger do the following.
-First, install the package:
-
-.. code-block:: bash
-
-    pip install mlflow
-
-Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
+To save logs to a remote filesystem, prepend a protocol like "s3:/" to the root_dir used for writing and reading model data.
 
 .. code-block:: python
-
-    from pytorch_lightning.loggers import MLFlowLogger
-
-    mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
-    trainer = Trainer(logger=mlf_logger)
-
-.. seealso::
-    :class:`~pytorch_lightning.loggers.MLFlowLogger` docs.
-
-----------------
-
-Neptune.ai
-==========
-
-`Neptune.ai <https://neptune.ai/>`_ is a third-party logger.
-To use :class:`~pytorch_lightning.loggers.NeptuneLogger` as your logger do the following.
-First, install the package:
-
-.. code-block:: bash
-
-    pip install neptune-client
-
-or with conda:
-
-.. code-block:: bash
-
-    conda install -c conda-forge neptune-client
-
-Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
-
-.. code-block:: python
-
-    from pytorch_lightning.loggers import NeptuneLogger
-
-    neptune_logger = NeptuneLogger(
-        api_key="ANONYMOUS",  # replace with your own
-        project="common/pytorch-lightning-integration",  # format "<WORKSPACE/PROJECT>"
-        tags=["training", "resnet"],  # optional
-    )
-    trainer = Trainer(logger=neptune_logger)
-
-The :class:`~pytorch_lightning.loggers.NeptuneLogger` is available anywhere except ``__init__`` in your
-:class:`~pytorch_lightning.core.lightning.LightningModule`.
-
-.. code-block:: python
-
-    class MyModule(LightningModule):
-        def any_lightning_module_function_or_hook(self):
-            # generic recipe for logging custom metadata (neptune specific)
-            metadata = ...
-            self.logger.experiment["your/metadata/structure"].log(metadata)
-
-Note that syntax: ``self.logger.experiment["your/metadata/structure"].log(metadata)``
-is specific to Neptune and it extends logger capabilities.
-Specifically, it allows you to log various types of metadata like scores, files,
-images, interactive visuals, CSVs, etc. Refer to the
-`Neptune docs <https://docs.neptune.ai/you-should-know/logging-metadata#essential-logging-methods>`_
-for more detailed explanations.
-
-You can always use regular logger methods: ``log_metrics()`` and ``log_hyperparams()`` as these are also supported.
-
-.. seealso::
-    :class:`~pytorch_lightning.loggers.NeptuneLogger` docs.
-
-    Logger `user guide <https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning>`_.
-
-----------------
-
-Tensorboard
-===========
-
-To use `TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_ as your logger do the following.
-
-.. testcode::
 
     from pytorch_lightning.loggers import TensorBoardLogger
 
-    logger = TensorBoardLogger("tb_logs", name="my_model")
+    logger = TensorBoardLogger(save_dir="s3://my_bucket/logs/")
+
     trainer = Trainer(logger=logger)
+    trainer.fit(model)
 
-The :class:`~pytorch_lightning.loggers.TensorBoardLogger` is available anywhere except ``__init__`` in your
-:class:`~pytorch_lightning.core.lightning.LightningModule`.
+----
 
-.. testcode::
-
-    class MyModule(LightningModule):
-        def any_lightning_module_function_or_hook(self):
-            some_img = fake_image()
-            self.logger.experiment.add_image("generated_images", some_img, 0)
-
-.. seealso::
-    :class:`~pytorch_lightning.loggers.TensorBoardLogger` docs.
-
-----------------
-
-Weights and Biases
-==================
-
-`Weights and Biases <https://docs.wandb.ai/integrations/lightning/>`_ is a third-party logger.
-To use :class:`~pytorch_lightning.loggers.WandbLogger` as your logger do the following.
-First, install the package:
-
-.. code-block:: bash
-
-    pip install wandb
-
-Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
-
-.. code-block:: python
-
-    from pytorch_lightning.loggers import WandbLogger
-
-    # instrument experiment with W&B
-    wandb_logger = WandbLogger(project="MNIST", log_model="all")
-    trainer = Trainer(logger=wandb_logger)
-
-    # log gradients and model topology
-    wandb_logger.watch(model)
-
-The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except ``__init__`` in your
-:class:`~pytorch_lightning.core.lightning.LightningModule`.
-
-.. code-block:: python
-
-    class MyModule(LightningModule):
-        def any_lightning_module_function_or_hook(self):
-            some_img = fake_image()
-            # Option 1
-            self.logger.experiment.log({"generated_images": [wandb.Image(some_img, caption="...")]})
-            # Option 2 for specifically logging images
-            self.logger.log_image(key="generated_images", images=[some_img])
-
-.. seealso::
-    - :class:`~pytorch_lightning.loggers.WandbLogger` docs.
-    - `W&B Documentation <https://docs.wandb.ai/integrations/lightning>`__
-    - `Demo in Google Colab <http://wandb.me/lightning>`__ with hyperparameter search and model logging
-
-----------------
-
-Multiple Loggers
-================
-
-Lightning supports the use of multiple loggers, just pass a list to the
-:class:`~pytorch_lightning.trainer.trainer.Trainer`.
-
-.. code-block:: python
-
-    from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
-
-    logger1 = TensorBoardLogger(save_dir="tb_logs", name="my_model")
-    logger2 = WandbLogger(save_dir="tb_logs", name="my_model")
-    trainer = Trainer(logger=[logger1, logger2])
-
-The loggers are available as a list anywhere except ``__init__`` in your
-:class:`~pytorch_lightning.core.lightning.LightningModule`.
-
-.. testcode::
-
-    class MyModule(LightningModule):
-        def any_lightning_module_function_or_hook(self):
-            some_img = fake_image()
-            # Option 1
-            self.logger.experiment[0].add_image("generated_images", some_img, 0)
-            # Option 2
-            self.logger[0].experiment.add_image("generated_images", some_img, 0)
-
-
-
-TODO: change the logger
-
-
-TODO: how to customize progress bar
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Lightning supports the most popular logging frameworks (TensorBoard, Comet, Neptune, etc...). TensorBoard is used by default,
-but you can pass to the :class:`~pytorch_lightning.trainer.trainer.Trainer` any combination of the following loggers.
-
-.. note::
-
-    All loggers log by default to `os.getcwd()`. To change the path without creating a logger set
-    `Trainer(default_root_dir='/your/path/to/save/checkpoints')`
-
-Read more about :doc:`logging <../extensions/logging>` options.
-
-To log arbitrary artifacts like images or audio samples use the `trainer.log_dir` property to resolve
-the path.
-
-.. code-block:: python
-
-    def training_step(self, batch, batch_idx):
-        img = ...
-        log_image(img, self.trainer.log_dir)
-
-Comet.ml
-========
-
-`Comet.ml <https://www.comet.ml/site/>`_ is a third-party logger.
-To use :class:`~pytorch_lightning.loggers.CometLogger` as your logger do the following.
-First, install the package:
-
-.. code-block:: bash
-
-    pip install comet-ml
-
-Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
-
-.. testcode::
-
-    import os
-    from pytorch_lightning.loggers import CometLogger
-
-    comet_logger = CometLogger(
-        api_key=os.environ.get("COMET_API_KEY"),
-        workspace=os.environ.get("COMET_WORKSPACE"),  # Optional
-        save_dir=".",  # Optional
-        project_name="default_project",  # Optional
-        rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
-        experiment_name="lightning_logs",  # Optional
-    )
-    trainer = Trainer(logger=comet_logger)
-
-The :class:`~pytorch_lightning.loggers.CometLogger` is available anywhere except ``__init__`` in your
-:class:`~pytorch_lightning.core.lightning.LightningModule`.
-
-.. testcode::
-
-    class MyModule(LightningModule):
-        def any_lightning_module_function_or_hook(self):
-            some_img = fake_image()
-            self.logger.experiment.add_image("generated_images", some_img, 0)
-
-.. seealso::
-    :class:`~pytorch_lightning.loggers.CometLogger` docs.
-
-----------------
-
-MLflow
-======
-
-`MLflow <https://mlflow.org/>`_ is a third-party logger.
-To use :class:`~pytorch_lightning.loggers.MLFlowLogger` as your logger do the following.
-First, install the package:
-
-.. code-block:: bash
-
-    pip install mlflow
-
-Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
-
-.. code-block:: python
-
-    from pytorch_lightning.loggers import MLFlowLogger
-
-    mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
-    trainer = Trainer(logger=mlf_logger)
-
-.. seealso::
-    :class:`~pytorch_lightning.loggers.MLFlowLogger` docs.
-
-----------------
-
-Neptune.ai
-==========
-
-`Neptune.ai <https://neptune.ai/>`_ is a third-party logger.
-To use :class:`~pytorch_lightning.loggers.NeptuneLogger` as your logger do the following.
-First, install the package:
-
-.. code-block:: bash
-
-    pip install neptune-client
-
-or with conda:
-
-.. code-block:: bash
-
-    conda install -c conda-forge neptune-client
-
-Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
-
-.. code-block:: python
-
-    from pytorch_lightning.loggers import NeptuneLogger
-
-    neptune_logger = NeptuneLogger(
-        api_key="ANONYMOUS",  # replace with your own
-        project="common/pytorch-lightning-integration",  # format "<WORKSPACE/PROJECT>"
-        tags=["training", "resnet"],  # optional
-    )
-    trainer = Trainer(logger=neptune_logger)
-
-The :class:`~pytorch_lightning.loggers.NeptuneLogger` is available anywhere except ``__init__`` in your
-:class:`~pytorch_lightning.core.lightning.LightningModule`.
-
-.. code-block:: python
-
-    class MyModule(LightningModule):
-        def any_lightning_module_function_or_hook(self):
-            # generic recipe for logging custom metadata (neptune specific)
-            metadata = ...
-            self.logger.experiment["your/metadata/structure"].log(metadata)
-
-Note that syntax: ``self.logger.experiment["your/metadata/structure"].log(metadata)``
-is specific to Neptune and it extends logger capabilities.
-Specifically, it allows you to log various types of metadata like scores, files,
-images, interactive visuals, CSVs, etc. Refer to the
-`Neptune docs <https://docs.neptune.ai/you-should-know/logging-metadata#essential-logging-methods>`_
-for more detailed explanations.
-
-You can always use regular logger methods: ``log_metrics()`` and ``log_hyperparams()`` as these are also supported.
-
-.. seealso::
-    :class:`~pytorch_lightning.loggers.NeptuneLogger` docs.
-
-    Logger `user guide <https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning>`_.
-
-----------------
-
-Tensorboard
-===========
-
-To use `TensorBoard <https://pytorch.org/docs/stable/tensorboard.html>`_ as your logger do the following.
-
-.. testcode::
-
-    from pytorch_lightning.loggers import TensorBoardLogger
-
-    logger = TensorBoardLogger("tb_logs", name="my_model")
-    trainer = Trainer(logger=logger)
-
-The :class:`~pytorch_lightning.loggers.TensorBoardLogger` is available anywhere except ``__init__`` in your
-:class:`~pytorch_lightning.core.lightning.LightningModule`.
-
-.. testcode::
-
-    class MyModule(LightningModule):
-        def any_lightning_module_function_or_hook(self):
-            some_img = fake_image()
-            self.logger.experiment.add_image("generated_images", some_img, 0)
-
-.. seealso::
-    :class:`~pytorch_lightning.loggers.TensorBoardLogger` docs.
-
-----------------
-
-Weights and Biases
-==================
-
-`Weights and Biases <https://docs.wandb.ai/integrations/lightning/>`_ is a third-party logger.
-To use :class:`~pytorch_lightning.loggers.WandbLogger` as your logger do the following.
-First, install the package:
-
-.. code-block:: bash
-
-    pip install wandb
-
-Then configure the logger and pass it to the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
-
-.. code-block:: python
-
-    from pytorch_lightning.loggers import WandbLogger
-
-    # instrument experiment with W&B
-    wandb_logger = WandbLogger(project="MNIST", log_model="all")
-    trainer = Trainer(logger=wandb_logger)
-
-    # log gradients and model topology
-    wandb_logger.watch(model)
-
-The :class:`~pytorch_lightning.loggers.WandbLogger` is available anywhere except ``__init__`` in your
-:class:`~pytorch_lightning.core.lightning.LightningModule`.
-
-.. code-block:: python
-
-    class MyModule(LightningModule):
-        def any_lightning_module_function_or_hook(self):
-            some_img = fake_image()
-            # Option 1
-            self.logger.experiment.log({"generated_images": [wandb.Image(some_img, caption="...")]})
-            # Option 2 for specifically logging images
-            self.logger.log_image(key="generated_images", images=[some_img])
-
-.. seealso::
-    - :class:`~pytorch_lightning.loggers.WandbLogger` docs.
-    - `W&B Documentation <https://docs.wandb.ai/integrations/lightning>`__
-    - `Demo in Google Colab <http://wandb.me/lightning>`__ with hyperparameter search and model logging
-
-----------------
-
-Multiple Loggers
-================
-
-Lightning supports the use of multiple loggers, just pass a list to the
-:class:`~pytorch_lightning.trainer.trainer.Trainer`.
-
-.. code-block:: python
-
-    from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
-
-    logger1 = TensorBoardLogger(save_dir="tb_logs", name="my_model")
-    logger2 = WandbLogger(save_dir="tb_logs", name="my_model")
-    trainer = Trainer(logger=[logger1, logger2])
-
-The loggers are available as a list anywhere except ``__init__`` in your
-:class:`~pytorch_lightning.core.lightning.LightningModule`.
-
-.. testcode::
-
-    class MyModule(LightningModule):
-        def any_lightning_module_function_or_hook(self):
-            some_img = fake_image()
-            # Option 1
-            self.logger.experiment[0].add_image("generated_images", some_img, 0)
-            # Option 2
-            self.logger[0].experiment.add_image("generated_images", some_img, 0)
+***************************************
+Enable metrics for distributed training
+***************************************
+A
