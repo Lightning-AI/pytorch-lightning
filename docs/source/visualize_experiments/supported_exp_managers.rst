@@ -1,39 +1,3 @@
-.. testsetup:: *
-
-    from pytorch_lightning.trainer.trainer import Trainer
-    from pytorch_lightning.core.lightning import LightningModule
-
-.. _loggers:
-
-############################################
-Track and visualize artifacts (intermediate)
-############################################
-
-
-*******************************
-Track audio and other artifacts
-*******************************
-To track other artifacts, such as histograms or model topology graphs first select one of the many loggers supported by Lightning 
-
-.. code-block:: python
-
-    from pytorch_lightning import loggers as pl_loggers
-
-    tensorboard = pl_loggers.TensorBoardLogger()
-    trainer = Trainer(logger=tensorboard)
-
-then access the logger's API directly
-
-.. code-block:: python
-
-    def training_step(self):
-        tensorboard = self.logger.experiment
-        tensorboard.add_image()
-        tensorboard.add_histogram(...)
-        tensorboard.add_figure(...)
-
-----
-
 Comet.ml 
 ========
 To use `Comet.ml <https://www.comet.ml/site/>`_ first install the comet package:
@@ -206,9 +170,9 @@ Here's the full documentation for the :class:`~pytorch_lightning.loggers.WandbLo
 
 ----
 
-Use multiple loggers
-====================
-To use multiple loggers at the same time, pass a list to the *logger* :class:`~pytorch_lightning.trainer.trainer.Trainer` argument.
+Use multiple exp managers
+=========================
+To use multiple experiment managers at the same time, pass a list to the *logger* :class:`~pytorch_lightning.trainer.trainer.Trainer` argument.
 
 .. code-block:: python
 
@@ -232,49 +196,3 @@ Access all loggers from any function (except the LightningModule *init*) to use 
 
             tensorboard_logger.add_image("generated_images", fake_images, 0)
             wandb_logger.add_image("generated_images", fake_images, 0)
-
-----
-
-****************************************
-Track multiple metrics in the same chart
-****************************************
-If your logger supports plotting multiple metrics on the same chart, pass in a dictionary to *self.log*.
-
-.. code-block:: python
-
-    self.log("performance", {"acc": acc, "recall": recall})
-
-----
-
-*********************
-Track hyperparameters
-*********************
-To track hyperparameters, first call *save_hyperparameters* from the LightningModule init:
-
-.. code-block:: python
-
-    class MyLightningModule(LightningModule):
-        def __init__(self, learning_rate, another_parameter, *args, **kwargs):
-            super().__init__()
-            self.save_hyperparameters()
-
-If your logger supports tracked hyperparameters, the hyperparameters will automatically show up on the logger dashboard.
-
-TODO: show tracked hyperparameters.
-
-----
-
-********************
-Track model topology
-********************
-Multiple loggers support visualizing the model topology. Here's an example that tracks the model topology using Tensorboard.
-
-.. code-block:: python
-
-    def any_lightning_module_function_or_hook(self):
-        tensorboard_logger = self.logger.experiment
-
-        prototype_array = torch.Tensor(32, 1, 28, 27)
-        tensorboard_logger.log_graph(model=self, input_array=prototype_array)
-
-TODO: show tensorboard topology.

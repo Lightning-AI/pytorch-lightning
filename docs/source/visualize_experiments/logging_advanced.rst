@@ -5,16 +5,16 @@
 
 .. _loggers:
 
-########################################
-Track and visualize artifacts (advanced)
-########################################
+##########################################
+Track and Visualize Experiments (advanced)
+##########################################
 A
 
 ----
 
-***********************
-Change the progress bar
-***********************
+****************************
+Change progress bar defaults
+****************************
 To change the default values (ie: version number) shown in the progress bar, override the :meth:`~pytorch_lightning.callbacks.progress.base.ProgressBarBase.get_metrics` method in your logger.
 
 .. code-block:: python
@@ -30,9 +30,9 @@ To change the default values (ie: version number) shown in the progress bar, ove
 
 ----
 
-***********************************************
-Modify logging frequency to speed up your model
-***********************************************
+********************************
+Alter tracking to speed up model
+********************************
 
 
 Modify logging frequency

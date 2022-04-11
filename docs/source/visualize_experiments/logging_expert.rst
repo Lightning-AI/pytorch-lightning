@@ -5,9 +5,9 @@
 
 .. _loggers:
 
-######################################
-Track and visualize artifacts (expert)
-######################################
+########################################
+Track and Visualize Experiments (expert)
+########################################
 
 - swap out the progress bar 
 - make your own 

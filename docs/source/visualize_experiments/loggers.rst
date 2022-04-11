@@ -5,9 +5,9 @@
 
 .. _loggers:
 
-#############################
-Track and visualize artifacts
-#############################
+###############################
+Track and Visualize Experiments
+###############################
 
 .. raw:: html
 
@@ -18,14 +18,14 @@ Track and visualize artifacts
 
 .. displayitem::
    :header: Basic
-   :description: Learn how to log metrics, images and other artifacts.
+   :description: Learn how to track and visualize metrics, images and text.
    :col_css: col-md-3
    :button_link: logging_basic.html
    :height: 150
 
 .. displayitem::
    :header: Intermediate
-   :description: Enable third-party experiment managers with advanved visualizations.
+   :description: Enable third-party experiment managers with advanced visualizations.
    :col_css: col-md-3
    :button_link: logging_intermediate.html
    :height: 150

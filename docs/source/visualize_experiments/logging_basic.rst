@@ -5,9 +5,9 @@
 
 .. _loggers:
 
-#####################################
-Track and visualize artifacts (basic)
-#####################################
+#######################################
+Track and Visualize Experiments (basic)
+#######################################
 **Audience:** Users who want to visualize and monitor their model development
 
 ----
