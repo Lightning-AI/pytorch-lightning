@@ -82,7 +82,7 @@ To customize either the  :class:`~pytorch_lightning.callbacks.TQDMProgressBar` o
 ----
 
 ***************************
-Build your own progress-bar
+Build your own progress bar
 ***************************
 To build your own progress bar, subclass :class:`~pytorch_lightning.callbacks.ProgressBarBase`
 
@@ -119,15 +119,20 @@ To create an integration between a custom logger and Lightning, subclass :class:
 
 .. code-block:: python
     
-    from pytorch_lightning.loggers import LightningLoggerBase
+    from pytorch_lightning.loggers import Logger
 
-    class LitLogger(LightningLoggerBase):
+    class LitLogger(Logger):
 
-        def __init__(self):
-            super().__init__()  # don't forget this :)
+        @property
+        def name(self) -> str:
+            return "my-experiment"
 
-            def log_metrics(self, metrics, step):
-                print('my logged metrics', metrics)
+        @property
+        def version(self):
+            return "version_0"
+        
+        def log_metrics(self, metrics, step=None):
+            print('my logged metrics', metrics)
 
-            def log_hyperparams(self, params):
-                print('my logged hyperparameters', params)
+        def log_hyperparams(self, params, *args, **kwargs):
+            print('my logged hyperparameters', params)

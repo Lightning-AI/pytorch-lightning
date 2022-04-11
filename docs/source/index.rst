@@ -38,7 +38,7 @@ Install Lightning
 
 .. raw:: html
 
-   <div class="row" style='font-size: 14px'>
+   <div class="row" style='font-size: 12px'>
       <div class='col-md-6'>
 
 Pip users
@@ -223,6 +223,7 @@ Current Lightning Users
    advanced/strategy_registry
    visualize_experiments/loggers
    advanced/transfer_learning
+   build_model/build_model.rst
 
 .. toctree::
    :maxdepth: 1

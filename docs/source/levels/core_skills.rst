@@ -1,9 +1,9 @@
 
-###########
-Core skills
-###########
+############
+Basic skills
+############
 
-Core skills teaches you the basics of the framework. Researchers and machine learning engineers should start here.
+This group of skills teach you the basics of the framework. Researchers and machine learning engineers should start here.
 
 .. include:: links.rst
 
@@ -27,14 +27,14 @@ Core skills teaches you the basics of the framework. Researchers and machine lea
    :card_style: text-container-small
 
 .. customcalloutitem::
-   :description: Understand your model with custom loggers and custom metrics.
+   :description: Understand and visualize your model with custom experiment managers.
    :header: Level 3: Visualize training progress
    :button_link: core_level_3.html
    :card_style: text-container-small
 
 .. customcalloutitem::
-   :description: Built-in techniques to avoid overfitting.
-   :header: Level 4: Avoid over/under-fitting
+   :description: Add validation and test sets to avoid over/underfitting.
+   :header: Level 4: Add a validation and test set.
    :button_link: core_level_4.html
    :card_style: text-container-small
 
