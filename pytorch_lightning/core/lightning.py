@@ -628,8 +628,8 @@ class LightningModule(
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
     def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        """Use this when training with dp because :meth:`training_step` will operate on only part of the
-        batch. However, this is still optional and only needed for things like softmax or NCE loss.
+        """Use this when training with dp because :meth:`training_step` will operate on only part of the batch.
+        However, this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
             If you later switch to ddp or some other mode, this will still be called
@@ -810,8 +810,8 @@ class LightningModule(
         """
 
     def validation_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        """Use this when validating with dp because :meth:`validation_step` will operate on only part of
-        the batch. However, this is still optional and only needed for things like softmax or NCE loss.
+        """Use this when validating with dp because :meth:`validation_step` will operate on only part of the batch.
+        However, this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
             If you later switch to ddp or some other mode, this will still be called
@@ -987,8 +987,8 @@ class LightningModule(
         """
 
     def test_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        """Use this when testing with dp because :meth:`test_step` will operate on only part of the batch.
-        However, this is still optional and only needed for things like softmax or NCE loss.
+        """Use this when testing with dp because :meth:`test_step` will operate on only part of the batch. However,
+        this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
             If you later switch to ddp or some other mode, this will still be called
