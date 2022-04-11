@@ -322,7 +322,7 @@ def _wrap_init(init: Callable) -> Callable:
     @functools.wraps(init)
     def wrapper(obj: DataLoader, *args: Any, **kwargs: Any) -> None:
         # We need to inspect `init`, as inspecting `obj.__init__`
-        # can lead to inspecting the wrong function with complicated inheritance
+        # can lead to inspecting the wrong function with multiple inheritance
         params = inspect.signature(init).parameters
 
         # Since we are inspecting unbounded function, we have to remove the first argument (corresponding to self)
