@@ -30,9 +30,9 @@ To change the default values (ie: version number) shown in the progress bar, ove
 
 ----
 
-********************************
-Alter tracking to speed up model
-********************************
+************************************
+Customize tracking to speed up model
+************************************
 
 
 Modify logging frequency
@@ -244,71 +244,6 @@ The DDP group to sync across.
 
 ----
 
-**************************************
-Understand self.log automatic behavior
-**************************************
-
-.. list-table:: Default behavior of logging in Callback or LightningModule
-   :widths: 50 25 25
-   :header-rows: 1
-
-   * - Method
-     - on_step
-     - on_epoch
-   * - on_train_start, on_train_epoch_start, on_train_epoch_end, training_epoch_end
-     - False
-     - True
-   * - on_before_backward, on_after_backward, on_before_optimizer_step, on_before_zero_grad
-     - True
-     - False
-   * - on_train_batch_start, on_train_batch_end, training_step, training_step_end
-     - True
-     - False
-   * - on_validation_start, on_validation_epoch_start, on_validation_epoch_end, validation_epoch_end
-     - False
-     - True
-   * - on_validation_batch_start, on_validation_batch_end, validation_step, validation_step_end
-     - False
-     - True
-
-.. note::
-
-    - The above config for ``validation`` applies for ``test`` hooks as well.
-
-    -   Setting ``on_epoch=True`` will cache all your logged values during the full training epoch and perform a
-        reduction in ``on_train_epoch_end``. We recommend using `TorchMetrics <https://torchmetrics.readthedocs.io/>`_, when working with custom reduction.
-
-    -   Setting both ``on_step=True`` and ``on_epoch=True`` will create two keys per metric you log with
-        suffix ``_step`` and ``_epoch`` respectively. You can refer to these keys e.g. in the `monitor`
-        argument of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` or in the graphs plotted to the logger of your choice.
-
-
-If your work requires to log in an unsupported method, please open an issue with a clear description of why it is blocking you.
-
-----
-
-********************************
-Log to a custom cloud filesystem
-********************************
-Lightning is integrated with the major remote file systems including local filesystems and several cloud storage providers such as
-`S3 <https://aws.amazon.com/s3/>`_ on `AWS <https://aws.amazon.com/>`_, `GCS <https://cloud.google.com/storage>`_ on `Google Cloud <https://cloud.google.com/>`_,
-or `ADL <https://azure.microsoft.com/solutions/data-lake/>`_ on `Azure <https://azure.microsoft.com/>`_.
-
-PyTorch Lightning uses `fsspec <https://filesystem-spec.readthedocs.io/>`_ internally to handle all filesystem operations.
-
-To save logs to a remote filesystem, prepend a protocol like "s3:/" to the root_dir used for writing and reading model data.
-
-.. code-block:: python
-
-    from pytorch_lightning.loggers import TensorBoardLogger
-
-    logger = TensorBoardLogger(save_dir="s3://my_bucket/logs/")
-
-    trainer = Trainer(logger=logger)
-    trainer.fit(model)
-
-----
-
 ***************************************
 Enable metrics for distributed training
 ***************************************
@@ -362,3 +297,60 @@ To use the metric inside Lightning, 1) initialize it in the init, 2) compute the
 
           # 3. log it
           self.log('train_acc_step', self.accuracy)
+
+----
+
+********************************
+Log to a custom cloud filesystem
+********************************
+Lightning is integrated with the major remote file systems including local filesystems and several cloud storage providers such as
+`S3 <https://aws.amazon.com/s3/>`_ on `AWS <https://aws.amazon.com/>`_, `GCS <https://cloud.google.com/storage>`_ on `Google Cloud <https://cloud.google.com/>`_,
+or `ADL <https://azure.microsoft.com/solutions/data-lake/>`_ on `Azure <https://azure.microsoft.com/>`_.
+
+PyTorch Lightning uses `fsspec <https://filesystem-spec.readthedocs.io/>`_ internally to handle all filesystem operations.
+
+To save logs to a remote filesystem, prepend a protocol like "s3:/" to the root_dir used for writing and reading model data.
+
+.. code-block:: python
+
+    from pytorch_lightning.loggers import TensorBoardLogger
+
+    logger = TensorBoardLogger(save_dir="s3://my_bucket/logs/")
+
+    trainer = Trainer(logger=logger)
+    trainer.fit(model)
+
+----
+
+**************************************
+Understand self.log automatic behavior
+**************************************
+This table shows the default values of *on_step* and *on_epoch* depending on the *LightningModule* method.
+
+.. list-table:: Default behavior of logging in Callback or LightningModule
+   :widths: 50 25 25
+   :header-rows: 1
+
+   * - Method
+     - on_step
+     - on_epoch
+   * - on_after_backward, on_before_backward, on_before_optimizer_step, on_before_zero_grad, on_train_batch_start, on_train_batch_end,  training_step, training_step_end
+     - True
+     - False
+   * - on_train_epoch_start, on_train_epoch_end, on_train_start, on_validation_batch_start, on_validation_batch_end, on_validation_start, on_validation_epoch_start, on_validation_epoch_end, training_epoch_end, validation_epoch_end, validation_step, validation_step_end
+     - False
+     - True
+
+.. note::
+
+    - The above config for ``validation`` applies for ``test`` hooks as well.
+
+    -   Setting ``on_epoch=True`` will cache all your logged values during the full training epoch and perform a
+        reduction in ``on_train_epoch_end``. We recommend using `TorchMetrics <https://torchmetrics.readthedocs.io/>`_, when working with custom reduction.
+
+    -   Setting both ``on_step=True`` and ``on_epoch=True`` will create two keys per metric you log with
+        suffix ``_step`` and ``_epoch`` respectively. You can refer to these keys e.g. in the `monitor`
+        argument of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` or in the graphs plotted to the logger of your choice.
+
+
+If your work requires to log in an unsupported method, please open an issue with a clear description of why it is blocking you.
