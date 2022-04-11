@@ -69,7 +69,7 @@ By organizing PyTorch code, lightning enables:
 ****************************
 .. raw:: html
 
-   <div class="row" style='font-size: 14px'>
+   <div class="row" style='font-size: 12px'>
       <div class='col-md-6'>
 
 For `pip <https://pypi.org/project/pytorch-lightning/>`_ users

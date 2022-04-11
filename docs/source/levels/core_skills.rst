@@ -27,7 +27,7 @@ Core skills teaches you the basics of the framework. Researchers and machine lea
    :card_style: text-container-small
 
 .. customcalloutitem::
-   :description: Understand your model with custom loggers and custom metrics.
+   :description: Understand and visualize your model with custom experiment managers.
    :header: Level 3: Visualize training progress
    :button_link: core_level_3.html
    :card_style: text-container-small

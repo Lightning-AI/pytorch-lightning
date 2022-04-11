@@ -38,7 +38,7 @@ Install Lightning
 
 .. raw:: html
 
-   <div class="row" style='font-size: 14px'>
+   <div class="row" style='font-size: 12px'>
       <div class='col-md-6'>
 
 Pip users
