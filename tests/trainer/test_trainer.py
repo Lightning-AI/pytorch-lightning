@@ -1639,12 +1639,10 @@ class TrainerStagesModel(BoringModel):
         assert not self.training
 
 
-@pytest.mark.parametrize(
-    "strategy,num_processes", [(None, 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True))]
-)
-def test_model_in_correct_mode_during_stages(tmpdir, strategy, num_processes):
+@pytest.mark.parametrize("strategy,devices", [(None, 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True))])
+def test_model_in_correct_mode_during_stages(tmpdir, strategy, devices):
     model = TrainerStagesModel()
-    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, num_processes=num_processes, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, accelerator="cpu", devices=devices, fast_dev_run=True)
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
@@ -1668,7 +1666,12 @@ def test_fit_test_synchronization(tmpdir):
     model = TestDummyModelForCheckpoint()
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="x", mode="min", save_top_k=1)
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, strategy="ddp_spawn", num_processes=2, callbacks=[checkpoint]
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        strategy="ddp_spawn",
+        accelerator="cpu",
+        devices=2,
+        callbacks=[checkpoint],
     )
     trainer.fit(model)
     assert os.path.exists(checkpoint.best_model_path), f"Could not find checkpoint at rank {trainer.global_rank}"
