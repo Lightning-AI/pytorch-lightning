@@ -325,8 +325,6 @@ def _wrap_init(init: Callable) -> Callable:
         # can lead to inspecting the wrong function with multiple inheritance
         params = inspect.signature(init).parameters
 
-        # Since we are inspecting unbounded function, we have to remove the first argument (corresponding to self)
-        # And these checks are better suited for ensuring we are removing arguments with semantics of *args and **kwargs
         param_names = [
             param.name
             for i, param in enumerate(params.values())
