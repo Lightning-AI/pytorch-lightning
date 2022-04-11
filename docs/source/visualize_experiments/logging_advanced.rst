@@ -322,35 +322,62 @@ To save logs to a remote filesystem, prepend a protocol like "s3:/" to the root_
 
 ----
 
+*********************************
+Track both step and epoch metrics
+*********************************
+To track the timeseries over steps (*on_step*) as well as the accumulated epoch metric (*on_epoch*), set both to True
+
+.. code-block:: python
+
+  self.log(on_step=True, on_epoch=True)
+
+Setting both to True will generate two graphs with *_step* for the timeseries over steps and *_epoch* for the epoch metric.
+
+# TODO: show images of both
+
+----
+
 **************************************
 Understand self.log automatic behavior
 **************************************
-This table shows the default values of *on_step* and *on_epoch* depending on the *LightningModule* method.
+This table shows the default values of *on_step* and *on_epoch* depending on the *LightningModule* or *Callback* method.
 
-.. list-table:: Default behavior of logging in Callback or LightningModule
+----
+
+In LightningModule
+==================
+
+.. list-table:: Default behavior of logging in ightningModule
    :widths: 50 25 25
    :header-rows: 1
 
    * - Method
      - on_step
      - on_epoch
-   * - on_after_backward, on_before_backward, on_before_optimizer_step, on_before_zero_grad, on_train_batch_start, on_train_batch_end,  training_step, training_step_end
+   * - on_after_backward, on_before_backward, on_before_optimizer_step, on_before_zero_grad, training_step, training_step_end
      - True
      - False
-   * - on_train_epoch_start, on_train_epoch_end, on_train_start, on_validation_batch_start, on_validation_batch_end, on_validation_start, on_validation_epoch_start, on_validation_epoch_end, training_epoch_end, validation_epoch_end, validation_step, validation_step_end
+   * - training_epoch_end, test_epoch_end, test_step, test_step_end, validation_epoch_end, validation_step, validation_step_end
      - False
      - True
 
-.. note::
+----
 
-    - The above config for ``validation`` applies for ``test`` hooks as well.
+In Callback
+===========
 
-    -   Setting ``on_epoch=True`` will cache all your logged values during the full training epoch and perform a
-        reduction in ``on_train_epoch_end``. We recommend using `TorchMetrics <https://torchmetrics.readthedocs.io/>`_, when working with custom reduction.
+.. list-table:: Default behavior of logging in Callback
+   :widths: 50 25 25
+   :header-rows: 1
 
-    -   Setting both ``on_step=True`` and ``on_epoch=True`` will create two keys per metric you log with
-        suffix ``_step`` and ``_epoch`` respectively. You can refer to these keys e.g. in the `monitor`
-        argument of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` or in the graphs plotted to the logger of your choice.
+   * - Method
+     - on_step
+     - on_epoch
+   * - on_after_backward, on_before_backward, on_before_optimizer_step, on_before_zero_grad, on_train_batch_start, on_train_batch_end
+     - True
+     - False
+   * - on_train_epoch_start, on_train_epoch_end, on_train_start, on_validation_batch_start, on_validation_batch_end, on_validation_start, on_validation_epoch_start, on_validation_epoch_end
+     - False
+     - True
 
-
-If your work requires to log in an unsupported method, please open an issue with a clear description of why it is blocking you.
+.. note:: To add logging to an unsupported method, please open an issue with a clear description of why it is blocking you.
