@@ -652,7 +652,7 @@ class AcceleratorConnector:
             self._handle_horovod()
         if isinstance(self._strategy_flag, str):
             if self._strategy_flag == "ddp2":
-                # TODO: remove this error in v1.9
+                # TODO: remove this error in v1.8
                 raise ValueError(
                     "The DDP2 strategy is no longer supported. For single-node use, we recommend `strategy='ddp'` or"
                     " `strategy='dp'` as a replacement. If you need DDP2, you will need `torch < 1.9`,"
