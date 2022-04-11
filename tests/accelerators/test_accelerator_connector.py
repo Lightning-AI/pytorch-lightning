@@ -497,17 +497,16 @@ def test_accelerator_cpu(_):
         MisconfigurationException,
         match="GPUAccelerator can not run on your system since the accelerator is not available.",
     ):
-        trainer = Trainer(gpus=1)
+        with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
+            Trainer(gpus=1)
     with pytest.raises(
         MisconfigurationException,
         match="GPUAccelerator can not run on your system since the accelerator is not available.",
     ):
-        trainer = Trainer(accelerator="gpu")
-    with pytest.raises(
-        MisconfigurationException,
-        match="GPUAccelerator can not run on your system since the accelerator is not available.",
-    ):
-        trainer = Trainer(accelerator="cpu", gpus=1)
+        Trainer(accelerator="gpu")
+
+    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
+        Trainer(accelerator="cpu", gpus=1)
 
 
 @mock.patch("torch.cuda.is_available", return_value=False)

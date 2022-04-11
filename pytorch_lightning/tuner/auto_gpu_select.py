@@ -30,7 +30,10 @@ def pick_multiple_gpus(nb: int) -> List[int]:
             " Please select a valid number of GPU resources when using auto_select_gpus."
         )
 
-    nb = torch.cuda.device_count() if nb == -1 else nb
+    num_gpus = torch.cuda.device_count()
+    if nb > num_gpus:
+        raise MisconfigurationException(f"You requested {nb} gpus\n But your machine only has: {num_gpus} gpus.")
+    nb = num_gpus if nb == -1 else nb
 
     picked: List[int] = []
     for _ in range(nb):
