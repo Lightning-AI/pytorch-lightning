@@ -224,7 +224,7 @@ class AcceleratorConnector:
     ) -> None:
         """This method checks:
 
-        1. strategy
+        1. strategy: whether the strategy name is valid, and sets the internal flags if it is.
         2. accelerator: if the value of the accelerator argument is a type of accelerator (instance or string),
             set self._accelerator_flag accordingly.
         3. precision: The final value of the precision flag may be determined either by the precision argument or
