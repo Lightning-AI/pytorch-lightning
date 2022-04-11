@@ -42,7 +42,6 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.strategies import (
     DataParallelStrategy,
-    DDP2Strategy,
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
     DDPSpawnShardedStrategy,
