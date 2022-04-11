@@ -321,7 +321,7 @@ def _wrap_init(init: Callable) -> Callable:
 
     @functools.wraps(init)
     def wrapper(obj: DataLoader, *args: Any, **kwargs: Any) -> None:
-        # We need to inspect init function, as inspecting live function `obj.__init__``
+        # We need to inspect `init`, as inspecting `obj.__init__`
         # can lead to inspecting the wrong function with complicated inheritance
         params = inspect.signature(init).parameters
 
