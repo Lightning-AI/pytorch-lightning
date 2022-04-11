@@ -23,7 +23,6 @@ import torch
 import pytorch_lightning
 from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
-from pytorch_lightning.callbacks.progress import ProgressBar
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
@@ -325,11 +324,6 @@ def test_v1_7_0_deprecate_xla_stats_monitor(monkeypatch):
     monkeypatch.setattr(pytorch_lightning.callbacks.xla_stats_monitor, "_TPU_AVAILABLE", True)
     with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
         _ = XLAStatsMonitor()
-
-
-def test_v1_7_0_progress_bar():
-    with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
-        _ = ProgressBar()
 
 
 def test_v1_7_0_deprecated_max_steps_none(tmpdir):
