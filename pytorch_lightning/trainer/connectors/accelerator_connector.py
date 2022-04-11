@@ -414,9 +414,14 @@ class AcceleratorConnector:
         self._devices_flag = devices
 
         if self._devices_flag in ([], 0, "0"):
+            accelerator_name = (
+                self._accelerator_flag.__class__.__qualname__
+                if isinstance(self._accelerator_flag, Accelerator)
+                else self._accelerator_flag
+            )
             raise MisconfigurationException(
                 f"`Trainer(devices={self._devices_flag!r})` value is not a valid input"
-                f" using {self._accelerator_flag} accelerator."
+                f" using {accelerator_name} accelerator."
             )
 
         # TODO: Delete this method when num_processes, gpus, ipus and tpu_cores gets removed
