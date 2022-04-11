@@ -7,7 +7,7 @@
 .. _checkpointing:
 
 ########################
-Checkpointing (Advanced)
+Checkpointing (advanced)
 ########################
 
 
