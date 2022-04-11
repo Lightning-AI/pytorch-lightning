@@ -327,8 +327,8 @@ def _wrap_init(init: Callable) -> Callable:
 
         param_names = [
             param.name
-            for i, param in enumerate(params.values())
-            if i and param.kind != param.VAR_POSITIONAL and param.kind != param.VAR_KEYWORD
+            for param in params.values()
+            if param.name != "self" and param.kind != param.VAR_POSITIONAL and param.kind != param.VAR_KEYWORD
         ]
 
         cls = type(obj)

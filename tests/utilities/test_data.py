@@ -168,12 +168,14 @@ def test_replace_dataloader_init_method():
 
     with _replace_dataloader_init_method():
         dataloader = DataLoaderSubclass1("attribute1", dataset=range(4), batch_size=2)
-        assert dataloader.attribute1 == "attribute1"
+
+    assert dataloader.attribute1 == "attribute1"
 
     with _replace_dataloader_init_method():
         dataloader = DataLoaderSubclass2("attribute2", dataset=range(4), batch_size=2)
-        assert dataloader.attribute1 == "attribute2-2"
-        assert dataloader.attribute2 == "attribute2"
+
+    assert dataloader.attribute1 == "attribute2-2"
+    assert dataloader.attribute2 == "attribute2"
 
     # Failing test case from issue 12564
     class MyBaseDataLoader(DataLoader):
@@ -184,11 +186,13 @@ def test_replace_dataloader_init_method():
             self.data = data
             super().__init__(range(data.size(0)), *args, **kwargs)
 
+    data = torch.randn((10, 20))
+
     with _replace_dataloader_init_method():
-        data = torch.randn((10, 20))
         dataloader = MyDataLoader(data, batch_size=2)
-        assert dataloader.data is data
-        assert dataloader.dataset == range(10)
+
+    assert dataloader.data is data
+    assert dataloader.dataset == range(10)
 
     # `poptorch.DataLoader` uses this pattern, simulate it
     class PoptorchDataLoader(DataLoader):
@@ -203,9 +207,11 @@ def test_replace_dataloader_init_method():
     # †his read-only property pattern is fine
     dataloader = PoptorchDataLoader(123, [1])
     assert dataloader.options == 123
+
     # still works with the init replacement
     with _replace_dataloader_init_method():
         dataloader = PoptorchDataLoader(123, [1])
+
     assert dataloader.options == 123
 
 
