@@ -1204,7 +1204,7 @@ def test_optimizers_and_lr_schedulers_reload(tmpdir):
     # validate yaml
     yaml_config = out.getvalue()
     dict_config = yaml.safe_load(yaml_config)
-    assert dict_config["optimizer"]["class_path"] == "torch.optim.adam.Adam"
+    assert dict_config["optimizer"]["class_path"] == "torch.optim.Adam"
     assert dict_config["optimizer"]["init_args"]["lr"] == 0.1
     assert dict_config["lr_scheduler"]["class_path"] == "torch.optim.lr_scheduler.OneCycleLR"
 
@@ -1267,8 +1267,8 @@ def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload
     # validate yaml
     yaml_config = out.getvalue()
     dict_config = yaml.safe_load(yaml_config)
-    assert dict_config["opt1"]["class_path"] == "torch.optim.adam.Adam"
-    assert dict_config["opt2"]["class_path"] == "torch.optim.asgd.ASGD"
+    assert dict_config["opt1"]["class_path"] == "torch.optim.Adam"
+    assert dict_config["opt2"]["class_path"] == "torch.optim.ASGD"
     assert dict_config["opt2"]["init_args"]["lr"] == 0.1
     assert dict_config["lr_scheduler"]["class_path"] == "torch.optim.lr_scheduler.OneCycleLR"
     assert dict_config["lr_scheduler"]["init_args"]["anneal_strategy"] == "linear"
@@ -1280,8 +1280,8 @@ def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload
     with mock.patch("sys.argv", base + [f"--config={yaml_config_file}"]):
         cli = TestLightningCLI(TestModel)
 
-    assert cli.model.opt1_config["class_path"] == "torch.optim.adam.Adam"
-    assert cli.model.opt2_config["class_path"] == "torch.optim.asgd.ASGD"
+    assert cli.model.opt1_config["class_path"] == "torch.optim.Adam"
+    assert cli.model.opt2_config["class_path"] == "torch.optim.ASGD"
     assert cli.model.opt2_config["init_args"]["lr"] == 0.1
     assert cli.model.sch_config["class_path"] == "torch.optim.lr_scheduler.OneCycleLR"
     assert cli.model.sch_config["init_args"]["anneal_strategy"] == "linear"
