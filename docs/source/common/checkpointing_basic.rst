@@ -7,7 +7,7 @@
 .. _checkpointing:
 
 #####################
-Checkpointing (Basic)
+Checkpointing (basic)
 #####################
 **Audience:** All users
 
