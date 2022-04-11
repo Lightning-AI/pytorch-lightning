@@ -16,14 +16,30 @@ from typing import Dict
 import torch
 
 from pytorch_lightning.strategies.ddp import DDPStrategy
+from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 
 
 class DDP2Strategy(DDPStrategy):
-    """DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP."""
+    """DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP.
+
+    .. deprecated:: v1.7
+        This strategy is deprecated in v1.7 and will be removed in v1.8. For single-node execution, we
+        recommend the :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` or the
+        :class:`~pytorch_lightning.strategies.dp.DataParallelStrategy` as a replacement. If you need DDP2, you will
+        need ``torch < 1.9`` and ``pytorch-lightning < 1.5``.
+    """
 
     strategy_name = "ddp2"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        rank_zero_deprecation(
+            "The `DDP2Strategy` is deprecated in v1.7 and will be removed in v1.8. For single-node execution, we"
+            " recommend the `DDPStrategy` or the `DPStrategy`. If you need DDP2, you will need `torch < 1.9` and"
+            " `pytorch-lightning < 1.5`."
+        )
 
     @property
     def global_rank(self) -> int:

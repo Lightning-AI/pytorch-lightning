@@ -281,7 +281,7 @@ Training with DataParallel
 ==========================
 
 When training using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
-need to aggregate them on the main GPU for processing (DP, or DDP2).
+need to aggregate them on the main GPU for processing (DP).
 
 In this case, implement the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step_end`
 method which will have outputs from all the devices and you can accumulate to get the effective results.
@@ -420,7 +420,7 @@ Validating with DataParallel
 ============================
 
 When training using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
-need to aggregate them on the main GPU for processing (DP, or DDP2).
+need to aggregate them on the main GPU for processing (DP).
 
 In this case, implement the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step_end`
 method which will have outputs from all the devices and you can accumulate to get the effective results.

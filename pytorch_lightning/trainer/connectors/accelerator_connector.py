@@ -617,7 +617,7 @@ class AcceleratorConnector:
             TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or self._is_slurm_managing_tasks()
         ):
             strategy_flag = "ddp"
-        if strategy_flag in ("dp", "ddp2") and self._accelerator_flag == "cpu":
+        if strategy_flag == "dp" and self._accelerator_flag == "cpu":
             rank_zero_warn(f"{strategy_flag!r} is not supported on CPUs, hence setting `strategy='ddp'`.")
             strategy_flag = "ddp"
 
@@ -651,6 +651,13 @@ class AcceleratorConnector:
             # TODO lazy initialized and setup horovod strategy `global_rank`
             self._handle_horovod()
         if isinstance(self._strategy_flag, str):
+            if self._strategy_flag == "ddp2":
+                # TODO: remove this error in v1.9
+                raise ValueError(
+                    "The DDP2 strategy is no longer supported. For single-node use, we recommend `strategy='ddp'` or"
+                    " `strategy='dp'` as a replacement. If you need DDP2, you will need `torch < 1.9`,"
+                    " `pytorch-lightning < 1.5`, and set it as `accelerator='ddp2'`."
+                )
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         elif isinstance(self._strategy_flag, Strategy):
             self.strategy = self._strategy_flag

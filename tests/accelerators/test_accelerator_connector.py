@@ -36,7 +36,6 @@ from pytorch_lightning.plugins.environments import (
 from pytorch_lightning.plugins.io import TorchCheckpointIO
 from pytorch_lightning.strategies import (
     DataParallelStrategy,
-    DDP2Strategy,
     DDPShardedStrategy,
     DDPSpawnShardedStrategy,
     DDPSpawnStrategy,
@@ -116,32 +115,6 @@ def test_accelerator_choice_ddp_slurm(*_):
     os.environ,
     {
         "CUDA_VISIBLE_DEVICES": "0,1",
-        "SLURM_NTASKS": "2",
-        "SLURM_JOB_NAME": "SOME_NAME",
-        "SLURM_NODEID": "0",
-        "SLURM_PROCID": "1",
-        "SLURM_LOCALID": "1",
-    },
-)
-@mock.patch("torch.cuda.set_device")
-@mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
-@mock.patch("torch.cuda.is_available", return_value=True)
-def test_accelerator_choice_ddp2_slurm(*_):
-    with pytest.deprecated_call(match=r"accelerator='ddp2'\)` has been deprecated in v1.5"):
-        trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2)
-    assert trainer._accelerator_connector._is_slurm_managing_tasks()
-    assert isinstance(trainer.accelerator, GPUAccelerator)
-    assert isinstance(trainer.strategy, DDP2Strategy)
-    assert isinstance(trainer.strategy.cluster_environment, SLURMEnvironment)
-    assert trainer.strategy.cluster_environment.local_rank() == 1
-    assert trainer.strategy.local_rank == 1
-
-
-@mock.patch.dict(
-    os.environ,
-    {
-        "CUDA_VISIBLE_DEVICES": "0,1",
         "WORLD_SIZE": "2",
         "LOCAL_WORLD_SIZE": "2",
         "RANK": "1",
@@ -159,32 +132,6 @@ def test_accelerator_choice_ddp_te(*_):
         trainer = Trainer(fast_dev_run=True, accelerator="ddp", gpus=2)
     assert isinstance(trainer.accelerator, GPUAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
-    assert isinstance(trainer.strategy.cluster_environment, TorchElasticEnvironment)
-    assert trainer.strategy.cluster_environment.local_rank() == 1
-    assert trainer.strategy.local_rank == 1
-
-
-@mock.patch.dict(
-    os.environ,
-    {
-        "CUDA_VISIBLE_DEVICES": "0,1",
-        "WORLD_SIZE": "2",
-        "LOCAL_WORLD_SIZE": "2",
-        "RANK": "1",
-        "LOCAL_RANK": "1",
-        "GROUP_RANK": "0",
-        "TORCHELASTIC_RUN_ID": "1",
-    },
-)
-@mock.patch("torch.cuda.set_device")
-@mock.patch("torch.cuda.device_count", return_value=1)
-@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
-@mock.patch("torch.cuda.is_available", return_value=True)
-def test_accelerator_choice_ddp2_te(*_):
-    with pytest.deprecated_call(match=r"accelerator='ddp2'\)` has been deprecated in v1.5"):
-        trainer = Trainer(fast_dev_run=True, accelerator="ddp2", gpus=2)
-    assert isinstance(trainer.accelerator, GPUAccelerator)
-    assert isinstance(trainer.strategy, DDP2Strategy)
     assert isinstance(trainer.strategy.cluster_environment, TorchElasticEnvironment)
     assert trainer.strategy.cluster_environment.local_rank() == 1
     assert trainer.strategy.local_rank == 1
@@ -423,9 +370,6 @@ def test_ipython_incompatible_backend_error(_, monkeypatch):
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
         Trainer(strategy="ddp", accelerator="gpu", devices=2)
 
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp2'\)`.*is not compatible"):
-        Trainer(strategy="ddp2", accelerator="gpu", devices=2)
-
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
         Trainer(strategy="ddp_spawn", accelerator="gpu", devices=2)
 
@@ -568,10 +512,10 @@ def test_set_devices_if_none_cpu():
     assert trainer.num_devices == 3
 
 
-@pytest.mark.parametrize("training_type", ["ddp2", "dp"])
-def test_unsupported_strategy_types_on_cpu(training_type):
+@pytest.mark.parametrize("strategy", ["dp"])
+def test_unsupported_strategy_types_on_cpu(strategy):
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
-        trainer = Trainer(accelerator=training_type, num_processes=2)
+        trainer = Trainer(accelerator=strategy, num_processes=2)
     assert isinstance(trainer.strategy, DDPStrategy)
 
 
@@ -630,7 +574,6 @@ def test_strategy_choice_cpu_plugin(tmpdir, plugin):
         ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
-        ("ddp2", DDP2Strategy),
         ("dp", DataParallelStrategy),
         ("ddp_sharded", DDPShardedStrategy),
         ("ddp_sharded_spawn", DDPSpawnShardedStrategy),
@@ -725,34 +668,6 @@ def test_strategy_choice_ddp_slurm(setup_distributed_mock, strategy):
     os.environ,
     {
         "CUDA_VISIBLE_DEVICES": "0,1",
-        "SLURM_NTASKS": "2",
-        "SLURM_JOB_NAME": "SOME_NAME",
-        "SLURM_NODEID": "0",
-        "SLURM_PROCID": "1",
-        "SLURM_LOCALID": "1",
-    },
-)
-@mock.patch("torch.cuda.set_device")
-@mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
-@mock.patch("torch.cuda.is_available", return_value=True)
-@pytest.mark.parametrize("strategy", ["ddp2", DDP2Strategy()])
-def test_strategy_choice_ddp2_slurm(
-    set_device_mock, device_count_mock, setup_distributed_mock, is_available_mock, strategy
-):
-    trainer = Trainer(fast_dev_run=True, strategy=strategy, accelerator="gpu", devices=2)
-    assert trainer._accelerator_connector._is_slurm_managing_tasks()
-    assert isinstance(trainer.accelerator, GPUAccelerator)
-    assert isinstance(trainer.strategy, DDP2Strategy)
-    assert isinstance(trainer.strategy.cluster_environment, SLURMEnvironment)
-    assert trainer.strategy.cluster_environment.local_rank() == 1
-    assert trainer.strategy.local_rank == 1
-
-
-@mock.patch.dict(
-    os.environ,
-    {
-        "CUDA_VISIBLE_DEVICES": "0,1",
         "WORLD_SIZE": "2",
         "LOCAL_WORLD_SIZE": "2",
         "RANK": "1",
@@ -770,32 +685,6 @@ def test_strategy_choice_ddp_te(*_):
     trainer = Trainer(fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=2)
     assert isinstance(trainer.accelerator, GPUAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
-    assert isinstance(trainer.strategy.cluster_environment, TorchElasticEnvironment)
-    assert trainer.strategy.cluster_environment.local_rank() == 1
-    assert trainer.strategy.local_rank == 1
-
-
-@mock.patch.dict(
-    os.environ,
-    {
-        "CUDA_VISIBLE_DEVICES": "0,1",
-        "WORLD_SIZE": "2",
-        "LOCAL_WORLD_SIZE": "2",
-        "RANK": "1",
-        "LOCAL_RANK": "1",
-        "GROUP_RANK": "0",
-        "TORCHELASTIC_RUN_ID": "1",
-    },
-)
-@mock.patch("torch.cuda.set_device")
-@mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("torch.cuda.is_available", return_value=True)
-@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
-@mock.patch("torch.cuda.is_available", return_value=True)
-def test_strategy_choice_ddp2_te(*_):
-    trainer = Trainer(fast_dev_run=True, strategy="ddp2", accelerator="gpu", devices=2)
-    assert isinstance(trainer.accelerator, GPUAccelerator)
-    assert isinstance(trainer.strategy, DDP2Strategy)
     assert isinstance(trainer.strategy.cluster_environment, TorchElasticEnvironment)
     assert trainer.strategy.cluster_environment.local_rank() == 1
     assert trainer.strategy.local_rank == 1

@@ -279,7 +279,6 @@ Lightning allows multiple ways of training
 - Data Parallel (``strategy='dp'``) (multiple-gpus, 1 machine)
 - DistributedDataParallel (``strategy='ddp'``) (multiple-gpus across many machines (python script based)).
 - DistributedDataParallel (``strategy='ddp_spawn'``) (multiple-gpus across many machines (spawn based)).
-- DistributedDataParallel 2 (``strategy='ddp2'``) (DP in a machine, DDP across machines).
 - Horovod (``strategy='horovod'``) (multi-machine, multi-gpu, configured at runtime)
 - Bagua (``strategy='bagua'``) (multiple-gpus across many machines with advanced training algorithms)
 - TPUs (``accelerator="tpu", devices=8|x``) (tpu or TPU pod)
@@ -362,6 +361,14 @@ In these situations you should use `dp` or `ddp_spawn` instead.
 
 Distributed Data Parallel 2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. deprecated:: v1.7
+
+    The DDP2 strategy is no longer supported. For single-node use, we recommend ``strategy='ddp'`` or
+    ``strategy='dp'`` as a replacement. If you need DDP2, you will need ``torch < 1.9``,
+    ``pytorch-lightning < 1.5``, and set it as ``accelerator='ddp2'``."
+
+
 In certain cases, it's advantageous to use all batches on the same machine instead of a subset.
 For instance, you might want to compute a NCE loss where it pays to have more negative samples.
 
@@ -603,10 +610,9 @@ is described as an ip address followed by a ssh port.
 See `Bagua Tutorials <https://tutorials.baguasys.com/>`_ for more details on installation and advanced features.
 
 
-DP/DDP2 caveats
-^^^^^^^^^^^^^^^
-In DP and DDP2 each GPU within a machine sees a portion of a batch.
-DP and ddp2 roughly do the following:
+DP caveats
+^^^^^^^^^^
+In DP each GPU within a machine sees a portion of a batch. It does roughly do the following:
 
 .. testcode::
 
@@ -676,7 +682,7 @@ To illustrate why this is needed, let's look at DataParallel
         x, y = batch
         y_hat = self(batch)
 
-        # on dp or ddp2 if we did softmax now it would be wrong
+        # on dp if we did softmax now it would be wrong
         # because batch is actually a piece of the full batch
         return y_hat
 
@@ -765,20 +771,6 @@ In DDP, DDP_SPAWN, Deepspeed, DDP_SHARDED, or Horovod your effective batch size 
     Trainer(accelerator="gpu", devices=8, num_nodes=10, strategy="ddp_sharded")
     Trainer(accelerator="gpu", devices=8, num_nodes=10, strategy="horovod")
 
-In DDP2 or DP, your effective batch size will be 7 * num_nodes.
-The reason is that the full batch is visible to all GPUs on the node when using DDP2.
-
-.. code-block:: python
-
-    # effective batch size = 7
-    Trainer(accelerator="gpu", devices=8, strategy="ddp2")
-    Trainer(accelerator="gpu", devices=8, strategy="dp")
-
-    # effective batch size = 7 * 10
-    Trainer(accelerator="gpu", devices=8, num_nodes=10, strategy="ddp2")
-    Trainer(accelerator="gpu", devices=8, strategy="dp")
-
-
 .. note:: Huge batch sizes are actually really bad for convergence. Check out:
         `Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour <https://arxiv.org/abs/1706.02677>`_
 
@@ -786,7 +778,7 @@ The reason is that the full batch is visible to all GPUs on the node when using 
 
 Torch Distributed Elastic
 -------------------------
-Lightning supports the use of Torch Distributed Elastic to enable fault-tolerant and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of GPUs you want to use in the trainer.
+Lightning supports the use of Torch Distributed Elastic to enable fault-tolerant and elastic distributed job scheduling. To use it, specify the 'ddp' strategy and the number of GPUs you want to use in the trainer.
 
 .. code-block:: python
 

@@ -19,6 +19,5 @@ class DDP2Plugin(DDP2Strategy):
     def __init__(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
         rank_zero_deprecation(
             "The `pl.plugins.training_type.ddp2.DDP2Plugin` is deprecated in v1.6 and will be removed in v1.8."
-            " Use `pl.strategies.ddp2.DDP2Strategy` instead."
         )
         super().__init__(*args, **kwargs)

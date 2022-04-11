@@ -1926,7 +1926,6 @@ def test_detect_anomaly_nan(tmpdir):
         ({"strategy": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 1),
         ({"strategy": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 1),
         ({"strategy": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 1),
-        ({"strategy": "ddp2"}, DDPStrategy, "ddp", CPUAccelerator, 1),
         (
             {"strategy": None, "accelerator": "gpu", "devices": 1},
             SingleDeviceStrategy,
@@ -1943,12 +1942,9 @@ def test_detect_anomaly_nan(tmpdir):
             GPUAccelerator,
             1,
         ),
-        ({"strategy": "ddp2", "accelerator": "gpu", "devices": 1}, DDP2Strategy, "ddp2", GPUAccelerator, 1),
         ({"strategy": None, "accelerator": "gpu", "devices": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
         ({"strategy": "dp", "accelerator": "gpu", "devices": 2}, DataParallelStrategy, "dp", GPUAccelerator, 2),
         ({"strategy": "ddp", "accelerator": "gpu", "devices": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
-        ({"strategy": "ddp2", "accelerator": "gpu", "devices": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
-        ({"strategy": "ddp2", "accelerator": "cpu", "devices": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
         ({"strategy": "ddp", "accelerator": "cpu", "devices": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
         (
             {"strategy": "ddp_spawn", "accelerator": "cpu", "devices": 2},
@@ -1987,7 +1983,6 @@ def test_detect_anomaly_nan(tmpdir):
         ),
         ({"strategy": DDPStrategy()}, DDPStrategy, "ddp", CPUAccelerator, 1),
         ({"strategy": DDPStrategy(), "accelerator": "gpu", "devices": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
-        ({"strategy": DDP2Strategy(), "accelerator": "gpu", "devices": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
         (
             {"strategy": DataParallelStrategy(), "accelerator": "gpu", "devices": 2},
             DataParallelStrategy,
@@ -2013,13 +2008,6 @@ def test_detect_anomaly_nan(tmpdir):
             {"strategy": DDPShardedStrategy(), "accelerator": "gpu", "devices": 2},
             DDPShardedStrategy,
             "ddp_sharded",
-            GPUAccelerator,
-            2,
-        ),
-        (
-            {"strategy": "ddp2", "accelerator": "gpu", "devices": 2, "num_nodes": 2},
-            DDP2Strategy,
-            "ddp2",
             GPUAccelerator,
             2,
         ),

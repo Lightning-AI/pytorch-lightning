@@ -40,7 +40,7 @@ from pytorch_lightning.plugins.training_type.single_device import SingleDevicePl
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.profiler import AbstractProfiler, AdvancedProfiler, BaseProfiler, Profiler, SimpleProfiler
-from pytorch_lightning.strategies import ParallelStrategy
+from pytorch_lightning.strategies import ParallelStrategy, DDP2Strategy
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.apply_func import move_data_to_device
@@ -1142,3 +1142,11 @@ def test_trainer_tpu_cores(monkeypatch):
         "Please use `Trainer.num_devices` instead."
     ):
         trainer.tpu_cores == 8
+
+
+def test_unsupported_ddp2_strategy():
+    with pytest.deprecated_call(match="The `DDP2Strategy` is deprecated in v1.7 and will be removed in v1.8."):
+        DDP2Strategy()
+
+    with pytest.raises(ValueError, match="The DDP2 strategy is no longer supported."):
+        Trainer(strategy="ddp2")
