@@ -149,7 +149,7 @@ To save logs to a remote filesystem, prepend a protocol like "s3:/" to the root_
 ***************************************
 Enable metrics for distributed training
 ***************************************
-For certain types of metrics that need complex aggregation, it's recommended to build your metric using torchmetric which ensures all the complexities of metric aggregation in distributed environments is handled.
+For certain types of metrics that need complex aggregation, we recommended to build your metric using torchmetric which ensures all the complexities of metric aggregation in distributed environments is handled.
 
 First, implement your metric:
 
@@ -180,21 +180,22 @@ First, implement your metric:
           # compute final result
           return self.correct.float() / self.total
 
-To use the metric inside Lightning, first compute the metric, and then pass it into *self.log*
+To use the metric inside Lightning, 1) initialize it in the init, 2) compute the metric, 3) pass it into *self.log*
 
 .. code-block:: python
 
   class LitModel(LightningModule):
 
       def __init__(self):
+          # 1. initialize the metric
           self.accuracy = MyAccuracy()
 
       def training_step(self, batch, batch_idx):
           x, y = batch
           preds = self(x)
 
-          # 1. compute the metric 
+          # 2. compute the metric 
           self.accuracy(preds, y)
 
-          # 2. log it
+          # 3. log it
           self.log('train_acc_step', self.accuracy)
