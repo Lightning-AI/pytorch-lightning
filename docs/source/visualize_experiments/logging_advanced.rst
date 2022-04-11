@@ -71,25 +71,188 @@ TODO: chart
 ******************
 Customize self.log 
 ******************
-The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method has a few options:
 
-* ``on_step``: Logs the metric at the current step.
-* ``on_epoch``: Automatically accumulates and logs at the end of the epoch.
-* ``prog_bar``: Logs to the progress bar (Default: ``False``).
-* ``logger``: Logs to the logger like ``Tensorboard``, or any other custom logger passed to the :class:`~pytorch_lightning.trainer.trainer.Trainer` (Default: ``True``).
-* ``reduce_fx``: Reduction function over step values for end of epoch. Uses :meth:`torch.mean` by default.
-* ``enable_graph``: If True, will not auto detach the graph.
-* ``sync_dist``: If True, reduces the metric across devices. Use with care as this may lead to a significant communication overhead.
-* ``sync_dist_group``: The DDP group to sync across.
-* ``add_dataloader_idx``: If True, appends the index of the current dataloader to the name (when using multiple dataloaders). If False, user needs to give unique names for each dataloader to not mix the values.
-* ``batch_size``: Current batch size used for accumulating logs logged with ``on_epoch=True``. This will be directly inferred from the loaded batch, but for some data structures you might need to explicitly provide it.
-* ``rank_zero_only``: Whether the value will be logged only on rank 0. This will prevent synchronization which would produce a deadlock as not all processes would perform this log call.
+The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` offers many configurations to customize its behavior
+
+----
+
+add_dataloader_idx
+==================
+**Default:** True
+
+If True, appends the index of the current dataloader to the name (when using multiple dataloaders). If False, user needs to give unique names for each dataloader to not mix the values.
+
+.. code-block:: python
+  
+  self.log(add_dataloader_idx=True)
+
+----
+
+batch_size
+==========
+**Default:** None
+
+Current batch size used for accumulating logs logged with ``on_epoch=True``. This will be directly inferred from the loaded batch, but for some data structures you might need to explicitly provide it.
+
+.. code-block:: python
+  
+  self.log(batch_size=32)
+
+----
+
+enable_graph
+============
+**Default:** True
+
+If True, will not auto detach the graph.
+
+.. code-block:: python
+  
+  self.log(enable_graph=True)
+
+----
+
+logger
+======
+**Default:** True
+
+Send logs to the logger like ``Tensorboard``, or any other custom logger passed to the :class:`~pytorch_lightning.trainer.trainer.Trainer` (Default: ``True``).
+
+.. code-block:: python
+  
+  self.log(logger=True)
+
+----
+
+on_epoch
+========
+**Default:** It varies
+
+If this is True, that specific *self.log* call accumulates and reduces all metrics to the end of the epoch.
+
+.. code-block:: python
+  
+  self.log(on_epoch=True)
+
+The default value depends in which function this is called
+
+.. code-block:: python
+  
+  def training_step(...):
+    # Default: False
+    self.log(on_epoch=False)
+  
+  def validation_step(...):
+    # Default: True
+    self.log(on_epoch=True)
+  
+  def test_step(...):
+    # Default: True
+    self.log(on_epoch=True)
+  
+----
+
+on_step
+=======
+**Default:** It varies
+
+If this is True, that specific *self.log* call will NOT accumulate metrics. Instead it will generate a timeseries across steps.
+
+.. code-block:: python
+  
+  self.log(on_step=True)
+
+The default value depends in which function this is called
+
+.. code-block:: python
+  
+  def training_step(...):
+    # Default: True
+    self.log(on_step=True)
+  
+  def validation_step(...):
+    # Default: False
+    self.log(on_step=False)
+  
+  def test_step(...):
+    # Default: False
+    self.log(on_step=False)
+
+
+----
+
+prog_bar
+========
+**Default:** False
+
+If set to True, logs will be sent to the progress bar.
+
+.. code-block:: python
+  
+  self.log(prog_bar=True)
+
+----
+
+rank_zero_only
+==============
+**Default:** True
+
+Whether the value will be logged only on rank 0. This will prevent synchronization which would produce a deadlock as not all processes would perform this log call.
+
+.. code-block:: python
+  
+  self.log(rank_zero_only=True)
+
+----
+
+reduce_fx
+=========
+**Default:** :meth:`torch.mean`
+
+Reduction function over step values for end of epoch. Uses :meth:`torch.mean` by default.
+
+.. code-block:: python
+  
+  self.log(reduce_fx=torch.mean)
+
+----
+
+sync_dist
+=========
+**Default:** False
+
+If True, reduces the metric across devices. Use with care as this may lead to a significant communication overhead.
+
+.. code-block:: python
+  
+  self.log(sync_dist=False)
+
+----
+
+sync_dist_group
+===============
+**Default:** None
+
+The DDP group to sync across.
+
+.. code-block:: python
+  
+  import torch.distributed as dist
+
+  group = dist.init_process_group('nccl', rank=self.global_rank, world_size=self.world_size)
+  self.log(sync_dist_group=group)
+
+----
+
+**************************************
+Understand self.log automatic behavior
+**************************************
 
 .. list-table:: Default behavior of logging in Callback or LightningModule
    :widths: 50 25 25
    :header-rows: 1
 
-   * - Hook
+   * - Method
      - on_step
      - on_epoch
    * - on_train_start, on_train_epoch_start, on_train_epoch_end, training_epoch_end
