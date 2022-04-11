@@ -102,6 +102,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed support for passing strategy names to the accelerator Trainer argument ([#12696](https://github.com/PyTorchLightning/pytorch-lightning/pull/12696))
 
 
+- Removed support for passing strategy class to the accelerator Trainer argument ([#12696](https://github.com/PyTorchLightning/pytorch-lightning/pull/12696))
+
+
 ### Fixed
 
 - Avoid calling `average_parameters` multiple times per optimizer step ([#12452](https://github.com/PyTorchLightning/pytorch-lightning/pull/12452))
