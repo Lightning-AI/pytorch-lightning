@@ -15,7 +15,6 @@ import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.utilities import memory
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
@@ -60,9 +59,6 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
     model = BoringModel()
 
     tpipes.run_model_test(trainer_options, model)
-
-    # test memory helper functions
-    memory.get_memory_profile("min_max")
 
 
 @RunIf(min_gpus=2)
