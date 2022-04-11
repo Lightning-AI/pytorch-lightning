@@ -410,7 +410,7 @@ class AcceleratorConnector:
         num_processes: Optional[int],
         gpus: Optional[Union[List[int], str, int]],
         ipus: Optional[int],
-        tpu_cores: Optional[Union[List[int], int]],
+        tpu_cores: Optional[Union[List[int], str, int]],
     ) -> None:
         self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
         self._devices_flag = devices
