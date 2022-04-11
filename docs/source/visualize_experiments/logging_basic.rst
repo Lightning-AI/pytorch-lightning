@@ -5,9 +5,9 @@
 
 .. _loggers:
 
-############################################
-Track metrics and visualize training (basic)
-############################################
+#######################################
+Track and Visualize Experiments (basic)
+#######################################
 **Audience:** Users who want to visualize and monitor their model development
 
 ----
@@ -136,37 +136,6 @@ If your *experiment manager* supports text visualization, simply *log* the text 
     self.log('some_text', text)
 
 # TODO: show screenshot
-
-----
-
-***********
-Track audio
-***********
-To track audio, find a logger that supports audio visualizations and use the API directly.
-
-.. code-block:: python
-
-    def training_step(self):
-        tensorboard = self.logger.experiment
-        tensorboard.add_audio(...)
-
-# TODO: show screenshot
-
-----
-
-*********************
-Track other artifacts
-*********************
-To track other artifacts, such as histograms or model topology graphs, access the *experiment manager* directly and use its API.
-
-.. code-block:: python
-
-    def training_step(self):
-        # the logger you used (in this case tensorboard)
-        tensorboard = self.logger.experiment
-        tensorboard.add_image()
-        tensorboard.add_histogram(...)
-        tensorboard.add_figure(...)
 
 ----
 

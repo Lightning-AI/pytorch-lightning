@@ -203,15 +203,16 @@ Current Lightning Users
    clouds/cloud_training
    common/checkpointing
    clouds/cluster
+   common/console_logs
    common/debugging
    common/early_stopping
    advanced/training_tricks
    common/evaluation
+   visualize_experiments/experiment_managers
    advanced/fault_tolerant_training
    common/hyperparameters
    common/production_inference
    common/lightning_cli
-   common/loggers
    advanced/model_parallel
    precision/precision
    common/optimization
@@ -220,6 +221,7 @@ Current Lightning Users
    advanced/pruning_quantization
    common/remote_fs
    advanced/strategy_registry
+   visualize_experiments/loggers
    advanced/transfer_learning
 
 .. toctree::
