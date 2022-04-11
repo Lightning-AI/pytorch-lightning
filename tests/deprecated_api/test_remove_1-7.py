@@ -43,10 +43,10 @@ from tests.loggers.test_logger import CustomLogger
 from tests.plugins.environments.test_lsf_environment import _make_rankfile
 
 
-def test_v1_7_0_moved_get_memory_profile_and_get_gpu_memory_map(tmpdir):
+def test_v1_7_0_moved_model_summary_and_layer_summary(tmpdir):
     _soft_unimport_module("pytorch_lightning.core.memory")
-    with pytest.deprecated_call(match="to `pytorch_lightning.utilities.memory` since v1.5"):
-        from pytorch_lightning.core.memory import get_gpu_memory_map, get_memory_profile  # noqa: F401
+    with pytest.deprecated_call(match="to `pytorch_lightning.utilities.model_summary` since v1.5"):
+        from pytorch_lightning.core.memory import LayerSummary, ModelSummary  # noqa: F401
 
 
 def test_v1_7_0_datamodule_transform_properties(tmpdir):

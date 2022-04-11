@@ -509,15 +509,6 @@ def test_accelerator_cpu(_):
         Trainer(accelerator="cpu", gpus=1)
 
 
-@mock.patch("torch.cuda.is_available", return_value=False)
-@pytest.mark.parametrize("devices", ["0", 0, []])
-def test_passing_zero_and_empty_list_to_devices_flag(_, devices):
-    with pytest.raises(
-        MisconfigurationException, match="can not run on your system since the accelerator is not available."
-    ):
-        Trainer(accelerator="gpu", devices=devices)
-
-
 @RunIf(min_gpus=1)
 def test_accelerator_gpu():
     trainer = Trainer(accelerator="gpu", devices=1)
@@ -1019,3 +1010,10 @@ def test_sync_batchnorm_set_in_custom_strategy(tmpdir):
 def test_plugin_only_one_instance_for_one_type(plugins, expected):
     with pytest.raises(MisconfigurationException, match=f"Received multiple values for {expected}"):
         Trainer(plugins=plugins)
+
+
+@pytest.mark.parametrize("accelerator", ("cpu", "gpu", "tpu", "ipu"))
+@pytest.mark.parametrize("devices", ("0", 0, []))
+def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
+    with pytest.raises(MisconfigurationException, match="value is not a valid input using"):
+        Trainer(accelerator=accelerator, devices=devices)
