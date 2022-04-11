@@ -8,7 +8,7 @@
 ##########################################
 Track and Visualize Experiments (advanced)
 ##########################################
-A
+**Audience:** Users who want to do advanced speed optimizations by customizing the logging behavior.
 
 ----
 

@@ -8,6 +8,9 @@
 ########################################
 Track and Visualize Experiments (expert)
 ########################################
+**Audience:** Users who want to make their own progress bars or integrate new experiment managers.
+
+----
 
 ***********************
 Change the progress bar
@@ -76,6 +79,7 @@ To customize either the  :class:`~pytorch_lightning.callbacks.TQDMProgressBar` o
             bar.set_description("running validation...")
             return bar
 
+----
 
 ***************************
 Build your own progress-bar
