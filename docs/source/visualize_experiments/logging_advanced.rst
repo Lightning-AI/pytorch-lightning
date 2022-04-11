@@ -72,7 +72,7 @@ TODO: chart
 Customize self.log 
 ******************
 
-The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` offers many configurations to customize its behavior
+The LightningModule *self.log* method offers many configurations to customize its behavior.
 
 ----
 
