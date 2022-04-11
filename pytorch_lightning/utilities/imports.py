@@ -54,7 +54,7 @@ def _module_available(module_path: str) -> bool:
         return False
     try:
         importlib.import_module(module_path)
-    except ModuleNotFoundError:
+    except ImportError:
         return False
     return True
 
@@ -67,7 +67,7 @@ def _compare_version(package: str, op: Callable, version: str, use_base_version:
     """
     try:
         pkg = importlib.import_module(package)
-    except (ModuleNotFoundError, DistributionNotFound):
+    except (ImportError, DistributionNotFound):
         return False
     try:
         if hasattr(pkg, "__version__"):
