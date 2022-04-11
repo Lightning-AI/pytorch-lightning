@@ -11,46 +11,12 @@ N-Bit Precision (Basic)
 #######################
 **Audience:** Users looking to train models faster and consume less memory.
 
+----
+
 If you're looking to run models faster or consume less memory, consider tweaking the precision settings of your models.
 
 Lower precision, such as 16-bit floating-point, requires less memory and enables training and deploying larger models.
 Higher precision, such as the 64-bit floating-point, can be used for highly sensitive use-cases.
-
-----
-
-********************************
-Precision support by accelerator
-********************************
-
-.. list-table:: Precision with Accelerators
-   :widths: 20 20 20 20 20
-   :header-rows: 1
-
-   * - Precision
-     - CPU
-     - GPU
-     - TPU
-     - IPU
-   * - 16
-     - No
-     - Yes
-     - No
-     - Yes
-   * - BFloat16
-     - Yes
-     - Yes
-     - Yes
-     - No
-   * - 32
-     - Yes
-     - Yes
-     - Yes
-     - Yes
-   * - 64
-     - Yes
-     - Yes
-     - No
-     - No
 
 ----
 
@@ -92,3 +58,39 @@ For certain scientific computations, 64-bit precision enables more accurate mode
 
     Since in deep learning, memory is always a bottleneck, especially when dealing with a large volume of data and with limited resources.
     It is recommended using single precision for better speed. Although you can still use it if you want for your particular use-case.
+
+----
+
+********************************
+Precision support by accelerator
+********************************
+
+.. list-table:: Precision with Accelerators
+   :widths: 20 20 20 20 20
+   :header-rows: 1
+
+   * - Precision
+     - CPU
+     - GPU
+     - TPU
+     - IPU
+   * - 16
+     - No
+     - Yes
+     - No
+     - Yes
+   * - BFloat16
+     - Yes
+     - Yes
+     - Yes
+     - No
+   * - 32
+     - Yes
+     - Yes
+     - Yes
+     - Yes
+   * - 64
+     - Yes
+     - Yes
+     - No
+     - No
