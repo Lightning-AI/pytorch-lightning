@@ -321,11 +321,20 @@ def _wrap_init(init: Callable) -> Callable:
 
     @functools.wraps(init)
     def wrapper(obj: DataLoader, *args: Any, **kwargs: Any) -> None:
-        params = dict(inspect.signature(obj.__init__).parameters)
-        params.pop("args", None)
-        params.pop("kwargs", None)
+        # We need to inspect init function, as inspecting live function `obj.__init__``
+        # can lead to inspecting the wrong function with complicated inheritance
+        params = inspect.signature(init).parameters
+
+        # Since we are inspecting unbounded function, we have to remove the first argument (corresponding to self)
+        # And these checks are better suited for ensuring we are removing arguments with semantics of *args and **kwargs
+        param_names = [
+            param.name
+            for i, param in enumerate(params.values())
+            if i and param.kind != param.VAR_POSITIONAL and param.kind != param.VAR_KEYWORD
+        ]
+
         cls = type(obj)
-        for arg_name, arg_value in chain(zip(params, args), kwargs.items()):
+        for arg_name, arg_value in chain(zip(param_names, args), kwargs.items()):
             if hasattr(cls, arg_name) and getattr(cls, arg_name).fset is None:
                 # the class defines a read-only (no setter) property of this name. it's likely that the implementation
                 # will set `self._arg_name = arg_value` in `__init__` which is the attribute returned by the `arg_name`

@@ -161,19 +161,34 @@ def test_replace_dataloader_init_method():
             super().__init__(*args, **kwargs)
 
     class DataLoaderSubclass2(DataLoaderSubclass1):
-        def __init__(self, attribute1, attribute2, *args, **kwargs):
+        def __init__(self, attribute2, *args, **kwargs):
             # intentionally not setting this attribute, calling super with different args
             # self.attribute2 = attribute2
-            super().__init__(attribute1, *args, **kwargs)
+            super().__init__(attribute2 + "-2", *args, **kwargs)
 
     with _replace_dataloader_init_method():
         dataloader = DataLoaderSubclass1("attribute1", dataset=range(4), batch_size=2)
         assert dataloader.attribute1 == "attribute1"
 
     with _replace_dataloader_init_method():
-        dataloader = DataLoaderSubclass2("attribute1", "attribute2", dataset=range(4), batch_size=2)
-        assert dataloader.attribute1 == "attribute1"
+        dataloader = DataLoaderSubclass2("attribute2", dataset=range(4), batch_size=2)
+        assert dataloader.attribute1 == "attribute2-2"
         assert dataloader.attribute2 == "attribute2"
+
+    # Failing test case from issue 12564
+    class MyBaseDataLoader(DataLoader):
+        pass
+
+    class MyDataLoader(MyBaseDataLoader):
+        def __init__(self, data: torch.Tensor, *args, **kwargs):
+            self.data = data
+            super().__init__(range(data.size(0)), *args, **kwargs)
+
+    with _replace_dataloader_init_method():
+        data = torch.randn((10, 20))
+        dataloader = MyDataLoader(data, batch_size=2)
+        assert dataloader.data is data
+        assert dataloader.dataset == range(10)
 
     # `poptorch.DataLoader` uses this pattern, simulate it
     class PoptorchDataLoader(DataLoader):
