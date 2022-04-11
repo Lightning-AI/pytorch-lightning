@@ -106,7 +106,6 @@ class AcceleratorConnector:
         tpu_cores: Optional[Union[List[int], int]] = None,  # deprecated
         ipus: Optional[int] = None,  # deprecated
         gpus: Optional[Union[List[int], str, int]] = None,  # deprecated
-        gpu_ids: Optional[List[int]] = None,  # TODO can be removed
     ) -> None:
         """The AcceleratorConnector parses several Trainer arguments and instantiates the Strategy including other
         components such as the Accelerator and Precision plugins.
@@ -390,8 +389,19 @@ class AcceleratorConnector:
         self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
         self._devices_flag = devices
 
+        if self._devices_flag in ([], 0, "0"):
+            accelerator_name = (
+                self._accelerator_flag.__class__.__qualname__
+                if isinstance(self._accelerator_flag, Accelerator)
+                else self._accelerator_flag
+            )
+            raise MisconfigurationException(
+                f"`Trainer(devices={self._devices_flag!r})` value is not a valid input"
+                f" using {accelerator_name} accelerator."
+            )
+
         # TODO: Delete this method when num_processes, gpus, ipus and tpu_cores gets removed
-        self._map_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
+        self._map_deprecated_devices_specific_info_to_accelerator_and_device_flag(
             devices, num_processes, gpus, ipus, tpu_cores
         )
 
@@ -401,7 +411,7 @@ class AcceleratorConnector:
                 " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu'|'hpu)` for the devices mapping."
             )
 
-    def _map_deprecated_devices_specfic_info_to_accelerator_and_device_flag(
+    def _map_deprecated_devices_specific_info_to_accelerator_and_device_flag(
         self,
         devices: Optional[Union[List[int], str, int]],
         num_processes: Optional[int],
@@ -409,7 +419,28 @@ class AcceleratorConnector:
         ipus: Optional[int],
         tpu_cores: Optional[Union[List[int], str, int]],
     ) -> None:
-        """Sets the `devices_flag` and `accelerator_flag` based on num_processes, gpus, ipus, tpu_cores."""
+        """Emit deprecation warnings for num_processes, gpus, ipus, tpu_cores and set the `devices_flag` and
+        `accelerator_flag`."""
+        if num_processes is not None:
+            rank_zero_deprecation(
+                f"Setting `Trainer(num_processes={num_processes})` is deprecated in v1.7 and will be removed"
+                f" in v2.0. Please use `Trainer(accelerator='cpu', devices={num_processes})` instead."
+            )
+        if gpus is not None:
+            rank_zero_deprecation(
+                f"Setting `Trainer(gpus={gpus!r})` is deprecated in v1.7 and will be removed"
+                f" in v2.0. Please use `Trainer(accelerator='gpu', devices={gpus!r})` instead."
+            )
+        if tpu_cores is not None:
+            rank_zero_deprecation(
+                f"Setting `Trainer(tpu_cores={tpu_cores!r})` is deprecated in v1.7 and will be removed"
+                f" in v2.0. Please use `Trainer(accelerator='tpu', devices={tpu_cores!r})` instead."
+            )
+        if ipus is not None:
+            rank_zero_deprecation(
+                f"Setting `Trainer(ipus={ipus})` is deprecated in v1.7 and will be removed"
+                f" in v2.0. Please use `Trainer(accelerator='ipu', devices={ipus})` instead."
+            )
         self._gpus: Optional[Union[List[int], str, int]] = gpus
         self._tpu_cores: Optional[Union[List[int], str, int]] = tpu_cores
         deprecated_devices_specific_flag = num_processes or gpus or ipus or tpu_cores
