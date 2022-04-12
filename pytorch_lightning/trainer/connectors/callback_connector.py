@@ -14,6 +14,7 @@
 import os
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Union
+import importlib.metadata
 
 from pytorch_lightning.callbacks import (
     Callback,
@@ -90,6 +91,8 @@ class CallbackConnector:
 
         if self.trainer.state._fault_tolerant_mode.is_enabled:
             self._configure_fault_tolerance_callbacks()
+
+        self._configure_external_callbacks()
 
         # push all model checkpoint callbacks to the end
         # it is important that these are the last callbacks to run
@@ -231,6 +234,27 @@ class CallbackConnector:
             raise RuntimeError("There should be only one fault-tolerance checkpoint callback.")
         # don't use `log_dir` to minimize the chances of failure
         self.trainer.callbacks.append(_FaultToleranceCheckpoint(dirpath=self.trainer.default_root_dir))
+
+    def _configure_external_callbacks(self) -> None:
+        """Add external callbacks registered through entry points.
+
+        The entry points are expected to be functions returning a list of callbacks, which will be added to the
+        Trainer callback list.
+        """
+        factories = importlib.metadata.entry_points()["pytorch_lightning.callbacks_factory"]
+        for factory in factories:
+            callbacks_list: List[Callback] = factory.load()()
+            if not isinstance(callbacks_list, list):
+                raise TypeError(
+                    f"The entry point '{factory.name}' returned a {type(callbacks_list)} but is expected to return"
+                    f" a list of `pytorch_lightning.callbacks.Callback`."
+                )
+            if not all(isinstance(cb, Callback) for cb in callbacks_list):
+                raise TypeError(
+                    f"The entry point '{factory.name}' is expected to return a list of callbacks, but at least one"
+                    " callack was not an instance of `pytorch_lightning.callbacks.Callback`."
+                )
+            self.trainer.callbacks.extend(callbacks_list)
 
     def _attach_model_logging_functions(self):
         lightning_module = self.trainer.lightning_module
