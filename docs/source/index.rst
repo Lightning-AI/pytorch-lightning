@@ -223,6 +223,7 @@ Current Lightning Users
    advanced/strategy_registry
    visualize_experiments/loggers
    advanced/transfer_learning
+   build_model/build_model.rst
 
 .. toctree::
    :maxdepth: 1
