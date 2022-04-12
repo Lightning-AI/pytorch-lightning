@@ -106,17 +106,14 @@ class AcceleratorConnector:
         tpu_cores: Optional[Union[List[int], int]] = None,  # deprecated
         ipus: Optional[int] = None,  # deprecated
         gpus: Optional[Union[List[int], str, int]] = None,  # deprecated
-        gpu_ids: Optional[List[int]] = None,  # TODO can be removed
     ) -> None:
         """The AcceleratorConnector parses several Trainer arguments and instantiates the Strategy including other
         components such as the Accelerator and Precision plugins.
 
             A. accelerator flag could be:
-                1. strategy class (deprecated in 1.5 will be removed in 1.7)
-                2. strategy str (deprecated in 1.5 will be removed in 1.7)
-                3. accelerator class
-                4. accelerator str
-                5. accelerator auto
+                1. accelerator class
+                2. accelerator str
+                3. accelerator auto
 
             B. strategy flag could be :
                 1. strategy class
@@ -126,21 +123,18 @@ class AcceleratorConnector:
 
             C. plugins flag could be:
                 1. List of str, which could contain:
-                    i. strategy str
-                    ii. precision str (Not supported in the old accelerator_connector version)
-                    iii. checkpoint_io str (Not supported in the old accelerator_connector version)
-                    iv. cluster_environment str (Not supported in the old accelerator_connector version)
+                    i. precision str (Not supported in the old accelerator_connector version)
+                    ii. checkpoint_io str (Not supported in the old accelerator_connector version)
+                    iii. cluster_environment str (Not supported in the old accelerator_connector version)
                 2. List of class, which could contains:
-                    i. strategy class (deprecated in 1.5 will be removed in 1.7)
-                    ii. precision class (should be removed, and precision flag should allow user pass classes)
-                    iii. checkpoint_io class
-                    iv. cluster_environment class
+                    i. precision class (should be removed, and precision flag should allow user pass classes)
+                    ii. checkpoint_io class
+                    iii. cluster_environment class
 
 
         priorities which to take when:
             A. Class > str
             B. Strategy > Accelerator/precision/plugins
-            C. TODO When multiple flag set to the same thing
         """
         if benchmark and deterministic:
             rank_zero_warn(
@@ -161,7 +155,6 @@ class AcceleratorConnector:
 
         # Raise an exception if there are conflicts between flags
         # Set each valid flag to `self._x_flag` after validation
-        # Example: If accelerator is set to a strategy type, set `self._strategy_flag = accelerator`.
         # For devices: Assign gpus, ipus, etc. to the accelerator flag and devices flag
         self._strategy_flag: Optional[Union[Strategy, str]] = None
         self._accelerator_flag: Optional[Union[Accelerator, str]] = None
@@ -232,14 +225,14 @@ class AcceleratorConnector:
     ) -> None:
         """This method checks:
 
-        1. strategy: strategy, accelerator and plugin can all be set to strategies
+        1. strategy: whether the strategy name is valid, and sets the internal flags if it is.
         2. accelerator: if the value of the accelerator argument is a type of accelerator (instance or string),
-            set self._accelerator_flag accordingly. If the value is strategy related (instance or string),
-            it gets handled by 1.
+            set self._accelerator_flag accordingly.
         3. precision: The final value of the precision flag may be determined either by the precision argument or
             by a plugin instance.
-        4. plugins: a plugin could occur as a value of the strategy argument (handled by 1), or the precision
-            argument (handled by 3). We also extract the CheckpointIO and ClusterEnvironment plugins.
+        4. plugins: The list of plugins may contain a Precision plugin, CheckpointIO, ClusterEnvironment and others.
+            Additionally, other flags such as `precision` or `sync_batchnorm` can populate the list with the
+            corresponding plugin instances.
         """
         if plugins is not None:
             plugins = [plugins] if not isinstance(plugins, list) else plugins
@@ -259,41 +252,10 @@ class AcceleratorConnector:
                     "`Trainer(strategy='tpu_spawn')` is not a valid strategy,"
                     " you can use `Trainer(strategy='ddp_spawn', accelerator='tpu')` instead."
                 )
-            # handle duplications and conflict
-            if isinstance(accelerator, Strategy) and strategy != accelerator:
-                raise MisconfigurationException(
-                    f"Incompatible values set in `strategy` and `accelerator` arguments."
-                    f"Received both strategy={strategy} and accelerator={accelerator}"
-                )
-            if isinstance(accelerator, str) and accelerator in self._registered_strategies and strategy != accelerator:
-                raise MisconfigurationException(
-                    f"strategy {strategy} already set through `strategy` flag,"
-                    f" but have also passed {accelerator} in through the accelerator flag."
-                )
-            if plugins:
-                for plugin in plugins:
-                    if isinstance(plugin, Strategy):
-                        raise MisconfigurationException(
-                            f"You have passed `Trainer(strategy={strategy})`"
-                            f" and you can only specify one strategy, but you have passed {plugin} as a plugin."
-                        )
-                    if isinstance(plugin, str) and plugin in self._registered_strategies:
-                        raise MisconfigurationException(
-                            f"You have passed `Trainer(strategy={strategy})`"
-                            f" and you can only specify one strategy, but you have passed {plugin} as a plugin."
-                        )
 
         if accelerator is not None:
             if accelerator in self._accelerator_types or accelerator == "auto" or isinstance(accelerator, Accelerator):
                 self._accelerator_flag = accelerator
-            elif accelerator in self._registered_strategies or isinstance(accelerator, Strategy):
-                rank_zero_deprecation(
-                    f"Passing `Trainer(accelerator={accelerator!r})` has been deprecated"
-                    f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={accelerator!r})` instead."
-                )
-                self._strategy_flag = accelerator
-            elif accelerator == "ddp_cpu" and not self._strategy_flag:
-                self._strategy_flag = accelerator
 
         if precision is not None:
             if str(precision) not in self._precision_types:
@@ -305,15 +267,7 @@ class AcceleratorConnector:
         if plugins:
             plugins_flags_types: Dict[str, int] = Counter()
             for plugin in plugins:
-                if isinstance(plugin, Strategy) or isinstance(plugin, str) and plugin in self._registered_strategies:
-                    self._strategy_flag = plugin
-                    rank_zero_deprecation(
-                        f"Passing {plugin} `strategy` to the `plugins` flag in Trainer has been deprecated"
-                        f" in v1.5 and will be removed in v1.7. Use `Trainer(strategy={plugin})` instead."
-                    )
-                    plugins_flags_types[Strategy.__name__] += 1
-
-                elif isinstance(plugin, PrecisionPlugin):
+                if isinstance(plugin, PrecisionPlugin):
                     self._precision_plugin_flag = plugin
                     plugins_flags_types[PrecisionPlugin.__name__] += 1
                 elif isinstance(plugin, CheckpointIO):
@@ -333,7 +287,7 @@ class AcceleratorConnector:
                 else:
                     raise MisconfigurationException(
                         f"Found invalid type for plugin {plugin}. Expected one of: PrecisionPlugin, "
-                        "CheckpointIO, ClusterEnviroment, LayerSync, or Strategy."
+                        "CheckpointIO, ClusterEnviroment, or LayerSync."
                     )
 
             duplicated_plugin_key = [k for k, v in plugins_flags_types.items() if v > 1]
@@ -413,6 +367,17 @@ class AcceleratorConnector:
         self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
         self._devices_flag = devices
 
+        if self._devices_flag in ([], 0, "0"):
+            accelerator_name = (
+                self._accelerator_flag.__class__.__qualname__
+                if isinstance(self._accelerator_flag, Accelerator)
+                else self._accelerator_flag
+            )
+            raise MisconfigurationException(
+                f"`Trainer(devices={self._devices_flag!r})` value is not a valid input"
+                f" using {accelerator_name} accelerator."
+            )
+
         # TODO: Delete this method when num_processes, gpus, ipus and tpu_cores gets removed
         self._map_deprecated_devices_specific_info_to_accelerator_and_device_flag(
             devices, num_processes, gpus, ipus, tpu_cores
@@ -421,7 +386,7 @@ class AcceleratorConnector:
         if self._devices_flag == "auto" and self._accelerator_flag is None:
             raise MisconfigurationException(
                 f"You passed `devices={devices}` but haven't specified"
-                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu'|'hpu)` for the devices mapping"
+                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu'|'hpu)` for the devices mapping."
             )
 
     def _map_deprecated_devices_specific_info_to_accelerator_and_device_flag(
@@ -597,22 +562,6 @@ class AcceleratorConnector:
         # TODO this logic should apply to both str and object config
         strategy_flag = "" if isinstance(self._strategy_flag, Strategy) else self._strategy_flag
 
-        if strategy_flag == "ddp_cpu":
-            if _TPU_AVAILABLE:
-                raise MisconfigurationException(
-                    "`accelerator='ddp_cpu'` is not supported on TPU machines. "
-                    "Learn more: https://github.com/PyTorchLightning/pytorch-lightning/issues/7810"
-                )
-            if self._devices_flag == 1 and self._num_nodes_flag > 1:
-                strategy_flag = DDPStrategy.strategy_name
-            else:
-                strategy_flag = "ddp_spawn"
-            if self._accelerator_flag == "gpu":
-                rank_zero_warn(
-                    "You requested one or more GPUs, but set `accelerator='ddp_cpu'`. Training will not use GPUs."
-                )
-                self._accelerator_flag = "cpu"
-                self.accelerator = CPUAccelerator()
         if strategy_flag in ("ddp_spawn", "ddp_spawn_find_unused_parameters_false") and (
             TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or self._is_slurm_managing_tasks()
         ):
@@ -633,7 +582,7 @@ class AcceleratorConnector:
 
         if not _HOROVOD_AVAILABLE:
             raise MisconfigurationException(
-                'Requested `accelerator="horovod"`, but Horovod is not installed.'
+                'Requested `strategy="horovod"`, but Horovod is not installed.'
                 "Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]"
             )
 
@@ -782,8 +731,7 @@ class AcceleratorConnector:
 
         if _IS_INTERACTIVE and self.strategy.launcher and not self.strategy.launcher.is_interactive_compatible:
             raise MisconfigurationException(
-                f"`Trainer(strategy={self.strategy.strategy_name!r})` or"
-                f" `Trainer(accelerator={self.strategy.strategy_name!r})` is not compatible with an interactive"
+                f"`Trainer(strategy={self.strategy.strategy_name!r})` is not compatible with an interactive"
                 " environment. Run your code as a script, or choose one of the compatible strategies:"
                 f" Trainer(strategy=None|{'|'.join(_StrategyType.interactive_compatible_types())})."
                 " In case you are spawning processes yourself, make sure to include the Trainer"
