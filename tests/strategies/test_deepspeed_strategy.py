@@ -168,12 +168,13 @@ def test_deepspeed_strategy_env(tmpdir, monkeypatch, deepspeed_config):
 
 
 @RunIf(deepspeed=True)
+@mock.patch("torch.cuda.device_count", return_value=1)
 @pytest.mark.parametrize("precision", [16, "mixed"])
 @pytest.mark.parametrize(
     "amp_backend",
     ["native", pytest.param("apex", marks=RunIf(amp_apex=True))],
 )
-def test_deepspeed_precision_choice(amp_backend, precision, tmpdir):
+def test_deepspeed_precision_choice(_, amp_backend, precision, tmpdir):
     """Test to ensure precision plugin is also correctly chosen.
 
     DeepSpeed handles precision via Custom DeepSpeedPrecisionPlugin
@@ -278,7 +279,8 @@ def test_deepspeed_auto_batch_size_config_select(mock_deepspeed_distributed, moc
         default_root_dir=tmpdir,
         fast_dev_run=True,
         callbacks=ck,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
         strategy=DeepSpeedStrategy(logging_batch_size_per_gpu=value, zero_optimization=False),
     )
     with pytest.raises(SystemExit):
@@ -451,7 +453,8 @@ def test_deepspeed_assert_config_zero_offload_disabled(tmpdir, deepspeed_zero_co
         max_epochs=1,
         strategy=DeepSpeedStrategy(config=deepspeed_zero_config),
         precision=16,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
         callbacks=[TestCallback()],
     )
     with pytest.raises(SystemExit):
@@ -701,7 +704,9 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization
         model = ModelParallelClassificationModel()
     else:
         model = ManualModelParallelClassificationModel()
-    trainer = Trainer(default_root_dir=tmpdir, gpus=2, strategy=DeepSpeedStrategy(stage=3), precision=16)
+    trainer = Trainer(
+        default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy=DeepSpeedStrategy(stage=3), precision=16
+    )
 
     results = trainer.test(model, datamodule=dm, ckpt_path=ck.best_model_path)
     assert results[0]["test_acc"] > 0.7
