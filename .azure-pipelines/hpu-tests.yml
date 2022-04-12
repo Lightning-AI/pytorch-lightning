@@ -33,9 +33,8 @@ jobs:
       displayName: 'Instance HW info'
 
     - bash: |
-        python .actions/assistant.py requirements_prune_pkgs horovod
         pip install . --requirement requirements/test.txt
-        pip install --requirement requirements/extra.txt
+        pip install $(grep jsonargparse requirements/extra.txt)
       displayName: 'Install dependencies'
 
     - bash: |
