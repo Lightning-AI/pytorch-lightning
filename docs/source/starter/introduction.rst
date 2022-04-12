@@ -205,9 +205,9 @@ The Lightning :doc:`Trainer <../common/trainer>` automates `40+ tricks <../commo
 
 ----
 
-***************************
-5: Enable training features
-***************************
+***********************
+5: Supercharge training
+***********************
 Enable advanced training features using Trainer arguments. These are SOTA techniques that are automatically integrated into your training loop without changes to your code.
 
 .. code::
@@ -267,9 +267,9 @@ If you have multiple lines of code with similar functionalities, you can use cal
 
 ----
 
-*****************************
-8: Control your training loop
-*****************************
+*************************
+8: Use a raw PyTorch loop
+*************************
 
 For certain types of work at the bleeding-edge of research, Lightning offers experts full control of their training loops in various ways.
 
@@ -285,7 +285,7 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
    :description: Automated training loop, but you own the optimization steps.
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/manual_opt.png
-   :button_link: ../common/optimization.html#manual-optimization
+   :button_link: ../build_model/build_model_advanced.html#manual-optimization
    :image_height: 220px
    :height: 320
 
@@ -294,7 +294,7 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
    :description: Full control over loop for migrating complex PyTorch projects.
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/lite.png
-   :button_link: lightning_lite.html
+   :button_link: ../build_model/build_model_expert.html
    :image_height: 220px
    :height: 320
 
@@ -303,7 +303,7 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
    :description: Enable meta-learning, reinforcement learning, GANs with full control.
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/loops.png
-   :button_link: ../extensions/loops.html
+   :button_link: ../build_model/custom_loop_expert.html
    :image_height: 220px
    :height: 320
 
@@ -314,3 +314,43 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
 
 .. End of callout item section
 
+
+**********
+Next steps
+**********
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. Add callout items below this line
+
+.. displayitem::
+   :header: Level 2: Use GPUs/TPUs
+   :description: Learn how to make your models 10x faster with GPUs/TPUs and half-precision.
+   :col_css: col-md-4
+   :button_link: ../levels/core_level_2.html
+   :height: 150
+   :tag: basic
+
+.. displayitem::
+   :header: I need to own my PyTorch Loop
+   :description: For expert researchers working on the bleeding-edge, Lightning Lite gives you full control.
+   :col_css: col-md-4
+   :button_link: ../build_model/build_model_expert.html
+   :height: 150
+   :tag: expert
+
+.. displayitem::
+   :header: Deploy your model
+   :description: Learn how to predict or put your model into production
+   :col_css: col-md-4
+   :button_link: ../levels/core_level_6.html
+   :height: 150
+   :tag: basic
+
+.. raw:: html
+
+        </div>
+    </div>
