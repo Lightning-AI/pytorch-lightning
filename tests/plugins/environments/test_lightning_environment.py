@@ -19,7 +19,7 @@ import pytest
 from pytorch_lightning.plugins.environments import LightningEnvironment
 
 
-@mock.patch.dict(os.environ, {})
+@mock.patch.dict(os.environ, {}, clear=True)
 def test_default_attributes():
     """Test the default attributes when no environment variables are set."""
     env = LightningEnvironment()
@@ -65,7 +65,7 @@ def test_node_rank_from_group_rank():
     assert env.node_rank() == 1
 
 
-@mock.patch.dict(os.environ, {})
+@mock.patch.dict(os.environ, {}, clear=True)
 def test_random_master_port():
     """Test randomly chosen main port when no main port was given by user."""
     env = LightningEnvironment()

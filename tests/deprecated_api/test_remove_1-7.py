@@ -40,14 +40,8 @@ from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
-from tests.loggers.test_base import CustomLogger
+from tests.loggers.test_logger import CustomLogger
 from tests.plugins.environments.test_lsf_environment import _make_rankfile
-
-
-def test_v1_7_0_moved_model_summary_and_layer_summary(tmpdir):
-    _soft_unimport_module("pytorch_lightning.core.memory")
-    with pytest.deprecated_call(match="to `pytorch_lightning.utilities.model_summary` since v1.5"):
-        from pytorch_lightning.core.memory import LayerSummary, ModelSummary  # noqa: F401
 
 
 def test_v1_7_0_moved_get_memory_profile_and_get_gpu_memory_map(tmpdir):
@@ -56,24 +50,12 @@ def test_v1_7_0_moved_get_memory_profile_and_get_gpu_memory_map(tmpdir):
         from pytorch_lightning.core.memory import get_gpu_memory_map, get_memory_profile  # noqa: F401
 
 
-def test_v1_7_0_deprecated_model_size():
-    model = BoringModel()
-    with pytest.deprecated_call(
-        match="LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7"
-    ):
-        _ = model.model_size
-
-
 def test_v1_7_0_datamodule_transform_properties(tmpdir):
     dm = MNISTDataModule()
-    with pytest.deprecated_call(match=r"DataModule property `train_transforms` was deprecated in v1.5"):
-        dm.train_transforms = "a"
     with pytest.deprecated_call(match=r"DataModule property `val_transforms` was deprecated in v1.5"):
         dm.val_transforms = "b"
     with pytest.deprecated_call(match=r"DataModule property `test_transforms` was deprecated in v1.5"):
         dm.test_transforms = "c"
-    with pytest.deprecated_call(match=r"DataModule property `train_transforms` was deprecated in v1.5"):
-        _ = LightningDataModule(train_transforms="a")
     with pytest.deprecated_call(match=r"DataModule property `val_transforms` was deprecated in v1.5"):
         _ = LightningDataModule(val_transforms="b")
     with pytest.deprecated_call(match=r"DataModule property `test_transforms` was deprecated in v1.5"):
@@ -224,9 +206,7 @@ def test_v1_7_0_deprecate_add_get_queue(tmpdir):
 
 def test_v1_7_0_lightning_logger_base_close(tmpdir):
     logger = CustomLogger()
-    with pytest.deprecated_call(
-        match="`LightningLoggerBase.close` method is deprecated in v1.5 and will be removed in v1.7."
-    ):
+    with pytest.deprecated_call(match="`Logger.close` method is deprecated in v1.5 and will be removed in v1.7."):
         logger.close()
     with pytest.deprecated_call(
         match="`LoggerCollection.close` method is deprecated in v1.5 and will be removed in v1.7."
@@ -336,13 +316,6 @@ def test_v1_7_0_weights_summary_trainer(tmpdir):
         t.weights_summary = "blah"
 
 
-def test_v1_7_0_trainer_log_gpu_memory(tmpdir):
-    with pytest.deprecated_call(
-        match="Setting `log_gpu_memory` with the trainer flag is deprecated in v1.5 and will be removed"
-    ):
-        _ = Trainer(log_gpu_memory="min_max")
-
-
 def test_v1_7_0_deprecated_slurm_job_id():
     trainer = Trainer()
     with pytest.deprecated_call(match="Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0."):
@@ -354,7 +327,7 @@ def test_v1_7_0_deprecate_gpu_stats_monitor(tmpdir):
     with pytest.deprecated_call(match="The `GPUStatsMonitor` callback was deprecated in v1.5"):
         _ = GPUStatsMonitor()
 
-  
+
 def test_v1_7_0_progress_bar():
     with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
         _ = ProgressBar()
@@ -472,4 +445,3 @@ def test_v1_7_0_post_dispatch_hook():
 
     with pytest.deprecated_call(match=escape("`CustomPlugin.post_dispatch()` has been deprecated in v1.6")):
         CustomPlugin(torch.device("cpu"))
-
