@@ -22,9 +22,7 @@ import torch
 
 import pytorch_lightning
 from pytorch_lightning import Callback, LightningDataModule, Trainer
-from pytorch_lightning.callbacks.gpu_stats_monitor import GPUStatsMonitor
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
-from pytorch_lightning.callbacks.progress import ProgressBar
 from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
@@ -40,7 +38,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
-from tests.helpers.runif import RunIf
 from tests.loggers.test_logger import CustomLogger
 from tests.plugins.environments.test_lsf_environment import _make_rankfile
 
@@ -49,12 +46,6 @@ def test_v1_7_0_moved_model_summary_and_layer_summary(tmpdir):
     _soft_unimport_module("pytorch_lightning.core.memory")
     with pytest.deprecated_call(match="to `pytorch_lightning.utilities.model_summary` since v1.5"):
         from pytorch_lightning.core.memory import LayerSummary, ModelSummary  # noqa: F401
-
-
-def test_v1_7_0_moved_get_memory_profile_and_get_gpu_memory_map(tmpdir):
-    _soft_unimport_module("pytorch_lightning.core.memory")
-    with pytest.deprecated_call(match="to `pytorch_lightning.utilities.memory` since v1.5"):
-        from pytorch_lightning.core.memory import get_gpu_memory_map, get_memory_profile  # noqa: F401
 
 
 def test_v1_7_0_datamodule_transform_properties(tmpdir):
@@ -298,11 +289,6 @@ def test_v1_7_0_deprecate_parameter_validation():
         from pytorch_lightning.core.decorators import parameter_validation  # noqa: F401
 
 
-def test_v1_7_0_passing_strategy_to_accelerator_trainer_flag():
-    with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
-        Trainer(accelerator="ddp_spawn")
-
-
 def test_v1_7_0_passing_strategy_to_plugins_flag():
     with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
         Trainer(plugins="ddp_spawn")
@@ -329,21 +315,10 @@ def test_v1_7_0_deprecated_slurm_job_id():
         trainer.slurm_job_id
 
 
-@RunIf(min_gpus=1)
-def test_v1_7_0_deprecate_gpu_stats_monitor(tmpdir):
-    with pytest.deprecated_call(match="The `GPUStatsMonitor` callback was deprecated in v1.5"):
-        _ = GPUStatsMonitor()
-
-
 def test_v1_7_0_deprecate_xla_stats_monitor(monkeypatch):
     monkeypatch.setattr(pytorch_lightning.callbacks.xla_stats_monitor, "_TPU_AVAILABLE", True)
     with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
         _ = XLAStatsMonitor()
-
-
-def test_v1_7_0_progress_bar():
-    with pytest.deprecated_call(match="has been deprecated in v1.5 and will be removed in v1.7."):
-        _ = ProgressBar()
 
 
 def test_v1_7_0_deprecated_max_steps_none(tmpdir):

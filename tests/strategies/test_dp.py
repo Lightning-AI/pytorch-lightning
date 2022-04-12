@@ -23,7 +23,6 @@ import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.utilities import memory
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.datamodules import ClassifDataModule
@@ -98,9 +97,6 @@ def test_multi_gpu_model_dp(tmpdir):
     model = BoringModel()
 
     tpipes.run_model_test(trainer_options, model)
-
-    # test memory helper functions
-    memory.get_memory_profile("min_max")
 
 
 class ReductionTestModel(BoringModel):
