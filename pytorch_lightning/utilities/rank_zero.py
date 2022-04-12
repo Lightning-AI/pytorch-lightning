@@ -39,7 +39,7 @@ def rank_zero_only(fn: Callable) -> Callable:
 def _get_rank() -> int:
     # SLURM_PROCID can be set even if SLURM is not managing the multiprocessing,
     # therefore LOCAL_RANK needs to be checked first
-    rank_keys = ("RANK", "LOCAL_RANK", "SLURM_PROCID")
+    rank_keys = ("RANK", "LOCAL_RANK", "SLURM_PROCID", "JSM_NAMESPACE_RANK")
     for key in rank_keys:
         rank = os.environ.get(key)
         if rank is not None:
