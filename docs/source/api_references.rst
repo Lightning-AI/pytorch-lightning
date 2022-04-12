@@ -99,7 +99,6 @@ Callbacks API
     StochasticWeightAveraging
     Timer
     TQDMProgressBar
-    XLAStatsMonitor
 
 Loggers API
 -----------
