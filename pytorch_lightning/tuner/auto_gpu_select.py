@@ -22,7 +22,8 @@ def pick_multiple_gpus(nb: int) -> List[int]:
     """
     Raises:
         MisconfigurationException:
-            If ``gpus`` or ``devices`` is set to 0, when ``auto_select_gpus=True``.
+            If ``gpus`` or ``devices`` is set to 0, when ``auto_select_gpus=True``, or when the requested number is
+            higher than the number of GPUs available on the machine.
     """
     if nb == 0:
         raise MisconfigurationException(
@@ -32,7 +33,7 @@ def pick_multiple_gpus(nb: int) -> List[int]:
 
     num_gpus = torch.cuda.device_count()
     if nb > num_gpus:
-        raise MisconfigurationException(f"You requested {nb} gpus but your machine only has {num_gpus} gpus.")
+        raise MisconfigurationException(f"You requested {nb} GPUs but your machine only has {num_gpus} GPUs.")
     nb = num_gpus if nb == -1 else nb
 
     picked: List[int] = []
