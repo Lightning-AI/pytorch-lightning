@@ -996,7 +996,7 @@ The list of loggers currently being used by the Trainer.
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        # List of LightningLoggerBase objects
+        # List of Logger objects
         loggers = self.loggers
         for logger in loggers:
             logger.log_metrics({"foo": 1.0})
@@ -1111,11 +1111,6 @@ Set and access example_input_array, which basically represents a single batch.
     def on_train_epoch_end(self):
         # generate some images using the example_input_array
         gen_images = self.generator(self.example_input_array)
-
-model_size
-~~~~~~~~~~
-
-Get the model file size (in megabytes) using ``self.model_size`` inside LightningModule.
 
 truncated_bptt_steps
 ~~~~~~~~~~~~~~~~~~~~
