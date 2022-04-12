@@ -190,14 +190,14 @@ The following are best practices when using/designing callbacks.
 -----------
 
 
-Registering Callbacks Through Entry Points
-------------------------------------------
+Entry Points
+------------
 
 Lightning supports registering Trainer callbacks directly through
 `Entry Points <https://setuptools.pypa.io/en/latest/userguide/entry_point.html>`_. Entry points allow an arbitrary
 package to *install* callbacks that the Lightning Trainer can automatically use, without you having to add them
-to the Trainer manually. This is useful in production environments where it is common to have specialized monitoring
-and logging callbacks.
+to the Trainer manually. This is useful in production environments where it is common to provide specialized monitoring
+and logging callbacks globally for every application.
 
 Here is a callback factory function that returns two special callbacks:
 
@@ -207,7 +207,7 @@ Here is a callback factory function that returns two special callbacks:
     def my_callbacks_factory():
         return [MyCallback1(), MyCallback2()]
 
-If we make this `factories.py` file into an installable package, we can define an *entry point* for this factory function.
+If we make this `factories.py` file into an installable package, we can define an **entry point** for this factory function.
 Here is a minimal example of the `setup.py` file for the package `my-package`:
 
 .. code-block:: python
@@ -226,12 +226,14 @@ Here is a minimal example of the `setup.py` file for the package `my-package`:
         },
     )
 
-The group name for the entry points is `pytorch_lightning.callbacks_factory` and it contains a list of strings that
+The group name for the entry points is ``pytorch_lightning.callbacks_factory`` and it contains a list of strings that
 specify where to find the function within the package.
 
-Now, if you ``pip install -e .`` this package it will register the ``my_callbacks_factory`` function and Lightning
-will call it to collect callbacks whenever you run the Trainer!
+Now, if you `pip install -e .` this package it will register the ``my_callbacks_factory`` function and Lightning
+will automatically call it to collect the callbacks whenever you run the Trainer!
 
+
+-----------
 
 .. _callback_hooks:
 
