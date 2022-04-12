@@ -80,8 +80,7 @@ class PredictionLoop(DataLoaderLoop):
             self.dataloader_progress.reset_on_run()
 
     def on_run_start(self) -> None:  # type: ignore[override]
-        """Calls ``_on_predict_model_eval``, ``_on_predict_start`` and ``_on_predict_epoch_start``
-        hooks."""
+        """Calls ``_on_predict_model_eval``, ``_on_predict_start`` and ``_on_predict_epoch_start`` hooks."""
         self._on_predict_model_eval()
         self.trainer.lightning_module.zero_grad()
         self._on_predict_start()
