@@ -241,7 +241,8 @@ class CallbackConnector:
         The entry points are expected to be functions returning a list of callbacks, which will be added to the Trainer
         callback list.
         """
-        factories = importlib.metadata.entry_points()["pytorch_lightning.callbacks_factory"]
+        factories = importlib.metadata.entry_points().get("pytorch_lightning.callbacks_factory", ())
+
         for factory in factories:
             callbacks_list: List[Callback] = factory.load()()
             if not isinstance(callbacks_list, list):
