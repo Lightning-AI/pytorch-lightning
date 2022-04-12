@@ -73,9 +73,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # the config used in '.azure-pipelines/gpu-tests.yml'
-        python_version: ["3.7"]
-        pytorch_version: ["1.8"]
+        include:
+          # the config used in '.azure-pipelines/gpu-tests.yml'
+          - {python_version: "3.7", pytorch_version: "1.8"}
+          - {python_version: "3.9", pytorch_version: "1.10"}
     steps:
       - name: Checkout
         uses: actions/checkout@v2

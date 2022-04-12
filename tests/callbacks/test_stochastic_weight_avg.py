@@ -178,7 +178,7 @@ def test_swa_callback_scheduler_step(tmpdir, interval: str):
 
 def test_swa_warns(tmpdir, caplog):
     model = SwaTestModel(interval="step")
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=StochasticWeightAveraging())
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=StochasticWeightAveraging(swa_lrs=1e-2))
     with caplog.at_level(level=logging.INFO), pytest.warns(UserWarning, match="SWA is currently only supported"):
         trainer.fit(model)
     assert "Swapping scheduler `StepLR` for `SWALR`" in caplog.text
@@ -211,7 +211,7 @@ def test_swa_deepcopy(tmpdir):
             self.setup_called = True
 
     model = BoringModel()
-    swa = TestSWA()
+    swa = TestSWA(swa_lrs=1e-2)
     trainer = Trainer(default_root_dir=tmpdir, callbacks=swa, fast_dev_run=True)
     trainer.fit(model, train_dataloaders=DataLoader(RandomDataset(32, 2)))
     assert swa.setup_called

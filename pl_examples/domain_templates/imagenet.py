@@ -20,7 +20,7 @@ Train on ImageNet with default parameters:
 
 .. code-block: bash
 
-    python imagenet.py fit --data_path /path/to/imagenet
+    python imagenet.py fit --model.data_path /path/to/imagenet
 
 or show all options you can change:
 
