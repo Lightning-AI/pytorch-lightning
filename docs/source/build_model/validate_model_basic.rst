@@ -106,7 +106,7 @@ To add a validation loop, implement the **validation_step** method of the Lightn
             z = self.encoder(x)
             x_hat = self.decoder(z)
             test_loss = F.mse_loss(x_hat, x)
-            self.log('test_loss', test_loss)
+            self.log('val_loss', test_loss)
 
 ----
 
