@@ -34,6 +34,7 @@ jobs:
 
     - bash: |
         pip install . --requirement requirements/test.txt
+        pip install --requirement requirements/extra.txt
       displayName: 'Install dependencies'
 
     - bash: |
