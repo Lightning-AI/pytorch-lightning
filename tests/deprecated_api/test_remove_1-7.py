@@ -20,7 +20,6 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-import pytorch_lightning
 from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
@@ -33,7 +32,6 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.strategies import SingleDeviceStrategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
