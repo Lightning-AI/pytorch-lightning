@@ -88,6 +88,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated `terminate_on_nan` argument from the `Trainer` constructor ([#12553](https://github.com/PyTorchLightning/pytorch-lightning/pull/12553))
 
 
+- Remove deprecated `pytorch_lightning.callbacks.progress.progress` ([#12658](https://github.com/PyTorchLightning/pytorch-lightning/pull/12658))
+
+
 - Removed the deprecated `train_transforms` argument from the `LightningDataModule` constructor([#12662](https://github.com/PyTorchLightning/pytorch-lightning/pull/12662))
 
 
@@ -98,6 +101,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed deprecated `GPUStatsMonitor` callback ([#12554](https://github.com/PyTorchLightning/pytorch-lightning/pull/12554))
+
+
+- Removed support for passing strategy names or strategy classes to the accelerator Trainer argument ([#12696](https://github.com/PyTorchLightning/pytorch-lightning/pull/12696))
 
 
 ### Fixed
@@ -120,7 +126,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Don't raise a warning when `nn.Module` is not saved under hparams ([#12669](https://github.com/PyTorchLightning/pytorch-lightning/pull/12669))
 
 
--
+- Raise `MisconfigurationException` when the accelerator is available but the user passes invalid `([]/0/"0")` values to the `devices` flag ([#12708](https://github.com/PyTorchLightning/pytorch-lightning/pull/12708))
 
 
 ## [1.6.0] - 2022-03-29
