@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import importlib.metadata
 import os
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Union
-import importlib.metadata
 
 from pytorch_lightning.callbacks import (
     Callback,
@@ -238,8 +238,8 @@ class CallbackConnector:
     def _configure_external_callbacks(self) -> None:
         """Add external callbacks registered through entry points.
 
-        The entry points are expected to be functions returning a list of callbacks, which will be added to the
-        Trainer callback list.
+        The entry points are expected to be functions returning a list of callbacks, which will be added to the Trainer
+        callback list.
         """
         factories = importlib.metadata.entry_points()["pytorch_lightning.callbacks_factory"]
         for factory in factories:
