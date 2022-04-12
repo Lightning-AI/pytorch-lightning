@@ -34,7 +34,6 @@ __all__ = [
     "Callback",
     "DeviceStatsMonitor",
     "EarlyStopping",
-    "XLAStatsMonitor",
     "GradientAccumulationScheduler",
     "LambdaCallback",
     "LearningRateMonitor",
