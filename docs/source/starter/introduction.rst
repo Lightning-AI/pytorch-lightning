@@ -205,11 +205,10 @@ The Lightning :doc:`Trainer <../common/trainer>` automates `40+ tricks <../commo
 
 ----
 
-****************************
-5: Modify Trainer parameters
-****************************
-
-Training tips/tricks, custom cluster integrations or even the latest SOTA techniques can be enabled via the Lightning Trainer.
+***************************
+5: Enable training features
+***************************
+Enable advanced training features using Trainer arguments. These are SOTA techniques that are automatically integrated into your training loop without changes to your code.
 
 .. code::
 
