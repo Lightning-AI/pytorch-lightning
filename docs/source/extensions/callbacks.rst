@@ -105,7 +105,7 @@ Lightning has a few built-in callbacks.
     StochasticWeightAveraging
     Timer
     TQDMProgressBar
-    
+
 ----------
 
 .. _Persisting Callback State:
