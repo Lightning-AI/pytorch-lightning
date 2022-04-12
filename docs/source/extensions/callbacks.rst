@@ -229,7 +229,7 @@ Here is a minimal example of the `setup.py` file for the package `my-package`:
 The group name for the entry points is ``pytorch_lightning.callbacks_factory`` and it contains a list of strings that
 specify where to find the function within the package.
 
-Now, if you `pip install -e .` this package it will register the ``my_callbacks_factory`` function and Lightning
+Now, if you `pip install -e .` this package, it will register the ``my_callbacks_factory`` function and Lightning
 will automatically call it to collect the callbacks whenever you run the Trainer!
 
 
