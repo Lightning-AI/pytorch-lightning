@@ -330,12 +330,6 @@ def test_unsupported_strategy_types_on_cpu(strategy):
     assert isinstance(trainer.strategy, DDPStrategy)
 
 
-def test_exception_when_strategy_used_with_plugins():
-    with pytest.raises(MisconfigurationException, match="only specify one strategy, but you have passed"):
-        with pytest.deprecated_call(match=r"`strategy` to the `plugins` flag in Trainer has been deprecated"):
-            Trainer(plugins="ddp_find_unused_parameters_false", strategy="ddp_spawn")
-
-
 def test_exception_invalid_strategy():
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp_cpu'\)` is not a valid"):
         Trainer(strategy="ddp_cpu")
