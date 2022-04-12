@@ -22,7 +22,7 @@ from argparse import ArgumentParser, Namespace
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Type, Union
 from weakref import proxy
 
 import torch
@@ -81,7 +81,6 @@ from pytorch_lightning.utilities import (
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
     AMPType,
-    device_parser,
     GradClipAlgorithmType,
     parsing,
 )
@@ -225,7 +224,7 @@ class Trainer(
                 a power search or `binsearch` that estimates the batch size through a binary search.
                 Default: ``False``.
 
-            auto_select_gpus: If enabled and ``gpus`` is an integer, pick available
+            auto_select_gpus: If enabled and ``gpus`` or ``devices`` is an integer, pick available
                 gpus automatically. This is especially useful when
                 GPUs are configured to be in "exclusive mode", such
                 that only one process at a time can access them.
@@ -478,8 +477,6 @@ class Trainer(
         log.detail(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
         self.state = TrainerState()
 
-        gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
-
         # init connectors
         self._data_connector = DataConnector(self, multiple_trainloader_mode)
 
@@ -491,12 +488,12 @@ class Trainer(
             accelerator=accelerator,
             strategy=strategy,
             gpus=gpus,
-            gpu_ids=gpu_ids,
             num_nodes=num_nodes,
             sync_batchnorm=sync_batchnorm,
             benchmark=benchmark,
             replace_sampler_ddp=replace_sampler_ddp,
             deterministic=deterministic,
+            auto_select_gpus=auto_select_gpus,
             precision=precision,
             amp_type=amp_backend,
             amp_level=amp_level,
@@ -1769,14 +1766,6 @@ class Trainer(
         pl_module._current_fx_name = prev_fx_name
 
         return output
-
-    @staticmethod
-    def _parse_devices(
-        gpus: Optional[Union[List[int], str, int]],
-        auto_select_gpus: bool,
-        tpu_cores: Optional[Union[List[int], str, int]],
-    ) -> Tuple[Optional[List[int]], Optional[Union[List[int], int]]]:
-        return device_parser._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
     @staticmethod
     def _log_api_event(event: str) -> None:
