@@ -26,7 +26,7 @@ def pick_multiple_gpus(nb: int) -> List[int]:
     """
     if nb == 0:
         raise MisconfigurationException(
-            "auto_select_gpus=True, gpus/devices=0 is not a valid configuration."
+            "auto_select_gpus=True, gpus=0 is not a valid configuration."
             " Please select a valid number of GPU resources when using auto_select_gpus."
         )
 
