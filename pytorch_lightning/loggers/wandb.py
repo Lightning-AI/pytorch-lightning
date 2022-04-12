@@ -24,7 +24,7 @@ from weakref import ReferenceType
 import torch.nn as nn
 
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
+from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _WANDB_GREATER_EQUAL_0_10_22, _WANDB_GREATER_EQUAL_0_12_10
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _sanitize_callable_params
@@ -38,7 +38,7 @@ except ModuleNotFoundError:
     wandb, Run = None, None
 
 
-class WandbLogger(LightningLoggerBase):
+class WandbLogger(Logger):
     r"""
     Log using `Weights and Biases <https://docs.wandb.ai/integrations/lightning>`_.
 
