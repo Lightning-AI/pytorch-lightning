@@ -163,7 +163,7 @@ def test_validation_check_interval_exceed_data_length_correct(tmpdir, use_infini
     data_samples_val = 1
 
     if use_infinite_dataset:
-        train_ds = RandomIterableDataset(size=batch_size, count=2_400_000_000)  # approx inf
+        train_ds = RandomIterableDataset(size=batch_size, count=10_000)  # approx inf
     else:
         train_ds = RandomDataset(size=batch_size, length=data_samples_train)
 
