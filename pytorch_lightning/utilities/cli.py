@@ -105,6 +105,7 @@ class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
         self.monitor = monitor
 
 
+# LightningCLI requires the ReduceLROnPlateau defined here, thus it shouldn't accept the one from pytorch:
 LRSchedulerTypeTuple = (torch.optim.lr_scheduler._LRScheduler, ReduceLROnPlateau)
 LRSchedulerTypeUnion = Union[torch.optim.lr_scheduler._LRScheduler, ReduceLROnPlateau]
 LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[ReduceLROnPlateau]]
@@ -137,9 +138,6 @@ def _populate_registries(subclasses: bool) -> None:
 
 class LightningArgumentParser(ArgumentParser):
     """Extension of jsonargparse's ArgumentParser for pytorch-lightning."""
-
-    # use class attribute because `parse_args` is only called on the main parser
-    _choices: Dict[str, Tuple[Tuple[Type, ...], bool]] = {}
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize argument parser that supports configuration file input.
