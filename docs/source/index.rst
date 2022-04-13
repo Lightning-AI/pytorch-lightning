@@ -205,6 +205,7 @@ Current Lightning Users
    clouds/cluster
    common/console_logs
    common/debugging
+   build_model/build_model.rst
    deploy/production
    common/early_stopping
    advanced/training_tricks
@@ -223,7 +224,6 @@ Current Lightning Users
    advanced/strategy_registry
    visualize_experiments/loggers
    advanced/transfer_learning
-   build_model/build_model.rst
 
 .. toctree::
    :maxdepth: 1
