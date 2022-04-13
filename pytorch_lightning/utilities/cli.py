@@ -33,11 +33,12 @@ from pytorch_lightning.utilities.imports import _JSONARGPARSE_AVAILABLE
 from pytorch_lightning.utilities.meta import get_all_subclasses
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_warn
-from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple, LRSchedulerTypeUnion
 
 if _JSONARGPARSE_AVAILABLE:
     from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, Namespace, set_config_read_mode
     from jsonargparse.optionals import import_docstring_parse
+    from jsonargparse.typehints import get_all_subclass_paths
+    from jsonargparse.util import import_object
 
     set_config_read_mode(fsspec_enabled=True)
 else:
@@ -102,6 +103,11 @@ class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
     def __init__(self, optimizer: Optimizer, monitor: str, *args: Any, **kwargs: Any) -> None:
         super().__init__(optimizer, *args, **kwargs)
         self.monitor = monitor
+
+
+LRSchedulerTypeTuple = (torch.optim.lr_scheduler._LRScheduler, ReduceLROnPlateau)
+LRSchedulerTypeUnion = Union[torch.optim.lr_scheduler._LRScheduler, ReduceLROnPlateau]
+LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[ReduceLROnPlateau]]
 
 
 def _populate_registries(subclasses: bool) -> None:
@@ -251,27 +257,12 @@ class LightningArgumentParser(ArgumentParser):
 
     def parse_args(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
         argv = sys.argv
-        for k, v in self._choices.items():
-            if not any(arg.startswith(f"--{k}") for arg in argv):
-                # the key wasn't passed - maybe defined in a config, maybe it's optional
-                continue
-            classes, is_list = v
-            # knowing whether the argument is a list type automatically would be too complex
-            if is_list:
-                argv = self._convert_argv_issue_85(classes, k, argv)
-        self._choices.clear()
+        nested_key = "trainer.callbacks"
+        if any(arg.startswith(f"--{nested_key}") for arg in argv):
+            classes = tuple(import_object(x) for x in get_all_subclass_paths(Callback))
+            argv = self._convert_argv_issue_85(classes, nested_key, argv)
         with mock.patch("sys.argv", argv):
             return super().parse_args(*args, **kwargs)
-
-    def set_choices(self, nested_key: str, classes: Tuple[Type, ...], is_list: bool = False) -> None:
-        """Adds support for shorthand notation for a particular nested key.
-
-        Args:
-            nested_key: The key whose choices will be set.
-            classes: A tuple of classes to choose from.
-            is_list: Whether the argument is a ``List[object]`` type.
-        """
-        self._choices[nested_key] = (classes, is_list)
 
     @staticmethod
     def _convert_argv_issue_85(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> List[str]:
@@ -534,7 +525,6 @@ class LightningCLI:
     def add_core_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         """Adds arguments from the core classes to the parser."""
         parser.add_lightning_class_args(self.trainer_class, "trainer")
-        parser.set_choices("trainer.callbacks", CALLBACK_REGISTRY.classes, is_list=True)
         trainer_defaults = {"trainer." + k: v for k, v in self.trainer_defaults.items() if k != "callbacks"}
         parser.set_defaults(trainer_defaults)
 
