@@ -56,8 +56,9 @@
     mock_argv.stop()
 
 
-Lightning CLI and config files
-------------------------------
+----------------------------
+Eliminate config boilerplate
+----------------------------
 
 Another source of boilerplate code that Lightning can help to reduce is in the implementation of command line tools.
 Furthermore, it provides a standardized way to configure experiments using a single file that includes settings for

@@ -1,6 +1,6 @@
-##########################
-Level 10: Tune your models
-##########################
+###########################################
+Level 11: Organize your models and datasets
+###########################################
 
 .. raw:: html
 
@@ -9,9 +9,8 @@ Level 10: Tune your models
 
 .. Add callout items below this line
 
-tuning/profiler_intermediate.html
-common/hyperparameters.html
-clouds/run_intermediate.html
+common/lightning_cli.html
+extensions/datamodules.html?highlight=datamodules
 
 .. displayitem::
    :header: 

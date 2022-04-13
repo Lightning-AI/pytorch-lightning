@@ -1,7 +1,8 @@
 .. _Persisting Callback State:
 
+*******************
 Save Callback state
-===================
+*******************
 
 Some callbacks require internal state in order to function properly. You can optionally
 choose to persist your callback's state as part of model checkpoint files using

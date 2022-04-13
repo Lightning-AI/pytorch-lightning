@@ -1,6 +1,6 @@
-##########################
-Level 10: Tune your models
-##########################
+#######################################
+Level 18: Add new hardware-accelerators
+#######################################
 
 .. raw:: html
 
@@ -8,10 +8,6 @@ Level 10: Tune your models
         <div class="row">
 
 .. Add callout items below this line
-
-tuning/profiler_intermediate.html
-common/hyperparameters.html
-clouds/run_intermediate.html
 
 .. displayitem::
    :header: 
