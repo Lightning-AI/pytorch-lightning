@@ -154,5 +154,4 @@ class PredictionLoop(DataLoaderLoop):
 
     def _on_predict_model_eval(self) -> None:
         """Calls ``on_predict_model_eval`` hook."""
-        model_ref = self.trainer.lightning_module
-        model_ref.on_predict_model_eval()
+        self.trainer._call_lightning_module_hook("on_predict_model_eval")
