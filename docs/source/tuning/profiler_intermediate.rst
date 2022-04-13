@@ -1,8 +1,8 @@
 .. _profiler:
 
-########################
-Profiling (Intermediate)
-########################
+############################################
+Find bottlenecks in your code (intermediate)
+############################################
 **Audience**: Users who want to see more granular profiling information
 
 ----

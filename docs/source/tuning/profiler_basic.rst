@@ -1,8 +1,9 @@
 .. _profiler:
 
-#########
-Profiling
-#########
+#####################################
+Find bottlenecks in your code (basic)
+#####################################
+**Audience**: Users who want to learn the basics of removing bottlenecks from their code
 
 ----
 

@@ -1,9 +1,11 @@
 .. _profiler:
 
-#########
-Profiling
-#########
+######################################
+Find bottlenecks in your code (expert)
+######################################
+**Audience**: Users who want to build their own profilers.
 
+----
 
 ***********************
 Build your own profiler

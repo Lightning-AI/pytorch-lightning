@@ -86,9 +86,9 @@ On larger datasets like Imagenet, this can help you debug or test a few things f
 
 ----
 
-***********************
-Validation Sanity Check
-***********************
+******************
+Run a Sanity Check
+******************
 Lightning runs **2** steps of validation in the beginning of training.
 This avoids crashing in the validation loop sometime deep into a lengthy training loop.
 
