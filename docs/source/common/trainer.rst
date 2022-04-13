@@ -696,7 +696,7 @@ impact to subsequent runs. Here are the key differences:
 - Sets ``Trainer(check_every_n_epoch=1)``.
 - Disables all loggers.
 - Disables passing logged metrics to loggers.
-- The ``ModelCheckpoint`` callback will not save checkpoints.
+- The ``ModelCheckpoint`` callbacks will not trigger.
 - Early stopping will not trigger.
 - Sets ``limit_{train,val,test,predict}_batches`` to 1 or the number passed.
 - Disables the Tuner.
