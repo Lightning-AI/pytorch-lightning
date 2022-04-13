@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import importlib.metadata
+import logging
 import os
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Union
@@ -30,6 +31,9 @@ from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities.enums import ModelSummaryMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
+
+
+_log = logging.getLogger(__name__)
 
 
 class CallbackConnector:
@@ -255,6 +259,10 @@ class CallbackConnector:
                     f"The entry point '{factory.name}' is expected to return a list of callbacks, but at least one"
                     " callack was not an instance of `pytorch_lightning.callbacks.Callback`."
                 )
+            _log.info(
+                f"Adding {len(callbacks_list)} callbacks from entry point '{factory.name}':"
+                f" {', '.join(type(cb).__name__ for cb in callbacks_list)}"
+            )
             self.trainer.callbacks.extend(callbacks_list)
 
     def _attach_model_logging_functions(self):
