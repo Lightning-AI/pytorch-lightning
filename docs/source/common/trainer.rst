@@ -438,7 +438,7 @@ benchmark
 |
 
 Defaults to ``True`` if :paramref:`~pytorch_lightning.trainer.Trainer.deterministic` is not set.
-This flag sets the ``torch.backends.cudnn.deterministic`` flag. You can read more about its impact
+This flag sets the ``torch.backends.cudnn.benchmark`` flag. You can read more about its impact
 `here <https://pytorch.org/docs/stable/notes/randomness.html#cuda-convolution-benchmarking>`__
 
 This is likely to increase the speed of your system if your input sizes don't change. However, if they do, then it
@@ -464,12 +464,11 @@ deterministic
 
 |
 
-If true enables cudnn.deterministic.
+This flag sets the ``torch.backends.cudnn.deterministic`` flag.
 Might make your system slower, but ensures reproducibility.
 Also sets ``$HOROVOD_FUSION_THRESHOLD=0``.
 
-For more info check `[pytorch docs]
-<https://pytorch.org/docs/stable/notes/randomness.html>`_.
+For more info check `PyTorch docs <https://pytorch.org/docs/stable/notes/randomness.html>`_.
 
 Example::
 

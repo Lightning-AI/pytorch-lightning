@@ -170,6 +170,24 @@ The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method has a f
      - False
      - True
 
+
+.. note::
+
+    While logging tensor metrics with ``on_epoch=True`` inside step-level hooks and using mean-reduction (default) to accumulate the metrics across the current epoch, Lightning tries to extract the
+    batch size from the current batch. If multiple possible batch sizes are found, a warning is logged and if it fails to extract the batch size from the current batch, which is possible if
+    the batch is a custom structure/collection, then an error is raised. To avoid this, you can specify the ``batch_size`` inside the ``self.log(... batch_size=batch_size)`` call.
+
+    .. code-block:: python
+
+        def training_step(self, batch, batch_idx):
+            # extracts the batch size from `batch`
+            self.log("train_loss", loss, on_epoch=True)
+
+
+        def validation_step(self, batch, batch_idx):
+            # uses `batch_size=10`
+            self.log("val_loss", loss, batch_size=10)
+
 .. note::
 
     - The above config for ``validation`` applies for ``test`` hooks as well.
