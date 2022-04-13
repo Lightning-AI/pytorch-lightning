@@ -52,7 +52,7 @@ class DeprecatedEnumMeta(EnumMeta):
     def __getattribute__(cls, name: str) -> Any:
         obj = super().__getattribute__(name)
         # ignore __dunder__ names -- prevents potential recursion errors
-        if not (name.startswith('__') and name.endswith('__')) and isinstance(obj, Enum):
+        if not (name.startswith("__") and name.endswith("__")) and isinstance(obj, Enum):
             obj.deprecate()
         return obj
 
@@ -69,7 +69,8 @@ class DeprecatedEnumMeta(EnumMeta):
 
 
 class DeprecatedEnum(LightningEnum, metaclass=DeprecatedEnumMeta):
-    """DeprecatedEnum calls an enum's `deprecate()` method on member access"""
+    """DeprecatedEnum calls an enum's `deprecate()` method on member access."""
+
     pass
 
 
