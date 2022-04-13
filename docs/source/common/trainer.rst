@@ -686,8 +686,8 @@ should not be used to limit the number of batches to run.
     trainer = Trainer(fast_dev_run=7)
     trainer.predict(...)
 
-This argument is a different from ``limit_{train,val,test,predict}_batches`` because side effects are avoided to reduce the
-impact to subsequent runs. Here are the key differences:
+This argument is different from ``limit_{train,val,test,predict}_batches`` because side effects are avoided to reduce the
+impact to subsequent runs. These are the changes enabled:
 
 - Sets ``Trainer(max_epochs=1)``.
 - Sets ``Trainer(max_steps=...)`` to 1 or the number passed.
