@@ -13,25 +13,24 @@
 # limitations under the License.
 
 import os
+import sys
 
 import torch
 from torch import nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, random_split
-from torchvision.datasets import MNIST
 from torchvision import transforms
-import pytorch_lightning as pl
-import sys
+from torchvision.datasets import MNIST
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities import _HPU_AVAILABLE
 
+
 class ConvolutionOnHPU(pl.LightningModule):
-
     def __init__(self):
-        super(ConvolutionOnHPU, self).__init__()
+        super().__init__()
 
-        self.conv1 = torch.nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1,
-                               bias=False)
+        self.conv1 = torch.nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1, bias=False)
         self.l1 = torch.nn.Linear(28 * 28 * 16, 10)
 
     def forward(self, x):
@@ -84,6 +83,7 @@ trainer = pl.Trainer(accelerator="hpu", max_epochs=1)
 if _HPU_AVAILABLE:
     # Gaudi HW performs convolution operations with filter (weights) in filters last format
     from pytorch_lightning.utilities.hpu_device import HPUDeviceUtils
+
     HPUDeviceUtils.permute_params(model, True)
 
 # Train the model ⚡

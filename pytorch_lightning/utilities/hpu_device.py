@@ -13,8 +13,10 @@
 # limitations under the License.
 
 import torch
-import pytorch_lightning as pl
 from torch.optim.optimizer import Optimizer
+
+import pytorch_lightning as pl
+
 
 class HPUDeviceUtils:
     """HPU helpers."""
@@ -26,30 +28,31 @@ class HPUDeviceUtils:
     # Therefore a re-ordering/permutation of all the convolution weights from KCRS to RSCK format is required
     # before convolution operations
     def permute_params(model: "pl.LightningModule", to_filters_last: bool) -> None:
-        """ permute the params from filters first (KCRS) to filters last(RSCK) or vice versa.
-            and permute from RSCK to KCRS is used for checkpoint saving"""
+        """permute the params from filters first (KCRS) to filters last(RSCK) or vice versa.
+
+        and permute from RSCK to KCRS is used for checkpoint saving
+        """
         with torch.no_grad():
             for name, param in model.named_parameters():
-                if(param.ndim == 4):
+                if param.ndim == 4:
                     if to_filters_last:
                         param.data = param.data.permute((2, 3, 1, 0))
                     else:
                         param.data = param.data.permute((3, 2, 0, 1))  # permute RSCK to KCRS
 
-
     @staticmethod
     # permute the momentum from filters first (KCRS) to filters last(RSCK) or vice versa.
     # and permute from RSCK to KCRS is used for checkpoint saving
     def permute_momentum(optimizer: Optimizer, to_filters_last: bool) -> None:
-        """ Permute the momentum buffer before using for checkpoint """
+        """Permute the momentum buffer before using for checkpoint."""
         for group in optimizer.param_groups:
-            for p in group['params']:
+            for p in group["params"]:
                 param_state = optimizer.state[p]
-                if 'momentum_buffer' in param_state:
-                    buf = param_state['momentum_buffer']
-                    if(buf.ndim == 4):
+                if "momentum_buffer" in param_state:
+                    buf = param_state["momentum_buffer"]
+                    if buf.ndim == 4:
                         if to_filters_last:
-                            buf = buf.permute((2,3,1,0))
+                            buf = buf.permute((2, 3, 1, 0))
                         else:
-                            buf = buf.permute((3,2,0,1))
-                        param_state['momentum_buffer'] = buf
+                            buf = buf.permute((3, 2, 0, 1))
+                        param_state["momentum_buffer"] = buf

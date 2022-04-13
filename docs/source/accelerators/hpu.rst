@@ -147,6 +147,7 @@ The subsequent snippet showcases the methodology to do the param permutes when u
 
     # Gaudi HW performs convolution operations with filter (weights) in filters last format
     from pytorch_lightning.utilities.hpu_device import HPUDeviceUtils
+
     HPUDeviceUtils.permute_params(model, True)
 
     # Train the model ⚡
