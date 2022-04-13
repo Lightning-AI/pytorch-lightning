@@ -18,7 +18,7 @@ Checkpointing
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Save and restore model progress
+   :header: Basic
    :description: Learn to save and load checkpoints
    :col_css: col-md-3
    :button_link: checkpointing_basic.html
@@ -26,7 +26,7 @@ Checkpointing
    :tag: basic
 
 .. displayitem::
-   :header: Control checkpointing rules
+   :header: Intermediate
    :description: Customize checkpointing behavior
    :col_css: col-md-3
    :button_link: checkpointing_intermediate.html
@@ -34,7 +34,7 @@ Checkpointing
    :tag: intermediate
 
 .. displayitem::
-   :header: Save checkpoints to the cloud
+   :header: Advanced
    :description: Enable cloud-based checkpointing and composable checkpoints.
    :col_css: col-md-3
    :button_link: checkpointing_advanced.html
@@ -42,7 +42,7 @@ Checkpointing
    :tag: advanced
 
 .. displayitem::
-   :header: Modify how checkpoints are saved
+   :header: Expert
    :description: Customize checkpointing for custom distributed strategies and accelerators.
    :col_css: col-md-3
    :button_link: checkpointing_expert.html

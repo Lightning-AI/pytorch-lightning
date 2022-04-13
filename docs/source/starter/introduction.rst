@@ -5,7 +5,7 @@ Lightning in 15 minutes
 #######################
 **Required background:** None   
 
-**Goal:** In this guide, we'll walk you through the 8 key steps of a typical Lightning workflow.
+**Goal:** In this guide, we'll walk you through the 7 key steps of a typical Lightning workflow.
 
 PyTorch Lightning is the deep learning framework with "batteries included" for professional AI researchers and machine learning engineers who need maximal flexibility while super-charging performance at scale.
 
@@ -69,7 +69,7 @@ By organizing PyTorch code, lightning enables:
 ****************************
 .. raw:: html
 
-   <div class="row" style='font-size: 12px'>
+   <div class="row" style='font-size: 16px'>
       <div class='col-md-6'>
 
 For `pip <https://pypi.org/project/pytorch-lightning/>`_ users
@@ -98,35 +98,7 @@ Or read the `advanced install guide <starter/installation.html>`_
 
 ----
 
-.. testsetup:: *
-
-    import os
-    import torch
-    from torch.nn import functional as F
-    from torch.utils.data import DataLoader
-    from torch.utils.data import random_split
-    import pytorch_lightning as pl
-    from pytorch_lightning.core.datamodule import LightningDataModule
-    from pytorch_lightning.core.lightning import LightningModule
-    from pytorch_lightning.trainer.trainer import Trainer
-
-.. _new_project:
-
-Import the following:
-
-.. testcode::
-    :skipif: not _TORCHVISION_AVAILABLE
-
-    import os
-    import torch
-    from torch import nn
-    import torch.nn.functional as F
-    from torchvision import transforms
-    from torchvision.datasets import MNIST
-    from torch.utils.data import DataLoader, random_split
-    import pytorch_lightning as pl
-
-----
+.. _new_project: 
 
 ***************************
 2: Define a LightningModule
@@ -135,6 +107,11 @@ Import the following:
 A LightningModule enables your PyTorch nn.Module to play together in complex ways inside the training_step (there is also an optional validation_step and test_step).
 
 .. testcode::
+
+    import os
+    from torch import optim, nn, utils, Tensor
+    from tests.helpers.datasets import MNIST
+    import pytorch_lightning as pl
 
     # define any number of nn.Modules (or use your current ones)
     encoder = nn.Sequential(nn.Linear(28 * 28, 64), nn.ReLU(), nn.Linear(64, 3))
@@ -154,13 +131,13 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
             x = x.view(x.size(0), -1)
             z = self.encoder(x)
             x_hat = self.decoder(z)
-            loss = F.mse_loss(x_hat, x)
+            loss = nn.functional.mse_loss(x_hat, x)
             # Logging to TensorBoard by default
             self.log("train_loss", loss)
             return loss
 
         def configure_optimizers(self):
-            optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+            optimizer = optim.Adam(self.parameters(), lr=1e-3)
             return optimizer
     
     # init the autoencoder
@@ -176,20 +153,22 @@ Lightning supports ANY iterable (:class:`~torch.utils.data.DataLoader`, numpy, e
 
 .. code-block:: python
 
-    dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
-    train_loader = DataLoader(dataset)
+    # setup data
+    dataset = MNIST(os.getcwd(), download=True)
+    train_loader = utils.data.DataLoader(dataset)
 
 ----
 
-**************************
-4: Start Lightning Trainer
-**************************
+******************
+4: Train the model
+******************
 
 The Lightning :doc:`Trainer <../common/trainer>` "mixes" any :doc:`LightningModule <../common/lightning_module>` with any dataset and abstracts away all the engineering complexity needed for scale.
 
 .. code-block:: python
 
-    trainer = pl.Trainer()
+    # train the model (hint: here are some helpful Trainer arguments for rapid idea iteration)
+    trainer = pl.Trainer(limit_train_batches=100, max_epochs=1)
     trainer.fit(model=autoencoder, train_dataloaders=train_loader)
 
 The Lightning :doc:`Trainer <../common/trainer>` automates `40+ tricks <../common/trainer.html#trainer-flags>`_ including:
@@ -205,12 +184,54 @@ The Lightning :doc:`Trainer <../common/trainer>` automates `40+ tricks <../commo
 
 ----
 
+
+****************
+5: Use the model
+****************
+Once you've trained the model you can export to onnx, torchscript and put it into production or simply load the weights and run predictions.
+
+.. code:: python
+
+    # load checkpoint
+    checkpoint = './lightning_logs/version_0/checkpoints/epoch=0-step=100.ckpt'
+    autoencoder = LitAutoEncoder.load_from_checkpoint(checkpoint)
+
+    # choose your trained nn.Module
+    encoder = autoencoder.encoder
+    encoder.eval()
+
+    # embed 4 fake images!
+    fake_image_batch = Tensor(4, 28*28)
+    embeddings = encoder(fake_image_batch)
+    print('⚡'*20, '\nPredictions (4 image embeddings):\n', embeddings, '\n', '⚡'*20)
+
+----
+
+*********************
+6: Visualize training
+*********************
+Lightning comes with a *lot* of batteries included. A helpful one is Tensorboard for visualizing experiments.
+
+Run this on your commandline and open your browser to **http://localhost:6006/**
+
+.. code:: bash
+
+    tensorboard --logdir .
+
+----
+
 ***********************
-5: Supercharge training
+7: Supercharge training
 ***********************
-Enable advanced training features using Trainer arguments. These are SOTA techniques that are automatically integrated into your training loop without changes to your code.
+Enable advanced training features using Trainer arguments. These are state-of-the-art techniques that are automatically integrated into your training loop without changes to your code.
 
 .. code::
+
+   # train on 4 GPUs
+   trainer = Trainer(
+       devices=4, 
+       accelerator="gpu", 
+    )
 
    # train 1TB+ parameter models with Deepspeed/fsdp
    trainer = Trainer(
@@ -232,9 +253,17 @@ Enable advanced training features using Trainer arguments. These are SOTA techni
 
 ----
 
-**************************
-6: Customize training loop
-**************************
+********************
+Maximize flexibility
+********************
+Lightning's core guiding principle is to always provide maximal flexibility **without ever hiding any of the PyTorch**. 
+
+Lightning offers 5 *added* degrees of flexibility depending on your project's complexity.
+
+----
+
+Customize training loop
+=======================
 
 .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/custom_loop.png
     :width: 600
@@ -250,9 +279,8 @@ Inject custom code anywhere in the Training loop using any of the 20+ methods (:
 
 ----
 
-*********************
-7: Extend the Trainer
-*********************
+Extend the Trainer
+==================
 
 .. raw:: html
 
@@ -267,9 +295,8 @@ If you have multiple lines of code with similar functionalities, you can use cal
 
 ----
 
-*************************
-8: Use a raw PyTorch loop
-*************************
+Use a raw PyTorch loop
+======================
 
 For certain types of work at the bleeding-edge of research, Lightning offers experts full control of their training loops in various ways.
 
@@ -314,10 +341,12 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
 
 .. End of callout item section
 
+----
 
 **********
 Next steps
 **********
+Depending on your use case, you might want to check one of these out next.
 
 .. raw:: html
 
@@ -327,27 +356,35 @@ Next steps
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 2: Use GPUs/TPUs
+   :header: Level 2: Use GPU/TPU
    :description: Learn how to make your models 10x faster with GPUs/TPUs and half-precision.
-   :col_css: col-md-4
+   :col_css: col-md-3
    :button_link: ../levels/core_level_2.html
-   :height: 150
+   :height: 180
    :tag: basic
 
 .. displayitem::
-   :header: I need to own my PyTorch Loop
-   :description: For expert researchers working on the bleeding-edge, Lightning Lite gives you full control.
-   :col_css: col-md-4
+   :header: See more examples
+   :description: See examples across computer vision, NLP, RL, etc...
+   :col_css: col-md-3
+   :button_link: ../levels/core_level_6.html
+   :height: 180
+   :tag: basic
+
+.. displayitem::
+   :header: I need my raw PyTorch Loop
+   :description: Expert-level control for researchers working on the bleeding-edge
+   :col_css: col-md-3
    :button_link: ../build_model/build_model_expert.html
-   :height: 150
+   :height: 180
    :tag: expert
 
 .. displayitem::
    :header: Deploy your model
    :description: Learn how to predict or put your model into production
-   :col_css: col-md-4
+   :col_css: col-md-3
    :button_link: ../levels/core_level_6.html
-   :height: 150
+   :height: 180
    :tag: basic
 
 .. raw:: html

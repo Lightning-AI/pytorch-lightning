@@ -11,7 +11,7 @@ Accelerator: IPU training
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Single and multi-IPU training
+   :header: Basic
    :description: Learn the basics of single and multi-IPU training.
    :col_css: col-md-4
    :button_link: ipu_basic.html
@@ -19,7 +19,7 @@ Accelerator: IPU training
    :tag: basic
 
 .. displayitem::
-   :header: Optimize IPU training
+   :header: Intermediate
    :description: Tune model performance with mix-precision settings and the performance analyser.
    :col_css: col-md-4
    :button_link: ipu_intermediate.html
@@ -27,7 +27,7 @@ Accelerator: IPU training
    :tag: intermediate
 
 .. displayitem::
-   :header: Enable massive model training
+   :header: Advanced
    :description: Learn advanced techniques to customize IPU training for massive models.
    :col_css: col-md-4
    :button_link: ipu_advanced.html

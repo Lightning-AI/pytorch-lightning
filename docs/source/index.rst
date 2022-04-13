@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to PyTorch Lightning
-============================
+Welcome to ⚡ PyTorch Lightning 
+==============================
 
 .. raw:: html
 
@@ -38,7 +38,7 @@ Install Lightning
 
 .. raw:: html
 
-   <div class="row" style='font-size: 12px'>
+   <div class="row" style='font-size: 16px'>
       <div class='col-md-6'>
 
 Pip users
@@ -69,8 +69,8 @@ Or read the `advanced install guide <starter/installation.html>`_
 
    <hr class="docutils" style="margin: 50px 0 50px 0">
 
-New to Lightning
-----------------
+Getting Started
+---------------
 
 .. raw:: html
 
@@ -80,7 +80,7 @@ New to Lightning
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Learn the 8 key steps of a typical Lightning workflow.
+   :description: Learn the 7 key steps of a typical Lightning workflow.
    :header: Lightning in 15 minutes
    :button_link:  starter/introduction.html
 
@@ -111,7 +111,7 @@ Current Lightning Users
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Learn Lightning at 4 levels of expertise: Introductory, intermediate, advanced and expert.
+   :description: Learn Lightning in small bites at 4 levels of expertise: Introductory, intermediate, advanced and expert.
    :header: Level Up!
    :button_link:  expertise_levels.html
 
@@ -122,16 +122,16 @@ Current Lightning Users
 
 .. customcalloutitem::
    :description: From NLP, Computer vision to RL and meta learning - see how to use Lightning in ALL research areas.
-   :header: Tutorials
+   :header: Hands-on Examples
    :button_link: tutorials.html
 
 .. customcalloutitem::
    :description: Learn how to do everything from hyperparameters sweeps to cloud training to Pruning and Quantization with Lightning.
-   :header: Conceptual Guides
+   :header: Concepts Glossary
    :button_link: common_usecases.html
 
 .. customcalloutitem::
-   :description: Convert your current code to Lightning.
+   :description: Convert your current code to Lightning
    :header: Convert code to PyTorch Lightning
    :button_link: starter/converting.html
 
@@ -205,18 +205,18 @@ Current Lightning Users
    clouds/cluster
    common/console_logs
    common/debugging
+   deploy/production
    common/early_stopping
    advanced/training_tricks
    common/evaluation
    visualize_experiments/experiment_managers
    advanced/fault_tolerant_training
+   tuning/profiler
    common/hyperparameters
-   common/production_inference
    common/lightning_cli
    advanced/model_parallel
    precision/precision
    common/optimization
-   advanced/profiler
    common/progress_bar
    advanced/pruning_quantization
    common/remote_fs

@@ -1,7 +1,8 @@
-.. _tpu:
+.. _debugging:
 
-Accelerator: TPU training
-=========================
+################
+Debug your model
+################
 
 .. raw:: html
 
@@ -12,29 +13,28 @@ Accelerator: TPU training
 
 .. displayitem::
    :header: Basic
-   :description: Learn the basics of single and multi-TPU core training.
+   :description: Learn the basics of model debugging.
    :col_css: col-md-4
-   :button_link: tpu_basic.html
+   :button_link: debugging_basic.html
    :height: 150
    :tag: basic
 
 .. displayitem::
    :header: Intermediate
-   :description: Scale massive models using cloud TPUs.
+   :description: Learn to debug machine learning operations
    :col_css: col-md-4
-   :button_link: tpu_intermediate.html
+   :button_link: debugging_intermediate.html
    :height: 150
    :tag: intermediate
 
 .. displayitem::
    :header: Advanced
-   :description: Dive into XLA and advanced techniques to optimize TPU-powered models.
+   :description: Learn to debug distributed models 
    :col_css: col-md-4
-   :button_link: tpu_advanced.html
+   :button_link: debugging_advanced.html
    :height: 150
    :tag: advanced
 
 .. raw:: html
 
         </div>
-    </div>

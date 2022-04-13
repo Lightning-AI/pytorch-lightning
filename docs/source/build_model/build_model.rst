@@ -2,6 +2,10 @@
 Train a model
 #############
 
+****************
+Learn the basics
+****************
+
 .. raw:: html
 
     <div class="display-card-container">
@@ -10,7 +14,7 @@ Train a model
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Train a model
+   :header: 1: Train a model
    :description: Build a model to learn the basic ideas of Lightning
    :col_css: col-md-4
    :button_link: train_model_basic.html
@@ -18,7 +22,7 @@ Train a model
    :tag: basic
 
 .. displayitem::
-   :header: Validate and test a model
+   :header: 2: Validate and test a model
    :description: Add a validation and test data split to avoid overfitting.
    :col_css: col-md-4
    :button_link: validate_model_basic.html
@@ -26,12 +30,30 @@ Train a model
    :tag: basic
 
 .. displayitem::
-   :header: Supercharge training
+   :header: 3: Supercharge training
    :description: Enable state-of-the-art training techniques with the Trainer features.
    :col_css: col-md-4
    :button_link: build_model_intermediate.html
    :height: 150
    :tag: intermediate
+
+.. raw:: html
+
+        </div>
+    </div>
+
+----
+
+****************************
+Get expert-level flexibility
+****************************
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. Add callout items below this line
 
 .. displayitem::
    :header: Own your loop
@@ -47,7 +69,7 @@ Train a model
    :col_css: col-md-4
    :button_link: build_model_expert.html
    :height: 150
-   :tag: expert
+   :tag: advanced
 
 .. displayitem::
    :header: Make a custom Lightning Loop

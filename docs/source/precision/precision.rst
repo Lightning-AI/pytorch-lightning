@@ -18,7 +18,7 @@ N-Bit Precision
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Basic precision settings
+   :header: Basic
    :description: Enable your models to train faster and save memory with different floating-point precision settings.
    :col_css: col-md-4
    :button_link: precision_basic.html
@@ -26,7 +26,7 @@ N-Bit Precision
    :tag: basic
 
 .. displayitem::
-   :header: Mixed precision
+   :header: Intermediate
    :description: Enable state-of-the-art scaling with advanced mix-precision settings.
    :col_css: col-md-4
    :button_link: precision_intermediate.html
@@ -34,7 +34,7 @@ N-Bit Precision
    :tag: intermediate
 
 .. displayitem::
-   :header: Integrate new precision setting
+   :header: Expert
    :description: Create new precision techniques and enable them through Lightning.
    :col_css: col-md-4
    :button_link: precision_expert.html
