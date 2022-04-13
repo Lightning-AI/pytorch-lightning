@@ -205,6 +205,7 @@ Current Lightning Users
    clouds/cluster
    common/console_logs
    common/debugging
+   deploy/production
    common/early_stopping
    advanced/training_tricks
    common/evaluation
@@ -212,7 +213,6 @@ Current Lightning Users
    advanced/fault_tolerant_training
    tuning/profiler
    common/hyperparameters
-   common/production_inference
    common/lightning_cli
    advanced/model_parallel
    precision/precision
