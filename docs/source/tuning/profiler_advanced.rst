@@ -1,8 +1,8 @@
 .. _profiler:
 
-####################
-Profiling (advanced)
-####################
+########################################
+Find bottlenecks in your code (advanced)
+########################################
 **Audience**: Users who want to profile their TPU models to find bottlenecks and improve performance.
 
 ----

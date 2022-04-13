@@ -8,8 +8,6 @@ Level 2: Basic model scaling
     <div class="display-card-container">
         <div class="row">
 
-.. Add callout items below this line
-
 .. displayitem::
    :header: GPU Training
    :description: Learn the basics on single and multi-GPU training.
@@ -17,7 +15,6 @@ Level 2: Basic model scaling
    :button_link: ../accelerators/gpu_basic.html
    :height: 150
    :tag: basic
-
 
 .. displayitem::
    :header: TPU Training

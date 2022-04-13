@@ -7,8 +7,6 @@ Level 3: Visualize training progress
     <div class="display-card-container">
         <div class="row">
 
-.. Add callout items below this line
-
 .. displayitem::
    :header: Visualize metrics, images, and text.
    :description: Learn how to track and visualize metrics, images and text.

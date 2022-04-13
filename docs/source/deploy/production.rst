@@ -21,7 +21,7 @@ Deploy models into production
 
 .. displayitem::
    :header: Intermediate
-   :description: Learn to remove the Lightning dependencies and use pure PyTorch for production.
+   :description: Learn to remove the Lightning dependencies and use pure PyTorch for prediction.
    :col_css: col-md-6
    :button_link: production_intermediate.html
    :height: 150

@@ -1,5 +1,3 @@
-When has your model finished training?
-
 #############################
 Level 5: Tuning and debugging
 #############################
@@ -8,8 +6,6 @@ Level 5: Tuning and debugging
 
     <div class="display-card-container">
         <div class="row">
-
-.. Add callout items below this line
 
 .. displayitem::
    :header: Find bottlenecks in training
@@ -26,6 +22,7 @@ Level 5: Tuning and debugging
    :button_link: ../debugging/debugging_basic.html
    :height: 150
    :tag: basic
+
 .. raw:: html
 
         </div>

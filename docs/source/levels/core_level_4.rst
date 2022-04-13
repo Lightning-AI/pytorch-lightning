@@ -7,8 +7,6 @@ Level 4: Add a validation and test set
     <div class="display-card-container">
         <div class="row">
 
-.. Add callout items below this line
-
 .. displayitem::
    :header: Validate and test a model
    :description: Add a validation and test data split to avoid overfitting.
