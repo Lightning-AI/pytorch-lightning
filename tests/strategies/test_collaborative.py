@@ -1,3 +1,4 @@
+import multiprocessing as mp
 import os
 import time
 from typing import Any
@@ -12,6 +13,7 @@ from pytorch_lightning.plugins.environments.lightning_environment import find_fr
 from pytorch_lightning.strategies import CollaborativeStrategy
 from pytorch_lightning.strategies.collaborative import HiveMindScheduler
 from pytorch_lightning.utilities import _HIVEMIND_AVAILABLE
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -68,20 +70,6 @@ def test_optimizer_wrapped_args_parsed(caplog):
 
     model = TestModel()
     trainer = pl.Trainer(strategy=CollaborativeStrategy(target_batch_size=1), fast_dev_run=True)
-    trainer.fit(model)
-
-
-@RunIf(hivemind=True, min_gpus=1)
-@mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
-def test_scaler_updated_precision_16(caplog):
-    class TestModel(BoringModel):
-        def on_before_backward(self, loss: torch.Tensor) -> None:
-            optimizer = self.trainer.optimizers[0]
-            assert isinstance(self.trainer.precision_plugin.scaler, hivemind.GradScaler)
-            assert isinstance(optimizer, hivemind.Optimizer)
-
-    model = TestModel()
-    trainer = pl.Trainer(strategy=CollaborativeStrategy(target_batch_size=1), fast_dev_run=True, precision=16, gpus=1)
     trainer.fit(model)
 
 
@@ -184,26 +172,92 @@ def test_maddrs(host_maddrs, expected_maddrs):
     assert strategy.dht.kwargs["host_maddrs"] == expected_maddrs
 
 
-def _test_endpoint_run_fn(endpoint, peer_endpoint, port):
+def _run_collab_training_fn(initial_peers, wait_seconds, barrier, recorded_process_peers, recorded_process_steps):
+    recorded_peers = []
+    recorded_global_steps = []
+
     class TestModel(BoringModel):
-        def on_train_batch_start(self, batch: Any, batch_idx: int, unused: int = 0):
-            time.sleep(1)
+        def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, unused: int = 0) -> None:
+            time.sleep(wait_seconds)  # add an additional delay to give processes time to sync
+            recorded_peers.append(self.trainer.strategy.num_peers)
+            recorded_global_steps.append(self.trainer.optimizers[0].local_epoch)
+
+        def on_train_end(self) -> None:
+            # wait for all processes to get to the end of training before teardown
+            barrier.wait()
 
     model = TestModel()
     trainer = pl.Trainer(
         max_epochs=1,
+        limit_train_batches=16,
+        limit_val_batches=0,
         strategy=CollaborativeStrategy(
-            target_batch_size=128, endpoint=endpoint, peer_endpoint=peer_endpoint, port=port
+            delay_state_averaging=True,
+            offload_optimizer=True,
+            delay_optimizer_step=True,
+            delay_grad_averaging=True,
+            target_batch_size=8,
+            initial_peers=initial_peers,
+            verbose=False,
         ),
     )
     trainer.fit(model)
 
+    recorded_process_peers.append(recorded_peers)
+    recorded_process_steps.append(recorded_global_steps)
 
-# TODO: figure out how to do a multiple process test.
-# @RunIf(hivemind=True, standalone=True)
-# def test_endpoint_run():
-#     port = find_free_network_port()
-#     endpoint = f"0.0.0.0:{port}"
-#     args = [(True, None, port), (False, endpoint, port)]
-#     with ThreadPool(processes=2) as pool:
-#         all_links = pool.starmap(_test_endpoint_run_fn, args)
+
+@RunIf(hivemind=True)
+@mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
+@pytest.mark.parametrize(
+    "num_processes, wait_seconds",
+    [(2, 0.25)],
+)
+def test_multiple_peers(num_processes, wait_seconds):
+    """Test to ensure that if we have two running processes with the same peers, they connect and train
+    successfully."""
+    dht_root = hivemind.DHT(start=True)
+    barrier = mp.Barrier(num_processes)
+    initial_peers = dht_root.get_visible_maddrs()
+
+    with mp.Manager() as manager:
+        # allows processes to return their recorded logged peers/steps
+        recorded_process_peers = manager.list()
+        recorded_process_steps = manager.list()
+        processes = [
+            mp.Process(
+                target=_run_collab_training_fn,
+                kwargs=dict(
+                    initial_peers=initial_peers,
+                    wait_seconds=wait_seconds,
+                    barrier=barrier,
+                    recorded_process_peers=recorded_process_peers,
+                    recorded_process_steps=recorded_process_steps,
+                ),
+            )
+            for x in range(num_processes)
+        ]
+        for process in processes:
+            process.start()
+        for process in processes:
+            process.join()
+        # assert that peers increase as expected and we run at-least 1 global step.
+        for process_peers, process_steps in zip(recorded_process_peers, recorded_process_steps):
+            assert any(num_peer == num_processes for num_peer in process_peers)
+            assert any(global_step > 0 for global_step in process_steps)
+
+
+@RunIf(hivemind=True)
+@mock.patch("torch.cuda.is_available", return_value=True)
+@mock.patch("torch.cuda.device_count", return_value=1)
+@mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
+def test_scaler_updated_precision_16(mocked_cuda_available, mocked_device_count):
+    class TestModel(BoringModel):
+        def on_fit_start(self) -> None:
+            assert isinstance(self.trainer.precision_plugin.scaler, hivemind.GradScaler)
+            raise SystemExit
+
+    model = TestModel()
+    trainer = pl.Trainer(strategy=CollaborativeStrategy(target_batch_size=1), fast_dev_run=True, precision=16, gpus=1)
+    with pytest.raises(SystemExit):
+        trainer.fit(model)

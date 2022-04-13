@@ -41,8 +41,6 @@ class CollaborativeStrategy(Strategy):
         scheduler_fn: Optional[Callable] = None,
         matchmaking_time: float = 5.0,
         averaging_timeout: float = 30.0,
-        grad_compression: Optional["hivemind.CompressionBase"] = None,
-        state_averaging_compression: Optional["hivemind.CompressionBase"] = None,
         verbose: bool = True,
         averager_opts: Optional[Dict] = None,
         host_maddrs: Optional[List] = None,
@@ -96,10 +94,6 @@ class CollaborativeStrategy(Strategy):
             Do not set this timeout too high, as it may cause your optimizer to hang after some types of network errors.
 
             allreduce_timeout: Timeout for a single attempt to run all-reduce.
-
-            grad_compression: Compression strategy used for averaging gradients.
-
-            state_averaging_compression: Compression for averaging params and state tensors.
 
             verbose: Report internal Hivemind events such as accumulating gradients and running background tasks.
 
@@ -158,8 +152,6 @@ class CollaborativeStrategy(Strategy):
             delay_state_averaging=delay_state_averaging,
             delay_grad_averaging=delay_grad_averaging,
             offload_optimizer=offload_optimizer,
-            grad_compression=grad_compression,
-            state_averaging_compression=state_averaging_compression,
             averager_opts=averager_opts if averaging_timeout is not None else dict(request_timeout=1.0),
             verbose=verbose,
             reuse_grad_buffers=reuse_grad_buffers,
@@ -254,7 +246,9 @@ class CollaborativeStrategy(Strategy):
 
     @property
     def num_peers(self) -> int:
-        return self.opt.tracker.global_progress.num_peers
+        if self.opt:
+            return self.opt.tracker.global_progress.num_peers
+        return 1
 
     @property
     def dht(self) -> "hivemind.DHT":

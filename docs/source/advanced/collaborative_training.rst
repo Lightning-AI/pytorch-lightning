@@ -1,7 +1,7 @@
 .. _collaborative_training:
 
-Collaborative Training
-======================
+Training on different unreliable GPUs across the internet
+=========================================================
 
 Collaborative Training tries to solve the need for top-tier multi-GPU servers by allowing you to train across unreliable machines,
 such as local machines or even preemptible cloud compute across the internet.
@@ -61,6 +61,7 @@ to overlap communication with computation.
 
 .. code-block:: python
 
+    import torch
     from functools import partial
 
     import pytorch_lightning as pl
@@ -73,7 +74,7 @@ to overlap communication with computation.
             delay_grad_averaging=True,
             delay_optimizer_step=True,
             offload_optimizer=True,  # required to delay averaging
-            scheduler_fn=partial(MyLearningRateScheduler, num_warmup_steps=..., num_training_steps=...),
+            scheduler_fn=partial(torch.optim.lr_scheduler.ExponentialLR, gamma=...),
         ),
         gpus=1,
     )
