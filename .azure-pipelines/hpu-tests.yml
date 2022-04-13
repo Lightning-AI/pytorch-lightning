@@ -14,7 +14,7 @@ pr:
   - "release/*"
 
 jobs:
-  - job: hpu
+  - job: tests
 
     # how long to run the job before automatically cancelling
     timeoutInMinutes: "5"
