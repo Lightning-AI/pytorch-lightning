@@ -5,95 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [1.7.0] - 2022-MM-DD
-
-### Added
-
--
-
-
--
-
-
--
-
-
--
-
-
--
+## [1.6.1] - 2022-04-13
 
 ### Changed
 
-- Support `strategy` argument being case insensitive ([#12528](https://github.com/PyTorchLightning/pytorch-lightning/pull/12528))
-
-
--
-
-
--
-
-
--
-
-
--
-
-### Deprecated
-
--
-
-
--
-
-
--
-
-
--
-
-
--
-
-### Removed
-
--
-
-
--
-
-
--
-
-
--
-
-
--
+- Support `strategy` argument being case insensitive ([#12528](https://github.com/PyTorchLightning/pytorch-lightning/pull/12528
 
 ### Fixed
 
 - Run main progress bar updates independent of val progress bar updates in `TQDMProgressBar` ([#12563](https://github.com/PyTorchLightning/pytorch-lightning/pull/12563))
-
-
 - Avoid calling `average_parameters` multiple times per optimizer step ([#12452](https://github.com/PyTorchLightning/pytorch-lightning/pull/12452))
-
-
 - Properly pass some Logger's parent's arguments to `super().__init__()` ([#12609](https://github.com/PyTorchLightning/pytorch-lightning/pull/12609))
-
-
 - Fixed an issue where incorrect type warnings appear when the overridden `LightningLite.run` method accepts user-defined arguments ([#12629](https://github.com/PyTorchLightning/pytorch-lightning/pull/12629))
-
-
 - Fixed `rank_zero_only` decorator in LSF environments ([#12587](https://github.com/PyTorchLightning/pytorch-lightning/pull/12587))
-
-
 - Don't raise a warning when `nn.Module` is not saved under hparams ([#12669](https://github.com/PyTorchLightning/pytorch-lightning/pull/12669))
-
-
 - Raise `MisconfigurationException` when the accelerator is available but the user passes invalid `([]/0/"0")` values to the `devices` flag ([#12708](https://github.com/PyTorchLightning/pytorch-lightning/pull/12708))
-
-
 - Support `auto_select_gpus` with the accelerator and devices API ([#12608](https://github.com/PyTorchLightning/pytorch-lightning/pull/12608))
 
 
