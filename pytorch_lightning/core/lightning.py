@@ -256,13 +256,13 @@ class LightningModule(
         if len(loggers) == 0:
             return None
         if len(loggers) == 1:
-            return self.loggers[0]
+            return loggers[0]
         else:
             if not self._running_torchscript:
                 rank_zero_deprecation(
-                    "Using trainer.logger when Trainer is configured to use multiple loggers."
-                    " This behavior will change in v1.8 when LoggerCollection is removed, and"
-                    " trainer.logger will return the first logger in trainer.loggers",
+                    "Using `lightning_module.logger` when multiple loggers are configured."
+                    " This behavior will change in v1.8 when `LoggerCollection` is removed, and"
+                    " `lightning_module.logger` will return the first logger available.",
                     stacklevel=5,
                 )
             with warnings.catch_warnings():
