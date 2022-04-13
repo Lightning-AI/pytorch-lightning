@@ -45,9 +45,9 @@ def test_lite_module_wraps():
         (16, torch.float32, torch.float16),
         (16, torch.float64, torch.float16),
         (16, torch.long, torch.long),
-        pytest.param("bf16", torch.float32, torch.bfloat16, marks=RunIf(min_torch="1.10")),
-        pytest.param("bf16", torch.float64, torch.bfloat16, marks=RunIf(min_torch="1.10")),
-        pytest.param("bf16", torch.bool, torch.bool, marks=RunIf(min_torch="1.10")),
+        pytest.param("bf16", torch.float32, torch.bfloat16, marks=RunIf(min_torch="1.10", bf16_cuda=True)),
+        pytest.param("bf16", torch.float64, torch.bfloat16, marks=RunIf(min_torch="1.10", bf16_cuda=True)),
+        pytest.param("bf16", torch.bool, torch.bool, marks=RunIf(min_torch="1.10", bf16_cuda=True)),
     ],
 )
 def test_lite_module_forward_conversion(precision, input_type, expected_type):

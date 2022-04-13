@@ -22,7 +22,7 @@ from argparse import Namespace
 from time import time
 from typing import Any, Dict, Optional, Union
 
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
+from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.imports import _module_available
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
@@ -54,7 +54,7 @@ else:
         return tags
 
 
-class MLFlowLogger(LightningLoggerBase):
+class MLFlowLogger(Logger):
     """Log using `MLflow <https://mlflow.org>`_.
 
     Install it with pip:

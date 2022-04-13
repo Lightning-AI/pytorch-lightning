@@ -85,7 +85,6 @@ Callbacks API
     Callback
     DeviceStatsMonitor
     EarlyStopping
-    GPUStatsMonitor
     GradientAccumulationScheduler
     LambdaCallback
     LearningRateMonitor
@@ -99,7 +98,6 @@ Callbacks API
     StochasticWeightAveraging
     Timer
     TQDMProgressBar
-    XLAStatsMonitor
 
 Loggers API
 -----------
