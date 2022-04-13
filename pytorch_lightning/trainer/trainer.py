@@ -23,7 +23,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Generator, Iterable, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, cast, Dict, Generator, Iterable, List, Optional, Type, Union
 from weakref import proxy
 
 import torch
@@ -2780,12 +2780,12 @@ class Trainer(
 
 @contextmanager
 def _evaluation_context() -> Generator:
-    cm = (
+    context_manager_class = (
         torch.inference_mode
         if _TORCH_GREATER_EQUAL_1_9 and not (dist.is_initialized() and dist.get_backend() == "gloo")
         else torch.no_grad
     )
-    with cm():
+    with context_manager_class():
         yield
 
 
