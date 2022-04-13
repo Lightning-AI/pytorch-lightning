@@ -669,43 +669,38 @@ fast_dev_run
 
 |
 
-Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es) of train, val and test
-to find any bugs (ie: a sort of unit test).
-
-Under the hood the pseudocode looks like this when running *fast_dev_run* with a single batch:
-
-.. code-block:: python
-
-    # loading
-    __init__()
-    prepare_data
-
-    # test training step
-    training_batch = next(train_dataloader)
-    training_step(training_batch)
-
-    # test val step
-    val_batch = next(val_dataloader)
-    out = validation_step(val_batch)
-    validation_epoch_end([out])
+Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es) to ensure your code will execute without errors. This
+applies to fitting, validating, testing, and predicting. This flag is **only** recommended for debugging purposes and
+should not be used to limit the number of batches to run.
 
 .. testcode::
 
     # default used by the Trainer
     trainer = Trainer(fast_dev_run=False)
 
-    # runs 1 train, val, test batch and program ends
+    # runs only 1 training and 1 validation batch and the program ends
     trainer = Trainer(fast_dev_run=True)
+    trainer.fit(...)
 
-    # runs 7 train, val, test batches and program ends
+    # runs 7 predict batches and program ends
     trainer = Trainer(fast_dev_run=7)
+    trainer.predict(...)
 
-.. note::
+This argument is a different from ``limit_{train,val,test,predict}_batches`` because side effects are avoided to reduce the
+impact to subsequent runs. Here are the key differences:
 
-    This argument is a bit different from ``limit_train/val/test_batches``. Setting this argument will
-    disable tuner, checkpoint callbacks, early stopping callbacks, loggers and logger callbacks like
-    ``LearningRateLogger`` and runs for only 1 epoch. This must be used only for debugging purposes.
-    ``limit_train/val/test_batches`` only limits the number of batches and won't disable anything.
+- Sets ``Trainer(max_epochs=1)``.
+- Sets ``Trainer(max_steps=...)`` to 1 or the number passed.
+- Sets ``Trainer(num_sanity_val_steps=0)``.
+- Sets ``Trainer(val_check_interval=1.0)``.
+- Sets ``Trainer(check_every_n_epoch=1)``.
+- Disables all loggers.
+- Disables passing logged metrics to loggers.
+- The ``ModelCheckpoint`` callback will not save checkpoints.
+- Early stopping will not trigger.
+- Sets ``limit_{train,val,test,predict}_batches`` to 1 or the number passed.
+- Disables the Tuner.
+- If using the CLI, the configuration file is not saved.
 
 flush_logs_every_n_steps
 ^^^^^^^^^^^^^^^^^^^^^^^^
