@@ -76,7 +76,6 @@ RUN \
     pip install -q fire && \
     # Disable cache \
     CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
-    export BAGUA_CUDA_VERSION=$CUDA_VERSION_MM && \
     pip config set global.cache-dir false && \
     # set particular PyTorch version
     python ./requirements/adjust-versions.py requirements.txt ${PYTORCH_VERSION} && \
@@ -138,8 +137,18 @@ RUN \
 
 RUN \
     # install DeepSpeed
-    pip install deepspeed==0.5.7 && \
+    pip install deepspeed==0.6.0 && \
     python -c "import deepspeed; print(deepspeed.__version__)"
+
+RUN \
+    # install Bagua
+    CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
+    pip install "bagua-cuda$CUDA_VERSION_MM==0.9.0" && \
+    python -c "import bagua_core; bagua_core.install_deps()" && \
+    python -c "import bagua; print(bagua.__version__)"
+
+COPY requirements/check-avail-extras.py check-avail-extras.py
+COPY requirements/check-avail-strategies.py check-avail-strategies.py
 
 RUN \
     # Show what we have
@@ -147,5 +156,6 @@ RUN \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
-    python -c "import horovod.torch" && \
-    python -c "from horovod.torch import nccl_built; nccl_built()"
+    python check-avail-extras.py && \
+    python check-avail-strategies.py && \
+    rm check-avail-*.py

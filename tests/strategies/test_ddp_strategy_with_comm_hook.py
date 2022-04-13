@@ -179,7 +179,8 @@ def test_post_local_sgd_model_averaging(average_parameters_mock, tmpdir):
 
     trainer = Trainer(
         fast_dev_run=True,
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy=ddp_strategy,
         default_root_dir=tmpdir,
         sync_batchnorm=True,
