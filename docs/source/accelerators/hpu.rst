@@ -112,6 +112,49 @@ This enables advanced users to provide their own BF16 and FP32 operator list ins
 
 For more details, please refer to `PyTorch Mixed Precision Training on Gaudi <https://docs.habana.ai/en/latest/PyTorch_User_Guide/PyTorch_User_Guide.html#pytorch-mixed-precision-training-on-gaudi>`__.
 
+
+Enabling Models with Convolution layers
+---------------------------------------
+Convolution operations are central to vision topologies like ResNet. Gaudi HW performs convolution operations with filter (weights) in filters last format - RSCK format where:
+R = height of the filter; S = width of the filter; C = number of channels per filter; K = number of filters
+
+The default PyTorch convolution weight ordering is ‘filters first’ (KCRS). Therefore a re-ordering/permutation of all the convolution weights from KCRS to RSCK format is required before convolution operations.
+Such a permutation of weights is done once at the beginning of training in the PyTorch Habana vision topologies.
+Post permutation the weights are in RSCK format during training, a conversion back to KCRS format is necessary when saving intermediate checkpoints or saving the final trained weights.
+This helps bring the weights back to the default PyTorch format (KCRS), say, for use across DL training platforms/accelerators.
+
+Due to the permutation of weights to RSCK format, the gradients of these weights will also be in the same format on the HPU automatically.
+Any other tensors that are calculated as a function of the convolution weights (or gradients thereof) on HPU will also be in RSCK format.
+
+An example of such is the ‘momentum’ tensors corresponding to convolution weights in a ResNet model trained with Stochastic Gradient Descent with Momentum optimizer.
+An utility for moementum permutes can be found at `pytorch_lightning/utilities/hpu_device.py`
+
+Appropriate permutations to be in alignment with default destination format should be done if these tensors (convolution weights, gradients, momentum etc) are to be transferred across CPU and HPU (for example, CPU (KCRS) <–> (RSCK) HPU)
+
+.. note::
+    Work is in progress to remove this limitation of users needing to perform explicit permutation. However, this is applicable for Synapse AT software versions <= 1.4.0
+
+The subsequent snippet showcases the methodology to do the param permutes when using habana accelerator
+
+.. code-block:: python
+
+    import pytorch_lightning as pl
+
+    # Init a convolution based model
+    model = ConvClassifier()
+
+    trainer = pl.Trainer(devices=1, accelerator="hpu")
+
+    # Gaudi HW performs convolution operations with filter (weights) in filters last format
+    from pytorch_lightning.utilities.hpu_device import HPUDeviceUtils
+    HPUDeviceUtils.permute_params(model, True)
+
+    # Train the model ⚡
+    trainer.fit(model)
+
+For more details, please refer to `Convolution Weight Ordering in PyTorch Habana Vision Topologies <https://docs.habana.ai/en/v1.4.0/PyTorch/Migration_Guide/Porting_Simple_PyTorch_Model_to_Gaudi.html#convolution-weight-ordering-in-pytorch-habana-vision-topologies>`__.
+An working example can be found along with hpu_examples at `pl_examples/hpu_examples/convolution_example.py`
+
 ----------------
 
 .. _known-limitations_hpu:
