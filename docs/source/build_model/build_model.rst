@@ -69,7 +69,7 @@ Get expert-level flexibility
    :col_css: col-md-4
    :button_link: build_model_expert.html
    :height: 150
-   :tag: expert
+   :tag: advanced
 
 .. displayitem::
    :header: Make a custom Lightning Loop

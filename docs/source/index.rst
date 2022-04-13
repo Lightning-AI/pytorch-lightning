@@ -210,13 +210,13 @@ Current Lightning Users
    common/evaluation
    visualize_experiments/experiment_managers
    advanced/fault_tolerant_training
+   tuning/profiler
    common/hyperparameters
    common/production_inference
    common/lightning_cli
    advanced/model_parallel
    precision/precision
    common/optimization
-   advanced/profiler
    common/progress_bar
    advanced/pruning_quantization
    common/remote_fs
