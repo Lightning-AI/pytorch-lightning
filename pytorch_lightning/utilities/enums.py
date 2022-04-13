@@ -43,7 +43,7 @@ class LightningEnum(str, Enum):
         return hash(self.value.lower())
 
 
-class DeprecatedEnumMeta(EnumMeta):
+class _DeprecatedEnumMeta(EnumMeta):
     """Enum that calls `deprecate()` whenever a member is accessed.
 
     Adapted from: https://stackoverflow.com/a/62309159/208880
@@ -68,7 +68,7 @@ class DeprecatedEnumMeta(EnumMeta):
         return obj
 
 
-class DeprecatedEnum(LightningEnum, metaclass=DeprecatedEnumMeta):
+class _DeprecatedEnum(LightningEnum, metaclass=_DeprecatedEnumMeta):
     """DeprecatedEnum calls an enum's `deprecate()` method on member access."""
 
     pass
@@ -110,7 +110,7 @@ class PrecisionType(LightningEnum):
         return [x.value for x in PrecisionType]
 
 
-class DistributedType(DeprecatedEnum):
+class DistributedType(_DeprecatedEnum):
     """Define type of training strategy.
 
     Deprecated since v1.6.0 and will be removed in v1.8.0.
@@ -151,7 +151,7 @@ class DistributedType(DeprecatedEnum):
         )
 
 
-class DeviceType(DeprecatedEnum):
+class DeviceType(_DeprecatedEnum):
     """Define Device type by its nature - accelerators.
 
     Deprecated since v1.6.0 and will be removed in v1.8.0.
