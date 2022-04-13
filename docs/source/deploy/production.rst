@@ -14,7 +14,7 @@ Deploy models into production
 .. displayitem::
    :header: Basic
    :description: Learn the basics of predicting with Lightning
-   :col_css: col-md-4
+   :col_css: col-md-6
    :button_link: production_basic.html
    :height: 150
    :tag: basic
@@ -22,7 +22,7 @@ Deploy models into production
 .. displayitem::
    :header: Intermediate
    :description: Learn to remove the Lightning dependencies and use pure PyTorch for production.
-   :col_css: col-md-4
+   :col_css: col-md-6
    :button_link: production_intermediate.html
    :height: 150
    :tag: intermediate
@@ -30,7 +30,7 @@ Deploy models into production
 .. displayitem::
    :header: Advanced
    :description: Optimize models for enterprise-scale production environments with ONNX.
-   :col_css: col-md-4
+   :col_css: col-md-6
    :button_link: production_advanced.html
    :height: 150
    :tag: advanced
@@ -38,7 +38,7 @@ Deploy models into production
 .. displayitem::
    :header: Advanced
    :description: Optimize models for enterprise-scale production environments with torchscript.
-   :col_css: col-md-4
+   :col_css: col-md-6
    :button_link: production_advanced_2.html
    :height: 150
    :tag: advanced
