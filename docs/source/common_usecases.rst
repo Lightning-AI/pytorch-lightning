@@ -1,6 +1,6 @@
 :orphan:
 
-Conceptual Guides
+Concepts Glossary
 =================
 
 .. include:: links.rst

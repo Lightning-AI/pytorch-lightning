@@ -11,7 +11,7 @@ Accelerator: TPU training
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Single and multi-TPU core training
+   :header: Basic
    :description: Learn the basics of single and multi-TPU core training.
    :col_css: col-md-4
    :button_link: tpu_basic.html
@@ -19,7 +19,7 @@ Accelerator: TPU training
    :tag: basic
 
 .. displayitem::
-   :header: Scale to TPU pods
+   :header: Intermediate
    :description: Scale massive models using cloud TPUs.
    :col_css: col-md-4
    :button_link: tpu_intermediate.html
@@ -27,7 +27,7 @@ Accelerator: TPU training
    :tag: intermediate
 
 .. displayitem::
-   :header: Optimize scale with XLA
+   :header: Advanced
    :description: Dive into XLA and advanced techniques to optimize TPU-powered models.
    :col_css: col-md-4
    :button_link: tpu_advanced.html

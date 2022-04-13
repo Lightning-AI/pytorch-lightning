@@ -11,7 +11,7 @@ Accelerator: HPU training
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Single and multi-HPU
+   :header: Basic
    :description: Learn the basics of single and multi-HPU core training.
    :col_css: col-md-6
    :button_link: hpu_basic.html
@@ -19,7 +19,7 @@ Accelerator: HPU training
    :tag: basic
 
 .. displayitem::
-   :header: Scale HPU training
+   :header: Intermediate
    :description: Enable state-of-the-art scaling with advanced mix-precision settings.
    :col_css: col-md-6
    :button_link: hpu_intermediate.html

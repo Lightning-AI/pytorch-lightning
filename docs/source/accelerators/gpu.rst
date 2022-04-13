@@ -17,7 +17,7 @@ Accelerator: GPU training
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Single and multi-GPU
+   :header: Basic
    :description: Learn the basics of single and multi-GPU training.
    :col_css: col-md-3
    :button_link: gpu_basic.html
@@ -25,7 +25,7 @@ Accelerator: GPU training
    :tag: basic
 
 .. displayitem::
-   :header: Multi-machine training
+   :header: Intermediate
    :description: Learn about different distributed strategies, torchelastic and how to optimize communication layers.
    :col_css: col-md-3
    :button_link: gpu_intermediate.html
@@ -33,7 +33,7 @@ Accelerator: GPU training
    :tag: intermediate
 
 .. displayitem::
-   :header: Train 1 trillion parameter models
+   :header: Advanced
    :description: Train 1 trillion+ parameter models with these techniques.
    :col_css: col-md-3
    :button_link: gpu_advanced.html
@@ -41,7 +41,7 @@ Accelerator: GPU training
    :tag: advanced
 
 .. displayitem::
-   :header: Develop a scaling strategy
+   :header: Expert
    :description: Develop new strategies for training and deploying larger and larger models.
    :col_css: col-md-3
    :button_link: gpu_expert.html

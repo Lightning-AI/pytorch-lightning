@@ -17,7 +17,7 @@ Track and Visualize Experiments
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Visualize metrics, images, and text.
+   :header: Basic
    :description: Learn how to track and visualize metrics, images and text.
    :col_css: col-md-6
    :button_link: logging_basic.html
@@ -25,7 +25,7 @@ Track and Visualize Experiments
    :tag: basic
 
 .. displayitem::
-   :header: Use third-party experiment managers
+   :header: Intermediate
    :description: Enable third-party experiment managers with advanced visualizations.
    :col_css: col-md-6
    :button_link: logging_intermediate.html
@@ -33,7 +33,7 @@ Track and Visualize Experiments
    :tag: intermediate
 
 .. displayitem::
-   :header: Customize self.log
+   :header: Advanced
    :description: Optimize model speed with advanced self.log arguments and cloud logging.
    :col_css: col-md-6
    :button_link: logging_advanced.html
@@ -41,7 +41,7 @@ Track and Visualize Experiments
    :tag: advanced
 
 .. displayitem::
-   :header: Integrate an experiment manager
+   :header: Expert
    :description: Make your own progress-bar or integrate a new experiment manager.
    :col_css: col-md-6
    :button_link: logging_expert.html

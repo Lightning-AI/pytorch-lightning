@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to PyTorch Lightning
-============================
+Welcome to ⚡ PyTorch Lightning 
+==============================
 
 .. raw:: html
 
@@ -111,7 +111,7 @@ Current Lightning Users
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Learn Lightning at 4 levels of expertise: Introductory, intermediate, advanced and expert.
+   :description: Learn Lightning in small bites at 4 levels of expertise: Introductory, intermediate, advanced and expert.
    :header: Level Up!
    :button_link:  expertise_levels.html
 
