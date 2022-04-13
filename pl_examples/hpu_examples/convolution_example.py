@@ -79,7 +79,7 @@ train_loader = DataLoader(train_ds, batch_size=32)
 val_loader = DataLoader(val_ds, batch_size=16)
 
 # Initialize a trainer
-trainer = pl.Trainer(devices=1, accelerator="hpu", max_epochs=1)
+trainer = pl.Trainer(accelerator="hpu", max_epochs=1)
 
 if _HPU_AVAILABLE:
     # Gaudi HW performs convolution operations with filter (weights) in filters last format

@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import torch
+import pytorch_lightning as pl
+from torch.optim.optimizer import Optimizer
 
 class HPUDeviceUtils:
     """HPU helpers."""
@@ -23,7 +25,7 @@ class HPUDeviceUtils:
     # The default PyTorch convolution weight ordering is ‘filters first’ (KCRS).
     # Therefore a re-ordering/permutation of all the convolution weights from KCRS to RSCK format is required
     # before convolution operations
-    def permute_params(model, to_filters_last):
+    def permute_params(model: "pl.LightningModule", to_filters_last: bool) -> None:
         """ permute the params from filters first (KCRS) to filters last(RSCK) or vice versa.
             and permute from RSCK to KCRS is used for checkpoint saving"""
         with torch.no_grad():
@@ -38,8 +40,8 @@ class HPUDeviceUtils:
     @staticmethod
     # permute the momentum from filters first (KCRS) to filters last(RSCK) or vice versa.
     # and permute from RSCK to KCRS is used for checkpoint saving
-    def permute_momentum(optimizer, to_filters_last):
-        # Permute the momentum buffer before using for checkpoint
+    def permute_momentum(optimizer: Optimizer, to_filters_last: bool) -> None:
+        """ Permute the momentum buffer before using for checkpoint """
         for group in optimizer.param_groups:
             for p in group['params']:
                 param_state = optimizer.state[p]
