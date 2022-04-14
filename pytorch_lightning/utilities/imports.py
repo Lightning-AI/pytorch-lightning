@@ -64,6 +64,8 @@ def _compare_version(package: str, op: Callable, version: str, use_base_version:
 
     >>> _compare_version("torch", operator.ge, "0.1")
     True
+    >>> _compare_version("does_not_exist", operator.ge, "0.0")
+    False
     """
     try:
         pkg = importlib.import_module(package)
