@@ -26,6 +26,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
@@ -357,8 +358,11 @@ class DeepSpeedStrategy(DDPStrategy):
         self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
+<<<<<<< HEAD
         if self.root_device == torch.device("cpu"):
             raise MisconfigurationException(f"Unsupported accelerator for DeepSpeed: {self.root_device}")
+=======
+>>>>>>> f2b38714f (Deepspeed accelerator misconfiguration was moved to init_deepspeed)
         optimizers_to_device(self.optimizers, self.root_device)
         self.init_deepspeed()
         self.barrier()
@@ -449,6 +453,10 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             raise MisconfigurationException("DeepSpeed does not support clipping gradients by value.")
 
+        if isinstance(self.accelerator, CPUAccelerator):
+            raise MisconfigurationException(
+                f"Unsupported accelerator for DeepSpeed: {type(CPUAccelerator)}"
+            )
         accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
 
         if accumulation_scheduler.epochs != [0]:
