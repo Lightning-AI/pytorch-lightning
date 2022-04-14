@@ -211,6 +211,32 @@ class WandbLogger(Logger):
         columns = ["caption", "image", "sound"]
         data = [["cheese", wandb.Image(img_1), wandb.Audio(snd_1)], ["wine", wandb.Image(img_2), wandb.Audio(snd_2)]]
         wandb_logger.log_table(key="samples", columns=columns, data=data)
+    
+
+    **Downloading and Using Artifacts**
+
+    To download an artifact without starting a run
+
+    .. code-block:: python
+
+        from pytorch_lightning.loggers import WandbLogger
+        artifact_dir = WandbLogger.download_artifact(artifact="path/to/artifact")
+
+    To download an artifact and link it to an ongoing run
+
+    .. code-block:: python
+
+        class MyModule(LightningModule):
+            def any_lightning_module_function_or_hook(self):
+                self.logger.download_artifact(artifact="path/to/artifact")
+    
+    To link an artifact from a previous run you can use `use_artifact` function
+
+    .. code-block:: python
+
+        from pytorch_lightning.loggers import WandbLogger
+        wandb_logger = WandbLogger(project="my_project", name="my_run")
+        wandb_logger.use_artifact(artifact="path/to/artifact")
 
     See Also:
         - `Demo in Google Colab <http://wandb.me/lightning>`__ with hyperparameter search and model logging
@@ -467,6 +493,43 @@ class WandbLogger(Logger):
             self._scan_and_log_checkpoints(checkpoint_callback)
         elif self._log_model is True:
             self._checkpoint_callback = checkpoint_callback
+
+    @classmethod
+    @rank_zero_only
+    def download_artifact(self, artifact: str, dir: Optional[str] = None, type: Optional[str] = None, use_artifact: Optional[bool] = True) -> str:
+        """Downloads an artifact from the wandb server.
+
+        Args:
+            artifact: The path of the artifact to download.
+            dir: The directory to save the artifact to.
+            type: The type of artifact to download.
+            use_artifact: Whether to add an edge between the artifact graph.
+        
+        Returns:
+            The path to the downloaded artifact.
+        """
+
+        if wandb.run is not None and use_artifact:
+            artifact = wandb.run.use_artifact(artifact)
+            
+        else:
+            api = wandb.Api()
+            artifact = api.artifact(artifact, type=type)
+        
+        artifact_dir = artifact.download(root=dir)
+        return artifact_dir
+    
+    def use_artifact(self, artifact: str, type: Optional[str] = None) -> "wandb.Artifact":
+        """Logs to the wandb dashboard that the mentioned artifact is used by the run
+
+        Args:
+            artifact: The path of the artifact.
+            type: The type of artifact being used.
+        
+        Returns:
+            wandb Artifact object for the artifact.
+        """
+        return self.experiment.use_artifact(artifact, type=type)
 
     @rank_zero_only
     def finalize(self, status: str) -> None:
