@@ -56,7 +56,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     def __init__(self, test_transforms=None, dims=None):
         super().__init__()
-   
+
         if test_transforms is not None:
             rank_zero_deprecation(
                 "DataModule property `test_transforms` was deprecated in v1.5 and will be removed in v1.7."
