@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+from unittest.mock import Mock, ANY
 
 import torch
 
+import pytorch_lightning
 from pytorch_lightning import Callback, LightningModule, Trainer
+from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
 from pytorch_lightning.callbacks import (
     EarlyStopping,
     GradientAccumulationScheduler,
@@ -214,3 +217,31 @@ def test_attach_model_callbacks_override_info(caplog):
         cb_connector._attach_model_callbacks()
 
     assert "existing callbacks passed to Trainer: EarlyStopping, LearningRateMonitor" in caplog.text
+
+
+def test_configure_external_callbacks(monkeypatch):
+
+    def factory_incorrect_return_type():
+        return "invalid"
+
+    def factory_incorrect_element_type():
+        return [ModelCheckpoint(), "invalid"]
+
+    def callback_factory():
+        return [TQDMProgressBar()]
+
+    query_mock = Mock()
+    monkeypatch.setattr(
+        pytorch_lightning.trainer.connectors.callback_connector.importlib.metadata, "entry_points", query_mock
+    )
+
+    entry_point1 = Mock()
+    entry_point1.load.return_value = invalid_factory
+    query_mock().get.return_value = [entry_point1]# .load.return_value = invalid_factory
+    #query_mock().get().
+
+    trainer = Trainer(enable_checkpointing=False, enable_model_summary=False, enable_progress_bar=False)
+    query_mock().get.assert_called_with('pytorch_lightning.callbacks_factory', ())
+
+
+    print(trainer.callbacks)

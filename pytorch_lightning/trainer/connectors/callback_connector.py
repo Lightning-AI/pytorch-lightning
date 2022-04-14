@@ -17,6 +17,8 @@ import os
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Union
 
+import pkg_resources
+
 from pytorch_lightning.callbacks import (
     Callback,
     GradientAccumulationScheduler,
@@ -31,7 +33,7 @@ from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities.enums import ModelSummaryMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
-
+from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
 
 _log = logging.getLogger(__name__)
 
@@ -245,7 +247,10 @@ class CallbackConnector:
         The entry points are expected to be functions returning a list of callbacks, which will be added to the Trainer
         callback list.
         """
+        # if _PYTHON_GREATER_EQUAL_3_8_0:
         factories = importlib.metadata.entry_points().get("pytorch_lightning.callbacks_factory", ())
+        # else:
+        #     factories = pkg_resources.iter_entry_points("pytorch_lightning.callbacks_factory")
 
         for factory in factories:
             callbacks_list: List[Callback] = factory.load()()
