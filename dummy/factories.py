@@ -9,6 +9,5 @@ class MyPrintingCallback(Callback):
         print("Training is ending")
 
 
-
 def my_callbacks_factory():
     return [MyPrintingCallback()]
