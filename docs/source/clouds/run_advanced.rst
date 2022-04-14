@@ -1,8 +1,8 @@
 .. _grid:
 
-##########################
-Train on the cloud (advanced))
-##########################
+#############################
+Train on the cloud (advanced)
+#############################
 **Audience**: Anyone looking to train a model on the cloud in the background
 
 ----

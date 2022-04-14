@@ -199,6 +199,87 @@ Current Lightning Users
 
 .. toctree::
    :maxdepth: 1
+   :name: Concepts Glossary
+   :caption: Concepts Glossary
+
+   accelerators/gpu
+   accelerators/hpu
+   accelerators/ipu
+   accelerators/tpu
+   common/evaluation
+   common/checkpointing
+   common/hyperparameters
+   common/progress_bar
+   common/debugging
+   Finetune a model <advanced/transfer_learning>
+   build_model/build_model.rst
+   deploy/production
+   advanced/training_tricks
+   common/lightning_cli
+   advanced/fault_tolerant_training
+   tuning/profiler
+   visualize_experiments/experiment_managers
+   precision/precision
+   clouds/cluster
+   advanced/model_parallel
+   clouds/cloud_training
+   visualize_experiments/loggers
+   build_model/own_your_loop
+
+.. toctree::
+   :maxdepth: 1
+   :name: Glossary
+   :caption: Glossary
+
+   Accelerators <extensions/accelerator.html>
+   Callback <extensions/callbacks>
+   Checkpoint <common/checkpointing>
+   Cluster <clouds/cluster>
+   Cloud checkpoint <common/checkpointing_advanced>
+   Console Logging <common/console_logs>
+   Debugging <common/debugging>
+   Early stopping <common/early_stopping>
+   Experiment manager <visualize_experiments/experiment_managers>
+   Fault tolerance  <advanced/fault_tolerant_training>
+   Flash <https://lightning-flash.readthedocs.io/en/stable/>
+   FSSPEC <common/remote_fs>
+   Grid AI <clouds/cloud_training>
+   GPU <accelerators/gpu>
+   Half precision <precision/precision>
+   HPU <accelerators/hpu>
+   Inference <deploy/production_intermediate>
+   IPU <accelerators/ipu>
+   Lightning CLI <common/lightning_cli>
+   Lightning Lite <build_model/own_your_loop>
+   LightningDataModule <extensions/datamodules>
+   LightningModule <common/lightning_module>
+   Lightning Transformers <https://pytorch-lightning.readthedocs.io/en/stable/ecosystem/transformers.html>
+   Logger <visualize_experiments/experiment_managers>
+   Loops <build_model/custom_loop_expert>
+   TPU <accelerators/tpu>
+   Metrics <https://torchmetrics.readthedocs.io/en/stable/>
+   Model <build_model/build_model.rst>
+   Model Parallel <advanced/model_parallel>
+   Plugins <extensions/plugins.html>
+   Progress bar <common/progress_bar>
+   Production <deploy/production_advanced>
+   Predict <deploy/production_basic>
+   Profiler <tuning/profiler>
+   Pruning <advanced/pruning_quantization>
+   Quantization <advanced/pruning_quantization>
+   Remote filesystem <common/remote_fs>
+   Strategy <advanced/strategy_registry>
+   Strategy registry <advanced/strategy_registry>
+   Style guide <starter/style_guide>
+   Sweep <clouds/run_intermediate>   
+   SWA <advanced/training_tricks>
+   SLURM <clouds/cluster_advanced>
+   Transfer learning <advanced/transfer_learning> 
+   Trainer <common/trainer>
+   Torch distributed <clouds/cluster_intermediate_2>
+
+.. toctree::
+   :maxdepth: 1
    :name: Hands-on Examples
    :caption: Hands-on Examples
    :glob:
@@ -207,40 +288,6 @@ Current Lightning Users
    PyTorch Lightning 101 class <https://www.youtube.com/playlist?list=PLaMu-SDt_RB5NUm67hU2pdE75j6KaIOv2>
    From PyTorch to PyTorch Lightning [Blog] <https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09>
    From PyTorch to PyTorch Lightning [Video] <https://www.youtube.com/watch?v=QHww1JH7IDU>
-
-.. toctree::
-   :maxdepth: 1
-   :name: Concepts Glossary
-   :caption: Concepts Glossary
-
-   accelerators/gpu
-   accelerators/hpu
-   accelerators/ipu
-   accelerators/tpu
-   clouds/cloud_training
-   common/checkpointing
-   clouds/cluster
-   common/console_logs
-   common/debugging
-   build_model/build_model.rst
-   deploy/production
-   common/early_stopping
-   advanced/training_tricks
-   common/evaluation
-   visualize_experiments/experiment_managers
-   advanced/fault_tolerant_training
-   tuning/profiler
-   common/hyperparameters
-   common/lightning_cli
-   advanced/model_parallel
-   precision/precision
-   common/optimization
-   common/progress_bar
-   advanced/pruning_quantization
-   common/remote_fs
-   advanced/strategy_registry
-   visualize_experiments/loggers
-   advanced/transfer_learning
 
 .. toctree::
    :maxdepth: 1

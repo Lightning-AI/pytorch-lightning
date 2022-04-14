@@ -1,7 +1,7 @@
 .. _model_parallel:
 
-Model Parallel GPU Training
-===========================
+Train 1 trillion+ parameter models
+==================================
 
 When training large models, fitting larger batch sizes, or trying to increase throughput using multi-GPU compute, Lightning provides advanced optimized distributed training strategies to support these cases and offer substantial improvements in memory usage.
 

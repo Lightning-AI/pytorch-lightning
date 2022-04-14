@@ -2,9 +2,9 @@
 
     from pytorch_lightning.trainer.trainer import Trainer
 
-****************************************
+#######################################
 Run on an on-prem cluster (intermediate)
-****************************************
+#######################################
 **Audience**: Users who need to run on an academic or enterprise private cluster.
 
 ----

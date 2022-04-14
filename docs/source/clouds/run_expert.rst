@@ -1,8 +1,8 @@
 .. _grid:
 
-##########################
+###########################
 Train on the cloud (expert)
-##########################
+###########################
 **Audience**: Corporate or academic users who want to run Grid products on their Company or University private cloud account.
 
 ----

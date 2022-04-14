@@ -9,34 +9,38 @@ Reach trillion parameter scale and put models into production.
 
 .. raw:: html
 
-    <div class="tutorials-callout-container">
+    <div class="display-card-container">
         <div class="row">
 
 .. Add callout items below this line
 
-.. customcalloutitem::
+.. displayitem::
    :description: Learn to use state-of-the-art training and inference techniques via the Lightning Trainer.
-   :header: Level 11: Advanced Lightning Trainer
-   :button_link: advanced_level_11.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Train 1 trillion+ parameter models.
-   :header: Level 12: Reach 1 trillion+ parameter scale
+   :header: Level 12: Advanced Lightning Trainer
    :button_link: advanced_level_12.html
-   :card_style: text-container-small
+   :col_css: col-md-6
+   :height: 150
 
-.. customcalloutitem::
-   :description: Train a model across multiple machines
-   :header: Level 13: Multi-node training
+.. displayitem::
+   :description: Train 1 trillion+ parameter models.
+   :header: Level 13: Reach 1 trillion+ parameter scale
    :button_link: advanced_level_13.html
-   :card_style: text-container-small
+   :col_css: col-md-6
+   :height: 150
 
-.. customcalloutitem::
-   :description: Training on the cloud and SLURM clusters.
-   :header: Level 14: Train on the cloud
+.. displayitem::
+   :description: Train a model across multiple machines
+   :header: Level 14: Multi-node training
    :button_link: advanced_level_14.html
-   :card_style: text-container-small
+   :col_css: col-md-6
+   :height: 150
+
+.. displayitem::
+   :description: Training on the cloud and SLURM clusters.
+   :header: Level 15: Train on the cloud
+   :button_link: advanced_level_15.html
+   :col_css: col-md-6
+   :height: 150
 
 .. raw:: html
 
