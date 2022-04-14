@@ -13,13 +13,14 @@ import requests
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.strategies.strategy import Strategy
+from pytorch_lightning.strategies.strategy import Strategy, TBroadcast
 from pytorch_lightning.utilities import _XLA_AVAILABLE, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HIVEMIND_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.types import LRSchedulerTypeUnion
 
 if _HIVEMIND_AVAILABLE:
     import hivemind
@@ -205,6 +206,7 @@ class CollaborativeStrategy(Strategy):
         self.opt = opt
 
         if self.reuse_grad_buffers:
+            assert self.lightning_module is not None
             # turn off zero_grad by Lightning
             if is_overridden("optimizer_zero_grad", self.lightning_module):
                 raise rank_zero_warn(
@@ -241,8 +243,6 @@ class CollaborativeStrategy(Strategy):
                         f"exception raised: {e}"
                     )
             self._initialize_hivemind()
-
-        self.lightning_module.log("num_peers", self.num_peers)
 
     @property
     def num_peers(self) -> int:
@@ -293,10 +293,10 @@ class CollaborativeStrategy(Strategy):
     def is_global_zero(self) -> bool:
         return True
 
-    def barrier(self, *args, **kwargs) -> None:
+    def barrier(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    def broadcast(self, obj: object, src: int = 0) -> object:
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return obj
 
     def teardown(self) -> None:
@@ -318,7 +318,7 @@ class HiveMindScheduler:
     This code ensures that we only step when the HiveMind optimizer reaches the global step.
     """
 
-    def __init__(self, optimizer: "hivemind.Optimizer", scheduler: torch.optim.lr_scheduler._LRScheduler):
+    def __init__(self, optimizer: "hivemind.Optimizer", scheduler: LRSchedulerTypeUnion):
         # copy most of the `Scheduler` methods into this instance. `__del__` is skipped in case the scheduler has
         # implemented custom logic which we would not want to call on destruction of the `SwarmyScheduler`
         self.__dict__ = {k: v for k, v in scheduler.__dict__.items() if k not in ("step", "__del__")}
