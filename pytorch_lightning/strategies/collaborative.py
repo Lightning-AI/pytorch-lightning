@@ -53,7 +53,7 @@ class CollaborativeStrategy(Strategy):
         port: Optional[int] = None,
         retry_initial_peers: int = 5,
         retry_peer_sleep_duration: int = 5,
-        **optimizer_kwargs,
+        **optimizer_kwargs: Any,
     ):
         """Provides capabilities to train using the Hivemind Library, training collaboratively across the internet
         with unreliable machines. `For more information: https://pytorch-
