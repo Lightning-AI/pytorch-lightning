@@ -18,6 +18,8 @@ variables:
 jobs:
   - job: tests
 
+    # how long to run the job before automatically cancelling
+    timeoutInMinutes: "15"
     pool: graphcore-ipus
 
     workspace:

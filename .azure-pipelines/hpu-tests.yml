@@ -17,7 +17,7 @@ jobs:
   - job: tests
 
     # how long to run the job before automatically cancelling
-    timeoutInMinutes: "5"
+    timeoutInMinutes: "10"
     # how much time to give 'run always even if cancelled tasks' before stopping them
     cancelTimeoutInMinutes: "2"
 
@@ -35,7 +35,6 @@ jobs:
     - bash: |
         pip install . --requirement requirements/extra.txt
         pip install . --requirement requirements/test.txt
-        pip uninstall -y horovod  # HotFix: not sure how it got there...
       displayName: 'Install dependencies'
 
     - bash: |
