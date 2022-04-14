@@ -57,7 +57,7 @@ class _DeprecatedEnumMeta(EnumMeta):
         return obj
 
     def __getitem__(cls, name: str) -> Any:
-        member: DeprecatedEnumMeta = super().__getitem__(name)
+        member: _DeprecatedEnumMeta = super().__getitem__(name)
         member.deprecate()
         return member
 
@@ -69,7 +69,7 @@ class _DeprecatedEnumMeta(EnumMeta):
 
 
 class _DeprecatedEnum(LightningEnum, metaclass=_DeprecatedEnumMeta):
-    """DeprecatedEnum calls an enum's `deprecate()` method on member access."""
+    """_DeprecatedEnum calls an enum's `deprecate()` method on member access."""
 
     pass
 
