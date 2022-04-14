@@ -1220,3 +1220,17 @@ def test_deepspeed_with_bfloat16_precision(tmpdir):
     assert trainer.strategy.precision_plugin.precision == "bf16"
     assert trainer.strategy.config["zero_optimization"]["stage"] == 3
     assert model.layer.weight.dtype == torch.bfloat16
+
+
+@RunIf(standalone=True, deepspeed=True)
+def test_deepspeed_exception_on_cpu(tmpdir):
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="cpu",
+        strategy=DeepSpeedStrategy(),
+        fast_dev_run=True,
+    )
+    strategy = trainer.strategy
+    assert isinstance(strategy, DeepSpeedStrategy)
+    with pytest.raises(MisconfigurationException, match="CPU is not supported for DeepSpeed"):
+        strategy.init_deepspeed()
