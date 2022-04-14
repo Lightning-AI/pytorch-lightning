@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from unittest.mock import Mock, ANY
+from unittest.mock import Mock
 
+import pytest
 import torch
 
 import pytorch_lightning
 from pytorch_lightning import Callback, LightningModule, Trainer
-from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
 from pytorch_lightning.callbacks import (
     EarlyStopping,
     GradientAccumulationScheduler,
@@ -29,6 +29,7 @@ from pytorch_lightning.callbacks import (
     TQDMProgressBar,
 )
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
+from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
 from tests.helpers import BoringModel
 
 
@@ -219,29 +220,69 @@ def test_attach_model_callbacks_override_info(caplog):
     assert "existing callbacks passed to Trainer: EarlyStopping, LearningRateMonitor" in caplog.text
 
 
-def test_configure_external_callbacks(monkeypatch):
+class ExternalCallback(Callback):
+    """A callback in another library that gets registered through entry points."""
+
+    pass
+
+
+def test_configure_external_callbacks_raises(monkeypatch):
+    """Test that the connector validates the return type of Callback factories registered through entry points."""
 
     def factory_incorrect_return_type():
         return "invalid"
 
     def factory_incorrect_element_type():
-        return [ModelCheckpoint(), "invalid"]
+        return [ExternalCallback(), "invalid"]
 
-    def callback_factory():
-        return [TQDMProgressBar()]
+    _make_entry_point_query_mock(monkeypatch, factory_incorrect_return_type)
+    with pytest.raises(TypeError, match="The entry point 'mocked' returned a <class 'str'> but is expected to return"):
+        Trainer()
 
+    _make_entry_point_query_mock(monkeypatch, factory_incorrect_element_type)
+    with pytest.raises(TypeError, match="at least one callack was not an instance of"):
+        Trainer()
+
+
+def test_configure_external_callbacks(monkeypatch):
+    """Test that the connector collects Callback instances from factories registered through entry points."""
+
+    def factory_no_callback():
+        return []
+
+    def factory_one_callback():
+        return [ExternalCallback()]
+
+    def factory_multiple_callbacks():
+        return [ExternalCallback(), ExternalCallback()]
+
+    _make_entry_point_query_mock(monkeypatch, factory_no_callback)
+    trainer = Trainer(enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
+    assert trainer.callbacks == [trainer.accumulation_scheduler]  # this scheduler callback gets added by default
+
+    _make_entry_point_query_mock(monkeypatch, factory_one_callback)
+    trainer = Trainer(enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
+    assert isinstance(trainer.callbacks[1], ExternalCallback)
+
+    _make_entry_point_query_mock(monkeypatch, factory_multiple_callbacks)
+    trainer = Trainer(enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
+    assert isinstance(trainer.callbacks[1], ExternalCallback)
+    assert isinstance(trainer.callbacks[2], ExternalCallback)
+
+
+def _make_entry_point_query_mock(monkeypatch, callback_factory):
     query_mock = Mock()
-    monkeypatch.setattr(
-        pytorch_lightning.trainer.connectors.callback_connector.importlib.metadata, "entry_points", query_mock
-    )
-
-    entry_point1 = Mock()
-    entry_point1.load.return_value = invalid_factory
-    query_mock().get.return_value = [entry_point1]# .load.return_value = invalid_factory
-    #query_mock().get().
-
-    trainer = Trainer(enable_checkpointing=False, enable_model_summary=False, enable_progress_bar=False)
-    query_mock().get.assert_called_with('pytorch_lightning.callbacks_factory', ())
-
-
-    print(trainer.callbacks)
+    entry_point = Mock()
+    entry_point.name = "mocked"
+    entry_point.load.return_value = callback_factory
+    if _PYTHON_GREATER_EQUAL_3_8_0:
+        query_mock().get.return_value = [entry_point]
+        monkeypatch.setattr(
+            pytorch_lightning.trainer.connectors.callback_connector.importlib.metadata, "entry_points", query_mock
+        )
+        return query_mock.get
+    else:
+        query_mock.return_value = [entry_point]
+        monkeypatch.setattr(
+            pytorch_lightning.trainer.connectors.callback_connector.pkg_resources, "iter_entry_points", query_mock
+        )
