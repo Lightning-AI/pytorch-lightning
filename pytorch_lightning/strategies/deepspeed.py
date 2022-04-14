@@ -449,9 +449,7 @@ class DeepSpeedStrategy(DDPStrategy):
             raise MisconfigurationException("DeepSpeed does not support clipping gradients by value.")
 
         if isinstance(self.accelerator, CPUAccelerator):
-            raise MisconfigurationException(
-                "CPU is not supported for DeepSpeed"
-            )
+            raise MisconfigurationException("CPU is not supported for DeepSpeed")
         accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
 
         if accumulation_scheduler.epochs != [0]:
