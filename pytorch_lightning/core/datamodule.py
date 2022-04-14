@@ -54,43 +54,20 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     name: str = ...
 
-    def __init__(self, val_transforms=None, test_transforms=None, dims=None):
+    def __init__(self, test_transforms=None, dims=None):
         super().__init__()
-        if val_transforms is not None:
-            rank_zero_deprecation(
-                "DataModule property `val_transforms` was deprecated in v1.5 and will be removed in v1.7."
-            )
+   
         if test_transforms is not None:
             rank_zero_deprecation(
                 "DataModule property `test_transforms` was deprecated in v1.5 and will be removed in v1.7."
             )
         if dims is not None:
             rank_zero_deprecation("DataModule property `dims` was deprecated in v1.5 and will be removed in v1.7.")
-        self._val_transforms = val_transforms
         self._test_transforms = test_transforms
         self._dims = dims if dims is not None else ()
 
         # Pointer to the trainer object
         self.trainer = None
-
-    @property
-    def val_transforms(self):
-        """Optional transforms (or collection of transforms) you can apply to validation dataset.
-
-        .. deprecated:: v1.5     Will be removed in v1.7.0.
-        """
-
-        rank_zero_deprecation(
-            "DataModule property `val_transforms` was deprecated in v1.5 and will be removed in v1.7."
-        )
-        return self._val_transforms
-
-    @val_transforms.setter
-    def val_transforms(self, t):
-        rank_zero_deprecation(
-            "DataModule property `val_transforms` was deprecated in v1.5 and will be removed in v1.7."
-        )
-        self._val_transforms = t
 
     @property
     def test_transforms(self):
