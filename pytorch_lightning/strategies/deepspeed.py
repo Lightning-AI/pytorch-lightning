@@ -26,7 +26,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import CPUAccelerator
+from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
