@@ -358,11 +358,6 @@ class DeepSpeedStrategy(DDPStrategy):
         self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
-<<<<<<< HEAD
-        if self.root_device == torch.device("cpu"):
-            raise MisconfigurationException(f"Unsupported accelerator for DeepSpeed: {self.root_device}")
-=======
->>>>>>> f2b38714f (Deepspeed accelerator misconfiguration was moved to init_deepspeed)
         optimizers_to_device(self.optimizers, self.root_device)
         self.init_deepspeed()
         self.barrier()
@@ -455,7 +450,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
         if isinstance(self.accelerator, CPUAccelerator):
             raise MisconfigurationException(
-                f"Unsupported accelerator for DeepSpeed: {type(CPUAccelerator)}"
+                "CPU is not supported for DeepSpeed"
             )
         accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
 
