@@ -11,13 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import importlib.metadata
+
 import logging
 import os
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Union
-
-import pkg_resources
 
 from pytorch_lightning.callbacks import (
     Callback,
@@ -34,6 +32,12 @@ from pytorch_lightning.utilities.enums import ModelSummaryMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
+
+if _PYTHON_GREATER_EQUAL_3_8_0:
+    import importlib.metadata
+else:
+    import pkg_resources
+
 
 _log = logging.getLogger(__name__)
 
