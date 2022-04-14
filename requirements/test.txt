@@ -7,7 +7,6 @@ mypy>=0.920
 flake8>=3.9.2
 pre-commit>=1.0
 pytest-forked
-sklearn
 
 # needed in tests
 cloudpickle>=1.3

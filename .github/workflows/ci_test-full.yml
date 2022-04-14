@@ -115,7 +115,7 @@ jobs:
         HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
         if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
           pip uninstall -y horovod
-          echo $(grep "horovod" requirements/strategies.txt) > requirements/horovod.txt
+          grep "horovod" requirements/strategies.txt > requirements/horovod.txt
           pip install --no-cache-dir -r requirements/horovod.txt
         fi
         horovodrun --check-build
