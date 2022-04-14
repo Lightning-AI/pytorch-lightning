@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Include the `pytorch_lightning` version as a header in the CLI config files ([#12532](https://github.com/PyTorchLightning/pytorch-lightning/pull/12532))
 
 
--
+- Added `download_artifact` and `use_artifact` methods to the WandbLogger to work with artifacts without having to access `logger.experiment` ([#12764](https://github.com/PyTorchLightning/pytorch-lightning/pull/12764))
 
 
 -
