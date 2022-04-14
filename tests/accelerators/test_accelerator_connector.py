@@ -263,15 +263,20 @@ def test_accelerator_cpu(_):
     trainer = Trainer(accelerator="cpu")
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
-    with pytest.raises(MisconfigurationException, match="You requested gpu:"):
-        trainer = Trainer(gpus=1)
     with pytest.raises(
         MisconfigurationException,
         match="GPUAccelerator can not run on your system since the accelerator is not available.",
     ):
-        trainer = Trainer(accelerator="gpu")
-    with pytest.raises(MisconfigurationException, match="You requested gpu:"):
-        trainer = Trainer(accelerator="cpu", gpus=1)
+        with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
+            Trainer(gpus=1)
+    with pytest.raises(
+        MisconfigurationException,
+        match="GPUAccelerator can not run on your system since the accelerator is not available.",
+    ):
+        Trainer(accelerator="gpu")
+
+    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
+        Trainer(accelerator="cpu", gpus=1)
 
 
 @RunIf(min_gpus=1)
@@ -328,12 +333,6 @@ def test_unsupported_strategy_types_on_cpu(strategy):
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
         trainer = Trainer(strategy=strategy, num_processes=2)
     assert isinstance(trainer.strategy, DDPStrategy)
-
-
-def test_exception_when_strategy_used_with_plugins():
-    with pytest.raises(MisconfigurationException, match="only specify one strategy, but you have passed"):
-        with pytest.deprecated_call(match=r"`strategy` to the `plugins` flag in Trainer has been deprecated"):
-            Trainer(plugins="ddp_find_unused_parameters_false", strategy="ddp_spawn")
 
 
 def test_exception_invalid_strategy():

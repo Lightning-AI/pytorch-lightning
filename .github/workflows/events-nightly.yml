@@ -48,6 +48,18 @@ jobs:
           repository_url: https://test.pypi.org/legacy/
           verbose: true
 
+      # report failure to Slack
+      - name: Slack notification
+        if: failure() && github.event_name == 'schedule'
+        uses: ravsamhq/notify-slack-action@v1
+        with:
+          status: ${{ job.status }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          notification_title: 'Publish nightly package to test.pypi.org'
+          message_format: '{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@UR9FXE6QG>'  #Borda
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
   docker-XLA:
     if: ${{ github.repository_owner == 'PyTorchLightning' }}
     runs-on: ubuntu-20.04
@@ -83,6 +95,18 @@ jobs:
           tags: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
         timeout-minutes: 55
 
+      # report failure to Slack
+      - name: Slack notification
+        if: failure() && github.event_name == 'schedule'
+        uses: ravsamhq/notify-slack-action@v1
+        with:
+          status: ${{ job.status }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          notification_title: ${{ format('XLA; {0} py{1} for *{2}*', runner.os, matrix.python_version, matrix.xla_version) }}
+          message_format: '{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@U01GD29QCAV>'  #kaushikb11
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
   docker-CUDA:
     if: ${{ github.repository_owner == 'PyTorchLightning' }}
     runs-on: ubuntu-20.04
@@ -92,7 +116,10 @@ jobs:
         include:
           # the config used in '.azure-pipelines/gpu-tests.yml'
           - {python_version: "3.7", pytorch_version: "1.8"}
-          # latest (not used)
+          - {python_version: "3.7", pytorch_version: "1.10"}
+          # latest (used in Tutorials)
+          - {python_version: "3.8", pytorch_version: "1.8"}
+          - {python_version: "3.9", pytorch_version: "1.10"}
           - {python_version: "3.9", pytorch_version: "1.11"}
 
     steps:
@@ -117,6 +144,18 @@ jobs:
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 85
+
+      # report failure to Slack
+      - name: Slack notification
+        if: failure() && github.event_name == 'schedule'
+        uses: ravsamhq/notify-slack-action@v1
+        with:
+          status: ${{ job.status }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          notification_title: ${{ format('CUDA; {0} py{1} for *{2}*', runner.os, matrix.python_version, matrix.pytorch_version) }}
+          message_format: '{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@U01A5T7EY9M>'  #akihironitta
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   docker-Conda:
     if: ${{ github.repository_owner == 'PyTorchLightning' }}
@@ -156,6 +195,18 @@ jobs:
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 85
+
+      # report failure to Slack
+      - name: Slack notification
+        if: failure() && github.event_name == 'schedule'
+        uses: ravsamhq/notify-slack-action@v1
+        with:
+          status: ${{ job.status }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          notification_title: ${{ format('Conda; {0} py{1} for *{2}*', runner.os, matrix.python_version, matrix.pytorch_version) }}
+          message_format: '{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@U01A5T7EY9M>'  #akihironitta
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   docker-IPU:
     if: ${{ github.repository_owner == 'PyTorchLightning' }}
@@ -203,3 +254,15 @@ jobs:
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:ipu-ci-runner-py${{ matrix.python_version }}
         timeout-minutes: 55
+
+      # report failure to Slack
+      - name: Slack notification
+        if: failure() && github.event_name == 'schedule'
+        uses: ravsamhq/notify-slack-action@v1
+        with:
+          status: ${{ job.status }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          notification_title: ${{ format('IPU; {0} py{1} for *{2}*', runner.os, matrix.python_version, matrix.pytorch_version) }}
+          message_format: '{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@U01BULUS2BG>'  #SeanNaren
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
