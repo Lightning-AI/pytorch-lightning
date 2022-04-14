@@ -14,10 +14,10 @@ or with specific arguments
 ```bash
 git clone <git-repository>
 docker image build \
-    -t pytorch-lightning:base-cuda-py3.7-pt1.8 \
+    -t pytorch-lightning:base-cuda-py3.9-pt1.10 \
     -f dockers/base-cuda/Dockerfile \
-    --build-arg PYTHON_VERSION=3.7 \
-    --build-arg PYTORCH_VERSION=1.8 \
+    --build-arg PYTHON_VERSION=3.9 \
+    --build-arg PYTORCH_VERSION=1.10 \
     .
 ```
 
@@ -64,7 +64,7 @@ sudo systemctl restart docker
 and later run the docker image with `--gpus all` so for example
 
 ```
-docker run --rm -it --gpus all pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.6
+docker run --rm -it --gpus all pytorchlightning/pytorch_lightning:base-cuda-py3.9-torch1.10
 ```
 
 ## Run Jupyter server
