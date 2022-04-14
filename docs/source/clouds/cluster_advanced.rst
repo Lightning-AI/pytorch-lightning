@@ -8,6 +8,8 @@ Run on an on-prem cluster (advanced)
 
 .. _slurm:
 
+----
+
 ******************************
 Run on a SLRUM managed cluster
 ******************************

@@ -1,8 +1,8 @@
 .. _test_set:
 
-##########
-Evaluation
-##########
+#################
+Avoid overfitting
+#################
 
 During and after training we need a way to evaluate our models to make sure they are not overfitting while training and
 generalize well on unseen or real-world data. There are generally 2 stages of evaluation: validation and testing. To some

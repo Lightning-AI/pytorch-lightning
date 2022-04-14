@@ -9,6 +9,8 @@ Run on an on-prem cluster (expert)
 
 .. _custom-cluster:
 
+----
+
 **************************
 Integrate your own cluster
 **************************

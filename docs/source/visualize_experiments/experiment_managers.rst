@@ -1,6 +1,6 @@
-*******************
-Experiment Managers
-*******************
+******************
+Manage Experiments
+******************
 To track other artifacts, such as histograms or model topology graphs first select one of the many experiment managers (*loggers*) supported by Lightning 
 
 .. code-block:: python
