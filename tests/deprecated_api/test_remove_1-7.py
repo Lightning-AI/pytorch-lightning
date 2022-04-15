@@ -43,14 +43,8 @@ def test_v1_7_0_datamodule_transform_properties(tmpdir):
     dm = MNISTDataModule()
     with pytest.deprecated_call(match=r"DataModule property `val_transforms` was deprecated in v1.5"):
         dm.val_transforms = "b"
-    with pytest.deprecated_call(match=r"DataModule property `test_transforms` was deprecated in v1.5"):
-        dm.test_transforms = "c"
     with pytest.deprecated_call(match=r"DataModule property `val_transforms` was deprecated in v1.5"):
         _ = LightningDataModule(val_transforms="b")
-    with pytest.deprecated_call(match=r"DataModule property `test_transforms` was deprecated in v1.5"):
-        _ = LightningDataModule(test_transforms="c")
-    with pytest.deprecated_call(match=r"DataModule property `test_transforms` was deprecated in v1.5"):
-        _ = LightningDataModule(test_transforms="c", dims=(1, 1, 1))
 
 
 def test_v1_7_0_datamodule_size_property(tmpdir):
