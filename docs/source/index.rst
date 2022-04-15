@@ -202,27 +202,26 @@ Current Lightning Users
    :name: Concepts Glossary
    :caption: Concepts Glossary
 
-   accelerators/gpu
-   accelerators/hpu
-   accelerators/ipu
-   accelerators/tpu
    common/evaluation
-   common/checkpointing
    common/hyperparameters
    common/progress_bar
    common/debugging
-   Finetune a model <advanced/transfer_learning>
    build_model/build_model.rst
    deploy/production
    advanced/training_tricks
    common/lightning_cli
-   advanced/fault_tolerant_training
    tuning/profiler
-   visualize_experiments/experiment_managers
+   Finetune a model <advanced/transfer_learning>
+   Manage experiments <visualize_experiments/logging_intermediate>
    precision/precision
    clouds/cluster
    advanced/model_parallel
    clouds/cloud_training
+   Train on single or multiple GPUs <accelerators/gpu>
+   Train on single or multiple HPUs <accelerators/hpu>
+   Train on single or multiple IPUs <accelerators/ipu>
+   Train on single or multiple TPUs <accelerators/tpu>
+   Save and load model progress <common/checkpointing_basic>
    visualize_experiments/loggers
    build_model/own_your_loop
 
@@ -233,14 +232,15 @@ Current Lightning Users
 
    Accelerators <extensions/accelerator.html>
    Callback <extensions/callbacks>
-   Checkpoint <common/checkpointing>
+   Checkpointing <common/checkpointing>
    Cluster <clouds/cluster>
    Cloud checkpoint <common/checkpointing_advanced>
    Console Logging <common/console_logs>
    Debugging <common/debugging>
    Early stopping <common/early_stopping>
    Experiment manager <visualize_experiments/experiment_managers>
-   Fault tolerance  <advanced/fault_tolerant_training>
+   Fault tolerant training  <advanced/fault_tolerant_training>
+   Finetuning <advanced/transfer_learning>
    Flash <https://lightning-flash.readthedocs.io/en/stable/>
    FSSPEC <common/remote_fs>
    Grid AI <clouds/cloud_training>
@@ -250,7 +250,7 @@ Current Lightning Users
    Inference <deploy/production_intermediate>
    IPU <accelerators/ipu>
    Lightning CLI <common/lightning_cli>
-   Lightning Lite <build_model/own_your_loop>
+   Lightning Lite <build_model/build_model_expert>
    LightningDataModule <extensions/datamodules>
    LightningModule <common/lightning_module>
    Lightning Transformers <https://pytorch-lightning.readthedocs.io/en/stable/ecosystem/transformers.html>

@@ -1,5 +1,5 @@
 ###########################################
-LightningLite - Stepping Stone to Lightning
+LightningLite (Stepping Stone to Lightning)
 ###########################################
 
 
