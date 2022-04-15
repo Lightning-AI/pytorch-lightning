@@ -15,6 +15,7 @@ import functools
 import inspect
 import os
 from contextlib import contextmanager
+from dataclasses import fields
 from functools import partial
 from itertools import chain
 from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Set, Type, Union
@@ -25,6 +26,7 @@ from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler,
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.utilities.apply_func import _is_dataclass_instance
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -49,6 +51,9 @@ def _extract_batch_size(batch: BType) -> Generator[int, None, None]:
 
         for sample in batch:
             yield from _extract_batch_size(sample)
+    elif _is_dataclass_instance(batch):
+        for field in fields(batch):
+            yield from _extract_batch_size(getattr(batch, field.name))
     else:
         yield None
 
