@@ -739,7 +739,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization
         model = ManualModelParallelClassificationModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        ccelerator="gpu",
+        accelerator="gpu",
         devices=2,
         strategy=DeepSpeedStrategy(stage=3),
         precision=16,
