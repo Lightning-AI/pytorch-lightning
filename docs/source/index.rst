@@ -36,6 +36,7 @@ PyTorch Lightning is the deep learning framework for professional AI researchers
 
 .. join_slack::
    :align: center
+   :margin: 0
 
 .. raw:: html
 
