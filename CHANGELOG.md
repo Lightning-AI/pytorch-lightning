@@ -115,6 +115,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed support for passing strategy names or strategy instances to the plugins Trainer argument ([#12700](https://github.com/PyTorchLightning/pytorch-lightning/pull/12700))
 
 
+- Removed deprecated `dataloader_idx` argument from `on_train_batch_start/end` callback hooks ([#12768](https://github.com/PyTorchLightning/pytorch-lightning/pull/12768))
+
 ### Fixed
 
 - Run main progress bar updates independent of val progress bar updates in `TQDMProgressBar` ([#12563](https://github.com/PyTorchLightning/pytorch-lightning/pull/12563))
