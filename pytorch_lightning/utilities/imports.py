@@ -54,7 +54,7 @@ def _module_available(module_path: str) -> bool:
         return False
     try:
         importlib.import_module(module_path)
-    except ModuleNotFoundError:
+    except ImportError:
         return False
     return True
 
@@ -64,10 +64,12 @@ def _compare_version(package: str, op: Callable, version: str, use_base_version:
 
     >>> _compare_version("torch", operator.ge, "0.1")
     True
+    >>> _compare_version("does_not_exist", operator.ge, "0.0")
+    False
     """
     try:
         pkg = importlib.import_module(package)
-    except (ModuleNotFoundError, DistributionNotFound):
+    except (ImportError, DistributionNotFound):
         return False
     try:
         if hasattr(pkg, "__version__"):
@@ -85,7 +87,7 @@ def _compare_version(package: str, op: Callable, version: str, use_base_version:
 
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
-_PYTHON_GREATER_EQUAL_3_8_0 = _compare_version("python", operator.ge, "3.8.0")
+_PYTHON_GREATER_EQUAL_3_8_0 = Version(platform.python_version()) >= Version("3.8.0")
 _TORCH_GREATER_EQUAL_1_8_1 = _compare_version("torch", operator.ge, "1.8.1")
 _TORCH_GREATER_EQUAL_1_9 = _compare_version("torch", operator.ge, "1.9.0")
 _TORCH_GREATER_EQUAL_1_9_1 = _compare_version("torch", operator.ge, "1.9.1")

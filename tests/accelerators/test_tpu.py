@@ -26,7 +26,6 @@ from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
 from pytorch_lightning.strategies import DDPStrategy, TPUSpawnStrategy
 from pytorch_lightning.utilities import find_shared_parameters
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import pl_multi_process_test
@@ -196,12 +195,6 @@ def test_manual_optimization_tpus(tmpdir):
 
     for param, param_copy in zip(model.parameters(), model_copy.parameters()):
         assert not torch.equal(param.cpu().data, param_copy.data)
-
-
-@RunIf(tpu=True)
-def test_ddp_cpu_not_supported_on_tpus():
-    with pytest.raises(MisconfigurationException, match="`accelerator='ddp_cpu'` is not supported on TPU machines"):
-        Trainer(accelerator="ddp_cpu")
 
 
 @RunIf(tpu=True)
