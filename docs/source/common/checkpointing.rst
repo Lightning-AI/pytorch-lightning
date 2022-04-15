@@ -49,6 +49,13 @@ Checkpointing
    :height: 150
    :tag: expert
 
+.. displayitem::
+   :header: ModelCheckpoint API
+   :description: Dig into the ModelCheckpoint API
+   :col_css: col-md-3
+   :button_link: checkpointing_api.html
+   :height: 150
+
 .. raw:: html
 
         </div>

@@ -1,57 +1,13 @@
-Fault-tolerant Training
-=======================
+#############################
+Fault-tolerant Training (FAQ)
+#############################
 
-.. warning:: Fault-tolerant Training is currently an experimental feature within Lightning.
+----
 
-Fault-tolerant Training is an internal mechanism that enables PyTorch Lightning to recover from a hardware or software failure.
-This is particularly interesting while training in the cloud with preemptive instances which can shutdown at any time.
-
-Until now, a ``Trainer.fit()`` failing in the middle of an epoch during training or validation
-would require the user to restart that epoch completely, losing any progress made during the epoch.
-This would make benchmarking non-reproducible as optimization has been interrupted and only partially restored.
-
-With Fault Tolerant Training, when ``Trainer.fit()`` fails in the middle of an epoch during training or validation,
-Lightning will restart exactly where it failed, and everything will be restored.
-
-Fault tolerance can be enabled as follows:
-
-.. code-block:: bash
-
-    PL_FAULT_TOLERANT_TRAINING=1 python script.py
-
-
-Under The Hood
---------------
-
-Lightning keeps track of the following state updates during training:
-
-* Samplers indices and random states across multiple processes and workers: This enables restoring random transforms and batch fetching to the exact state as it was right before the failure.
-* Optimizers, learning rate schedulers, callbacks, etc..
-* Loop progression
-* Logging internal states such that metric reductions on epoch end are not getting affected by the failure and model selection can continue as expected.
-
-Currently Supported
--------------------
-
-If you are using a single map-based dataset by sub-classing :class:`~torch.utils.data.Dataset`, everything should work as expected.
-
-.. code-block:: python
-
-    from torch.utils.data import Dataset, DataLoader
-
-
-    class RandomDataset(Dataset):
-        def __init__(self, size: int, length: int):
-            self.len = length
-            self.data = torch.randn(length, size)
-
-        def __getitem__(self, index):
-            return self.data[index]
-
-        def __len__(self):
-            return self.len
-
-If you are using a single iterable-based dataset, there are some limitations. To support fault-tolerance, you will need to use and expose a sampler within your dataset.
+*******************************
+How do I use iterable datasets?
+*******************************
+To support fault-tolerance, you will need to use and expose a sampler within your dataset.
 
 For example, the following implementation for an iterable dataset sub-classing :class:`~torch.utils.data.IterableDataset` won't be supported.
 
@@ -106,10 +62,11 @@ If your iterable dataset are implemented in the following way, everything should
             index = next(self.sampler_iter)
             return self.data[index]
 
+----
 
-Current Known Limitations
--------------------------
-
+**********************************
+How do I use multiple dataloaders?
+**********************************
 If you are using multiple training dataloaders, Lightning won't be able to restore the random state properly.
 
 .. testcode::
@@ -130,9 +87,11 @@ If you are using multiple training dataloaders, Lightning won't be able to resto
 If you believe this to be useful, please open a `feature request <https://github.com/PyTorchLightning/pytorch-lightning/issues>`_.
 
 
-Performance Impacts
--------------------
+----
 
+*********************************
+What are the performance impacts?
+*********************************
 Fault-tolerant Training was tested on common and worst-case scenarios in order to measure the impact of the internal state tracking on the total training time.
 On tiny models like the `BoringModel and RandomDataset <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report/bug_report_model.py>`_
 which has virtually no data loading and processing overhead, we noticed up to 50% longer training time with fault tolerance enabled.
@@ -148,3 +107,38 @@ More detailed benchmarks will be shared in the future.
 
     - Capturing the iteration count + random states for each sample within each DataLoader workers and pass it through the data_queue
     - Extra logic to handle / store the dataloader's states from each batch.
+
+----
+
+************************************
+What happens to my shuffled dataset?
+************************************
+If you are using a single map-based dataset by sub-classing :class:`~torch.utils.data.Dataset`, everything should work as expected.
+
+.. code-block:: python
+
+    from torch.utils.data import Dataset, DataLoader
+
+
+    class RandomDataset(Dataset):
+        def __init__(self, size: int, length: int):
+            self.len = length
+            self.data = torch.randn(length, size)
+
+        def __getitem__(self, index):
+            return self.data[index]
+
+        def __len__(self):
+            return self.len
+
+----
+
+******************************
+What parts are fault-tolerant?
+******************************
+Lightning keeps track of the following state updates during training:
+
+* Samplers indices and random states across multiple processes and workers: This enables restoring random transforms and batch fetching to the exact state as it was right before the failure.
+* Optimizers, learning rate schedulers, callbacks, etc..
+* Loop progression
+* Logging internal states such that metric reductions on epoch end are not getting affected by the failure and model selection can continue as expected.

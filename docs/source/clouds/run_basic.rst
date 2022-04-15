@@ -90,6 +90,9 @@ You can also monitor its progress on the commandline:
 .. code:: bash
 
       grid status 
+----
+
+.. include:: grid_costs.rst
 
 ----
 

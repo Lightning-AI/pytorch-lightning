@@ -9,8 +9,8 @@ Level 11: Organize your models and datasets
 
 .. Add callout items below this line
 
-common/lightning_cli.html
-extensions/datamodules.html?highlight=datamodules
+lightning_cli/lightning_cli.html
+datamodule/datamodules.html?highlight=datamodules
 
 .. displayitem::
    :header: 

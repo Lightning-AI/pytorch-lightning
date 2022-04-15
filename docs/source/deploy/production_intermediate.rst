@@ -3,6 +3,7 @@ Deploy models into production (intermediate)
 ###########################################
 **Audience**: Researchers and MLEs looking to use their models for predictions without Lightning dependencies.
 
+----
 
 *********************
 Use PyTorch as normal

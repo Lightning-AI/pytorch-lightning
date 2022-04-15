@@ -27,22 +27,22 @@ PyTorch Lightning is the deep learning framework for professional AI researchers
       </div>
    </div>
 
+.. raw:: html
+
+   <div class="row" style='font-size: 14px'>
+      <div class='col-md-6'>
+      </div>
+      <div class='col-md-6'>
+
+.. join_slack::
+   :align: center
+   :margin: 0
 
 .. raw:: html
 
-   <div class='row'>
-      <a class="sc-frDJqD lkTDih menu-link" href="https://join.slack.com/t/gridai-community/shared_invite/zt-ozqiwuif-UYK6rZGVmTTpMfPcVSdicg" target="_blank">
-         <div class="sc-bdVaJa iMxqiR icon" data-icon="slackLogo" style="width: 20px; height: 20px; color: var(--gray-50);">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-               <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="currentColor">
-               </path>
-            </svg>
-         </div>
-         <button type="button" data-intercom-target="Get Help" class="sc-bxivhb lhLdPd new-btn xl primary textLink iconSize rightIconSize">
-            <span>Get Help</span>
-         </button>
-      </a>
+      </div>
    </div>
+
 
 .. raw:: html
 
@@ -86,8 +86,8 @@ Or read the `advanced install guide <starter/installation.html>`_
 
    <hr class="docutils" style="margin: 50px 0 50px 0">
 
-Getting Started
----------------
+Get Started
+-----------
 
 .. raw:: html
 
@@ -167,7 +167,7 @@ Current Lightning Users
 .. toctree::
    :maxdepth: 1
    :name: start
-   :caption: Getting Started
+   :caption: Get Started
 
    starter/introduction
 
@@ -202,27 +202,26 @@ Current Lightning Users
    :name: Concepts Glossary
    :caption: Concepts Glossary
 
-   accelerators/gpu
-   accelerators/hpu
-   accelerators/ipu
-   accelerators/tpu
    common/evaluation
-   common/checkpointing
+   build_model/build_model.rst
    common/hyperparameters
    common/progress_bar
    common/debugging
-   Finetune a model <advanced/transfer_learning>
-   build_model/build_model.rst
    deploy/production
    advanced/training_tricks
-   common/lightning_cli
-   advanced/fault_tolerant_training
+   lightning_cli/lightning_cli
    tuning/profiler
-   visualize_experiments/experiment_managers
+   Finetune a model <advanced/transfer_learning>
+   Manage experiments <visualize_experiments/logging_intermediate>
    precision/precision
    clouds/cluster
    advanced/model_parallel
    clouds/cloud_training
+   Train on single or multiple GPUs <accelerators/gpu>
+   Train on single or multiple HPUs <accelerators/hpu>
+   Train on single or multiple IPUs <accelerators/ipu>
+   Train on single or multiple TPUs <accelerators/tpu>
+   Save and load model progress <common/checkpointing_basic>
    visualize_experiments/loggers
    build_model/own_your_loop
 
@@ -233,14 +232,15 @@ Current Lightning Users
 
    Accelerators <extensions/accelerator.html>
    Callback <extensions/callbacks>
-   Checkpoint <common/checkpointing>
+   Checkpointing <common/checkpointing>
    Cluster <clouds/cluster>
    Cloud checkpoint <common/checkpointing_advanced>
    Console Logging <common/console_logs>
    Debugging <common/debugging>
    Early stopping <common/early_stopping>
    Experiment manager <visualize_experiments/experiment_managers>
-   Fault tolerance  <advanced/fault_tolerant_training>
+   Fault tolerant training  <clouds/fault_tolerant_training>
+   Finetuning <advanced/transfer_learning>
    Flash <https://lightning-flash.readthedocs.io/en/stable/>
    FSSPEC <common/remote_fs>
    Grid AI <clouds/cloud_training>
@@ -249,18 +249,20 @@ Current Lightning Users
    HPU <accelerators/hpu>
    Inference <deploy/production_intermediate>
    IPU <accelerators/ipu>
-   Lightning CLI <common/lightning_cli>
-   Lightning Lite <build_model/own_your_loop>
-   LightningDataModule <extensions/datamodules>
+   Lightning CLI <lightning_cli/lightning_cli>
+   Lightning Lite <build_model/build_model_expert>
+   LightningDataModule <datamodule/datamodules>
    LightningModule <common/lightning_module>
    Lightning Transformers <https://pytorch-lightning.readthedocs.io/en/stable/ecosystem/transformers.html>
+   Log <visualize_experiments/loggers>
    Logger <visualize_experiments/experiment_managers>
    Loops <build_model/custom_loop_expert>
    TPU <accelerators/tpu>
    Metrics <https://torchmetrics.readthedocs.io/en/stable/>
    Model <build_model/build_model.rst>
+   ModelCheckpoint <common/checkpointing>
    Model Parallel <advanced/model_parallel>
-   Plugins <extensions/plugins.html>
+   Plugins <extensions/plugins>
    Progress bar <common/progress_bar>
    Production <deploy/production_advanced>
    Predict <deploy/production_basic>

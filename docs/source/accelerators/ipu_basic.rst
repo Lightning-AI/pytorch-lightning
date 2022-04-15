@@ -45,9 +45,9 @@ To use multiple IPUs set the devices to a number that is a power of 2 (i.e: 2, 4
 How to access IPUs
 ------------------
 
-To use IPUs you must have access to a system with IPU devices. To get access see `getting started <https://www.graphcore.ai/getstarted>`__.
+To use IPUs you must have access to a system with IPU devices. To get access see `get started <https://www.graphcore.ai/getstarted>`__.
 
-You must ensure that the IPU system has enabled the PopART and Poplar packages from the SDK. Instructions are in the Getting Started guide for your IPU system, on the Graphcore `documents portal <https://docs.graphcore.ai/page/getting-started.html>`__.
+You must ensure that the IPU system has enabled the PopART and Poplar packages from the SDK. Instructions are in the Get Started guide for your IPU system, on the Graphcore `documents portal <https://docs.graphcore.ai/page/getting-started.html>`__.
 
 ----
 

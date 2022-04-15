@@ -2,8 +2,7 @@
 ############
 Basic skills
 ############
-
-This group of skills teach you the basics of the framework. Researchers and machine learning engineers should start here.
+Learn the basics of model development with Lightning. Researchers and machine learning engineers should start here.
 
 .. include:: links.rst
 
@@ -15,41 +14,41 @@ This group of skills teach you the basics of the framework. Researchers and mach
 .. Add callout items below this line
 
 .. displayitem::
-   :description: Learn the 8 key steps of a typical Lightning workflow.
-   :header: Level 1: Lightning in 15 minutes
-   :button_link: ../starter/introduction.html
+   :header: Level 1: Train a model
+   :description: Learn the basics of training a model.
+   :button_link: ../build_model/train_model_basic.html
    :col_css: col-md-6
    :height: 150
    :tag: basic
 
 .. displayitem::
-   :description: Basic model scaling with GPUs, TPUs and half-precision.
-   :header: Level 2: Basic model scaling
-   :button_link: core_level_2.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: basic
-
-.. displayitem::
-   :description: Understand and visualize your model with custom experiment managers.
-   :header: Level 3: Visualize training progress
-   :button_link: core_level_3.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: basic
-
-.. displayitem::
+   :header: Level 2: Add a validation and test set
    :description: Add validation and test sets to avoid over/underfitting.
-   :header: Level 4: Add a validation and test set
-   :button_link: core_level_4.html
+   :button_link: /levels/basic_level_2.html
    :col_css: col-md-6
    :height: 150
    :tag: basic
 
 .. displayitem::
-   :description: Tune and debug your models.
-   :header: Level 5: Tune and debug your model
-   :button_link: core_level_5.html
+   :header: Level 3: Use pretrained models
+   :description: Learn how to use pretrained models with Lightning
+   :button_link: ../advanced/transfer_learning.html
+   :col_css: col-md-6
+   :height: 150
+   :tag: basic
+
+.. displayitem::
+   :header: Level 4: Enable script parameters
+   :description: Add parameters to your script so you can run from the commandline.
+   :button_link: ../common/hyperparameters.html
+   :col_css: col-md-6
+   :height: 150
+   :tag: basic
+
+.. displayitem::
+   :header: Level 5: Understand and visualize your model
+   :description: Remove bottlenecks and visualize your model
+   :button_link: ../levels/basic_level_5.html
    :col_css: col-md-6
    :height: 150
    :tag: basic
@@ -58,14 +57,6 @@ This group of skills teach you the basics of the framework. Researchers and mach
    :description: Use your model for predictions.
    :header: Level 6: Predict with your model
    :button_link: core_level_6.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: basic
-
-.. displayitem::
-   :description: Put your model into production.
-   :header: Level 7: Deploy your model
-   :button_link: core_level_7.html
    :col_css: col-md-6
    :height: 150
    :tag: basic

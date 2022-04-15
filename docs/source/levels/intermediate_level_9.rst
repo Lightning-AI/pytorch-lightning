@@ -1,6 +1,6 @@
-#####################################
-Level 9: Extend the Lightning Trainer
-#####################################
+#################################
+Level 9: Modularize your datasets
+#################################
 
 .. raw:: html
 
@@ -10,15 +10,12 @@ Level 9: Extend the Lightning Trainer
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Inject custom code into the Trainer
-   :description: Inject custom code via Callbacks.
+   :header: Make modular datasets
+   :description: Reuse datasets across models by decoupling both with DataModules
    :col_css: col-md-6
-   :button_link: ../extensions/callbacks.html
+   :button_link: ../datamodule/datamodules.html
    :height: 150
    :tag: intermediate
-
-common/progress_bar.html
-advanced/transfer_learning.html
 
 .. raw:: html
 

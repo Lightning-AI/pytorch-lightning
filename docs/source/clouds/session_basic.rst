@@ -39,7 +39,10 @@ For example, if your model takes 10 days to train on a CPU machine, here's how c
 ***********************************
 Start a cloud machine in < 1 minute
 ***********************************
-Navigate to https://platform.grid.ai to create a free account, then start a new Grid Session.
+Lightning has a native cloud solution with various products (lightning-grid) designed for researchers and ML practicioners in industry.
+To start an interactive machine simply go to `Lightning Grid <https://platform.grid.ai>`_ to create a free account, then start a new Grid Session. 
+
+A Grid Session is an interactive machine with 1-16 GPUs per machine.
 
 .. image:: https://docs.grid.ai/assets/images/new-session-3c58be3fd64ffabcdeb7b52516e0782e.gif
     :alt: Start a Grid Session in a few seconds
@@ -67,6 +70,10 @@ On the Jupyter page you can use a Notebook, or to clone your code and run via th
 
     <video width="100%" max-width="800px" controls muted playsinline
     src="https://grid-docs.s3.us-east-2.amazonaws.com/notebook_or_cli.mp4"></video>
+
+----
+
+.. include:: grid_costs.rst
 
 ----
 
