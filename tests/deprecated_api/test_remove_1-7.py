@@ -216,7 +216,6 @@ def test_v1_7_0_checkpoint_callback_trainer_constructor(tmpdir):
         _ = Trainer(checkpoint_callback=True)
 
 
-
 def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
     class TestModel(BoringModel):
         def on_post_move_to_device(self):
