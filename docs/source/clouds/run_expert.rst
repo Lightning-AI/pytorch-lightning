@@ -13,7 +13,7 @@ Run on your own cloud or cluster
 If you have access to a corporate or academic cluster, you can simply submit jobs that run Lightning models and lightning will automatically work.
 Please refer to :doc:`Clusters guide <cluster>` for more information.
 
----
+----
 
 ***********************************
 Run on your own cloud (hassle free)

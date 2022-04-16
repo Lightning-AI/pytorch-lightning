@@ -29,16 +29,16 @@ Level 8: Run models on the cloud
    :header: 3: Run many models at once
    :description: Run many models at once (sweep) to find the best performing model.
    :col_css: col-md-6
-   :button_link: run_intermediate.html
-   :height: 200
+   :button_link: ../clouds/run_intermediate.html
+   :height: 150
    :tag: intermediate
 
 .. displayitem::
    :header: 4: Run on your own cloud
    :description: Learn how to run on your Company or University private clouds.
    :col_css: col-md-6
-   :button_link: run_expert.html
-   :height: 200
+   :button_link: ../clouds/run_expert.html
+   :height: 150
    :tag: expert
 
 .. raw:: html

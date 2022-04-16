@@ -30,7 +30,7 @@ Fault-tolerant Training
    :header: FAQ
    :description: Frequently asked questions about fault-tolerant training.
    :col_css: col-md-4
-   :button_link: fault_tolerant_traininng_faq.html
+   :button_link: fault_tolerant_training_faq.html
    :height: 150
 
 .. raw:: html

@@ -31,7 +31,7 @@ Train on the cloud
    :tag: intermediate
 
 .. displayitem::
-   :header: 3: Pay 1/10th the cloud cost with fault-tolerant training
+   :header: 3: Save up to 80% on cloud costs with fault-tolerant training
    :description: Run on the cloud for 1/10th the price with fault-tolerant training.
    :col_css: col-md-4
    :button_link: fault_tolerant_training_basic.html
