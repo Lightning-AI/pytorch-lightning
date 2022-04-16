@@ -254,6 +254,7 @@ Current Lightning Users
    LightningDataModule <extensions/datamodules>
    LightningModule <common/lightning_module>
    Lightning Transformers <https://pytorch-lightning.readthedocs.io/en/stable/ecosystem/transformers.html>
+   Log <common/lightning_module.html#log>
    Logger <visualize_experiments/experiment_managers>
    Loops <build_model/custom_loop_expert>
    TPU <accelerators/tpu>
