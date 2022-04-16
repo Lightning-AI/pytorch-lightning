@@ -56,11 +56,14 @@
     mock_argv.stop()
 
 
-####################################
-Eliminate config boilerplate (basic)
-####################################
+###########################################
+Eliminate config boilerplate (Intermediate)
+###########################################
+**Audience:** Users who want advanced modularity via the commandline interface (CLI)
 
----
+**Pre-reqs:** You must already understand how to us a commandline and LightningDataModules. 
+
+----
 
 ***************************
 What is config boilerplate?
@@ -94,24 +97,28 @@ This is what the Lightning CLI enables. Otherwise, this kind of configuration re
     # mix them!
     trainer.fit(model, datamodule)
 
----
+----
 
-**************************
-Connect a model to the CLI
-**************************
-First, install the extras to enable this feature:
+************************
+Enable the Lightning CLI
+************************
+To enable the Lightning CLI install the extras:
 
-.. code: bash
+.. code:: bash
 
     pip install pytorch-lightning[extra]
 
 if the above fails, only install jsonargparse:
 
-.. code: bash
+.. code:: bash
 
     pip install -U jsonargparse[signatures]
 
+----
 
+**************************
+Connect a model to the CLI
+**************************
 The simplest way to control a model with the CLI is to wrap it in the LightningCLI object:
 
 .. code:: python
@@ -142,15 +149,17 @@ The simplest way to control a model with the CLI is to wrap it in the LightningC
             return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
     cli = LightningCLI(DemoModel, demos.BoringDataModule)
-
     # don't call fit!!
-
 
 Now your model can be managed via the CLI. Type:
 
-.. code: bash
+.. code:: bash
 
     $ python main.py --help 
+
+Which prints out:
+
+.. code:: bash 
 
     usage: a.py [-h] [-c CONFIG] [--print_config [={comments,skip_null,skip_default}+]]
             {fit,validate,test,predict,tune} ...
@@ -204,7 +213,6 @@ Notice that in the CLI, you can now use the `model.property` syntax. To see all 
 
 .. code:: bash
 
-    # change the learning_rate
     python main.py fit --print_config
 
 This command prints ALL possible commandline arguments:

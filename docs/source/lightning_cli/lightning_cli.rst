@@ -11,15 +11,15 @@ Eliminate config boilerplate
 
 .. displayitem::
    :header: Basic
-   :description: Learn to connect and control a LightnongModule and LightningDataModule from the CLI
+   :description: Learn to control a LightningModule and LightningDataModule from the CLI
    :col_css: col-md-4
    :button_link: lightning_cli_basic.html
    :height: 150
    :tag: basic
 
 .. displayitem::
-   :header: Basic
-   :description: Learn to connect and control a LightnongModule and LightningDataModule from the CLI
+   :header: Intermediate
+   :description: Stuff
    :col_css: col-md-4
    :button_link: lightning_cli_intermediate.html
    :height: 150
