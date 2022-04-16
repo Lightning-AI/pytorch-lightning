@@ -100,8 +100,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Remove deprecated `pytorch_lightning.callbacks.progress.progress` ([#12658](https://github.com/PyTorchLightning/pytorch-lightning/pull/12658))
 
 
-- Removed the deprecated `train_transforms` argument from the `LightningDataModule` constructor([#12662](https://github.com/PyTorchLightning/pytorch-lightning/pull/12662))
+- Removed the deprecated `dim` and `size` arguments from the `LightningDataModule` constructor([#12780](https://github.com/PyTorchLightning/pytorch-lightning/pull/12780))
 
+
+- Removed the deprecated `train_transforms` argument from the `LightningDataModule` constructor([#12662](https://github.com/PyTorchLightning/pytorch-lightning/pull/12662))
+  
 
 - Removed the deprecated `log_gpu_memory` argument from the `Trainer` constructor ([#12657](https://github.com/PyTorchLightning/pytorch-lightning/pull/12657))
 
