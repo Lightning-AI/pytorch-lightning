@@ -1,12 +1,20 @@
-############################
-Level 2: Basic model scaling
-############################
+######################################
+Level 7: Interactive cloud development
+######################################
 
 
 .. raw:: html
 
     <div class="display-card-container">
         <div class="row">
+
+.. displayitem::
+   :header: Access a cloud machine with GPUs.
+   :description: Learn how to get a cloud machine with single or multiple GPUs.
+   :col_css: col-md-4
+   :button_link: ../clouds/session_basic.html
+   :height: 150
+   :tag: basic
 
 .. displayitem::
    :header: GPU Training
@@ -21,14 +29,6 @@ Level 2: Basic model scaling
    :description: Learn the basics on single and multi-TPU core training.
    :col_css: col-md-4
    :button_link: ../accelerators/tpu_basic.html
-   :height: 150
-   :tag: basic
-
-.. displayitem::
-   :header: N-Bit Precision
-   :description: Enable your models to train faster and save memory with different floating-point precision settings.
-   :col_css: col-md-4
-   :button_link: ../precision/precision_basic.html
    :height: 150
    :tag: basic
 

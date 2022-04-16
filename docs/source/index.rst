@@ -239,7 +239,7 @@ Current Lightning Users
    Debugging <common/debugging>
    Early stopping <common/early_stopping>
    Experiment manager <visualize_experiments/experiment_managers>
-   Fault tolerant training  <advanced/fault_tolerant_training>
+   Fault tolerant training  <clouds/fault_tolerant_training>
    Finetuning <advanced/transfer_learning>
    Flash <https://lightning-flash.readthedocs.io/en/stable/>
    FSSPEC <common/remote_fs>

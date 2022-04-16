@@ -63,7 +63,7 @@ Concepts Glossary
 .. customcalloutitem::
    :description: Enable fault-tolerant training in clusters/clouds where machines might fail (ie: pre-emtible machines)
    :header: Fault-tolerant training
-   :button_link: advanced/fault_tolerant_training.html
+   :button_link: clouds/fault_tolerant_training.html
    :card_style: text-container-small
 
 .. customcalloutitem::

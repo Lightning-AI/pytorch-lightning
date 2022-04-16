@@ -1,6 +1,6 @@
-###################################
-Level 8: Lightning Trainer deepdive
-###################################
+################################
+Level 8: Run models on the cloud
+################################
 
 .. raw:: html
 
@@ -10,22 +10,36 @@ Level 8: Lightning Trainer deepdive
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Learn how the trainer works
-   :description: Implement a basic version of the trainer to understand how it works
+   :header: 1: Run a model in the background on the cloud
+   :description: Learn to run a model in the background on a cloud machine.
    :col_css: col-md-6
-   :button_link: https://youtu.be/tgp56S2eGFE
+   :button_link: ../clouds/run_basic.html
    :height: 150
    :tag: intermediate
 
 .. displayitem::
-   :header: Discover Trainer arguments
-   :description: Learn about more Trainer arguments to help you be more productive.
+   :header: 2: Pay 1/10th the cloud cost with fault-tolerant training
+   :description: Run on the cloud for 1/10th the price with fault-tolerant training.
    :col_css: col-md-6
-   :button_link: ../common/trainer.html#trainer-flags
+   :button_link: ../clouds/fault_tolerant_training_basic.html
    :height: 150
    :tag: intermediate
 
-precision/precision_intermediate.html
+.. displayitem::
+   :header: 3: Run many models at once
+   :description: Run many models at once (sweep) to find the best performing model.
+   :col_css: col-md-4
+   :button_link: run_intermediate.html
+   :height: 200
+   :tag: intermediate
+
+.. displayitem::
+   :header: 4: Run on your own cloud
+   :description: Learn how to run on your Company or University private clouds.
+   :col_css: col-md-4
+   :button_link: run_expert.html
+   :height: 200
+   :tag: expert
 
 .. raw:: html
 
