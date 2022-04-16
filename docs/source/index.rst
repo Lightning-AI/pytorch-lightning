@@ -203,10 +203,10 @@ Current Lightning Users
    :caption: Concepts Glossary
 
    common/evaluation
+   build_model/build_model.rst
    common/hyperparameters
    common/progress_bar
    common/debugging
-   build_model/build_model.rst
    deploy/production
    advanced/training_tricks
    common/lightning_cli
@@ -254,7 +254,7 @@ Current Lightning Users
    LightningDataModule <extensions/datamodules>
    LightningModule <common/lightning_module>
    Lightning Transformers <https://pytorch-lightning.readthedocs.io/en/stable/ecosystem/transformers.html>
-   Log <common/lightning_module.html#log>
+   Log <visualize_experiments/loggers.html>
    Logger <visualize_experiments/experiment_managers>
    Loops <build_model/custom_loop_expert>
    TPU <accelerators/tpu>

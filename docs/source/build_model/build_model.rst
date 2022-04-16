@@ -1,6 +1,6 @@
-###############
-Develop a Model
-###############
+#############
+Build a Model
+#############
 
 .. raw:: html
 
@@ -32,6 +32,20 @@ Develop a Model
    :button_link: build_model_intermediate.html
    :height: 150
    :tag: intermediate
+
+.. displayitem::
+   :header: LightningModule API
+   :description: Dig into LightningModule API in depth
+   :col_css: col-md-4
+   :button_link: ../common/lightning_module.html#lightningmodule-api
+   :height: 150
+
+.. displayitem::
+   :header: Trainer API
+   :description: Dig into Trainer API in depth
+   :col_css: col-md-4
+   :button_link: ../common/trainer.html#trainer-class-api
+   :height: 150
 
 .. raw:: html
 
