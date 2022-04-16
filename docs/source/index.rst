@@ -209,7 +209,7 @@ Current Lightning Users
    common/debugging
    deploy/production
    advanced/training_tricks
-   common/lightning_cli
+   lightning_cli/lightning_cli
    tuning/profiler
    Finetune a model <advanced/transfer_learning>
    Manage experiments <visualize_experiments/logging_intermediate>
@@ -249,9 +249,9 @@ Current Lightning Users
    HPU <accelerators/hpu>
    Inference <deploy/production_intermediate>
    IPU <accelerators/ipu>
-   Lightning CLI <common/lightning_cli>
+   Lightning CLI <lightning_cli/lightning_cli>
    Lightning Lite <build_model/build_model_expert>
-   LightningDataModule <extensions/datamodules>
+   LightningDataModule <datamodule/datamodules>
    LightningModule <common/lightning_module>
    Lightning Transformers <https://pytorch-lightning.readthedocs.io/en/stable/ecosystem/transformers.html>
    Log <visualize_experiments/loggers>

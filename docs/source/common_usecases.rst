@@ -81,7 +81,7 @@ Concepts Glossary
 .. customcalloutitem::
    :description: Reduce configuration boilerplate with the Lightning CLI
    :header: Lightning CLI
-   :button_link: common/lightning_cli.html
+   :button_link:lightning_cli/lightning_cli.html
    :card_style: text-container-small
 
 .. customcalloutitem::
@@ -93,7 +93,7 @@ Concepts Glossary
 .. customcalloutitem::
    :description: Use the model registry to mix and match your models and Datamodules
    :header: Model and Datamodule registry
-   :button_link: common/lightning_cli.html#multiple-models-and-or-datasets
+   :button_link: lightning_cli/lightning_cli.html#multiple-models-and-or-datasets
    :card_style: text-container-small
 
 .. customcalloutitem::

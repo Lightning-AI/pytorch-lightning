@@ -174,12 +174,12 @@ LightningDataModule API
 ***********************
 To define a DataModule the following methods are used to create train/val/test/predict dataloaders:
 
-- :ref:`prepare_data<extensions/datamodules:prepare_data>` (how to download, tokenize, etc...)
-- :ref:`setup<extensions/datamodules:setup>` (how to split, define dataset, etc...)
-- :ref:`train_dataloader<extensions/datamodules:train_dataloader>`
-- :ref:`val_dataloader<extensions/datamodules:val_dataloader>`
-- :ref:`test_dataloader<extensions/datamodules:test_dataloader>`
-- :ref:`predict_dataloader<extensions/datamodules:predict_dataloader>`
+- :ref:`prepare_data<datamodule/datamodules:prepare_data>` (how to download, tokenize, etc...)
+- :ref:`setup<datamodule/datamodules:setup>` (how to split, define dataset, etc...)
+- :ref:`train_dataloader<datamodule/datamodules:train_dataloader>`
+- :ref:`val_dataloader<datamodule/datamodules:val_dataloader>`
+- :ref:`test_dataloader<datamodule/datamodules:test_dataloader>`
+- :ref:`predict_dataloader<datamodule/datamodules:predict_dataloader>`
 
 
 prepare_data
@@ -187,7 +187,7 @@ prepare_data
 Downloading and saving data with multiple processes (distributed settings) will result in corrupted data. Lightning
 ensures the :meth:`~pytorch_lightning.core.hooks.DataHooks.prepare_data` is called only within a single process,
 so you can safely add your downloading logic within. In case of multi-node training, the execution of this hook
-depends upon :ref:`prepare_data_per_node<extensions/datamodules:prepare_data_per_node>`.
+depends upon :ref:`prepare_data_per_node<datamodule/datamodules:prepare_data_per_node>`.
 
 - download
 - tokenize
@@ -238,14 +238,14 @@ This method expects a ``stage`` argument.
 It is used to separate setup logic for ``trainer.{fit,validate,test,predict}``. If ``setup`` is called with ``stage=None``,
 we assume all stages have been set-up.
 
-.. note:: :ref:`setup<extensions/datamodules:setup>` is called from every process across all the nodes. Setting state here is recommended.
-.. note:: :ref:`teardown<extensions/datamodules:teardown>` can be used to clean up the state. It is also called from every process across all the nodes.
+.. note:: :ref:`setup<datamodule/datamodules:setup>` is called from every process across all the nodes. Setting state here is recommended.
+.. note:: :ref:`teardown<datamodule/datamodules:teardown>` can be used to clean up the state. It is also called from every process across all the nodes.
 
 
 train_dataloader
 ================
 Use the :meth:`~pytorch_lightning.core.hooks.DataHooks.train_dataloader` method to generate the training dataloader(s).
-Usually you just wrap the dataset you defined in :ref:`setup<extensions/datamodules:setup>`. This is the dataloader that the Trainer
+Usually you just wrap the dataset you defined in :ref:`setup<datamodule/datamodules:setup>`. This is the dataloader that the Trainer
 :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` method uses.
 
 .. code-block:: python
@@ -262,7 +262,7 @@ Usually you just wrap the dataset you defined in :ref:`setup<extensions/datamodu
 val_dataloader
 ==============
 Use the :meth:`~pytorch_lightning.core.hooks.DataHooks.val_dataloader` method to generate the validation dataloader(s).
-Usually you just wrap the dataset you defined in :ref:`setup<extensions/datamodules:setup>`. This is the dataloader that the Trainer
+Usually you just wrap the dataset you defined in :ref:`setup<datamodule/datamodules:setup>`. This is the dataloader that the Trainer
 :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` and :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate` methods uses.
 
 .. code-block:: python
@@ -280,7 +280,7 @@ Usually you just wrap the dataset you defined in :ref:`setup<extensions/datamodu
 test_dataloader
 ===============
 Use the :meth:`~pytorch_lightning.core.hooks.DataHooks.test_dataloader` method to generate the test dataloader(s).
-Usually you just wrap the dataset you defined in :ref:`setup<extensions/datamodules:setup>`. This is the dataloader that the Trainer
+Usually you just wrap the dataset you defined in :ref:`setup<datamodule/datamodules:setup>`. This is the dataloader that the Trainer
 :meth:`~pytorch_lightning.trainer.trainer.Trainer.test` method uses.
 
 .. code-block:: python
@@ -296,7 +296,7 @@ Usually you just wrap the dataset you defined in :ref:`setup<extensions/datamodu
 predict_dataloader
 ==================
 Use the :meth:`~pytorch_lightning.core.hooks.DataHooks.predict_dataloader` method to generate the prediction dataloader(s).
-Usually you just wrap the dataset you defined in :ref:`setup<extensions/datamodules:setup>`. This is the dataloader that the Trainer
+Usually you just wrap the dataset you defined in :ref:`setup<datamodule/datamodules:setup>`. This is the dataloader that the Trainer
 :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict` method uses.
 
 .. code-block:: python
@@ -400,8 +400,8 @@ The recommended way to use a DataModule is simply:
     trainer.predict(datamodule=dm)
 
 If you need information from the dataset to build your model, then run
-:ref:`prepare_data<extensions/datamodules:prepare_data>` and
-:ref:`setup<extensions/datamodules:setup>` manually (Lightning ensures
+:ref:`prepare_data<datamodule/datamodules:prepare_data>` and
+:ref:`setup<datamodule/datamodules:setup>` manually (Lightning ensures
 the method runs on the correct devices).
 
 .. code-block:: python
