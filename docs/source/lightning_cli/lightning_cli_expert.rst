@@ -1,0 +1,94 @@
+#######################################
+Eliminate config boilerplate (Advanced)
+#######################################
+
+
+
+Customizing LightningCLI
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The init parameters of the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class can be used to customize some
+things, namely: the description of the tool, enabling parsing of environment variables and additional arguments to
+instantiate the trainer and configuration parser.
+
+Nevertheless the init arguments are not enough for many use cases. For this reason the class is designed so that can be
+extended to customize different parts of the command line tool. The argument parser class used by
+:class:`~pytorch_lightning.utilities.cli.LightningCLI` is
+:class:`~pytorch_lightning.utilities.cli.LightningArgumentParser` which is an extension of python's argparse, thus
+adding arguments can be done using the :func:`add_argument` method. In contrast to argparse it has additional methods to
+add arguments, for example :func:`add_class_arguments` adds all arguments from the init of a class, though requiring
+parameters to have type hints. For more details about this please refer to the `respective documentation
+<https://jsonargparse.readthedocs.io/en/stable/#classes-methods-and-functions>`_.
+
+The :class:`~pytorch_lightning.utilities.cli.LightningCLI` class has the
+:meth:`~pytorch_lightning.utilities.cli.LightningCLI.add_arguments_to_parser` method which can be implemented to include
+more arguments. After parsing, the configuration is stored in the :code:`config` attribute of the class instance. The
+:class:`~pytorch_lightning.utilities.cli.LightningCLI` class also has two methods that can be used to run code before
+and after the trainer runs: :code:`before_<subcommand>` and :code:`after_<subcommand>`.
+A realistic example for these would be to send an email before and after the execution.
+The code for the :code:`fit` subcommand would be something like:
+
+.. testcode::
+
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.add_argument("--notification_email", default="will@email.com")
+
+        def before_fit(self):
+            send_email(address=self.config["notification_email"], message="trainer.fit starting")
+
+        def after_fit(self):
+            send_email(address=self.config["notification_email"], message="trainer.fit finished")
+
+
+    cli = MyLightningCLI(MyModel)
+
+Note that the config object :code:`self.config` is a dictionary whose keys are global options or groups of options. It
+has the same structure as the yaml format described previously. This means for instance that the parameters used for
+instantiating the trainer class can be found in :code:`self.config['fit']['trainer']`.
+
+.. tip::
+
+    Have a look at the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class API reference to learn about other
+    methods that can be extended to customize a CLI.
+
+
+Configurable callbacks
+^^^^^^^^^^^^^^^^^^^^^^
+
+As explained previously, any Lightning callback can be added by passing it through command line or
+including it in the config via :code:`class_path` and :code:`init_args` entries.
+However, there are other cases in which a callback should always be present and be configurable.
+This can be implemented as follows:
+
+.. testcode::
+
+    from pytorch_lightning.callbacks import EarlyStopping
+
+
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.add_lightning_class_args(EarlyStopping, "my_early_stopping")
+            parser.set_defaults({"my_early_stopping.monitor": "val_loss", "my_early_stopping.patience": 5})
+
+
+    cli = MyLightningCLI(MyModel)
+
+To change the configuration of the :code:`EarlyStopping` in the config it would be:
+
+.. code-block:: yaml
+
+    model:
+      ...
+    trainer:
+      ...
+    my_early_stopping:
+      patience: 5
+
+.. note::
+
+    The example above overrides a default in :code:`add_arguments_to_parser`. This is included to show that defaults can
+    be changed if needed. However, note that overriding of defaults in the source code is not intended to be used to
+    store the best hyperparameters for a task after experimentation. To ease reproducibility the source code should be
+    stable. It is better practice to store the best hyperparameters for a task in a configuration file independent from
+    the source code.
