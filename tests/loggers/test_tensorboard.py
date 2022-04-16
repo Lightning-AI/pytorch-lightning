@@ -123,7 +123,7 @@ def test_tensorboard_no_name(tmpdir, name):
     assert os.listdir(tmpdir / "version_0")
 
 
-@mock.patch.dict(os.environ, {})
+@mock.patch.dict(os.environ, {}, clear=True)
 def test_tensorboard_log_sub_dir(tmpdir):
     class TestLogger(TensorBoardLogger):
         # for reproducibility

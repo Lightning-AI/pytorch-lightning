@@ -579,7 +579,7 @@ def test_optimizer_state_on_device(tmpdir):
             assert state["sum"].device == torch.device("cuda", self.local_rank) == self.device
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, gpus=2, strategy="ddp", fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy="ddp", fast_dev_run=True)
     trainer.fit(model)
 
 
@@ -631,7 +631,7 @@ def test_lr_scheduler_state_updated_before_saving(tmpdir, every_n_train_steps, e
             assert self.trainer.global_step == batches
             compare_to = max_epochs if epoch_interval else batches
             assert lr_scheduler_config["_step_count"] - 1 == compare_to  # step count starts at 1
-            assert lr_scheduler_config["_last_lr"] == [lr * gamma ** compare_to]
+            assert lr_scheduler_config["_last_lr"] == [lr * gamma**compare_to]
             self.on_save_checkpoint_called = True
 
     model = TestModel()

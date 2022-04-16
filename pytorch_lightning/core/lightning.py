@@ -37,7 +37,7 @@ from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
-from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loggers import Logger
 from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
@@ -45,8 +45,6 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.memory import get_model_size_mb
-from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -66,7 +64,7 @@ class LightningModule(
     CheckpointHooks,
     Module,
 ):
-    # Below is for property support of JIT in PyTorch 1.7
+    # Below is for property support of JIT
     # since none of these are important when using JIT, we are going to ignore them.
     __jit_unused_properties__ = (
         [
@@ -78,7 +76,6 @@ class LightningModule(
             "local_rank",
             "logger",
             "loggers",
-            "model_size",
             "automatic_optimization",
             "truncated_bptt_steps",
             "use_amp",
@@ -95,7 +92,7 @@ class LightningModule(
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
         # pointer to the trainer object
-        self.trainer = None
+        self.trainer: Optional["pl.Trainer"] = None
 
         self._use_amp: bool = False
 
@@ -247,12 +244,12 @@ class LightningModule(
         self._truncated_bptt_steps = truncated_bptt_steps
 
     @property
-    def logger(self) -> Optional[LightningLoggerBase]:
+    def logger(self) -> Optional[Logger]:
         """Reference to the logger object in the Trainer."""
         return self.trainer.logger if self.trainer else None
 
     @property
-    def loggers(self) -> List[LightningLoggerBase]:
+    def loggers(self) -> List[Logger]:
         """Reference to the list of loggers in the Trainer."""
         return self.trainer.loggers if self.trainer else []
 
@@ -1106,7 +1103,7 @@ class LightningModule(
 
         The :class:`~pytorch_lightning.callbacks.BasePredictionWriter` should be used while using a spawn
         based accelerator. This happens for ``Trainer(strategy="ddp_spawn")``
-        or training on 8 TPU cores with ``Trainer(tpu_cores=8)`` as predictions won't be returned.
+        or training on 8 TPU cores with ``Trainer(accelerator="tpu", devices=8)`` as predictions won't be returned.
 
         Example ::
 
@@ -1117,7 +1114,7 @@ class LightningModule(
 
             dm = ...
             model = MyModel()
-            trainer = Trainer(gpus=2)
+            trainer = Trainer(accelerator="gpu", devices=2)
             predictions = trainer.predict(model, dm)
 
 
@@ -1706,28 +1703,6 @@ class LightningModule(
 
         return splits
 
-    def summarize(self, max_depth: int = 1) -> ModelSummary:
-        """Summarize this LightningModule.
-
-        .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of `pytorch_lightning.utilities.model_summary.summarize`
-            and will be removed in v1.7.
-
-        Args:
-            max_depth: The maximum depth of layer nesting that the summary will include. A value of 0 turns the
-                layer summary off. Default: 1.
-
-        Return:
-            The model summary object
-        """
-        rank_zero_deprecation(
-            "The `LightningModule.summarize` method is deprecated in v1.5 and will be removed in v1.7. "
-            "Use `pytorch_lightning.utilities.model_summary.summarize` instead.",
-            stacklevel=6,
-        )
-
-        return summarize(self, max_depth)
-
     def freeze(self) -> None:
         r"""
         Freeze all params for inference.
@@ -1950,21 +1925,6 @@ class LightningModule(
         self._running_torchscript = False
 
         return torchscript_module
-
-    @property
-    def model_size(self) -> float:
-        """Returns the model size in MegaBytes (MB)
-
-        Note:
-            This property will not return correct value for Deepspeed (stage 3) and fully-sharded training.
-        """
-        if not self._running_torchscript:  # remove with the deprecation removal
-            rank_zero_deprecation(
-                "The `LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7."
-                " Please use the `pytorch_lightning.utilities.memory.get_model_size_mb`.",
-                stacklevel=5,
-            )
-        return get_model_size_mb(self)
 
     @property
     def use_amp(self) -> bool:

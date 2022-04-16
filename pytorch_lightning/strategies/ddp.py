@@ -18,12 +18,13 @@ import signal
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 import torch.distributed
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
+from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -35,29 +36,34 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import (
-    _FAIRSCALE_AVAILABLE,
-    _IS_WINDOWS,
-    _TORCH_GREATER_EQUAL_1_8,
-    _TORCH_GREATER_EQUAL_1_9,
-    _TORCH_GREATER_EQUAL_1_10,
-)
 from pytorch_lightning.utilities.distributed import (
     _get_process_group_backend_from_env,
     distributed_available,
     get_default_process_group_backend_for_device,
 )
 from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
+from pytorch_lightning.utilities.distributed import (
+    init_dist_connection,
+    ReduceOp,
+    register_ddp_comm_hook,
+    sync_ddp_if_available,
+)
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
-from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.imports import (
+    _FAIRSCALE_AVAILABLE,
+    _IS_WINDOWS,
+    _TORCH_GREATER_EQUAL_1_9,
+    _TORCH_GREATER_EQUAL_1_10,
+    _TORCH_GREATER_EQUAL_1_11,
+)
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
-if _TORCH_GREATER_EQUAL_1_8:
-    from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
+if _TORCH_GREATER_EQUAL_1_10:
+    from torch.distributed.algorithms.model_averaging.averagers import ModelAverager
 
 
 log = logging.getLogger(__name__)
@@ -96,6 +102,7 @@ class DDPStrategy(ParallelStrategy):
         self._ddp_comm_hook = ddp_comm_hook
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._model_averaging_period = model_averaging_period
+        self._model_averager: Optional[ModelAverager] = None
         self._pids: Optional[List[int]] = None
         self._sync_dir: Optional[str] = None
         self._rank_0_will_call_children_scripts: bool = False
@@ -136,8 +143,8 @@ class DDPStrategy(ParallelStrategy):
         return self._process_group_backend
 
     def _configure_launcher(self) -> None:
-        self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
         if not self.cluster_environment.creates_processes_externally:
+            self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
             self._rank_0_will_call_children_scripts = True
 
     def setup_environment(self) -> None:
@@ -203,23 +210,12 @@ class DDPStrategy(ParallelStrategy):
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
         # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
-        if not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get(
-            "find_unused_parameters", False
-        ):
-            # TODO: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
-            rank_zero_warn(
-                "From PyTorch 1.7.0, Lightning `manual_optimization` needs to set `find_unused_parameters=True` to"
-                " properly work with DDP. Using `find_unused_parameters=True`."
-            )
-            self._ddp_kwargs["find_unused_parameters"] = True
 
     def _register_ddp_hooks(self) -> None:
         log.detail(f"{self.__class__.__name__}: registering ddp hooks")
         # In 1.8, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # Since 1.9, DDP communication hooks can work on all backends.
-        if _TORCH_GREATER_EQUAL_1_9 or (
-            _TORCH_GREATER_EQUAL_1_8 and self.root_device.type == "cuda" and self._is_single_process_single_device
-        ):
+        if _TORCH_GREATER_EQUAL_1_9 or (self.root_device.type == "cuda" and self._is_single_process_single_device):
             register_ddp_comm_hook(
                 model=self.model,
                 ddp_comm_state=self._ddp_comm_state,
@@ -231,23 +227,18 @@ class DDPStrategy(ParallelStrategy):
                 import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
                 if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
-                    self._reinit_optimizers_with_post_localSGD(self._ddp_comm_state.start_localSGD_iter)
+                    self._enable_model_averaging()
 
-    def _reinit_optimizers_with_post_localSGD(self, warmup_steps: int):
+    def _enable_model_averaging(self) -> None:
+        # Only called when PyTorch version >= 1.10
         log.detail(f"{self.__class__.__name__}: reinitializing optimizers with post localSGD")
-        optimizers = self.optimizers
         if self._model_averaging_period is None:
             raise ValueError(
                 "Post-localSGD algorithm is used, but model averaging period is not provided to DDP strategy."
             )
-        if _TORCH_GREATER_EQUAL_1_10:
-            if not _IS_WINDOWS:
-                from torch.distributed.optim import DistributedOptimizer
-            import torch.distributed.algorithms.model_averaging.averagers as averagers
-            from torch.distributed.optim import PostLocalSGDOptimizer, ZeroRedundancyOptimizer
+        from torch.distributed.optim import DistributedOptimizer, PostLocalSGDOptimizer, ZeroRedundancyOptimizer
 
-        averager = averagers.PeriodicModelAverager(period=self._model_averaging_period, warmup_steps=warmup_steps)
-        for x, optimizer in enumerate(optimizers):
+        for optimizer in self.optimizers:
             if isinstance(optimizer, LightningOptimizer):
                 optimizer = optimizer._optimizer
 
@@ -256,24 +247,43 @@ class DDPStrategy(ParallelStrategy):
                 is_distributed_optimizer
                 or isinstance(optimizer, ZeroRedundancyOptimizer)
                 or (_FAIRSCALE_AVAILABLE and isinstance(optimizer, OSS))
+                or isinstance(optimizer, PostLocalSGDOptimizer)
             ):
                 raise ValueError(
-                    f"Cannot wrap a distributed optimizer of type {optimizer.__name__} by PostLocalSGDOptimizer."
+                    f"Currently model averaging cannot work with a distributed optimizer of type "
+                    f"{optimizer.__class__.__name__}."
                 )
 
-            if isinstance(optimizer, PostLocalSGDOptimizer):
-                continue
+        self._model_averager = torch.distributed.algorithms.model_averaging.averagers.PeriodicModelAverager(
+            period=self._model_averaging_period, warmup_steps=self._ddp_comm_state.start_localSGD_iter
+        )
 
-            optim_class = type(optimizer)
-            post_localSGD_optimizer = PostLocalSGDOptimizer(
-                params=optimizer.param_groups,
-                optimizer_class=optim_class,
-                averager=averager,
-                **optimizer.defaults,
-            )
-            optimizers[x] = post_localSGD_optimizer
-            del optimizer
-        self.optimizers = optimizers
+    def optimizer_step(
+        self,
+        optimizer: Optimizer,
+        opt_idx: int,
+        closure: Callable[[], Any],
+        model: Optional[Union["pl.LightningModule", Module]] = None,
+        **kwargs: Any,
+    ) -> Any:
+        """Performs the actual optimizer step.
+
+        Args:
+            optimizer: the optimizer performing the step
+            opt_idx: index of the current optimizer
+            closure: closure calculating the loss value
+            model: reference to the model, optionally defining optimizer step related hooks
+            **kwargs: Any extra arguments to ``optimizer.step``
+        """
+        optimizer_output = super().optimizer_step(optimizer, opt_idx, closure, model, **kwargs)
+
+        if not _TORCH_GREATER_EQUAL_1_10 or self._model_averager is None:
+            return optimizer_output
+
+        params = [param for group in optimizer.param_groups for param in group["params"] if param.grad is not None]
+        self._model_averager.average_parameters(iter(params))
+
+        return optimizer_output
 
     def configure_ddp(self) -> None:
         log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
@@ -289,7 +299,7 @@ class DDPStrategy(ParallelStrategy):
     def barrier(self, *args, **kwargs) -> None:
         if not distributed_available():
             return
-        if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
+        if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
         else:
             torch.distributed.barrier()
@@ -433,9 +443,20 @@ class DDPStrategy(ParallelStrategy):
         raise DeadlockDetectedException(f"DeadLock detected from rank: {self.global_rank} \n {trace}")
 
     def teardown(self) -> None:
-        log.detail(f"{self.__class__.__name__}: tearing down DDP plugin")
+        log.detail(f"{self.__class__.__name__}: tearing down strategy")
         super().teardown()
+
         if isinstance(self.model, DistributedDataParallel):
+            if (
+                _TORCH_GREATER_EQUAL_1_11
+                and not self.model.static_graph
+                and self.model._get_ddp_logging_data().get("can_set_static_graph")
+            ):
+                rank_zero_info(
+                    "Your model can run with static graph optimizations. For future training runs, we suggest you"
+                    f" pass `Trainer(..., strategy={self.__class__.__name__}(static_graph=True))` to enable them."
+                )
+            # unwrap model
             self.model = self.lightning_module
 
         if (

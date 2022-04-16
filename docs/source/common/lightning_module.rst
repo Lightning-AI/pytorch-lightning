@@ -631,7 +631,7 @@ In the case where you want to scale your inference, you should be using
 
     data_module = ...
     model = Autoencoder()
-    trainer = Trainer(gpus=2)
+    trainer = Trainer(accelerator="gpu", devices=2)
     trainer.predict(model, data_module)
 
 Inference in Production
@@ -689,7 +689,7 @@ Then pass in any arbitrary model to be fit with this task
     for model in [resnet50(), vgg16(), BidirectionalRNN()]:
         task = ClassificationTask(model)
 
-        trainer = Trainer(gpus=2)
+        trainer = Trainer(accelerator="gpu", devices=2)
         trainer.fit(task, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
 Tasks can be arbitrarily complex such as implementing GAN training, self-supervised or even RL.
@@ -712,7 +712,7 @@ The following example shows how you can run inference in the Python runtime:
 .. code-block:: python
 
     task = ClassificationTask(model)
-    trainer = Trainer(gpus=2)
+    trainer = Trainer(accelerator="gpu", devices=2)
     trainer.fit(task, train_dataloader, val_dataloader)
     trainer.save_checkpoint("best_model.ckpt")
 
@@ -996,7 +996,7 @@ The list of loggers currently being used by the Trainer.
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        # List of LightningLoggerBase objects
+        # List of Logger objects
         loggers = self.loggers
         for logger in loggers:
             logger.log_metrics({"foo": 1.0})
@@ -1056,7 +1056,7 @@ automatic_optimization
 When set to ``False``, Lightning does not automate the optimization process. This means you are responsible for handling
 your optimizers. However, we do take care of precision and any accelerators used.
 
-See :ref:`manual optimization<common/optimization:Manual optimization>` for details.
+See :ref:`manual optimization <common/optimization:Manual optimization>` for details.
 
 .. code-block:: python
 
@@ -1111,11 +1111,6 @@ Set and access example_input_array, which basically represents a single batch.
     def on_train_epoch_end(self):
         # generate some images using the example_input_array
         gen_images = self.generator(self.example_input_array)
-
-model_size
-~~~~~~~~~~
-
-Get the model file size (in megabytes) using ``self.model_size`` inside LightningModule.
 
 truncated_bptt_steps
 ~~~~~~~~~~~~~~~~~~~~

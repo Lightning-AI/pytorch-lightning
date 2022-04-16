@@ -115,7 +115,6 @@ class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
     DP = "dp"
     DDP = "ddp"
     DDP2 = "ddp2"
-    DDP_CPU = "ddp_cpu"
     DDP_SPAWN = "ddp_spawn"
     TPU_SPAWN = "tpu_spawn"
     DEEPSPEED = "deepspeed"
@@ -123,6 +122,7 @@ class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
     DDP_SHARDED = "ddp_sharded"
     DDP_SHARDED_SPAWN = "ddp_sharded_spawn"
     DDP_FULLY_SHARDED = "ddp_fully_sharded"
+    HPU_PARALLEL = "hpu_parallel"
 
     @staticmethod
     def interactive_compatible_types() -> list[DistributedType]:
@@ -239,7 +239,6 @@ class _StrategyType(LightningEnum):
     DP = "dp"
     DDP = "ddp"
     DDP2 = "ddp2"
-    DDP_CPU = "ddp_cpu"
     DDP_SPAWN = "ddp_spawn"
     TPU_SPAWN = "tpu_spawn"
     DEEPSPEED = "deepspeed"
@@ -248,6 +247,7 @@ class _StrategyType(LightningEnum):
     DDP_SHARDED_SPAWN = "ddp_sharded_spawn"
     DDP_FULLY_SHARDED = "ddp_fully_sharded"
     BAGUA = "bagua"
+    HPU_PARALLEL = "hpu_parallel"
 
     @staticmethod
     def interactive_compatible_types() -> list[_StrategyType]:
@@ -279,6 +279,7 @@ class _AcceleratorType(LightningEnum):
     GPU = "GPU"
     IPU = "IPU"
     TPU = "TPU"
+    HPU = "HPU"
 
 
 class _FaultTolerantMode(LightningEnum):

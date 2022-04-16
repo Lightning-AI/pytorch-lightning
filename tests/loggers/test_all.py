@@ -32,7 +32,7 @@ from pytorch_lightning.loggers import (
     TestTubeLogger,
     WandbLogger,
 )
-from pytorch_lightning.loggers.base import DummyExperiment
+from pytorch_lightning.loggers.logger import DummyExperiment
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 from tests.loggers.test_comet import _patch_comet_atexit
@@ -101,7 +101,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
 
         def validation_epoch_end(self, outputs) -> None:
             avg_val_loss = torch.stack([x["x"] for x in outputs]).mean()
-            self.log_dict({"early_stop_on": avg_val_loss, "val_loss": avg_val_loss ** 0.5})
+            self.log_dict({"early_stop_on": avg_val_loss, "val_loss": avg_val_loss**0.5})
 
         def test_epoch_end(self, outputs) -> None:
             avg_test_loss = torch.stack([x["y"] for x in outputs]).mean()
@@ -209,7 +209,7 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
     trainer.fit(model)
     assert trainer._weights_save_path_internal == weights_save_path
     assert trainer.logger.save_dir == save_dir
-    assert trainer.checkpoint_callback.dirpath == weights_save_path / "name" / "version" / "checkpoints"
+    assert trainer.checkpoint_callback.dirpath == weights_save_path / "checkpoints"
     assert trainer.default_root_dir == tmpdir
 
     # no logger given
@@ -311,7 +311,7 @@ class RankZeroLoggerCheck(Callback):
 
 
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE_WANDB)
-@RunIf(skip_windows=True, skip_49370=True, skip_hanging_spawn=True)
+@RunIf(skip_windows=True, skip_hanging_spawn=True)
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """Test that loggers get replaced by dummy loggers on global rank > 0."""
     _patch_comet_atexit(monkeypatch)

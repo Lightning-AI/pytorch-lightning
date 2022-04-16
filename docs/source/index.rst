@@ -8,22 +8,109 @@ Welcome to PyTorch Lightning
 
 .. raw:: html
 
+   <div class="row" style='font-size: 14px'>
+      <div class='col-md-6'>
+
+.. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/mov.gif
+    :alt: Animation showing how to convert a standard training loop to a Lightning loop
+
+
+.. raw:: html
+
+      </div>
+      <div class='col-md-6'>
+
+PyTorch Lightning is the deep learning framework for professional AI researchers and machine learning engineers who need maximal flexibility without sacrificing performance at scale.
+
+.. raw:: html
+
+      </div>
+   </div>
+
+.. raw:: html
+
+   <hr class="docutils" style="margin: 50px 0 50px 0">
+
+
+Install Lightning
+-----------------
+
+
+.. raw:: html
+
+   <div class="row" style='font-size: 14px'>
+      <div class='col-md-6'>
+
+For pip (and conda) users
+
+.. code-block:: bash
+
+    pip install pytorch-lightning
+
+.. raw:: html
+
+      </div>
+      <div class='col-md-6'>
+
+Or directly from conda
+
+.. code-block:: bash
+
+    conda install pytorch-lightning -c conda-forge
+
+.. raw:: html
+
+      </div>
+   </div>
+
+Or read the `advanced install guide <starter/installation.html>`_
+
+.. raw:: html
+
+   <hr class="docutils" style="margin: 50px 0 50px 0">
+
+.. raw:: html
+
     <div class="tutorials-callout-container">
         <div class="row">
 
 .. Add callout items below this line
 
 .. customcalloutitem::
-   :description: Learn how to leverage the PyTorch Lightning features for your Machine Learning projects with ease in this quickstart guide.
-   :header: Introduction
+   :description: Use this 2-step guide to learn key concepts.
+   :header: New to Lightning?
    :button_link:  starter/introduction.html
-   :button_text: Get started with PyTorch Lightning
+
 
 .. customcalloutitem::
-   :description: Guide to restructure your PyTorch code to PyTorch Lightning and help you focus more on research rather than the tricky engineering aspects.
+   :description: Easily organize your existing PyTorch code into PyTorch Lightning.
    :header: PyTorch to PyTorch Lightning
    :button_link: starter/converting.html
-   :button_text: Organize PyTorch to PyTorch Lightning
+
+
+.. customcalloutitem::
+   :description: See how Lightning is used in research areas like NLP, Computer Vision, RL and meta learning.
+   :header: Examples
+   :button_link: tutorials.html
+
+
+.. customcalloutitem::
+   :description: Detailed descriptions of each API package.
+   :header: API Reference
+   :button_link: api_references.html
+
+
+.. customcalloutitem::
+   :description: Learn how to do everything from hyperparameters sweeps to cloud training to pruning and quantization with Lightning.
+   :header: Conceptual Guides
+   :button_link: common_usecases.html
+
+
+.. customcalloutitem::
+   :description: Learn how to benchmark PyTorch Lightning.
+   :header: Benchmarking
+   :button_link: benchmarking/benchmarks.html
+
 
 .. raw:: html
 
@@ -32,8 +119,6 @@ Welcome to PyTorch Lightning
 
 .. End of callout item section
 
-.. tutoriallist::
-
 .. raw:: html
 
    <div style="display:none">
@@ -41,7 +126,7 @@ Welcome to PyTorch Lightning
 .. toctree::
    :maxdepth: 1
    :name: start
-   :caption: Getting started
+   :caption: Getting Started
 
    starter/introduction
    starter/installation
@@ -51,7 +136,7 @@ Welcome to PyTorch Lightning
 .. toctree::
    :maxdepth: 1
    :name: guides
-   :caption: Best practices
+   :caption: Best Practices
 
    guides/speed
    guides/data
@@ -88,32 +173,34 @@ Welcome to PyTorch Lightning
    accelerators/gpu
    accelerators/tpu
    accelerators/ipu
+   accelerators/hpu
 
 .. toctree::
    :maxdepth: 1
-   :name: Common Use Cases
-   :caption: Common Use Cases
+   :name: Conceptual Guides
+   :caption: Conceptual Guides
 
    clouds/cloud_training
+   common/checkpointing
    clouds/cluster
    common/debugging
    common/early_stopping
+   advanced/training_tricks
+   common/evaluation
+   advanced/fault_tolerant_training
    common/hyperparameters
    common/production_inference
    common/lightning_cli
    common/loggers
    advanced/model_parallel
    advanced/precision
-   common/checkpointing
-   advanced/fault_tolerant_training
    common/optimization
    advanced/profiler
-   advanced/strategy_registry
-   common/remote_fs
-   advanced/training_tricks
+   common/progress_bar
    advanced/pruning_quantization
+   common/remote_fs
+   advanced/strategy_registry
    advanced/transfer_learning
-   common/evaluation
 
 .. toctree::
    :maxdepth: 1

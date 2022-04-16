@@ -11,16 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 from typing import Any
 
-from pytorch_lightning.callbacks.progress.tqdm_progress import TQDMProgressBar
-from pytorch_lightning.utilities import rank_zero_deprecation
 
+def _is_register_method_overridden(mod: type, base_cls: Any, method: str) -> bool:
+    mod_attr = getattr(mod, method)
+    previous_super_cls = inspect.getmro(mod)[1]
 
-class ProgressBar(TQDMProgressBar):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        rank_zero_deprecation(
-            "`ProgressBar` has been deprecated in v1.5 and will be removed in v1.7."
-            " It has been renamed to `TQDMProgressBar` instead."
-        )
+    if issubclass(previous_super_cls, base_cls):
+        super_attr = getattr(previous_super_cls, method)
+    else:
+        return False
+
+    return mod_attr.__code__ is not super_attr.__code__

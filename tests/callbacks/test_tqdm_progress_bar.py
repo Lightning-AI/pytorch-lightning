@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
 import os
 import pickle
 import sys
@@ -32,34 +33,64 @@ from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
+class MockTqdm(Tqdm):
+    def __init__(self, *args, **kwargs):
+        self.n_values = []
+        self.total_values = []
+        self.descriptions = []
+        super().__init__(*args, **kwargs)
+        self.__n = 0
+        self.__total = 0
+        # again to reset additions from `super().__init__`
+        self.n_values = []
+        self.total_values = []
+        self.descriptions = []
+
+    @property
+    def n(self):
+        return self.__n
+
+    @n.setter
+    def n(self, value):
+        self.__n = value
+        # track the changes in the `n` value
+        if not len(self.n_values) or value != self.n_values[-1]:
+            self.n_values.append(value)
+
+    @property
+    def total(self):
+        return self.__total
+
+    @total.setter
+    def total(self, value):
+        self.__total = value
+        self.total_values.append(value)
+
+    def set_description(self, *args, **kwargs):
+        super().set_description(*args, **kwargs)
+        self.descriptions.append(self.desc)
+
+
 @pytest.mark.parametrize(
-    "kwargs",
+    "pbar",
     [
         # won't print but is still set
-        {"callbacks": TQDMProgressBar(refresh_rate=0)},
-        {"callbacks": TQDMProgressBar()},
-        {"progress_bar_refresh_rate": 1},
+        TQDMProgressBar(refresh_rate=0),
+        TQDMProgressBar(),
     ],
 )
-def test_tqdm_progress_bar_on(tmpdir, kwargs):
+def test_tqdm_progress_bar_on(tmpdir, pbar):
     """Test different ways the progress bar can be turned on."""
-    if "progress_bar_refresh_rate" in kwargs:
-        with pytest.deprecated_call(match=r"progress_bar_refresh_rate=.*` is deprecated"):
-            trainer = Trainer(default_root_dir=tmpdir, **kwargs)
-    else:
-        trainer = Trainer(default_root_dir=tmpdir, **kwargs)
+    trainer = Trainer(default_root_dir=tmpdir, callbacks=pbar)
 
     progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
     assert len(progress_bars) == 1
     assert progress_bars[0] is trainer.progress_bar_callback
 
 
-@pytest.mark.parametrize("kwargs", [{"enable_progress_bar": False}, {"progress_bar_refresh_rate": 0}])
-def test_tqdm_progress_bar_off(tmpdir, kwargs):
-    """Test different ways the progress bar can be turned off."""
-    if "progress_bar_refresh_rate" in kwargs:
-        pytest.deprecated_call(match=r"progress_bar_refresh_rate=.*` is deprecated").__enter__()
-    trainer = Trainer(default_root_dir=tmpdir, **kwargs)
+def test_tqdm_progress_bar_off(tmpdir):
+    """Test turning the progress bar off."""
+    trainer = Trainer(default_root_dir=tmpdir, enable_progress_bar=False)
     progress_bars = [c for c in trainer.callbacks if isinstance(c, ProgressBarBase)]
     assert not len(progress_bars)
 
@@ -75,59 +106,100 @@ def test_tqdm_progress_bar_misconfiguration():
         Trainer(callbacks=TQDMProgressBar(), enable_progress_bar=False)
 
 
-def test_tqdm_progress_bar_totals(tmpdir):
+@pytest.mark.parametrize("num_dl", [1, 2])
+def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     """Test that the progress finishes with the correct total steps processed."""
 
-    model = BoringModel()
+    class CustomModel(BoringModel):
+        def _get_dataloaders(self):
+            dls = [DataLoader(RandomDataset(32, 64)), DataLoader(RandomDataset(32, 64))]
+            return dls[0] if num_dl == 1 else dls
 
+        def val_dataloader(self):
+            return self._get_dataloaders()
+
+        def test_dataloader(self):
+            return self._get_dataloaders()
+
+        def predict_dataloader(self):
+            return self._get_dataloaders()
+
+        def validation_step(self, batch, batch_idx, dataloader_idx=None):
+            return
+
+        def test_step(self, batch, batch_idx, dataloader_idx=None):
+            return
+
+        def predict_step(self, batch, batch_idx, dataloader_idx=None):
+            return
+
+    model = CustomModel()
+    model.validation_epoch_end = None
+    model.test_epoch_end = None
+
+    # check the sanity dataloaders
+    num_sanity_val_steps = 4
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=0, num_sanity_val_steps=num_sanity_val_steps
+    )
+    pbar = trainer.progress_bar_callback
+    with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+        trainer.fit(model)
+
+    expected_sanity_steps = [num_sanity_val_steps] * num_dl
+    assert not pbar.val_progress_bar.leave
+    assert trainer.num_sanity_val_batches == expected_sanity_steps
+    assert pbar.val_progress_bar.total_values == expected_sanity_steps
+    assert pbar.val_progress_bar.n_values == list(range(1, num_sanity_val_steps + 1)) * num_dl
+    assert pbar.val_progress_bar.descriptions == [f"Sanity Checking DataLoader {i}: " for i in range(num_dl)]
+
+    # fit
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
-    bar = trainer.progress_bar_callback
+    pbar = trainer.progress_bar_callback
+    with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+        trainer.fit(model)
 
-    trainer.fit(model)
-
-    # check main progress bar total
-    n = bar.total_train_batches
-    m = bar.total_val_batches
+    n = trainer.num_training_batches
+    m = trainer.num_val_batches
     assert len(trainer.train_dataloader) == n
-    assert bar.main_progress_bar.total == n + m
-    assert bar.main_progress_bar.leave
+    # main progress bar should have reached the end (train batches + val batches)
+    assert pbar.main_progress_bar.total == n + sum(m)
+    assert pbar.main_progress_bar.n == n + sum(m)
+    assert pbar.main_progress_bar.leave
 
     # check val progress bar total
-    assert sum(len(loader) for loader in trainer.val_dataloaders) == m
-    assert bar.val_progress_bar.total == m
-    assert not bar.val_progress_bar.leave
+    assert pbar.val_progress_bar.total_values == m
+    assert pbar.val_progress_bar.n_values == list(range(1, m[0] + 1)) * num_dl
+    assert pbar.val_progress_bar.descriptions == [f"Validation DataLoader {i}: " for i in range(num_dl)]
+    assert not pbar.val_progress_bar.leave
 
-    # main progress bar should have reached the end (train batches + val batches)
-    assert bar.main_progress_bar.n == n + m
-    assert bar.train_batch_idx == n
+    # validate
+    with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+        trainer.validate(model)
+    assert trainer.num_val_batches == m
+    assert pbar.val_progress_bar.total_values == m
+    assert pbar.val_progress_bar.n_values == list(range(1, m[0] + 1)) * num_dl
+    assert pbar.val_progress_bar.descriptions == [f"Validation DataLoader {i}: " for i in range(num_dl)]
 
-    # val progress bar should have reached the end
-    assert bar.val_progress_bar.n == m
-    assert bar.val_batch_idx == m
+    # test
+    with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+        trainer.test(model)
+    assert pbar.test_progress_bar.leave
+    k = trainer.num_test_batches
+    assert pbar.test_progress_bar.total_values == k
+    assert pbar.test_progress_bar.n_values == list(range(1, k[0] + 1)) * num_dl
+    assert pbar.test_progress_bar.descriptions == [f"Testing DataLoader {i}: " for i in range(num_dl)]
+    assert pbar.test_progress_bar.leave
 
-    # check that the test progress bar is off
-    assert 0 == bar.total_test_batches
-    with pytest.raises(TypeError, match="test_progress_bar` .* not been set"):
-        assert bar.test_progress_bar is None
-
-    trainer.validate(model)
-
-    assert bar.val_progress_bar.total == m
-    assert bar.val_progress_bar.n == m
-    assert bar.val_batch_idx == m
-    assert bar.val_progress_bar.leave
-
-    trainer.test(model)
-
-    # check test progress bar total
-    k = bar.total_test_batches
-    assert sum(len(loader) for loader in trainer.test_dataloaders) == k
-    assert bar.test_progress_bar.total == k
-    assert bar.test_progress_bar.leave
-
-    # test progress bar should have reached the end
-    assert bar.test_progress_bar.n == k
-    assert bar.test_batch_idx == k
+    # predict
+    with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+        trainer.predict(model)
+    assert pbar.predict_progress_bar.leave
+    k = trainer.num_predict_batches
+    assert pbar.predict_progress_bar.total_values == k
+    assert pbar.predict_progress_bar.n_values == list(range(1, k[0] + 1)) * num_dl
+    assert pbar.predict_progress_bar.descriptions == [f"Predicting DataLoader {i}: " for i in range(num_dl)]
+    assert pbar.predict_progress_bar.leave
 
 
 def test_tqdm_progress_bar_fast_dev_run(tmpdir):
@@ -137,32 +209,26 @@ def test_tqdm_progress_bar_fast_dev_run(tmpdir):
 
     trainer.fit(model)
 
-    progress_bar = trainer.progress_bar_callback
-    assert 1 == progress_bar.total_train_batches
-    # total val batches are known only after val dataloaders have reloaded
+    pbar = trainer.progress_bar_callback
 
-    assert 1 == progress_bar.total_val_batches
-    assert 1 == progress_bar.train_batch_idx
-    assert 1 == progress_bar.val_batch_idx
-    assert 0 == progress_bar.test_batch_idx
+    assert 1 == pbar.val_progress_bar.n
+    assert 1 == pbar.val_progress_bar.total
 
     # the main progress bar should display 2 batches (1 train, 1 val)
-    assert 2 == progress_bar.main_progress_bar.total
-    assert 2 == progress_bar.main_progress_bar.n
+    assert 2 == pbar.main_progress_bar.total
+    assert 2 == pbar.main_progress_bar.n
 
     trainer.validate(model)
 
     # the validation progress bar should display 1 batch
-    assert 1 == progress_bar.val_batch_idx
-    assert 1 == progress_bar.val_progress_bar.total
-    assert 1 == progress_bar.val_progress_bar.n
+    assert 1 == pbar.val_progress_bar.total
+    assert 1 == pbar.val_progress_bar.n
 
     trainer.test(model)
 
     # the test progress bar should display 1 batch
-    assert 1 == progress_bar.test_batch_idx
-    assert 1 == progress_bar.test_progress_bar.total
-    assert 1 == progress_bar.test_progress_bar.n
+    assert 1 == pbar.test_progress_bar.total
+    assert 1 == pbar.test_progress_bar.n
 
 
 @pytest.mark.parametrize("refresh_rate", [0, 1, 50])
@@ -189,32 +255,36 @@ def test_tqdm_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
             super().on_test_batch_end(trainer, pl_module, outputs, batch, batch_idx, dataloader_idx)
             self.test_batches_seen += 1
 
-    progress_bar = CurrentProgressBar(refresh_rate=refresh_rate)
-    with pytest.deprecated_call(match=r"progress_bar_refresh_rate=101\)` is deprecated"):
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            callbacks=[progress_bar],
-            progress_bar_refresh_rate=101,  # should not matter if custom callback provided
-            limit_train_batches=1.0,
-            num_sanity_val_steps=2,
-            max_epochs=3,
-        )
+    pbar = CurrentProgressBar(refresh_rate=refresh_rate)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        callbacks=[pbar],
+        limit_train_batches=1.0,
+        num_sanity_val_steps=2,
+        max_epochs=3,
+    )
     assert trainer.progress_bar_callback.refresh_rate == refresh_rate
 
     trainer.fit(model)
-    assert progress_bar.train_batches_seen == 3 * progress_bar.total_train_batches
-    assert progress_bar.val_batches_seen == 3 * progress_bar.total_val_batches + trainer.num_sanity_val_steps
-    assert progress_bar.test_batches_seen == 0
+    assert (
+        pbar.train_batches_seen + pbar.val_batches_seen
+        == 3 * pbar.main_progress_bar.total + trainer.num_sanity_val_steps
+    )
+    assert pbar.test_batches_seen == 0
 
     trainer.validate(model)
-    assert progress_bar.train_batches_seen == 3 * progress_bar.total_train_batches
-    assert progress_bar.val_batches_seen == 4 * progress_bar.total_val_batches + trainer.num_sanity_val_steps
-    assert progress_bar.test_batches_seen == 0
+    assert (
+        pbar.train_batches_seen + pbar.val_batches_seen
+        == 3 * pbar.main_progress_bar.total + pbar.val_progress_bar.total + trainer.num_sanity_val_steps
+    )
+    assert pbar.test_batches_seen == 0
 
     trainer.test(model)
-    assert progress_bar.train_batches_seen == 3 * progress_bar.total_train_batches
-    assert progress_bar.val_batches_seen == 4 * progress_bar.total_val_batches + trainer.num_sanity_val_steps
-    assert progress_bar.test_batches_seen == progress_bar.total_test_batches
+    assert (
+        pbar.train_batches_seen + pbar.val_batches_seen
+        == 3 * pbar.main_progress_bar.total + pbar.val_progress_bar.total + trainer.num_sanity_val_steps
+    )
+    assert pbar.test_batches_seen == pbar.test_progress_bar.total
 
 
 @pytest.mark.parametrize("limit_val_batches", (0, 5))
@@ -234,7 +304,7 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches: int):
             super().on_validation_epoch_end(*args)
 
     model = BoringModel()
-    progress_bar = CurrentProgressBar()
+    pbar = CurrentProgressBar()
     num_sanity_val_steps = 2
 
     trainer = Trainer(
@@ -243,14 +313,14 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches: int):
         num_sanity_val_steps=num_sanity_val_steps,
         limit_train_batches=1,
         limit_val_batches=limit_val_batches,
-        callbacks=[progress_bar],
+        callbacks=[pbar],
         logger=False,
         enable_checkpointing=False,
     )
     trainer.fit(model)
 
-    assert progress_bar.sanity_pbar_total == min(num_sanity_val_steps, limit_val_batches)
-    assert progress_bar.val_pbar_total == limit_val_batches
+    assert pbar.sanity_pbar_total == min(num_sanity_val_steps, limit_val_batches)
+    assert pbar.val_pbar_total == limit_val_batches
 
 
 def test_tqdm_progress_bar_default_value(tmpdir):
@@ -271,30 +341,6 @@ def test_tqdm_progress_bar_value_on_colab(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, callbacks=TQDMProgressBar(refresh_rate=19))
     assert trainer.progress_bar_callback.refresh_rate == 19
 
-    with pytest.deprecated_call(match=r"progress_bar_refresh_rate=19\)` is deprecated"):
-        trainer = Trainer(default_root_dir=tmpdir, progress_bar_refresh_rate=19)
-    assert trainer.progress_bar_callback.refresh_rate == 19
-
-
-class MockTqdm(Tqdm):
-    def __init__(self, *args, **kwargs):
-        self.n_values = []
-        super().__init__(*args, **kwargs)
-        self.__n = 0
-        # again to reset additions from `super().__init__`
-        self.n_values = []
-
-    @property
-    def n(self):
-        return self.__n
-
-    @n.setter
-    def n(self, value):
-        self.__n = value
-        # track the changes in the `n` value
-        if not len(self.n_values) or value != self.n_values[-1]:
-            self.n_values.append(value)
-
 
 @pytest.mark.parametrize(
     "train_batches,val_batches,refresh_rate,train_updates,val_updates",
@@ -304,8 +350,8 @@ class MockTqdm(Tqdm):
         [1, 0, 3, [1], None],
         [1, 1, 3, [2], [1]],
         [5, 0, 3, [3, 5], None],
-        [5, 2, 3, [3, 7], [2]],
-        [5, 2, 6, [7], [2]],
+        [5, 2, 3, [3, 6, 7], [2]],
+        [5, 2, 6, [6, 7], [2]],
     ],
 )
 def test_main_progress_bar_update_amount(
@@ -504,16 +550,56 @@ def test_tqdm_progress_bar_can_be_pickled():
     pickle.dumps(bar)
 
 
-@RunIf(min_gpus=2, standalone=True)
 @pytest.mark.parametrize(
-    ["total_train_samples", "train_batch_size", "total_val_samples", "val_batch_size", "val_check_interval"],
-    [(8, 4, 2, 1, 0.2), (8, 4, 2, 1, 0.5)],
+    ["val_check_interval", "main_progress_bar_updates", "val_progress_bar_updates"],
+    [(4, [3, 6, 9, 12, 14], [3, 6, 7]), (0.5, [3, 6, 9, 12, 15, 18, 21], [3, 6, 7])],
 )
 def test_progress_bar_max_val_check_interval(
-    tmpdir, total_train_samples, train_batch_size, total_val_samples, val_batch_size, val_check_interval
+    tmpdir, val_check_interval, main_progress_bar_updates, val_progress_bar_updates
 ):
+    limit_batches = 7
+    model = BoringModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=0,
+        max_epochs=1,
+        enable_model_summary=False,
+        val_check_interval=val_check_interval,
+        limit_train_batches=limit_batches,
+        limit_val_batches=limit_batches,
+        callbacks=TQDMProgressBar(refresh_rate=3),
+    )
+    with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
+        trainer.fit(model)
+
+    pbar = trainer.progress_bar_callback
+    assert pbar.main_progress_bar.n_values == main_progress_bar_updates
+    assert pbar.val_progress_bar.n_values == val_progress_bar_updates
+
+    val_check_batch = (
+        max(1, int(limit_batches * val_check_interval)) if isinstance(val_check_interval, float) else val_check_interval
+    )
+    assert trainer.val_check_batch == val_check_batch
+    val_checks_per_epoch = math.ceil(limit_batches // val_check_batch)
+    pbar_callback = trainer.progress_bar_callback
+    total_val_batches = limit_batches * val_checks_per_epoch
+
+    assert pbar_callback.val_progress_bar.n == limit_batches
+    assert pbar_callback.val_progress_bar.total == limit_batches
+    assert pbar_callback.main_progress_bar.n == limit_batches + total_val_batches
+    assert pbar_callback.main_progress_bar.total == limit_batches + total_val_batches
+    assert pbar_callback.is_enabled
+
+
+@RunIf(min_gpus=2, standalone=True)
+@pytest.mark.parametrize("val_check_interval", [0.2, 0.5])
+def test_progress_bar_max_val_check_interval_ddp(tmpdir, val_check_interval):
     world_size = 2
-    train_data = DataLoader(RandomDataset(32, total_train_samples), batch_size=train_batch_size)
+    total_train_samples = 16
+    train_batch_size = 4
+    total_val_samples = 2
+    val_batch_size = 1
+    train_data = DataLoader(RandomDataset(32, 8), batch_size=train_batch_size)
     val_data = DataLoader(RandomDataset(32, total_val_samples), batch_size=val_batch_size)
 
     model = BoringModel()
@@ -523,7 +609,8 @@ def test_progress_bar_max_val_check_interval(
         max_epochs=1,
         enable_model_summary=False,
         val_check_interval=val_check_interval,
-        gpus=world_size,
+        accelerator="gpu",
+        devices=world_size,
         strategy="ddp",
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
@@ -533,11 +620,15 @@ def test_progress_bar_max_val_check_interval(
     assert trainer.val_check_batch == val_check_batch
     val_checks_per_epoch = total_train_batches / val_check_batch
     total_val_batches = total_val_samples // (val_batch_size * world_size)
-    assert trainer.progress_bar_callback.total_train_batches == total_train_batches
-    assert trainer.progress_bar_callback.total_val_batches == total_val_batches
-    total_val_batches = total_val_batches * val_checks_per_epoch
+    pbar_callback = trainer.progress_bar_callback
+
     if trainer.is_global_zero:
-        assert trainer.progress_bar_callback.main_progress_bar.total == total_train_batches + total_val_batches
+        assert pbar_callback.val_progress_bar.n == total_val_batches
+        assert pbar_callback.val_progress_bar.total == total_val_batches
+        total_val_batches = total_val_batches * val_checks_per_epoch
+        assert pbar_callback.main_progress_bar.n == (total_train_batches + total_val_batches) // world_size
+        assert pbar_callback.main_progress_bar.total == (total_train_batches + total_val_batches) // world_size
+        assert pbar_callback.is_enabled
 
 
 def test_get_progress_bar_metrics(tmpdir: str):
@@ -629,25 +720,25 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
 @mock.patch("pytorch_lightning.trainer.trainer.Trainer.is_global_zero", new_callable=PropertyMock, return_value=False)
 def test_tqdm_progress_bar_disabled_when_not_rank_zero(is_global_zero):
     """Test that the progress bar is disabled when not in global rank zero."""
-    progress_bar = TQDMProgressBar()
+    pbar = TQDMProgressBar()
     model = BoringModel()
     trainer = Trainer(
-        callbacks=[progress_bar],
+        callbacks=[pbar],
         fast_dev_run=True,
     )
 
-    progress_bar.enable()
+    pbar.enable()
     trainer.fit(model)
-    assert progress_bar.is_disabled
+    assert pbar.is_disabled
 
-    progress_bar.enable()
+    pbar.enable()
     trainer.predict(model)
-    assert progress_bar.is_disabled
+    assert pbar.is_disabled
 
-    progress_bar.enable()
+    pbar.enable()
     trainer.validate(model)
-    assert progress_bar.is_disabled
+    assert pbar.is_disabled
 
-    progress_bar.enable()
+    pbar.enable()
     trainer.test(model)
-    assert progress_bar.is_disabled
+    assert pbar.is_disabled

@@ -19,6 +19,7 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.utilities import move_data_to_device
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, STEP_OUTPUT, TRAIN_DATALOADERS
 
 
@@ -360,21 +361,27 @@ class DataHooks:
                 self.split = data_split
                 self.some_state = some_other_state()
 
-        In DDP ``prepare_data`` can be called in two ways (using Trainer(prepare_data_per_node)):
+        In a distributed environment, ``prepare_data`` can be called in two ways
+        (using :ref:`prepare_data_per_node<common/lightning_module:prepare_data_per_node>`)
 
         1. Once per node. This is the default and is only called on LOCAL_RANK=0.
         2. Once in total. Only called on GLOBAL_RANK=0.
-
-        See :ref:`prepare_data_per_node<common/lightning_module:prepare_data_per_node>`.
 
         Example::
 
             # DEFAULT
             # called once per node on LOCAL_RANK=0 of that node
-            Trainer(prepare_data_per_node=True)
+            class LitDataModule(LightningDataModule):
+                def __init__(self):
+                    super().__init__()
+                    self.prepare_data_per_node = True
+
 
             # call on GLOBAL_RANK=0 (great for shared file systems)
-            Trainer(prepare_data_per_node=False)
+            class LitDataModule(LightningDataModule):
+                def __init__(self):
+                    super().__init__()
+                    self.prepare_data_per_node = False
 
         This is called before requesting the dataloaders:
 
@@ -386,6 +393,7 @@ class DataHooks:
             model.train_dataloader()
             model.val_dataloader()
             model.test_dataloader()
+            model.predict_dataloader()
         """
 
     def setup(self, stage: Optional[str] = None) -> None:
@@ -490,7 +498,7 @@ class DataHooks:
                 # each batch will be a dict of tensors: {'mnist': batch_mnist, 'cifar': batch_cifar}
                 return {'mnist': mnist_loader, 'cifar': cifar_loader}
         """
-        raise NotImplementedError("`train_dataloader` must be implemented to be used with the Lightning Trainer")
+        raise MisconfigurationException("`train_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def test_dataloader(self) -> EVAL_DATALOADERS:
         r"""
@@ -544,7 +552,7 @@ class DataHooks:
             In the case where you return multiple test dataloaders, the :meth:`test_step`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
-        raise NotImplementedError("`test_dataloader` must be implemented to be used with the Lightning Trainer")
+        raise MisconfigurationException("`test_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def val_dataloader(self) -> EVAL_DATALOADERS:
         r"""
@@ -595,7 +603,7 @@ class DataHooks:
             In the case where you return multiple validation dataloaders, the :meth:`validation_step`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
-        raise NotImplementedError("`val_dataloader` must be implemented to be used with the Lightning Trainer")
+        raise MisconfigurationException("`val_dataloader` must be implemented to be used with the Lightning Trainer")
 
     def predict_dataloader(self) -> EVAL_DATALOADERS:
         r"""
@@ -618,7 +626,9 @@ class DataHooks:
             In the case where you return multiple prediction dataloaders, the :meth:`predict_step`
             will have an argument ``dataloader_idx`` which matches the order here.
         """
-        raise NotImplementedError("`predict_dataloader` must be implemented to be used with the Lightning Trainer")
+        raise MisconfigurationException(
+            "`predict_dataloader` must be implemented to be used with the Lightning Trainer"
+        )
 
     def on_train_dataloader(self) -> None:
         """Called before requesting the train dataloader.

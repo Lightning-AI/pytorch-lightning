@@ -40,8 +40,7 @@ TBroadcast = TypeVar("TBroadcast")
 
 
 class Strategy(ABC):
-    """Base class for all training type plugins that change the behaviour of the training, validation and test-
-    loop."""
+    """Base class for all strategies that change the behaviour of the training, validation and test- loop."""
 
     def __init__(
         self,
@@ -181,7 +180,7 @@ class Strategy(ABC):
         model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any,
     ) -> Any:
-        """performs the actual optimizer step.
+        """Performs the actual optimizer step.
 
         Args:
             optimizer: the optimizer performing the step

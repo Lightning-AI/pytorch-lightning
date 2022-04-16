@@ -29,7 +29,7 @@ from tests.helpers.runif import RunIf
 from tests.strategies import ddp_model
 from tests.utilities.distributed import call_training_script
 
-CLI_ARGS = "--max_epochs 1 --gpus 2 --strategy ddp"
+CLI_ARGS = "--max_epochs 1 --accelerator gpu --devices 2 --strategy ddp"
 
 
 @RunIf(min_gpus=2)
@@ -88,7 +88,14 @@ def test_torch_distributed_backend_env_variables(tmpdir):
         with pytest.deprecated_call(match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND` was deprecated in v1.6"):
             with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
                 model = BoringModel()
-                trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", gpus=2, logger=False)
+                trainer = Trainer(
+                    default_root_dir=tmpdir,
+                    fast_dev_run=True,
+                    strategy="ddp",
+                    accelerator="gpu",
+                    devices=2,
+                    logger=False,
+                )
                 trainer.fit(model)
 
 
@@ -109,7 +116,7 @@ def test_ddp_torch_dist_is_available_in_setup(
             raise SystemExit()
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", gpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=1)
     with pytest.deprecated_call(match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND` was deprecated in v1.6"):
         with pytest.raises(SystemExit):
             trainer.fit(model)
@@ -144,7 +151,8 @@ def test_ddp_wrapper(tmpdir, precision):
         fast_dev_run=True,
         precision=precision,
         strategy="ddp",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         callbacks=CustomCallback(),
     )
     trainer.fit(model)

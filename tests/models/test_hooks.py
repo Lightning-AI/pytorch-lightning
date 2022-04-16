@@ -156,7 +156,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
     model = CurrentTestModel()
     batch = CustomBatch((torch.zeros(5, 32), torch.ones(5, 1, dtype=torch.long)))
 
-    trainer = Trainer(gpus=1)
+    trainer = Trainer(accelerator="gpu", devices=1)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
 
     model_getter_mock.return_value = model
@@ -203,7 +203,8 @@ def test_transfer_batch_hook_ddp(tmpdir):
         max_epochs=1,
         enable_model_summary=False,
         strategy="ddp",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
     )
     trainer.fit(model)
 
@@ -230,7 +231,7 @@ class HookedCallback(Callback):
             update_wrapper(partial_h, attr)
             setattr(self, h, partial_h)
 
-    def on_save_checkpoint(*args, **kwargs):
+    def state_dict(*args, **kwargs):
         return {"foo": True}
 
 
@@ -437,10 +438,13 @@ class HookedModel(BoringModel):
     [
         {},
         # these precision plugins modify the optimization flow, so testing them explicitly
-        pytest.param(dict(gpus=1, precision=16, amp_backend="native"), marks=RunIf(min_gpus=1)),
-        pytest.param(dict(gpus=1, precision=16, amp_backend="apex"), marks=RunIf(amp_apex=True, min_gpus=1)),
+        pytest.param(dict(accelerator="gpu", devices=1, precision=16, amp_backend="native"), marks=RunIf(min_gpus=1)),
         pytest.param(
-            dict(gpus=1, precision=16, strategy="deepspeed"), marks=RunIf(deepspeed=True, min_gpus=1, standalone=True)
+            dict(accelerator="gpu", devices=1, precision=16, amp_backend="apex"), marks=RunIf(min_gpus=1, amp_apex=True)
+        ),
+        pytest.param(
+            dict(accelerator="gpu", devices=1, precision=16, strategy="deepspeed"),
+            marks=RunIf(min_gpus=1, standalone=True, deepspeed=True),
         ),
     ],
 )
@@ -495,7 +499,7 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
     }
     if kwargs.get("amp_backend") == "native" or kwargs.get("amp_backend") == "apex":
         saved_ckpt[trainer.precision_plugin.__class__.__qualname__] = ANY
-    device = torch.device("cuda:0" if "gpus" in kwargs else "cpu")
+    device = torch.device("cuda:0" if "accelerator" in kwargs and kwargs["accelerator"] == "gpu" else "cpu")
     expected = [
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
@@ -616,7 +620,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         "state_dict": ANY,
         "loops": ANY,
     }
-    saved_ckpt = {**loaded_ckpt, "global_step": steps_after_reload, "epoch": 1}
+    saved_ckpt = {**loaded_ckpt, "global_step": steps_after_reload}
     expected = [
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
@@ -646,7 +650,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         dict(name="on_epoch_start"),
         dict(name="Callback.on_train_epoch_start", args=(trainer, model)),
         dict(name="on_train_epoch_start"),
-        *model._train_batch(trainer, model, steps_after_reload, current_batch=1, current_epoch=1),
+        *model._train_batch(trainer, model, steps_after_reload, current_batch=1),
         dict(name="training_epoch_end", args=([dict(loss=ANY)] * train_batches,)),
         dict(name="Callback.on_train_epoch_end", args=(trainer, model)),
         dict(name="Callback.state_dict"),

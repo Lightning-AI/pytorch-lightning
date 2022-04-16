@@ -26,6 +26,7 @@ from unittest.mock import ANY, call, patch
 import cloudpickle
 import pytest
 import torch
+from torch.multiprocessing import ProcessRaisedException
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
 from torch.utils.data import DataLoader, IterableDataset
@@ -52,7 +53,7 @@ from pytorch_lightning.strategies import (
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
-from pytorch_lightning.utilities.imports import _IS_WINDOWS, _OMEGACONF_AVAILABLE, _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.seed import seed_everything
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.boring_model import RandomIterableDataset, RandomIterableDatasetWithLen
@@ -62,11 +63,6 @@ from tests.helpers.simple_models import ClassificationModel
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf
-
-if _TORCH_GREATER_EQUAL_1_8:
-    from torch.multiprocessing import ProcessRaisedException
-else:
-    ProcessRaisedException = Exception
 
 
 @pytest.mark.parametrize("url_ckpt", [True, False])
@@ -403,6 +399,7 @@ def test_model_freeze_unfreeze():
         assert param.requires_grad
 
 
+# TODO: move to `test/models/test_restore.py`
 @pytest.mark.parametrize("url_ckpt", [True, False])
 def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Verify resuming from checkpoint runs the right number of epochs."""
@@ -425,11 +422,12 @@ def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ck
             self.num_on_load_checkpoint_called += 1
 
     model = TestModel()
+    max_epochs = 2
     trainer = Trainer(
-        max_epochs=2,
+        max_epochs=max_epochs,
         limit_train_batches=0.65,
         limit_val_batches=1,
-        callbacks=[ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_top_k=-1)],
+        callbacks=ModelCheckpoint(dirpath=tmpdir, save_top_k=-1),
         default_root_dir=tmpdir,
         val_check_interval=1.0,
         enable_progress_bar=False,
@@ -438,26 +436,25 @@ def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ck
     )
     trainer.fit(model)
 
-    assert model.num_epochs_end_seen == 2
-    assert model.num_batches_seen == trainer.num_training_batches * 2
+    assert model.num_epochs_end_seen == max_epochs
+    assert model.num_batches_seen == trainer.num_training_batches * max_epochs == trainer.global_step
     assert model.num_on_load_checkpoint_called == 0
 
-    # Other checkpoints can be uncommented if/when resuming mid-epoch is supported
-    checkpoints = Path(trainer.checkpoint_callback.dirpath).glob("*.ckpt")
+    checkpoints = set(Path(trainer.checkpoint_callback.dirpath).glob("*.ckpt"))
     if url_ckpt:
         # transform local paths into url checkpoints
         ip, port = tmpdir_server
         checkpoints = [f"http://{ip}:{port}/" + ckpt.name for ckpt in checkpoints]
 
+    assert len(checkpoints) == max_epochs
     for ckpt in checkpoints:
-        next_model = TestModel()
+        model = TestModel()
         state = pl_load(ckpt)
-
         # Resume training
-        new_trainer = Trainer(default_root_dir=tmpdir, max_epochs=2)
-        new_trainer.fit(next_model, ckpt_path=ckpt)
-        assert state["global_step"] + next_model.num_batches_seen == trainer.num_training_batches * trainer.max_epochs
-        assert next_model.num_on_load_checkpoint_called == 1
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, enable_progress_bar=False)
+        trainer.fit(model, ckpt_path=ckpt)
+        assert state["global_step"] + model.num_batches_seen == trainer.global_step
+        assert model.num_on_load_checkpoint_called == 1
 
 
 def test_trainer_max_steps_and_epochs(tmpdir):
@@ -907,70 +904,10 @@ def test_disabled_validation(tmpdir):
     assert model.validation_epoch_end_invoked, "did not run `validation_epoch_end` with `fast_dev_run=True`"
 
 
-@mock.patch("torch.Tensor.backward")
-def test_nan_loss_detection(backward_mock, tmpdir):
-    class CurrentModel(BoringModel):
-        test_batch_inf = 3
-
-        def training_step(self, batch, batch_idx):
-            output = super().training_step(batch, batch_idx)
-            if batch_idx == self.test_batch_inf:
-                if isinstance(output, dict):
-                    output["loss"] *= torch.tensor(math.inf)  # make loss infinite
-                else:
-                    output /= 0
-            return output
-
-    model = CurrentModel()
-
-    with pytest.deprecated_call(match="terminate_on_nan` was deprecated in v1.5"):
-        trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_inf + 1), terminate_on_nan=True)
-
-    with pytest.raises(ValueError, match=r".*The loss returned in `training_step` is.*"):
-        trainer.fit(model)
-        assert trainer.global_step == model.test_batch_inf
-        assert backward_mock.call_count == model.test_batch_inf
-
-    for param in model.parameters():
-        assert torch.isfinite(param).all()
-
-
-def test_invalid_terminate_on_nan(tmpdir):
-    with pytest.raises(TypeError, match="`terminate_on_nan` should be a bool"), pytest.deprecated_call(
-        match="terminate_on_nan` was deprecated in v1.5"
-    ):
-        Trainer(default_root_dir=tmpdir, terminate_on_nan="False")
-
-
 @pytest.mark.parametrize("track_grad_norm", [0, torch.tensor(1), "nan"])
 def test_invalid_track_grad_norm(tmpdir, track_grad_norm):
     with pytest.raises(MisconfigurationException, match="`track_grad_norm` must be a positive number or 'inf'"):
         Trainer(default_root_dir=tmpdir, track_grad_norm=track_grad_norm)
-
-
-@mock.patch("torch.Tensor.backward")
-def test_nan_params_detection(backward_mock, tmpdir):
-    class CurrentModel(BoringModel):
-        test_batch_nan = 3
-
-        def on_after_backward(self):
-            if self.global_step == self.test_batch_nan:
-                # simulate parameter that became nan
-                torch.nn.init.constant_(self.layer.bias, math.nan)
-
-    model = CurrentModel()
-
-    with pytest.deprecated_call(match="terminate_on_nan` was deprecated in v1.5"):
-        trainer = Trainer(default_root_dir=tmpdir, max_steps=(model.test_batch_nan + 1), terminate_on_nan=True)
-
-    with pytest.raises(ValueError, match=r".*Detected nan and/or inf values in `layer.bias`.*"):
-        trainer.fit(model)
-        assert trainer.global_step == model.test_batch_nan
-        assert backward_mock.call_count == model.test_batch_nan + 1
-
-    # after aborting the training loop, model still has nan-valued params
-    params = torch.cat([param.view(-1) for param in model.parameters()])
-    assert not torch.isfinite(params).all()
 
 
 def test_on_exception_hook(tmpdir):
@@ -1050,7 +987,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
             # test that gradient is clipped correctly
             parameters = self.parameters()
             grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
-            torch.testing.assert_allclose(grad_norm, torch.tensor(0.05))
+            torch.testing.assert_allclose(grad_norm, torch.tensor(0.05, device=self.device))
             self.assertion_called = True
 
     model = TestModel()
@@ -1081,7 +1018,7 @@ def test_gradient_clipping_by_value(tmpdir, precision):
             parameters = self.parameters()
             grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
             grad_max = torch.max(torch.stack(grad_max_list))
-            torch.testing.assert_allclose(grad_max.abs(), torch.tensor(1e-10))
+            torch.testing.assert_allclose(grad_max.abs(), torch.tensor(1e-10, device=self.device))
             self.assertion_called = True
 
     model = TestModel()
@@ -1099,17 +1036,13 @@ def test_invalid_gradient_clip_algo(tmpdir):
         Trainer(default_root_dir=tmpdir, gradient_clip_algorithm="norm2")
 
 
-def test_gpu_choice(tmpdir):
-    trainer_options = dict(default_root_dir=tmpdir)
-    # Only run if CUDA is available
-    if not torch.cuda.is_available():
-        return
-
+@RunIf(min_gpus=1)
+def test_gpu_choice():
     num_gpus = torch.cuda.device_count()
-    Trainer(**trainer_options, accelerator="gpu", devices=num_gpus, auto_select_gpus=True)
+    Trainer(accelerator="gpu", devices=num_gpus, auto_select_gpus=True)
 
-    with pytest.raises(MisconfigurationException, match=r".*But your machine only has.*"):
-        Trainer(**trainer_options, accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
+    with pytest.raises(MisconfigurationException, match=r".*but your machine only has.*"):
+        Trainer(accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
 
 
 @pytest.mark.parametrize("limit_val_batches", [0.0, 1, 1.0, 0.5, 5])
@@ -1181,49 +1114,6 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         trainer.fit(model, val_dataloaders=val_dataloaders)
 
         assert mocked.call_count == sum(trainer.num_val_batches)
-
-
-@pytest.mark.parametrize(
-    ["trainer_kwargs", "strategy_cls", "strategy_name", "accelerator_cls", "num_gpus"],
-    [
-        ({"accelerator": None}, SingleDeviceStrategy, "single_device", CPUAccelerator, 0),
-        ({"accelerator": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"accelerator": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"accelerator": "ddp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"accelerator": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"accelerator": "ddp_cpu", "num_processes": 2}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 0),
-        ({"accelerator": "ddp2"}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"accelerator": None, "gpus": 1}, SingleDeviceStrategy, "single_device", GPUAccelerator, 1),
-        ({"accelerator": "dp", "gpus": 1}, DataParallelStrategy, "dp", GPUAccelerator, 1),
-        ({"accelerator": "ddp", "gpus": 1}, DDPStrategy, "ddp", GPUAccelerator, 1),
-        ({"accelerator": "ddp_cpu", "num_processes": 2, "gpus": 1}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 0),
-        ({"accelerator": "ddp2", "gpus": 1}, DDP2Strategy, "ddp2", GPUAccelerator, 1),
-        ({"accelerator": None, "gpus": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
-        ({"accelerator": "dp", "gpus": 2}, DataParallelStrategy, "dp", GPUAccelerator, 2),
-        ({"accelerator": "ddp", "gpus": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
-        ({"accelerator": "ddp2", "gpus": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
-        ({"accelerator": "ddp2", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"accelerator": "dp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
-    ],
-)
-def test_trainer_config_accelerator(
-    monkeypatch, trainer_kwargs, strategy_cls, strategy_name, accelerator_cls, num_gpus
-):
-    if trainer_kwargs.get("gpus") is not None:
-        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-        monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
-
-    if trainer_kwargs["accelerator"] in (None, "ddp_cpu"):
-        trainer = Trainer(**trainer_kwargs)
-    else:
-        with pytest.deprecated_call(match=r"accelerator='.*'\)` has been deprecated in v1.5"):
-            trainer = Trainer(**trainer_kwargs)
-
-    assert isinstance(trainer.strategy, strategy_cls)
-    assert strategy_cls.strategy_name == strategy_name
-    assert isinstance(trainer.accelerator, accelerator_cls)
-    trainer_num_gpus = trainer.num_devices if isinstance(trainer.accelerator, GPUAccelerator) else 0
-    assert trainer_num_gpus == num_gpus
 
 
 def test_trainer_subclassing():
@@ -1476,8 +1366,9 @@ def test_trainer_predict_1_gpu(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_trainer_predict_ddp_spawn(tmpdir):
-    predict(tmpdir, strategy="ddp_spawn", accelerator="auto", devices=2)
+@pytest.mark.parametrize("accelerator", ["cpu", pytest.param("gpu", marks=RunIf(min_gpus=2))])
+def test_trainer_predict_ddp_spawn(tmpdir, accelerator):
+    predict(tmpdir, strategy="ddp_spawn", accelerator=accelerator, devices=2)
 
 
 @pytest.mark.parametrize("dataset_cls", [RandomDataset, RandomIterableDatasetWithLen, RandomIterableDataset])
@@ -1501,9 +1392,8 @@ def test_index_batch_sampler_wrapper_with_iterable_dataset(dataset_cls, tmpdir):
     assert len(predictions) == 8
 
 
-@pytest.mark.skipif(_IS_WINDOWS and not _TORCH_GREATER_EQUAL_1_8, reason="torch.distributed support required")
 def test_spawn_predict_return_predictions(tmpdir):
-    """Test that `return_predictions=True` raise a MisconfigurationException with spawn training type plugins."""
+    """Test that `return_predictions=True` raise a MisconfigurationException with spawn strategies."""
     model = BoringModel()
     trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", strategy="ddp_spawn", devices=2, fast_dev_run=True)
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
@@ -1749,12 +1639,10 @@ class TrainerStagesModel(BoringModel):
         assert not self.training
 
 
-@pytest.mark.parametrize(
-    "strategy,num_processes", [(None, 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True, skip_49370=True))]
-)
-def test_model_in_correct_mode_during_stages(tmpdir, strategy, num_processes):
+@pytest.mark.parametrize("strategy,devices", [(None, 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True))])
+def test_model_in_correct_mode_during_stages(tmpdir, strategy, devices):
     model = TrainerStagesModel()
-    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, num_processes=num_processes, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, accelerator="cpu", devices=devices, fast_dev_run=True)
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
@@ -1771,14 +1659,19 @@ class TestDummyModelForCheckpoint(BoringModel):
         pass
 
 
-@RunIf(skip_windows=True, skip_49370=True)
+@RunIf(skip_windows=True)
 def test_fit_test_synchronization(tmpdir):
     """Test that the trainer synchronizes processes before returning control back to the caller."""
     tutils.set_random_main_port()
     model = TestDummyModelForCheckpoint()
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="x", mode="min", save_top_k=1)
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, strategy="ddp_spawn", num_processes=2, callbacks=[checkpoint]
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        strategy="ddp_spawn",
+        accelerator="cpu",
+        devices=2,
+        callbacks=[checkpoint],
     )
     trainer.fit(model)
     assert os.path.exists(checkpoint.best_model_path), f"Could not find checkpoint at rank {trainer.global_rank}"
@@ -1786,7 +1679,7 @@ def test_fit_test_synchronization(tmpdir):
 
 
 class CustomCallbackOnLoadCheckpoint(Callback):
-    def on_save_checkpoint(self, trainer, pl_module, checkpoint) -> dict:
+    def state_dict(self) -> dict:
         return {"a": None}
 
 
@@ -2027,60 +1920,132 @@ def test_detect_anomaly_nan(tmpdir):
 
 
 @pytest.mark.parametrize(
-    ["trainer_kwargs", "strategy_cls", "strategy_name", "accelerator_cls", "num_gpus"],
+    ["trainer_kwargs", "strategy_cls", "strategy_name", "accelerator_cls", "devices"],
     [
-        ({"strategy": None}, SingleDeviceStrategy, "single_device", CPUAccelerator, 0),
-        ({"strategy": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"strategy": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"strategy": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"strategy": "ddp2"}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"strategy": None, "gpus": 1}, SingleDeviceStrategy, "single_device", GPUAccelerator, 1),
-        ({"strategy": "dp", "gpus": 1}, DataParallelStrategy, "dp", GPUAccelerator, 1),
-        ({"strategy": "ddp", "gpus": 1}, DDPStrategy, "ddp", GPUAccelerator, 1),
-        ({"strategy": "ddp_spawn", "gpus": 1}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 1),
-        ({"strategy": "ddp2", "gpus": 1}, DDP2Strategy, "ddp2", GPUAccelerator, 1),
-        ({"strategy": None, "gpus": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
-        ({"strategy": "dp", "gpus": 2}, DataParallelStrategy, "dp", GPUAccelerator, 2),
-        ({"strategy": "ddp", "gpus": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
-        ({"strategy": "ddp2", "gpus": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
-        ({"strategy": "ddp2", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"strategy": "ddp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"strategy": "ddp_spawn", "num_processes": 2}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 0),
-        ({"strategy": "ddp_spawn", "num_processes": 1}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 0),
-        ({"strategy": "ddp_fully_sharded", "gpus": 1}, DDPFullyShardedStrategy, "ddp_fully_sharded", GPUAccelerator, 1),
-        ({"strategy": DDPSpawnStrategy(), "num_processes": 2}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 0),
-        ({"strategy": DDPSpawnStrategy(), "gpus": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
-        ({"strategy": DDPStrategy()}, DDPStrategy, "ddp", CPUAccelerator, 0),
-        ({"strategy": DDPStrategy(), "gpus": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
-        ({"strategy": DDP2Strategy(), "gpus": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
-        ({"strategy": DataParallelStrategy(), "gpus": 2}, DataParallelStrategy, "dp", GPUAccelerator, 2),
+        ({"strategy": None}, SingleDeviceStrategy, "single_device", CPUAccelerator, 1),
+        ({"strategy": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 1),
+        ({"strategy": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 1),
+        ({"strategy": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 1),
+        ({"strategy": "ddp2"}, DDPStrategy, "ddp", CPUAccelerator, 1),
         (
-            {"strategy": DDPFullyShardedStrategy(), "gpus": 2},
-            DDPFullyShardedStrategy,
-            "ddp_fully_sharded",
+            {"strategy": None, "accelerator": "gpu", "devices": 1},
+            SingleDeviceStrategy,
+            "single_device",
             GPUAccelerator,
+            1,
+        ),
+        ({"strategy": "dp", "accelerator": "gpu", "devices": 1}, DataParallelStrategy, "dp", GPUAccelerator, 1),
+        ({"strategy": "ddp", "accelerator": "gpu", "devices": 1}, DDPStrategy, "ddp", GPUAccelerator, 1),
+        (
+            {"strategy": "ddp_spawn", "accelerator": "gpu", "devices": 1},
+            DDPSpawnStrategy,
+            "ddp_spawn",
+            GPUAccelerator,
+            1,
+        ),
+        ({"strategy": "ddp2", "accelerator": "gpu", "devices": 1}, DDP2Strategy, "ddp2", GPUAccelerator, 1),
+        ({"strategy": None, "accelerator": "gpu", "devices": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
+        ({"strategy": "dp", "accelerator": "gpu", "devices": 2}, DataParallelStrategy, "dp", GPUAccelerator, 2),
+        ({"strategy": "ddp", "accelerator": "gpu", "devices": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
+        ({"strategy": "ddp2", "accelerator": "gpu", "devices": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
+        ({"strategy": "ddp2", "accelerator": "cpu", "devices": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
+        ({"strategy": "ddp", "accelerator": "cpu", "devices": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
+        (
+            {"strategy": "ddp_spawn", "accelerator": "cpu", "devices": 2},
+            DDPSpawnStrategy,
+            "ddp_spawn",
+            CPUAccelerator,
             2,
         ),
         (
-            {"strategy": DDPSpawnShardedStrategy(), "gpus": 2},
-            DDPSpawnShardedStrategy,
-            "ddp_sharded_spawn",
-            GPUAccelerator,
-            2,
+            {"strategy": "ddp_spawn", "accelerator": "cpu", "devices": 1},
+            DDPSpawnStrategy,
+            "ddp_spawn",
+            CPUAccelerator,
+            1,
         ),
-        ({"strategy": DDPShardedStrategy(), "gpus": 2}, DDPShardedStrategy, "ddp_sharded", GPUAccelerator, 2),
-        ({"strategy": "ddp2", "gpus": 2, "num_nodes": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
-        ({"strategy": "ddp_spawn", "gpus": 2, "num_nodes": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
         (
-            {"strategy": "ddp_fully_sharded", "gpus": 1, "num_nodes": 2},
+            {"strategy": "ddp_fully_sharded", "accelerator": "gpu", "devices": 1},
             DDPFullyShardedStrategy,
             "ddp_fully_sharded",
             GPUAccelerator,
             1,
         ),
-        ({"strategy": "ddp_sharded", "gpus": 2, "num_nodes": 2}, DDPShardedStrategy, "ddp_sharded", GPUAccelerator, 2),
         (
-            {"strategy": "ddp_sharded_spawn", "gpus": 2, "num_nodes": 2},
+            {"strategy": DDPSpawnStrategy(), "accelerator": "cpu", "devices": 2},
+            DDPSpawnStrategy,
+            "ddp_spawn",
+            CPUAccelerator,
+            2,
+        ),
+        (
+            {"strategy": DDPSpawnStrategy(), "accelerator": "gpu", "devices": 2},
+            DDPSpawnStrategy,
+            "ddp_spawn",
+            GPUAccelerator,
+            2,
+        ),
+        ({"strategy": DDPStrategy()}, DDPStrategy, "ddp", CPUAccelerator, 1),
+        ({"strategy": DDPStrategy(), "accelerator": "gpu", "devices": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
+        ({"strategy": DDP2Strategy(), "accelerator": "gpu", "devices": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
+        (
+            {"strategy": DataParallelStrategy(), "accelerator": "gpu", "devices": 2},
+            DataParallelStrategy,
+            "dp",
+            GPUAccelerator,
+            2,
+        ),
+        (
+            {"strategy": DDPFullyShardedStrategy(), "accelerator": "gpu", "devices": 2},
+            DDPFullyShardedStrategy,
+            "ddp_fully_sharded",
+            GPUAccelerator,
+            2,
+        ),
+        (
+            {"strategy": DDPSpawnShardedStrategy(), "accelerator": "gpu", "devices": 2},
+            DDPSpawnShardedStrategy,
+            "ddp_sharded_spawn",
+            GPUAccelerator,
+            2,
+        ),
+        (
+            {"strategy": DDPShardedStrategy(), "accelerator": "gpu", "devices": 2},
+            DDPShardedStrategy,
+            "ddp_sharded",
+            GPUAccelerator,
+            2,
+        ),
+        (
+            {"strategy": "ddp2", "accelerator": "gpu", "devices": 2, "num_nodes": 2},
+            DDP2Strategy,
+            "ddp2",
+            GPUAccelerator,
+            2,
+        ),
+        (
+            {"strategy": "ddp_spawn", "accelerator": "gpu", "devices": 2, "num_nodes": 2},
+            DDPSpawnStrategy,
+            "ddp_spawn",
+            GPUAccelerator,
+            2,
+        ),
+        (
+            {"strategy": "ddp_fully_sharded", "accelerator": "gpu", "devices": 1, "num_nodes": 2},
+            DDPFullyShardedStrategy,
+            "ddp_fully_sharded",
+            GPUAccelerator,
+            1,
+        ),
+        (
+            {"strategy": "ddp_sharded", "accelerator": "gpu", "devices": 2, "num_nodes": 2},
+            DDPShardedStrategy,
+            "ddp_sharded",
+            GPUAccelerator,
+            2,
+        ),
+        (
+            {"strategy": "ddp_sharded_spawn", "accelerator": "gpu", "devices": 2, "num_nodes": 2},
             DDPSpawnShardedStrategy,
             "ddp_sharded_spawn",
             GPUAccelerator,
@@ -2088,18 +2053,32 @@ def test_detect_anomaly_nan(tmpdir):
         ),
     ],
 )
-def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, strategy_name, accelerator_cls, num_gpus):
-    if trainer_kwargs.get("gpus") is not None:
+def test_trainer_config_strategy(monkeypatch, trainer_kwargs, strategy_cls, strategy_name, accelerator_cls, devices):
+    if trainer_kwargs.get("accelerator") == "gpu":
         monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-        monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
+        monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["devices"])
 
     trainer = Trainer(**trainer_kwargs)
 
     assert isinstance(trainer.strategy, strategy_cls)
     assert strategy_cls.strategy_name == strategy_name
     assert isinstance(trainer.accelerator, accelerator_cls)
-    trainer_num_gpus = trainer.num_devices if isinstance(trainer.accelerator, GPUAccelerator) else 0
-    assert trainer_num_gpus == num_gpus
+    assert trainer.num_devices == devices
+    assert trainer.num_nodes == trainer_kwargs.get("num_nodes", 1)
+
+    # Test with `gpus` and `num_processes` flags
+    if trainer_kwargs.get("accelerator") == "gpu":
+        trainer_kwargs["gpus"] = trainer_kwargs.get("devices")
+    else:
+        trainer_kwargs["num_processes"] = trainer_kwargs.get("devices")
+
+    trainer_kwargs.pop("accelerator", None)
+    trainer_kwargs.pop("devices", None)
+
+    assert isinstance(trainer.strategy, strategy_cls)
+    assert strategy_cls.strategy_name == strategy_name
+    assert isinstance(trainer.accelerator, accelerator_cls)
+    assert trainer.num_devices == devices
     assert trainer.num_nodes == trainer_kwargs.get("num_nodes", 1)
 
 

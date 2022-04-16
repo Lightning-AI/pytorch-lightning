@@ -86,7 +86,15 @@ class PredictionLoop(DataLoaderLoop):
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Predicts one entire dataloader."""
         void(*args, **kwargs)
-        dataloader = self.trainer.strategy.process_dataloader(self.current_dataloader)
+        dataloader = self.current_dataloader
+        if (
+            dataloader is not None
+            and getattr(dataloader, "sampler", None)
+            and callable(getattr(dataloader.sampler, "set_epoch", None))
+        ):
+            # set seed for distributed sampler (enables shuffling for each epoch)
+            dataloader.sampler.set_epoch(self.trainer.fit_loop.epoch_progress.current.processed)
+        dataloader = self.trainer.strategy.process_dataloader(dataloader)
         dataloader_iter = enumerate(dataloader)
         dl_max_batches = self.max_batches[self.current_dataloader_idx]
 

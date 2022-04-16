@@ -31,9 +31,9 @@ from packaging import version
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
-from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
+from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.loggers import LightningLoggerBase, TensorBoardLogger
+from pytorch_lightning.loggers import Logger, TensorBoardLogger
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
@@ -51,7 +51,7 @@ from pytorch_lightning.utilities.cli import (
     SaveConfigCallback,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCHVISION_AVAILABLE
+from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import no_warning_call
@@ -180,7 +180,15 @@ def test_parse_args_parsing_complex_types(cli_args, expected, instantiate):
         assert Trainer.from_argparse_args(args)
 
 
-@pytest.mark.parametrize(["cli_args", "expected_gpu"], [("--gpus 1", [0]), ("--gpus 0,", [0]), ("--gpus 0,1", [0, 1])])
+@pytest.mark.parametrize(
+    ["cli_args", "expected_gpu"],
+    [
+        ("--accelerator gpu --devices 1", [0]),
+        ("--accelerator gpu --devices 0,", [0]),
+        ("--accelerator gpu --devices 1,", [1]),
+        ("--accelerator gpu --devices 0,1", [0, 1]),
+    ],
+)
 def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
     """Test parsing of gpus and instantiation of Trainer."""
     monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
@@ -192,7 +200,7 @@ def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
         args = parser.parse_args()
 
     trainer = Trainer.from_argparse_args(args)
-    assert trainer.data_parallel_device_ids == expected_gpu
+    assert trainer.device_ids == expected_gpu
 
 
 @pytest.mark.skipif(
@@ -456,7 +464,11 @@ def test_lightning_cli_print_config():
     with mock.patch("sys.argv", cli_args), redirect_stdout(out), pytest.raises(SystemExit):
         any_model_any_data_cli()
 
-    outval = yaml.safe_load(out.getvalue())
+    text = out.getvalue()
+    # test dump_header
+    assert text.startswith(f"# pytorch_lightning=={__version__}")
+
+    outval = yaml.safe_load(text)
     assert outval["seed_everything"] == 1234
     assert outval["model"]["class_path"] == "tests.helpers.BoringModel"
     assert outval["data"]["class_path"] == "tests.helpers.BoringDataModule"
@@ -580,10 +592,7 @@ class EarlyExitTestModel(BoringModel):
 @pytest.mark.parametrize("logger", (False, True))
 @pytest.mark.parametrize("strategy", ("ddp_spawn", "ddp"))
 def test_cli_distributed_save_config_callback(tmpdir, logger, strategy):
-    if _TORCH_GREATER_EQUAL_1_8:
-        from torch.multiprocessing import ProcessRaisedException
-    else:
-        ProcessRaisedException = Exception
+    from torch.multiprocessing import ProcessRaisedException
 
     with mock.patch("sys.argv", ["any.py", "fit"]), pytest.raises(
         (MisconfigurationException, ProcessRaisedException), match=r"Error on fit start"
@@ -738,7 +747,7 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_registries, 
             self.optim2 = instantiate_class(self.parameters(), optim2)
             self.scheduler = instantiate_class(self.optim1, scheduler)
 
-    cli_args = ["fit", f"--trainer.default_root_dir={tmpdir}", "--trainer.max_epochs=1", "--lr_scheduler.gamma=0.2"]
+    cli_args = ["fit", f"--trainer.default_root_dir={tmpdir}", "--trainer.max_epochs=1"]
     if use_registries:
         cli_args += [
             "--optim1",
@@ -751,6 +760,7 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_registries, 
         ]
     else:
         cli_args += ["--optim2.class_path=torch.optim.SGD", "--optim2.init_args.lr=0.01"]
+    cli_args += ["--lr_scheduler.gamma=0.2"]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(TestModel)
@@ -910,7 +920,7 @@ def test_registries():
         pass
 
     @LOGGER_REGISTRY
-    class CustomLogger(LightningLoggerBase):
+    class CustomLogger(Logger):
         pass
 
     assert "SGD" in OPTIMIZER_REGISTRY.names
@@ -1205,7 +1215,7 @@ def test_optimizers_and_lr_schedulers_reload(tmpdir):
     # validate yaml
     yaml_config = out.getvalue()
     dict_config = yaml.safe_load(yaml_config)
-    assert dict_config["optimizer"]["class_path"] == "torch.optim.adam.Adam"
+    assert dict_config["optimizer"]["class_path"] == "torch.optim.Adam"
     assert dict_config["optimizer"]["init_args"]["lr"] == 0.1
     assert dict_config["lr_scheduler"]["class_path"] == "torch.optim.lr_scheduler.OneCycleLR"
 
@@ -1250,9 +1260,8 @@ def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload
         "--lr_scheduler.max_lr=1",
         "--opt1",
         "Adam",
+        "--opt2=ASGD",
         "--opt2.lr=0.1",
-        "--opt2",
-        "ASGD",
         "--lr_scheduler.anneal_strategy=linear",
         "--something",
         "a",
@@ -1268,8 +1277,8 @@ def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload
     # validate yaml
     yaml_config = out.getvalue()
     dict_config = yaml.safe_load(yaml_config)
-    assert dict_config["opt1"]["class_path"] == "torch.optim.adam.Adam"
-    assert dict_config["opt2"]["class_path"] == "torch.optim.asgd.ASGD"
+    assert dict_config["opt1"]["class_path"] == "torch.optim.Adam"
+    assert dict_config["opt2"]["class_path"] == "torch.optim.ASGD"
     assert dict_config["opt2"]["init_args"]["lr"] == 0.1
     assert dict_config["lr_scheduler"]["class_path"] == "torch.optim.lr_scheduler.OneCycleLR"
     assert dict_config["lr_scheduler"]["init_args"]["anneal_strategy"] == "linear"
@@ -1281,8 +1290,8 @@ def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload
     with mock.patch("sys.argv", base + [f"--config={yaml_config_file}"]):
         cli = TestLightningCLI(TestModel)
 
-    assert cli.model.opt1_config["class_path"] == "torch.optim.adam.Adam"
-    assert cli.model.opt2_config["class_path"] == "torch.optim.asgd.ASGD"
+    assert cli.model.opt1_config["class_path"] == "torch.optim.Adam"
+    assert cli.model.opt2_config["class_path"] == "torch.optim.ASGD"
     assert cli.model.opt2_config["init_args"]["lr"] == 0.1
     assert cli.model.sch_config["class_path"] == "torch.optim.lr_scheduler.OneCycleLR"
     assert cli.model.sch_config["init_args"]["anneal_strategy"] == "linear"

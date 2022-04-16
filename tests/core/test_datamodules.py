@@ -377,9 +377,9 @@ def test_dm_init_from_datasets_dataloaders(iterable):
     with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
         dm.train_dataloader()
         dl_mock.assert_called_once_with(train_ds, batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True)
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(MisconfigurationException):
         _ = dm.val_dataloader()
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(MisconfigurationException):
         _ = dm.test_dataloader()
 
     train_ds_sequence = [ds(), ds()]
@@ -392,9 +392,9 @@ def test_dm_init_from_datasets_dataloaders(iterable):
                 call(train_ds_sequence[1], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True),
             ]
         )
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(MisconfigurationException):
         _ = dm.val_dataloader()
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(MisconfigurationException):
         _ = dm.test_dataloader()
 
     valid_ds = ds()
@@ -405,7 +405,7 @@ def test_dm_init_from_datasets_dataloaders(iterable):
         dl_mock.assert_called_with(valid_ds, batch_size=2, shuffle=False, num_workers=0, pin_memory=True)
         dm.test_dataloader()
         dl_mock.assert_called_with(test_ds, batch_size=2, shuffle=False, num_workers=0, pin_memory=True)
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(MisconfigurationException):
         _ = dm.train_dataloader()
 
     valid_dss = [ds(), ds()]
@@ -487,14 +487,3 @@ def test_define_as_dataclass():
     assert hasattr(BoringDataModule2, "__repr__")
     assert BoringDataModule2(batch_size=32).prepare_data() is None
     assert BoringDataModule2(batch_size=32) == BoringDataModule2(batch_size=32)
-
-
-def test_inconsistent_prepare_data_per_node(tmpdir):
-    with pytest.raises(MisconfigurationException, match="Inconsistent settings found for `prepare_data_per_node`."):
-        model = BoringModel()
-        dm = BoringDataModule()
-        with pytest.deprecated_call(match="prepare_data_per_node` with the trainer flag is deprecated"):
-            trainer = Trainer(prepare_data_per_node=False)
-        trainer.model = model
-        trainer.datamodule = dm
-        trainer._data_connector.prepare_data()
