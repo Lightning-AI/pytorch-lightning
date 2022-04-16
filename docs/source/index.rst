@@ -86,8 +86,8 @@ Or read the `advanced install guide <starter/installation.html>`_
 
    <hr class="docutils" style="margin: 50px 0 50px 0">
 
-Getting Started
----------------
+Get Started
+-----------
 
 .. raw:: html
 
@@ -167,7 +167,7 @@ Current Lightning Users
 .. toctree::
    :maxdepth: 1
    :name: start
-   :caption: Getting Started
+   :caption: Get Started
 
    starter/introduction
 
@@ -259,6 +259,7 @@ Current Lightning Users
    TPU <accelerators/tpu>
    Metrics <https://torchmetrics.readthedocs.io/en/stable/>
    Model <build_model/build_model.rst>
+   ModelCheckpoint <common/checkpointing>
    Model Parallel <advanced/model_parallel>
    Plugins <extensions/plugins.html>
    Progress bar <common/progress_bar>
