@@ -56,217 +56,38 @@
     mock_argv.stop()
 
 
-####################################
-Eliminate config boilerplate (basic)
-####################################
+#######################################
+Eliminate config boilerplate (Advanced)
+#######################################
 
----
 
-***************************
-What is config boilerplate?
-***************************
-As Lighnting projects grow in complexity it becomes desirable to enable full customizability from the commandline (CLI) like so:
+********************
+What is a yaml file?
+********************
+
+----
+
+**********************************************
+Automatically write a config yaml from the CLI
+**********************************************
+If you would like to have a copy of the configuration that produced this model, you can save a *yaml* file from the *--print_config* outputs:
 
 .. code:: bash
 
-    # Mix and match anything
-    $ python trainer.py fit --model=GAN --model.feat_dim=64 --data=MNIST
-    $ python trainer.py fit --model=Transformer --model.feat_dim=64 --data=MNIST
-
-This is what the Lightning CLI enables. Otherwise, this kind of configuration requires a significant amount of boilerplate that often looks like this:
-
-.. code:: python
-
-    # choose model    
-    if args.model == 'gan':
-        model = GAN(args.feat_dim)
-    elif args.model == 'transformer':
-        model = Transformer(args.feat_dim)
-    ...
-
-    # choose datamodule
-    if args.data == 'MNIST':
-        datamodule = MNIST()
-    elif args.data == 'imagenet':
-        datamodule = Imagenet()
-    ...
-
-    # mix them!
-    trainer.fit(model, datamodule)
-
----
-
-**************************
-Connect a model to the CLI
-**************************
-First, install the extras to enable this feature:
-
-.. code: bash
-
-    pip install pytorch-lightning[extra]
-
-if the above fails, only install jsonargparse:
-
-.. code: bash
-
-    pip install -U jsonargparse[signatures]
+    python main.py fit --model.learning_rate 0.001 --print_config > config.yaml 
 
 
-The simplest way to control a model with the CLI is to wrap it in the LightningCLI object:
+You can then use that config to run the same exact model at a later time:
 
-.. code: python
+.. code:: bash
 
-    # main.py
+    python main.py fit --config config.yaml
 
-    from pytorch_lightning.utilities.cli import LightningCLI
-    from pytorch_lightning import LightningModule
+----
 
-
-    class MyModel(LightningModule):
-        def __init__(
-            self,
-            encoder_layers: int = 12,
-            batch_size: int = 8,
-        ):
-            pass
-
-    model = MyModel()
-    cli = LightningCLI(model)
-
-    # don't call fit!!
-
-
-
-Another source of boilerplate code that Lightning can help to reduce is in the implementation of command line tools.
-Furthermore, it provides a standardized way to configure experiments using a single file that includes settings for
-:class:`~pytorch_lightning.trainer.trainer.Trainer` as well as the user extended
-:class:`~pytorch_lightning.core.lightning.LightningModule` and
-:class:`~pytorch_lightning.core.datamodule.LightningDataModule` classes. The full configuration is automatically saved
-in the log directory. This has the benefit of greatly simplifying the reproducibility of experiments.
-
-The main requirement for user extended classes to be made configurable is that all relevant init arguments must have
-type hints. This is not a very demanding requirement since it is good practice to do anyway. As a bonus if the arguments
-are described in the docstrings, then the help of the command line tool will display them.
-
-.. warning:: ``LightningCLI`` is in beta and subject to change.
-
-----------
-
-
-LightningCLI
-^^^^^^^^^^^^
-
-The implementation of training command line tools is done via the :class:`~pytorch_lightning.utilities.cli.LightningCLI`
-class. The minimal installation of pytorch-lightning does not include this support. To enable it, either install
-Lightning as :code:`pytorch-lightning[extra]` or install the package :code:`pip install -U jsonargparse[signatures]`.
-
-The case in which the user's :class:`~pytorch_lightning.core.lightning.LightningModule` class implements all required
-:code:`*_dataloader` methods, a :code:`trainer.py` tool can be as simple as:
-
-.. testcode::
-
-    cli = LightningCLI(MyModel)
-
-The help of the tool describing all configurable options and default values can be shown by running :code:`python
-trainer.py --help`. Default options can be changed by providing individual command line arguments. However, it is better
-practice to create a configuration file and provide this to the tool. A way to do this would be:
-
-.. code-block:: bash
-
-    # Dump default configuration to have as reference
-    python trainer.py fit --print_config > config.yaml
-    # Modify the config to your liking - you can remove all default arguments
-    nano config.yaml
-    # Fit your model using the configuration
-    python trainer.py fit --config config.yaml
-
-The instantiation of the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class takes care of parsing command line
-and config file options, instantiating the classes, setting up a callback to save the config in the log directory and
-finally running the trainer. The resulting object :code:`cli` can be used for example to get the instance of the model,
-(:code:`cli.model`).
-
-After multiple experiments with different configurations, each one will have in its respective log directory a
-:code:`config.yaml` file. This file can be used for reference to know in detail all the settings that were used for each
-particular experiment, and also could be used to trivially reproduce a training, e.g.:
-
-.. code-block:: bash
-
-    python trainer.py fit --config lightning_logs/version_7/config.yaml
-
-If a separate :class:`~pytorch_lightning.core.datamodule.LightningDataModule` class is required, the trainer tool just
-needs a small modification as follows:
-
-.. testcode::
-
-    cli = LightningCLI(MyModel, MyDataModule)
-
-The start of a possible implementation of :class:`MyModel` including the recommended argument descriptions in the
-docstring could be the one below. Note that by using type hints and docstrings there is no need to duplicate this
-information to define its configurable arguments.
-
-.. testcode:: mymodel
-
-    class MyModel(LightningModule):
-        def __init__(self, encoder_layers: int = 12, decoder_layers: List[int] = [2, 4]):
-            """Example encoder-decoder model
-
-            Args:
-                encoder_layers: Number of layers for the encoder
-                decoder_layers: Number of layers for each decoder block
-            """
-            super().__init__()
-            self.save_hyperparameters()
-
-With this model class, the help of the trainer tool would look as follows:
-
-.. code-block:: bash
-
-    $ python trainer.py fit --help
-    usage: trainer.py [-h] [--config CONFIG] [--print_config [={comments,skip_null}+]] ...
-
-    optional arguments:
-      -h, --help            Show this help message and exit.
-      --config CONFIG       Path to a configuration file in json or yaml format.
-      --print_config [={comments,skip_null}+]
-                            Print configuration and exit.
-      --seed_everything SEED_EVERYTHING
-                            Set to an int to run seed_everything with this value before classes instantiation
-                            (type: Optional[int], default: null)
-
-    Customize every aspect of training via flags:
-      ...
-      --trainer.max_epochs MAX_EPOCHS
-                            Stop training once this number of epochs is reached. (type: Optional[int], default: null)
-      --trainer.min_epochs MIN_EPOCHS
-                            Force training for at least these many epochs (type: Optional[int], default: null)
-      ...
-
-    Example encoder-decoder model:
-      --model.encoder_layers ENCODER_LAYERS
-                            Number of layers for the encoder (type: int, default: 12)
-      --model.decoder_layers DECODER_LAYERS
-                            Number of layers for each decoder block (type: List[int], default: [2, 4])
-
-The default configuration that option :code:`--print_config` gives is in yaml format and for the example above would
-look as follows:
-
-.. code-block:: bash
-
-    $ python trainer.py fit --print_config
-    model:
-      decoder_layers:
-      - 2
-      - 4
-      encoder_layers: 12
-    trainer:
-      accelerator: null
-      accumulate_grad_batches: 1
-      amp_backend: native
-      amp_level: O2
-      ...
-
-Note that there is a section for each class (model and trainer) including all the init parameters of the class. This
-grouping is also used in the formatting of the help shown previously.
+******************
+Compose yaml files
+******************
 
 
 Changing subcommands

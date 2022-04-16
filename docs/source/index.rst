@@ -199,8 +199,8 @@ Current Lightning Users
 
 .. toctree::
    :maxdepth: 1
-   :name: Concepts Glossary
-   :caption: Concepts Glossary
+   :name: Superpowers
+   :caption: Superpowers
 
    common/evaluation
    build_model/build_model.rst
