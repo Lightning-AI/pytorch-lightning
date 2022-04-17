@@ -406,8 +406,10 @@ def test_lightning_module_configure_gradient_clipping_different_argument_values(
 @RunIf(min_torch="1.10", skip_windows=True)
 @pytest.mark.skipif(not torch.distributed.is_available(), reason="Requires torch.distributed to be available")
 def test_lightning_module_state_dict_hook_trainer_weakref(monkeypatch):
-    monkeypatch.setattr(BoringModel, "_register_state_dict_hook", Mock())
-    monkeypatch.setattr(BoringModel, "_register_load_state_dict_pre_hook", Mock())
+    from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook
+
+    monkeypatch.setattr(torch.distributed._sharded_tensor, "pre_load_state_dict_hook", Mock(wraps=pre_load_state_dict_hook))
+    monkeypatch.setattr(torch.distributed._sharded_tensor, "state_dict_hook", Mock(wraps=state_dict_hook))
 
     def set_trainer(m):
         m.trainer = weakref.proxy(Trainer())
@@ -421,5 +423,6 @@ def test_lightning_module_state_dict_hook_trainer_weakref(monkeypatch):
     assert weakref.getweakrefcount(model.trainer) == 0
 
     model.load_state_dict(model.state_dict())
-    model._register_state_dict_hook.assert_called_once()
-    model._register_load_state_dict_pre_hook.assert_called_once()
+
+    torch.distributed._sharded_tensor.state_dict_hook.assert_called_once()
+    torch.distributed._sharded_tensor.pre_load_state_dict_hook.assert_called_once()
