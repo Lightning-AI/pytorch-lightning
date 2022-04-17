@@ -151,7 +151,7 @@ The simplest way to control a model with the CLI is to wrap it in the LightningC
     cli = LightningCLI(DemoModel, demos.BoringDataModule)
     # don't call fit!!
 
-Now your model can be managed via the CLI. Type:
+Now your model can be managed via the CLI. To see the available commands type:
 
 .. code:: bash
 
@@ -188,7 +188,7 @@ the message tells us that we have a few available subcommands:
 
 .. code:: bash 
 
-    $ python main.py [subcommand]
+    python main.py [subcommand]
 
 which you can use depending on your use case:
 
@@ -219,7 +219,8 @@ View all available options with the ``--help`` command:
                                 [--seed_everything SEED_EVERYTHING] [--trainer CONFIG]
                                 ...
                                 [--ckpt_path CKPT_PATH]
-
+        --trainer.logger LOGGER
+    
     optional arguments:
     <class '__main__.DemoModel'>:
         --model.out_dim OUT_DIM
@@ -239,7 +240,7 @@ With the Lightning CLI enabled, you can now change the parameters without touchi
     python main.py fit --model.out_dim 30
 
     # change the out dimensions also 
-    python main.py fit --model.out_dim 20 --model.learning_rate 0.001 
+    python main.py fit --model.out_dim 10 --model.learning_rate 0.1
     
-    # change trainer and data too 
-    python main.py fit --model.out_dim 20 --model.learning_rate 0.001 --data.data_dir '~/' --trainer.logger False
+    # change trainer and data arguments too
+    python main.py fit --model.out_dim 2 --model.learning_rate 0.1 --data.data_dir '~/' --trainer.logger False
