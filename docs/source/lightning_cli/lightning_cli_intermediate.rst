@@ -183,56 +183,63 @@ Which prints out:
         predict             Run inference on your data.
         tune                Runs routines to tune hyperparameters before training.
 
+
+the message tells us that we have a few available subcommands:
+
+.. code:: bash 
+
+    $ python main.py [subcommand]
+
+which you can use depending on your use case:
+
+.. code:: bash 
+
+    $ python main.py fit
+    $ python main.py validate
+    $ python main.py test
+    $ python main.py predict
+    $ python main.py tune
+
 ----
 
 **************************
 Train a model with the CLI
 **************************
-To train the model, use the ``fit`` command:
+To run the full training routine (train, val, test), use the subcommand ``fit``:
 
 .. code:: bash
 
     python main.py fit
+
+View all available options with the ``--help`` command:
+
+.. code:: bash 
+
+    usage: main.py [options] fit [-h] [-c CONFIG]
+                                [--seed_everything SEED_EVERYTHING] [--trainer CONFIG]
+                                ...
+                                [--ckpt_path CKPT_PATH]
+
+    optional arguments:
+    <class '__main__.DemoModel'>:
+        --model.out_dim OUT_DIM
+                                (type: int, default: 10)
+        --model.learning_rate LEARNING_RATE
+                                (type: float, default: 0.02)
+    <class 'pytorch_lightning.demos.boring_classes.BoringDataModule'>:
+    --data CONFIG         Path to a configuration file.
+    --data.data_dir DATA_DIR
+                            (type: str, default: ./)
 
 With the Lightning CLI enabled, you can now change the parameters without touching your code:
 
 .. code:: bash
 
     # change the learning_rate
-    python main.py fit --model.learning_rate 0.001
+    python main.py fit --model.out_dim 30
 
     # change the out dimensions also 
-    python main.py fit --model.learning_rate 0.001 --model.out_dim 20
-
-----
-
-************************************
-Discover the available CLI arguments
-************************************
-Notice that in the CLI, you can now use the ``[class].[property]`` syntax. To see all available commandline argument options use ``--print_config``:
-
-.. code:: bash
-
-    python main.py fit --print_config
-
-This command prints ALL possible commandline arguments:
-
-.. code:: bash
-
-    seed_everything: null
-    trainer:
-        logger: true
-        ...
-        terminate_on_nan: null
-    model:
-        out_dim: 10
-        learning_rate: 0.02
-    data:
-        data_dir: ./
-    ckpt_path: null
-
-This means you can now do something like this:
-
-.. code:: bash
-
-    python main.py fit --model.out_dim 32 --trainer.logger False --data.data_dir '~/'
+    python main.py fit --model.out_dim 20 --model.learning_rate 0.001 
+    
+    # change trainer and data too 
+    python main.py fit --model.out_dim 20 --model.learning_rate 0.001 --data.data_dir '~/' --trainer.logger False

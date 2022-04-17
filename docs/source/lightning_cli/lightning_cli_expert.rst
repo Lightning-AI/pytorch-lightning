@@ -159,3 +159,67 @@ Create your own command
             limit_test_batches: 10
 
 python main.py --config a.yaml carlos
+
+
+
+************************
+Connect two config files
+************************
+
+
+Argument linking
+^^^^^^^^^^^^^^^^
+
+Another case in which it might be desired to extend :class:`~pytorch_lightning.utilities.cli.LightningCLI` is that the
+model and data module depend on a common parameter. For example in some cases both classes require to know the
+:code:`batch_size`. It is a burden and error prone giving the same value twice in a config file. To avoid this the
+parser can be configured so that a value is only given once and then propagated accordingly. With a tool implemented
+like shown below, the :code:`batch_size` only has to be provided in the :code:`data` section of the config.
+
+.. testcode::
+
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments("data.batch_size", "model.batch_size")
+
+
+    cli = MyLightningCLI(MyModel, MyDataModule)
+
+The linking of arguments is observed in the help of the tool, which for this example would look like:
+
+.. code-block:: bash
+
+    $ python trainer.py fit --help
+      ...
+        --data.batch_size BATCH_SIZE
+                              Number of samples in a batch (type: int, default: 8)
+
+      Linked arguments:
+        model.batch_size <-- data.batch_size
+                              Number of samples in a batch (type: int)
+
+Sometimes a parameter value is only available after class instantiation. An example could be that your model requires
+the number of classes to instantiate its fully connected layer (for a classification task) but the value is not
+available until the data module has been instantiated. The code below illustrates how to address this.
+
+.. testcode::
+
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments("data.num_classes", "model.num_classes", apply_on="instantiate")
+
+
+    cli = MyLightningCLI(MyClassModel, MyDataModule)
+
+Instantiation links are used to automatically determine the order of instantiation, in this case data first.
+
+.. tip::
+
+    The linking of arguments can be used for more complex cases. For example to derive a value via a function that takes
+    multiple settings as input. For more details have a look at the API of `link_arguments
+    <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.link_arguments>`_.
+
+
+The linking of arguments is intended for things that are meant to be non-configurable. This improves the CLI user
+experience since it avoids the need for providing more parameters. A related concept is
+variable interpolation which in contrast keeps things being configurable.

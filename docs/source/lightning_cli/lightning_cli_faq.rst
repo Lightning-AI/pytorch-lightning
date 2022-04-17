@@ -51,3 +51,13 @@ provided with an empty space or an equal sign, as :code:`--option value` or :cod
 are parsed from left to right, therefore if a setting appears multiple times the value most to the right will override
 the previous ones. If a class has an init parameter that is required (i.e. no default value), it is given as
 :code:`--option` which makes it explicit and more readable instead of relying on positional arguments.
+
+
+
+What is a subcommand?
+
+
+What is the CLI?
+
+
+What is the format of a CLI command?
