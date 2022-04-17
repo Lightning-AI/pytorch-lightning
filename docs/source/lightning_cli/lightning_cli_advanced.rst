@@ -1,238 +1,111 @@
 #######################################
 Eliminate config boilerplate (Advanced)
 #######################################
-**Audience:** Users who have multiple models and datasets per project.
+**Audience:** Users looking to modularize their code for a professional project.
 
 **Pre-reqs:** You must have read :doc:`(Control it all from the CLI) <lightning_cli_intermediate>`.
 
 ----
 
-****************************************
-Why do I want to mix models and datasets
-****************************************
-Lightning projects usually begin with one model and one dataset. As the project grows in complexity and you introduce more models and more datasets, it becomes desirable
-to mix any model with any dataset directly from the commandline without changing your code.
+***************************
+What is a yaml config file?
+***************************
+A yaml is a standard configuration file that describes parameters for sections of a program. It is a common tool in engineering, and it has recently started to gain popularity in machine learning.
 
+.. code:: yaml
 
-.. code:: bash
-
-    # Mix and match anything
-    $ python main.py fit --model=GAN --data=MNIST
-    $ python main.py fit --model=Transformer --data=MNIST
-
-This is what the Lightning CLI enables. Otherwise, this kind of configuration requires a significant amount of boilerplate that often looks like this:
-
-.. code:: python
-
-    # choose model    
-    if args.model == 'gan':
-        model = GAN(args.feat_dim)
-    elif args.model == 'transformer':
-        model = Transformer(args.feat_dim)
-    ...
-
-    # choose datamodule
-    if args.data == 'MNIST':
-        datamodule = MNIST()
-    elif args.data == 'imagenet':
-        datamodule = Imagenet()
-    ...
-
-    # mix them!
-    trainer.fit(model, datamodule)
+    # file.yaml
+    car:
+        max_speed:100
+        max_passengers:2
+    plane:
+        fuel_capacity: 50
+    class_3:
+        option_1: 'x'
+        option_2: 'y'
 
 ----
 
-*************************
-Register LightningModules
-*************************
-Connect models across different files with the ``MODEL_REGISTRY`` to make them available from the CLI:
 
-.. code:: python
-
-    # main.py
-
-    from pytorch_lightning import demos
-    from pytorch_lightning.utilities import cli as pl_cli
-
-    @pl_cli.MODEL_REGISTRY
-    class Model1(demos.DemoModel):
-        def configure_optimizers(self):
-            print('⚡','using Model1', '⚡')
-            return super().configure_optimizers()
-
-    @pl_cli.MODEL_REGISTRY
-    class Model2(demos.DemoModel):
-        def configure_optimizers(self):
-            print('⚡','using Model2', '⚡')
-            return super().configure_optimizers()
-
-    cli = pl_cli.LightningCLI(datamodule_class = demos.BoringDataModule)
-
-Now you can choose between any model from the CLI:
+*********************
+Print the config used
+*********************
+Before or after you run a training routine, you can print the full training spec in yaml format using ``--print_config``:
 
 .. code:: bash
 
-    # use Model1
-    python main.py fit --model Model1
+    python main.py fit --print_config
 
-    # use Model2
-    python main.py fit --model Model2
+which generates the following config:
+
+.. code:: bash
+
+    seed_everything: null
+    trainer:
+        logger: true
+        ...
+        terminate_on_nan: null
+    model:
+        out_dim: 10
+        learning_rate: 0.02
+    data:
+        data_dir: ./
+    ckpt_path: null
 
 ----
 
-********************
-Register DataModules
-********************
-Connect DataModules across different files with the ``DATAMODULE_REGISTRY`` to make them available from the CLI:
-
-.. code:: python
-
-    # main.py
-    import torch
-    from pytorch_lightning.utilities import cli as pl_cli
-    from pytorch_lightning import demos
-
-    @pl_cli.DATAMODULE_REGISTRY
-    class FakeDataset1(demos.BoringDataModule):
-        def train_dataloader(self):
-            print('⚡','using FakeDataset1', '⚡')
-            return torch.utils.data.DataLoader(self.random_train)
-
-    @pl_cli.DATAMODULE_REGISTRY
-    class FakeDataset2(demos.BoringDataModule):
-        def train_dataloader(self):
-            print('⚡','using FakeDataset2', '⚡')
-            return torch.utils.data.DataLoader(self.random_train)
-
-    cli = pl_cli.LightningCLI(demos.DemoModel)
-
-Now you can choose between any dataset at runtime:
+********************************
+Write a config yaml from the CLI
+********************************
+To have a copy of the configuration that produced this model, save a *yaml* file from the *--print_config* outputs:
 
 .. code:: bash
 
-    # use Model1
-    python main.py fit --data FakeDataset1
-
-    # use Model2
-    python main.py fit --data FakeDataset2
-
-----
-
-*******************
-Register optimizers
-*******************
-Connect optimizers with the ``OPTIMIZER_REGISTRY`` to make them available from the CLI:
-
-.. code:: python
-
-    # main.py
-    import torch 
-    from pytorch_lightning.utilities import cli as pl_cli
-    from pytorch_lightning import demos
-
-    @pl_cli.OPTIMIZER_REGISTRY
-    class LitAdam(torch.optim.Adam):
-        def step(self, closure):
-            print('⚡', 'using LitAdam', '⚡')
-            super().step(closure)
-    
-    @pl_cli.OPTIMIZER_REGISTRY
-    class FancyAdam(torch.optim.Adam):
-        def step(self, closure):
-            print('⚡', 'using FancyAdam', '⚡')
-            super().step(closure)
-
-    cli = pl_cli.LightningCLI(demos.DemoModel, demos.BoringDataModule)
-
-Now you can choose between any optimizer at runtime:
-
-.. code:: bash
-
-    # use LitAdam
-    python main.py fit --optimizer LitAdam
-
-    # use FancyAdam
-    python main.py fit --optimizer FancyAdam
-
-Bonus: If you need only 1 optimizer, the Lightning CLI already works out of the box with any Optimizer from ``torch.optim.optim``:
-
-.. code:: bash 
-    
-    python main.py fit --optimizer AdamW
-
-If the optimizer you want needs other arguments, add them via the CLI (no need to change your code)!
-
-.. code:: bash 
-    
-    python main.py fit --optimizer SGD --optimizer.lr=0.01
+    python main.py fit --model.learning_rate 0.001 --print_config > config.yaml 
 
 ----
 
 **********************
-Register LR schedulers
+Run from a single yaml
 **********************
-Connect learning rate schedulers with the ``LR_SCHEDULER_REGISTRY`` to make them available from the CLI:
-
-.. code:: python 
-
-    # main.py
-    import torch
-    from pytorch_lightning.utilities import cli as pl_cli
-    from pytorch_lightning import demos
-
-    @pl_cli.LR_SCHEDULER_REGISTRY
-    class LitLRScheduler(torch.optim.lr_scheduler.CosineAnnealingLR):
-        def step(self):
-            print('⚡', 'using LitLRScheduler', '⚡')
-            super().step()
-
-    cli = pl_cli.LightningCLI(demos.DemoModel, demos.BoringDataModule)
-
-Now you can choose between any learning rate scheduler at runtime:
+To run from a yaml, pass a yaml produced with ``--print_config`` to the ``--config`` argument:
 
 .. code:: bash
 
-    # LitLRScheduler
-    python main.py fit --lr_scheduler LitLRScheduler 
+    python main.py fit --config config.yaml
 
+when using a yaml to run, you can still pass in inline arguments
 
-Bonus: If you need only 1 LRScheduler, the Lightning CLI already works out of the box with any LRScheduler from ``torch.optim``:
+.. code:: bash
 
-.. code:: bash 
-    
-    python main.py fit --lr_scheduler CosineAnnealingLR 
-    python main.py fit --lr_scheduler LinearLR
-    ...
-
-If the scheduler you want needs other arguments, add them via the CLI (no need to change your code)!
-
-.. code:: bash 
-    
-    python main.py fit --lr_scheduler=ReduceLROnPlateau --lr_scheduler.monitor=epoch
+    python main.py fit --config config.yaml --trainer.max_epochs 100
 
 ----
 
-*************************
-Register from any package
-*************************
-A shortcut to register many classes from a package is to use the ``register_classes`` method. Here we register all optimizers from the ``torch.optim`` library:
+******************
+Compose yaml files
+******************
+For production or complex research projects it's advisable to have each object in its own config file. To compose all the configs, pass them all inline:
 
-.. code:: python
+.. code-block:: bash
 
-    import torch
-    from pytorch_lightning.utilities import cli as pl_cli
-    from pytorch_lightning import demos
+    $ python trainer.py fit --config trainer.yaml --config datamodules.yaml --config models.yaml ...
 
-    # add all PyTorch optimizers!
-    pl_cli.OPTIMIZER_REGISTRY.register_classes(module=torch.optim, base_cls=torch.optim.Optimizer)
+The configs will be parsed sequentially. Let's say we have two configs with the same args:
 
-    cli = pl_cli.LightningCLI(demos.DemoModel, demos.BoringDataModule)
+.. code:: yaml
 
-Now use any of the optimizers in the ``torch.optim`` library:
+    # trainer.yaml
+    trainer:
+        num_epochs: 10 
+    
 
-.. code:: bash
+    # trainer_2.yaml
+    trainer:
+        num_epochs: 20 
 
-    python main.py fit --optimizer AdamW
+the ones from the last config will be used (num_epochs = 20) in this case:
 
-This method is supported by all the registry classes.
+.. code-block:: bash
+
+    $ python trainer.py fit --config trainer.yaml --config trainer_2.yaml

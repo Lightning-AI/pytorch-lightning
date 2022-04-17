@@ -61,7 +61,7 @@ Eliminate config boilerplate (Intermediate)
 ###########################################
 **Audience:** Users who want advanced modularity via the commandline interface (CLI).
 
-**Pre-reqs:** You must already understand how to us a commandline and LightningDataModules. 
+**Pre-reqs:** You must already understand how to use a commandline and :doc:`LightningDataModule <../datamodule/datamodules>`. 
 
 ----
 

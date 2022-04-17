@@ -1,111 +1,165 @@
 #######################################
 Eliminate config boilerplate (Advanced)
 #######################################
-**Audience:** Users looking to modularize their code for a professional project.
-
-**Pre-reqs:** Make sure you have read the :doc:`Eliminate config boilerplate (intermediate) <lightning_cli_intermediate>`_.
 
 ----
 
-***************************
-What is a yaml config file?
-***************************
-A yaml is a standard configuration file that describes parameters for sections of a program. It is a common tool in engineering, and it has recently started to gain popularity in machine learning.
-
-.. code:: yaml
-
-    # file.yaml
-    car:
-        max_speed:100
-        max_passengers:2
-    plane:
-        fuel_capacity: 50
-    class_3:
-        option_1: 'x'
-        option_2: 'y'
-
-----
-
-
-*********************
-Print the config used
-*********************
-Before or after you run a training routine, you can print the full training spec in yaml format using ``--print_config``:
-
-.. code:: bash
-
-    python main.py fit --print_config
-
-which generates the following config:
-
-.. code:: bash
-
-    seed_everything: null
-    trainer:
-        logger: true
-        ...
-        terminate_on_nan: null
-    model:
-        out_dim: 10
-        learning_rate: 0.02
-    data:
-        data_dir: ./
-    ckpt_path: null
-
-----
-
-********************************
-Write a config yaml from the CLI
-********************************
-To have a copy of the configuration that produced this model, save a *yaml* file from the *--print_config* outputs:
-
-.. code:: bash
-
-    python main.py fit --model.learning_rate 0.001 --print_config > config.yaml 
-
-----
-
-**********************
-Run from a single yaml
-**********************
-To run from a yaml, pass a yaml produced with ``--print_config`` to the ``--config`` argument:
-
-.. code:: bash
-
-    python main.py fit --config config.yaml
-
-when using a yaml to run, you can still pass in inline arguments
-
-.. code:: bash
-
-    python main.py fit --config config.yaml --trainer.max_epochs 100
-
-----
-
-******************
-Compose yaml files
-******************
-For production or complex research projects it's advisable to have each object in its own config file. To compose all the configs, pass them all inline:
+******************************
+Customize arguments by command
+******************************
+To customize arguments by subcommand, pass the config *before* the subcommand:
 
 .. code-block:: bash
 
-    $ python trainer.py fit --config trainer.yaml --config datamodules.yaml --config models.yaml ...
+    $ python main.py [before] [subcommand] [after]
+    $ python main.py  ...         fit       ...
 
-The configs will be parsed sequentially. Let's say we have two configs with the same args:
+For example, here we set the Trainer argument [max_steps = 100] for the full training routine and [max_steps = 10] for testing:
 
-.. code:: yaml
+.. code-block:: bash
 
-    # trainer.yaml
-    trainer:
-        num_epochs: 10 
+    # config1.yaml
+    fit:
+        trainer:
+            max_steps: 100
+    test:
+        trainer:
+            max_epochs: 10
+
+now you can toggle this behavior by subcommand:
+
+.. code-block:: bash
+
+    # full routine with max_steps = 100
+    $ python main.py --config config1.yaml fit
     
+    # test only with max_epochs = 10
+    $ python main.py --config config1.yaml test
 
-    # trainer_2.yaml
-    trainer:
-        num_epochs: 20 
+----
 
-the ones from the last config will be used (num_epochs = 20) in this case:
+*********************
+Use groups of options
+*********************
+Groups of options can also be given as independent config files:
 
 .. code-block:: bash
 
-    $ python trainer.py fit --config trainer.yaml --config trainer_2.yaml
+    $ python trainer.py fit --trainer trainer.yaml --model model.yaml --data data.yaml [...]
+
+----
+
+***************************
+Run from cloud yaml configs
+***************************
+For certain enterprise workloads, Lightning CLI supports running from hosted configs:
+
+.. code-block:: bash
+
+    $ python trainer.py [subcommand] --config s3://bucket/config.yaml
+
+For more options, refer to :doc:`Remote filesystems <common/remote_fs>`_.
+
+----
+
+**************************************
+Use a config via environment variables
+**************************************
+For certain CI/CD systems, it's useful to pass in config files as environment variables:
+
+.. code-block:: bash
+
+    $ python trainer.py fit --trainer "$TRAINER_CONFIG" --model "$MODEL_CONFIG" [...]
+
+----
+
+***************************************
+Run from environment variables directly
+***************************************
+The Lightning CLI can convert every possible CLI flag into an environment variable. To enable this, set the *env_parse* argument:
+
+.. code:: python 
+
+    LightningCLI(env_parse=True)
+
+now use the ``--help`` CLI flag with any subcommand:
+
+.. code:: bash
+
+    $ python main.py fit --help 
+
+which will show you ALL possible environment variables you can now set:
+
+.. code:: bash
+
+    usage: main.py [options] fit [-h] [-c CONFIG]
+                                [--trainer.max_epochs MAX_EPOCHS] [--trainer.min_epochs MIN_EPOCHS]
+                                [--trainer.max_steps MAX_STEPS] [--trainer.min_steps MIN_STEPS]
+                                ...
+                                [--ckpt_path CKPT_PATH]
+
+    optional arguments:
+    ...
+    --model CONFIG        Path to a configuration file.
+    --model.out_dim OUT_DIM
+                            (type: int, default: 10)
+    --model.learning_rate LEARNING_RATE
+                            (type: float, default: 0.02)
+
+now you can customize the behavior via environment variables:
+
+.. code:: bash
+
+    # set the options via env vars
+    $ export LEARNING_RATE=0.01
+    $ export OUT_DIM=5
+    
+    $ python main.py fit 
+
+----
+
+************************
+Set default config files
+************************
+To set a path to a config file of defaults, use the ``default_config_files`` argument:
+
+.. testcode::
+
+    cli = LightningCLI(MyModel, MyDataModule, parser_kwargs={"default_config_files": ["my_cli_defaults.yaml"]})
+
+or if you want defaults per subcommand:
+
+.. testcode::
+
+    cli = LightningCLI(MyModel, MyDataModule, parser_kwargs={"fit": {"default_config_files": ["my_fit_defaults.yaml"]}})
+
+For more configuration options, refer to the `ArgumentParser API
+<https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.__init__>`_ documentation.
+
+----
+
+*****************************
+Enable variable interpolation
+*****************************
+In certain cases where multiple configs need to share variables, consider using variable interpolation. Variable interpolation
+allows you to add variables to your yaml configs like so:
+
+.. code-block:: yaml
+
+    model:
+      encoder_layers: 12
+      decoder_layers:
+      - ${model.encoder_layers}
+      - 4
+
+To enable variable interpolation, first install omegaconf:
+
+.. code:: bash 
+
+    pip install omegaconf
+
+Once this is installed, the Lightning CLI will automatically handle variables in yaml files:
+
+.. code bash:
+
+    python main.py --model.encoder_layers=12
