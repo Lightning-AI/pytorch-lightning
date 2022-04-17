@@ -144,6 +144,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Support `auto_select_gpus` with the accelerator and devices API ([#12608](https://github.com/PyTorchLightning/pytorch-lightning/pull/12608))
 
 
+- Fixed an issue with `LightningModule.{load_}state_dict()` raising a `ReferenceError` when the trainer weak reference count is zero ([#12785](https://github.com/PyTorchLightning/pytorch-lightning/pull/12785))
+
+
 ## [1.6.0] - 2022-03-29
 
 ### Added
