@@ -3,7 +3,7 @@ Eliminate config boilerplate (Advanced)
 #######################################
 **Audience:** Users who have multiple models and datasets per project.
 
-**Pre-reqs:** You must have read :doc:`1: Control it all from the CLI <lightning_cli_intermediate>`.
+**Pre-reqs:** You must have read :doc:`(Control it all from the CLI) <lightning_cli_intermediate>`.
 
 ----
 
@@ -235,4 +235,4 @@ Now use any of the optimizers in the ``torch.optim`` library:
 
     python main.py fit --optimizer AdamW
 
-This method is supported by all the registry classes
+This method is supported by all the registry classes.
