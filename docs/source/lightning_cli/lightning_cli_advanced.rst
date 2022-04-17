@@ -48,78 +48,26 @@ Register LightningModules
 *************************
 Connect models across different files with the ``MODEL_REGISTRY`` to make them available from the CLI:
 
-.. raw:: html
-
-   <div class="row" style='font-size: 12px'>
-      <div class='col-md-6'>
-
 .. code:: python
 
     # main.py
 
-    import torch 
+    from pytorch_lightning import demos
     from pytorch_lightning.utilities import cli as pl_cli
-    from pytorch_lightning import LightningModule, demos
 
     @pl_cli.MODEL_REGISTRY
-    class Model1(LightningModule):
-        def __init__(self):
-            super().__init__()
-            self.l1 = torch.nn.Linear(32, 10)
-            print('⚡','loaded model 1', '⚡')
-
-        def forward(self, x):
-            return torch.relu(self.l1(x.view(x.size(0), -1)))
-
-        def training_step(self, batch, batch_nb):
-            x = batch
-            x = self(x)
-            loss = x.sum()
-            return loss
-
+    class Model1(demos.DemoModel):
         def configure_optimizers(self):
-            return torch.optim.Adam(self.parameters(), lr=0.02)
+            print('⚡','using Model1', '⚡')
+            return super().configure_optimizers()
+
+    @pl_cli.MODEL_REGISTRY
+    class Model2(demos.DemoModel):
+        def configure_optimizers(self):
+            print('⚡','using Model2', '⚡')
+            return super().configure_optimizers()
 
     cli = pl_cli.LightningCLI(datamodule_class = demos.BoringDataModule)
-
-
-.. raw:: html
-
-      </div>
-      <div class='col-md-6'>
-
-
-.. code:: python
-
-    # model_2.py
-
-    import torch 
-    from pytorch_lightning.utilities import cli as pl_cli    
-    from pytorch_lightning import LightningModule
-
-    @pl_cli.MODEL_REGISTRY
-    class Model2(LightningModule):
-        def __init__(self):
-            super().__init__()
-            self.l1 = torch.nn.Linear(32, 10)
-            print('⚡','loaded model 2', '⚡')
-
-        def forward(self, x):
-            return torch.relu(self.l1(x.view(x.size(0), -1)))
-
-        def training_step(self, batch, batch_nb):
-            x = batch
-            x = self(x)
-            loss = x.sum()
-            return loss
-
-        def configure_optimizers(self):
-            return torch.optim.Adam(self.parameters(), lr=0.02)
-
-.. raw:: html
-
-      </div>
-   </div>
 
 Now you can choose between any model from the CLI:
 
@@ -138,15 +86,10 @@ Register DataModules
 ********************
 Connect DataModules across different files with the ``DATAMODULE_REGISTRY`` to make them available from the CLI:
 
-.. raw:: html
-
-   <div class="row" style='font-size: 12px'>
-      <div class='col-md-6'>
-
 .. code:: python
 
     # main.py
-    import torch 
+    import torch
     from pytorch_lightning.utilities import cli as pl_cli
     from pytorch_lightning import demos
 
@@ -156,32 +99,13 @@ Connect DataModules across different files with the ``DATAMODULE_REGISTRY`` to m
             print('⚡','using FakeDataset1', '⚡')
             return torch.utils.data.DataLoader(self.random_train)
 
-    cli = pl_cli.LightningCLI(demos.DemoModel)
-
-
-.. raw:: html
-
-      </div>
-      <div class='col-md-6'>
-
-
-.. code:: python
-
-    # data_2.py
-    import torch 
-    from pytorch_lightning.utilities import cli as pl_cli
-    from pytorch_lightning import demos
-
     @pl_cli.DATAMODULE_REGISTRY
     class FakeDataset2(demos.BoringDataModule):
         def train_dataloader(self):
             print('⚡','using FakeDataset2', '⚡')
             return torch.utils.data.DataLoader(self.random_train)
 
-.. raw:: html
-
-      </div>
-   </div>
+    cli = pl_cli.LightningCLI(demos.DemoModel)
 
 Now you can choose between any dataset at runtime:
 
