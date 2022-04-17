@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import gc
+import weakref
 from unittest.mock import Mock
 
 import pytest
@@ -399,3 +401,25 @@ def test_lightning_module_configure_gradient_clipping_different_argument_values(
         match=r"gradient_clip_algorithm='norm'\)` and have passed `clip_gradients\(gradient_clip_algorithm='foo'",
     ):
         trainer.fit(model)
+
+
+@RunIf(min_torch="1.10", skip_windows=True)
+@pytest.mark.skipif(not torch.distributed.is_available(), reason="Requires torch.distributed to be available")
+def test_lightning_module_state_dict_hook_trainer_weakref(monkeypatch):
+    monkeypatch.setattr(BoringModel, "_register_state_dict_hook", Mock())
+    monkeypatch.setattr(BoringModel, "_register_load_state_dict_pre_hook", Mock())
+
+    def set_trainer(m):
+        m.trainer = weakref.proxy(Trainer())
+
+    model = BoringModel()
+    assert model.trainer is None
+    set_trainer(model)
+    assert model.trainer is not None
+    gc.collect()  # force garbage collection on the trainer reference
+    assert model.trainer is not None
+    assert weakref.getweakrefcount(model.trainer) == 0
+
+    model.load_state_dict(model.state_dict())
+    model._register_state_dict_hook.assert_called_once()
+    model._register_load_state_dict_pre_hook.assert_called_once()
