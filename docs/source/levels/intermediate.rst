@@ -29,10 +29,10 @@ Learn to scale up your models and enable collaborative model development at acad
    :height: 150
 
 .. displayitem::
-   :header: Level 9: Modularize your datasets
+   :header: Level 9: Modularize your projects
    :description: Create DataModules to enable dataset reusability
    :col_css: col-md-6
-   :button_link: ../datamodule/datamodules.html
+   :button_link: intermediate_level_9.html   
    :height: 150
 
 
