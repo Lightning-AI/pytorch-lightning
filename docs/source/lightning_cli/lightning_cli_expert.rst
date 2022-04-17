@@ -92,3 +92,70 @@ To change the configuration of the :code:`EarlyStopping` in the config it would 
     store the best hyperparameters for a task after experimentation. To ease reproducibility the source code should be
     stable. It is better practice to store the best hyperparameters for a task in a configuration file independent from
     the source code.
+
+
+Class type defaults
+^^^^^^^^^^^^^^^^^^^
+
+The support for classes as type hints allows to try many possibilities with the same CLI. This is a useful feature, but
+it can make it tempting to use an instance of a class as a default. For example:
+
+.. testcode::
+
+    class MyMainModel(LightningModule):
+        def __init__(
+            self,
+            backbone: torch.nn.Module = MyModel(encoder_layers=24),  # BAD PRACTICE!
+        ):
+            super().__init__()
+            self.backbone = backbone
+
+Normally classes are mutable as it is in this case. The instance of :code:`MyModel` would be created the moment that the
+module that defines :code:`MyMainModel` is first imported. This means that the default of :code:`backbone` will be
+initialized before the CLI class runs :code:`seed_everything` making it non-reproducible. Furthermore, if
+:code:`MyMainModel` is used more than once in the same Python process and the :code:`backbone` parameter is not
+overridden, the same instance would be used in multiple places which very likely is not what the developer intended.
+Having an instance as default also makes it impossible to generate the complete config file since for arbitrary classes
+it is not known which arguments were used to instantiate it.
+
+A good solution to these problems is to not have a default or set the default to a special value (e.g. a
+string) which would be checked in the init and instantiated accordingly. If a class parameter has no default and the CLI
+is subclassed then a default can be set as follows:
+
+.. testcode::
+
+    default_backbone = {
+        "class_path": "import.path.of.MyModel",
+        "init_args": {
+            "encoder_layers": 24,
+        },
+    }
+
+
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.set_defaults({"model.backbone": default_backbone})
+
+A more compact version that avoids writing a dictionary would be:
+
+.. testcode::
+
+    from jsonargparse import lazy_instance
+
+
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.set_defaults({"model.backbone": lazy_instance(MyModel, encoder_layers=24)})
+
+***********************
+Create your own command
+***********************
+    carlos:
+        trainer:
+            limit_train_batches: 100
+            max_epochs: 10
+    test:
+        trainer:
+            limit_test_batches: 10
+
+python main.py --config a.yaml carlos

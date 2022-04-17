@@ -59,7 +59,7 @@
 ###########################################
 Eliminate config boilerplate (Intermediate)
 ###########################################
-**Audience:** Users who want advanced modularity via the commandline interface (CLI)
+**Audience:** Users who want advanced modularity via the commandline interface (CLI).
 
 **Pre-reqs:** You must already understand how to us a commandline and LightningDataModules. 
 
@@ -209,7 +209,7 @@ With the Lightning CLI enabled, you can now change the parameters without touchi
 ************************************
 Discover the available CLI arguments
 ************************************
-Notice that in the CLI, you can now use the `model.property` syntax. To see all available options use ``--print_config``:
+Notice that in the CLI, you can now use the ``[class].[property]`` syntax. To see all available commandline argument options use ``--print_config``:
 
 .. code:: bash
 

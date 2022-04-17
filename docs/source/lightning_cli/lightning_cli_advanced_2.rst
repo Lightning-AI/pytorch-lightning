@@ -3,63 +3,81 @@ Eliminate config boilerplate (Advanced)
 #######################################
 
 
-********************
-What is a yaml file?
-********************
+***************************
+What is a yaml config file?
+***************************
+A yaml is a standard configuration file that describes parameters for sections of a program. It is a common tool in engineering, and it has recently started to gain popularity in machine learning.
+
+.. code:: yaml
+
+    # file.yaml
+    car:
+        max_speed:100
+        max_passengers:2
+    plane:
+        fuel_capacity: 50
+    class_3:
+        option_1: 'x'
+        option_2: 'y'
 
 ----
 
-**********************************************
-Automatically write a config yaml from the CLI
-**********************************************
-If you would like to have a copy of the configuration that produced this model, you can save a *yaml* file from the *--print_config* outputs:
+********************************
+Write a config yaml from the CLI
+********************************
+To have a copy of the configuration that produced this model, save a *yaml* file from the *--print_config* outputs:
 
 .. code:: bash
 
     python main.py fit --model.learning_rate 0.001 --print_config > config.yaml 
 
+----
 
-You can then use that config to run the same exact model at a later time:
+**********************
+Run from a single yaml
+**********************
+To run from a yaml, pass a yaml produced with ``--print_config`` to the ``--config`` argument:
 
 .. code:: bash
 
     python main.py fit --config config.yaml
+
+when using a yaml to run, you can still pass in inline arguments
+
+.. code:: bash
+
+    python main.py fit --config config.yaml --trainer.max_epochs 100
 
 ----
 
 ******************
 Compose yaml files
 ******************
-
-For every CLI implemented, users are encouraged to learn how to run it by reading the documentation printed with the
-:code:`--help` option and use the :code:`--print_config` option to guide the writing of config files. A few more details
-that might not be clear by only reading the help are the following.
-
-:class:`~pytorch_lightning.utilities.cli.LightningCLI` is based on argparse and as such follows the same arguments style
-as many POSIX command line tools. Long options are prefixed with two dashes and its corresponding values should be
-provided with an empty space or an equal sign, as :code:`--option value` or :code:`--option=value`. Command line options
-are parsed from left to right, therefore if a setting appears multiple times the value most to the right will override
-the previous ones. If a class has an init parameter that is required (i.e. no default value), it is given as
-:code:`--option` which makes it explicit and more readable instead of relying on positional arguments.
-
-When calling a CLI, all options can be provided using individual arguments. However, given the large amount of options
-that the CLIs have, it is recommended to use a combination of config files and individual arguments. Therefore, a common
-pattern could be a single config file and only a few individual arguments that override defaults or values in the
-config, for example:
+For production or complex research projects it's advisable to have each object in its own config file. To compose all the configs, pass them all inline:
 
 .. code-block:: bash
 
-    $ python trainer.py fit --config experiment_defaults.yaml --trainer.max_epochs 100
+    $ python trainer.py --config trainer.yaml --config datamodules.yaml test --config models.yaml ...
 
-Another common pattern could be having multiple config files:
+The configs will be parsed sequentially. Let's say we have two configs with the same args:
+
+.. code:: yaml
+
+    # trainer_1.yaml
+    trainer:
+        num_epochs: 10 
+    
+
+    # trainer_2.yaml
+    trainer:
+        num_epochs: 20 
+
+the ones from the last config will be used (num_epochs = 20) in this case:
 
 .. code-block:: bash
 
-    $ python trainer.py --config config1.yaml --config config2.yaml test --config config3.yaml [...]
+    $ python trainer.py --config trainer_2.yaml --config trainer_2.yaml
 
-As explained before, :code:`config1.yaml` is parsed first and then :code:`config2.yaml`. Therefore, if individual
-settings are defined in both files, then the ones in :code:`config2.yaml` will be used. Settings in :code:`config1.yaml`
-that are not in :code:`config2.yaml` are be kept. The same happens for :code:`config3.yaml`.
 
 The configuration files before the subcommand (``test`` in this case) can contain custom configuration for multiple of
 them, for example:
@@ -93,6 +111,8 @@ Groups of options can also be given as independent config files:
 .. code-block:: bash
 
     $ python trainer.py fit --trainer trainer.yaml --model model.yaml --data data.yaml [...]
+
+----
 
 *************************
 Use environment variables
@@ -136,3 +156,91 @@ or if you want defaults per subcommand:
 To load a file in the user's home directory would be just changing to :code:`~/.my_cli_defaults.yaml`. Note that this
 setting is given through :code:`parser_kwargs`. More parameters are supported. For details see the `ArgumentParser API
 <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.__init__>`_ documentation.
+
+----
+
+************************
+Connect two config files
+************************
+
+
+Argument linking
+^^^^^^^^^^^^^^^^
+
+Another case in which it might be desired to extend :class:`~pytorch_lightning.utilities.cli.LightningCLI` is that the
+model and data module depend on a common parameter. For example in some cases both classes require to know the
+:code:`batch_size`. It is a burden and error prone giving the same value twice in a config file. To avoid this the
+parser can be configured so that a value is only given once and then propagated accordingly. With a tool implemented
+like shown below, the :code:`batch_size` only has to be provided in the :code:`data` section of the config.
+
+.. testcode::
+
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments("data.batch_size", "model.batch_size")
+
+
+    cli = MyLightningCLI(MyModel, MyDataModule)
+
+The linking of arguments is observed in the help of the tool, which for this example would look like:
+
+.. code-block:: bash
+
+    $ python trainer.py fit --help
+      ...
+        --data.batch_size BATCH_SIZE
+                              Number of samples in a batch (type: int, default: 8)
+
+      Linked arguments:
+        model.batch_size <-- data.batch_size
+                              Number of samples in a batch (type: int)
+
+Sometimes a parameter value is only available after class instantiation. An example could be that your model requires
+the number of classes to instantiate its fully connected layer (for a classification task) but the value is not
+available until the data module has been instantiated. The code below illustrates how to address this.
+
+.. testcode::
+
+    class MyLightningCLI(LightningCLI):
+        def add_arguments_to_parser(self, parser):
+            parser.link_arguments("data.num_classes", "model.num_classes", apply_on="instantiate")
+
+
+    cli = MyLightningCLI(MyClassModel, MyDataModule)
+
+Instantiation links are used to automatically determine the order of instantiation, in this case data first.
+
+.. tip::
+
+    The linking of arguments can be used for more complex cases. For example to derive a value via a function that takes
+    multiple settings as input. For more details have a look at the API of `link_arguments
+    <https://jsonargparse.readthedocs.io/en/stable/#jsonargparse.core.ArgumentParser.link_arguments>`_.
+
+
+Variable Interpolation
+^^^^^^^^^^^^^^^^^^^^^^
+
+The linking of arguments is intended for things that are meant to be non-configurable. This improves the CLI user
+experience since it avoids the need for providing more parameters. A related concept is
+variable interpolation which in contrast keeps things being configurable.
+
+The YAML standard defines anchors and aliases which is a way to reuse the content in multiple places of the YAML. This is
+supported in the ``LightningCLI`` though it has limitations. Support for OmegaConf's more powerful `variable
+interpolation <https://omegaconf.readthedocs.io/en/2.1_branch/usage.html#variable-interpolation>`__ will be available
+out of the box if this package is installed. To install it run :code:`pip install omegaconf`. Then to enable the use
+of OmegaConf in a ``LightningCLI``, when instantiating a parameter needs to be given for the parser as follows:
+
+.. testcode::
+
+    cli = LightningCLI(MyModel, parser_kwargs={"parser_mode": "omegaconf"})
+
+With the encoder-decoder example model above a possible YAML that uses variable interpolation could be the following:
+
+.. code-block:: yaml
+
+    model:
+      encoder_layers: 12
+      decoder_layers:
+      - ${model.encoder_layers}
+      - 4
+

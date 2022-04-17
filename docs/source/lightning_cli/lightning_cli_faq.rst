@@ -39,3 +39,15 @@ source code. Ideally the CLI would be placed in your path as part of the install
 running from a clone of a repository that could have uncommitted local modifications. Creating installable packages that
 include CLIs is out of the scope of this document. This is mentioned only as a teaser for people who would strive for
 the best practices possible.
+
+
+For every CLI implemented, users are encouraged to learn how to run it by reading the documentation printed with the
+:code:`--help` option and use the :code:`--print_config` option to guide the writing of config files. A few more details
+that might not be clear by only reading the help are the following.
+
+:class:`~pytorch_lightning.utilities.cli.LightningCLI` is based on argparse and as such follows the same arguments style
+as many POSIX command line tools. Long options are prefixed with two dashes and its corresponding values should be
+provided with an empty space or an equal sign, as :code:`--option value` or :code:`--option=value`. Command line options
+are parsed from left to right, therefore if a setting appears multiple times the value most to the right will override
+the previous ones. If a class has an init parameter that is required (i.e. no default value), it is given as
+:code:`--option` which makes it explicit and more readable instead of relying on positional arguments.
