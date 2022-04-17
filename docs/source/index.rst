@@ -5,7 +5,6 @@
 
 Welcome to ⚡ PyTorch Lightning 
 ==============================
-
 .. twocolumns::
    :left:
       .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/mov.gif

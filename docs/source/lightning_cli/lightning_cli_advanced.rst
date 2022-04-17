@@ -50,7 +50,6 @@ Complex Lightning projects end up with LightningModules across many different fi
 
 .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cli_model_registry_project.png
     :width: 500
-    :align: middle
 
 As projects grow in complexity, it becomes useful to change 
 
