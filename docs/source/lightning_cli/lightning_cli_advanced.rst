@@ -155,15 +155,61 @@ Now you can choose between any optimizer at runtime:
     # use FancyAdam
     python main.py fit --optimizer FancyAdam
 
+Bonus: If you need only 1 optimizer, the Lightning CLI already works out of the box with any Optimizer from ``torch.optim.optim``:
+
+.. code:: bash 
+    
+    python main.py fit --optimizer AdamW
+
+If the optimizer you want needs other arguments, add them via the CLI (no need to change your code)!
+
+.. code:: bash 
+    
+    python main.py fit --optimizer SGD --optimizer.lr=0.01
+
 ----
 
 **********************
 Register LR schedulers
 **********************
+Connect learning rate schedulers with the ``LR_SCHEDULER_REGISTRY`` to make them available from the CLI:
 
-    @LR_SCHEDULER_REGISTRY
-    class CustomCosineAnnealingLR(torch.optim.lr_scheduler.CosineAnnealingLR):
-        ...
+.. code:: python 
+
+    # main.py
+    import torch
+    from pytorch_lightning.utilities import cli as pl_cli
+    from pytorch_lightning import demos
+
+    @pl_cli.LR_SCHEDULER_REGISTRY
+    class LitLRScheduler(torch.optim.lr_scheduler.CosineAnnealingLR):
+        def step(self):
+            print('⚡', 'using LitLRScheduler', '⚡')
+            super().step()
+
+    cli = pl_cli.LightningCLI(demos.DemoModel, demos.BoringDataModule)
+
+Now you can choose between any learning rate scheduler at runtime:
+
+.. code:: bash
+
+    # LitLRScheduler
+    python main.py fit --lr_scheduler LitLRScheduler 
+
+
+Bonus: If you need only 1 LRScheduler, the Lightning CLI already works out of the box with any LRScheduler from ``torch.optim``:
+
+.. code:: bash 
+    
+    python main.py fit --lr_scheduler CosineAnnealingLR 
+    python main.py fit --lr_scheduler LinearLR
+    ...
+
+If the scheduler you want needs other arguments, add them via the CLI (no need to change your code)!
+
+.. code:: bash 
+    
+    python main.py fit --lr_scheduler=ReduceLROnPlateau --lr_scheduler.monitor=epoch
 
 ----
 
