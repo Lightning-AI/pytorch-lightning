@@ -6,26 +6,12 @@
 Welcome to ⚡ PyTorch Lightning 
 ==============================
 
-.. raw:: html
-
-   <div class="row" style='font-size: 14px'>
-      <div class='col-md-6'>
-
-.. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/mov.gif
-    :alt: Animation showing how to convert a standard training loop to a Lightning loop
-
-
-.. raw:: html
-
-      </div>
-      <div class='col-md-6'>
-
-PyTorch Lightning is the deep learning framework for professional AI researchers and machine learning engineers who need maximal flexibility without sacrificing performance at scale.
-
-.. raw:: html
-
-      </div>
-   </div>
+.. twocolumns::
+   :left:
+      .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/mov.gif
+         :alt: Animation showing how to convert a standard training loop to a Lightning loop
+   :right: 
+      PyTorch Lightning is the deep learning framework for professional AI researchers and machine learning engineers who need maximal flexibility without sacrificing performance at scale.
 
 .. raw:: html
 

@@ -1,11 +1,58 @@
 #######################################
 Eliminate config boilerplate (Advanced)
 #######################################
+**Audience:** Users who have multiple models and datasets per project.
 
+**Pre-reqs:** You must have read :doc:`1: Control it all from the CLI <lightning_cli_intermediate>`.
+
+----
+
+****************************************
+Why do I want to mix models and datasets
+****************************************
+Lightning projects usually begin with one model and one dataset. As the project grows in complexity and you introduce more models and more datasets, it becomes desirable
+to mix any model with any dataset directly from the commandline without changing your code.
+
+
+.. code:: bash
+
+    # Mix and match anything
+    $ python main.py fit --model=GAN --data=MNIST
+    $ python main.py fit --model=Transformer --data=MNIST
+
+This is what the Lightning CLI enables. Otherwise, this kind of configuration requires a significant amount of boilerplate that often looks like this:
+
+.. code:: python
+
+    # choose model    
+    if args.model == 'gan':
+        model = GAN(args.feat_dim)
+    elif args.model == 'transformer':
+        model = Transformer(args.feat_dim)
+    ...
+
+    # choose datamodule
+    if args.data == 'MNIST':
+        datamodule = MNIST()
+    elif args.data == 'imagenet':
+        datamodule = Imagenet()
+    ...
+
+    # mix them!
+    trainer.fit(model, datamodule)
+
+----
 
 *************************
 Register LightningModules
 *************************
+Complex Lightning projects end up with LightningModules across many different files:
+
+.. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/cli_model_registry_project.png
+    :width: 500
+    :align: middle
+
+As projects grow in complexity, it becomes useful to change 
 
 In the previous examples :class:`~pytorch_lightning.utilities.cli.LightningCLI` works only for a single model and
 datamodule class. However, there are many cases in which the objective is to easily be able to run many experiments for
