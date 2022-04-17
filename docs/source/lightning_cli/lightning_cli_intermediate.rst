@@ -68,34 +68,47 @@ Eliminate config boilerplate (Intermediate)
 ***************************
 What is config boilerplate?
 ***************************
-As Lightning projects grow in complexity it becomes desirable to enable full customizability from the commandline (CLI) like so:
+As Lightning projects grow in complexity it becomes desirable to enable full customizability from the commandline (CLI) so you can
+change any hyperparameters without changing your code:
 
 .. code:: bash
 
     # Mix and match anything
-    $ python main.py fit --model=GAN --model.feat_dim=64 --data=MNIST
-    $ python main.py fit --model=Transformer --model.feat_dim=64 --data=MNIST
+    $ python main.py fit --model.learning_rate 0.02
+    $ python main.py fit --model.learning_rate 0.01 --trainer.fast_dev_run True
 
-This is what the Lightning CLI enables. Otherwise, this kind of configuration requires a significant amount of boilerplate that often looks like this:
+This is what the Lightning CLI enables. Without the Lightning CLI, you usually end up with a TON of boilerplate that looks like this:
 
 .. code:: python
 
-    # choose model    
-    if args.model == 'gan':
-        model = GAN(args.feat_dim)
-    elif args.model == 'transformer':
-        model = Transformer(args.feat_dim)
-    ...
+    from argparse import ArgumentParser
 
-    # choose datamodule
-    if args.data == 'MNIST':
-        datamodule = MNIST()
-    elif args.data == 'imagenet':
-        datamodule = Imagenet()
-    ...
+    if __name__ == '__main__':
+        parser = ArgumentParser()
+        parser.add_argument('--learning_rate_1', type: float = 0.02)
+        parser.add_argument('--learning_rate_2', type: float = 0.03)
+        parser.add_argument('--model', type: string = 'cnn')
+        parser.add_argument('--command', type: string = 'fit')
+        parser.add_argument('--run_fast', type: bool = True)
+        ...
+        # add 100 more of these
+        ...
 
-    # mix them!
-    trainer.fit(model, datamodule)
+        args = parser.parse_args()
+
+        if args.model == 'cnn':
+            model = ConvNet(learning_rate=args.learning_rate_1)
+        elif args.model == 'transformer':
+            model = Transformer(learning_rate=args.learning_rate_2)
+        trainer = Trainer(fast_dev_run=args.run_fast)
+        ...
+
+        if args.command == 'fit':
+            trainer.fit()
+        elif args.command == 'test':
+            ...
+
+This kind of boilerplate is unsustainable as projects grow in complexity.
 
 ----
 

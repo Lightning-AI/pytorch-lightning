@@ -1,15 +1,238 @@
 #######################################
 Eliminate config boilerplate (Advanced)
 #######################################
+**Audience:** Users who have multiple models and datasets per project.
 
+**Pre-reqs:** You must have read :doc:`1: Control it all from the CLI <lightning_cli_intermediate>`.
+
+----
+
+****************************************
+Why do I want to mix models and datasets
+****************************************
+Lightning projects usually begin with one model and one dataset. As the project grows in complexity and you introduce more models and more datasets, it becomes desirable
+to mix any model with any dataset directly from the commandline without changing your code.
+
+
+.. code:: bash
+
+    # Mix and match anything
+    $ python main.py fit --model=GAN --data=MNIST
+    $ python main.py fit --model=Transformer --data=MNIST
+
+This is what the Lightning CLI enables. Otherwise, this kind of configuration requires a significant amount of boilerplate that often looks like this:
+
+.. code:: python
+
+    # choose model    
+    if args.model == 'gan':
+        model = GAN(args.feat_dim)
+    elif args.model == 'transformer':
+        model = Transformer(args.feat_dim)
+    ...
+
+    # choose datamodule
+    if args.data == 'MNIST':
+        datamodule = MNIST()
+    elif args.data == 'imagenet':
+        datamodule = Imagenet()
+    ...
+
+    # mix them!
+    trainer.fit(model, datamodule)
+
+----
 
 *************************
 Register LightningModules
 *************************
+Connect models across different files with the ``MODEL_REGISTRY`` to make them available from the CLI:
 
-In the previous examples :class:`~pytorch_lightning.utilities.cli.LightningCLI` works only for a single model and
-datamodule class. However, there are many cases in which the objective is to easily be able to run many experiments for
-multiple models and datasets.
+.. raw:: html
+
+   <div class="row" style='font-size: 12px'>
+      <div class='col-md-6'>
+
+.. code:: python
+
+    # main.py
+
+    import torch 
+    from pytorch_lightning.utilities import cli as pl_cli
+    from pytorch_lightning import LightningModule, demos
+
+    @pl_cli.MODEL_REGISTRY
+    class Model1(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.l1 = torch.nn.Linear(32, 10)
+            print('⚡','loaded model 1', '⚡')
+
+        def forward(self, x):
+            return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+        def training_step(self, batch, batch_nb):
+            x = batch
+            x = self(x)
+            loss = x.sum()
+            return loss
+
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters(), lr=0.02)
+
+    cli = pl_cli.LightningCLI(datamodule_class = demos.BoringDataModule)
+
+
+.. raw:: html
+
+      </div>
+      <div class='col-md-6'>
+
+
+.. code:: python
+
+    # model_2.py
+
+    import torch 
+    from pytorch_lightning.utilities import cli as pl_cli    
+    from pytorch_lightning import LightningModule
+
+    @pl_cli.MODEL_REGISTRY
+    class Model2(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.l1 = torch.nn.Linear(32, 10)
+            print('⚡','loaded model 2', '⚡')
+
+        def forward(self, x):
+            return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+        def training_step(self, batch, batch_nb):
+            x = batch
+            x = self(x)
+            loss = x.sum()
+            return loss
+
+        def configure_optimizers(self):
+            return torch.optim.Adam(self.parameters(), lr=0.02)
+
+.. raw:: html
+
+      </div>
+   </div>
+
+Now you can choose between any model from the CLI:
+
+.. code:: bash
+
+    # use Model1
+    python main.py fit --model Model1
+
+    # use Model2
+    python main.py fit --model Model2
+
+----
+
+********************
+Register DataModules
+********************
+Connect DataModules across different files with the ``DATAMODULE_REGISTRY`` to make them available from the CLI:
+
+.. raw:: html
+
+   <div class="row" style='font-size: 12px'>
+      <div class='col-md-6'>
+
+.. code:: python
+
+    # main.py
+    import torch 
+    from pytorch_lightning.utilities import cli as pl_cli
+    from pytorch_lightning import demos
+
+    @pl_cli.DATAMODULE_REGISTRY
+    class FakeDataset1(demos.BoringDataModule):
+        def train_dataloader(self):
+            print('⚡','using FakeDataset1', '⚡')
+            return torch.utils.data.DataLoader(self.random_train)
+
+    cli = pl_cli.LightningCLI(demos.DemoModel)
+
+
+.. raw:: html
+
+      </div>
+      <div class='col-md-6'>
+
+
+.. code:: python
+
+    # data_2.py
+    import torch 
+    from pytorch_lightning.utilities import cli as pl_cli
+    from pytorch_lightning import demos
+
+    @pl_cli.DATAMODULE_REGISTRY
+    class FakeDataset2(demos.BoringDataModule):
+        def train_dataloader(self):
+            print('⚡','using FakeDataset2', '⚡')
+            return torch.utils.data.DataLoader(self.random_train)
+
+.. raw:: html
+
+      </div>
+   </div>
+
+Now you can choose between any dataset at runtime:
+
+.. code:: bash
+
+    # use Model1
+    python main.py fit --data FakeDataset1
+
+    # use Model2
+    python main.py fit --data FakeDataset2
+
+----
+
+*******************
+Register optimizers
+*******************
+Connect optimizers with the ``OPTIMIZER_REGISTRY`` to make them available from the CLI:
+
+.. code:: python
+
+    # main.py
+    import torch 
+    from pytorch_lightning.utilities import cli as pl_cli
+    from pytorch_lightning import demos
+
+    @pl_cli.OPTIMIZER_REGISTRY
+    class LitAdam(torch.optim.Adam):
+        def step(self, closure):
+            print('⚡', 'using LitAdam', '⚡')
+            super().step(closure)
+    
+    @pl_cli.OPTIMIZER_REGISTRY
+    class FancyAdam(torch.optim.Adam):
+        def step(self, closure):
+            print('⚡', 'using FancyAdam', '⚡')
+            super().step(closure)
+
+    cli = pl_cli.LightningCLI(demos.DemoModel, demos.BoringDataModule)
+
+Now you can choose between any dataset at runtime:
+
+.. code:: bash
+
+    # use LitAdam
+    python main.py fit --optimizer LitAdam
+
+    # use FancyAdam
+    python main.py fit --optimizer FancyAdam
+
+
+----------------------------------------------
 
 The model and datamodule arguments can be left unset if a class has been registered first.
 This is particularly interesting for library authors who want to provide their users a range of models to choose from:
