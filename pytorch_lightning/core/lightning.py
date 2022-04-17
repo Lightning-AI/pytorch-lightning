@@ -19,6 +19,8 @@ import logging
 import numbers
 import os
 import tempfile
+import weakref
+from weakref import ReferenceType
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, overload, Sequence, Tuple, Union
@@ -92,7 +94,7 @@ class LightningModule(
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
         # pointer to the trainer object
-        self.trainer: Optional["pl.Trainer"] = None
+        self.trainer: Optional[ReferenceType["pl.Trainer"]] = None
 
         self._use_amp: bool = False
 
@@ -1977,6 +1979,22 @@ class LightningModule(
         .. deprecated:: v1.5
             This method was deprecated in v1.5 and will be removed in v1.7.
         """
+
+    def state_dict(self, *args, **kwargs):  # TODO: type annotation?
+        # This override is necessary to prevent state_dict hooks to run into a ReferenceError when iterating over the
+        # module attributes. A ReferenceError can occur on the trainer attribute, which is a weak reference.
+        # See issue #12233
+        if not weakref.getweakrefcount(self.trainer):
+            self.trainer = None
+        return super().state_dict(*args, **kwargs)
+
+    def load_state_dict(self, *args, **kwargs):
+        # This override is necessary to prevent state_dict hooks to run into a ReferenceError when iterating over the
+        # module attributes. A ReferenceError can occur on the trainer attribute, which is a weak reference.
+        # See issue #12233
+        if not weakref.getweakrefcount(self.trainer):
+            self.trainer = None
+        return super().load_state_dict(*args, **kwargs)
 
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> None:
