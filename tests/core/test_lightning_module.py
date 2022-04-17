@@ -406,6 +406,8 @@ def test_lightning_module_configure_gradient_clipping_different_argument_values(
 @RunIf(min_torch="1.10", skip_windows=True)
 @pytest.mark.skipif(not torch.distributed.is_available(), reason="Requires torch.distributed to be available")
 def test_lightning_module_state_dict_hook_trainer_weakref(monkeypatch):
+    """Regression test for issue #12233: Test that state dict hooks execute without raising a reference error on the
+    trainer attribute."""
     from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook
 
     monkeypatch.setattr(torch.distributed._sharded_tensor, "pre_load_state_dict_hook", Mock(wraps=pre_load_state_dict_hook))
