@@ -3,6 +3,7 @@ from pytorch_lightning.demos.boring_classes import (  # noqa: F401
     BoringModel,
     ManualOptimBoringModel,
     RandomDataset,
+    DemoModel
 )
 
-__all__ = ["BoringDataModule", "BoringModel", "ManualOptimBoringModel", "RandomDataset"]
+__all__ = ["BoringDataModule", "BoringModel", "ManualOptimBoringModel", "RandomDataset", "DemoModel"]

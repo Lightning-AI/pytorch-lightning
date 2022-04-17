@@ -192,3 +192,22 @@ class ManualOptimBoringModel(BoringModel):
         self.manual_backward(loss)
         opt.step()
         return loss
+
+class DemoModel(LightningModule):
+    def __init__(self, out_dim: int = 10, learning_rate: float = 0.02):
+        super().__init__()
+        self.l1 = torch.nn.Linear(32, out_dim)
+        self.learning_rate = learning_rate
+        print('⚡','loaded model 2', '⚡')
+
+    def forward(self, x):
+        return torch.relu(self.l1(x.view(x.size(0), -1)))
+
+    def training_step(self, batch, batch_nb):
+        x = batch
+        x = self(x)
+        loss = x.sum()
+        return loss
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
