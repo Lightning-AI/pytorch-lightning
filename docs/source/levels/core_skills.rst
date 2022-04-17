@@ -4,7 +4,7 @@ Basic skills
 ############
 Learn the basics of model development with Lightning. Researchers and machine learning engineers should start here.
 
-.. include:: links.rst
+----
 
 .. raw:: html
 

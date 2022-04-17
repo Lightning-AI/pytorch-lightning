@@ -3,9 +3,9 @@
 Expert skills
 #############
 
-Unlock complex training like meta-learning and reinforcement learning; write custom distributed strategies and even connect newly launched hardware accelerators.
+Customize and extend Lightning for things like custom hardware or distributed strategies.
 
-.. include:: links.rst
+----
 
 .. raw:: html
 
@@ -15,25 +15,44 @@ Unlock complex training like meta-learning and reinforcement learning; write cus
 .. Add callout items below this line
 
 .. displayitem::
-   :description: Expert-level control for non-standard cutting-edge research
-   :header: Level 16: Fully own the training loop
-   :button_link: expert_level_16.html
+   :header: Level 23: Extend the Lightning CLI
+   :description: Extend the functionality of the Lightning CLI.
    :col_css: col-md-6
+   :button_link: expert_level_23.html
    :height: 150
+   :tag: expert
 
 .. displayitem::
-   :description: Write and integrate custom distributed strategies such as Deepspeed or FSDP.
-   :header: Level 17: Write custom scaling strategies
-   :button_link: expert_level_17.html
+   :header: Level 24: Integrate a custom cluster
+   :description: Integrate a custom cluster into Lightning.
    :col_css: col-md-6
+   :button_link: expert_level_24.html
    :height: 150
+   :tag: expert
 
 .. displayitem::
-   :description: Connect arbitrary hardware such as a new [X]-PU
-   :header: Level 18: Add new hardware-accelerators
-   :button_link: expert_level_18.html
+   :header: Level 25: Explore fault-tolerance in-depth
+   :description: Understand the details of fault-tolerance.
    :col_css: col-md-6
+   :button_link: ../clouds/fault_tolerant_training_faq.html
    :height: 150
+   :tag: expert
+
+.. displayitem::
+   :header: Level 26: Make your own profiler
+   :description: Make your own profiler.
+   :col_css: col-md-6
+   :button_link: ../tuning/profiler_expert.html
+   :height: 150
+   :tag: expert
+
+.. displayitem::
+   :header: Level 27: Add a new accelerator or Strategy
+   :description: Integrate a new accelerator or distributed strategy.
+   :col_css: col-md-6
+   :button_link: expert_level_27.html
+   :height: 150
+   :tag: expert
 
 .. raw:: html
 

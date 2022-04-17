@@ -1,6 +1,10 @@
-############################
-Level 15: Train on the cloud
-############################
+################################################
+Level 15: Customize configs to run in production
+################################################
+
+This level goes over advanced YAML use for running models in production.
+
+----
 
 .. raw:: html
 
@@ -10,20 +14,20 @@ Level 15: Train on the cloud
 .. Add callout items below this line
 
 .. displayitem::
-   :header: 
-   :description: 
+   :header: 1: Control it all via YAML
+   :description: Enable composable YAMLs.
    :col_css: col-md-6
-   :button_link: 
+   :button_link: ../lightning_cli/lightning_cli_advanced.html
    :height: 150
-   :tag: intermediate
+   :tag: advanced
 
 .. displayitem::
-   :header: 
-   :description: 
+   :header: 2: Use YAML for production
+   :description: Use the Lightning CLI with YAMLs for production environments.
    :col_css: col-md-6
-   :button_link: 
+   :button_link: ../lightning_cli/lightning_cli_advanced_2.html
    :height: 150
-   :tag: intermediate
+   :tag: advanced
 
 .. raw:: html
 

@@ -94,7 +94,7 @@ For `conda <https://anaconda.org/conda-forge/pytorch-lightning>`_ users
       </div>
    </div>
 
-Or read the `advanced install guide <starter/installation.html>`_
+Or read the `advanced install guide <installation.html>`_
 
 ----
 
@@ -139,7 +139,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
         def configure_optimizers(self):
             optimizer = optim.Adam(self.parameters(), lr=1e-3)
             return optimizer
-    
+
     # init the autoencoder
     autoencoder = LitAutoEncoder(encoder, decoder)
 
@@ -168,7 +168,7 @@ The Lightning :doc:`Trainer <../common/trainer>` "mixes" any :doc:`LightningModu
 .. code-block:: python
 
     # train the model (hint: here are some helpful Trainer arguments for rapid idea iteration)
-    trainer = pl.Trainer(limit_train_batches=100, max_epochs=1)
+    trainer = pl.Trainer(limit_train_batches=100, max_epochs=10)
     trainer.fit(model=autoencoder, train_dataloaders=train_loader)
 
 The Lightning :doc:`Trainer <../common/trainer>` automates `40+ tricks <../common/trainer.html#trainer-flags>`_ including:
@@ -194,7 +194,7 @@ Once you've trained the model you can export to onnx, torchscript and put it int
 
     # load checkpoint
     checkpoint = './lightning_logs/version_0/checkpoints/epoch=0-step=100.ckpt'
-    autoencoder = LitAutoEncoder.load_from_checkpoint(checkpoint)
+    autoencoder = LitAutoEncoder.load_from_checkpoint(checkpoint, encoder=encoder, decoder=decoder)
 
     # choose your trained nn.Module
     encoder = autoencoder.encoder

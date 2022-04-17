@@ -61,7 +61,7 @@ Eliminate config boilerplate (Intermediate)
 ###########################################
 **Audience:** Users who want advanced modularity via the commandline interface (CLI).
 
-**Pre-reqs:** You must already understand how to us a commandline and LightningDataModules. 
+**Pre-reqs:** You must already understand how to use a commandline and :doc:`LightningDataModule <../datamodule/datamodules>`. 
 
 ----
 
@@ -74,8 +74,8 @@ change any hyperparameters without changing your code:
 .. code:: bash
 
     # Mix and match anything
-    $ python main.py fit --model.learning_rate 0.02
-    $ python main.py fit --model.learning_rate 0.01 --trainer.fast_dev_run True
+    $ python main.py --command fit --model.learning_rate 0.02
+    $ python main.py --command fit --model.learning_rate 0.01 --trainer.fast_dev_run True
 
 This is what the Lightning CLI enables. Without the Lightning CLI, you usually end up with a TON of boilerplate that looks like this:
 

@@ -3,9 +3,9 @@
 Advanced skills
 ###############
 
-Reach trillion parameter scale and put models into production.
+Configure all aspects of Lightning for advanced usecases.
 
-.. include:: links.rst
+----
 
 .. raw:: html
 
@@ -15,32 +15,68 @@ Reach trillion parameter scale and put models into production.
 .. Add callout items below this line
 
 .. displayitem::
-   :description: Learn to use state-of-the-art training and inference techniques via the Lightning Trainer.
-   :header: Level 12: Advanced Lightning Trainer
-   :button_link: advanced_level_12.html
+   :header: Level 15: Customize configs to run in production
+   :description: Enable composable YAMLs
    :col_css: col-md-6
-   :height: 150
-
-.. displayitem::
-   :description: Train 1 trillion+ parameter models.
-   :header: Level 13: Reach 1 trillion+ parameter scale
-   :button_link: advanced_level_13.html
-   :col_css: col-md-6
-   :height: 150
-
-.. displayitem::
-   :description: Train a model across multiple machines
-   :header: Level 14: Multi-node training
-   :button_link: advanced_level_14.html
-   :col_css: col-md-6
-   :height: 150
-
-.. displayitem::
-   :description: Training on the cloud and SLURM clusters.
-   :header: Level 15: Train on the cloud
    :button_link: advanced_level_15.html
-   :col_css: col-md-6
    :height: 150
+   :tag: advanced
+
+.. displayitem::
+   :header: Level 16: Customize the trainer
+   :description: Inject custom code into the trainer and modify the progress bar.
+   :col_css: col-md-6
+   :button_link: advanced_level_16.html
+   :height: 150
+   :tag: advanced
+
+.. displayitem::
+   :header: Level 17: Own the training loop
+   :description: Learn all the ways of owning your raw PyTorch loops with Lighting.
+   :col_css: col-md-6
+   :button_link: advanced_level_17.html
+   :height: 150
+   :tag: advanced
+
+.. displayitem::
+   :header: Level 18: Enable advanced checkpointing
+   :description: Enable composable or cloud based checkpoints.
+   :col_css: col-md-6
+   :button_link: advanced_level_18.html
+   :height: 150
+   :tag: advanced
+
+.. displayitem::
+   :header: Level 19: Explore IPUs
+   :description: Explore Intelligence Processing Unit (IPU) for model scaling.
+   :col_css: col-md-6
+   :button_link: advanced_level_19.html
+   :height: 150
+   :tag: advanced
+
+.. displayitem::
+   :header: Level 20: Explore HPUs
+   :description: Explore Havana Gaudi Processing Unit (HPU) for model scaling.
+   :col_css: col-md-6
+   :button_link: advanced_level_20.html
+   :height: 150
+   :tag: advanced
+
+.. displayitem::
+   :header: Level 21: Master TPUs
+   :description: Master TPUs and run on cloud TPUs.
+   :col_css: col-md-6
+   :button_link: advanced_level_21.html
+   :height: 150
+   :tag: advanced
+
+.. displayitem::
+   :header: Level 22: Reach 1 trillion parameters on GPUs
+   :description: Scale to 1 trillion params on GPUs.
+   :col_css: col-md-6
+   :button_link: advanced_level_22.html   
+   :height: 150
+   :tag: advanced
 
 .. raw:: html
 

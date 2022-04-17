@@ -49,10 +49,24 @@ Checkpointing
    :height: 150
    :tag: expert
 
+.. raw:: html
+
+        </div>
+    </div>
+
+----
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. Add callout items below this line
+
 .. displayitem::
    :header: ModelCheckpoint API
    :description: Dig into the ModelCheckpoint API
-   :col_css: col-md-3
+   :col_css: col-md-4
    :button_link: checkpointing_api.html
    :height: 150
 

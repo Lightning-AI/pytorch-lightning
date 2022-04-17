@@ -1,11 +1,13 @@
 #######################################
 Eliminate config boilerplate (Advanced)
 #######################################
+**Audience:** Users who already understand the LightningCLI and want to customize it.
 
+----
 
-
-Customizing LightningCLI
-^^^^^^^^^^^^^^^^^^^^^^^^
+**************************
+Customize the LightningCLI
+**************************
 
 The init parameters of the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class can be used to customize some
 things, namely: the description of the tool, enabling parsing of environment variables and additional arguments to
@@ -52,13 +54,15 @@ instantiating the trainer class can be found in :code:`self.config['fit']['train
     Have a look at the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class API reference to learn about other
     methods that can be extended to customize a CLI.
 
+----
 
-Configurable callbacks
-^^^^^^^^^^^^^^^^^^^^^^
-
+**************************
+Configure forced callbacks
+**************************
 As explained previously, any Lightning callback can be added by passing it through command line or
 including it in the config via :code:`class_path` and :code:`init_args` entries.
-However, there are other cases in which a callback should always be present and be configurable.
+
+However, certain callbacks MUST be coupled with a model so they are always present and configurable.
 This can be implemented as follows:
 
 .. testcode::
@@ -93,9 +97,11 @@ To change the configuration of the :code:`EarlyStopping` in the config it would 
     stable. It is better practice to store the best hyperparameters for a task in a configuration file independent from
     the source code.
 
+----
 
+*******************
 Class type defaults
-^^^^^^^^^^^^^^^^^^^
+*******************
 
 The support for classes as type hints allows to try many possibilities with the same CLI. This is a useful feature, but
 it can make it tempting to use an instance of a class as a default. For example:
@@ -147,29 +153,11 @@ A more compact version that avoids writing a dictionary would be:
         def add_arguments_to_parser(self, parser):
             parser.set_defaults({"model.backbone": lazy_instance(MyModel, encoder_layers=24)})
 
-***********************
-Create your own command
-***********************
-    carlos:
-        trainer:
-            limit_train_batches: 100
-            max_epochs: 10
-    test:
-        trainer:
-            limit_test_batches: 10
-
-python main.py --config a.yaml carlos
-
-
+----
 
 ************************
 Connect two config files
 ************************
-
-
-Argument linking
-^^^^^^^^^^^^^^^^
-
 Another case in which it might be desired to extend :class:`~pytorch_lightning.utilities.cli.LightningCLI` is that the
 model and data module depend on a common parameter. For example in some cases both classes require to know the
 :code:`batch_size`. It is a burden and error prone giving the same value twice in a config file. To avoid this the
