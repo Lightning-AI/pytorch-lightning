@@ -410,7 +410,9 @@ def test_lightning_module_state_dict_hook_trainer_weakref(monkeypatch):
     trainer attribute."""
     from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook
 
-    monkeypatch.setattr(torch.distributed._sharded_tensor, "pre_load_state_dict_hook", Mock(wraps=pre_load_state_dict_hook))
+    monkeypatch.setattr(
+        torch.distributed._sharded_tensor, "pre_load_state_dict_hook", Mock(wraps=pre_load_state_dict_hook)
+    )
     monkeypatch.setattr(torch.distributed._sharded_tensor, "state_dict_hook", Mock(wraps=state_dict_hook))
 
     def set_trainer(m):

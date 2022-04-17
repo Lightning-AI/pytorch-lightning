@@ -20,10 +20,10 @@ import numbers
 import os
 import tempfile
 import weakref
-from weakref import ReferenceType
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, overload, Sequence, Tuple, Union
+from weakref import ReferenceType
 
 import torch
 from torch import ScriptModule, Tensor
