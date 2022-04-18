@@ -201,12 +201,12 @@ Current Lightning Users
    clouds/cluster
    advanced/model_parallel
    clouds/cloud_training
+   Save and load model progress <common/checkpointing_basic>
+   Save memory with half-precision <precision/precision>
    Train on single or multiple GPUs <accelerators/gpu>
    Train on single or multiple HPUs <accelerators/hpu>
    Train on single or multiple IPUs <accelerators/ipu>
    Train on single or multiple TPUs <accelerators/tpu>
-   Save and load model progress <common/checkpointing_basic>
-   Save memory with half-precision <precision/precision>
    visualize_experiments/loggers
    build_model/own_your_loop
 
