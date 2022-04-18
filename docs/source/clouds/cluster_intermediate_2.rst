@@ -2,8 +2,6 @@
 Run on an on-prem cluster (intermediate)
 ########################################
 
-----------
-
 .. _torch_distributed_run:
 
 *************************
