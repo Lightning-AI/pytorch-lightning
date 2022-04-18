@@ -129,7 +129,7 @@ Current Lightning Users
 
 .. customcalloutitem::
    :description: Learn how to do everything from hyperparameters sweeps to cloud training to Pruning and Quantization with Lightning.
-   :header: Concepts Glossary
+   :header: Common Workflows
    :button_link: common_usecases.html
 
 .. customcalloutitem::
@@ -184,8 +184,8 @@ Current Lightning Users
 
 .. toctree::
    :maxdepth: 1
-   :name: Superpowers
-   :caption: Superpowers
+   :name: Common Workflows
+   :caption: Common Workflows
 
    common/evaluation
    build_model/build_model.rst
@@ -198,7 +198,6 @@ Current Lightning Users
    tuning/profiler
    Finetune a model <advanced/transfer_learning>
    Manage experiments <visualize_experiments/logging_intermediate>
-   precision/precision
    clouds/cluster
    advanced/model_parallel
    clouds/cloud_training
@@ -207,6 +206,7 @@ Current Lightning Users
    Train on single or multiple IPUs <accelerators/ipu>
    Train on single or multiple TPUs <accelerators/tpu>
    Save and load model progress <common/checkpointing_basic>
+   Save memory with half-precision <precision/precision>
    visualize_experiments/loggers
    build_model/own_your_loop
 

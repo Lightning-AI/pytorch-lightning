@@ -5,6 +5,9 @@ Advanced skills
 
 Configure all aspects of Lightning for advanced usecases.
 
+.. join_slack::
+   :align: left
+
 ----
 
 .. raw:: html

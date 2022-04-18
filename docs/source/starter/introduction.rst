@@ -9,6 +9,11 @@ Lightning in 15 minutes
 
 PyTorch Lightning is the deep learning framework with "batteries included" for professional AI researchers and machine learning engineers who need maximal flexibility while super-charging performance at scale.
 
+.. join_slack::
+   :align: left
+   :margin: 20
+
+
 Lightning organizes PyTorch code to remove boilerplate and unlock scalability.
 
 .. raw:: html
