@@ -64,7 +64,7 @@ sudo systemctl restart docker
 and later run the docker image with `--gpus all` so for example
 
 ```
-docker run --rm -it --gpus all pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.6
+docker run --rm -it --gpus all pytorchlightning/pytorch_lightning:base-cuda-py3.9-torch1.10
 ```
 
 ## Run Jupyter server
