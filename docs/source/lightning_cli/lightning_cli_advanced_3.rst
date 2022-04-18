@@ -1,3 +1,11 @@
+. testsetup:: *
+    :skipif: not _JSONARGPARSE_AVAILABLE
+
+    from pytorch_lightning.utilities import cli as pl_cli
+
+.. testcleanup:: *
+
+    mock_argv.stop()
 
 Instantiation only mode
 ^^^^^^^^^^^^^^^^^^^^^^^
