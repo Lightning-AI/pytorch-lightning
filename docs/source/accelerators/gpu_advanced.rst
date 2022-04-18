@@ -10,4 +10,4 @@ For experts pushing the state-of-the-art in model development, Lightning offers 
 
 ----
 
-.. include:: ../advanced/model_parallel.rst
+.. include:: ../advanced/model_parallel.inc

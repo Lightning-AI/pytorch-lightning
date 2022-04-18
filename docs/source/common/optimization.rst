@@ -18,7 +18,7 @@ For advanced/expert users who want to do esoteric optimization schedules or tech
 
 ----
 
-.. include:: ../build_model/manual_optimization.rst
+.. include:: ../model/manual_optimization.rst
 
 -----
 
