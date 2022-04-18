@@ -14,8 +14,8 @@ _unpickler = pickle.Unpickler
 logger = logging.getLogger(__name__)
 
 if torch.distributed.is_available():
-    from torch.distributed import Backend, broadcast, get_backend, get_rank, GroupMember
     from torch._C._distributed_c10d import ProcessGroup
+    from torch.distributed import Backend, broadcast, get_backend, get_rank, GroupMember
 else:
     ProcessGroup = None
 
