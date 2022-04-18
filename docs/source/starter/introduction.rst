@@ -21,6 +21,7 @@ Lightning organizes PyTorch code to remove boilerplate and unlock scalability.
     <video width="100%" max-width="800px" controls autoplay muted playsinline
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_docs_animation_final.m4v"></video>
 
+|
 
 By organizing PyTorch code, lightning enables:
 
