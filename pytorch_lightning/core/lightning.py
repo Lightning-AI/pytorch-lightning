@@ -685,7 +685,7 @@ class LightningModule(
                 return loss
 
         See Also:
-            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
+            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
     def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
@@ -859,7 +859,7 @@ class LightningModule(
                     ...
 
         See Also:
-            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
+            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
     def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
@@ -987,7 +987,7 @@ class LightningModule(
         """
 
     def test_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        """Use this when testing with dp or ddp2 because :meth:`test_step` will operate on only part of the batch.
+        """Use this when testing with DP or DDP2 because :meth:`test_step` will operate on only part of the batch.
         However, this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
@@ -1037,7 +1037,7 @@ class LightningModule(
                 self.log("test_loss", loss)
 
         See Also:
-            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
+            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
     def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:

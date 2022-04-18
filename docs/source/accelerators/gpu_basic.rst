@@ -31,6 +31,9 @@ as Lightning will do it for you.
 
 ----------------
 
+
+.. _multi_gpu:
+
 Train on multiple GPUs
 ----------------------
 

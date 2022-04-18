@@ -137,7 +137,7 @@ For example with the :class:`~pytorch_lightning.loops.fit_loop.FitLoop`:
         def on_run_end(self):
             """Do something when the loop ends."""
 
-A full list with all built-in loops and subloops can be found :ref:`here <loop structure>`.
+A full list with all built-in loops and subloops can be found :ref:`here <loop_structure_extensions>`.
 
 To add your own modifications to a loop, simply subclass an existing loop class and override what you need.
 Here is a simple example how to add a new hook:
@@ -213,7 +213,7 @@ Finally, attach it into the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
     trainer.fit(...)
 
 But beware: Loop customization gives you more power and full control over the Trainer and with great power comes great responsibility.
-We recommend that you familiarize yourself with :ref:`overriding the default loops <override default loops>` first before you start building a new loop from the ground up.
+We recommend that you familiarize yourself with :ref:`overriding the default loops <override_default_loops_extensions>` first before you start building a new loop from the ground up.
 
 ----------
 
@@ -354,7 +354,7 @@ Each of these :code:`for`-loops represents a class implementing the :class:`~pyt
      - The :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop` iterates over one or multiple optimizers and for each one it calls the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` method with the batch, the current batch index and the optimizer index if multiple optimizers are requested.
        It is the leaf node in the tree of loops and performs the actual optimization (forward, zero grad, backward, optimizer step).
    * - :class:`~pytorch_lightning.loops.optimization.manual_loop.ManualOptimization`
-     - Substitutes the :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop` in case of :ref:`manual_optimization` and implements the manual optimization step.
+     - Substitutes the :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop` in case of :doc:`manual optimization <../build_model/manual_optimization>` and implements the manual optimization step.
    * - :class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop`
      - The :class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop` is the top-level loop where validation/testing starts.
        It simply iterates over each evaluation dataloader from one to the next by calling :code:`EvaluationEpochLoop.run()` in its :code:`advance()` method.

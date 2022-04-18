@@ -3,7 +3,7 @@
     from pytorch_lightning import Trainer
 
 
-.. _amp:
+.. _precision_expert:
 
 
 ########################
