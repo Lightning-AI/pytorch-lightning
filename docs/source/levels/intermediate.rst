@@ -22,6 +22,7 @@ Learn to scale up your models and enable collaborative model development at acad
    :button_link: intermediate_level_7.html
    :col_css: col-md-6
    :height: 150
+   :tag: intermediate
 
 .. displayitem::
    :header: Level 8: Train in the background on the cloud
@@ -29,6 +30,7 @@ Learn to scale up your models and enable collaborative model development at acad
    :button_link: intermediate_level_8.html
    :col_css: col-md-6
    :height: 150
+   :tag: intermediate
 
 .. displayitem::
    :header: Level 9: Modularize your projects
@@ -36,6 +38,7 @@ Learn to scale up your models and enable collaborative model development at acad
    :col_css: col-md-6
    :button_link: intermediate_level_9.html   
    :height: 150
+   :tag: intermediate
 
 .. displayitem::
    :header: Level 10: Understand your model
@@ -43,6 +46,7 @@ Learn to scale up your models and enable collaborative model development at acad
    :col_css: col-md-6
    :button_link: intermediate_level_10.html   
    :height: 150
+   :tag: intermediate
 
 .. displayitem::
    :header: Level 11: Explore SOTA scaling techniques
@@ -50,6 +54,7 @@ Learn to scale up your models and enable collaborative model development at acad
    :col_css: col-md-6
    :button_link: intermediate_level_11.html   
    :height: 150
+   :tag: intermediate
 
 .. displayitem::
    :header: Level 12: Deploy your models
@@ -57,6 +62,7 @@ Learn to scale up your models and enable collaborative model development at acad
    :col_css: col-md-6
    :button_link: intermediate_level_12.html   
    :height: 150
+   :tag: intermediate
 
 .. displayitem::
    :header: Level 13: Optimize training speed
@@ -64,6 +70,7 @@ Learn to scale up your models and enable collaborative model development at acad
    :col_css: col-md-6
    :button_link: intermediate_level_13.html   
    :height: 150
+   :tag: intermediate
 
 .. displayitem::
    :header: Level 14: Run on on-prem clusters
@@ -71,6 +78,7 @@ Learn to scale up your models and enable collaborative model development at acad
    :col_css: col-md-6
    :button_link: intermediate_level_14.html   
    :height: 150
+   :tag: intermediate
 
 .. raw:: html
 

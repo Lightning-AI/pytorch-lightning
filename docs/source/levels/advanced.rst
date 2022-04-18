@@ -15,32 +15,20 @@ Reach trillion parameter scale and put models into production.
 .. Add callout items below this line
 
 .. displayitem::
-   :description: Learn to use state-of-the-art training and inference techniques via the Lightning Trainer.
-   :header: Level 12: Advanced Lightning Trainer
-   :button_link: advanced_level_12.html
-   :col_css: col-md-6
-   :height: 150
-
-.. displayitem::
-   :description: Train 1 trillion+ parameter models.
-   :header: Level 13: Reach 1 trillion+ parameter scale
-   :button_link: advanced_level_13.html
-   :col_css: col-md-6
-   :height: 150
-
-.. displayitem::
-   :description: Train a model across multiple machines
-   :header: Level 14: Multi-node training
-   :button_link: advanced_level_14.html
-   :col_css: col-md-6
-   :height: 150
-
-.. displayitem::
-   :description: Training on the cloud and SLURM clusters.
-   :header: Level 15: Train on the cloud
+   :header: Level 15: Customize configs to run in production
+   :description: Enable composable YAMLs
+   :col_css: col-md-4
    :button_link: advanced_level_15.html
-   :col_css: col-md-6
    :height: 150
+   :tag: advanced
+
+.. displayitem::
+   :header: Level 16: Customize the trainer
+   :description: Inject custom code into the trainer and modify the progress bar
+   :col_css: col-md-4
+   :button_link: advanced_level_16.html
+   :height: 150
+   :tag: advanced
 
 .. raw:: html
 
