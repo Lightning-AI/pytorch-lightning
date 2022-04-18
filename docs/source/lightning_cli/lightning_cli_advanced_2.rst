@@ -11,8 +11,6 @@
 Eliminate config boilerplate (Advanced)
 #######################################
 
-----
-
 ******************************
 Customize arguments by command
 ******************************
@@ -131,6 +129,9 @@ now you can customize the behavior via environment variables:
 Set default config files
 ************************
 To set a path to a config file of defaults, use the ``default_config_files`` argument:
+
+.. testsetup:: *
+   from pytorch_lightning.utilities.cli import LightningCLI
 
 .. testcode::
 

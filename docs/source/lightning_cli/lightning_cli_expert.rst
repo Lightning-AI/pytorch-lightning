@@ -39,6 +39,9 @@ and after the trainer runs: :code:`before_<subcommand>` and :code:`after_<subcom
 A realistic example for these would be to send an email before and after the execution.
 The code for the :code:`fit` subcommand would be something like:
 
+.. testsetup:: *
+   from pytorch_lightning.utilities.cli import LightningCLI
+
 .. testcode::
 
     class MyLightningCLI(LightningCLI):

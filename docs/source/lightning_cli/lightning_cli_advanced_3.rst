@@ -14,6 +14,9 @@ The CLI is designed to start fitting with minimal code changes. On class instant
 call the trainer function associated to the subcommand provided so you don't have to do it.
 To avoid this, you can set the following argument:
 
+.. testsetup:: *
+   from pytorch_lightning.utilities.cli import LightningCLI
+
 .. testcode::
 
     cli = LightningCLI(MyModel, run=False)  # True by default
@@ -197,10 +200,13 @@ with LightningCLI is to implement a single module having as init parameters each
 parameters have as type a class, then in the configuration these would be specified with :code:`class_path` and
 :code:`init_args` entries. For instance a model could be implemented as:
 
+.. testsetup:: *
+   import torch.nn as nn
+
 .. testcode::
 
     class MyMainModel(LightningModule):
-        def __init__(self, encoder: EncoderBaseClass, decoder: DecoderBaseClass):
+        def __init__(self, encoder: nn.Module, decoder: nn.Module):
             """Example encoder-decoder submodules model
 
             Args:
@@ -235,7 +241,7 @@ Class type defaults
 The support for classes as type hints allows to try many possibilities with the same CLI. This is a useful feature, but
 it can make it tempting to use an instance of a class as a default. For example:
 
-.. testcode::
+.. code-block::
 
     class MyMainModel(LightningModule):
         def __init__(
@@ -256,6 +262,9 @@ it is not known which arguments were used to instantiate it.
 A good solution to these problems is to not have a default or set the default to a special value (e.g. a
 string) which would be checked in the init and instantiated accordingly. If a class parameter has no default and the CLI
 is subclassed then a default can be set as follows:
+
+.. testsetup:: *
+   from pytorch_lightning.utilities.cli import LightningCLI
 
 .. testcode::
 

@@ -15,6 +15,9 @@ the callback must define a :attr:`~pytorch_lightning.callbacks.Callback.state_ke
 to be able to distinguish the different states when loading the callback state. This concept is best illustrated by
 the following example.
 
+.. testsetup:: *
+   from pytorch_lightning.callbacks import Callback
+
 .. testcode::
 
     class Counter(Callback):

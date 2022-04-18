@@ -2,8 +2,6 @@
 Eliminate config boilerplate
 ############################
 
-----
-
 *********
 Basic use
 *********

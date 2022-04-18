@@ -19,6 +19,9 @@ to hint the user about the cause. This is problematic while developing the CLI s
 down the root of the problem. A simple change in the instantiation of the ``LightningCLI`` can be used such that when
 there is a failure an exception is raised and the full stack trace printed.
 
+.. testsetup:: *
+   from pytorch_lightning.utilities.cli import LightningCLI
+
 .. testcode::
 
     cli = LightningCLI(MyModel, parser_kwargs={"error_handler": None})
