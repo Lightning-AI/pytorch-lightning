@@ -20,10 +20,8 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-import pytorch_lightning
 from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
-from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.plugins.environments import (
@@ -34,18 +32,11 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.strategies import SingleDeviceStrategy
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import MNISTDataModule
 from tests.loggers.test_logger import CustomLogger
 from tests.plugins.environments.test_lsf_environment import _make_rankfile
-
-
-def test_v1_7_0_moved_model_summary_and_layer_summary(tmpdir):
-    _soft_unimport_module("pytorch_lightning.core.memory")
-    with pytest.deprecated_call(match="to `pytorch_lightning.utilities.model_summary` since v1.5"):
-        from pytorch_lightning.core.memory import LayerSummary, ModelSummary  # noqa: F401
 
 
 def test_v1_7_0_datamodule_transform_properties(tmpdir):
@@ -225,46 +216,6 @@ def test_v1_7_0_checkpoint_callback_trainer_constructor(tmpdir):
         _ = Trainer(checkpoint_callback=True)
 
 
-def test_v1_7_0_old_on_train_batch_start(tmpdir):
-    class OldSignature(Callback):
-        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-            ...
-
-    class OldSignatureModel(BoringModel):
-        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
-            ...
-
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature())
-    with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
-        trainer.fit(model)
-
-    model = OldSignatureModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
-    with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
-        trainer.fit(model)
-
-
-def test_v1_7_0_old_on_train_batch_end(tmpdir):
-    class OldSignature(Callback):
-        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-            ...
-
-    class OldSignatureModel(BoringModel):
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
-            ...
-
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature(), fast_dev_run=True)
-    with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
-        trainer.fit(model)
-
-    model = OldSignatureModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature(), fast_dev_run=True)
-    with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
-        trainer.fit(model)
-
-
 def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
     class TestModel(BoringModel):
         def on_post_move_to_device(self):
@@ -308,12 +259,6 @@ def test_v1_7_0_deprecated_slurm_job_id():
     trainer = Trainer()
     with pytest.deprecated_call(match="Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0."):
         trainer.slurm_job_id
-
-
-def test_v1_7_0_deprecate_xla_stats_monitor(monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.callbacks.xla_stats_monitor, "_TPU_AVAILABLE", True)
-    with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
-        _ = XLAStatsMonitor()
 
 
 def test_v1_7_0_deprecated_max_steps_none(tmpdir):
@@ -428,17 +373,3 @@ def test_v1_7_0_post_dispatch_hook():
 
     with pytest.deprecated_call(match=escape("`CustomPlugin.post_dispatch()` has been deprecated in v1.6")):
         CustomPlugin(torch.device("cpu"))
-
-
-def test_xla_stats_monitor_tpu_not_used(monkeypatch):
-    monkeypatch.setattr(pytorch_lightning.callbacks.xla_stats_monitor, "_TPU_AVAILABLE", True)
-    with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
-        xla_stats = XLAStatsMonitor()
-
-    trainer = Trainer(accelerator="cpu", callbacks=[xla_stats])
-    model = BoringModel()
-    with pytest.raises(
-        MisconfigurationException,
-        match="You are using XLAStatsMonitor but are not running on TPU. The accelerator is set to CPUAccelerator.",
-    ):
-        trainer.fit(model)
