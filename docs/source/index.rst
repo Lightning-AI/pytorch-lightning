@@ -190,7 +190,7 @@ Current Lightning Users
    :name: Common Workflows
    :caption: Common Workflows
 
-   common/evaluation
+   Avoid overfitting <model/validate_model_basic>
    model/build_model.rst
    common/hyperparameters
    common/progress_bar
