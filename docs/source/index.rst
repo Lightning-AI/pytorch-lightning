@@ -5,6 +5,7 @@
 
 Welcome to ⚡ PyTorch Lightning
 ===============================
+
 .. twocolumns::
    :left:
       .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/mov.gif
@@ -283,10 +284,12 @@ Current Lightning Users
    governance
    generated/CHANGELOG.md
 
-
-   * :ref:`genindex`
-   * :ref:`search`
-
 .. raw:: html
 
    </div>
+
+Indices and tables
+------------------
+
+* :ref:`genindex`
+* :ref:`search`
