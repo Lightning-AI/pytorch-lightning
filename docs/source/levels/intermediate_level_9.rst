@@ -33,7 +33,7 @@ This module teaches you how to setup complex projects that can be controlled via
    :header: 3: Mix models and datasets
    :description: Register models, datasets, optimizers and learning rate schedulers
    :col_css: col-md-4
-   :button_link: ./lightning_cli/lightning_cli_intermediate_2.html
+   :button_link: ../lightning_cli/lightning_cli_intermediate_2.html
    :height: 150
    :tag: intermediate
 
