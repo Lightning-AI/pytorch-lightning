@@ -22,14 +22,14 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :header: Avoid overfitting
    :description: Add a training and test loop.
    :col_css: col-md-12
-   :button_link: ../model/validate_model_basic.html
+   :button_link: model/validate_model_basic.html
    :height: 100
 
 .. displayitem::
    :header: Build a model
    :description: Steps to build a model.
    :col_css: col-md-12
-   :button_link: ../model/build_model.html
+   :button_link: model/build_model.html
    :height: 100
 
 .. displayitem::
@@ -64,7 +64,7 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :header: Eliminate config boilerplate
    :description: Control your training via CLI and YAML.
    :col_css: col-md-12
-   :button_link: ../cli/lightning_cli
+   :button_link: cli/lightning_cli
    :height: 100
 
 .. displayitem::
@@ -85,7 +85,7 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :header: Manage Experiments
    :description: Learn to track and visualize experiments
    :col_css: col-md-12
-   :button_link: visualize_experiments/logging_intermediate
+   :button_link: visualize/logging_intermediate
    :height: 100
 
 .. displayitem::
@@ -106,7 +106,7 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :header: Save memory with half-precision
    :description: Enable half-precision to train faster and save memory.
    :col_css: col-md-12
-   :button_link: ../common/precision
+   :button_link: common/precision
    :height: 100
 
 .. displayitem::
@@ -155,14 +155,14 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :header: Track and Visualize Experiments
    :description: Learn to track and visualize experiments
    :col_css: col-md-12
-   :button_link: visualize_experiments/logging_intermediate
+   :button_link: visualize/logging_intermediate
    :height: 100
 
 .. displayitem::
    :header: Use a pure PyTorch training loop
    :description: Run your pure PyTorch loop with Lightning.
    :col_css: col-md-12
-   :button_link: ../model/own_your_loop
+   :button_link: model/own_your_loop
    :height: 100
 
 .. raw:: html

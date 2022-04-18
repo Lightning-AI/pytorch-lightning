@@ -25,7 +25,7 @@ Learn the basics of model development with Lightning. Researchers and machine le
 .. displayitem::
    :header: Level 1: Train a model
    :description: Learn the basics of training a model.
-   :button_link: ../model/train_model_basic.html
+   :button_link: model/train_model_basic.html
    :col_css: col-md-6
    :height: 150
    :tag: basic

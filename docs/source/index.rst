@@ -223,7 +223,7 @@ Current Lightning Users
    Console Logging <common/console_logs>
    Debugging <debug/debugging>
    Early stopping <common/early_stopping>
-   Experiment manager <visualize_experiments/experiment_managers>
+   Experiment manager <visualize/experiment_managers>
    Fault tolerant training  <clouds/fault_tolerant_training>
    Flash <https://lightning-flash.readthedocs.io/en/stable/>
    Grid AI <clouds/cloud_training>
@@ -237,8 +237,8 @@ Current Lightning Users
    LightningDataModule <datamodule/datamodules>
    LightningModule <common/lightning_module>
    Lightning Transformers <https://pytorch-lightning.readthedocs.io/en/stable/ecosystem/transformers.html>
-   Log <visualize_experiments/loggers>
-   Logger <visualize_experiments/experiment_managers>
+   Log <visualize/loggers>
+   Logger <visualize/experiment_managers>
    Loops <model/custom_loop_expert>
    TPU <accelerators/tpu>
    Metrics <https://torchmetrics.readthedocs.io/en/stable/>

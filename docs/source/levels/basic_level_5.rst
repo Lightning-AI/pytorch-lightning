@@ -29,7 +29,7 @@ Level 5: Debug, visualize and find performance bottlenecks
    :header: Visualize metrics, images, and text.
    :description: Learn how to track and visualize metrics, images and text.
    :col_css: col-md-4
-   :button_link: ../visualize_experiments/logging_basic.html
+   :button_link: ../visualize/logging_basic.html
    :height: 150
    :tag: basic
 
