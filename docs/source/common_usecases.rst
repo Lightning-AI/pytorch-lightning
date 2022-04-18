@@ -22,7 +22,7 @@ Customize and extend Lightning for things like custom hardware or distributed st
    :header: Avoid overfitting
    :description: Add a training and test loop.
    :col_css: col-md-12
-   :button_link: common/evaluation.html
+   :button_link: build_model/validate_model_basic.html
    :height: 100
 
 .. displayitem::

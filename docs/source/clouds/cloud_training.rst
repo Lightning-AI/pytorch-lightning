@@ -59,7 +59,7 @@ Train on the cloud
         </div>
     </div>
 
-----  
+----
 
 .. raw:: html
 

@@ -37,5 +37,3 @@ Level 2: Add a validation and test set
 
         </div>
     </div>
-
-

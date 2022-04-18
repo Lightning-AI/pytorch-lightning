@@ -70,4 +70,3 @@ Make sure the code is running while you are trying to capture the traces. It wil
 4: View the profiling logs
 ==========================
 Once the capture is finished, the page will refresh and you can browse through the insights using the **Tools** dropdown at the top left
-

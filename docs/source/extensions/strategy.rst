@@ -18,6 +18,12 @@ The Strategy in PyTorch Lightning handles the following responsibilities:
 
 :class:`~pytorch_lightning.strategies.strategy.Strategy` also manages the accelerator, precision, and checkpointing plugins.
 
+.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/strategies/overview.jpeg
+    :alt: Illustration of the Strategy as a composition of the Accelerator and several plugins
+
+We expose Strategies mainly for expert users that want to extend Lightning for new hardware support or new distributed backends (e.g. a backend not yet supported by `PyTorch <https://pytorch.org/docs/stable/distributed.html#backends>`_ itself).
+
+
 ----
 
 ###########################
@@ -52,6 +58,11 @@ Enable Different Strategies
 ########################
 Create a Custom Strategy
 ########################
+<<<<<<< HEAD
+=======
+
+Every strategy in Lightning is a subclass of one of the main base classes: :class:`~pytorch_lightning.strategies.Strategy`, :class:`~pytorch_lightning.strategies.SingleDeviceStrategy` or :class:`~pytorch_lightning.strategies.ParallelStrategy`.
+>>>>>>> c8486910973340f5bdfb85761536c1ff3230197a
 
 Expert users may choose to extend an existing strategy by overriding its methods.
 
@@ -113,4 +124,8 @@ Available Training Strategies
     SingleHPUStrategy
     SingleTPUStrategy
     Strategy
+<<<<<<< HEAD
     TPUSpawnStrategy
+=======
+    TPUSpawnStrategy
+>>>>>>> c8486910973340f5bdfb85761536c1ff3230197a
