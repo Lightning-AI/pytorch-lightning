@@ -15,18 +15,26 @@ Reach trillion parameter scale and put models into production.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 15: Customize configs to run in production
+   :header: Level 15: Customize configs to run in production.
    :description: Enable composable YAMLs
-   :col_css: col-md-4
+   :col_css: col-md-6
    :button_link: advanced_level_15.html
    :height: 150
    :tag: advanced
 
 .. displayitem::
    :header: Level 16: Customize the trainer
-   :description: Inject custom code into the trainer and modify the progress bar
-   :col_css: col-md-4
+   :description: Inject custom code into the trainer and modify the progress bar.
+   :col_css: col-md-6
    :button_link: advanced_level_16.html
+   :height: 150
+   :tag: advanced
+
+.. displayitem::
+   :header: Level 17: Own the training loop
+   :description: Learn all the ways of owning your raw PyTorch loops with Lighting.
+   :col_css: col-md-6
+   :button_link: advanced_level_17.html
    :height: 150
    :tag: advanced
 

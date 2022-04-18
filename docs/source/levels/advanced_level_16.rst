@@ -14,7 +14,7 @@ In this level, you'll learn to modify the Trainer behavior.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: 1: Create and use Callbacks
+   :header: Create and use Callbacks
    :description: Modify Trainer behavior with reusable, self-contained code.
    :col_css: col-md-6
    :button_link: ../extensions/callbacks.html
@@ -22,7 +22,7 @@ In this level, you'll learn to modify the Trainer behavior.
    :tag: advanced
 
 .. displayitem::
-   :header: 2: Customize the progress bar
+   :header: Customize the progress bar
    :description: Create beautiful custom progress bars.
    :col_css: col-md-6
    :button_link: ../common/progress_bar.html

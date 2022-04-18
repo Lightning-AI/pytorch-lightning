@@ -15,7 +15,7 @@ This level goes over advanced YAML use for running models in production.
 
 .. displayitem::
    :header: 1: Control it all via YAML
-   :description: Enable composable YAMLs
+   :description: Enable composable YAMLs.
    :col_css: col-md-6
    :button_link: ../lightning_cli/lightning_cli_advanced.html
    :height: 150
@@ -23,7 +23,7 @@ This level goes over advanced YAML use for running models in production.
 
 .. displayitem::
    :header: 2: Use YAML for production
-   :description: Use the Lightning CLI with YAMLs for production environments
+   :description: Use the Lightning CLI with YAMLs for production environments.
    :col_css: col-md-6
    :button_link: ../lightning_cli/lightning_cli_advanced_2.html
    :height: 150
