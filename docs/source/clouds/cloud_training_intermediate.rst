@@ -1,3 +1,5 @@
+:orphan:
+
 .. _grid_cloud_intermediate:
 
 #################################
