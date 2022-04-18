@@ -1,4 +1,4 @@
-.. _model_parallel_advanced:
+.. _model-parallel:
 
 Train 1 trillion+ parameter models
 ==================================
@@ -37,7 +37,7 @@ This means we cannot sacrifice throughput as much as if we were fine-tuning, bec
 Overall:
 
 * When **fine-tuning** a model, use advanced memory efficient strategies such as :ref:`deepspeed-zero-stage-3` or :ref:`deepspeed-zero-stage-3-offload`, allowing you to fine-tune larger models if you are limited on compute
-* When **pre-training** a model, use simpler optimizations such :ref:`sharded`, :ref:`deepspeed-zero-stage-2` or :ref:`fully-sharded`, scaling the number of GPUs to reach larger parameter sizes
+* When **pre-training** a model, use simpler optimizations such :ref:`sharded-training`, :ref:`deepspeed-zero-stage-2` or :ref:`fully-sharded-training`, scaling the number of GPUs to reach larger parameter sizes
 * For both fine-tuning and pre-training, use :ref:`deepspeed-activation-checkpointing` or :ref:`fairscale-activation-checkpointing` as the throughput degradation is not significant
 
 For example when using 128 GPUs, you can **pre-train** large 10 to 20 Billion parameter models using :ref:`deepspeed-zero-stage-2` without having to take a performance hit with more advanced optimized multi-gpu strategy.
@@ -53,7 +53,7 @@ Sharding techniques help when model sizes are fairly large; roughly 500M+ parame
 
 ----------
 
-.. _sharded_training_advanced:
+.. _sharded-training:
 
 Sharded Training
 ^^^^^^^^^^^^^^^^
@@ -91,7 +91,7 @@ Internally we re-initialize your optimizers and shard them across your machines 
 
 ----------
 
-.. _fully_sharded_training_advanced:
+.. _fully-sharded-training:
 
 Fully Sharded Training
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -177,7 +177,7 @@ Below is an example of using both ``wrap`` and ``auto_wrap`` to create your mode
 
 ----------
 
-.. _fairscale_activation_checkpointing_advanced:
+.. _fairscale-activation-checkpointing:
 
 FairScale Activation Checkpointing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -247,7 +247,7 @@ If you run into an issue with the install or later in training, ensure that the 
     When saving a checkpoint we rely on DeepSpeed which saves a directory containing the model and various components.
 
 
-.. _deepspeed_zero_stage_1_advanced:
+.. _deepspeed-zero-stage-1:
 
 DeepSpeed ZeRO Stage 1
 """"""""""""""""""""""
@@ -265,7 +265,7 @@ It is recommended to skip Stage 1 and use Stage 2, which comes with larger memor
     trainer.fit(model)
 
 
-.. _deepspeed_zero_stage_2_advanced:
+.. _deepspeed-zero-stage-2:
 
 DeepSpeed ZeRO Stage 2
 """"""""""""""""""""""
@@ -286,7 +286,7 @@ As a result, benefits can also be seen on a single GPU. Do note that the default
     python train.py --strategy deepspeed_stage_2 --precision 16 --accelerator 'gpu' --devices 4
 
 
-.. _deepspeed_zero_stage_2_offload_advanced:
+.. _deepspeed-zero-stage-2-offload:
 
 DeepSpeed ZeRO Stage 2 Offload
 """"""""""""""""""""""""""""""
@@ -356,7 +356,7 @@ For even more speed benefit, DeepSpeed offers an optimized CPU version of ADAM c
     trainer.fit(model)
 
 
-.. _deepspeed_zero_stage_3_advanced:
+.. _deepspeed-zero-stage-3:
 
 DeepSpeed ZeRO Stage 3
 """"""""""""""""""""""
@@ -454,7 +454,7 @@ This reduces the time taken to initialize very large models, as well as ensure w
     trainer.predict()
 
 
-.. _deepspeed_zero_stage_3_offload_advanced:
+.. _deepspeed-zero-stage-3-offload:
 
 DeepSpeed ZeRO Stage 3 Offload
 """"""""""""""""""""""""""""""
@@ -525,7 +525,7 @@ Additionally, DeepSpeed supports offloading to NVMe drives for even larger model
 
 When offloading to NVMe you may notice that the speed is slow. There are parameters that need to be tuned based on the drives that you are using. Running the `aio_bench_perf_sweep.py <https://github.com/microsoft/DeepSpeed/blob/master/csrc/aio/py_test/aio_bench_perf_sweep.py>`__ script can help you to find optimum parameters. See the `issue <https://github.com/microsoft/DeepSpeed/issues/998>`__ for more information on how to parse the information.
 
-.. _deepspeed_activation_checkpointing_advanced:
+.. _deepspeed-activation-checkpointing:
 
 DeepSpeed Activation Checkpointing
 """"""""""""""""""""""""""""""""""
@@ -601,7 +601,7 @@ This saves memory when training larger models, however requires using a checkpoi
     trainer.fit(model)
 
 
-.. _deepspeed_zero_stage_3_tips_advanced:
+.. _deepspeed-zero-stage-3-tips:
 
 DeepSpeed ZeRO Stage 3 Tips
 """""""""""""""""""""""""""
@@ -613,7 +613,7 @@ Here is some helpful information when setting up DeepSpeed ZeRO Stage 3 with Lig
 * When offloading to the CPU, make sure to bump up the batch size as GPU memory will be freed
 * We also support sharded checkpointing. By passing ``save_full_weights=False`` to the ``DeepSpeedStrategy``, we'll save shards of the model which allows you to save extremely large models. However to load the model and run test/validation/predict you must use the Trainer object.
 
-.. _deepspeed_zero_stage_3_single_file_advanced:
+.. _deepspeed-zero-stage-3-single-file:
 
 Collating Single File Checkpoint for DeepSpeed ZeRO Stage 3
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -706,7 +706,7 @@ You can use also use an environment variable via your PyTorch Lightning script:
 
 ----------
 
-.. _ddp_optimizations_advanced:
+.. _ddp-optimizations:
 
 DDP Optimizations
 ^^^^^^^^^^^^^^^^^
