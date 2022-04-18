@@ -13,7 +13,7 @@ Level 5: Debug, visualize and find performance bottlenecks
    :header: Debug your model
    :description: Learn the basics of model debugging
    :col_css: col-md-4
-   :button_link: ../debugging/debugging_basic.html
+   :button_link: ../debug/debugging_basic.html
    :height: 150
    :tag: basic
 

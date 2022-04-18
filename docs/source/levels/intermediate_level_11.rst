@@ -19,7 +19,7 @@ In this level you'll explore SOTA techniques to help convergence, stability and 
    :header: 1: Half precision training
    :description: Enable your models to train faster and save memory with different floating-point precision settings.
    :col_css: col-md-6
-   :button_link: ../precision/precision_basic.html
+   :button_link: ../common/precision_basic.html
    :height: 150
    :tag: basic
 

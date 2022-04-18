@@ -19,7 +19,7 @@ Extend the functionality of the Lightning CLI.
    :header: Customize configs for complex projects
    :description: Learn how to connect complex projects with each Registry.
    :col_css: col-md-6
-   :button_link: ../lightning_cli/lightning_cli_advanced_3.html
+   :button_link: ../cli/lightning_cli_advanced_3.html
    :height: 150
    :tag: expert
 
@@ -27,7 +27,7 @@ Extend the functionality of the Lightning CLI.
    :header: Extend the Lightning CLI
    :description: Customize the Lightning CLI
    :col_css: col-md-6
-   :button_link: ../lightning_cli/lightning_cli_expert.html
+   :button_link: ../cli/lightning_cli_expert.html
    :height: 150
    :tag: expert
 

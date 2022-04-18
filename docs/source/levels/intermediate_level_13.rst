@@ -19,7 +19,7 @@ In this level you'll use advanced profilers and mixed precision techniques to tr
    :header: Explore advanced mixed precision settings
    :description: Enable state-of-the-art scaling with advanced mix-precision settings.
    :col_css: col-md-4
-   :button_link: ../precision/precision_intermediate.html
+   :button_link: ../common/precision_intermediate.html
    :height: 150
    :tag: intermediate
 

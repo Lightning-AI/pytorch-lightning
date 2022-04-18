@@ -318,7 +318,7 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
    :description: Automated training loop, but you own the optimization steps.
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/manual_opt.png
-   :button_link: ../build_model/build_model_advanced.html#manual-optimization
+   :button_link: ../model/build_model_advanced.html#manual-optimization
    :image_height: 220px
    :height: 320
 
@@ -327,7 +327,7 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
    :description: Full control over loop for migrating complex PyTorch projects.
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/lite.png
-   :button_link: ../build_model/build_model_expert.html
+   :button_link: ../model/build_model_expert.html
    :image_height: 220px
    :height: 320
 
@@ -336,7 +336,7 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
    :description: Enable meta-learning, reinforcement learning, GANs with full control.
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/loops.png
-   :button_link: ../build_model/custom_loop_expert.html
+   :button_link: ../model/custom_loop_expert.html
    :image_height: 220px
    :height: 320
 
@@ -381,7 +381,7 @@ Depending on your use case, you might want to check one of these out next.
    :header: I need my raw PyTorch Loop
    :description: Expert-level control for researchers working on the bleeding-edge
    :col_css: col-md-3
-   :button_link: ../build_model/build_model_expert.html
+   :button_link: ../model/build_model_expert.html
    :height: 180
    :tag: expert
 
