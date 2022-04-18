@@ -9,6 +9,11 @@ Lightning in 15 minutes
 
 PyTorch Lightning is the deep learning framework with "batteries included" for professional AI researchers and machine learning engineers who need maximal flexibility while super-charging performance at scale.
 
+.. join_slack::
+   :align: left
+   :margin: 20
+
+
 Lightning organizes PyTorch code to remove boilerplate and unlock scalability.
 
 .. raw:: html
@@ -16,6 +21,7 @@ Lightning organizes PyTorch code to remove boilerplate and unlock scalability.
     <video width="100%" max-width="800px" controls autoplay muted playsinline
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/pl_docs_animation_final.m4v"></video>
 
+|
 
 By organizing PyTorch code, lightning enables:
 
@@ -168,7 +174,7 @@ The Lightning :doc:`Trainer <../common/trainer>` "mixes" any :doc:`LightningModu
 .. code-block:: python
 
     # train the model (hint: here are some helpful Trainer arguments for rapid idea iteration)
-    trainer = pl.Trainer(limit_train_batches=100, max_epochs=10)
+    trainer = pl.Trainer(limit_train_batches=100, max_epochs=1)
     trainer.fit(model=autoencoder, train_dataloaders=train_loader)
 
 The Lightning :doc:`Trainer <../common/trainer>` automates `40+ tricks <../common/trainer.html#trainer-flags>`_ including:
@@ -356,10 +362,10 @@ Depending on your use case, you might want to check one of these out next.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 2: Use GPU/TPU
-   :description: Learn how to make your models 10x faster with GPUs/TPUs and half-precision.
+   :header: Level 2: Add a validation and test set
+   :description: Add validation and test sets to avoid over/underfitting.
+   :button_link: ../levels/basic_level_2.html
    :col_css: col-md-3
-   :button_link: ../levels/core_level_2.html
    :height: 180
    :tag: basic
 
@@ -367,7 +373,7 @@ Depending on your use case, you might want to check one of these out next.
    :header: See more examples
    :description: See examples across computer vision, NLP, RL, etc...
    :col_css: col-md-3
-   :button_link: ../levels/core_level_6.html
+   :button_link: ../tutorials.html
    :height: 180
    :tag: basic
 
@@ -383,7 +389,7 @@ Depending on your use case, you might want to check one of these out next.
    :header: Deploy your model
    :description: Learn how to predict or put your model into production
    :col_css: col-md-3
-   :button_link: ../levels/core_level_6.html
+   :button_link: ../deploy/production.html
    :height: 180
    :tag: basic
 

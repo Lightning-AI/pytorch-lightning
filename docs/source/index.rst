@@ -11,6 +11,7 @@ Welcome to ⚡ PyTorch Lightning
          :alt: Animation showing how to convert a standard training loop to a Lightning loop
    :right: 
       PyTorch Lightning is the deep learning framework for professional AI researchers and machine learning engineers who need maximal flexibility without sacrificing performance at scale.
+      Lightning evolves with you as your projects go from idea to paper/production.
 
 .. raw:: html
 
@@ -119,7 +120,7 @@ Current Lightning Users
 
 .. customcalloutitem::
    :description: Detailed description of API each package. Assumes you already have basic Lightning knowledge.
-   :header: API References
+   :header: API Reference
    :button_link: api_references.html
 
 .. customcalloutitem::
@@ -129,7 +130,7 @@ Current Lightning Users
 
 .. customcalloutitem::
    :description: Learn how to do everything from hyperparameters sweeps to cloud training to Pruning and Quantization with Lightning.
-   :header: Concepts Glossary
+   :header: Common Workflows
    :button_link: common_usecases.html
 
 .. customcalloutitem::
@@ -155,6 +156,7 @@ Current Lightning Users
    :caption: Get Started
 
    starter/introduction
+   Organize existing PyTorch into Lightning <starter/converting>
 
 
 .. toctree::
@@ -178,14 +180,14 @@ Current Lightning Users
 .. toctree::
    :maxdepth: 2
    :name: api
-   :caption: API References
+   :caption: API Reference
 
    api_references
 
 .. toctree::
    :maxdepth: 1
-   :name: Superpowers
-   :caption: Superpowers
+   :name: Common Workflows
+   :caption: Common Workflows
 
    common/evaluation
    build_model/build_model.rst
@@ -198,15 +200,15 @@ Current Lightning Users
    tuning/profiler
    Finetune a model <advanced/transfer_learning>
    Manage experiments <visualize_experiments/logging_intermediate>
-   precision/precision
    clouds/cluster
    advanced/model_parallel
    clouds/cloud_training
+   Save and load model progress <common/checkpointing_basic>
+   Save memory with half-precision <precision/precision>
    Train on single or multiple GPUs <accelerators/gpu>
    Train on single or multiple HPUs <accelerators/hpu>
    Train on single or multiple IPUs <accelerators/ipu>
    Train on single or multiple TPUs <accelerators/tpu>
-   Save and load model progress <common/checkpointing_basic>
    visualize_experiments/loggers
    build_model/own_your_loop
 
