@@ -1,3 +1,5 @@
+:orphan:
+
 .. _gpu_expert:
 
 GPU training (Expert)

@@ -1,3 +1,5 @@
+:orphan:
+
 .. testsetup:: *
     :skipif: not _JSONARGPARSE_AVAILABLE
 

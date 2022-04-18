@@ -1,3 +1,5 @@
+:orphan:
+
 .. _hpu_basics:
 
 Accelerator: HPU training

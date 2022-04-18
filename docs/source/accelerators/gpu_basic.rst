@@ -1,3 +1,5 @@
+:orphan:
+
 .. _gpu_basic:
 
 GPU training (Basic)
