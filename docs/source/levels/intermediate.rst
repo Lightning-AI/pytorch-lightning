@@ -10,7 +10,7 @@ Learn to scale up your models and enable collaborative model development at acad
 
 ----
 
-.. include:: links.rst
+.. include:: ../links.rst
 
 .. raw:: html
 
