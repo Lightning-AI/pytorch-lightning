@@ -49,7 +49,7 @@ Checkpoints can also save the state of :doc:`datamodules <../data/datamodule>` a
 
 ----
 
-.. include:: ../extensions/callbacks_state.inc
+.. include:: ../extensions/callbacks_state.rst
 
 ----
 
