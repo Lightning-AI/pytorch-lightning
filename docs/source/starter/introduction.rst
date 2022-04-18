@@ -186,7 +186,7 @@ The Lightning :doc:`Trainer <../common/trainer>` automates `40+ tricks <../commo
 * Tensorboard (see :doc:`loggers <../visualize/loggers>` options)
 * :doc:`Multi-GPU <../accelerators/gpu>` support
 * :doc:`TPU <../accelerators/tpu>`
-* :ref:`16-bit precision AMP <amp>` support
+* :ref:`16-bit precision AMP <../guides/speed:speed-amp>` support
 
 ----
 
