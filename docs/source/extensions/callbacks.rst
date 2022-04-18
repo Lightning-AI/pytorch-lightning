@@ -92,7 +92,6 @@ Lightning has a few built-in callbacks.
     Callback
     DeviceStatsMonitor
     EarlyStopping
-    GPUStatsMonitor
     GradientAccumulationScheduler
     LambdaCallback
     LearningRateMonitor
@@ -106,7 +105,6 @@ Lightning has a few built-in callbacks.
     StochasticWeightAveraging
     Timer
     TQDMProgressBar
-    XLAStatsMonitor
 
 ----------
 
