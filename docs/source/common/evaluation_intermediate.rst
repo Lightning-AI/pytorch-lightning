@@ -1,4 +1,5 @@
 .. _test_set:
+:orphan:
 
 ########################################
 Validate and test a model (intermediate)
