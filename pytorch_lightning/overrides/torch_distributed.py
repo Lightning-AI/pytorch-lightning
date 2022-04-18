@@ -6,7 +6,6 @@ import os
 import pickle
 
 import torch
-from torch._C._distributed_c10d import ProcessGroup
 
 _pickler = pickle.Pickler
 _unpickler = pickle.Unpickler
@@ -16,6 +15,9 @@ logger = logging.getLogger(__name__)
 
 if torch.distributed.is_available():
     from torch.distributed import Backend, broadcast, get_backend, get_rank, GroupMember
+    from torch._C._distributed_c10d import ProcessGroup
+else:
+    ProcessGroup = None
 
 # The code underneath is taken from PyTorch `torch/distributed/distributed_c10d.py`
 # the distributed backend and tensor type updates for habana backend is done here before broadcast
