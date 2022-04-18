@@ -119,7 +119,7 @@ Current Lightning Users
 
 .. customcalloutitem::
    :description: Detailed description of API each package. Assumes you already have basic Lightning knowledge.
-   :header: API References
+   :header: API Reference
    :button_link: api_references.html
 
 .. customcalloutitem::
@@ -155,6 +155,7 @@ Current Lightning Users
    :caption: Get Started
 
    starter/introduction
+   Organize existing PyTorch into Lightning <starter/converting>
 
 
 .. toctree::
@@ -178,7 +179,7 @@ Current Lightning Users
 .. toctree::
    :maxdepth: 2
    :name: api
-   :caption: API References
+   :caption: API Reference
 
    api_references
 
