@@ -1154,7 +1154,7 @@ plugins
 
 - :ref:`Checkpoint IO <checkpointing_expert>`
 - `TorchElastic <https://pytorch.org/elastic/0.2.2/index.html>`_
-- :ref:`Precision Plugins <precision-expert>`
+- :ref:`Precision Plugins <precision_expert>`
 
 To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own
 :class:`~pytorch_lightning.plugins.environments.ClusterEnvironment`.

@@ -19,3 +19,7 @@ For example, Lightning worked closely with the Microsoft team to develop a Deeps
 ----
 
 .. include:: ../advanced/strategy_registry.rst
+
+----
+
+.. include:: ../extensions/strategy.html
