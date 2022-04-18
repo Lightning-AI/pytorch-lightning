@@ -71,7 +71,7 @@ To use multiple GPUs on notebooks, use the *DP* mode.
 
 If you want to use other models, please launch your training via the command-shell.
 
-.. note:: Learn how to :doc:`access a cloud machine with multiple GPUs <session_basic>` in this guide.
+.. note:: Learn how to :doc:`access a cloud machine with multiple GPUs <grid_cloud_session_basic>` in this guide.
 
 ----
 
