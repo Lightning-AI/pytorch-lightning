@@ -56,6 +56,13 @@ Learn to scale up your models and enable collaborative model development at acad
    :button_link: intermediate_level_12.html   
    :height: 150
 
+.. displayitem::
+   :header: Level 13: Optimize training speed
+   :description: Use advanced profilers to mixed precision to train bigger models, faster.
+   :col_css: col-md-6
+   :button_link: intermediate_level_13.html   
+   :height: 150
+
 .. raw:: html
 
         </div>
