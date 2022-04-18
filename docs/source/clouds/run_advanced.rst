@@ -49,7 +49,7 @@ Now create the datastore
 
       grid datastore create cifar5/ --name cifar5
 
-Now your dataset is ready to be used for training on the cloud! 
+Now your dataset is ready to be used for training on the cloud!
 
 .. note::  In some *research* workflows, your model script ALSO downloads the dataset. If the dataset is only a few GBs this is fine. Otherwise we recommend you create a Datastore.
 
@@ -63,7 +63,7 @@ You can run any python script in the background. For this example, we'll use a s
 Clone the code to your machine:
 
 .. code bash
-      
+
       git clone https://github.com/williamFalcon/cifar5-simple.git
 
 
@@ -76,15 +76,15 @@ Clone the code to your machine:
 *******************
 To run this model on the cloud, use the **grid run** command which has two parts:
 
-.. code:: bash 
+.. code:: bash
 
       grid run [run args] file.py [file args]
 
-To attach the datastore **cifar5** to the **cifar5.py** file use the following command: 
+To attach the datastore **cifar5** to the **cifar5.py** file use the following command:
 
 .. code:: bash
-      
-      # command | the datastore to use   |  the model  | argument to the model    
+
+      # command | the datastore to use   |  the model  | argument to the model
       grid run --datastore_name cifar5 cifar5.py.py --data_dir /datastores/cifar5
 
 ----
@@ -98,7 +98,7 @@ You can also monitor its progress on the commandline:
 
 .. code:: bash
 
-      grid status 
+      grid status
 
 ----
 

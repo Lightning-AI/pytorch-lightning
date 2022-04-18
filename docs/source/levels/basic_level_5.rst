@@ -8,7 +8,7 @@ Level 5: Debug, visualize and find performance bottlenecks
         <div class="row">
 
 .. displayitem::
-   :header: Debug your model 
+   :header: Debug your model
    :description: Learn the basics of model debugging
    :col_css: col-md-4
    :button_link: ../debugging/debugging_basic.html

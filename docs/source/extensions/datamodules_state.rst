@@ -5,12 +5,11 @@ When a checkpoint is created, it asks every DataModule for their state. If your 
 .. code:: python
 
     class LitDataModule(pl.DataModuler):
-
         def state_dict(self):
             # track whatever you want here
-            state = {'current_train_batch_index': self.current_train_batch_index}
+            state = {"current_train_batch_index": self.current_train_batch_index}
             return state
 
         def load_state_dict(self, state_dict):
-            # restore the state based on what you tracked in (def state_dict) 
-            self.current_train_batch_index = state_dict['current_train_batch_index']
+            # restore the state based on what you tracked in (def state_dict)
+            self.current_train_batch_index = state_dict["current_train_batch_index"]

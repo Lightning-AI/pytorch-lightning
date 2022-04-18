@@ -30,7 +30,7 @@ In this level you'll learn to run on onprem clusters.
    :tag: intermediate
 
 .. displayitem::
-   :header: Run with Torch Distributed   
+   :header: Run with Torch Distributed
    :description: Run models on a cluster with torch distributed.
    :col_css: col-md-4
    :button_link: ../clouds/cluster_intermediate_2.html

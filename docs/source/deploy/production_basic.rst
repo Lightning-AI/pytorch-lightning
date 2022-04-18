@@ -76,5 +76,5 @@ By using the predict step in Lightning you get free distributed inference
 
 .. code-block:: python
 
-    trainer = Trainer(devices=8, accelerator='gpu')
+    trainer = Trainer(devices=8, accelerator="gpu")
     predictions = trainer.predict(model, data_loader)

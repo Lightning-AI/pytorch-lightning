@@ -41,7 +41,7 @@ Let's create a datastore from this .zip file
 
    grid datastore create https://pl-flash-data.s3.amazonaws.com/tinycifar5.zip --name cifar5
 
-Now your dataset is ready to be used for training on the cloud! 
+Now your dataset is ready to be used for training on the cloud!
 
 .. note::  In some *research* workflows, your model script ALSO downloads the dataset. If the dataset is only a few GBs this is fine. Otherwise we recommend you create a Datastore.
 
@@ -55,7 +55,7 @@ You can run any python script in the background. For this example, we'll use a s
 Clone the code to your machine:
 
 .. code:: bash
-      
+
       git clone https://github.com/williamFalcon/cifar5-simple.git
       cd cifar5-simple
 
@@ -69,12 +69,12 @@ Clone the code to your machine:
 To run this model on the cloud with the attached datastore, use the **grid run** command:
 
 .. code:: bash
-         
+
       grid run --datastore_name cifar5 cifar5.py --data_dir /datastores/cifar5
 
 The grid command has two parts the *[run args]* and the *[file args]*
 
-.. code:: bash 
+.. code:: bash
 
       grid run [run args] file.py [file args]
 
@@ -89,7 +89,7 @@ You can also monitor its progress on the commandline:
 
 .. code:: bash
 
-      grid status 
+      grid status
 ----
 
 .. include:: grid_costs.rst
@@ -112,7 +112,7 @@ Here are the recommended next steps depending on your workflow.
    :header: Run many models at once
    :description: Learn how to find the best performaning model by running multiple models at once using a sweep.
    :col_css: col-md-4
-   :button_link: run_intermediate.html   
+   :button_link: run_intermediate.html
    :height: 150
    :tag: basic
 

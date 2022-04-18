@@ -61,7 +61,7 @@ TODO: need progress bar here
 
 View in the browser
 ===================
-To view metrics in the browser you need to use an *experiment manager* with these capabilities. By Default, Lightning uses Tensorboard which is free and opensource. 
+To view metrics in the browser you need to use an *experiment manager* with these capabilities. By Default, Lightning uses Tensorboard which is free and opensource.
 
 Tensorboard is already enabled by default
 
@@ -87,9 +87,9 @@ If you're using a notebook environment such as *colab* or *kaggle* or *jupyter*,
 
 Accumulate a metric
 ===================
-When *self.log* is called inside the *training_step*, it generates a timeseries showing how the metric behaves over time. 
+When *self.log* is called inside the *training_step*, it generates a timeseries showing how the metric behaves over time.
 
-TODO: show chart 
+TODO: show chart
 
 However, For the validation and test sets we are not generally interested in plotting the metric values per batch of data. Instead, we want to compute a summary statistic (such as average, min or max) across the full split of data.
 

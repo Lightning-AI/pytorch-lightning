@@ -13,16 +13,16 @@ Enable advanced training features using Trainer arguments. These are SOTA techni
 
    # train 1TB+ parameter models with Deepspeed/fsdp
    trainer = Trainer(
-       devices=4, 
-       accelerator="gpu", 
-       strategy="deepspeed_stage_2", 
+       devices=4,
+       accelerator="gpu",
+       strategy="deepspeed_stage_2",
        precision=16
     )
 
-   # 20+ helpful flags for rapid idea iteration 
+   # 20+ helpful flags for rapid idea iteration
    trainer = Trainer(
-       max_epochs=10, 
-       min_epochs=5, 
+       max_epochs=10,
+       min_epochs=5,
        overfit_batches=1
     )
 

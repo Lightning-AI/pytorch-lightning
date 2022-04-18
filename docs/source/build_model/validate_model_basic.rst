@@ -8,7 +8,7 @@ Validate and test a model (basic)
 ***************
 Add a test loop
 ***************
-To make sure a model can generalize to an unseen dataset (ie: to publish a paper or in a production environment) a dataset is normally split into two parts, the *train* split and the *test* split. 
+To make sure a model can generalize to an unseen dataset (ie: to publish a paper or in a production environment) a dataset is normally split into two parts, the *train* split and the *test* split.
 
 The test set is **NOT** used during training, it is **ONLY** used once the model has been trained to see how the model will do in the real-world.
 
@@ -24,8 +24,8 @@ Datasets come with two splits. Refer to the dataset documentation to find the *t
    from torchvision import datasets
 
    # Load data sets
-   train_set = datasets.MNIST(root='MNIST', download=True, train=True)
-   test_set = datasets.MNIST(root='MNIST', download=True, train=False)
+   train_set = datasets.MNIST(root="MNIST", download=True, train=True)
+   test_set = datasets.MNIST(root="MNIST", download=True, train=False)
 
 ----
 
@@ -36,17 +36,17 @@ To add a test loop, implement the **test_step** method of the LightningModule
 .. code:: python
 
     class LitAutoEncoder(pl.LightningModule):
-         def training_step(self, batch, batch_idx):
+        def training_step(self, batch, batch_idx):
             ...
 
-         def test_step(self, batch, batch_idx):
+        def test_step(self, batch, batch_idx):
             # this is the test loop
             x, y = batch
             x = x.view(x.size(0), -1)
             z = self.encoder(x)
             x_hat = self.decoder(z)
             test_loss = F.mse_loss(x_hat, x)
-            self.log('test_loss', test_loss)
+            self.log("test_loss", test_loss)
 
 ----
 
@@ -79,7 +79,7 @@ As a rule of thumb, we use 20% of the training set as the **validation set**. Th
 
 .. code-block:: python
 
-   # use 20% of training data for validation 
+   # use 20% of training data for validation
    train_set_size = int(len(train_set) * 0.8)
    valid_set_size = len(train_set) - train_set_size
 
@@ -96,17 +96,17 @@ To add a validation loop, implement the **validation_step** method of the Lightn
 .. code:: python
 
     class LitAutoEncoder(pl.LightningModule):
-         def training_step(self, batch, batch_idx):
+        def training_step(self, batch, batch_idx):
             ...
 
-         def validation_step(self, batch, batch_idx):
+        def validation_step(self, batch, batch_idx):
             # this is the validation loop
             x, y = batch
             x = x.view(x.size(0), -1)
             z = self.encoder(x)
             x_hat = self.decoder(z)
             test_loss = F.mse_loss(x_hat, x)
-            self.log('val_loss', test_loss)
+            self.log("val_loss", test_loss)
 
 ----
 

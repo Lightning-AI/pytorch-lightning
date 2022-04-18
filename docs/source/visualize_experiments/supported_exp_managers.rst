@@ -1,4 +1,4 @@
-Comet.ml 
+Comet.ml
 ========
 To use `Comet.ml <https://www.comet.ml/site/>`_ first install the comet package:
 

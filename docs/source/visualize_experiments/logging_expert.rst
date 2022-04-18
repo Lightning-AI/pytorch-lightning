@@ -65,13 +65,14 @@ The rich progress bar can also have custom themes
 ----
 
 ************************
-Customize a progress bar 
+Customize a progress bar
 ************************
 To customize either the  :class:`~pytorch_lightning.callbacks.TQDMProgressBar` or the  :class:`~pytorch_lightning.callbacks.RichProgressBar`, subclass it and override any of its methods.
 
 .. code-block:: python
 
     from pytorch_lightning.callbacks import TQDMProgressBar
+
 
     class LitProgressBar(TQDMProgressBar):
         def init_validation_tqdm(self):
@@ -90,8 +91,8 @@ To build your own progress bar, subclass :class:`~pytorch_lightning.callbacks.Pr
 
     from pytorch_lightning.callbacks import ProgressBarBase
 
-    class LitProgressBar(ProgressBarBase):
 
+    class LitProgressBar(ProgressBarBase):
         def __init__(self):
             super().__init__()  # don't forget this :)
             self.enable = True
@@ -103,7 +104,8 @@ To build your own progress bar, subclass :class:`~pytorch_lightning.callbacks.Pr
             super().on_train_batch_end(trainer, pl_module, outputs, batch_idx)  # don't forget this :)
             percent = (self.train_batch_idx / self.total_train_batches) * 100
             sys.stdout.flush()
-            sys.stdout.write(f'{percent:.01f} percent complete \r')
+            sys.stdout.write(f"{percent:.01f} percent complete \r")
+
 
     bar = LitProgressBar()
     trainer = Trainer(callbacks=[bar])
@@ -118,11 +120,11 @@ To create an integration between a custom logger and Lightning, subclass :class:
     def log_hyperparams(self, params: argparse.Namespace, *args, **kwargs):
 
 .. code-block:: python
-    
+
     from pytorch_lightning.loggers import Logger
 
-    class LitLogger(Logger):
 
+    class LitLogger(Logger):
         @property
         def name(self) -> str:
             return "my-experiment"
@@ -130,9 +132,9 @@ To create an integration between a custom logger and Lightning, subclass :class:
         @property
         def version(self):
             return "version_0"
-        
+
         def log_metrics(self, metrics, step=None):
-            print('my logged metrics', metrics)
+            print("my logged metrics", metrics)
 
         def log_hyperparams(self, params, *args, **kwargs):
-            print('my logged hyperparameters', params)
+            print("my logged hyperparameters", params)

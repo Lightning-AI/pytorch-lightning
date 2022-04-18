@@ -23,7 +23,7 @@ Run on an on-prem cluster
    :tag: intermediate
 
 .. displayitem::
-   :header: Run with Torch Distributed   
+   :header: Run with Torch Distributed
    :description: Run models on a cluster with torch distributed.
    :col_css: col-md-6
    :button_link: cluster_intermediate_2.html

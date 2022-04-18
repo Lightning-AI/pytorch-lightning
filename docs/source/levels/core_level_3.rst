@@ -27,4 +27,3 @@ Level 3: Visualize training progress
 
         </div>
     </div>
-

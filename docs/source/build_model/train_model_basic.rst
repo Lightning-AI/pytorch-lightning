@@ -27,7 +27,7 @@ Add the relevant imports at the top of the file
 Define the PyTorch nn.Modules
 *****************************
 
-.. code:: python 
+.. code:: python
 
     class Encoder(nn.Module):
         def __init__(self):
@@ -35,6 +35,7 @@ Define the PyTorch nn.Modules
 
         def forward(self, x):
             return self.l1(x)
+
 
     class Decoder(nn.Module):
         def __init__(self):
@@ -48,7 +49,7 @@ Define the PyTorch nn.Modules
 ************************
 Define a LightningModule
 ************************
-The LightningModule is the full **recipe** that defines how your nn.Modules interact. 
+The LightningModule is the full **recipe** that defines how your nn.Modules interact.
 
 - The **training_step** defines how the *nn.Modules* interact together.
 - In the **configure_optimizers** define the optimizer(s) for your models.
@@ -121,6 +122,6 @@ Under the hood, the Lightning Trainer runs the following training loop on your b
         optimizer.step()
         optimizer.zero_grad()
 
-The power of Lightning comes when the training loop gets complicated as you add validation/test splits, schedulers, distributed training and all the latest SOTA techniques. 
+The power of Lightning comes when the training loop gets complicated as you add validation/test splits, schedulers, distributed training and all the latest SOTA techniques.
 
 With Lightning, you can add mix all these techniques together without needing to rewrite a new loop every time.

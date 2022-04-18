@@ -60,19 +60,19 @@ What is a subcommand?
 *********************
 A subcommand is what is the action the LightningCLI applies to the script:
 
-.. code:: bash 
+.. code:: bash
 
     python main.py [subcommand]
 
 See the Potential subcommands with:
 
-.. code:: bash 
+.. code:: bash
 
     python main.py --help
 
 which prints:
 
-.. code:: bash 
+.. code:: bash
 
         ...
 
@@ -84,9 +84,9 @@ which prints:
 
 use a subcommand as follows:
 
-.. code:: bash 
+.. code:: bash
 
-    python main.py fit 
+    python main.py fit
     python main.py test
 
 ----

@@ -57,7 +57,7 @@ Metrics are kept in memory for N steps to improve training efficiency. Every N s
 
     # faster training, high memory
     Trainer(flush_logs_every_n_steps=500)
-    
+
     # slower training, low memory
     Trainer(flush_logs_every_n_steps=500)
 
@@ -69,7 +69,7 @@ TODO: chart
 ----
 
 ******************
-Customize self.log 
+Customize self.log
 ******************
 
 The LightningModule *self.log* method offers many configurations to customize its behavior.
@@ -83,7 +83,7 @@ add_dataloader_idx
 If True, appends the index of the current dataloader to the name (when using multiple dataloaders). If False, user needs to give unique names for each dataloader to not mix the values.
 
 .. code-block:: python
-  
+
   self.log(add_dataloader_idx=True)
 
 ----
@@ -95,7 +95,7 @@ batch_size
 Current batch size used for accumulating logs logged with ``on_epoch=True``. This will be directly inferred from the loaded batch, but for some data structures you might need to explicitly provide it.
 
 .. code-block:: python
-  
+
   self.log(batch_size=32)
 
 ----
@@ -107,7 +107,7 @@ enable_graph
 If True, will not auto detach the graph.
 
 .. code-block:: python
-  
+
   self.log(enable_graph=True)
 
 ----
@@ -119,7 +119,7 @@ logger
 Send logs to the logger like ``Tensorboard``, or any other custom logger passed to the :class:`~pytorch_lightning.trainer.trainer.Trainer` (Default: ``True``).
 
 .. code-block:: python
-  
+
   self.log(logger=True)
 
 ----
@@ -131,25 +131,25 @@ on_epoch
 If this is True, that specific *self.log* call accumulates and reduces all metrics to the end of the epoch.
 
 .. code-block:: python
-  
+
   self.log(on_epoch=True)
 
 The default value depends in which function this is called
 
 .. code-block:: python
-  
+
   def training_step(...):
     # Default: False
     self.log(on_epoch=False)
-  
+
   def validation_step(...):
     # Default: True
     self.log(on_epoch=True)
-  
+
   def test_step(...):
     # Default: True
     self.log(on_epoch=True)
-  
+
 ----
 
 on_step
@@ -159,21 +159,21 @@ on_step
 If this is True, that specific *self.log* call will NOT accumulate metrics. Instead it will generate a timeseries across steps.
 
 .. code-block:: python
-  
+
   self.log(on_step=True)
 
 The default value depends in which function this is called
 
 .. code-block:: python
-  
+
   def training_step(...):
     # Default: True
     self.log(on_step=True)
-  
+
   def validation_step(...):
     # Default: False
     self.log(on_step=False)
-  
+
   def test_step(...):
     # Default: False
     self.log(on_step=False)
@@ -188,7 +188,7 @@ prog_bar
 If set to True, logs will be sent to the progress bar.
 
 .. code-block:: python
-  
+
   self.log(prog_bar=True)
 
 ----
@@ -200,7 +200,7 @@ rank_zero_only
 Whether the value will be logged only on rank 0. This will prevent synchronization which would produce a deadlock as not all processes would perform this log call.
 
 .. code-block:: python
-  
+
   self.log(rank_zero_only=True)
 
 ----
@@ -212,7 +212,7 @@ reduce_fx
 Reduction function over step values for end of epoch. Uses :meth:`torch.mean` by default.
 
 .. code-block:: python
-  
+
   self.log(reduce_fx=torch.mean)
 
 ----
@@ -224,7 +224,7 @@ sync_dist
 If True, reduces the metric across devices. Use with care as this may lead to a significant communication overhead.
 
 .. code-block:: python
-  
+
   self.log(sync_dist=False)
 
 ----
@@ -236,7 +236,7 @@ sync_dist_group
 The DDP group to sync across.
 
 .. code-block:: python
-  
+
   import torch.distributed as dist
 
   group = dist.init_process_group('nccl', rank=self.global_rank, world_size=self.world_size)
@@ -292,7 +292,7 @@ To use the metric inside Lightning, 1) initialize it in the init, 2) compute the
           x, y = batch
           preds = self(x)
 
-          # 2. compute the metric 
+          # 2. compute the metric
           self.accuracy(preds, y)
 
           # 3. log it

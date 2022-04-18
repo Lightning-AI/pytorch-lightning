@@ -20,8 +20,8 @@ Let's say I have a python script that trains a Lighting model to classify images
 
 with such a model, I would be interested in knowing how it performs with different batch size. In this case, I'm going to train many versions of this model.
 
-.. code:: bash 
-      
+.. code:: bash
+
       # run 4 models in parallel
       grid run file.py --batch_size 8
       grid run file.py --batch_size 16
@@ -64,7 +64,7 @@ First, recall that in the `previous tutorial <run_basic.rst>`_ we ran a single m
 
 .. code:: bash
 
-    grid run --datastore_name cifar5 cifar5.py --data_dir /datastores/cifar5 
+    grid run --datastore_name cifar5 cifar5.py --data_dir /datastores/cifar5
 
 Now we're going to run that same model 4 different times each with a different number of layers:
 
@@ -130,14 +130,14 @@ String list
 .. code:: bash
 
     grid run file.py --model_backbone "['resnet18' 'transformer', 'resnet50']"
-  
+
 equivalent to:
 
 .. code:: bash
 
-  grid run file.py --model_backbone 'resnet18' 
-  grid run file.py --model_backbone 'transformer' 
-  grid run file.py --model_backbone 'resnet50' 
+  grid run file.py --model_backbone 'resnet18'
+  grid run file.py --model_backbone 'transformer'
+  grid run file.py --model_backbone 'resnet50'
 
 ----
 
@@ -172,7 +172,7 @@ Grid search is a common approach that tries all combinations of hyperparamaters.
 .. code:: bash
 
     grid run file.py --batch_size "[1, 2]" --layers "[3, 5]"
-  
+
 is equivalent to:
 
 .. code:: bash

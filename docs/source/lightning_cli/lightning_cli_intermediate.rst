@@ -61,7 +61,7 @@ Eliminate config boilerplate (Intermediate)
 ###########################################
 **Audience:** Users who want advanced modularity via the commandline interface (CLI).
 
-**Pre-reqs:** You must already understand how to use a commandline and :doc:`LightningDataModule <../datamodule/datamodules>`. 
+**Pre-reqs:** You must already understand how to use a commandline and :doc:`LightningDataModule <../datamodule/datamodules>`.
 
 ----
 
@@ -135,10 +135,10 @@ Connect a model to the CLI
 The simplest way to control a model with the CLI is to wrap it in the LightningCLI object:
 
 .. code:: python
-    
+
     # main.py
 
-    import torch 
+    import torch
     from pytorch_lightning.utilities.cli import LightningCLI
     from pytorch_lightning import LightningModule, demos
 
@@ -168,11 +168,11 @@ Now your model can be managed via the CLI. To see the available commands type:
 
 .. code:: bash
 
-    $ python main.py --help 
+    $ python main.py --help
 
 Which prints out:
 
-.. code:: bash 
+.. code:: bash
 
     usage: a.py [-h] [-c CONFIG] [--print_config [={comments,skip_null,skip_default}+]]
             {fit,validate,test,predict,tune} ...
@@ -199,13 +199,13 @@ Which prints out:
 
 the message tells us that we have a few available subcommands:
 
-.. code:: bash 
+.. code:: bash
 
     python main.py [subcommand]
 
 which you can use depending on your use case:
 
-.. code:: bash 
+.. code:: bash
 
     $ python main.py fit
     $ python main.py validate
@@ -226,14 +226,14 @@ To run the full training routine (train, val, test), use the subcommand ``fit``:
 
 View all available options with the ``--help`` command:
 
-.. code:: bash 
+.. code:: bash
 
     usage: main.py [options] fit [-h] [-c CONFIG]
                                 [--seed_everything SEED_EVERYTHING] [--trainer CONFIG]
                                 ...
                                 [--ckpt_path CKPT_PATH]
         --trainer.logger LOGGER
-    
+
     optional arguments:
     <class '__main__.DemoModel'>:
         --model.out_dim OUT_DIM
@@ -252,8 +252,8 @@ With the Lightning CLI enabled, you can now change the parameters without touchi
     # change the learning_rate
     python main.py fit --model.out_dim 30
 
-    # change the out dimensions also 
+    # change the out dimensions also
     python main.py fit --model.out_dim 10 --model.learning_rate 0.1
-    
+
     # change trainer and data arguments too
     python main.py fit --model.out_dim 2 --model.learning_rate 0.1 --data.data_dir '~/' --trainer.logger False

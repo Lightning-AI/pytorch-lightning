@@ -143,20 +143,20 @@ For example, let's pretend we created a LightningModule like so:
 
     class Encoder(nn.Module):
         ...
-    
+
     class Decoder(nn.Module):
         ...
-    
+
     class Autoencoder(pl.LightningModule):
         def __init__(self, encoder, decoder, ...):
             ...
-    
+
     autoencoder = Autoencoder(Encoder(), Decoder())
 
 Once the autoencoder has trained, pull out the relevant weights for your torch nn.Module:
 
 .. code-block:: python
-    
+
     checkpoint = torch.load(CKPT_PATH)
     encoder_weights = checkpoint['encoder']
     decoder_weights = checkpoint['decoder']

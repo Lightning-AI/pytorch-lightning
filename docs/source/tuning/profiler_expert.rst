@@ -68,7 +68,8 @@ To profile a specific action of interest, reference a profiler in the LightningM
 .. code-block:: python
 
     from pytorch_lightning.profiler import SimpleProfiler, PassThroughProfiler
-    
+
+
     class MyModel(LightningModule):
         def __init__(self, profiler=None):
             self.profiler = profiler or PassThroughProfiler()

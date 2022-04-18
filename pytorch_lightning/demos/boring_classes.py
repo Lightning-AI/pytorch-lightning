@@ -193,6 +193,7 @@ class ManualOptimBoringModel(BoringModel):
         opt.step()
         return loss
 
+
 class DemoModel(LightningModule):
     def __init__(self, out_dim: int = 10, learning_rate: float = 0.02):
         super().__init__()
