@@ -1,7 +1,7 @@
 .. testsetup:: *
     :skipif: not _JSONARGPARSE_AVAILABLE
 
-    from pytorch_lightning.utilities import cli as pl_cli
+   from pytorch_lightning.utilities.cli import LightningCLI
 
 .. testcleanup:: *
 
@@ -129,9 +129,6 @@ now you can customize the behavior via environment variables:
 Set default config files
 ************************
 To set a path to a config file of defaults, use the ``default_config_files`` argument:
-
-.. testsetup:: *
-   from pytorch_lightning.utilities.cli import LightningCLI
 
 .. testcode::
 

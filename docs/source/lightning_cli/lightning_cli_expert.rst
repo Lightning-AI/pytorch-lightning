@@ -1,4 +1,8 @@
 .. testsetup:: *
+
+   from pytorch_lightning.utilities.cli import LightningCLI
+
+.. testsetup:: *
     :skipif: not _JSONARGPARSE_AVAILABLE
 
     from pytorch_lightning.utilities import cli as pl_cli
@@ -38,9 +42,6 @@ more arguments. After parsing, the configuration is stored in the :code:`config`
 and after the trainer runs: :code:`before_<subcommand>` and :code:`after_<subcommand>`.
 A realistic example for these would be to send an email before and after the execution.
 The code for the :code:`fit` subcommand would be something like:
-
-.. testsetup:: *
-   from pytorch_lightning.utilities.cli import LightningCLI
 
 .. testcode::
 

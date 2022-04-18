@@ -1,3 +1,7 @@
+.. testsetup:: *
+
+   from pytorch_lightning.callbacks import Callback
+
 .. _Persisting Callback State:
 
 *******************
@@ -14,9 +18,6 @@ to persist state effectively. However, if passing multiple instances of the call
 the callback must define a :attr:`~pytorch_lightning.callbacks.Callback.state_key` property in order for Lightning
 to be able to distinguish the different states when loading the callback state. This concept is best illustrated by
 the following example.
-
-.. testsetup:: *
-   from pytorch_lightning.callbacks import Callback
 
 .. testcode::
 

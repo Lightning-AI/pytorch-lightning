@@ -1,7 +1,11 @@
 .. testsetup:: *
+
+    import torch.nn as nn
+
+.. testsetup:: *
     :skipif: not _JSONARGPARSE_AVAILABLE
 
-    from pytorch_lightning.utilities import cli as pl_cli
+   from pytorch_lightning.utilities.cli import LightningCLI
 
 .. testcleanup:: *
 
@@ -13,9 +17,6 @@ Instantiation only mode
 The CLI is designed to start fitting with minimal code changes. On class instantiation, the CLI will automatically
 call the trainer function associated to the subcommand provided so you don't have to do it.
 To avoid this, you can set the following argument:
-
-.. testsetup:: *
-   from pytorch_lightning.utilities.cli import LightningCLI
 
 .. testcode::
 
@@ -200,9 +201,6 @@ with LightningCLI is to implement a single module having as init parameters each
 parameters have as type a class, then in the configuration these would be specified with :code:`class_path` and
 :code:`init_args` entries. For instance a model could be implemented as:
 
-.. testsetup:: *
-   import torch.nn as nn
-
 .. testcode::
 
     class MyMainModel(LightningModule):
@@ -262,9 +260,6 @@ it is not known which arguments were used to instantiate it.
 A good solution to these problems is to not have a default or set the default to a special value (e.g. a
 string) which would be checked in the init and instantiated accordingly. If a class parameter has no default and the CLI
 is subclassed then a default can be set as follows:
-
-.. testsetup:: *
-   from pytorch_lightning.utilities.cli import LightningCLI
 
 .. testcode::
 

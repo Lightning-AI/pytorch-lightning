@@ -1,7 +1,7 @@
 .. testsetup:: *
     :skipif: not _JSONARGPARSE_AVAILABLE
 
-    from pytorch_lightning.utilities import cli as pl_cli
+   from pytorch_lightning.utilities.cli import LightningCLI
 
 .. testcleanup:: *
 
@@ -18,9 +18,6 @@ The standard behavior for CLIs, when they fail, is to terminate the process with
 to hint the user about the cause. This is problematic while developing the CLI since there is no information to track
 down the root of the problem. A simple change in the instantiation of the ``LightningCLI`` can be used such that when
 there is a failure an exception is raised and the full stack trace printed.
-
-.. testsetup:: *
-   from pytorch_lightning.utilities.cli import LightningCLI
 
 .. testcode::
 
