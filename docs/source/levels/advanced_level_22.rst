@@ -17,7 +17,7 @@ Scale to 1 trillion+ parameters with multiple distributed strategies.
    :header: Scale with distributed strategies
    :description: Learn about different distributed strategies to reach bigger model parameter sizes.
    :col_css: col-md-6
-   :button_link: ../advanced/gpu_intermediate.html
+   :button_link: ../accelerators/gpu_intermediate.html
    :height: 150
    :tag: intermediate
 
