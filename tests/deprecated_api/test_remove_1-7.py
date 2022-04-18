@@ -216,46 +216,6 @@ def test_v1_7_0_checkpoint_callback_trainer_constructor(tmpdir):
         _ = Trainer(checkpoint_callback=True)
 
 
-def test_v1_7_0_old_on_train_batch_start(tmpdir):
-    class OldSignature(Callback):
-        def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
-            ...
-
-    class OldSignatureModel(BoringModel):
-        def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
-            ...
-
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature())
-    with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
-        trainer.fit(model)
-
-    model = OldSignatureModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
-    with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
-        trainer.fit(model)
-
-
-def test_v1_7_0_old_on_train_batch_end(tmpdir):
-    class OldSignature(Callback):
-        def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-            ...
-
-    class OldSignatureModel(BoringModel):
-        def on_train_batch_end(self, outputs, batch, batch_idx, dataloader_idx):
-            ...
-
-    model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature(), fast_dev_run=True)
-    with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
-        trainer.fit(model)
-
-    model = OldSignatureModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=OldSignature(), fast_dev_run=True)
-    with pytest.deprecated_call(match="`dataloader_idx` argument will be removed in v1.7."):
-        trainer.fit(model)
-
-
 def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
     class TestModel(BoringModel):
         def on_post_move_to_device(self):

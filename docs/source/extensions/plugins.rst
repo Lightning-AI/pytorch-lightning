@@ -65,7 +65,7 @@ The full list of built-in precision plugins is listed below.
     TPUBf16PrecisionPlugin
     TPUPrecisionPlugin
 
-More information regarding precision with Lightning can be found :doc:`here <../common/precision>`
+More information regarding precision with Lightning can be found :ref:`here <precision>`
 
 -----------
 

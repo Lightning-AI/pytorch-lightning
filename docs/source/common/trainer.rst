@@ -1152,9 +1152,9 @@ plugins
 
 :ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
 
-- :ref:`DDP <gpu>`
+- :ref:`Checkpoint IO <checkpointing_expert>`
 - `TorchElastic <https://pytorch.org/elastic/0.2.2/index.html>`_
-- :ref:`Apex <../extensions/plugins:precision-plugins>`
+- :ref:`Precision Plugins <precision-expert>`
 
 To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own
 :class:`~pytorch_lightning.plugins.environments.ClusterEnvironment`.
