@@ -7,7 +7,7 @@ Customize and extend Lightning for things like custom hardware or distributed st
 
 .. join_slack::
    :align: left
-   
+
 ----
 
 .. raw:: html

@@ -24,17 +24,17 @@ This is what the Lightning CLI enables. Otherwise, this kind of configuration re
 
 .. code:: python
 
-    # choose model    
-    if args.model == 'gan':
+    # choose model
+    if args.model == "gan":
         model = GAN(args.feat_dim)
-    elif args.model == 'transformer':
+    elif args.model == "transformer":
         model = Transformer(args.feat_dim)
     ...
 
     # choose datamodule
-    if args.data == 'MNIST':
+    if args.data == "MNIST":
         datamodule = MNIST()
-    elif args.data == 'imagenet':
+    elif args.data == "imagenet":
         datamodule = Imagenet()
     ...
 
@@ -55,19 +55,22 @@ Connect models across different files with the ``MODEL_REGISTRY`` to make them a
     from pytorch_lightning import demos
     from pytorch_lightning.utilities import cli as pl_cli
 
+
     @pl_cli.MODEL_REGISTRY
     class Model1(demos.DemoModel):
         def configure_optimizers(self):
-            print('⚡','using Model1', '⚡')
+            print("⚡", "using Model1", "⚡")
             return super().configure_optimizers()
+
 
     @pl_cli.MODEL_REGISTRY
     class Model2(demos.DemoModel):
         def configure_optimizers(self):
-            print('⚡','using Model2', '⚡')
+            print("⚡", "using Model2", "⚡")
             return super().configure_optimizers()
 
-    cli = pl_cli.LightningCLI(datamodule_class = demos.BoringDataModule)
+
+    cli = pl_cli.LightningCLI(datamodule_class=demos.BoringDataModule)
 
 Now you can choose between any model from the CLI:
 
@@ -93,17 +96,20 @@ Connect DataModules across different files with the ``DATAMODULE_REGISTRY`` to m
     from pytorch_lightning.utilities import cli as pl_cli
     from pytorch_lightning import demos
 
+
     @pl_cli.DATAMODULE_REGISTRY
     class FakeDataset1(demos.BoringDataModule):
         def train_dataloader(self):
-            print('⚡','using FakeDataset1', '⚡')
+            print("⚡", "using FakeDataset1", "⚡")
             return torch.utils.data.DataLoader(self.random_train)
+
 
     @pl_cli.DATAMODULE_REGISTRY
     class FakeDataset2(demos.BoringDataModule):
         def train_dataloader(self):
-            print('⚡','using FakeDataset2', '⚡')
+            print("⚡", "using FakeDataset2", "⚡")
             return torch.utils.data.DataLoader(self.random_train)
+
 
     cli = pl_cli.LightningCLI(demos.DemoModel)
 
@@ -127,21 +133,24 @@ Connect optimizers with the ``OPTIMIZER_REGISTRY`` to make them available from t
 .. code:: python
 
     # main.py
-    import torch 
+    import torch
     from pytorch_lightning.utilities import cli as pl_cli
     from pytorch_lightning import demos
+
 
     @pl_cli.OPTIMIZER_REGISTRY
     class LitAdam(torch.optim.Adam):
         def step(self, closure):
-            print('⚡', 'using LitAdam', '⚡')
+            print("⚡", "using LitAdam", "⚡")
             super().step(closure)
-    
+
+
     @pl_cli.OPTIMIZER_REGISTRY
     class FancyAdam(torch.optim.Adam):
         def step(self, closure):
-            print('⚡', 'using FancyAdam', '⚡')
+            print("⚡", "using FancyAdam", "⚡")
             super().step(closure)
+
 
     cli = pl_cli.LightningCLI(demos.DemoModel, demos.BoringDataModule)
 
@@ -157,14 +166,14 @@ Now you can choose between any optimizer at runtime:
 
 Bonus: If you need only 1 optimizer, the Lightning CLI already works out of the box with any Optimizer from ``torch.optim.optim``:
 
-.. code:: bash 
-    
+.. code:: bash
+
     python main.py fit --optimizer AdamW
 
 If the optimizer you want needs other arguments, add them via the CLI (no need to change your code)!
 
-.. code:: bash 
-    
+.. code:: bash
+
     python main.py fit --optimizer SGD --optimizer.lr=0.01
 
 ----
@@ -174,18 +183,20 @@ Register LR schedulers
 **********************
 Connect learning rate schedulers with the ``LR_SCHEDULER_REGISTRY`` to make them available from the CLI:
 
-.. code:: python 
+.. code:: python
 
     # main.py
     import torch
     from pytorch_lightning.utilities import cli as pl_cli
     from pytorch_lightning import demos
 
+
     @pl_cli.LR_SCHEDULER_REGISTRY
     class LitLRScheduler(torch.optim.lr_scheduler.CosineAnnealingLR):
         def step(self):
-            print('⚡', 'using LitLRScheduler', '⚡')
+            print("⚡", "using LitLRScheduler", "⚡")
             super().step()
+
 
     cli = pl_cli.LightningCLI(demos.DemoModel, demos.BoringDataModule)
 
@@ -194,21 +205,21 @@ Now you can choose between any learning rate scheduler at runtime:
 .. code:: bash
 
     # LitLRScheduler
-    python main.py fit --lr_scheduler LitLRScheduler 
+    python main.py fit --lr_scheduler LitLRScheduler
 
 
 Bonus: If you need only 1 LRScheduler, the Lightning CLI already works out of the box with any LRScheduler from ``torch.optim``:
 
-.. code:: bash 
-    
-    python main.py fit --lr_scheduler CosineAnnealingLR 
+.. code:: bash
+
+    python main.py fit --lr_scheduler CosineAnnealingLR
     python main.py fit --lr_scheduler LinearLR
     ...
 
 If the scheduler you want needs other arguments, add them via the CLI (no need to change your code)!
 
-.. code:: bash 
-    
+.. code:: bash
+
     python main.py fit --lr_scheduler=ReduceLROnPlateau --lr_scheduler.monitor=epoch
 
 ----

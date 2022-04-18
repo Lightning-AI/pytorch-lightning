@@ -29,7 +29,7 @@ Debug your model
 
 .. displayitem::
    :header: Advanced
-   :description: Learn to debug distributed models 
+   :description: Learn to debug distributed models
    :col_css: col-md-4
    :button_link: debugging_advanced.html
    :height: 150

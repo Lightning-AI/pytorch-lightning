@@ -10,7 +10,7 @@ Find bottlenecks in your code (advanced)
 ************************
 Profile cloud TPU models
 ************************
-To profile TPU models use the :class:`~pytorch_lightning.profiler.xla.XLAProfiler` 
+To profile TPU models use the :class:`~pytorch_lightning.profiler.xla.XLAProfiler`
 
 .. code-block:: python
 
@@ -54,8 +54,8 @@ Now open the following url on your browser
 ======================
 Once the code you want to profile is running:
 
-1. click on the ``CAPTURE PROFILE`` button. 
-2. Enter ``localhost:9001`` (default port for XLA Profiler) as the Profile Service URL. 
+1. click on the ``CAPTURE PROFILE`` button.
+2. Enter ``localhost:9001`` (default port for XLA Profiler) as the Profile Service URL.
 3. Enter the number of milliseconds for the profiling duration
 4. Click ``CAPTURE``
 

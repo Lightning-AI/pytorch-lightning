@@ -61,7 +61,7 @@ To have a copy of the configuration that produced this model, save a *yaml* file
 
 .. code:: bash
 
-    python main.py fit --model.learning_rate 0.001 --print_config > config.yaml 
+    python main.py fit --model.learning_rate 0.001 --print_config > config.yaml
 
 ----
 
@@ -97,12 +97,12 @@ The configs will be parsed sequentially. Let's say we have two configs with the 
 
     # trainer.yaml
     trainer:
-        num_epochs: 10 
-    
+        num_epochs: 10
+
 
     # trainer_2.yaml
     trainer:
-        num_epochs: 20 
+        num_epochs: 20
 
 the ones from the last config will be used (num_epochs = 20) in this case:
 

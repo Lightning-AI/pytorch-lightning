@@ -32,7 +32,9 @@ or use regular print statements.
             print(f"RANK - {self.trainer.global_rank}: {debugging_message}")
 
             if self.trainer.global_rank == 0:
-                import pdb; pdb.set_trace()
+                import pdb
+
+                pdb.set_trace()
 
             # to prevent other processes from moving forward until all processes are in sync
             self.trainer.strategy.barrier()

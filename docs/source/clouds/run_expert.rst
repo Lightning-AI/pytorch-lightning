@@ -24,7 +24,7 @@ If you'd prefer to not deal with any of the hassles of running on your own cloud
 These are some of the benefits of running via lightning-grid:
 
 - create datasets optimized for scale
-- fully configurable on-prem deployment 
+- fully configurable on-prem deployment
 - SOC-2 compliance (in-progress) (ETA Q3 2022)
 - micro cost optimizations everywhere (which add up)
 - built-in fault tolerance

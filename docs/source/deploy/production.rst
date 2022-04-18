@@ -37,8 +37,8 @@ Basics
 
         </div>
     </div>
-   
----- 
+
+----
 
 ********
 Advanced

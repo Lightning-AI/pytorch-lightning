@@ -15,7 +15,7 @@ Track and Visualize Experiments (intermediate)
 *******************************
 Track audio and other artifacts
 *******************************
-To track other artifacts, such as histograms or model topology graphs first select one of the many loggers supported by Lightning 
+To track other artifacts, such as histograms or model topology graphs first select one of the many loggers supported by Lightning
 
 .. code-block:: python
 

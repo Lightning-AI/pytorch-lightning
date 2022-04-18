@@ -41,7 +41,7 @@ now you can toggle this behavior by subcommand:
 
     # full routine with max_steps = 100
     $ python main.py --config config1.yaml fit
-    
+
     # test only with max_epochs = 10
     $ python main.py --config config1.yaml test
 
@@ -87,7 +87,7 @@ Run from environment variables directly
 ***************************************
 The Lightning CLI can convert every possible CLI flag into an environment variable. To enable this, set the *env_parse* argument:
 
-.. code:: python 
+.. code:: python
 
     LightningCLI(env_parse=True)
 
@@ -95,7 +95,7 @@ now use the ``--help`` CLI flag with any subcommand:
 
 .. code:: bash
 
-    $ python main.py fit --help 
+    $ python main.py fit --help
 
 which will show you ALL possible environment variables you can now set:
 
@@ -122,8 +122,8 @@ now you can customize the behavior via environment variables:
     # set the options via env vars
     $ export LEARNING_RATE=0.01
     $ export OUT_DIM=5
-    
-    $ python main.py fit 
+
+    $ python main.py fit
 
 ----
 
@@ -163,7 +163,7 @@ allows you to add variables to your yaml configs like so:
 
 To enable variable interpolation, first install omegaconf:
 
-.. code:: bash 
+.. code:: bash
 
     pip install omegaconf
 

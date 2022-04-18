@@ -68,7 +68,7 @@ To profile a distributed model, use the :class:`~pytorch_lightning.profiler.pyto
 
     from pytorch_lightning.profiler import PyTorchProfiler
 
-    profiler = PyTorchProfiler(filename='perf-logs')
+    profiler = PyTorchProfiler(filename="perf-logs")
     trainer = Trainer(profiler=profiler)
 
 With two ranks, it will generate a report like so:

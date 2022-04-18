@@ -42,6 +42,7 @@ You can also skip passing the input sample if the ``example_input_array`` proper
         def forward(self, x):
             return torch.relu(self.l1(x.view(x.size(0), -1)))
 
+
     # create the model
     model = SimpleModel()
     filepath = "model.onnx"

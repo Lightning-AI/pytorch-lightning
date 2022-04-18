@@ -63,7 +63,7 @@ The reason is that the full batch is visible to all GPUs on the node when using 
 How do I use multiple GPUs on Jupyter or Colab notebooks?
 *********************************************************
 
-To use multiple GPUs on notebooks, use the *DP* mode. 
+To use multiple GPUs on notebooks, use the *DP* mode.
 
 .. code-block:: python
 

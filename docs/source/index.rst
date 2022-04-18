@@ -3,13 +3,13 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to ⚡ PyTorch Lightning 
+Welcome to ⚡ PyTorch Lightning
 ==============================
 .. twocolumns::
    :left:
       .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/mov.gif
          :alt: Animation showing how to convert a standard training loop to a Lightning loop
-   :right: 
+   :right:
       PyTorch Lightning is the deep learning framework for professional AI researchers and machine learning engineers who need maximal flexibility without sacrificing performance at scale.
       Lightning evolves with you as your projects go from idea to paper/production.
 
@@ -260,10 +260,10 @@ Current Lightning Users
    Strategy <advanced/strategy_registry>
    Strategy registry <advanced/strategy_registry>
    Style guide <starter/style_guide>
-   Sweep <clouds/run_intermediate>   
+   Sweep <clouds/run_intermediate>
    SWA <advanced/training_tricks>
    SLURM <clouds/cluster_advanced>
-   Transfer learning <advanced/transfer_learning> 
+   Transfer learning <advanced/transfer_learning>
    Trainer <common/trainer>
    Torch distributed <clouds/cluster_intermediate_2>
 

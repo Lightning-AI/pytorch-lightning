@@ -3,7 +3,7 @@
 #######################
 Lightning in 15 minutes
 #######################
-**Required background:** None   
+**Required background:** None
 
 **Goal:** In this guide, we'll walk you through the 7 key steps of a typical Lightning workflow.
 
@@ -103,7 +103,7 @@ Or read the `advanced install guide <installation.html>`_
 
 ----
 
-.. _new_project: 
+.. _new_project:
 
 ***************************
 2: Define a LightningModule
@@ -144,6 +144,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
         def configure_optimizers(self):
             optimizer = optim.Adam(self.parameters(), lr=1e-3)
             return optimizer
+
 
     # init the autoencoder
     autoencoder = LitAutoEncoder(encoder, decoder)
@@ -198,7 +199,7 @@ Once you've trained the model you can export to onnx, torchscript and put it int
 .. code:: python
 
     # load checkpoint
-    checkpoint = './lightning_logs/version_0/checkpoints/epoch=0-step=100.ckpt'
+    checkpoint = "./lightning_logs/version_0/checkpoints/epoch=0-step=100.ckpt"
     autoencoder = LitAutoEncoder.load_from_checkpoint(checkpoint, encoder=encoder, decoder=decoder)
 
     # choose your trained nn.Module
@@ -206,9 +207,9 @@ Once you've trained the model you can export to onnx, torchscript and put it int
     encoder.eval()
 
     # embed 4 fake images!
-    fake_image_batch = Tensor(4, 28*28)
+    fake_image_batch = Tensor(4, 28 * 28)
     embeddings = encoder(fake_image_batch)
-    print('⚡'*20, '\nPredictions (4 image embeddings):\n', embeddings, '\n', '⚡'*20)
+    print("⚡" * 20, "\nPredictions (4 image embeddings):\n", embeddings, "\n", "⚡" * 20)
 
 ----
 
@@ -234,22 +235,22 @@ Enable advanced training features using Trainer arguments. These are state-of-th
 
    # train on 4 GPUs
    trainer = Trainer(
-       devices=4, 
-       accelerator="gpu", 
+       devices=4,
+       accelerator="gpu",
     )
 
    # train 1TB+ parameter models with Deepspeed/fsdp
    trainer = Trainer(
-       devices=4, 
-       accelerator="gpu", 
-       strategy="deepspeed_stage_2", 
+       devices=4,
+       accelerator="gpu",
+       strategy="deepspeed_stage_2",
        precision=16
     )
 
-   # 20+ helpful flags for rapid idea iteration 
+   # 20+ helpful flags for rapid idea iteration
    trainer = Trainer(
-       max_epochs=10, 
-       min_epochs=5, 
+       max_epochs=10,
+       min_epochs=5,
        overfit_batches=1
     )
 
@@ -261,7 +262,7 @@ Enable advanced training features using Trainer arguments. These are state-of-th
 ********************
 Maximize flexibility
 ********************
-Lightning's core guiding principle is to always provide maximal flexibility **without ever hiding any of the PyTorch**. 
+Lightning's core guiding principle is to always provide maximal flexibility **without ever hiding any of the PyTorch**.
 
 Lightning offers 5 *added* degrees of flexibility depending on your project's complexity.
 
@@ -296,7 +297,7 @@ If you have multiple lines of code with similar functionalities, you can use cal
 
 .. code::
 
-   trainer = Trainer(callbacks=[AWSCheckpoints()]) 
+   trainer = Trainer(callbacks=[AWSCheckpoints()])
 
 ----
 

@@ -14,15 +14,15 @@ If you prefer to use PyTorch directly, feel free to use any Lightning checkpoint
 
     import torch
 
-    model = torch.load('path/to/lightning/checkpoint.ckpt')
+    model = torch.load("path/to/lightning/checkpoint.ckpt")
     model.eval()
 
 You can also pull out the specific modules you want out of the checkpoint:
 
 .. code-block:: python
 
-    model = torch.load('path/to/lightning/checkpoint.ckpt')
-    encoder = model['encoder']
+    model = torch.load("path/to/lightning/checkpoint.ckpt")
+    encoder = model["encoder"]
     encoder.eval()
 
 ----

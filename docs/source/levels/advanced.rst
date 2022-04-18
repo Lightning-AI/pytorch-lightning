@@ -77,7 +77,7 @@ Configure all aspects of Lightning for advanced usecases.
    :header: Level 22: Reach 1 trillion parameters on GPUs
    :description: Scale to 1 trillion params on GPUs.
    :col_css: col-md-6
-   :button_link: advanced_level_22.html   
+   :button_link: advanced_level_22.html
    :height: 150
    :tag: advanced
 

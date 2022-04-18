@@ -71,7 +71,7 @@ To profile the time within every function, use the :class:`~pytorch_lightning.pr
 
 .. code-block:: python
 
-    trainer = Trainer(profiler='advanced')
+    trainer = Trainer(profiler="advanced")
 
 Once the **.fit()** function has completed, you'll see an output like this:
 
@@ -101,7 +101,7 @@ If the profiler report becomes too long, you can stream the report to a file:
 
     from pytorch_lightning.profiler import AdvancedProfiler
 
-    profiler = AdvancedProfiler(dirpath='.', filename='perf_logs')
+    profiler = AdvancedProfiler(dirpath=".", filename="perf_logs")
     trainer = Trainer(profiler=profiler)
 
 ----

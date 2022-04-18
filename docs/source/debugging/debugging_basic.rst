@@ -45,7 +45,7 @@ In this example, the code will stop before executing the ``y = x**2`` line.
 ************************************
 Run all your model code once quickly
 ************************************
-If you've ever trained a model for days only to crash during validation or testing then this trainer argument is about to become your best friend. 
+If you've ever trained a model for days only to crash during validation or testing then this trainer argument is about to become your best friend.
 
 The :paramref:`~pytorch_lightning.trainer.trainer.Trainer.fast_dev_run` argument in the trainer runs 5 batch of training, validation, test and prediction data through your trainer to see if there are any bugs:
 
@@ -114,11 +114,11 @@ this generate a table like:
 
 .. code-block:: text
 
-      | Name  | Type        | Params 
+      | Name  | Type        | Params
     ----------------------------------
-    0 | net   | Sequential  | 132 K  
-    1 | net.0 | Linear      | 131 K  
-    2 | net.1 | BatchNorm1d | 1.0 K 
+    0 | net   | Sequential  | 132 K
+    1 | net.0 | Linear      | 131 K
+    2 | net.1 | BatchNorm1d | 1.0 K
 
 To add the child modules to the summary add a :class:`~pytorch_lightning.callbacks.model_summary.ModelSummary`:
 
@@ -128,7 +128,7 @@ To add the child modules to the summary add a :class:`~pytorch_lightning.callbac
 
     trainer = Trainer(callbacks=[ModelSummary(max_depth=-1)])
 
-To turn off the autosummary use: 
+To turn off the autosummary use:
 
 .. code:: python
 
@@ -140,7 +140,7 @@ To turn off the autosummary use:
 Print input output layer dimensions
 ***********************************
 Another debugging tool is to  display the intermediate input- and output sizes of all your layers by setting the
-``example_input_array`` attribute in your LightningModule. 
+``example_input_array`` attribute in your LightningModule.
 
 .. code-block:: python
 

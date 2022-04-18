@@ -40,7 +40,7 @@ For example, if your model takes 10 days to train on a CPU machine, here's how c
 Start a cloud machine in < 1 minute
 ***********************************
 Lightning has a native cloud solution with various products (lightning-grid) designed for researchers and ML practicioners in industry.
-To start an interactive machine simply go to `Lightning Grid <https://platform.grid.ai>`_ to create a free account, then start a new Grid Session. 
+To start an interactive machine simply go to `Lightning Grid <https://platform.grid.ai>`_ to create a free account, then start a new Grid Session.
 
 A Grid Session is an interactive machine with 1-16 GPUs per machine.
 
