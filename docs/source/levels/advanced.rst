@@ -62,6 +62,22 @@ Reach trillion parameter scale and put models into production.
    :height: 150
    :tag: advanced
 
+.. displayitem::
+   :header: Level 21: Master TPUs
+   :description: Master TPUs and run on cloud TPUs.
+   :col_css: col-md-6
+   :button_link: advanced_level_21.html
+   :height: 150
+   :tag: advanced
+
+.. displayitem::
+   :header: Level 22: Reach 1 trillion parameters on GPUs
+   :description: Scale to 1 trillion params on GPUs.
+   :col_css: col-md-6
+   :button_link: ../advanced/model_parallel.html
+   :height: 150
+   :tag: advanced
+
 .. raw:: html
 
         </div>
