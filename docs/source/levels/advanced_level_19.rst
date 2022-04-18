@@ -22,7 +22,7 @@ Explore Intelligence Processing Unit (IPU) for model scaling.
    :tag: basic
 
 .. displayitem::
-   :header: Basic
+   :header: Train models on IPUs
    :description: Learn the basics of single and multi-IPU training.
    :col_css: col-md-4
    :button_link: ../accelerators/ipu_basic.html
@@ -30,7 +30,7 @@ Explore Intelligence Processing Unit (IPU) for model scaling.
    :tag: basic
 
 .. displayitem::
-   :header: Intermediate
+   :header: Optimize models training on IPUs
    :description: Tune model performance with mix-precision and the performance analyser.
    :col_css: col-md-4
    :button_link: ../accelerators/ipu_intermediate.html

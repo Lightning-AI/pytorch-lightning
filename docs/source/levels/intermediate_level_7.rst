@@ -20,7 +20,7 @@ Learn to develop models on cloud GPUs and TPUs.
    :tag: basic
 
 .. displayitem::
-   :header: Access a cloud machine with GPUs.
+   :header: Access a cloud machine with GPUs
    :description: Learn how to get a cloud machine with single or multiple GPUs.
    :col_css: col-md-3
    :button_link: ../clouds/session_basic.html

@@ -54,6 +54,14 @@ Reach trillion parameter scale and put models into production.
    :height: 150
    :tag: advanced
 
+.. displayitem::
+   :header: Level 20: Explore HPUs
+   :description: Explore Havana Gaudi Processing Unit (HPU) for model scaling.
+   :col_css: col-md-6
+   :button_link: advanced_level_20.html
+   :height: 150
+   :tag: advanced
+
 .. raw:: html
 
         </div>
