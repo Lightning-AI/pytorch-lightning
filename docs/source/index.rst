@@ -234,7 +234,7 @@ Current Lightning Users
    IPU <accelerators/ipu>
    Lightning CLI <cli/lightning_cli>
    Lightning Lite <model/build_model_expert>
-   LightningDataModule <datamodule/datamodules>
+   LightningDataModule <data/datamodule>
    LightningModule <common/lightning_module>
    Lightning Transformers <https://pytorch-lightning.readthedocs.io/en/stable/ecosystem/transformers.html>
    Log <visualize/loggers>

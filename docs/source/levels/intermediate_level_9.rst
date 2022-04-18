@@ -19,7 +19,7 @@ This module teaches you how to setup complex projects that can be controlled via
    :header: 1: Modularize your datasets
    :description: Reuse datasets across models by using DataModules
    :col_css: col-md-4
-   :button_link: ../datamodule/datamodules.html
+   :button_link: ../data/datamodule.html
    :height: 150
    :tag: intermediate
 
