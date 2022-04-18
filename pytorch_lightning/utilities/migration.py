@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import sys
 from types import ModuleType, TracebackType
+import threading
 
 import pytorch_lightning.utilities.argparse
 
@@ -34,7 +35,12 @@ class pl_legacy_patch:
             torch.load("path/to/legacy/checkpoint.ckpt")
     """
 
+    def __init__(self) -> None:
+        # Create a lock to ensure no race condition with deleting sys modules
+        self.lock = threading.Lock()
+
     def __enter__(self) -> None:
+        self.lock.acquire()
         # `pl.utilities.argparse_utils` was renamed to `pl.utilities.argparse`
         legacy_argparse_module = ModuleType("pytorch_lightning.utilities.argparse_utils")
         sys.modules["pytorch_lightning.utilities.argparse_utils"] = legacy_argparse_module
@@ -49,3 +55,4 @@ class pl_legacy_patch:
         if hasattr(pytorch_lightning.utilities.argparse, "_gpus_arg_default"):
             delattr(pytorch_lightning.utilities.argparse, "_gpus_arg_default")
         del sys.modules["pytorch_lightning.utilities.argparse_utils"]
+        self.lock.release()
