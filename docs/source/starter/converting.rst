@@ -61,7 +61,7 @@ In the training_step of the LightningModule configure how your training routine 
             loss = F.cross_entropy(y_hat, y)
             return loss
 
-.. note:: If you need to fully own the training loop for complicated legacy projects, check out :doc:`Own your loop <../build_model/own_your_loop>`.
+.. note:: If you need to fully own the training loop for complicated legacy projects, check out :doc:`Own your loop <../model/own_your_loop>`.
 
 ----
 
@@ -161,7 +161,7 @@ Hint: If you are initializing a :class:`~torch.Tensor` within the ``LightningMod
 ********************
 8. Use your own data
 ********************
-Regular PyTorch DataLoaders work with Lightning. For more modular and scalable datasets, check out :doc:`LightningDataModule <../datamodule/datamodules>`.
+Regular PyTorch DataLoaders work with Lightning. For more modular and scalable datasets, check out :doc:`LightningDataModule <../data/datamodule>`.
 
 ----
 

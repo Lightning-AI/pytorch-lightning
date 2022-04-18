@@ -183,8 +183,8 @@ The Lightning :doc:`Trainer <../common/trainer>` automates `40+ tricks <../commo
 * ``optimizer.step()``, ``loss.backward()``, ``optimizer.zero_grad()`` calls
 * Calling of ``model.eval()``, enabling/disabling grads during evaluation
 * :doc:`Checkpoint Saving and Loading <../common/checkpointing>`
-* Tensorboard (see :doc:`loggers <../common/loggers>` options)
-* :ref:`Multi-GPU <accelerators/gpu:Multi GPU Training>` support
+* Tensorboard (see :doc:`loggers <../visualize/loggers>` options)
+* :doc:`Multi-GPU <../accelerators/gpu>` support
 * :doc:`TPU <../accelerators/tpu>`
 * :ref:`16-bit precision AMP <amp>` support
 

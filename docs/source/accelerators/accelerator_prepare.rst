@@ -38,7 +38,7 @@ Delete any calls to .cuda() or .to(device).
 **********************************************
 Init tensors using type_as and register_buffer
 **********************************************
-When you need to create a new tensor, use `type_as`.
+When you need to create a new tensor, use ``type_as``.
 This will make your code scale to any arbitrary number of GPUs or TPUs with Lightning.
 
 .. testcode::
@@ -57,7 +57,7 @@ This will make your code scale to any arbitrary number of GPUs or TPUs with Ligh
 The :class:`~pytorch_lightning.core.lightning.LightningModule` knows what device it is on. You can access the reference via ``self.device``.
 Sometimes it is necessary to store tensors as module attributes. However, if they are not parameters they will
 remain on the CPU even if the module gets moved to a new device. To prevent that and remain device agnostic,
-register the tensor as a buffer in your modules's ``__init__`` method with :meth:`~torch.nn.Module.register_buffer`.
+register the tensor as a buffer in your modules' ``__init__`` method with :meth:`~torch.nn.Module.register_buffer`.
 
 .. testcode::
 
