@@ -83,29 +83,29 @@ This is what the Lightning CLI enables. Without the Lightning CLI, you usually e
 
     from argparse import ArgumentParser
 
-    if __name__ == '__main__':
+    if __name__ == "__main__":
         parser = ArgumentParser()
-        parser.add_argument('--learning_rate_1', type: float = 0.02)
-        parser.add_argument('--learning_rate_2', type: float = 0.03)
-        parser.add_argument('--model', type: string = 'cnn')
-        parser.add_argument('--command', type: string = 'fit')
-        parser.add_argument('--run_fast', type: bool = True)
+        parser.add_argument("--learning_rate_1", default=0.02)
+        parser.add_argument("--learning_rate_2", default=0.03)
+        parser.add_argument("--model", default="cnn")
+        parser.add_argument("--command", default="fit")
+        parser.add_argument("--run_fast", default=True)
         ...
         # add 100 more of these
         ...
 
         args = parser.parse_args()
 
-        if args.model == 'cnn':
+        if args.model == "cnn":
             model = ConvNet(learning_rate=args.learning_rate_1)
-        elif args.model == 'transformer':
+        elif args.model == "transformer":
             model = Transformer(learning_rate=args.learning_rate_2)
         trainer = Trainer(fast_dev_run=args.run_fast)
         ...
 
-        if args.command == 'fit':
+        if args.command == "fit":
             trainer.fit()
-        elif args.command == 'test':
+        elif args.command == "test":
             ...
 
 This kind of boilerplate is unsustainable as projects grow in complexity.
@@ -160,6 +160,7 @@ The simplest way to control a model with the CLI is to wrap it in the LightningC
 
         def configure_optimizers(self):
             return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+
 
     cli = LightningCLI(DemoModel, demos.BoringDataModule)
     # don't call fit!!

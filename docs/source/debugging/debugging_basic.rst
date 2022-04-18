@@ -35,8 +35,10 @@ A breakpoint stops your code execution so you can inspect variables, etc... and 
         x = 2
 
         # set breakpoint
-        import pdb; pdb.set_trace()
-        y = x**2
+        import pdb
+
+        pdb.set_trace()
+        y = x ** 2
 
 In this example, the code will stop before executing the ``y = x**2`` line.
 
@@ -145,7 +147,7 @@ Another debugging tool is to  display the intermediate input- and output sizes o
 .. code-block:: python
 
     class LitModel(LightningModule):
-        def __init__(self, ...):
+        def __init__(self, *args, **kwargs):
             self.example_input_array = torch.Tensor(32, 1, 28, 28)
 
 With the input array, the summary table will include the input and output layer dimensions:

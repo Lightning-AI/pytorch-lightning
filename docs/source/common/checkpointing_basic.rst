@@ -71,7 +71,7 @@ To load a LightningModule along with its weights and hyperparameters use the fol
 
 .. code-block:: python
 
-    model = MyLightningModule.load_from_checkpoint('/path/to/checkpoint.ckpt')
+    model = MyLightningModule.load_from_checkpoint("/path/to/checkpoint.ckpt")
 
     # disable randomness, dropout, etc...
     model.eval()
@@ -104,7 +104,7 @@ The LightningModule also has access to the Hyperparameters
 
 .. code-block:: python
 
-    model = MyLightningModule.load_from_checkpoint('/path/to/checkpoint.ckpt')
+    model = MyLightningModule.load_from_checkpoint("/path/to/checkpoint.ckpt")
     print(model.learning_rate)
 
 ----
@@ -144,12 +144,15 @@ For example, let's pretend we created a LightningModule like so:
     class Encoder(nn.Module):
         ...
 
+
     class Decoder(nn.Module):
         ...
 
+
     class Autoencoder(pl.LightningModule):
-        def __init__(self, encoder, decoder, ...):
+        def __init__(self, encoder, decoder, *args, **kwargs):
             ...
+
 
     autoencoder = Autoencoder(Encoder(), Decoder())
 
@@ -158,8 +161,8 @@ Once the autoencoder has trained, pull out the relevant weights for your torch n
 .. code-block:: python
 
     checkpoint = torch.load(CKPT_PATH)
-    encoder_weights = checkpoint['encoder']
-    decoder_weights = checkpoint['decoder']
+    encoder_weights = checkpoint["encoder"]
+    decoder_weights = checkpoint["decoder"]
 
 ----
 

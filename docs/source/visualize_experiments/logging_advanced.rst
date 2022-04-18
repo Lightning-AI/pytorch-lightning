@@ -21,6 +21,7 @@ To change the default values (ie: version number) shown in the progress bar, ove
 
     from pytorch_lightning.callbacks.progress import Tqdm
 
+
     class CustomProgressBar(Tqdm):
         def get_metrics(self, *args, **kwargs):
             # don't show the version number
@@ -138,17 +139,19 @@ The default value depends in which function this is called
 
 .. code-block:: python
 
-  def training_step(...):
-    # Default: False
-    self.log(on_epoch=False)
+  def training_step(self, batch, batch_idx):
+      # Default: False
+      self.log(on_epoch=False)
 
-  def validation_step(...):
-    # Default: True
-    self.log(on_epoch=True)
 
-  def test_step(...):
-    # Default: True
-    self.log(on_epoch=True)
+  def validation_step(self, batch, batch_idx):
+      # Default: True
+      self.log(on_epoch=True)
+
+
+  def test_step(self, batch, batch_idx):
+      # Default: True
+      self.log(on_epoch=True)
 
 ----
 
@@ -166,17 +169,19 @@ The default value depends in which function this is called
 
 .. code-block:: python
 
-  def training_step(...):
-    # Default: True
-    self.log(on_step=True)
+  def training_step(self, batch, batch_idx):
+      # Default: True
+      self.log(on_step=True)
 
-  def validation_step(...):
-    # Default: False
-    self.log(on_step=False)
 
-  def test_step(...):
-    # Default: False
-    self.log(on_step=False)
+  def validation_step(self, batch, batch_idx):
+      # Default: False
+      self.log(on_step=False)
+
+
+  def test_step(self, batch, batch_idx):
+      # Default: False
+      self.log(on_step=False)
 
 
 ----
@@ -239,7 +244,7 @@ The DDP group to sync across.
 
   import torch.distributed as dist
 
-  group = dist.init_process_group('nccl', rank=self.global_rank, world_size=self.world_size)
+  group = dist.init_process_group("nccl", rank=self.global_rank, world_size=self.world_size)
   self.log(sync_dist_group=group)
 
 ----
@@ -255,6 +260,7 @@ First, implement your metric:
 
   import torch
   import torchmetrics
+
 
   class MyAccuracy(Metric):
       def __init__(self, dist_sync_on_step=False):
@@ -283,7 +289,6 @@ To use the metric inside Lightning, 1) initialize it in the init, 2) compute the
 .. code-block:: python
 
   class LitModel(LightningModule):
-
       def __init__(self):
           # 1. initialize the metric
           self.accuracy = MyAccuracy()
@@ -296,7 +301,7 @@ To use the metric inside Lightning, 1) initialize it in the init, 2) compute the
           self.accuracy(preds, y)
 
           # 3. log it
-          self.log('train_acc_step', self.accuracy)
+          self.log("train_acc_step", self.accuracy)
 
 ----
 
