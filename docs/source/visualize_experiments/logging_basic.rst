@@ -33,13 +33,13 @@ To track a metric, simply use the *self.log* method available inside the *Lightn
     class LitModel(pl.LightningModule):
         def training_step(self, batch, batch_idx):
             value = self.global_step
-            self.log('some_value', self.global_step)
+            self.log("some_value", self.global_step)
 
 To log multiple metrics at once, use *self.log_dict*
 
 .. code-block:: python
 
-    values = {'loss': loss, 'acc': acc, ..., 'metric_n': metric_n}
+    values = {"loss": loss, "acc": acc, "metric_n": metric_n}  # add more items if needed
     self.log_dict(values)
 
 TODO: show plot of metric changing over time
@@ -99,7 +99,7 @@ When you call self.log inside the *validation_step* and *test_step*, Lightning a
 
     def validation_step(self, batch, batch_idx):
         value = batch_idx + 1
-        self.log('average_value', value)
+        self.log("average_value", value)
 
 TODO: show single point plotted
 
@@ -121,7 +121,7 @@ If your *experiment manager* supports image visualization, simply *log* the imag
 
     # (32 batch samples, 3 channels, 32 width, 32 height)
     image = torch.Tensor(32, 3, 28, 28)
-    self.log('an_image', image)
+    self.log("an_image", image)
 
 ----
 
@@ -132,8 +132,8 @@ If your *experiment manager* supports text visualization, simply *log* the text 
 
 .. code-block:: python
 
-    text = 'hello world'
-    self.log('some_text', text)
+    text = "hello world"
+    self.log("some_text", text)
 
 # TODO: show screenshot
 
@@ -146,4 +146,4 @@ By default, anything that is logged is saved to the current working directory. T
 
 .. code-block:: python
 
-    Trainer(default_root_dir='/your/custom/path')
+    Trainer(default_root_dir="/your/custom/path")
