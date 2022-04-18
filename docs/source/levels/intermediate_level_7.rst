@@ -12,9 +12,17 @@ Learn to develop models on cloud GPUs and TPUs.
         <div class="row">
 
 .. displayitem::
+   :header: Prepare your code (Optional)
+   :description: Prepare your code to run on any hardware.
+   :col_css: col-md-3
+   :button_link: ../accelerators/accelerator_prepare.html
+   :height: 150
+   :tag: basic
+
+.. displayitem::
    :header: Access a cloud machine with GPUs.
    :description: Learn how to get a cloud machine with single or multiple GPUs.
-   :col_css: col-md-4
+   :col_css: col-md-3
    :button_link: ../clouds/session_basic.html
    :height: 150
    :tag: basic
@@ -22,7 +30,7 @@ Learn to develop models on cloud GPUs and TPUs.
 .. displayitem::
    :header: GPU Training
    :description: Learn the basics on single and multi-GPU training.
-   :col_css: col-md-4
+   :col_css: col-md-3
    :button_link: ../accelerators/gpu_basic.html
    :height: 150
    :tag: basic
@@ -30,7 +38,7 @@ Learn to develop models on cloud GPUs and TPUs.
 .. displayitem::
    :header: TPU Training
    :description: Learn the basics on single and multi-TPU core training.
-   :col_css: col-md-4
+   :col_css: col-md-3
    :button_link: ../accelerators/tpu_basic.html
    :height: 150
    :tag: basic
