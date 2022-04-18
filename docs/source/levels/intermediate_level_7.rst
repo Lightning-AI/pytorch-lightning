@@ -2,6 +2,9 @@
 Level 7: Interactive cloud development
 ######################################
 
+Learn to develop models on cloud GPUs and TPUs.
+
+----
 
 .. raw:: html
 

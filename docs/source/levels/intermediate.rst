@@ -5,6 +5,8 @@ Intermediate skills
 
 Learn to scale up your models and enable collaborative model development at academic or industry research labs.
 
+----
+
 .. include:: links.rst
 
 .. raw:: html
@@ -15,7 +17,7 @@ Learn to scale up your models and enable collaborative model development at acad
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 7: Interactive cloud development.
+   :header: Level 7: Interactive cloud development
    :description: Learn how to access GPUs and TPUs on the cloud.
    :button_link: intermediate_level_7.html
    :col_css: col-md-6

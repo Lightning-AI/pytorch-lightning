@@ -5,7 +5,7 @@ Advanced skills
 
 Reach trillion parameter scale and put models into production.
 
-.. include:: links.rst
+----
 
 .. raw:: html
 
