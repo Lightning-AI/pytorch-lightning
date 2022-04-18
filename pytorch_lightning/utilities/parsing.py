@@ -234,17 +234,7 @@ def save_hyperparameters(
         ignore = [arg for arg in ignore if isinstance(arg, str)]
 
     ignore = list(set(ignore))
-
-    for k in list(init_args):
-        if k in ignore:
-            del init_args[k]
-            continue
-
-        if isinstance(init_args[k], nn.Module):
-            rank_zero_warn(
-                f"Attribute {k!r} is an instance of `nn.Module` and is already saved during checkpointing."
-                f" It is recommended to ignore them using `self.save_hyperparameters(ignore=[{k}!r])`."
-            )
+    init_args = {k: v for k, v in init_args.items() if k not in ignore}
 
     if not args:
         # take all arguments
@@ -265,6 +255,13 @@ def save_hyperparameters(
     obj._set_hparams(hp)
     # make deep copy so there is not other runtime changes reflected
     obj._hparams_initial = copy.deepcopy(obj._hparams)
+
+    for k, v in obj._hparams.items():
+        if isinstance(v, nn.Module):
+            rank_zero_warn(
+                f"Attribute {k!r} is an instance of `nn.Module` and is already saved during checkpointing."
+                f" It is recommended to ignore them using `self.save_hyperparameters(ignore=[{k!r}])`."
+            )
 
 
 class AttributeDict(Dict):

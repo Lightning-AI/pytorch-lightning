@@ -296,7 +296,6 @@ Below we show an example of running `ZeRO-Offload <https://www.deepspeed.ai/tuto
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
 
     model = MyModel()
     trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_2_offload", precision=16)
@@ -341,7 +340,6 @@ For even more speed benefit, DeepSpeed offers an optimized CPU version of ADAM c
 
     import pytorch_lightning
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
     from deepspeed.ops.adam import DeepSpeedCPUAdam
 
 
@@ -385,7 +383,6 @@ Also please have a look at our :ref:`deepspeed-zero-stage-3-tips` which contains
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
     from deepspeed.ops.adam import FusedAdam
 
 
@@ -409,7 +406,6 @@ You can also use the Lightning Trainer to run predict or evaluate with DeepSpeed
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
 
 
     class MyModel(pl.LightningModule):
@@ -435,7 +431,6 @@ This reduces the time taken to initialize very large models, as well as ensure w
 
     import torch.nn as nn
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
     from deepspeed.ops.adam import FusedAdam
 
 
@@ -549,7 +544,6 @@ This saves memory when training larger models, however requires using a checkpoi
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
     import deepspeed
 
 
@@ -686,7 +680,7 @@ In some cases you may want to define your own DeepSpeed Config, to access all pa
     }
 
     model = MyModel()
-    trainer = Trainer(accelerator="gpu", devices=4, strategy=DeepSpeedStrategy(deepspeed_config), precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy=DeepSpeedStrategy(config=deepspeed_config), precision=16)
     trainer.fit(model)
 
 
@@ -699,7 +693,7 @@ We support taking the config as a json formatted file:
 
     model = MyModel()
     trainer = Trainer(
-        accelerator="gpu", devices=4, strategy=DeepSpeedStrategy("/path/to/deepspeed_config.json"), precision=16
+        accelerator="gpu", devices=4, strategy=DeepSpeedStrategy(config="/path/to/deepspeed_config.json"), precision=16
     )
     trainer.fit(model)
 

@@ -26,7 +26,6 @@ from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
 from pytorch_lightning.strategies import DDPStrategy, TPUSpawnStrategy
 from pytorch_lightning.utilities import find_shared_parameters
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import pl_multi_process_test
@@ -94,7 +93,6 @@ def test_accelerator_cpu_with_tpu_cores_flag():
 
 
 @RunIf(tpu=True)
-@pl_multi_process_test
 @pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", None)])
 def test_accelerator_tpu(accelerator, devices):
     assert TPUAccelerator.is_available()
@@ -103,7 +101,6 @@ def test_accelerator_tpu(accelerator, devices):
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
     assert trainer.num_devices == 8
-    assert trainer.tpu_cores == 8
 
 
 @RunIf(tpu=True)
@@ -114,13 +111,15 @@ def test_accelerator_tpu_with_tpu_cores_priority():
     with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
         trainer = Trainer(accelerator="tpu", devices=1, tpu_cores=tpu_cores)
 
-    assert trainer.tpu_cores == tpu_cores
+    assert isinstance(trainer.accelerator, TPUAccelerator)
+    assert trainer.num_devices == tpu_cores
 
 
 @RunIf(tpu=True)
-@pl_multi_process_test
 def test_set_devices_if_none_tpu():
-    trainer = Trainer(accelerator="tpu", tpu_cores=8)
+    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
+        trainer = Trainer(accelerator="tpu", tpu_cores=8)
+    assert isinstance(trainer.accelerator, TPUAccelerator)
     assert trainer.num_devices == 8
 
 
@@ -196,12 +195,6 @@ def test_manual_optimization_tpus(tmpdir):
 
     for param, param_copy in zip(model.parameters(), model_copy.parameters()):
         assert not torch.equal(param.cpu().data, param_copy.data)
-
-
-@RunIf(tpu=True)
-def test_ddp_cpu_not_supported_on_tpus():
-    with pytest.raises(MisconfigurationException, match="`accelerator='ddp_cpu'` is not supported on TPU machines"):
-        Trainer(accelerator="ddp_cpu")
 
 
 @RunIf(tpu=True)

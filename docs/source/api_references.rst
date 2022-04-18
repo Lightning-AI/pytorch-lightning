@@ -33,7 +33,6 @@ callbacks
     Callback
     DeviceStatsMonitor
     EarlyStopping
-    GPUStatsMonitor
     GradientAccumulationScheduler
     LambdaCallback
     LearningRateMonitor
@@ -47,7 +46,6 @@ callbacks
     StochasticWeightAveraging
     Timer
     TQDMProgressBar
-    XLAStatsMonitor
 
 core
 ----

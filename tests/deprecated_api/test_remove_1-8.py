@@ -25,7 +25,7 @@ from torch import optim
 import pytorch_lightning
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import CSVLogger, LightningLoggerBase, LoggerCollection
+from pytorch_lightning.loggers import CSVLogger, Logger, LoggerCollection
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.plugins.training_type.ddp2 import DDP2Plugin
@@ -546,7 +546,7 @@ def test_v1_8_0_on_before_accelerator_backend_setup(tmpdir):
 
 
 def test_v1_8_0_logger_agg_parameters():
-    class CustomLogger(LightningLoggerBase):
+    class CustomLogger(Logger):
         @rank_zero_only
         def log_hyperparams(self, params):
             pass
@@ -564,23 +564,19 @@ def test_v1_8_0_logger_agg_parameters():
             pass
 
     with pytest.deprecated_call(
-        match="The `agg_key_funcs` parameter for `LightningLoggerBase` was deprecated in v1.6"
-        " and will be removed in v1.8."
+        match="The `agg_key_funcs` parameter for `Logger` was deprecated in v1.6" " and will be removed in v1.8."
     ):
         CustomLogger(agg_key_funcs={"mean", np.mean})
 
     with pytest.deprecated_call(
-        match="The `agg_default_func` parameter for `LightningLoggerBase` was deprecated in v1.6"
-        " and will be removed in v1.8."
+        match="The `agg_default_func` parameter for `Logger` was deprecated in v1.6" " and will be removed in v1.8."
     ):
         CustomLogger(agg_default_func=np.mean)
 
     # Should have no deprecation warning
     logger = CustomLogger()
 
-    with pytest.deprecated_call(
-        match="`LightningLoggerBase.update_agg_funcs` was deprecated in v1.6 and will be removed in v1.8."
-    ):
+    with pytest.deprecated_call(match="`Logger.update_agg_funcs` was deprecated in v1.6 and will be removed in v1.8."):
         logger.update_agg_funcs()
 
 
@@ -596,9 +592,9 @@ def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
 
     # Test single loggers
     with pytest.deprecated_call(
-        match="`LightningLoggerBase.agg_and_log_metrics` is deprecated in v1.6 and will be removed"
-        " in v1.8. `Trainer` will directly call `LightningLoggerBase.log_metrics` so custom"
-        " loggers should not implement `LightningLoggerBase.agg_and_log_metrics`."
+        match="`Logger.agg_and_log_metrics` is deprecated in v1.6 and will be removed"
+        " in v1.8. `Trainer` will directly call `Logger.log_metrics` so custom"
+        " loggers should not implement `Logger.agg_and_log_metrics`."
     ):
         Trainer(logger=logger)
     # Should have no deprecation warning
@@ -606,9 +602,9 @@ def test_v1_8_0_deprecated_agg_and_log_metrics_override(tmpdir):
 
     # Test multiple loggers
     with pytest.deprecated_call(
-        match="`LightningLoggerBase.agg_and_log_metrics` is deprecated in v1.6 and will be removed"
-        " in v1.8. `Trainer` will directly call `LightningLoggerBase.log_metrics` so custom"
-        " loggers should not implement `LightningLoggerBase.agg_and_log_metrics`."
+        match="`Logger.agg_and_log_metrics` is deprecated in v1.6 and will be removed"
+        " in v1.8. `Trainer` will directly call `Logger.log_metrics` so custom"
+        " loggers should not implement `Logger.agg_and_log_metrics`."
     ):
         Trainer(logger=[logger, logger3])
     # Should have no deprecation warning
@@ -1136,3 +1132,13 @@ def test_trainer_gpus(monkeypatch, trainer_kwargs):
         " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
     ):
         assert trainer.gpus == trainer_kwargs["devices"]
+
+
+def test_trainer_tpu_cores(monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.accelerators.tpu.TPUAccelerator, "is_available", lambda _: True)
+    trainer = Trainer(accelerator="tpu", devices=8)
+    with pytest.deprecated_call(
+        match="`Trainer.tpu_cores` is deprecated in v1.6 and will be removed in v1.8. "
+        "Please use `Trainer.num_devices` instead."
+    ):
+        trainer.tpu_cores == 8
