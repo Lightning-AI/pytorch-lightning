@@ -362,10 +362,10 @@ Depending on your use case, you might want to check one of these out next.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 2: Use GPU/TPU
-   :description: Learn how to make your models 10x faster with GPUs/TPUs and half-precision.
+   :header: Level 2: Add a validation and test set
+   :description: Add validation and test sets to avoid over/underfitting.
+   :button_link: ../levels/basic_level_2.html
    :col_css: col-md-3
-   :button_link: ../levels/core_level_2.html
    :height: 180
    :tag: basic
 
@@ -373,7 +373,7 @@ Depending on your use case, you might want to check one of these out next.
    :header: See more examples
    :description: See examples across computer vision, NLP, RL, etc...
    :col_css: col-md-3
-   :button_link: ../levels/core_level_6.html
+   :button_link: ../tutorials.html
    :height: 180
    :tag: basic
 
@@ -389,7 +389,7 @@ Depending on your use case, you might want to check one of these out next.
    :header: Deploy your model
    :description: Learn how to predict or put your model into production
    :col_css: col-md-3
-   :button_link: ../levels/core_level_6.html
+   :button_link: ../deploy/production.html
    :height: 180
    :tag: basic
 
