@@ -1,4 +1,4 @@
-.. _strategy:
+.. _strategy_extensions:
 
 ###################
 What is a Strategy?

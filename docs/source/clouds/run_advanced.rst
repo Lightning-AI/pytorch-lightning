@@ -1,4 +1,4 @@
-.. _grid:
+.. _grid_cloud_advanced:
 
 #############################
 Train on the cloud (advanced)

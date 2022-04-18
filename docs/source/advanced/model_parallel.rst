@@ -1,4 +1,4 @@
-.. _model_parallel:
+.. _model_parallel_advanced:
 
 Train 1 trillion+ parameter models
 ==================================
@@ -53,7 +53,7 @@ Sharding techniques help when model sizes are fairly large; roughly 500M+ parame
 
 ----------
 
-.. _sharded:
+.. _sharded_training_advanced:
 
 Sharded Training
 ^^^^^^^^^^^^^^^^
@@ -91,7 +91,7 @@ Internally we re-initialize your optimizers and shard them across your machines 
 
 ----------
 
-.. _fully-sharded:
+.. _fully_sharded_training_advanced:
 
 Fully Sharded Training
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -177,7 +177,7 @@ Below is an example of using both ``wrap`` and ``auto_wrap`` to create your mode
 
 ----------
 
-.. _fairscale-activation-checkpointing:
+.. _fairscale_activation_checkpointing_advanced:
 
 FairScale Activation Checkpointing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -206,7 +206,7 @@ This saves memory when training larger models however requires wrapping modules 
             self.block_2 = nn.Linear(32, 2)
 
 
-.. _deepspeed:
+.. _deepspeed_advanced:
 
 DeepSpeed
 ^^^^^^^^^
@@ -247,7 +247,7 @@ If you run into an issue with the install or later in training, ensure that the 
     When saving a checkpoint we rely on DeepSpeed which saves a directory containing the model and various components.
 
 
-.. _deepspeed-zero-stage-1:
+.. _deepspeed_zero_stage_1_advanced:
 
 DeepSpeed ZeRO Stage 1
 """"""""""""""""""""""
@@ -265,7 +265,7 @@ It is recommended to skip Stage 1 and use Stage 2, which comes with larger memor
     trainer.fit(model)
 
 
-.. _deepspeed-zero-stage-2:
+.. _deepspeed_zero_stage_2_advanced:
 
 DeepSpeed ZeRO Stage 2
 """"""""""""""""""""""
@@ -286,7 +286,7 @@ As a result, benefits can also be seen on a single GPU. Do note that the default
     python train.py --strategy deepspeed_stage_2 --precision 16 --accelerator 'gpu' --devices 4
 
 
-.. _deepspeed-zero-stage-2-offload:
+.. _deepspeed_zero_stage_2_offload_advanced:
 
 DeepSpeed ZeRO Stage 2 Offload
 """"""""""""""""""""""""""""""
@@ -356,7 +356,7 @@ For even more speed benefit, DeepSpeed offers an optimized CPU version of ADAM c
     trainer.fit(model)
 
 
-.. _deepspeed-zero-stage-3:
+.. _deepspeed_zero_stage_3_advanced:
 
 DeepSpeed ZeRO Stage 3
 """"""""""""""""""""""
@@ -454,7 +454,7 @@ This reduces the time taken to initialize very large models, as well as ensure w
     trainer.predict()
 
 
-.. _deepspeed-zero-stage-3-offload:
+.. _deepspeed_zero_stage_3_offload_advanced:
 
 DeepSpeed ZeRO Stage 3 Offload
 """"""""""""""""""""""""""""""
@@ -525,7 +525,7 @@ Additionally, DeepSpeed supports offloading to NVMe drives for even larger model
 
 When offloading to NVMe you may notice that the speed is slow. There are parameters that need to be tuned based on the drives that you are using. Running the `aio_bench_perf_sweep.py <https://github.com/microsoft/DeepSpeed/blob/master/csrc/aio/py_test/aio_bench_perf_sweep.py>`__ script can help you to find optimum parameters. See the `issue <https://github.com/microsoft/DeepSpeed/issues/998>`__ for more information on how to parse the information.
 
-.. _deepspeed-activation-checkpointing:
+.. _deepspeed_activation_checkpointing_advanced:
 
 DeepSpeed Activation Checkpointing
 """"""""""""""""""""""""""""""""""
@@ -601,7 +601,7 @@ This saves memory when training larger models, however requires using a checkpoi
     trainer.fit(model)
 
 
-.. _deepspeed-zero-stage-3-tips:
+.. _deepspeed_zero_stage_3_tips_advanced:
 
 DeepSpeed ZeRO Stage 3 Tips
 """""""""""""""""""""""""""
@@ -613,7 +613,7 @@ Here is some helpful information when setting up DeepSpeed ZeRO Stage 3 with Lig
 * When offloading to the CPU, make sure to bump up the batch size as GPU memory will be freed
 * We also support sharded checkpointing. By passing ``save_full_weights=False`` to the ``DeepSpeedStrategy``, we'll save shards of the model which allows you to save extremely large models. However to load the model and run test/validation/predict you must use the Trainer object.
 
-.. _deepspeed-zero-stage-3-single-file:
+.. _deepspeed_zero_stage_3_single_file_advanced:
 
 Collating Single File Checkpoint for DeepSpeed ZeRO Stage 3
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -706,7 +706,7 @@ You can use also use an environment variable via your PyTorch Lightning script:
 
 ----------
 
-.. _ddp-optimizations:
+.. _ddp_optimizations_advanced:
 
 DDP Optimizations
 ^^^^^^^^^^^^^^^^^

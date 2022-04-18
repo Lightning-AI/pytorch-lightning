@@ -1,4 +1,4 @@
-.. _grid:
+.. _grid_cloud_run_basic:
 
 #################################
 Train on the cloud (intermediate)
@@ -90,6 +90,7 @@ You can also monitor its progress on the commandline:
 .. code:: bash
 
       grid status
+
 ----
 
 .. include:: grid_costs.rst

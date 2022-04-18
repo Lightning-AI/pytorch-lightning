@@ -2,8 +2,6 @@
 Supercharge training (intermediate)
 ###################################
 
-----
-
 ************************
 Enable training features
 ************************

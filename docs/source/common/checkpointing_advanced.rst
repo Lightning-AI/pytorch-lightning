@@ -4,7 +4,7 @@
     from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.core.lightning import LightningModule
 
-.. _checkpointing:
+.. _checkpointing_advanced:
 
 ########################
 Checkpointing (advanced)
@@ -59,7 +59,7 @@ Checkpoints can also save the state of :doc:`datamodules <../datamodule/datamodu
 
 ----
 
-.. include:: ../datamodule/datamodules_state.rst
+.. include:: ../extensions/datamodules_state.rst
 
 ----
 

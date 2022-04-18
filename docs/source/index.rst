@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 Welcome to ⚡ PyTorch Lightning
-==============================
+===============================
 .. twocolumns::
    :left:
       .. image:: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/mov.gif
@@ -193,7 +193,7 @@ Current Lightning Users
    build_model/build_model.rst
    common/hyperparameters
    common/progress_bar
-   common/debugging
+   debugging
    deploy/production
    advanced/training_tricks
    lightning_cli/lightning_cli
@@ -209,7 +209,6 @@ Current Lightning Users
    Train on single or multiple HPUs <accelerators/hpu>
    Train on single or multiple IPUs <accelerators/ipu>
    Train on single or multiple TPUs <accelerators/tpu>
-   visualize_experiments/loggers
    build_model/own_your_loop
 
 .. toctree::
@@ -217,19 +216,18 @@ Current Lightning Users
    :name: Glossary
    :caption: Glossary
 
-   Accelerators <extensions/accelerator.html>
+   Accelerators <extensions/accelerator>
    Callback <extensions/callbacks>
    Checkpointing <common/checkpointing>
    Cluster <clouds/cluster>
    Cloud checkpoint <common/checkpointing_advanced>
    Console Logging <common/console_logs>
-   Debugging <common/debugging>
+   Debugging <debugging>
    Early stopping <common/early_stopping>
    Experiment manager <visualize_experiments/experiment_managers>
    Fault tolerant training  <clouds/fault_tolerant_training>
    Finetuning <advanced/transfer_learning>
    Flash <https://lightning-flash.readthedocs.io/en/stable/>
-   FSSPEC <common/remote_fs>
    Grid AI <clouds/cloud_training>
    GPU <accelerators/gpu>
    Half precision <precision/precision>
@@ -247,16 +245,15 @@ Current Lightning Users
    TPU <accelerators/tpu>
    Metrics <https://torchmetrics.readthedocs.io/en/stable/>
    Model <build_model/build_model.rst>
-   ModelCheckpoint <common/checkpointing>
+   ModelCheckpoint <common/checkpointing_api>
    Model Parallel <advanced/model_parallel>
    Plugins <extensions/plugins>
    Progress bar <common/progress_bar>
    Production <deploy/production_advanced>
    Predict <deploy/production_basic>
    Profiler <tuning/profiler>
-   Pruning <advanced/pruning_quantization>
-   Quantization <advanced/pruning_quantization>
-   Remote filesystem <common/remote_fs>
+   Pruning and Quantization <advanced/pruning_quantization>
+   Remote filesystem and FSSPEC <common/remote_fs>
    Strategy <advanced/strategy_registry>
    Strategy registry <advanced/strategy_registry>
    Style guide <starter/style_guide>

@@ -2,8 +2,6 @@
 Fault-tolerant Training (FAQ)
 #############################
 
-----
-
 *******************************
 How do I use iterable datasets?
 *******************************

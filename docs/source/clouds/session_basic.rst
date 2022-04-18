@@ -1,4 +1,4 @@
-.. _grid:
+.. _grid_cloud_session_basic:
 
 ##########################
 Train on the cloud (basic)

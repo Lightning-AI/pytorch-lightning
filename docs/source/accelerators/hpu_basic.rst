@@ -1,4 +1,4 @@
-.. _hpu:
+.. _hpu_basics:
 
 Accelerator: HPU training
 =========================

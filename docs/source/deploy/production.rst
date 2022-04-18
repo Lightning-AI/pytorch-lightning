@@ -8,8 +8,6 @@ Deploy models into production
 Basics
 ******
 
-----
-
 .. raw:: html
 
     <div class="display-card-container">

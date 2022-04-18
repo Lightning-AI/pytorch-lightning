@@ -1,4 +1,4 @@
-.. _ipu:
+.. _ipu_intermediate:
 
 Accelerator: IPU training
 =========================

@@ -47,6 +47,7 @@ For multiple TPU cores, change the value of the devices flag.
 .. code::
 
     trainer = Trainer(accelerator="tpu", devices=8)
+
 ----
 
 Run on a specific TPU core

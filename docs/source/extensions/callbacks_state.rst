@@ -2,7 +2,7 @@
 
    from pytorch_lightning.callbacks import Callback
 
-.. _Persisting Callback State:
+.. _Persisting_Callback_State_Extensions:
 
 *******************
 Save Callback state

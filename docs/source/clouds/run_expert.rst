@@ -1,4 +1,4 @@
-.. _grid:
+.. _grid_cloud_run_expert:
 
 ###########################
 Train on the cloud (expert)

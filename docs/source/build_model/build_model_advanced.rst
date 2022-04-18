@@ -2,8 +2,6 @@
 Own your loop (advanced)
 ########################
 
-----
-
 ***********************
 Customize training loop
 ***********************

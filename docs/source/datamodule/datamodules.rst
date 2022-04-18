@@ -477,4 +477,4 @@ Refer to ``save_hyperparameters`` in :doc:`lightning module <../common/lightning
 
 ----
 
-.. include:: datamodules_state.rst
+.. include:: ../extensions/datamodules_state.rst

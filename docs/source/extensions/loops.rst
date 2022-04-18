@@ -1,4 +1,4 @@
-.. _loop_customization:
+.. _loop_customization_extensions:
 
 Loops
 =====
@@ -107,7 +107,7 @@ Defining a loop within a class interface instead of hard-coding a raw Python for
 
 ----------
 
-.. _override default loops:
+.. _override_default_loops_extensions:
 
 Overriding the default Loops
 ----------------------------
@@ -294,7 +294,7 @@ More about the built-in loops and how they are composed is explained in the next
 
 ----------
 
-.. _loop structure:
+.. _loop_structure_extensions:
 
 Built-in Loops
 --------------

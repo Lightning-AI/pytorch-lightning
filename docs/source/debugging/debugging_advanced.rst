@@ -2,7 +2,7 @@
 
     from pytorch_lightning.trainer.trainer import Trainer
 
-.. _debugging:
+.. _debugging_advanced:
 
 ###########################
 Debug your model (advanced)

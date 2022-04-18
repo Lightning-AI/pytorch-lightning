@@ -4,7 +4,7 @@
     from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.core.lightning import LightningModule
 
-.. _checkpointing:
+.. _checkpointing_api:
 
 ###################
 ModelCheckpoint API
