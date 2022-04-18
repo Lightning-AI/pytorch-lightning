@@ -102,14 +102,12 @@ from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_modu
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.seed import isolate_rng
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
     _EVALUATE_OUTPUT,
     _PATH,
     _PREDICT_OUTPUT,
     EVAL_DATALOADERS,
     LRSchedulerConfig,
-    STEP_OUTPUT,
     TRAIN_DATALOADERS,
 )
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
@@ -1575,45 +1573,15 @@ class Trainer(
             prev_fx_name = pl_module._current_fx_name
             pl_module._current_fx_name = hook_name
 
-        # TODO: remove if block in v1.7
-        if hook_name == "on_train_batch_start":
-            with self.profiler.profile(hook_name):
-                self._on_train_batch_start(*args, **kwargs)
-        elif hook_name == "on_train_batch_end":
-            with self.profiler.profile(hook_name):
-                self._on_train_batch_end(*args, **kwargs)
-        else:
-            for callback in self.callbacks:
-                fn = getattr(callback, hook_name)
-                if callable(fn):
-                    with self.profiler.profile(f"[Callback]{callback.state_key}.{hook_name}"):
-                        fn(self, self.lightning_module, *args, **kwargs)
+        for callback in self.callbacks:
+            fn = getattr(callback, hook_name)
+            if callable(fn):
+                with self.profiler.profile(f"[Callback]{callback.state_key}.{hook_name}"):
+                    fn(self, self.lightning_module, *args, **kwargs)
 
         if pl_module:
             # restore current_fx when nested context
             pl_module._current_fx_name = prev_fx_name
-
-    # TODO: Delete this in v1.7 (deprecations: #9816 and #11148)
-    def _on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        r"""Called when the training batch begins. This function is needed because of two different deprecations affecting
-        the original function in TrainerCallbackHookMixin: #9816 and #11148.
-        """
-        for callback in self.callbacks:
-            if is_param_in_hook_signature(callback.on_train_batch_start, "dataloader_idx", explicit=True):
-                callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx, 0)
-            else:
-                callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx)
-
-    # TODO: Delete this in v1.7 (deprecations: #9816 and #11148)
-    def _on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx=0):
-        r"""Called when the training batch ends. This function is needed because of two different deprecations affecting
-        the original function in TrainerCallbackHookMixin: #9816 and #11148.
-        """
-        for callback in self.callbacks:
-            if is_param_in_hook_signature(callback.on_train_batch_end, "dataloader_idx", explicit=True):
-                callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx, 0)
-            else:
-                callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx)
 
     def _call_callbacks_state_dict(self) -> Dict[str, dict]:
         """Called when saving a model checkpoint, calls and returns every callback's `state_dict`, keyed by
