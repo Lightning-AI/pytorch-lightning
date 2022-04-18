@@ -67,7 +67,7 @@ For certain enterprise workloads, Lightning CLI supports running from hosted con
 
     $ python trainer.py [subcommand] --config s3://bucket/config.yaml
 
-For more options, refer to :doc:`Remote filesystems <common/remote_fs>`.
+For more options, refer to :doc:`Remote filesystems <../common/remote_fs>`.
 
 ----
 

@@ -165,7 +165,7 @@ Example::
     -- python your_trainer_file.py
 
 
-Read more in our :ref:`accelerators` and :ref:`plugins` guides.
+Read more in our :ref:`accelerator` and :ref:`plugins` guides.
 
 
 -----------

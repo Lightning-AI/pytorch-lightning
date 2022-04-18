@@ -114,8 +114,6 @@ Integrate an experiment manager
 *******************************
 To create an integration between a custom logger and Lightning, subclass :class:`~pytorch_lightning.loggers.base.LightningLoggerBase`
 
-    def log_hyperparams(self, params: argparse.Namespace, *args, **kwargs):
-
 .. code-block:: python
 
     from pytorch_lightning.loggers import Logger

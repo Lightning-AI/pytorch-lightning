@@ -4,4 +4,4 @@
  Make a custom Lightning Loop (expert)
 ######################################
 
-.. include::  ../extensions/loops.inc
+.. include::  ../extensions/loops.rst
