@@ -1,7 +1,3 @@
-.. testsetup:: *
-
-    from pytorch_lightning.trainer.trainer import Trainer
-
 .. _debugging_advanced:
 
 ###########################

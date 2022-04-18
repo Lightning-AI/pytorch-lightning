@@ -1,11 +1,7 @@
 .. testsetup:: *
-
-   from pytorch_lightning.utilities.cli import LightningCLI
-
-.. testsetup:: *
     :skipif: not _JSONARGPARSE_AVAILABLE
 
-    from pytorch_lightning.utilities import cli as pl_cli
+   from pytorch_lightning.utilities.cli import LightningCLI
 
 .. testcleanup:: *
 

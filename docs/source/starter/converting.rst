@@ -1,9 +1,3 @@
-.. testsetup:: *
-
-    from pytorch_lightning.core.lightning import LightningModule
-    from pytorch_lightning.core.datamodule import LightningDataModule
-    from pytorch_lightning.trainer.trainer import Trainer
-
 .. _converting:
 
 ######################################

@@ -1,8 +1,4 @@
 .. testsetup:: *
-
-    import torch.nn as nn
-
-.. testsetup:: *
     :skipif: not _JSONARGPARSE_AVAILABLE
 
    from pytorch_lightning.utilities.cli import LightningCLI

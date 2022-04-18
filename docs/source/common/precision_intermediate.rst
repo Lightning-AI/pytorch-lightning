@@ -1,10 +1,4 @@
-.. testsetup:: *
-
-    from pytorch_lightning import Trainer
-
-
 .. _precision_intermediate:
-
 
 ##############################
 N-Bit Precision (Intermediate)

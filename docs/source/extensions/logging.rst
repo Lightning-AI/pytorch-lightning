@@ -1,7 +1,5 @@
 .. testsetup:: *
 
-    from pytorch_lightning.core.lightning import LightningModule
-    from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning import loggers as pl_loggers
 
 .. role:: hidden

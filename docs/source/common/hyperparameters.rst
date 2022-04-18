@@ -1,10 +1,6 @@
 .. testsetup:: *
 
-    import torch
     from argparse import ArgumentParser, Namespace
-    from pytorch_lightning.trainer.trainer import Trainer
-    from pytorch_lightning.core.lightning import LightningModule
-    import sys
 
     sys.argv = ["foo"]
 

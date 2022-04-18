@@ -1,8 +1,3 @@
-.. testsetup:: *
-
-    from pytorch_lightning.trainer.trainer import Trainer
-
-
 ##################################
 Run on an on-prem cluster (expert)
 ##################################

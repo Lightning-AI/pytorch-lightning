@@ -1,7 +1,3 @@
-.. testsetup:: *
-
-   from pytorch_lightning.callbacks import Callback
-
 .. _persisting_callback_state_extensions:
 
 *******************

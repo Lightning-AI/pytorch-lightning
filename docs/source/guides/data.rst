@@ -1,9 +1,3 @@
-.. testsetup:: *
-
-    from pytorch_lightning.core.lightning import LightningModule
-    from torch.utils.data import IterableDataset, DataLoader, Dataset
-    from pytorch_lightning.trainer.trainer import Trainer
-
 .. _data:
 
 #############

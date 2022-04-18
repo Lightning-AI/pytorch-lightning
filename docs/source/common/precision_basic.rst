@@ -1,10 +1,4 @@
-.. testsetup:: *
-
-    from pytorch_lightning import Trainer
-
-
 .. _precision_basic:
-
 
 #######################
 N-Bit Precision (Basic)
