@@ -63,6 +63,13 @@ Learn to scale up your models and enable collaborative model development at acad
    :button_link: intermediate_level_13.html   
    :height: 150
 
+.. displayitem::
+   :header: Level 14: Run on on-prem clusters
+   :description: Run on a custom on-prem cluster or SLURM cluster.
+   :col_css: col-md-6
+   :button_link: intermediate_level_14.html   
+   :height: 150
+
 .. raw:: html
 
         </div>
