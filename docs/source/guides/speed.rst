@@ -181,7 +181,7 @@ You can read more about it :ref:`here <early_stopping>`.
 
 ----------
 
-.. _speed_amp:
+.. _speed-amp:
 
 *********************************
 Mixed Precision (16-bit) Training
@@ -217,7 +217,7 @@ Lightning offers mixed precision training for GPUs and CPUs, as well as bfloat16
     trainer = Trainer(precision=16, accelerator="gpu", devices=4)
 
 
-Read more about :ref:`mixed-precision training <amp>`.
+Read more about :ref:`mixed-precision training <speed-amp>`.
 
 
 ----------------
