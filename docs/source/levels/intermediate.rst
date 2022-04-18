@@ -42,6 +42,20 @@ Learn to scale up your models and enable collaborative model development at acad
    :button_link: intermediate_level_10.html   
    :height: 150
 
+.. displayitem::
+   :header: Level 11: Explore SOTA scaling techniques
+   :description: Explore SOTA techniques to help convergence, stability and scalability.
+   :col_css: col-md-6
+   :button_link: intermediate_level_11.html   
+   :height: 150
+
+.. displayitem::
+   :header: Level 12: Deploy your models
+   :description: Learn how to deploy your models with optimizations like ONNX and torchscript.
+   :col_css: col-md-6
+   :button_link: intermediate_level_12.html   
+   :height: 150
+
 .. raw:: html
 
         </div>
