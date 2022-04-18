@@ -19,7 +19,7 @@ Learn all the ways of owning your raw PyTorch loops with Lighting.
    :header: Enable manual optimization
    :description: Gain control of the training loop with manual optimization and LightningModule methods.
    :col_css: col-md-4
-   :button_link: ../build_model/build_model_advanced.html
+   :button_link: ../model/build_model_advanced.html
    :height: 150
    :tag: advanced
 
@@ -27,7 +27,7 @@ Learn all the ways of owning your raw PyTorch loops with Lighting.
    :header: Use a Raw PyTorch Loop
    :description: Migrate complex PyTorch projects to Lightning and push bleeding-edge research with the raw PyTorch loop.
    :col_css: col-md-4
-   :button_link: ../build_model/build_model_expert.html
+   :button_link: ../model/build_model_expert.html
    :height: 150
    :tag: advanced
 
@@ -35,7 +35,7 @@ Learn all the ways of owning your raw PyTorch loops with Lighting.
    :header: Make a custom Lightning Loop
    :description: Conduct bleeding-edge research like meta-learning and RL with a custom Loop.
    :col_css: col-md-4
-   :button_link: ../build_model/custom_loop_expert.html
+   :button_link: ../model/custom_loop_expert.html
    :height: 150
    :tag: expert
 

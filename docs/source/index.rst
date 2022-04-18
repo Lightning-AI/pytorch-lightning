@@ -191,12 +191,12 @@ Current Lightning Users
    :caption: Common Workflows
 
    common/evaluation
-   build_model/build_model.rst
+   model/build_model.rst
    common/hyperparameters
    common/progress_bar
    deploy/production
    advanced/training_tricks
-   lightning_cli/lightning_cli
+   cli/lightning_cli
    tuning/profiler
    Finetune a model <advanced/transfer_learning>
    Manage experiments <visualize/logging_intermediate>
@@ -204,12 +204,12 @@ Current Lightning Users
    advanced/model_parallel
    clouds/cloud_training
    Save and load model progress <common/checkpointing_basic>
-   Save memory with half-precision <precision/precision>
+   Save memory with half-precision <common/precision>
    Train on single or multiple GPUs <accelerators/gpu>
    Train on single or multiple HPUs <accelerators/hpu>
    Train on single or multiple IPUs <accelerators/ipu>
    Train on single or multiple TPUs <accelerators/tpu>
-   build_model/own_your_loop
+   model/own_your_loop
 
 .. toctree::
    :maxdepth: 1
@@ -229,21 +229,21 @@ Current Lightning Users
    Flash <https://lightning-flash.readthedocs.io/en/stable/>
    Grid AI <clouds/cloud_training>
    GPU <accelerators/gpu>
-   Half precision <precision/precision>
+   Half precision <common/precision>
    HPU <accelerators/hpu>
    Inference <deploy/production_intermediate>
    IPU <accelerators/ipu>
-   Lightning CLI <lightning_cli/lightning_cli>
-   Lightning Lite <build_model/build_model_expert>
+   Lightning CLI <cli/lightning_cli>
+   Lightning Lite <model/build_model_expert>
    LightningDataModule <datamodule/datamodules>
    LightningModule <common/lightning_module>
    Lightning Transformers <https://pytorch-lightning.readthedocs.io/en/stable/ecosystem/transformers.html>
    Log <visualize_experiments/loggers>
    Logger <visualize_experiments/experiment_managers>
-   Loops <build_model/custom_loop_expert>
+   Loops <model/custom_loop_expert>
    TPU <accelerators/tpu>
    Metrics <https://torchmetrics.readthedocs.io/en/stable/>
-   Model <build_model/build_model.rst>
+   Model <model/build_model.rst>
    ModelCheckpoint <common/checkpointing_api>
    Model Parallel <advanced/model_parallel>
    Plugins <extensions/plugins>

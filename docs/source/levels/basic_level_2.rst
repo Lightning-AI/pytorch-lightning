@@ -13,7 +13,7 @@ Level 2: Add a validation and test set
    :header: Validate and test a model
    :description: Add a validation and test data split to avoid overfitting.
    :col_css: col-md-4
-   :button_link: ../build_model/validate_model_basic.html
+   :button_link: ../model/validate_model_basic.html
    :height: 150
    :tag: basic
 

@@ -43,7 +43,7 @@ Integrate a new accelerator or distributed strategy.
    :header: 4: Create a new precision technique
    :description: Create new precision techniques and enable them through Lightning.
    :col_css: col-md-6
-   :button_link: ../precision/precision_expert.html
+   :button_link: ../common/precision_expert.html
    :height: 150
    :tag: expert
 

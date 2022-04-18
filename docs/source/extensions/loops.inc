@@ -354,7 +354,7 @@ Each of these :code:`for`-loops represents a class implementing the :class:`~pyt
      - The :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop` iterates over one or multiple optimizers and for each one it calls the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` method with the batch, the current batch index and the optimizer index if multiple optimizers are requested.
        It is the leaf node in the tree of loops and performs the actual optimization (forward, zero grad, backward, optimizer step).
    * - :class:`~pytorch_lightning.loops.optimization.manual_loop.ManualOptimization`
-     - Substitutes the :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop` in case of :doc:`manual optimization <../build_model/manual_optimization>` and implements the manual optimization step.
+     - Substitutes the :class:`~pytorch_lightning.loops.optimization.optimizer_loop.OptimizerLoop` in case of :doc:`manual optimization <../model/manual_optimization>` and implements the manual optimization step.
    * - :class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop`
      - The :class:`~pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop` is the top-level loop where validation/testing starts.
        It simply iterates over each evaluation dataloader from one to the next by calling :code:`EvaluationEpochLoop.run()` in its :code:`advance()` method.
