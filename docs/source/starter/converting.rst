@@ -43,9 +43,9 @@ Keep your regular nn.Module architecture
 
 --------
 
-*******************************
-2. Configure the Training Logic
-*******************************
+***************************
+2. Configure Training Logic
+***************************
 In the training_step of the LightningModule configure how your training routine behaves with a batch of training data:
 
 .. testcode::
@@ -61,13 +61,13 @@ In the training_step of the LightningModule configure how your training routine 
             loss = F.cross_entropy(y_hat, y)
             return loss
 
-.. note:: If you need to fully own the training loop for complicated legacy projects, check out `Own your loop <build_model/own_your_loop>`.
+.. note:: If you need to fully own the training loop for complicated legacy projects, check out :doc:`Own your loop <../build_model/own_your_loop>`.
 
 ----
 
-********************************************
-3. Move the Optimizer(s) and LR Scheduler(s)
-********************************************
+****************************************
+3. Move Optimizer(s) and LR Scheduler(s)
+****************************************
 Move your optimizers to the :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers` hook.
 
 .. testcode::
@@ -80,9 +80,9 @@ Move your optimizers to the :meth:`~pytorch_lightning.core.lightning.LightningMo
 
 --------
 
-********************************************
-4. Configure the Validation Logic (optional)
-********************************************
+***************************************
+4. Organize Validation Logic (optional)
+***************************************
 If you need a validation loop, configure how your validation routine behaves with a batch of validation data:
 
 .. testcode::
@@ -98,9 +98,9 @@ If you need a validation loop, configure how your validation routine behaves wit
 
 --------
 
-*************************************
-5. Configure Testing Logic (optional)
-*************************************
+************************************
+5. Organize Testing Logic (optional)
+************************************
 If you need a test loop, configure how your testing routine behaves with a batch of test data:
 
 .. testcode::
@@ -161,7 +161,7 @@ Hint: If you are initializing a :class:`~torch.Tensor` within the ``LightningMod
 ********************
 8. Use your own data
 ********************
-Regular PyTorch DataLoaders work with Lightning. For more modular and scalable datasets, check out `LightningDataModule <datamodule/datamodules>`.
+Regular PyTorch DataLoaders work with Lightning. For more modular and scalable datasets, check out :doc:`LightningDataModule <../datamodule/datamodules>`.
 
 ----
 
