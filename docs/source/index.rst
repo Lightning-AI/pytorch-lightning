@@ -193,13 +193,12 @@ Current Lightning Users
    build_model/build_model.rst
    common/hyperparameters
    common/progress_bar
-   debugging
    deploy/production
    advanced/training_tricks
    lightning_cli/lightning_cli
    tuning/profiler
    Finetune a model <advanced/transfer_learning>
-   Manage experiments <visualize_experiments/logging_intermediate>
+   Manage experiments <visualize/logging_intermediate>
    clouds/cluster
    advanced/model_parallel
    clouds/cloud_training
@@ -222,11 +221,10 @@ Current Lightning Users
    Cluster <clouds/cluster>
    Cloud checkpoint <common/checkpointing_advanced>
    Console Logging <common/console_logs>
-   Debugging <debugging>
+   Debugging <debug/debugging>
    Early stopping <common/early_stopping>
    Experiment manager <visualize_experiments/experiment_managers>
    Fault tolerant training  <clouds/fault_tolerant_training>
-   Finetuning <advanced/transfer_learning>
    Flash <https://lightning-flash.readthedocs.io/en/stable/>
    Grid AI <clouds/cloud_training>
    GPU <accelerators/gpu>
@@ -254,7 +252,6 @@ Current Lightning Users
    Profiler <tuning/profiler>
    Pruning and Quantization <advanced/pruning_quantization>
    Remote filesystem and FSSPEC <common/remote_fs>
-   Strategy <advanced/strategy_registry>
    Strategy registry <advanced/strategy_registry>
    Style guide <starter/style_guide>
    Sweep <clouds/run_intermediate>
