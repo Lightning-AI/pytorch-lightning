@@ -1,4 +1,4 @@
-.. _profiler:
+.. _profiler_expert:
 
 ######################################
 Find bottlenecks in your code (expert)

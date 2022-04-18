@@ -1,4 +1,4 @@
-.. _profiler:
+.. _profiler_advanced:
 
 ########################################
 Find bottlenecks in your code (advanced)
@@ -29,7 +29,7 @@ To capture profile logs in Tensorboard, follow these instructions:
 ----
 
 0: Setup the required installs
-===========================
+==============================
 Use this `guide <https://cloud.google.com/tpu/docs/pytorch-xla-performance-profiling-tpu-vm#tpu-vm>`_ to help you with the Cloud TPU required installations.
 
 ----

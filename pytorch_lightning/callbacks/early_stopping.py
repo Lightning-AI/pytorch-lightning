@@ -81,7 +81,7 @@ class EarlyStopping(Callback):
 
         *monitor, mode*
 
-        Read more: :ref:`Persisting Callback State`
+        Read more: :ref:`Persisting Callback State <persisting_callback_state_extensions>`
     """
     mode_dict = {"min": torch.lt, "max": torch.gt}
 

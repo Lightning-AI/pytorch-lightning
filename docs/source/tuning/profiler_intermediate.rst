@@ -1,4 +1,4 @@
-.. _profiler:
+.. _profiler_intermediate:
 
 ############################################
 Find bottlenecks in your code (intermediate)
@@ -57,6 +57,7 @@ The profiler will generate an output like this:
     This is due to forcing profiled operations to be measured synchronously, when many CUDA ops happen asynchronously.
     It is recommended to use this Profiler to find bottlenecks/breakdowns, however for end to end wall clock time use
     the ``SimpleProfiler``.
+
 ----
 
 ***************************

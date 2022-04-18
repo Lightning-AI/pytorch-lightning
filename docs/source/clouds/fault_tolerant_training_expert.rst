@@ -3,7 +3,7 @@ Fault-tolerant Training (expert)
 ################################
 **Audience**: Experts looking to enable and handle their own fault-tolerance.
 
-**Pre-requisites**: Users must have first read :doc:`Fault-tolrance Training (basic) <fault_tolerant_traininng_basic>`
+**Pre-requisites**: Users must have first read :doc:`Fault-tolrance Training (basic) <fault_tolerant_training_basic>`
 
 ----
 

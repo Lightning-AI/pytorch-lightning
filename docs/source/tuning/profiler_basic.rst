@@ -1,4 +1,4 @@
-.. _profiler:
+.. _profiler_basic:
 
 #####################################
 Find bottlenecks in your code (basic)
@@ -110,7 +110,7 @@ If the profiler report becomes too long, you can stream the report to a file:
 Measure accelerator usage
 *************************
 Another helpful technique to detect bottlenecks is to ensure that you're using the full capacity of your accelerator (GPU/TPU/IPU/HPU).
-This can be measured with the :class:`~pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor:
+This can be measured with the :class:`~pytorch_lightning.callbacks.device_stats_monitor.DeviceStatsMonitor`:
 
 .. testcode::
 
