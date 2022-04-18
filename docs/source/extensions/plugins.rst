@@ -30,7 +30,7 @@ By default, the plugins get selected based on the rest of the Trainer settings s
 
 -----------
 
-.. _precision_plugins:
+.. _precision-plugins:
 
 *****************
 Precision Plugins
@@ -65,7 +65,7 @@ The full list of built-in precision plugins is listed below.
     TPUBf16PrecisionPlugin
     TPUPrecisionPlugin
 
-More information regarding precision with Lightning can be found :doc:`here <precision>`
+More information regarding precision with Lightning can be found :doc:`here <../common/precision>`
 
 -----------
 

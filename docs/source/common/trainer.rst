@@ -1154,7 +1154,7 @@ plugins
 
 - :ref:`DDP <gpu>`
 - `TorchElastic <https://pytorch.org/elastic/0.2.2/index.html>`_
-- :ref:`Apex <amp>`
+- :ref:`Apex <../extensions/plugins:precision-plugins>`
 
 To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own
 :class:`~pytorch_lightning.plugins.environments.ClusterEnvironment`.

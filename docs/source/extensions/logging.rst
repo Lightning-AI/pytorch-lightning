@@ -389,4 +389,4 @@ Managing Remote Filesystems
 
 Lightning supports saving logs to a variety of filesystems, including local filesystems and several cloud storage providers.
 
-Check out the :ref:`Remote Filesystems <remote_fs>` doc for more info.
+Check out the :doc:`Remote Filesystems <../common/remote_fs>` doc for more info.

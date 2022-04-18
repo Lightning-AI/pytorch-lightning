@@ -14,7 +14,6 @@ Speed Up Model Training
 When you are limited with the resources, it becomes hard to speed up model training and reduce the training time
 without affecting the model's performance. There are multiple ways you can speed up your model's time to convergence.
 
-
 ************************
 Training on Accelerators
 ************************
@@ -77,7 +76,7 @@ Whereas :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs two
 
 |
 
-For more details on how to tune performance with DDP, please see the :docs:`DDP Optimizations <DDP Optimizations>` section.
+For more details on how to tune performance with DDP, please see the :ref:`DDP Optimizations <ddp-optimizations>` section.
 
 DataLoaders
 ^^^^^^^^^^^
@@ -165,7 +164,7 @@ Example::
     -- python your_trainer_file.py
 
 
-Read more in our :ref:`accelerators` and :ref:`plugins` guides.
+Read more in our :ref:`training-speedup` and :ref:`plugins` guides.
 
 
 -----------

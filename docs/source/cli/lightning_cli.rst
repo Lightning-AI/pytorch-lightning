@@ -1,5 +1,7 @@
 :orphan:
 
+.. _lightning-cli:
+
 ############################
 Eliminate config boilerplate
 ############################
