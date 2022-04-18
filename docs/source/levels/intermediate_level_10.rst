@@ -27,7 +27,7 @@ Find the best model using advanced visualizations for deeper insights.
    :header: 2: Visualize more than metrics
    :description: Use advanced visualization techniques provided by experiment managers.
    :col_css: col-md-4
-   :button_link: ../visualize_experiments/logging_intermediate.html
+   :button_link: ../visualize/logging_intermediate.html
    :height: 150
    :tag: intermediate
 
@@ -35,7 +35,7 @@ Find the best model using advanced visualizations for deeper insights.
    :header: 3: Granular control of logging
    :description: Gain granular control over logging to optimize for speed.
    :col_css: col-md-4
-   :button_link: ../visualize_experiments/logging_advanced.html
+   :button_link: ../visualize/logging_advanced.html
    :height: 150
    :tag: advanced
 
