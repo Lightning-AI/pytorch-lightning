@@ -10,8 +10,6 @@ Basic skills
 ------------
 Learn the basics of model development with Lightning. Researchers and machine learning engineers should start here.
 
-.. include:: links.rst
-
 
 .. raw:: html
 
@@ -20,7 +18,7 @@ Learn the basics of model development with Lightning. Researchers and machine le
 
 .. Add callout items below this line
 
-... displayitem::
+.. displayitem::
    :header: Level 1: Train a model
    :description: Learn the basics of training a model.
    :button_link: build_model/train_model_basic.html
@@ -89,7 +87,7 @@ Learn to scale up your models and enable collaborative model development at acad
 .. displayitem::
    :header: Level 7: Interactive cloud development
    :description: Learn how to access GPUs and TPUs on the cloud.
-   :button_link: leves/intermediate_level_7.html
+   :button_link: levels/intermediate_level_7.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate
@@ -97,7 +95,7 @@ Learn to scale up your models and enable collaborative model development at acad
 .. displayitem::
    :header: Level 8: Train in the background on the cloud
    :description: Learn how to run models on the cloud in the background.
-   :button_link: leves/intermediate_level_8.html
+   :button_link: levels/intermediate_level_8.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate
@@ -106,7 +104,7 @@ Learn to scale up your models and enable collaborative model development at acad
    :header: Level 9: Modularize your projects
    :description: Create DataModules to enable dataset reusability.
    :col_css: col-md-6
-   :button_link: leves/intermediate_level_9.html   
+   :button_link: levels/intermediate_level_9.html   
    :height: 150
    :tag: intermediate
 
@@ -114,7 +112,7 @@ Learn to scale up your models and enable collaborative model development at acad
    :header: Level 10: Understand your model
    :description: Use advanced visuals to find the best performing model.
    :col_css: col-md-6
-   :button_link: leves/intermediate_level_10.html   
+   :button_link: levels/intermediate_level_10.html   
    :height: 150
    :tag: intermediate
 
@@ -122,7 +120,7 @@ Learn to scale up your models and enable collaborative model development at acad
    :header: Level 11: Explore SOTA scaling techniques
    :description: Explore SOTA techniques to help convergence, stability and scalability.
    :col_css: col-md-6
-   :button_link: leves/intermediate_level_11.html   
+   :button_link: levels/intermediate_level_11.html   
    :height: 150
    :tag: intermediate
 
@@ -130,7 +128,7 @@ Learn to scale up your models and enable collaborative model development at acad
    :header: Level 12: Deploy your models
    :description: Learn how to deploy your models with optimizations like ONNX and torchscript.
    :col_css: col-md-6
-   :button_link: leves/intermediate_level_12.html   
+   :button_link: levels/intermediate_level_12.html   
    :height: 150
    :tag: intermediate
 
@@ -138,7 +136,7 @@ Learn to scale up your models and enable collaborative model development at acad
    :header: Level 13: Optimize training speed
    :description: Use advanced profilers to mixed precision to train bigger models, faster.
    :col_css: col-md-6
-   :button_link: leves/intermediate_level_13.html   
+   :button_link: levels/intermediate_level_13.html   
    :height: 150
    :tag: intermediate
 
@@ -146,7 +144,7 @@ Learn to scale up your models and enable collaborative model development at acad
    :header: Level 14: Run on on-prem clusters
    :description: Run on a custom on-prem cluster or SLURM cluster.
    :col_css: col-md-6
-   :button_link: leves/intermediate_level_14.html   
+   :button_link: levels/intermediate_level_14.html   
    :height: 150
    :tag: intermediate
 
@@ -168,11 +166,11 @@ Configure all aspects of Lightning for advanced usecases.
 
 .. Add callout items below this line
 
-. displayitem::
+.. displayitem::
    :header: Level 15: Customize configs to run in production
    :description: Enable composable YAMLs
    :col_css: col-md-6
-   :button_link: leves/advanced_level_15.html
+   :button_link: levels/advanced_level_15.html
    :height: 150
    :tag: advanced
 
@@ -180,7 +178,7 @@ Configure all aspects of Lightning for advanced usecases.
    :header: Level 16: Customize the trainer
    :description: Inject custom code into the trainer and modify the progress bar.
    :col_css: col-md-6
-   :button_link: leves/advanced_level_16.html
+   :button_link: levels/advanced_level_16.html
    :height: 150
    :tag: advanced
 
@@ -188,7 +186,7 @@ Configure all aspects of Lightning for advanced usecases.
    :header: Level 17: Own the training loop
    :description: Learn all the ways of owning your raw PyTorch loops with Lighting.
    :col_css: col-md-6
-   :button_link: leves/advanced_level_17.html
+   :button_link: levels/advanced_level_17.html
    :height: 150
    :tag: advanced
 
@@ -196,7 +194,7 @@ Configure all aspects of Lightning for advanced usecases.
    :header: Level 18: Enable advanced checkpointing
    :description: Enable composable or cloud based checkpoints.
    :col_css: col-md-6
-   :button_link: leves/advanced_level_18.html
+   :button_link: levels/advanced_level_18.html
    :height: 150
    :tag: advanced
 
@@ -204,7 +202,7 @@ Configure all aspects of Lightning for advanced usecases.
    :header: Level 19: Explore IPUs
    :description: Explore Intelligence Processing Unit (IPU) for model scaling.
    :col_css: col-md-6
-   :button_link: leves/advanced_level_19.html
+   :button_link: levels/advanced_level_19.html
    :height: 150
    :tag: advanced
 
@@ -212,7 +210,7 @@ Configure all aspects of Lightning for advanced usecases.
    :header: Level 20: Explore HPUs
    :description: Explore Havana Gaudi Processing Unit (HPU) for model scaling.
    :col_css: col-md-6
-   :button_link: leves/advanced_level_20.html
+   :button_link: levels/advanced_level_20.html
    :height: 150
    :tag: advanced
 
@@ -220,7 +218,7 @@ Configure all aspects of Lightning for advanced usecases.
    :header: Level 21: Master TPUs
    :description: Master TPUs and run on cloud TPUs.
    :col_css: col-md-6
-   :button_link: leves/advanced_level_21.html
+   :button_link: levels/advanced_level_21.html
    :height: 150
    :tag: advanced
 
@@ -228,7 +226,7 @@ Configure all aspects of Lightning for advanced usecases.
    :header: Level 22: Reach 1 trillion parameters on GPUs
    :description: Scale to 1 trillion params on GPUs.
    :col_css: col-md-6
-   :button_link: leves/advanced_level_22.html   
+   :button_link: levels/advanced_level_22.html   
    :height: 150
    :tag: advanced
 
@@ -250,7 +248,7 @@ Customize and extend Lightning for things like custom hardware or distributed st
 
 .. Add callout items below this line
 
-. displayitem::
+.. displayitem::
    :header: Level 23: Extend the Lightning CLI
    :description: Extend the functionality of the Lightning CLI.
    :col_css: col-md-6
