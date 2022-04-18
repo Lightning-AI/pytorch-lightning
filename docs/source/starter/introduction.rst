@@ -3,11 +3,7 @@
 #######################
 Lightning in 15 minutes
 #######################
-<<<<<<< HEAD
 **Required background:** None   
-=======
-**Required background:** None
->>>>>>> c8486910973340f5bdfb85761536c1ff3230197a
 
 **Goal:** In this guide, we'll walk you through the 7 key steps of a typical Lightning workflow.
 
@@ -63,8 +59,6 @@ By organizing PyTorch code, lightning enables:
    :col_css: col-md-3
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/card_testing.png
    :height: 290
-<<<<<<< HEAD
-
 
 .. raw:: html
 
@@ -80,24 +74,6 @@ By organizing PyTorch code, lightning enables:
 ****************************
 .. raw:: html
 
-=======
-
-
-.. raw:: html
-
-        </div>
-    </div>
-
-.. End of callout item section
-
-----
-
-****************************
-1: Install PyTorch Lightning
-****************************
-.. raw:: html
-
->>>>>>> c8486910973340f5bdfb85761536c1ff3230197a
    <div class="row" style='font-size: 16px'>
       <div class='col-md-6'>
 
@@ -124,7 +100,6 @@ For `conda <https://anaconda.org/conda-forge/pytorch-lightning>`_ users
    </div>
 
 Or read the `advanced install guide <installation.html>`_
-<<<<<<< HEAD
 
 ----
 
@@ -134,17 +109,6 @@ Or read the `advanced install guide <installation.html>`_
 2: Define a LightningModule
 ***************************
 
-=======
-
-----
-
-.. _new_project:
-
-***************************
-2: Define a LightningModule
-***************************
-
->>>>>>> c8486910973340f5bdfb85761536c1ff3230197a
 A LightningModule enables your PyTorch nn.Module to play together in complex ways inside the training_step (there is also an optional validation_step and test_step).
 
 .. testcode::
@@ -184,12 +148,6 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
     # init the autoencoder
     autoencoder = LitAutoEncoder(encoder, decoder)
 
-<<<<<<< HEAD
-=======
-    # init the autoencoder
-    autoencoder = LitAutoEncoder(encoder, decoder)
-
->>>>>>> c8486910973340f5bdfb85761536c1ff3230197a
 ----
 
 *******************
@@ -203,7 +161,6 @@ Lightning supports ANY iterable (:class:`~torch.utils.data.DataLoader`, numpy, e
     # setup data
     dataset = MNIST(os.getcwd(), download=True)
     train_loader = utils.data.DataLoader(dataset)
-<<<<<<< HEAD
 
 ----
 
@@ -211,15 +168,6 @@ Lightning supports ANY iterable (:class:`~torch.utils.data.DataLoader`, numpy, e
 4: Train the model
 ******************
 
-=======
-
-----
-
-******************
-4: Train the model
-******************
-
->>>>>>> c8486910973340f5bdfb85761536c1ff3230197a
 The Lightning :doc:`Trainer <../common/trainer>` "mixes" any :doc:`LightningModule <../common/lightning_module>` with any dataset and abstracts away all the engineering complexity needed for scale.
 
 .. code-block:: python
@@ -250,11 +198,7 @@ Once you've trained the model you can export to onnx, torchscript and put it int
 .. code:: python
 
     # load checkpoint
-<<<<<<< HEAD
     checkpoint = './lightning_logs/version_0/checkpoints/epoch=0-step=100.ckpt'
-=======
-    checkpoint = "./lightning_logs/version_0/checkpoints/epoch=0-step=100.ckpt"
->>>>>>> c8486910973340f5bdfb85761536c1ff3230197a
     autoencoder = LitAutoEncoder.load_from_checkpoint(checkpoint, encoder=encoder, decoder=decoder)
 
     # choose your trained nn.Module
@@ -262,15 +206,9 @@ Once you've trained the model you can export to onnx, torchscript and put it int
     encoder.eval()
 
     # embed 4 fake images!
-<<<<<<< HEAD
     fake_image_batch = Tensor(4, 28*28)
     embeddings = encoder(fake_image_batch)
     print('⚡'*20, '\nPredictions (4 image embeddings):\n', embeddings, '\n', '⚡'*20)
-=======
-    fake_image_batch = Tensor(4, 28 * 28)
-    embeddings = encoder(fake_image_batch)
-    print("⚡" * 20, "\nPredictions (4 image embeddings):\n", embeddings, "\n", "⚡" * 20)
->>>>>>> c8486910973340f5bdfb85761536c1ff3230197a
 
 ----
 
@@ -296,18 +234,12 @@ Enable advanced training features using Trainer arguments. These are state-of-th
 
    # train on 4 GPUs
    trainer = Trainer(
-<<<<<<< HEAD
        devices=4, 
        accelerator="gpu", 
-=======
-       devices=4,
-       accelerator="gpu",
->>>>>>> c8486910973340f5bdfb85761536c1ff3230197a
     )
 
    # train 1TB+ parameter models with Deepspeed/fsdp
    trainer = Trainer(
-<<<<<<< HEAD
        devices=4, 
        accelerator="gpu", 
        strategy="deepspeed_stage_2", 
@@ -318,18 +250,6 @@ Enable advanced training features using Trainer arguments. These are state-of-th
    trainer = Trainer(
        max_epochs=10, 
        min_epochs=5, 
-=======
-       devices=4,
-       accelerator="gpu",
-       strategy="deepspeed_stage_2",
-       precision=16
-    )
-
-   # 20+ helpful flags for rapid idea iteration
-   trainer = Trainer(
-       max_epochs=10,
-       min_epochs=5,
->>>>>>> c8486910973340f5bdfb85761536c1ff3230197a
        overfit_batches=1
     )
 
@@ -341,11 +261,7 @@ Enable advanced training features using Trainer arguments. These are state-of-th
 ********************
 Maximize flexibility
 ********************
-<<<<<<< HEAD
 Lightning's core guiding principle is to always provide maximal flexibility **without ever hiding any of the PyTorch**. 
-=======
-Lightning's core guiding principle is to always provide maximal flexibility **without ever hiding any of the PyTorch**.
->>>>>>> c8486910973340f5bdfb85761536c1ff3230197a
 
 Lightning offers 5 *added* degrees of flexibility depending on your project's complexity.
 

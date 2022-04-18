@@ -58,11 +58,6 @@ Enable Different Strategies
 ########################
 Create a Custom Strategy
 ########################
-<<<<<<< HEAD
-=======
-
-Every strategy in Lightning is a subclass of one of the main base classes: :class:`~pytorch_lightning.strategies.Strategy`, :class:`~pytorch_lightning.strategies.SingleDeviceStrategy` or :class:`~pytorch_lightning.strategies.ParallelStrategy`.
->>>>>>> c8486910973340f5bdfb85761536c1ff3230197a
 
 Expert users may choose to extend an existing strategy by overriding its methods.
 
@@ -124,8 +119,4 @@ Available Training Strategies
     SingleHPUStrategy
     SingleTPUStrategy
     Strategy
-<<<<<<< HEAD
     TPUSpawnStrategy
-=======
-    TPUSpawnStrategy
->>>>>>> c8486910973340f5bdfb85761536c1ff3230197a

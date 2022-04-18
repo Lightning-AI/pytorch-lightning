@@ -114,19 +114,11 @@ this generate a table like:
 
 .. code-block:: text
 
-<<<<<<< HEAD
       | Name  | Type        | Params 
     ----------------------------------
     0 | net   | Sequential  | 132 K  
     1 | net.0 | Linear      | 131 K  
     2 | net.1 | BatchNorm1d | 1.0 K 
-=======
-      | Name  | Type        | Params
-    ----------------------------------
-    0 | net   | Sequential  | 132 K
-    1 | net.0 | Linear      | 131 K
-    2 | net.1 | BatchNorm1d | 1.0 K
->>>>>>> c8486910973340f5bdfb85761536c1ff3230197a
 
 To add the child modules to the summary add a :class:`~pytorch_lightning.callbacks.model_summary.ModelSummary`:
 
@@ -136,11 +128,7 @@ To add the child modules to the summary add a :class:`~pytorch_lightning.callbac
 
     trainer = Trainer(callbacks=[ModelSummary(max_depth=-1)])
 
-<<<<<<< HEAD
 To turn off the autosummary use: 
-=======
-To turn off the autosummary use:
->>>>>>> c8486910973340f5bdfb85761536c1ff3230197a
 
 .. code:: python
 
@@ -152,11 +140,7 @@ To turn off the autosummary use:
 Print input output layer dimensions
 ***********************************
 Another debugging tool is to  display the intermediate input- and output sizes of all your layers by setting the
-<<<<<<< HEAD
 ``example_input_array`` attribute in your LightningModule. 
-=======
-``example_input_array`` attribute in your LightningModule.
->>>>>>> c8486910973340f5bdfb85761536c1ff3230197a
 
 .. code-block:: python
 
