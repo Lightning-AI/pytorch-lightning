@@ -1,3 +1,5 @@
+:orphan:
+
 .. testsetup:: *
 
     from pytorch_lightning.callbacks.early_stopping import EarlyStopping

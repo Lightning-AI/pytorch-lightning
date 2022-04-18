@@ -1,3 +1,5 @@
+:orphan:
+
 .. testsetup:: *
 
     from pytorch_lightning import loggers as pl_loggers
