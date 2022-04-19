@@ -1,7 +1,7 @@
-.. _loop_customization_extensions:
-
 Loops
 =====
+
+.. _loop-customization-extensions:
 
 Loops let advanced users swap out the default gradient descent optimization loop at the core of Lightning with a different optimization paradigm.
 
@@ -107,7 +107,7 @@ Defining a loop within a class interface instead of hard-coding a raw Python for
 
 ----------
 
-.. _override_default_loops_extensions:
+.. _override-default-loops-extensions:
 
 Overriding the default Loops
 ----------------------------
@@ -137,7 +137,7 @@ For example with the :class:`~pytorch_lightning.loops.fit_loop.FitLoop`:
         def on_run_end(self):
             """Do something when the loop ends."""
 
-A full list with all built-in loops and subloops can be found :ref:`here <loop_structure_extensions>`.
+A full list with all built-in loops and subloops can be found :ref:`here <loop-structure-extensions>`.
 
 To add your own modifications to a loop, simply subclass an existing loop class and override what you need.
 Here is a simple example how to add a new hook:
@@ -213,7 +213,7 @@ Finally, attach it into the :class:`~pytorch_lightning.trainer.trainer.Trainer`:
     trainer.fit(...)
 
 But beware: Loop customization gives you more power and full control over the Trainer and with great power comes great responsibility.
-We recommend that you familiarize yourself with :ref:`overriding the default loops <override_default_loops_extensions>` first before you start building a new loop from the ground up.
+We recommend that you familiarize yourself with :ref:`overriding the default loops <override-default-loops-extensions>` first before you start building a new loop from the ground up.
 
 ----------
 
@@ -294,10 +294,10 @@ More about the built-in loops and how they are composed is explained in the next
 
 ----------
 
-.. _loop_structure_extensions:
-
 Built-in Loops
 --------------
+
+.. _loop-structure-extensions:
 
 The training loop in Lightning is called *fit loop* and is actually a combination of several loops.
 Here is what the structure would look like in plain Python:
