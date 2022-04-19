@@ -1,4 +1,4 @@
-.. _persisting_callback_state_extensions:
+.. _persisting-callback-state-extensions:
 
 *******************
 Save Callback state

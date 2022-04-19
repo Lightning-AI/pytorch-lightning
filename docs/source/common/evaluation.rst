@@ -1,4 +1,4 @@
-.. _gpu:
+.. _val-test-dataset:
 
 ********************************
 Add validation and test datasets

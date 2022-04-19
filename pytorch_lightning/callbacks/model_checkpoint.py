@@ -196,7 +196,7 @@ class ModelCheckpoint(Callback):
 
         *monitor, mode, every_n_train_steps, every_n_epochs, train_time_interval, save_on_train_epoch_end*
 
-        Read more: :ref:`Persisting Callback State <persisting_callback_state_extensions>`
+        Read more: :ref:`Persisting Callback State <persisting-callback-state-extensions>`
     """
 
     CHECKPOINT_JOIN_CHAR = "-"
