@@ -35,7 +35,7 @@ Learn all the ways of owning your raw PyTorch loops with Lighting.
    :header: Make a custom Lightning Loop
    :description: Conduct bleeding-edge research like meta-learning and RL with a custom Loop.
    :col_css: col-md-4
-   :button_link: ../model/custom_loop_expert.html
+   :button_link: ../extensions/loops.html
    :height: 150
    :tag: expert
 

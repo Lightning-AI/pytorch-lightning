@@ -3,7 +3,40 @@
 .. testsetup:: *
     :skipif: not _JSONARGPARSE_AVAILABLE
 
-   from pytorch_lightning.utilities.cli import LightningCLI
+    import torch
+    from unittest import mock
+    from typing import List
+    import pytorch_lightning as pl
+    from pytorch_lightning import LightningModule, LightningDataModule, Trainer, Callback
+
+
+    class NoFitTrainer(Trainer):
+        def fit(self, *_, **__):
+            pass
+
+
+    class LightningCLI(pl.utilities.cli.LightningCLI):
+        def __init__(self, *args, trainer_class=NoFitTrainer, run=False, **kwargs):
+            super().__init__(*args, trainer_class=trainer_class, run=run, **kwargs)
+
+
+    class MyModel(LightningModule):
+        def __init__(
+            self,
+            encoder_layers: int = 12,
+            decoder_layers: List[int] = [2, 4],
+            batch_size: int = 8,
+        ):
+            pass
+
+
+    class MyDataModule(LightningDataModule):
+        def __init__(self, batch_size: int = 8):
+            self.num_classes = 5
+
+
+    mock_argv = mock.patch("sys.argv", ["any.py"])
+    mock_argv.start()
 
 .. testcleanup:: *
 

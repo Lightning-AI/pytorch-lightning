@@ -169,13 +169,13 @@ exclude_patterns = [
 
 # List of patterns that cause duplicate label issue when included
 # See: https://github.com/sphinx-doc/sphinx/issues/1668 issue for more context
-exclude_patterns.extend(
-    [
-        "advanced/model_parallel.rst",
-        "extensions/callbacks_state.rst",
-        "extensions/loops.rst",
-    ]
-)
+# exclude_patterns.extend(
+#     [
+#         "advanced/model_parallel.rst",
+#         "extensions/callbacks_state.rst",
+#         "extensions/loops.rst",
+#     ]
+# )
 
 if _PL_FAST_DOCS_DEV:
     exclude_patterns.append("notebooks/*")

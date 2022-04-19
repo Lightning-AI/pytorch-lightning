@@ -45,15 +45,7 @@ PyTorch Lightning uses `fsspec <https://filesystem-spec.readthedocs.io/>`_ inter
 ***************************
 Modularize your checkpoints
 ***************************
-Checkpoints can also save the state of :doc:`datamodules <../data/datamodule>` and :doc:`callbacks <../extensions/callbacks>`.
-
-----
-
-.. include:: ../extensions/callbacks_state.rst
-
-----
-
-.. include:: ../extensions/datamodules_state.rst
+Checkpoints can also save the state of :doc:`datamodules <../extensions/datamodules_state>` and :doc:`callbacks <../extensions/callbacks_state>`.
 
 ----
 

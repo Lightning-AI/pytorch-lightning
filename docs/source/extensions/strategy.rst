@@ -1,6 +1,4 @@
-.. _strategy_extensions:
-
-orphan:
+:orphan:
 
 ###################
 What is a Strategy?
