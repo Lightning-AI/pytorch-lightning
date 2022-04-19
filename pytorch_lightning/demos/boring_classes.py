@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# type: ignore
+# TODO: Resolve typing for demo
 from typing import Optional
 
 import torch
@@ -29,7 +31,7 @@ class RandomDictDataset(Dataset):
         b = a + 2
         return {"a": a, "b": b}
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.len
 
 
@@ -41,7 +43,7 @@ class RandomDataset(Dataset):
     def __getitem__(self, index):
         return self.data[index]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.len
 
 
