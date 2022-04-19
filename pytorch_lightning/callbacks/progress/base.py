@@ -220,7 +220,7 @@ class ProgressBarBase(Callback):
         Return:
             Dictionary with the items to be displayed in the progress bar.
         """
-        standard_metrics = standard_metrics = get_standard_metrics(trainer, pl_module)
+        standard_metrics = get_standard_metrics(trainer, pl_module)
         pbar_metrics = trainer.progress_bar_metrics
         duplicates = list(standard_metrics.keys() & pbar_metrics.keys())
         if duplicates:
