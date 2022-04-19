@@ -1,4 +1,5 @@
 .. _strategy_extensions:
+
 orphan:
 
 ###################

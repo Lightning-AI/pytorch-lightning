@@ -1,4 +1,4 @@
-.. _gpu:
+.. _gpu-evaluation:
 
 ********************************
 Add validation and test datasets
