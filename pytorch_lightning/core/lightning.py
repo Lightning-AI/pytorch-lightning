@@ -1731,35 +1731,6 @@ class LightningModule(
 
         self.train()
 
-    def get_progress_bar_dict(self) -> Dict[str, Union[int, str]]:
-        r"""
-        .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of
-            `pytorch_lightning.callbacks.progress.base.get_metrics` and will be removed in v1.7.
-
-        Implement this to override the default items displayed in the progress bar.
-        By default it includes the average loss value, split index of BPTT (if used)
-        and the version of the experiment when using a logger.
-
-        .. code-block::
-
-            Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, loss=4.501, v_num=10]
-
-        Here is an example how to override the defaults:
-
-        .. code-block:: python
-
-            def get_progress_bar_dict(self):
-                # don't show the version number
-                items = super().get_progress_bar_dict()
-                items.pop("v_num", None)
-                return items
-
-        Return:
-            Dictionary with the items to be displayed in the progress bar.
-        """
-        return progress_base.get_standard_metrics(self.trainer, self)
-
     def _verify_is_manual_optimization(self, fn_name):
         if self.automatic_optimization:
             raise MisconfigurationException(
