@@ -566,8 +566,8 @@ class ModelCheckpoint(Callback):
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
     def __resolve_ckpt_dir(self, trainer: "pl.Trainer") -> None:
-        """Determines model checkpoint save directory at runtime. Reference attributes from the trainer's logger
-        to determine where to save checkpoints. The path for saving weights is set in this priority:
+        """Determines model checkpoint save directory at runtime. Reference attributes from the trainer's logger to
+        determine where to save checkpoints. The path for saving weights is set in this priority:
 
         1.  The ``ModelCheckpoint``'s ``dirpath`` if passed in
         2.  The ``Trainer``'s ``weights_saved_path`` if passed in (deprecated)
