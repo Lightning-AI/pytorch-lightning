@@ -232,6 +232,7 @@ def _adjust_batch_size(
         new value is different than the previous batch size.
     """
     model = trainer.lightning_module
+    datamodule = trainer.datamodule
     batch_size = lightning_getattr(model, batch_arg_name)
     new_size = value if value is not None else int(batch_size * factor)
     if desc:
@@ -242,6 +243,7 @@ def _adjust_batch_size(
 
     changed = new_size != batch_size
     lightning_setattr(model, batch_arg_name, new_size)
+    lightning_setattr(datamodule, batch_arg_name, new_size)
     return new_size, changed
 
 
