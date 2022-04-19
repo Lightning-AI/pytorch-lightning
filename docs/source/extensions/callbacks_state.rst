@@ -1,5 +1,3 @@
-.. _persisting-callback-state-extensions:
-
 *******************
 Save Callback state
 *******************

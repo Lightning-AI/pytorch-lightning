@@ -108,6 +108,8 @@ Lightning has a few built-in callbacks.
 
 .. include:: callbacks_state.rst
 
+----------
+
 **************
 Best Practices
 **************

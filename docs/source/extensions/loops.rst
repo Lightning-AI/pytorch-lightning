@@ -1,7 +1,8 @@
+.. _loop-customization-extensions:
+
+
 Loops
 =====
-
-.. _loop-customization-extensions:
 
 Loops let advanced users swap out the default gradient descent optimization loop at the core of Lightning with a different optimization paradigm.
 

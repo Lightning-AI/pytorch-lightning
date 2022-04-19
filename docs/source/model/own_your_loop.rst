@@ -31,7 +31,7 @@ Use a pure PyTorch training loop
    :header: Make a custom Lightning Loop
    :description: Conduct bleeding-edge research like meta-learning and RL with a custom Loop.
    :col_css: col-md-4
-   :button_link: custom_loop_expert.html
+   :button_link: loops.html
    :height: 150
    :tag: expert
 

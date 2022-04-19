@@ -239,11 +239,10 @@ Current Lightning Users
    LightningModule <common/lightning_module>
    Lightning Transformers <https://pytorch-lightning.readthedocs.io/en/stable/ecosystem/transformers.html>
    Log <visualize/loggers>
-   Loops <model/custom_loop_expert>
+   Loops <extensions/loops>
    TPU <accelerators/tpu>
    Metrics <https://torchmetrics.readthedocs.io/en/stable/>
    Model <model/build_model.rst>
-   ModelCheckpoint <common/checkpointing>
    Model Parallel <advanced/model_parallel>
    Plugins <extensions/plugins>
    Progress bar <common/progress_bar>
