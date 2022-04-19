@@ -87,8 +87,7 @@ class ModelCheckpoint(Callback):
         save_last: When ``True``, saves an exact copy of the checkpoint to a file `last.ckpt` whenever a checkpoint
             file gets saved. This allows accessing the latest checkpoint in a deterministic manner. Default: ``None``.
         save_top_k: if ``save_top_k == k``,
-            the best k models according to
-            the quantity monitored will be saved.
+            the best k models according to the quantity monitored will be saved.
             if ``save_top_k == 0``, no models are saved.
             if ``save_top_k == -1``, all models are saved.
             Please note that the monitors are checked every ``every_n_epochs`` epochs.
@@ -567,7 +566,7 @@ class ModelCheckpoint(Callback):
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
     def __resolve_ckpt_dir(self, trainer: "pl.Trainer") -> None:
-        """Determines model checkpoint save directory at runtime. References attributes from the trainer's logger
+        """Determines model checkpoint save directory at runtime. Reference attributes from the trainer's logger
         to determine where to save checkpoints. The path for saving weights is set in this priority:
 
         1.  The ``ModelCheckpoint``'s ``dirpath`` if passed in
