@@ -3,7 +3,7 @@
 .. _gpu_faq:
 
 GPU training (FAQ)
-====================
+==================
 
 ******************************************************************
 How should I adjust the learning rate when using multiple devices?

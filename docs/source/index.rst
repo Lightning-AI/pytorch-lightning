@@ -243,7 +243,7 @@ Current Lightning Users
    TPU <accelerators/tpu>
    Metrics <https://torchmetrics.readthedocs.io/en/stable/>
    Model <model/build_model.rst>
-   ModelCheckpoint <common/checkpointing_api>
+   ModelCheckpoint <common/checkpointing>
    Model Parallel <advanced/model_parallel>
    Plugins <extensions/plugins>
    Progress bar <common/progress_bar>

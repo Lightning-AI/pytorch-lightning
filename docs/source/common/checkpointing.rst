@@ -61,7 +61,7 @@ Checkpointing
    :header: ModelCheckpoint API
    :description: Dig into the ModelCheckpoint API
    :col_css: col-md-4
-   :button_link: checkpointing_api.html
+   :button_link: ../api/pytorch_lightning.callbacks.ModelCheckpoint.html
    :height: 150
 
 .. raw:: html
