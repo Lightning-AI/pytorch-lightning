@@ -22,7 +22,7 @@ from argparse import ArgumentParser, Namespace
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Type, Union
 from weakref import proxy
 
 import torch
@@ -81,7 +81,6 @@ from pytorch_lightning.utilities import (
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
     AMPType,
-    device_parser,
     GradClipAlgorithmType,
     parsing,
 )
@@ -103,14 +102,12 @@ from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_modu
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.seed import isolate_rng
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
     _EVALUATE_OUTPUT,
     _PATH,
     _PREDICT_OUTPUT,
     EVAL_DATALOADERS,
     LRSchedulerConfig,
-    STEP_OUTPUT,
     TRAIN_DATALOADERS,
 )
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
@@ -220,7 +217,7 @@ class Trainer(
                 a power search or `binsearch` that estimates the batch size through a binary search.
                 Default: ``False``.
 
-            auto_select_gpus: If enabled and ``gpus`` is an integer, pick available
+            auto_select_gpus: If enabled and ``gpus`` or ``devices`` is an integer, pick available
                 gpus automatically. This is especially useful when
                 GPUs are configured to be in "exclusive mode", such
                 that only one process at a time can access them.
@@ -446,8 +443,6 @@ class Trainer(
         log.detail(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
         self.state = TrainerState()
 
-        gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
-
         # init connectors
         self._data_connector = DataConnector(self, multiple_trainloader_mode)
 
@@ -459,12 +454,12 @@ class Trainer(
             accelerator=accelerator,
             strategy=strategy,
             gpus=gpus,
-            gpu_ids=gpu_ids,
             num_nodes=num_nodes,
             sync_batchnorm=sync_batchnorm,
             benchmark=benchmark,
             replace_sampler_ddp=replace_sampler_ddp,
             deterministic=deterministic,
+            auto_select_gpus=auto_select_gpus,
             precision=precision,
             amp_type=amp_backend,
             amp_level=amp_level,
@@ -1578,45 +1573,15 @@ class Trainer(
             prev_fx_name = pl_module._current_fx_name
             pl_module._current_fx_name = hook_name
 
-        # TODO: remove if block in v1.7
-        if hook_name == "on_train_batch_start":
-            with self.profiler.profile(hook_name):
-                self._on_train_batch_start(*args, **kwargs)
-        elif hook_name == "on_train_batch_end":
-            with self.profiler.profile(hook_name):
-                self._on_train_batch_end(*args, **kwargs)
-        else:
-            for callback in self.callbacks:
-                fn = getattr(callback, hook_name)
-                if callable(fn):
-                    with self.profiler.profile(f"[Callback]{callback.state_key}.{hook_name}"):
-                        fn(self, self.lightning_module, *args, **kwargs)
+        for callback in self.callbacks:
+            fn = getattr(callback, hook_name)
+            if callable(fn):
+                with self.profiler.profile(f"[Callback]{callback.state_key}.{hook_name}"):
+                    fn(self, self.lightning_module, *args, **kwargs)
 
         if pl_module:
             # restore current_fx when nested context
             pl_module._current_fx_name = prev_fx_name
-
-    # TODO: Delete this in v1.7 (deprecations: #9816 and #11148)
-    def _on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        r"""Called when the training batch begins. This function is needed because of two different deprecations affecting
-        the original function in TrainerCallbackHookMixin: #9816 and #11148.
-        """
-        for callback in self.callbacks:
-            if is_param_in_hook_signature(callback.on_train_batch_start, "dataloader_idx", explicit=True):
-                callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx, 0)
-            else:
-                callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx)
-
-    # TODO: Delete this in v1.7 (deprecations: #9816 and #11148)
-    def _on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx=0):
-        r"""Called when the training batch ends. This function is needed because of two different deprecations affecting
-        the original function in TrainerCallbackHookMixin: #9816 and #11148.
-        """
-        for callback in self.callbacks:
-            if is_param_in_hook_signature(callback.on_train_batch_end, "dataloader_idx", explicit=True):
-                callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx, 0)
-            else:
-                callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx)
 
     def _call_callbacks_state_dict(self) -> Dict[str, dict]:
         """Called when saving a model checkpoint, calls and returns every callback's `state_dict`, keyed by
@@ -1725,14 +1690,6 @@ class Trainer(
         pl_module._current_fx_name = prev_fx_name
 
         return output
-
-    @staticmethod
-    def _parse_devices(
-        gpus: Optional[Union[List[int], str, int]],
-        auto_select_gpus: bool,
-        tpu_cores: Optional[Union[List[int], str, int]],
-    ) -> Tuple[Optional[List[int]], Optional[Union[List[int], int]]]:
-        return device_parser._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
     @staticmethod
     def _log_api_event(event: str) -> None:

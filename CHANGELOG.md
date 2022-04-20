@@ -28,7 +28,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Enable validation during overfitting ([#12527](https://github.com/PyTorchLightning/pytorch-lightning/pull/12527))
 
 
-- Support `strategy` argument being case insensitive ([#12528](https://github.com/PyTorchLightning/pytorch-lightning/pull/12528))
+- Added dataclass support to `extract_batch_size` ([#12573](https://github.com/PyTorchLightning/pytorch-lightning/pull/12573))
 
 
 - Changed checkpoints save path in the case of one logger and user-provided weights_save_path from `weights_save_path/name/version/checkpoints` to `weights_save_path/checkpoints` ([#12372](https://github.com/PyTorchLightning/pytorch-lightning/pull/12372))
@@ -85,7 +85,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated `prepare_data_per_node` argument from the `Trainer` constructor ([#12536](https://github.com/PyTorchLightning/pytorch-lightning/pull/12536))
 
 
+- Removed the deprecated `pytorch_lightning.core.memory.{get_gpu_memory_map,get_memory_profile}` ([#12659](https://github.com/PyTorchLightning/pytorch-lightning/pull/12659))
+
+
 - Removed the deprecated `terminate_on_nan` argument from the `Trainer` constructor ([#12553](https://github.com/PyTorchLightning/pytorch-lightning/pull/12553))
+
+
+- Removed the deprecated `XLAStatsMonitor` callback ([#12688](https://github.com/PyTorchLightning/pytorch-lightning/pull/12688))
+
+
+- Remove deprecated `pytorch_lightning.callbacks.progress.progress` ([#12658](https://github.com/PyTorchLightning/pytorch-lightning/pull/12658))
+
+
+- Removed the deprecated `dim` and `size` arguments from the `LightningDataModule` constructor([#12780](https://github.com/PyTorchLightning/pytorch-lightning/pull/12780))
 
 
 - Removed the deprecated `train_transforms` argument from the `LightningDataModule` constructor([#12662](https://github.com/PyTorchLightning/pytorch-lightning/pull/12662))
@@ -100,24 +112,38 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated `GPUStatsMonitor` callback ([#12554](https://github.com/PyTorchLightning/pytorch-lightning/pull/12554))
 
 
+- Removed support for passing strategy names or strategy instances to the accelerator Trainer argument ([#12696](https://github.com/PyTorchLightning/pytorch-lightning/pull/12696))
+
+
+- Removed support for passing strategy names or strategy instances to the plugins Trainer argument ([#12700](https://github.com/PyTorchLightning/pytorch-lightning/pull/12700))
+
+
+- Removed deprecated `dataloader_idx` argument from `on_train_batch_start/end` hooks `Callback` and `LightningModule` ([#12769](https://github.com/PyTorchLightning/pytorch-lightning/pull/12769))
+
 ### Fixed
 
-- Avoid calling `average_parameters` multiple times per optimizer step ([#12452](https://github.com/PyTorchLightning/pytorch-lightning/pull/12452))
-
-
-- Properly pass some Logger's parent's arguments to `super().__init__()` ([#12609](https://github.com/PyTorchLightning/pytorch-lightning/pull/12609))
-
-
-- Fixed an issue where incorrect type warnings appear when the overridden `LightningLite.run` method accepts user-defined arguments ([#12629](https://github.com/PyTorchLightning/pytorch-lightning/pull/12629))
-
-
-- Fixed `rank_zero_only` decorator in LSF environments ([#12587](https://github.com/PyTorchLightning/pytorch-lightning/pull/12587))
-
-
-- Don't raise a warning when `nn.Module` is not saved under hparams ([#12669](https://github.com/PyTorchLightning/pytorch-lightning/pull/12669))
+-
 
 
 -
+
+
+## [1.6.1] - 2022-04-13
+
+### Changed
+
+- Support `strategy` argument being case insensitive ([#12528](https://github.com/PyTorchLightning/pytorch-lightning/pull/12528))
+
+### Fixed
+
+- Run main progress bar updates independent of val progress bar updates in `TQDMProgressBar` ([#12563](https://github.com/PyTorchLightning/pytorch-lightning/pull/12563))
+- Avoid calling `average_parameters` multiple times per optimizer step ([#12452](https://github.com/PyTorchLightning/pytorch-lightning/pull/12452))
+- Properly pass some Logger's parent's arguments to `super().__init__()` ([#12609](https://github.com/PyTorchLightning/pytorch-lightning/pull/12609))
+- Fixed an issue where incorrect type warnings appear when the overridden `LightningLite.run` method accepts user-defined arguments ([#12629](https://github.com/PyTorchLightning/pytorch-lightning/pull/12629))
+- Fixed `rank_zero_only` decorator in LSF environments ([#12587](https://github.com/PyTorchLightning/pytorch-lightning/pull/12587))
+- Don't raise a warning when `nn.Module` is not saved under hparams ([#12669](https://github.com/PyTorchLightning/pytorch-lightning/pull/12669))
+- Raise `MisconfigurationException` when the accelerator is available but the user passes invalid `([]/0/"0")` values to the `devices` flag ([#12708](https://github.com/PyTorchLightning/pytorch-lightning/pull/12708))
+- Support `auto_select_gpus` with the accelerator and devices API ([#12608](https://github.com/PyTorchLightning/pytorch-lightning/pull/12608))
 
 
 ## [1.6.0] - 2022-03-29

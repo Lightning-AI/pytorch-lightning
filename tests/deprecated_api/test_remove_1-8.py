@@ -238,13 +238,11 @@ def test_v1_8_0_deprecate_trainer_callback_hook_mixin():
         "teardown",
     ]
     methods_with_batch_batch_idx_dataloader_idx = [
-        "on_train_batch_start",
         "on_validation_batch_start",
         "on_test_batch_start",
         "on_predict_batch_start",
     ]
     methods_with_outputs_batch_batch_idx_dataloader_idx = [
-        "on_train_batch_end",
         "on_validation_batch_end",
         "on_test_batch_end",
         "on_predict_batch_end",
@@ -280,6 +278,10 @@ def test_v1_8_0_deprecate_trainer_callback_hook_mixin():
         fn = getattr(trainer, method_name)
         with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
             fn(checkpoint={})
+    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
+        trainer.on_train_batch_start(batch={}, batch_idx=0)
+    with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
+        trainer.on_train_batch_end(outputs=torch.tensor([[1.0, -1.0], [1.0, -1.0]]), batch={}, batch_idx=0)
     with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
         trainer.on_predict_epoch_end(outputs=torch.tensor([[1.0, -1.0], [1.0, -1.0]]))
     with pytest.deprecated_call(match="was deprecated in v1.6 and will be removed in v1.8"):
