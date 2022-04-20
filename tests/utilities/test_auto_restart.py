@@ -1103,9 +1103,9 @@ def _fit_model(
     trainer = TestTrainer(**trainer_kwargs)
     if should_signal:
         with pytest.raises(ExitGracefullyException, match=status):
-            trainer.fit(model)
+            trainer.fit(model, ckpt_path="last")
     else:
-        trainer.fit(model)
+        trainer.fit(model, ckpt_path="last")
     assert trainer._terminate_gracefully == should_signal
 
     return model

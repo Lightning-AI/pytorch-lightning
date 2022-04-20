@@ -1380,6 +1380,12 @@ class Trainer(
             self.state.stage = stage
 
     def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
+        if model_provided and ckpt_path is None:
+            # use passed model to function without loading weights
+            return
+
+        fn = self.state.fn.value
+
         # fault-tolerance takes precedence
         from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 
@@ -1391,16 +1397,6 @@ class Trainer(
                 ft_ckpt_path = None
         else:
             ft_ckpt_path = None
-
-        if model_provided and ckpt_path is None:
-            # If we have fault-tolerant weights saved, load these
-            if ft_ckpt_path:
-                return ft_ckpt_path
-
-            # use passed model to function without loading weights
-            return
-
-        fn = self.state.fn.value
 
         if model_connected and ckpt_path is None:
             full_msg = (
@@ -1418,6 +1414,10 @@ class Trainer(
                 ckpt_path = "last"
             else:
                 partial_message = " The best model of the previous `fit` call will be used."
+                if ft_ckpt_path:
+                    partial_message += (
+                        " There is also a fault-tolerant checkpoint available, however it is default only when fitting."
+                    )
                 ckpt_path = "best"
 
             rank_zero_warn(full_msg.format(partial_message=partial_message))
@@ -1449,17 +1449,19 @@ class Trainer(
             ckpt_path = self.checkpoint_callback.best_model_path
 
         if ckpt_path == "last":
-            candidates = [ft.ckpt_path for ft in ft_checkpoints] + [
-                cb.last_model_path for cb in self.checkpoint_callbacks
+            candidates = [ft.ckpt_path for ft in ft_checkpoints if ft.ckpt_path] + [
+                cb.last_model_path for cb in self.checkpoint_callbacks if cb.last_model_path
             ]
             candidates_fs = {path: get_filesystem(path) for path in candidates}
             candidates_ts = {path: fs.modified(path) for path, fs in candidates_fs.items() if fs.exists(path)}
             if not candidates_ts:
-                raise MisconfigurationException(
-                    f'.{fn}(ckpt_path="last") is set, but there is no fault tolerant or last checkpoint available.'
+                rank_zero_warn(
+                    f'.{fn}(ckpt_path="last") is set, but there is no fault tolerant'
+                    " or last checkpoint available. No checkpoint will be loaded."
                 )
+                return
 
-            last_ckpt_path = max(candidates_fs.keys(), key=partial(operator.getitem(candidates_fs)))
+            last_ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_fs))
             ckpt_path = last_ckpt_path
 
         if not ckpt_path:
