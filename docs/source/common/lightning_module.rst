@@ -775,6 +775,8 @@ freeze
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.freeze
     :noindex:
 
+.. _lm-log:
+
 log
 ~~~
 
