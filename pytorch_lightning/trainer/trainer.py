@@ -1387,10 +1387,16 @@ class Trainer(
         if ft_checkpoints:
             ft_ckpt_path = ft_checkpoints[0].ckpt_path
             fs = get_filesystem(ft_ckpt_path)
-            if fs.exists(ft_ckpt_path):
-                return ft_ckpt_path
+            if not fs.exists(ft_ckpt_path):
+                ft_ckpt_path = None
+        else:
+            ft_ckpt_path = None
 
         if model_provided and ckpt_path is None:
+            # If we have fault-tolerant weights saved, load these
+            if ft_ckpt_path:
+                return ft_ckpt_path
+
             # use passed model to function without loading weights
             return
 
