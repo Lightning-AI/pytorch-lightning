@@ -128,9 +128,8 @@ class FitLoop(Loop[None]):
         values = (
             self.epoch_progress.current.ready,
             self.epoch_progress.current.started,
-            self.epoch_progress.current.processed,
         )
-        finished_before_on_train_end = any(v != self.epoch_progress.current.completed for v in values)
+        finished_before_on_train_end = any(v != self.epoch_progress.current.processed for v in values)
         restarting &= finished_before_on_train_end
         Loop.restarting.fset(self, restarting)  # call the parent setter
 
