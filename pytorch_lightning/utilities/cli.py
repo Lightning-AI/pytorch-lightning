@@ -512,7 +512,8 @@ class LightningCLI:
                 this particular CLI. Alternatively, configurable callbacks can be added as explained in
                 :ref:`the CLI docs <lightning-cli>`.
             seed_everything_default: Value for the :func:`~pytorch_lightning.utilities.seed.seed_everything`
-                seed argument. Set to True to automatically choose a valid seed. Set to False if you want to set your seeds manually.
+                seed argument. Set to True to automatically choose a valid seed.
+                Set to False if you want to set your seeds manually.
             description: Description of the tool shown when running ``--help``.
             env_prefix: Prefix for environment variables.
             env_parse: Whether environment variable parsing is enabled.
@@ -874,7 +875,7 @@ class LightningCLI:
             fn_kwargs["datamodule"] = self.datamodule
         return fn_kwargs
 
-    def _set_seed(self):
+    def _set_seed(self) -> None:
         """Sets the seed."""
 
         config_seed = self._get(self.config, "seed_everything")
