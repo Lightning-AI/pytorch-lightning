@@ -262,7 +262,7 @@ def test_accelerator_choice_multi_node_gpu(
 @mock.patch("torch.cuda.is_available", return_value=False)
 def test_accelerator_cpu(_):
     trainer = Trainer(accelerator="cpu")
-    assert isinstance(trainer.accelerator, CPUAccelerator) 
+    assert isinstance(trainer.accelerator, CPUAccelerator)
 
     with pytest.raises(
         MisconfigurationException,
@@ -302,7 +302,7 @@ def test_accelererator_invalid_type_devices(mock_is_available, mock_device_count
     with pytest.raises(
         MisconfigurationException, match=r"must be an int, a string, a sequence of ints or None, but you"
     ):
-        _ = Trainer(accelerator="gpu", devices=device_count) 
+        _ = Trainer(accelerator="gpu", devices=device_count)
 
 
 @RunIf(min_gpus=1)
