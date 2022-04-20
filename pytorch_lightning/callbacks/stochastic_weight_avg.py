@@ -15,7 +15,6 @@ r"""
 Stochastic Weight Averaging Callback
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 """
-import weakref
 from copy import deepcopy
 from typing import Any, Callable, Dict, List, Optional, Union
 
@@ -130,7 +129,6 @@ class StochasticWeightAveraging(Callback):
         self._swa_scheduler: Optional[SWALR] = None
         self._scheduler_state: Optional[Dict] = None
         self._scheduler_configs: Optional[List] = None
-        self._trainer: Optional[weakref.ref] = None
         self._init_n_averaged = 0
         self._latest_update_epoch = -1
         self.momenta: Optional[Dict[nn.modules.batchnorm._BatchNorm, float]] = None
@@ -174,11 +172,6 @@ class StochasticWeightAveraging(Callback):
 
         if self._scheduler_state is not None:
             self._clear_schedulers(trainer)
-        else:
-            # We're probably not restoring from a checkpoint, but possibly the checkpoint data just
-            # hasn't been loaded yet if strategy.restore_checkpoint_after_setup is True,
-            # so keep a hold of the trainer so that we can defer clearing schedulers if needed.
-            self._trainer = weakref.ref(trainer)
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
         if (not self._initialized) and (self.swa_start <= trainer.current_epoch <= self.swa_end):
@@ -334,18 +327,14 @@ class StochasticWeightAveraging(Callback):
         self._latest_update_epoch = state_dict["latest_update_epoch"]
         self._scheduler_state = state_dict["scheduler_state"]
         self._load_average_model_parameters(state_dict["average_model_parameters"])
-        # If we're loading state after on_fit_start, check if we need to clear schedulers
-        trainer = None if self._trainer is None else self._trainer()
-        if self._scheduler_state is not None and trainer is not None:
-            self._clear_schedulers(trainer)
 
     def _clear_schedulers(self, trainer: "pl.Trainer") -> None:
         # If we have scheduler state saved, clear the scheduler configs so that we don't try to
         # load state into the wrong type of schedulers when restoring scheduler checkpoint state.
         # We'll configure the scheduler and re-load its state in on_train_epoch_start.
-        # Note that this is called from both load_state_dict and on_fit_start, to handle when the
-        # training strategy's restore_checkpoint_after_setup is both True and False, and relies
-        # on the callback state being restored before the schedulers.
+        # Note that this relies on the callback state being restored before the scheduler state is
+        # restored, and doesn't work if restore_checkpoint_after_setup is True, but at the time of
+        # writing that is only True for deepspeed which is already not supported by SWA.
         # See https://github.com/PyTorchLightning/pytorch-lightning/issues/11665 for background.
         if trainer.lr_scheduler_configs:
             assert len(trainer.lr_scheduler_configs) == 1
