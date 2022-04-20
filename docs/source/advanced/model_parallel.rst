@@ -1,7 +1,7 @@
-.. _model_parallel:
+.. _model-parallel:
 
-Model Parallel GPU Training
-===========================
+Train 1 trillion+ parameter models
+==================================
 
 When training large models, fitting larger batch sizes, or trying to increase throughput using multi-GPU compute, Lightning provides advanced optimized distributed training strategies to support these cases and offer substantial improvements in memory usage.
 
@@ -37,7 +37,7 @@ This means we cannot sacrifice throughput as much as if we were fine-tuning, bec
 Overall:
 
 * When **fine-tuning** a model, use advanced memory efficient strategies such as :ref:`deepspeed-zero-stage-3` or :ref:`deepspeed-zero-stage-3-offload`, allowing you to fine-tune larger models if you are limited on compute
-* When **pre-training** a model, use simpler optimizations such :ref:`sharded`, :ref:`deepspeed-zero-stage-2` or :ref:`fully-sharded`, scaling the number of GPUs to reach larger parameter sizes
+* When **pre-training** a model, use simpler optimizations such :ref:`sharded-training`, :ref:`deepspeed-zero-stage-2` or :ref:`fully-sharded-training`, scaling the number of GPUs to reach larger parameter sizes
 * For both fine-tuning and pre-training, use :ref:`deepspeed-activation-checkpointing` or :ref:`fairscale-activation-checkpointing` as the throughput degradation is not significant
 
 For example when using 128 GPUs, you can **pre-train** large 10 to 20 Billion parameter models using :ref:`deepspeed-zero-stage-2` without having to take a performance hit with more advanced optimized multi-gpu strategy.
@@ -53,7 +53,7 @@ Sharding techniques help when model sizes are fairly large; roughly 500M+ parame
 
 ----------
 
-.. _sharded:
+.. _sharded-training:
 
 Sharded Training
 ^^^^^^^^^^^^^^^^
@@ -91,7 +91,7 @@ Internally we re-initialize your optimizers and shard them across your machines 
 
 ----------
 
-.. _fully-sharded:
+.. _fully-sharded-training:
 
 Fully Sharded Training
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -206,7 +206,7 @@ This saves memory when training larger models however requires wrapping modules 
             self.block_2 = nn.Linear(32, 2)
 
 
-.. _deepspeed:
+.. _deepspeed_advanced:
 
 DeepSpeed
 ^^^^^^^^^
