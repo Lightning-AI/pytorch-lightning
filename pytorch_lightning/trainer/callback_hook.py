@@ -21,7 +21,6 @@ from packaging.version import Version
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
@@ -372,8 +371,7 @@ class TrainerCallbackHookMixin(ABC):
         for callback in self.callbacks:
             callback.on_batch_end(self, self.lightning_module)
 
-    # TODO: Update this in v1.7 (deprecation: #9816)
-    def on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
+    def on_train_batch_start(self, batch, batch_idx):
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_train_batch_start` was deprecated in v1.6 and will be removed in v1.8.
@@ -384,13 +382,9 @@ class TrainerCallbackHookMixin(ABC):
             "`TrainerCallbackHookMixin.on_train_batch_start` was deprecated in v1.6 and will be removed in v1.8."
         )
         for callback in self.callbacks:
-            if is_param_in_hook_signature(callback.on_train_batch_start, "dataloader_idx", explicit=True):
-                callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx, 0)
-            else:
-                callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx)
+            callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx)
 
-    # TODO: Update this in v1.7 (deprecation: #9816)
-    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx=0):
+    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx):
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_train_batch_end` was deprecated in v1.6 and will be removed in v1.8.
@@ -401,10 +395,7 @@ class TrainerCallbackHookMixin(ABC):
             "`TrainerCallbackHookMixin.on_train_batch_end` was deprecated in v1.6 and will be removed in v1.8."
         )
         for callback in self.callbacks:
-            if is_param_in_hook_signature(callback.on_train_batch_end, "dataloader_idx", explicit=True):
-                callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx, 0)
-            else:
-                callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx)
+            callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx)
 
     def on_validation_batch_start(self, batch, batch_idx, dataloader_idx):
         r"""

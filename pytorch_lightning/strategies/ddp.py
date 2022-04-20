@@ -62,9 +62,8 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
-if _TORCH_GREATER_EQUAL_1_10:
-    if torch.distributed.is_available():
-        from torch.distributed.algorithms.model_averaging.averagers import ModelAverager
+if _TORCH_GREATER_EQUAL_1_10 and torch.distributed.is_available():
+    from torch.distributed.algorithms.model_averaging.averagers import ModelAverager
 
 
 log = logging.getLogger(__name__)
