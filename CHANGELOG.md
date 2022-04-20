@@ -40,7 +40,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Marked `swa_lrs` argument in `StochasticWeightAveraging` callback as required ([#12556](https://github.com/PyTorchLightning/pytorch-lightning/pull/12556))
 
 
--
+- Changed `seed_default_value` argument in the `LightningCLI` to type `Union[bool, int]`. If set to `True` a seed is automatically generated for the parser argument `--seed_everything`. Setting it to `None` raises a `LightningDeprecationWarning` ([#12804](https://github.com/PyTorchLightning/pytorch-lightning/issues/12804)). 
 
 
 -
