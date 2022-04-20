@@ -386,11 +386,15 @@ doctest_test_doctest_blocks = ""
 doctest_global_setup = """
 import importlib
 import os
+import sys
 from typing import Optional
+
 import torch
-from torch import nn
 import pytorch_lightning as pl
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer
+from torch import nn
+from torch.utils.data import IterableDataset, DataLoader, Dataset
+from pytorch_lightning import LightningDataModule, LightningModule, Trainer, seed_everything
+from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _XLA_AVAILABLE,
