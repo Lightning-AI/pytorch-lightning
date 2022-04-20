@@ -74,7 +74,7 @@ def test_validation_check_interval_exceed_data_length_correct(tmpdir, use_infini
             self.validation_called_at_step = set()
 
         def validation_step(self, *args):
-            self.validation_called_at_step.add(int(self.trainer.global_step))
+            self.validation_called_at_step.add(self.global_step)
             return super().validation_step(*args)
 
         def train_dataloader(self):
@@ -111,8 +111,9 @@ def test_validation_check_interval_exceed_data_length_wrong():
         val_check_interval=100,
     )
 
+    model = BoringModel()
     with pytest.raises(ValueError, match="must be less than or equal to the number of the training batches"):
-        trainer.fit(BoringModel())
+        trainer.fit(model)
 
 
 def test_val_check_interval_float_with_none_check_val_every_n_epoch():

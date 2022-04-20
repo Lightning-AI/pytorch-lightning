@@ -60,7 +60,7 @@ def test_check_val_every_n_epoch_with_max_steps(tmpdir):
             self.validation_called_at_step = set()
 
         def validation_step(self, *args):
-            self.validation_called_at_step.add(int(self.trainer.global_step))
+            self.validation_called_at_step.add(self.global_step)
             return super().validation_step(*args)
 
         def train_dataloader(self):
