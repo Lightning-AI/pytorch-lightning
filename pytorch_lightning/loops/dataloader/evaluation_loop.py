@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import sys
 import shutil
+import sys
 from collections import ChainMap, OrderedDict
 from functools import partial
 from typing import Any, IO, Iterable, List, Optional, Sequence, Type, Union
@@ -393,7 +393,7 @@ class EvaluationLoop(DataLoaderLoop):
                 except UnicodeEncodeError:
                     pass
                 bar = bar_character * term_size
-               
+
                 lines = [bar, row_format.format(*table_headers).rstrip(), bar]
                 for metric, row in zip(metrics, table_rows):
                     # deal with column overflow
