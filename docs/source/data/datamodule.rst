@@ -205,7 +205,7 @@ depends upon :ref:`prepare_data_per_node<data/datamodule:prepare_data_per_node>`
 
 .. warning::
 
-    ``prepare_data`` is called from the main process. It is not recommended to assign state here (e.g. ``self.x = y``) since it's is called on a single process and if you assign
+    ``prepare_data`` is called from the main process. It is not recommended to assign state here (e.g. ``self.x = y``) since it is called on a single process and if you assign
     states here then they won't be available for other processes.
 
 
