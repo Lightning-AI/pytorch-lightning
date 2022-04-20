@@ -22,7 +22,7 @@ from argparse import ArgumentParser, Namespace
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Type, Union
 from weakref import proxy
 
 import torch
@@ -36,8 +36,8 @@ from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.loggers import LightningLoggerBase
-from pytorch_lightning.loggers.base import DummyLogger, LoggerCollection
+from pytorch_lightning.loggers import Logger
+from pytorch_lightning.loggers.logger import DummyLogger, LoggerCollection
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 from pytorch_lightning.loops import PredictionLoop, TrainingEpochLoop
 from pytorch_lightning.loops.dataloader.evaluation_loop import EvaluationLoop
@@ -81,7 +81,6 @@ from pytorch_lightning.utilities import (
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
     AMPType,
-    device_parser,
     GradClipAlgorithmType,
     parsing,
 )
@@ -103,14 +102,12 @@ from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_modu
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.seed import isolate_rng
-from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import (
     _EVALUATE_OUTPUT,
     _PATH,
     _PREDICT_OUTPUT,
     EVAL_DATALOADERS,
     LRSchedulerConfig,
-    STEP_OUTPUT,
     TRAIN_DATALOADERS,
 )
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
@@ -130,7 +127,7 @@ class Trainer(
     @_defaults_from_env_vars
     def __init__(
         self,
-        logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool] = True,
+        logger: Union[Logger, Iterable[Logger], bool] = True,
         checkpoint_callback: Optional[bool] = None,
         enable_checkpointing: bool = True,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
@@ -139,13 +136,12 @@ class Trainer(
         gradient_clip_algorithm: Optional[str] = None,
         process_position: int = 0,
         num_nodes: int = 1,
-        num_processes: Optional[int] = None,
+        num_processes: Optional[int] = None,  # TODO: Remove in 2.0
         devices: Optional[Union[List[int], str, int]] = None,
-        gpus: Optional[Union[List[int], str, int]] = None,
+        gpus: Optional[Union[List[int], str, int]] = None,  # TODO: Remove in 2.0
         auto_select_gpus: bool = False,
-        tpu_cores: Optional[Union[List[int], str, int]] = None,
-        ipus: Optional[int] = None,
-        log_gpu_memory: Optional[str] = None,  # TODO: Remove in 1.7
+        tpu_cores: Optional[Union[List[int], str, int]] = None,  # TODO: Remove in 2.0
+        ipus: Optional[int] = None,  # TODO: Remove in 2.0
         enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
@@ -186,7 +182,6 @@ class Trainer(
         amp_level: Optional[str] = None,
         move_metrics_to_cpu: bool = False,
         multiple_trainloader_mode: str = "max_size_cycle",
-        terminate_on_nan: Optional[bool] = None,
     ) -> None:
         r"""
         Customize every aspect of training via flags.
@@ -222,7 +217,7 @@ class Trainer(
                 a power search or `binsearch` that estimates the batch size through a binary search.
                 Default: ``False``.
 
-            auto_select_gpus: If enabled and ``gpus`` is an integer, pick available
+            auto_select_gpus: If enabled and ``gpus`` or ``devices`` is an integer, pick available
                 gpus automatically. This is especially useful when
                 GPUs are configured to be in "exclusive mode", such
                 that only one process at a time can access them.
@@ -278,6 +273,10 @@ class Trainer(
             gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
                 Default: ``None``.
 
+                .. deprecated:: v1.7
+                    ``gpus`` has been deprecated in v1.7 and will be removed in v2.0.
+                    Please use ``accelerator='gpu'`` and ``devices=x`` instead.
+
             gradient_clip_val: The value at which to clip gradients. Passing ``gradient_clip_val=None`` disables
                 gradient clipping. If using Automatic Mixed Precision (AMP), the gradients will be unscaled before.
                 Default: ``None``.
@@ -304,12 +303,6 @@ class Trainer(
                 profiler traces, etc.) are saved in ``default_root_dir`` rather than in the ``log_dir`` of any
                 of the individual loggers.
                 Default: ``True``.
-
-            log_gpu_memory: None, 'min_max', 'all'. Might slow performance.
-
-                .. deprecated:: v1.5
-                    Deprecated in v1.5.0 and will be removed in v1.7.0
-                    Please use the ``DeviceStatsMonitor`` callback directly instead.
 
             log_every_n_steps: How often to log within steps.
                 Default: ``50``.
@@ -360,6 +353,10 @@ class Trainer(
             num_processes: Number of processes for distributed training with ``accelerator="cpu"``.
                 Default: ``1``.
 
+                .. deprecated:: v1.7
+                    ``num_processes`` has been deprecated in v1.7 and will be removed in v2.0.
+                    Please use ``accelerator='cpu'`` and ``devices=x`` instead.
+
             num_sanity_val_steps: Sanity check runs n validation batches before starting the training routine.
                 Set it to `-1` to run all batches in all validation dataloaders.
                 Default: ``2``.
@@ -387,21 +384,19 @@ class Trainer(
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
                 Default: ``False``.
 
-            terminate_on_nan: If set to True, will terminate training (by raising a `ValueError`) at the
-                end of each training batch, if any of the parameters or the loss are NaN or +/-inf.
-
-                .. deprecated:: v1.5
-                    Trainer argument ``terminate_on_nan`` was deprecated in v1.5 and will be removed in 1.7.
-                    Please use ``detect_anomaly`` instead.
-
-            detect_anomaly: Enable anomaly detection for the autograd engine.
-                Default: ``False``.
-
             tpu_cores: How many TPU cores to train on (1 or 8) / Single TPU to train on (1)
                 Default: ``None``.
 
+                .. deprecated:: v1.7
+                    ``tpu_cores`` has been deprecated in v1.7 and will be removed in v2.0.
+                    Please use ``accelerator='tpu'`` and ``devices=x`` instead.
+
             ipus: How many IPUs to train on.
                 Default: ``None``.
+
+                .. deprecated:: v1.7
+                    ``ipus`` has been deprecated in v1.7 and will be removed in v2.0.
+                    Please use ``accelerator='ipu'`` and ``devices=x`` instead.
 
             track_grad_norm: -1 no tracking. Otherwise tracks that p-norm. May be set to 'inf' infinity-norm. If using
                 Automatic Mixed Precision (AMP), the gradients will be unscaled before logging them.
@@ -450,8 +445,6 @@ class Trainer(
         log.detail(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
         self.state = TrainerState()
 
-        gpu_ids, tpu_cores = self._parse_devices(gpus, auto_select_gpus, tpu_cores)
-
         # init connectors
         self._data_connector = DataConnector(self, multiple_trainloader_mode)
 
@@ -463,18 +456,18 @@ class Trainer(
             accelerator=accelerator,
             strategy=strategy,
             gpus=gpus,
-            gpu_ids=gpu_ids,
             num_nodes=num_nodes,
             sync_batchnorm=sync_batchnorm,
             benchmark=benchmark,
             replace_sampler_ddp=replace_sampler_ddp,
             deterministic=deterministic,
+            auto_select_gpus=auto_select_gpus,
             precision=precision,
             amp_type=amp_backend,
             amp_level=amp_level,
             plugins=plugins,
         )
-        self._logger_connector = LoggerConnector(self, log_gpu_memory)
+        self._logger_connector = LoggerConnector(self)
         self._callback_connector = CallbackConnector(self)
         self._checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
         self._signal_connector = SignalConnector(self)
@@ -538,14 +531,6 @@ class Trainer(
             check_val_every_n_epoch,
         )
 
-        if terminate_on_nan is not None:
-            rank_zero_deprecation(
-                "Trainer argument `terminate_on_nan` was deprecated in v1.5 and will be removed in 1.7."
-                " Please use `Trainer(detect_anomaly=True)` instead."
-            )
-            if not isinstance(terminate_on_nan, bool):
-                raise TypeError(f"`terminate_on_nan` should be a bool, got {terminate_on_nan}.")
-
         # gradient clipping
         if gradient_clip_val is not None and not isinstance(gradient_clip_val, (int, float)):
             raise TypeError(f"`gradient_clip_val` should be an int or a float. Got {gradient_clip_val}.")
@@ -566,7 +551,6 @@ class Trainer(
                 f"`track_grad_norm` must be a positive number or 'inf' (infinity norm). Got {track_grad_norm}."
             )
 
-        self._terminate_on_nan = terminate_on_nan
         self.gradient_clip_val: Union[int, float] = gradient_clip_val
         self.gradient_clip_algorithm: Optional[GradClipAlgorithmType] = (
             GradClipAlgorithmType(gradient_clip_algorithm.lower()) if gradient_clip_algorithm is not None else None
@@ -583,7 +567,7 @@ class Trainer(
         self.__init_profiler(profiler)
 
         # init logger flags
-        self._loggers: List[LightningLoggerBase]
+        self._loggers: List[Logger]
         self._logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
@@ -1592,45 +1576,15 @@ class Trainer(
             prev_fx_name = pl_module._current_fx_name
             pl_module._current_fx_name = hook_name
 
-        # TODO: remove if block in v1.7
-        if hook_name == "on_train_batch_start":
-            with self.profiler.profile(hook_name):
-                self._on_train_batch_start(*args, **kwargs)
-        elif hook_name == "on_train_batch_end":
-            with self.profiler.profile(hook_name):
-                self._on_train_batch_end(*args, **kwargs)
-        else:
-            for callback in self.callbacks:
-                fn = getattr(callback, hook_name)
-                if callable(fn):
-                    with self.profiler.profile(f"[Callback]{callback.state_key}.{hook_name}"):
-                        fn(self, self.lightning_module, *args, **kwargs)
+        for callback in self.callbacks:
+            fn = getattr(callback, hook_name)
+            if callable(fn):
+                with self.profiler.profile(f"[Callback]{callback.state_key}.{hook_name}"):
+                    fn(self, self.lightning_module, *args, **kwargs)
 
         if pl_module:
             # restore current_fx when nested context
             pl_module._current_fx_name = prev_fx_name
-
-    # TODO: Delete this in v1.7 (deprecations: #9816 and #11148)
-    def _on_train_batch_start(self, batch, batch_idx, dataloader_idx=0):
-        r"""Called when the training batch begins. This function is needed because of two different deprecations affecting
-        the original function in TrainerCallbackHookMixin: #9816 and #11148.
-        """
-        for callback in self.callbacks:
-            if is_param_in_hook_signature(callback.on_train_batch_start, "dataloader_idx", explicit=True):
-                callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx, 0)
-            else:
-                callback.on_train_batch_start(self, self.lightning_module, batch, batch_idx)
-
-    # TODO: Delete this in v1.7 (deprecations: #9816 and #11148)
-    def _on_train_batch_end(self, outputs: STEP_OUTPUT, batch, batch_idx, dataloader_idx=0):
-        r"""Called when the training batch ends. This function is needed because of two different deprecations affecting
-        the original function in TrainerCallbackHookMixin: #9816 and #11148.
-        """
-        for callback in self.callbacks:
-            if is_param_in_hook_signature(callback.on_train_batch_end, "dataloader_idx", explicit=True):
-                callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx, 0)
-            else:
-                callback.on_train_batch_end(self, self.lightning_module, outputs, batch, batch_idx)
 
     def _call_callbacks_state_dict(self) -> Dict[str, dict]:
         """Called when saving a model checkpoint, calls and returns every callback's `state_dict`, keyed by
@@ -1739,14 +1693,6 @@ class Trainer(
         pl_module._current_fx_name = prev_fx_name
 
         return output
-
-    @staticmethod
-    def _parse_devices(
-        gpus: Optional[Union[List[int], str, int]],
-        auto_select_gpus: bool,
-        tpu_cores: Optional[Union[List[int], str, int]],
-    ) -> Tuple[Optional[List[int]], Optional[Union[List[int], int]]]:
-        return device_parser._parse_devices(gpus, auto_select_gpus, tpu_cores)
 
     @staticmethod
     def _log_api_event(event: str) -> None:
@@ -1909,7 +1855,7 @@ class Trainer(
 
         if self.loggers and self.num_training_batches < self.log_every_n_steps:
             rank_zero_warn(
-                f"The number of training samples ({self.num_training_batches}) is smaller than the logging interval"
+                f"The number of training batches ({self.num_training_batches}) is smaller than the logging interval"
                 f" Trainer(log_every_n_steps={self.log_every_n_steps}). Set a lower value for log_every_n_steps if"
                 " you want to see logs for the training epoch.",
                 category=PossibleUserWarning,
@@ -2683,7 +2629,7 @@ class Trainer(
     """
 
     @property
-    def logger(self) -> Optional[LightningLoggerBase]:
+    def logger(self) -> Optional[Logger]:
         if len(self.loggers) == 0:
             return None
         if len(self.loggers) == 1:
@@ -2699,7 +2645,7 @@ class Trainer(
                 return LoggerCollection(self.loggers)
 
     @logger.setter
-    def logger(self, logger: Optional[LightningLoggerBase]) -> None:
+    def logger(self, logger: Optional[Logger]) -> None:
         if not logger:
             self.loggers = []
         elif isinstance(logger, LoggerCollection):
@@ -2708,11 +2654,11 @@ class Trainer(
             self.loggers = [logger]
 
     @property
-    def loggers(self) -> List[LightningLoggerBase]:
+    def loggers(self) -> List[Logger]:
         return self._loggers
 
     @loggers.setter
-    def loggers(self, loggers: Optional[List[LightningLoggerBase]]) -> None:
+    def loggers(self, loggers: Optional[List[Logger]]) -> None:
         self._loggers = loggers if loggers else []
 
     @property
@@ -2800,19 +2746,6 @@ class Trainer(
 
         max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
         return max_estimated_steps
-
-    @property
-    def terminate_on_nan(self) -> bool:
-        rank_zero_deprecation("`Trainer.terminate_on_nan` is deprecated in v1.5 and will be removed in 1.7.")
-        return self._terminate_on_nan
-
-    @terminate_on_nan.setter
-    def terminate_on_nan(self, val: bool) -> None:
-        rank_zero_deprecation(
-            f"Setting `Trainer.terminate_on_nan = {val}` is deprecated in v1.5 and will be removed in 1.7."
-            f" Please set `Trainer(detect_anomaly={val})` instead."
-        )
-        self._terminate_on_nan = val  # : 212
 
 
 def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> Union[int, float]:

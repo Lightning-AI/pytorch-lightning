@@ -13,11 +13,13 @@
 *.yml           @borda @tchaton @carmocca
 
 # Docs
-/docs/                      @edenlightning @tchaton @borda @awaelchli
-/.github/*.md               @edenlightning @williamfalcon @borda
-/.github/ISSUE_TEMPLATE/    @edenlightning @borda @tchaton
-/docs/source/conf.py        @borda @awaelchli @carmocca
-/docs/source/index.rst      @williamfalcon
+/docs/                                  @edenlightning @tchaton @borda @awaelchli
+/.github/*.md                           @edenlightning @williamfalcon @borda
+/.github/ISSUE_TEMPLATE/                @edenlightning @borda @tchaton
+/docs/source/conf.py                    @borda @awaelchli @carmocca
+/docs/source/index.rst                  @williamfalcon
+/docs/source/levels                     @williamfalcon
+/docs/source/expertise_levels           @williamfalcon
 
 # Packages
 /pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
@@ -54,8 +56,8 @@
 /tests/helpers/boring_model.py          @williamfalcon @tchaton @borda
 
 /.github/CODEOWNERS              @williamfalcon
+/.github/approve_config.yml      @williamfalcon
 /SECURITY.md                     @williamfalcon
 /README.md                       @williamfalcon @edenlightning @borda
 /setup.py                        @williamfalcon @borda
 /pytorch_lightning/__about__.py  @williamfalcon @borda
-/.github/mergify.yml             @williamfalcon @borda
