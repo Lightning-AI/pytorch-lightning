@@ -25,7 +25,7 @@ import time
 import warnings
 from copy import deepcopy
 from datetime import timedelta
-from typing import Any, Dict, Literal, Optional, Union
+from typing import Any, Dict, Optional
 from weakref import proxy
 
 import numpy as np
@@ -359,14 +359,6 @@ class ModelCheckpoint(Callback):
         monitor_candidates = self._monitor_candidates(trainer)
         self._save_topk_checkpoint(trainer, monitor_candidates)
         self._save_last_checkpoint(trainer, monitor_candidates)
-
-    def _get_model_path(self, model_type: Union[Literal["best"], Literal["last"]]) -> str:
-        if model_type == "best":
-            return self.best_model_path
-        elif model_type == "last":
-            return self.last_model_path
-        else:
-            raise MisconfigurationException("ModelCheckpoint supports only best and last types of model")
 
     def _save_topk_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, _METRIC]) -> None:
         if self.save_top_k == 0:

@@ -15,12 +15,14 @@
 import inspect
 import logging
 import math
+import operator
 import os
 import traceback
 import warnings
 from argparse import ArgumentParser, Namespace
 from copy import deepcopy
 from datetime import timedelta
+from functools import partial
 from pathlib import Path
 from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Type, Union
 from weakref import proxy
@@ -1385,10 +1387,8 @@ class Trainer(
         if ft_checkpoints:
             ft_ckpt_path = ft_checkpoints[0].ckpt_path
             fs = get_filesystem(ft_ckpt_path)
-            if not fs.exists(ft_ckpt_path):
-                ft_ckpt_path = None
-        else:
-            ft_ckpt_path = None
+            if fs.exists(ft_ckpt_path):
+                return ft_ckpt_path
 
         if model_provided and ckpt_path is None:
             # use passed model to function without loading weights
@@ -1404,43 +1404,57 @@ class Trainer(
                 f" `{fn}(ckpt_path='last')` to use the last model."
                 " If you pass a value, this warning will be silenced."
             )
-            if ft_ckpt_path is not None:
+            if ft_ckpt_path is not None and self.state.fn == TrainerFn.FITTING:
                 partial_message = (
                     " Because fault tolerance is enabled, the last model of the previous `fit` call will be used."
                 )
 
-                ckpt_path = ft_ckpt_path
+                ckpt_path = "last"
             else:
                 partial_message = " The best model of the previous `fit` call will be used."
                 ckpt_path = "best"
 
             rank_zero_warn(full_msg.format(partial_message=partial_message))
 
-        if ckpt_path in ("last", "best"):
+        if ckpt_path == "best":
             if len(self.checkpoint_callbacks) > 1:
                 rank_zero_warn(
-                    f'`.{fn}(ckpt_path="{ckpt_path}")` is called with Trainer configured with multiple'
-                    f" `ModelCheckpoint` callbacks. It will use the {ckpt_path}"
+                    f'`.{fn}(ckpt_path="best")` is called with Trainer configured with multiple'
+                    f" `ModelCheckpoint` callbacks. It will use the best"
                     " checkpoint path from first checkpoint callback."
                 )
 
             if not self.checkpoint_callback:
                 raise MisconfigurationException(
-                    f'`.{fn}(ckpt_path="{ckpt_path}")` is set but `ModelCheckpoint` is not configured.'
+                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured.'
                 )
 
-            if not self.checkpoint_callback._get_model_path(ckpt_path):
+            if not self.checkpoint_callback.best_model_path:
                 if self.fast_dev_run:
                     raise MisconfigurationException(
-                        f'You cannot execute `.{fn}(ckpt_path="{ckpt_path}")` with `fast_dev_run=True`.'
+                        f'You cannot execute `.{fn}(ckpt_path="best")` with `fast_dev_run=True`.'
                         f" Please pass an exact checkpoint path to `.{fn}(ckpt_path=...)`"
                     )
                 raise MisconfigurationException(
-                    f'`.{fn}(ckpt_path="{ckpt_path}")` is set but `ModelCheckpoint`'
-                    f" is not configured to save the {ckpt_path} model."
+                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint`'
+                    f" is not configured to save the best model."
                 )
             # load best weights
-            ckpt_path = self.checkpoint_callback._get_model_path(ckpt_path)
+            ckpt_path = self.checkpoint_callback.best_model_path
+
+        if ckpt_path == "last":
+            candidates = [ft.ckpt_path for ft in ft_checkpoints] + [
+                cb.last_model_path for cb in self.checkpoint_callbacks
+            ]
+            candidates_fs = {path: get_filesystem(path) for path in candidates}
+            candidates_ts = {path: fs.modified(path) for path, fs in candidates_fs.items() if fs.exists(path)}
+            if not candidates_ts:
+                raise MisconfigurationException(
+                    f'.{fn}(ckpt_path="last") is set, but there is no fault tolerant or last checkpoint available.'
+                )
+
+            last_ckpt_path = max(candidates_fs.keys(), key=partial(operator.getitem(candidates_fs)))
+            ckpt_path = last_ckpt_path
 
         if not ckpt_path:
             raise MisconfigurationException(
