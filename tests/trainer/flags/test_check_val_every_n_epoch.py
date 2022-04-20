@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+from torch.utils.data import DataLoader
 
-from pytorch_lightning.trainer import Trainer
-from tests.helpers import BoringModel
+from pytorch_lightning.trainer.trainer import Trainer
+from tests.helpers import BoringModel, RandomDataset
 
 
 @pytest.mark.parametrize(
@@ -46,3 +47,37 @@ def test_check_val_every_n_epoch(tmpdir, max_epochs, expected_val_loop_calls, ex
 
     assert model.val_epoch_calls == expected_val_loop_calls
     assert model.val_batches == expected_val_batches
+
+
+def test_check_val_every_n_epoch_with_max_steps(tmpdir):
+    data_samples_train = 2
+    check_val_every_n_epoch = 3
+    max_epochs = 4
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.validation_called_at_step = set()
+
+        def validation_step(self, *args):
+            self.validation_called_at_step.add(int(self.trainer.global_step))
+            return super().validation_step(*args)
+
+        def train_dataloader(self):
+            return DataLoader(RandomDataset(32, data_samples_train))
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_steps=data_samples_train * max_epochs,
+        check_val_every_n_epoch=check_val_every_n_epoch,
+        num_sanity_val_steps=0,
+    )
+
+    trainer.fit(model)
+
+    # with a data length of 10, validation every 5 epochs, and max_steps=90, we should
+    # validate once
+    assert trainer.current_epoch == max_epochs
+    assert trainer.global_step == max_epochs * data_samples_train
+    assert list(model.validation_called_at_step) == [data_samples_train * check_val_every_n_epoch]

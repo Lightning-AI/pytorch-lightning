@@ -524,13 +524,10 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
         elif self.trainer.val_check_batch != float("inf"):
-            # first we check if `check_val_every_n_epoch is `None`, which means
-            # that we run a validation loop after n global steps (n is taken from the
-            # Trainer argument `val_check_interval`)
+            # if `check_val_every_n_epoch is `None`, run a validation loop after n global steps
             if self.trainer.check_val_every_n_epoch is None:
                 is_val_check_batch = self.trainer.global_step % self.trainer.val_check_batch == 0
-
-            # If it's not `None`, we respect running a validation loop after every n epochs
+            # else condition it based on the batch_idx of the current epoch
             else:
                 # TODO: clarify the purpose of this check.
                 is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0

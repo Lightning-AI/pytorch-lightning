@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Support setting `val_check_interval` to a value higher than the amount of training batches when `check_val_every_n_epoch=None` ([#8135](https://github.com/PyTorchLightning/pytorch-lightning/issues/8135))
+- Added support for setting `val_check_interval` to a value higher than the amount of training batches when `check_val_every_n_epoch=None` ([#11993](https://github.com/PyTorchLightning/pytorch-lightning/pull/11993))
 
 -
 

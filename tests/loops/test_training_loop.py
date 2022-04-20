@@ -13,12 +13,9 @@
 # limitations under the License.
 import pytest
 import torch
-from torch.utils.data import DataLoader
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel, RandomDataset
-from tests.helpers.boring_model import RandomIterableDataset
+from tests.helpers import BoringModel
 
 
 def test_outputs_format(tmpdir):
@@ -154,124 +151,3 @@ def test_warning_valid_train_step_end(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
 
     trainer.fit(model)
-
-
-@pytest.mark.parametrize("use_infinite_dataset", [True, False])
-def test_validation_check_interval_exceed_data_length_correct(tmpdir, use_infinite_dataset):
-    batch_size = 32
-    data_samples_train = 10
-    data_samples_val = 1
-
-    if use_infinite_dataset:
-        train_ds = RandomIterableDataset(size=batch_size, count=10_000)  # approx inf
-    else:
-        train_ds = RandomDataset(size=batch_size, length=data_samples_train)
-
-    val_ds = RandomDataset(batch_size, data_samples_val)
-
-    class TestModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.validation_called_at_step = set()
-
-        def training_step(self, batch, batch_idx):
-            return super().training_step(batch, batch_idx)
-
-        def validation_step(self, *args):
-            self.validation_called_at_step.add(int(self.trainer.global_step))
-            return super().validation_step(*args)
-
-        def train_dataloader(self):
-            return DataLoader(train_ds)
-
-        def val_dataloader(self):
-            return DataLoader(val_ds)
-
-    model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=data_samples_train * 3,
-        val_check_interval=15,
-        check_val_every_n_epoch=None,
-        num_sanity_val_steps=0,
-    )
-
-    trainer.fit(model)
-
-    # with a data length of 10 (or infinite), a val_check_interval of 15, and max_steps=30,
-    # we should have validated twice
-    if use_infinite_dataset:
-        assert trainer.current_epoch == 1
-    else:
-        assert trainer.current_epoch == 3
-
-    assert trainer.global_step == 30
-    assert sorted(list(model.validation_called_at_step)) == [15, 30]
-
-
-def test_validation_check_interval_exceed_data_length_wrong(tmpdir):
-    model = BoringModel()
-
-    with pytest.raises(ValueError):
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            max_steps=200,
-            val_check_interval=100,
-            check_val_every_n_epoch=1,
-            num_sanity_val_steps=0,
-        )
-        trainer.fit(model)
-
-
-def test_validation_check_interval_float_wrong(tmpdir):
-    model = BoringModel()
-
-    with pytest.raises(MisconfigurationException):
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            max_steps=200,
-            val_check_interval=0.5,
-            check_val_every_n_epoch=None,
-            num_sanity_val_steps=0,
-        )
-        trainer.fit(model)
-
-
-def test_validation_loop_every_5_epochs(tmpdir):
-    batch_size = 32
-    data_samples_train = 10
-    data_samples_val = 1
-
-    class TestModel(BoringModel):
-        def __init__(self):
-            super().__init__()
-            self.validation_called_at_step = set()
-
-        def training_step(self, batch, batch_idx):
-            return super().training_step(batch, batch_idx)
-
-        def validation_step(self, *args):
-            self.validation_called_at_step.add(int(self.trainer.global_step))
-            return super().validation_step(*args)
-
-        def train_dataloader(self):
-            return DataLoader(RandomDataset(batch_size, data_samples_train))
-
-        def val_dataloader(self):
-            return DataLoader(RandomDataset(batch_size, data_samples_val))
-
-    model = TestModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_steps=data_samples_train * 9,
-        check_val_every_n_epoch=5,
-        num_sanity_val_steps=0,
-    )
-
-    trainer.fit(model)
-
-    # with a data length of 10, validation every 5 epochs, and max_steps=90, we should
-    # validate once
-    assert trainer.current_epoch == 9
-    assert trainer.global_step == 90
-    assert list(model.validation_called_at_step) == [50]

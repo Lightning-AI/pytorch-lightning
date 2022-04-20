@@ -14,9 +14,12 @@
 import logging
 
 import pytest
+from torch.utils.data import DataLoader
 
-from pytorch_lightning.trainer import Trainer
-from tests.helpers import BoringModel
+from pytorch_lightning.trainer.trainer import Trainer
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.boring_model import RandomIterableDataset
 
 
 @pytest.mark.parametrize("max_epochs", [1, 2, 3])
@@ -57,3 +60,67 @@ def test_val_check_interval_info_message(caplog, value):
     with caplog.at_level(logging.INFO):
         Trainer()
     assert message not in caplog.text
+
+
+@pytest.mark.parametrize("use_infinite_dataset", [True, False])
+def test_validation_check_interval_exceed_data_length_correct(tmpdir, use_infinite_dataset):
+    data_samples_train = 4
+    max_epochs = 3
+    max_steps = data_samples_train * max_epochs
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.validation_called_at_step = set()
+
+        def validation_step(self, *args):
+            self.validation_called_at_step.add(int(self.trainer.global_step))
+            return super().validation_step(*args)
+
+        def train_dataloader(self):
+            if use_infinite_dataset:
+                train_ds = RandomIterableDataset(32, count=max_steps + 100)  # approx inf
+            else:
+                train_ds = RandomDataset(32, length=data_samples_train)
+            return DataLoader(train_ds)
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_val_batches=1,
+        max_steps=max_steps,
+        val_check_interval=3,
+        check_val_every_n_epoch=None,
+        num_sanity_val_steps=0,
+    )
+
+    trainer.fit(model)
+
+    assert trainer.current_epoch == 1 if use_infinite_dataset else max_epochs
+    assert trainer.global_step == max_steps
+
+    # with a data length of 10 (or infinite), a val_check_interval of 15, and max_steps=30,
+    # we should have validated twice
+    assert sorted(list(model.validation_called_at_step)) == [3, 6, 9, 12]
+
+
+def test_validation_check_interval_exceed_data_length_wrong():
+    trainer = Trainer(
+        limit_train_batches=10,
+        val_check_interval=100,
+    )
+
+    with pytest.raises(ValueError, match="must be less than or equal to the number of the training batches"):
+        trainer.fit(BoringModel())
+
+
+def test_val_check_interval_float_with_none_check_val_every_n_epoch():
+    """Test that an exception is raised with `val_check_interval` is set to float with
+    `check_val_every_n_epoch=None`"""
+    with pytest.raises(
+        MisconfigurationException, match="`val_check_interval` should be an integer when `check_val_every_n_epoch=None`"
+    ):
+        Trainer(
+            val_check_interval=0.5,
+            check_val_every_n_epoch=None,
+        )

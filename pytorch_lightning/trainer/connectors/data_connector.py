@@ -79,13 +79,13 @@ class DataConnector:
 
         if check_val_every_n_epoch is not None and not isinstance(check_val_every_n_epoch, int):
             raise MisconfigurationException(
-                f"check_val_every_n_epoch should be an integer. Found {check_val_every_n_epoch}"
+                f"`check_val_every_n_epoch` should be an integer, found {check_val_every_n_epoch!r}."
             )
 
         if check_val_every_n_epoch is None and isinstance(val_check_interval, float):
             raise MisconfigurationException(
-                f"`Trainer(val_check_interval={val_check_interval!r})` should be an integer "
-                f"when `check_val_every_n_epoch={check_val_every_n_epoch}`. "
+                "`val_check_interval` should be an integer when `check_val_every_n_epoch=None`,"
+                f" found {val_check_interval!r}."
             )
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch

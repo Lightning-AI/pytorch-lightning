@@ -247,8 +247,9 @@ class Trainer(
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`.
                 Default: ``True``.
 
-            check_val_every_n_epoch: Perform a validation loop every after every `n` train epochs. If `None`, validation
-                will be done solely based on the number of steps, requiring `val_check_interval` to be an integer value.
+            check_val_every_n_epoch: Perform a validation loop every after every `N` training epochs. If ``None``,
+                validation will be done solely based on the number of training steps, requiring ``val_check_interval``
+                to be an integer value.
                 Default: ``1``.
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
@@ -409,7 +410,7 @@ class Trainer(
             val_check_interval: How often to check the validation set. Pass a ``float`` in the range [0.0, 1.0] to check
                 after a fraction of the training epoch. Pass an ``int`` to check after a fixed number of training
                 batches. An ``int`` value can only be higher than the amount of batches in the training set when
-                `check_val_every_n_epoch=None`, otherwise the validation set is never checked.
+                ``check_val_every_n_epoch=None``.
                 Default: ``1.0``.
 
             enable_model_summary: Whether to enable model summarization by default.
@@ -1889,9 +1890,8 @@ class Trainer(
                 raise ValueError(
                     f"`val_check_interval` ({self.val_check_interval}) must be less than or equal "
                     f"to the number of the training batches ({self.num_training_batches}). "
-                    "If you want to disable validation set `limit_val_batches` to 0.0 instead. "
-                    "If you want to validate based on the step count instead of the epoch count, "
-                    "set `check_val_every_n_epoch=None`."
+                    "If you want to disable validation set `limit_val_batches` to 0.0 instead."
+                    "If you want to validate based on the total step count, set `check_val_every_n_epoch=None`."
                 )
         else:
             if not has_len_all_ranks(self.train_dataloader, self.strategy, module):
