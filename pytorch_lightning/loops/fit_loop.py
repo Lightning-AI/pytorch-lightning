@@ -130,9 +130,8 @@ class FitLoop(Loop[None]):
             self.epoch_progress.current.started,
         )
         finished_before_on_train_end = any(v != self.epoch_progress.current.processed for v in values)
-        iteration_based_training = self.trainer.max_steps != -1
         restarting &= finished_before_on_train_end
-        restarting |= iteration_based_training
+        restarting |= self._iteration_based_training()
         Loop.restarting.fset(self, restarting)  # call the parent setter
 
     @property
@@ -203,7 +202,7 @@ class FitLoop(Loop[None]):
 
     def on_run_start(self) -> None:  # type: ignore[override]
         """Calls the ``on_train_start`` hook."""
-        if self.trainer.max_epochs != -1:
+        if not self._iteration_based_training():
             self.epoch_progress.current.completed = self.epoch_progress.current.processed
 
         # reset train dataloader and val dataloader
@@ -336,6 +335,9 @@ class FitLoop(Loop[None]):
     def _should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated."""
         return self.epoch_loop._should_accumulate()
+
+    def _iteration_based_training(self):
+        return self.trainer.max_steps != -1
 
 
 def _select_data_fetcher(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:
