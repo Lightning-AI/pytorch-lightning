@@ -1,8 +1,8 @@
+:orphan:
+
 .. testsetup:: *
 
-    from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-    from pytorch_lightning.core.lightning import LightningModule
 
 .. _training-speedup:
 
@@ -13,7 +13,6 @@ Speed Up Model Training
 
 When you are limited with the resources, it becomes hard to speed up model training and reduce the training time
 without affecting the model's performance. There are multiple ways you can speed up your model's time to convergence.
-
 
 ************************
 Training on Accelerators
@@ -165,7 +164,7 @@ Example::
     -- python your_trainer_file.py
 
 
-Read more in our :ref:`accelerators` and :ref:`plugins` guides.
+Read more in our :ref:`training-speedup` and :ref:`plugins` guides.
 
 
 -----------
@@ -181,7 +180,7 @@ You can read more about it :ref:`here <early_stopping>`.
 
 ----------
 
-.. _speed_amp:
+.. _speed-amp:
 
 *********************************
 Mixed Precision (16-bit) Training
@@ -217,7 +216,7 @@ Lightning offers mixed precision training for GPUs and CPUs, as well as bfloat16
     trainer = Trainer(precision=16, accelerator="gpu", devices=4)
 
 
-Read more about :ref:`mixed-precision training <amp>`.
+Read more about :ref:`mixed-precision training <speed-amp>`.
 
 
 ----------------
