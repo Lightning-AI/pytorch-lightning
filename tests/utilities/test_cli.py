@@ -24,6 +24,7 @@ from typing import List, Optional, Union
 from unittest import mock
 from unittest.mock import ANY
 
+import numpy as np
 import pytest
 import torch
 import yaml
@@ -52,6 +53,7 @@ from pytorch_lightning.utilities.cli import (
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
+from pytorch_lightning.utilities.rank_zero import LightningDeprecationWarning
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import no_warning_call
@@ -1547,3 +1549,39 @@ def test_cli_logger_shorthand():
     with mock.patch("sys.argv", ["any.py", "--trainer.logger=False"]):
         cli = LightningCLI(TestModel, run=False)
     assert cli.trainer.logger is None
+
+def test_cli_auto_seeding():
+
+    with mock.patch("sys.argv", ["any.py"]):
+        from jsonargparse import ParserError
+        with pytest.raises(ParserError):
+            cli = LightningCLI(TestModel, run=False, seed_everything_default=int(np.iinfo(np.int32).max + 1), trainer_defaults={"logger": False}, parser_kwargs={"error_handler":None})
+            assert cli.seed_everything_default is False
+
+    with mock.patch("sys.argv", ["any.py"]):
+        from jsonargparse import ParserError
+        with pytest.raises(ParserError):
+            cli = LightningCLI(TestModel, run=False, seed_everything_default=int(np.iinfo(np.int32).min - 1), trainer_defaults={"logger": False}, parser_kwargs={"error_handler":None})
+            assert cli.seed_everything_default is False
+
+    with mock.patch("sys.argv", ["any.py"]):
+        with pytest.warns(LightningDeprecationWarning):
+            cli = LightningCLI(TestModel, run=False, seed_everything_default=None, trainer_defaults={"logger": False})
+            assert cli.seed_everything_default is False
+
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=False, trainer_defaults={"logger": False})
+        assert cli.seed_everything_default is False
+        assert cli.config["seed_everything"] is None
+
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=True, trainer_defaults={"logger": False})
+        assert isinstance(cli.config["seed_everything"], int)
+
+    with mock.patch("sys.argv", ["any.py", "--seed_everything", "3"]):
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=False, trainer_defaults={"logger": False})
+        assert cli.config["seed_everything"] == 3
+
+    with mock.patch("sys.argv", ["any.py", "--seed_everything", "3"]):
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=True, trainer_defaults={"logger": False})
+        assert cli.config["seed_everything"] == 3
