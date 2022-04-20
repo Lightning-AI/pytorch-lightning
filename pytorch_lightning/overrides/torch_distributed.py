@@ -16,15 +16,13 @@ logger = logging.getLogger(__name__)
 if torch.distributed.is_available():
     from torch._C._distributed_c10d import ProcessGroup
     from torch.distributed import Backend, broadcast, get_backend, get_rank, GroupMember
-else:
-    ProcessGroup = None
 
 # The code underneath is taken from PyTorch `torch/distributed/distributed_c10d.py`
 # the distributed backend and tensor type updates for habana backend is done here before broadcast
 
 
 # Taken from https://github.com/pytorch/pytorch/blob/3466c1b6901f06a563b8cbfa3c942fa50bda835b/torch/distributed/distributed_c10d.py#L267 # noqa: E501
-def _rank_not_in_group(group: ProcessGroup):
+def _rank_not_in_group(group: 'ProcessGroup'):
     """Helper that checks if the current process's rank is not in a given group."""
     if group is None:
         return False
