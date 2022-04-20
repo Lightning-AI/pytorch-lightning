@@ -78,10 +78,11 @@ def test_validation_check_interval_exceed_data_length_correct(tmpdir, use_infini
             return super().validation_step(*args)
 
         def train_dataloader(self):
-            if use_infinite_dataset:
-                train_ds = RandomIterableDataset(32, count=max_steps + 100)  # approx inf
-            else:
-                train_ds = RandomDataset(32, length=data_samples_train)
+            train_ds = (
+                RandomIterableDataset(32, count=max_steps + 100)
+                if use_infinite_dataset
+                else RandomDataset(32, length=data_samples_train)
+            )
             return DataLoader(train_ds)
 
     model = TestModel()

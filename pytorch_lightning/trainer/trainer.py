@@ -243,7 +243,7 @@ class Trainer(
                 Default: ``True``.
 
             check_val_every_n_epoch: Perform a validation loop every after every `N` training epochs. If ``None``,
-                validation will be done solely based on the number of training steps, requiring ``val_check_interval``
+                validation will be done solely based on the number of training batches, requiring ``val_check_interval``
                 to be an integer value.
                 Default: ``1``.
 
@@ -404,7 +404,7 @@ class Trainer(
 
             val_check_interval: How often to check the validation set. Pass a ``float`` in the range [0.0, 1.0] to check
                 after a fraction of the training epoch. Pass an ``int`` to check after a fixed number of training
-                batches. An ``int`` value can only be higher than the amount of batches in the training set when
+                batches. An ``int`` value can only be higher than the number of training batches when
                 ``check_val_every_n_epoch=None``.
                 Default: ``1.0``.
 
@@ -1837,7 +1837,7 @@ class Trainer(
                     f"`val_check_interval` ({self.val_check_interval}) must be less than or equal "
                     f"to the number of the training batches ({self.num_training_batches}). "
                     "If you want to disable validation set `limit_val_batches` to 0.0 instead."
-                    "If you want to validate based on the total step count, set `check_val_every_n_epoch=None`."
+                    "If you want to validate based on the total training batches, set `check_val_every_n_epoch=None`."
                 )
         else:
             if not has_len_all_ranks(self.train_dataloader, self.strategy, module):
