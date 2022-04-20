@@ -278,10 +278,6 @@ def test_accelerator_cpu(_):
 
     with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
         Trainer(accelerator="cpu", gpus=1)
-        trainer = Trainer(accelerator="gpu")
-
-    with pytest.raises(MisconfigurationException, match="You requested gpu:"):
-        trainer = Trainer(accelerator="cpu", gpus=1)
 
 
 @mock.patch("torch.cuda.device_count", return_value=2)
