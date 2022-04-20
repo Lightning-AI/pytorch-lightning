@@ -22,11 +22,10 @@ from types import MethodType, ModuleType
 from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Type, Union
 from unittest import mock
 
+import numpy as np
 import torch
 import yaml
 from torch.optim import Optimizer
-
-import numpy as np
 
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
@@ -35,13 +34,14 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _JSONARGPARSE_AVAILABLE
 from pytorch_lightning.utilities.meta import get_all_subclasses
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_warn, rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple, LRSchedulerTypeUnion
 
 if _JSONARGPARSE_AVAILABLE:
     from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, Namespace, set_config_read_mode
     from jsonargparse.optionals import import_docstring_parse
     from jsonargparse.typing import restricted_number_type
+
     set_config_read_mode(fsspec_enabled=True)
 else:
     locals()["ArgumentParser"] = object
@@ -543,7 +543,6 @@ class LightningCLI:
             )
             self.seed_everything_default = False
 
-
         self.model_class = model_class
         # used to differentiate between the original value and the processed value
         self._model_class = model_class or LightningModule
@@ -565,10 +564,7 @@ class LightningCLI:
 
         self.subcommand = self.config["subcommand"] if run else None
 
-
         self._set_seed()
-
-
 
         self.before_instantiate_classes()
         self.instantiate_classes()
@@ -607,7 +603,7 @@ class LightningCLI:
 
         min_value = np.iinfo(np.int32).min
         max_value = np.iinfo(np.int32).max
-        int32 = restricted_number_type('int32', int, [('>=', min_value), ('<=', max_value)])
+        int32 = restricted_number_type("int32", int, [(">=", min_value), ("<=", max_value)])
 
         if isinstance(self.seed_everything_default, bool):
             if self.seed_everything_default:
@@ -621,7 +617,7 @@ class LightningCLI:
             "--seed_everything",
             type=Optional[int32],
             default=seed,
-            help="Set to an int to run seed_everything with this value before classes instantiation."
+            help="Set to an int to run seed_everything with this value before classes instantiation.",
         )
 
     def add_core_arguments_to_parser(self, parser: LightningArgumentParser) -> None:

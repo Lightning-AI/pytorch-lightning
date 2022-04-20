@@ -1550,18 +1550,33 @@ def test_cli_logger_shorthand():
         cli = LightningCLI(TestModel, run=False)
     assert cli.trainer.logger is None
 
+
 def test_cli_auto_seeding():
 
     with mock.patch("sys.argv", ["any.py"]):
         from jsonargparse import ParserError
+
         with pytest.raises(ParserError):
-            cli = LightningCLI(TestModel, run=False, seed_everything_default=int(np.iinfo(np.int32).max + 1), trainer_defaults={"logger": False}, parser_kwargs={"error_handler":None})
+            cli = LightningCLI(
+                TestModel,
+                run=False,
+                seed_everything_default=int(np.iinfo(np.int32).max + 1),
+                trainer_defaults={"logger": False},
+                parser_kwargs={"error_handler": None},
+            )
             assert cli.seed_everything_default is False
 
     with mock.patch("sys.argv", ["any.py"]):
         from jsonargparse import ParserError
+
         with pytest.raises(ParserError):
-            cli = LightningCLI(TestModel, run=False, seed_everything_default=int(np.iinfo(np.int32).min - 1), trainer_defaults={"logger": False}, parser_kwargs={"error_handler":None})
+            cli = LightningCLI(
+                TestModel,
+                run=False,
+                seed_everything_default=int(np.iinfo(np.int32).min - 1),
+                trainer_defaults={"logger": False},
+                parser_kwargs={"error_handler": None},
+            )
             assert cli.seed_everything_default is False
 
     with mock.patch("sys.argv", ["any.py"]):
