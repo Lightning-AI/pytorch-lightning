@@ -203,7 +203,7 @@ def test_swa_callback_scheduler_step(tmpdir, interval: str):
 
 def test_swa_warns(tmpdir, caplog):
     model = SwaTestModel(interval="step")
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=StochasticWeightAveraging())
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=StochasticWeightAveraging(swa_lrs=1e-2))
     with caplog.at_level(level=logging.INFO), pytest.warns(UserWarning, match="SWA is currently only supported"):
         trainer.fit(model)
     assert "Swapping scheduler `StepLR` for `SWALR`" in caplog.text
@@ -218,38 +218,6 @@ def test_swa_raises():
         StochasticWeightAveraging(swa_epoch_start=-1, swa_lrs=0.1)
     with pytest.raises(MisconfigurationException, match="positive float, or a list of positive floats"):
         StochasticWeightAveraging(swa_epoch_start=5, swa_lrs=[0.2, 1])
-
-
-@pytest.mark.parametrize("stochastic_weight_avg", [False, True])
-@pytest.mark.parametrize("use_callbacks", [False, True])
-def test_trainer_and_stochastic_weight_avg(tmpdir, use_callbacks: bool, stochastic_weight_avg: bool):
-    """Test to ensure SWA Callback is injected when `stochastic_weight_avg` is provided to the Trainer."""
-
-    class TestModel(BoringModel):
-        def configure_optimizers(self):
-            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
-            return optimizer
-
-    model = TestModel()
-    kwargs = {
-        "default_root_dir": tmpdir,
-        "callbacks": StochasticWeightAveraging(swa_lrs=1e-3) if use_callbacks else None,
-        "stochastic_weight_avg": stochastic_weight_avg,
-        "limit_train_batches": 4,
-        "limit_val_batches": 4,
-        "max_epochs": 2,
-    }
-    if stochastic_weight_avg:
-        with pytest.deprecated_call(match=r"stochastic_weight_avg=True\)` is deprecated in v1.5"):
-            trainer = Trainer(**kwargs)
-    else:
-        trainer = Trainer(**kwargs)
-    trainer.fit(model)
-    if use_callbacks or stochastic_weight_avg:
-        assert sum(1 for cb in trainer.callbacks if isinstance(cb, StochasticWeightAveraging)) == 1
-        assert trainer.callbacks[0]._swa_lrs == [1e-3 if use_callbacks else 0.1]
-    else:
-        assert all(not isinstance(cb, StochasticWeightAveraging) for cb in trainer.callbacks)
 
 
 def test_swa_deepcopy(tmpdir):
@@ -268,7 +236,7 @@ def test_swa_deepcopy(tmpdir):
             self.setup_called = True
 
     model = BoringModel()
-    swa = TestSWA()
+    swa = TestSWA(swa_lrs=1e-2)
     trainer = Trainer(default_root_dir=tmpdir, callbacks=swa, fast_dev_run=True)
     trainer.fit(model, train_dataloaders=DataLoader(RandomDataset(32, 2)))
     assert swa.setup_called

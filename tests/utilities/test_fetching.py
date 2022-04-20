@@ -192,6 +192,7 @@ class RecommenderModel(BoringModel):
         return DataLoader(RandomIndicesDataset(), batch_size=4)
 
 
+@pytest.mark.flaky(reruns=3)
 @RunIf(min_gpus=1)
 def test_trainer_num_prefetch_batches(tmpdir):
 

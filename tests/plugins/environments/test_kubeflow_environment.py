@@ -20,7 +20,7 @@ import pytest
 from pytorch_lightning.plugins.environments import KubeflowEnvironment
 
 
-@mock.patch.dict(os.environ, {})
+@mock.patch.dict(os.environ, {}, clear=True)
 def test_default_attributes():
     """Test the default attributes when no environment variables are set."""
     env = KubeflowEnvironment()

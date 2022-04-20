@@ -57,13 +57,10 @@ class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Modu
 
 
 class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
-    def __init__(self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]):
-        """
-        Wraps the user's LightningModule and redirects the forward call to the appropriate
-        method, either ``training_step``, ``validation_step`` or ``test_step``.
-        If the LightningModule is in none of the states `training`, `testing` or `validation`,
-        the inputs will be redirected to the
-        :meth:`~pytorch_lightning.core.lightning.LightningModule.predict` method.
+    def __init__(self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]) -> None:
+        """Wraps the user's LightningModule and redirects the forward call to the appropriate method, either
+        ``training_step``, ``validation_step``, ``test_step``, or ``predict_step``.
+
         Inheriting classes may also modify the inputs or outputs of forward.
 
         Args:
@@ -77,28 +74,26 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         self._ddp_params_and_buffers_to_ignore = [f"module.{p}" for p in _ddp_params_and_buffers_to_ignore]
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        lightning_module = unwrap_lightning_module(self.module)
-        trainer = lightning_module.trainer
+        pl_module = unwrap_lightning_module(self.module)
+        trainer = pl_module.trainer
 
-        if trainer and trainer.training:
-            output = self.module.training_step(*inputs, **kwargs)
-
-            # In manual_optimization, we need to prevent DDP reducer as
-            # it is done manually in `LightningModule.manual_backward`
-            # `require_backward_grad_sync` will be reset in the
-            # ddp_strategy `post_training_step` hook
-            if not lightning_module.automatic_optimization:
-                trainer.model.require_backward_grad_sync = False
-        elif trainer and trainer.testing:
-            output = self.module.test_step(*inputs, **kwargs)
-        elif trainer and (trainer.sanity_checking or trainer.validating):
-            output = self.module.validation_step(*inputs, **kwargs)
-        elif trainer and trainer.predicting:
-            output = self.module.predict_step(*inputs, **kwargs)
-        else:
-            output = self.module(*inputs, **kwargs)
-
-        return output
+        if trainer is not None:
+            if trainer.training:
+                output = self.module.training_step(*inputs, **kwargs)
+                # In manual_optimization, we need to prevent DDP reducer as
+                # it is done manually in `LightningModule.manual_backward`
+                # `require_backward_grad_sync` will be reset in the
+                # ddp_strategy `post_training_step` hook
+                if not pl_module.automatic_optimization:
+                    trainer.model.require_backward_grad_sync = False  # type: ignore[assignment]
+                return output
+            if trainer.testing:
+                return self.module.test_step(*inputs, **kwargs)
+            if trainer.sanity_checking or trainer.validating:
+                return self.module.validation_step(*inputs, **kwargs)
+            if trainer.predicting:
+                return self.module.predict_step(*inputs, **kwargs)
+        return self.module(*inputs, **kwargs)
 
     def on_post_move_to_device(self) -> None:
         pass
