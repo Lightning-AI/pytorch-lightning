@@ -1,4 +1,5 @@
 .. _checkpointing_basic:
+:orphan:
 
 #####################
 Checkpointing (basic)
