@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 import shutil
 from collections import ChainMap, OrderedDict
 from functools import partial
@@ -384,7 +385,15 @@ class EvaluationLoop(DataLoaderLoop):
                 row_format = f"{{:^{max_length}}}" * len(table_headers)
                 half_term_size = int(term_size / 2)
 
-                bar = "─" * term_size
+                bar_character = "-"
+                try:
+                    unicode_dash = "─"
+                    unicode_dash.encode(sys.stdout.encoding)
+                    bar_character = unicode_dash
+                except UnicodeEncodeError:
+                    pass
+                bar = bar_character * term_size
+               
                 lines = [bar, row_format.format(*table_headers).rstrip(), bar]
                 for metric, row in zip(metrics, table_rows):
                     # deal with column overflow
