@@ -694,7 +694,7 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, save_last, fn):
     trainer.fit(model)
 
     trainer_fn = getattr(trainer, fn)
-    assert getattr(trainer, "ckpt_path") is None
+    assert trainer.ckpt_path is None
 
     if ckpt_path == "best":
         # ckpt_path is 'best', meaning we load the best weights
@@ -705,17 +705,17 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, save_last, fn):
                 trainer_fn(model, ckpt_path=ckpt_path)
         else:
             trainer_fn(ckpt_path=ckpt_path)
-            assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.best_model_path
+            assert trainer.ckpt_path == trainer.checkpoint_callback.best_model_path
 
             trainer_fn(model, ckpt_path=ckpt_path)
-            assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.best_model_path
+            assert trainer.ckpt_path == trainer.checkpoint_callback.best_model_path
     elif ckpt_path == "last":
         if save_last:
             trainer_fn(ckpt_path=ckpt_path)
-            assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.last_model_path
+            assert trainer.ckpt_path == trainer.checkpoint_callback.last_model_path
 
             trainer_fn(model, ckpt_path=ckpt_path)
-            assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.last_model_path
+            assert trainer.ckpt_path == trainer.checkpoint_callback.last_model_path
         else:
             with pytest.warns(UserWarning, match="No checkpoint will be loaded."):
                 trainer_fn(ckpt_path=ckpt_path)
