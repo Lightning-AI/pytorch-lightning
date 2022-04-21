@@ -1,7 +1,7 @@
+:orphan:
+
 .. testsetup:: *
 
-    from pytorch_lightning.core.lightning import LightningModule
-    from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning import loggers as pl_loggers
 
 .. role:: hidden
@@ -169,6 +169,24 @@ The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method has a f
    * - on_validation_batch_start, on_validation_batch_end, validation_step, validation_step_end
      - False
      - True
+
+
+.. note::
+
+    While logging tensor metrics with ``on_epoch=True`` inside step-level hooks and using mean-reduction (default) to accumulate the metrics across the current epoch, Lightning tries to extract the
+    batch size from the current batch. If multiple possible batch sizes are found, a warning is logged and if it fails to extract the batch size from the current batch, which is possible if
+    the batch is a custom structure/collection, then an error is raised. To avoid this, you can specify the ``batch_size`` inside the ``self.log(... batch_size=batch_size)`` call.
+
+    .. code-block:: python
+
+        def training_step(self, batch, batch_idx):
+            # extracts the batch size from `batch`
+            self.log("train_loss", loss, on_epoch=True)
+
+
+        def validation_step(self, batch, batch_idx):
+            # uses `batch_size=10`
+            self.log("val_loss", loss, batch_size=10)
 
 .. note::
 
@@ -389,4 +407,4 @@ Managing Remote Filesystems
 
 Lightning supports saving logs to a variety of filesystems, including local filesystems and several cloud storage providers.
 
-Check out the :ref:`Remote Filesystems <remote_fs>` doc for more info.
+Check out the :doc:`Remote Filesystems <../common/remote_fs>` doc for more info.
