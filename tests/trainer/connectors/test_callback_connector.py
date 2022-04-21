@@ -251,9 +251,12 @@ def test_configure_external_callbacks(monkeypatch):
         return []
 
     def factory_one_callback():
+        return ExternalCallback()
+
+    def factory_one_callback_list():
         return [ExternalCallback()]
 
-    def factory_multiple_callbacks():
+    def factory_multiple_callbacks_list():
         return [ExternalCallback(), ExternalCallback()]
 
     _make_entry_point_query_mock(monkeypatch, factory_no_callback)
@@ -264,7 +267,11 @@ def test_configure_external_callbacks(monkeypatch):
     trainer = Trainer(enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
     assert isinstance(trainer.callbacks[1], ExternalCallback)
 
-    _make_entry_point_query_mock(monkeypatch, factory_multiple_callbacks)
+    _make_entry_point_query_mock(monkeypatch, factory_one_callback_list)
+    trainer = Trainer(enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
+    assert isinstance(trainer.callbacks[1], ExternalCallback)
+
+    _make_entry_point_query_mock(monkeypatch, factory_multiple_callbacks_list)
     trainer = Trainer(enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
     assert isinstance(trainer.callbacks[1], ExternalCallback)
     assert isinstance(trainer.callbacks[2], ExternalCallback)

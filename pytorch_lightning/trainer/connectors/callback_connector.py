@@ -259,6 +259,7 @@ class CallbackConnector:
         for factory in factories:
             callback_factory = factory.load()
             callbacks_list: List[Callback] = callback_factory()
+            callbacks_list = [callbacks_list] if isinstance(callbacks_list, Callback) else callbacks_list
             if not isinstance(callbacks_list, list):
                 raise TypeError(
                     f"The entry point '{factory.name}' returned a {type(callbacks_list)} but is expected to return"
