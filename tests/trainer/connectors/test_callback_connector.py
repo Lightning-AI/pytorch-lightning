@@ -14,7 +14,6 @@
 import logging
 from unittest.mock import Mock
 
-import pytest
 import torch
 
 import pytorch_lightning
@@ -224,24 +223,6 @@ class ExternalCallback(Callback):
     """A callback in another library that gets registered through entry points."""
 
     pass
-
-
-def test_configure_external_callbacks_raises(monkeypatch):
-    """Test that the connector validates the return type of Callback factories registered through entry points."""
-
-    def factory_incorrect_return_type():
-        return "invalid"
-
-    def factory_incorrect_element_type():
-        return [ExternalCallback(), "invalid"]
-
-    _make_entry_point_query_mock(monkeypatch, factory_incorrect_return_type)
-    with pytest.raises(TypeError, match="The entry point 'mocked' returned a <class 'str'> but is expected to return"):
-        Trainer()
-
-    _make_entry_point_query_mock(monkeypatch, factory_incorrect_element_type)
-    with pytest.raises(TypeError, match="at least one callback was not an instance of"):
-        Trainer()
 
 
 def test_configure_external_callbacks(monkeypatch):
