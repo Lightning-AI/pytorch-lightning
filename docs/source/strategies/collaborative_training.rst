@@ -16,7 +16,7 @@ Training on unreliable mixed GPUs across the internet
 
 .. displayitem::
    :header: 1: Training across multiple machines over the internet
-   :description: Quickly setup to start training on multiple machines.
+   :description: Quick setup to start training on multiple machines.
    :col_css: col-md-4
    :button_link: collaborative_training_basic.html
    :height: 200
