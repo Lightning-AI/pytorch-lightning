@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 import shutil
-from collections import ChainMap, OrderedDict
-from functools import partial
-from typing import Any, IO, Iterable, List, Optional, Sequence, Type, Union
-
 import torch
+from collections import ChainMap, OrderedDict
 from deprecate.utils import void
+from functools import partial
 from torch.utils.data.dataloader import DataLoader
+from typing import Any, IO, Iterable, List, Optional, Sequence, Type, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import GPUAccelerator
@@ -336,6 +336,10 @@ class EvaluationLoop(DataLoaderLoop):
 
     @staticmethod
     def _print_results(results: List[_OUT_DICT], stage: str, file: Optional[IO[str]] = None) -> None:
+        # print to stdout by default
+        if file is None:
+            file = sys.stdout
+
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
         metrics = sorted({k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys})
@@ -386,7 +390,8 @@ class EvaluationLoop(DataLoaderLoop):
 
                 try:
                     # some terminals do not support this character
-                    "─".encode(file.encoding)
+                    if hasattr(file, 'encoding') and file.encoding is not None:
+                        "─".encode(file.encoding)
                 except UnicodeEncodeError:
                     bar_character = "-"
                 else:

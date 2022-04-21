@@ -129,7 +129,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - When using custom DataLoaders in LightningDataModule, multiple inheritance is resolved properly ([#12716](https://github.com/PyTorchLightning/pytorch-lightning/pull/12716))
 
 
--
+- Fixed encoding issues on terminals that do not support unicode characters
 
 
 ## [1.6.1] - 2022-04-13
