@@ -283,6 +283,4 @@ def _make_entry_point_query_mock(monkeypatch, callback_factory):
         return query_mock.get
     else:
         query_mock.return_value = [entry_point]
-        monkeypatch.setattr(
-            pytorch_lightning.trainer.connectors.callback_connector, "iter_entry_points", query_mock
-        )
+        monkeypatch.setattr(pytorch_lightning.trainer.connectors.callback_connector, "iter_entry_points", query_mock)
