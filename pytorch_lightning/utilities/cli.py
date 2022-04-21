@@ -35,13 +35,13 @@ from pytorch_lightning.utilities.imports import _JSONARGPARSE_AVAILABLE
 from pytorch_lightning.utilities.meta import get_all_subclasses
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_deprecation, rank_zero_warn
-from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple, LRSchedulerTypeUnion
 from pytorch_lightning.utilities.seed import _select_seed_randomly
+from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple, LRSchedulerTypeUnion
 
 if _JSONARGPARSE_AVAILABLE:
     from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, Namespace, set_config_read_mode
     from jsonargparse.optionals import import_docstring_parse
-    from jsonargparse.typing import restricted_number_type, register_type
+    from jsonargparse.typing import register_type, restricted_number_type
 
     uint32 = restricted_number_type("uint32", int, [(">=", np.iinfo(np.uint32).min), ("<=", np.iinfo(np.uint32).max)])
 
@@ -874,7 +874,6 @@ class LightningCLI:
         if config_seed is not False:
             seed_everything(config_seed, workers=True)
             self.config["seed_everything"] = config_seed
-
 
 
 def _class_path_from_class(class_type: Type) -> str:

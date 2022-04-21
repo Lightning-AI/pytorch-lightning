@@ -28,10 +28,10 @@ import numpy as np
 import pytest
 import torch
 import yaml
+from jsonargparse import ParserError
 from packaging import version
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
-from jsonargparse import ParserError
 
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
@@ -1598,12 +1598,12 @@ def test_cli_auto_seeding():
 
     with mock.patch("sys.argv", ["any.py", "--seed_everything", "3"]):
         cli = LightningCLI(TestModel, run=False, seed_everything_default=10, trainer_defaults={"logger": False})
-        assert cli.seed_everything_default is 10
+        assert cli.seed_everything_default == 10
         assert cli.config["seed_everything"] == 3
 
     with mock.patch("sys.argv", ["any.py", "--seed_everything", "false"]):
         cli = LightningCLI(TestModel, run=False, seed_everything_default=10, trainer_defaults={"logger": False})
-        assert cli.seed_everything_default is 10
+        assert cli.seed_everything_default == 10
         assert cli.config["seed_everything"] is False
 
     with mock.patch("sys.argv", ["any.py", "--seed_everything", "false"]):
