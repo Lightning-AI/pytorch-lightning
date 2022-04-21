@@ -73,11 +73,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: ["3.7", "3.9"]
-        pytorch_version: ["1.8", "1.11"]
         include:
           # the config used in '.azure-pipelines/gpu-tests.yml'
-          - {python_version: "3.9", pytorch_version: "1.10"}
+          - {python_version: "3.7", pytorch_version: "1.10", cuda_version: "11.1"}
+          - {python_version: "3.7", pytorch_version: "1.11", cuda_version: "11.3.1"}
+          # latest (used in Tutorials)
+          - {python_version: "3.8", pytorch_version: "1.8", cuda_version: "11.1"}
+          - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.1"}
+          - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -88,6 +91,7 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
+            CUDA_VERSION=${{ matrix.cuda_version }}
           file: dockers/base-cuda/Dockerfile
           push: false
         timeout-minutes: 75
