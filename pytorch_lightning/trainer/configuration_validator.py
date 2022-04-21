@@ -142,21 +142,6 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
             " Please use `val_dataloader()` directly."
         )
 
-
-def _check_progress_bar(model: "pl.LightningModule") -> None:
-    r"""
-    Checks if get_progress_bar_dict is overridden and sends a deprecation warning.
-
-    Args:
-        model: The model to check the get_progress_bar_dict method.
-    """
-    if is_overridden("get_progress_bar_dict", model):
-        rank_zero_deprecation(
-            "The `LightningModule.get_progress_bar_dict` method was deprecated in v1.5 and will be removed in v1.7."
-            " Please use the `ProgressBarBase.get_metrics` instead."
-        )
-
-
 def _check_on_post_move_to_device(model: "pl.LightningModule") -> None:
     r"""
     Checks if `on_post_move_to_device` method is overridden and sends a deprecation warning.
