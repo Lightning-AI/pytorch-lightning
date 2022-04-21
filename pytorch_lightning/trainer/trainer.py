@@ -1380,12 +1380,6 @@ class Trainer(
             self.state.stage = stage
 
     def __set_ckpt_path(self, ckpt_path: Optional[str], model_provided: bool, model_connected: bool) -> Optional[str]:
-        if model_provided and ckpt_path is None:
-            # use passed model to function without loading weights
-            return
-
-        fn = self.state.fn.value
-
         # fault-tolerance takes precedence
         from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 
@@ -1398,6 +1392,22 @@ class Trainer(
         else:
             ft_ckpt_path = None
 
+        fn = self.state.fn.value
+
+        if ckpt_path is None and ft_ckpt_path is not None and self.state.fn == TrainerFn.FITTING:
+            ckpt_path = "last"
+            rank_zero_warn(
+                f"`.{fn}(ckpt_path=None)` was called without a model."
+                " Because fault tolerance is enabled, the last model of the previous `fit` call will be used."
+                f" You can pass `{fn}(ckpt_path='best')` to use the best model or"
+                f" `{fn}(ckpt_path='last')` to use the last model."
+                " If you pass a value, this warning will be silenced."
+            )
+
+        if model_provided and ckpt_path is None:
+            # use passed model to function without loading weights
+            return
+
         if model_connected and ckpt_path is None:
             full_msg = (
                 f"`.{fn}(ckpt_path=None)` was called without a model."
@@ -1406,19 +1416,13 @@ class Trainer(
                 f" `{fn}(ckpt_path='last')` to use the last model."
                 " If you pass a value, this warning will be silenced."
             )
-            if ft_ckpt_path is not None and self.state.fn == TrainerFn.FITTING:
-                partial_message = (
-                    " Because fault tolerance is enabled, the last model of the previous `fit` call will be used."
-                )
 
-                ckpt_path = "last"
-            else:
-                partial_message = " The best model of the previous `fit` call will be used."
-                if ft_ckpt_path:
-                    partial_message += (
-                        " There is also a fault-tolerant checkpoint available, however it is default only when fitting."
-                    )
-                ckpt_path = "best"
+            partial_message = " The best model of the previous `fit` call will be used."
+            if ft_ckpt_path:
+                partial_message += (
+                    " There is also a fault-tolerant checkpoint available, however it is default only when fitting."
+                )
+            ckpt_path = "best"
 
             rank_zero_warn(full_msg.format(partial_message=partial_message))
 
