@@ -240,7 +240,7 @@ def test_configure_external_callbacks_raises(monkeypatch):
         Trainer()
 
     _make_entry_point_query_mock(monkeypatch, factory_incorrect_element_type)
-    with pytest.raises(TypeError, match="at least one callack was not an instance of"):
+    with pytest.raises(TypeError, match="at least one callback was not an instance of"):
         Trainer()
 
 

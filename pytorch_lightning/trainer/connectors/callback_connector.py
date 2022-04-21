@@ -268,7 +268,7 @@ class CallbackConnector:
             if not all(isinstance(cb, Callback) for cb in callbacks_list):
                 raise TypeError(
                     f"The entry point '{factory.name}' is expected to return a list of callbacks, but at least one"
-                    " callack was not an instance of `pytorch_lightning.callbacks.Callback`."
+                    " callback was not an instance of `pytorch_lightning.callbacks.Callback`."
                 )
             _log.info(
                 f"Adding {len(callbacks_list)} callbacks from entry point '{factory.name}':"
