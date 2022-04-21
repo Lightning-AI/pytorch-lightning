@@ -538,8 +538,8 @@ class LightningCLI:
 
         if self.seed_everything_default is None:
             rank_zero_deprecation(
-                "Setting `LightningCLI.seed_everything_default` to `None` is deprecated in v1.X and will be"
-                " removed in v1.(X+1). Set it to `False` instead."
+                "Setting `LightningCLI.seed_everything_default` to `None` is deprecated in v1.7 and will be"
+                " removed in v1.9. Set it to `False` instead."
             )
             self.seed_everything_default = False
 
