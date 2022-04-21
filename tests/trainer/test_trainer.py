@@ -664,10 +664,11 @@ def test_benchmark_option(benchmark_, deterministic, expected):
     torch.backends.cudnn.benchmark = original_val
 
 
-@pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
+@pytest.mark.parametrize("ckpt_path", (None, "best", "last", "specific"))
 @pytest.mark.parametrize("save_top_k", (-1, 0, 1, 2))
+@pytest.mark.parametrize("save_last", (True, False))
 @pytest.mark.parametrize("fn", ("validate", "test", "predict"))
-def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
+def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, save_last, fn):
     class TestModel(BoringModel):
         def validation_step(self, batch, batch_idx):
             self.log("foo", -batch_idx)
@@ -688,7 +689,7 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
         limit_predict_batches=1,
         enable_progress_bar=False,
         default_root_dir=tmpdir,
-        callbacks=[ModelCheckpoint(monitor="foo", save_top_k=save_top_k)],
+        callbacks=[ModelCheckpoint(monitor="foo", save_top_k=save_top_k, save_last=save_last)],
     )
     trainer.fit(model)
 
@@ -708,6 +709,20 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
 
             trainer_fn(model, ckpt_path=ckpt_path)
             assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.best_model_path
+    elif ckpt_path == "last":
+        if save_last:
+            trainer_fn(ckpt_path=ckpt_path)
+            assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.last_model_path
+
+            trainer_fn(model, ckpt_path=ckpt_path)
+            assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.last_model_path
+        else:
+            with pytest.warns(UserWarning, match="No checkpoint will be loaded."):
+                trainer_fn(ckpt_path=ckpt_path)
+
+            with pytest.warns(UserWarning, match="No checkpoint will be loaded."):
+                trainer_fn(model, ckpt_path=ckpt_path)
+
     elif ckpt_path is None:
         # ckpt_path is None, meaning we don't load any checkpoints and use the provided model
         trainer_fn(model, ckpt_path=ckpt_path)
