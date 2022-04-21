@@ -773,6 +773,8 @@ def train_manual_optimization(tmpdir, strategy, model_cls=TesManualOptimizationD
         accelerator="gpu",
         devices=2,
         strategy=strategy,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
 
     trainer.fit(model)
