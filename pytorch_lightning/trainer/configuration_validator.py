@@ -155,7 +155,7 @@ def _check_progress_bar(model: "pl.LightningModule") -> None:
             " Please use the `ProgressBarBase.get_metrics` instead."
         )
 
-        
+
 def _check_on_post_move_to_device(model: "pl.LightningModule") -> None:
     r"""
     Checks if `on_post_move_to_device` method is overridden and sends a deprecation warning.
