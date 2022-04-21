@@ -188,8 +188,9 @@ The following are best practices when using/designing callbacks.
 -----------
 
 
+************
 Entry Points
-------------
+************
 
 Lightning supports registering Trainer callbacks directly through
 `Entry Points <https://setuptools.pypa.io/en/latest/userguide/entry_point.html>`_. Entry points allow an arbitrary
