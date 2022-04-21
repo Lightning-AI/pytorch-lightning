@@ -4,7 +4,7 @@ Entry Points
 
 Lightning supports registering Trainer callbacks directly through
 `Entry Points <https://setuptools.pypa.io/en/latest/userguide/entry_point.html>`_. Entry points allow an arbitrary
-package to *install* callbacks that the Lightning Trainer can automatically use, without you having to add them
+package to include callbacks that the Lightning Trainer can automatically use, without you having to add them
 to the Trainer manually. This is useful in production environments where it is common to provide specialized monitoring
 and logging callbacks globally for every application.
 
@@ -13,7 +13,7 @@ Here is a callback factory function that returns two special callbacks:
 .. code-block:: python
     :caption: factories.py
 
-    def my_callbacks_factory():
+    def my_custom_callbacks_factory():
         return [MyCallback1(), MyCallback2()]
 
 If we make this `factories.py` file into an installable package, we can define an **entry point** for this factory function.
@@ -30,7 +30,7 @@ Here is a minimal example of the `setup.py` file for the package `my-package`:
         entry_points={
             "pytorch_lightning.callbacks_factory": [
                 # The format here must be [any name]=[module path]:[function name]
-                "monitor_callbacks=factories:my_callbacks_factory"
+                "monitor_callbacks=factories:my_custom_callbacks_factory"
             ]
         },
     )
