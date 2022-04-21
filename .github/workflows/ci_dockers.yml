@@ -28,8 +28,8 @@ jobs:
       fail-fast: false
       matrix:
         # the config used in '.azure-pipelines/gpu-tests.yml' since the Dockerfile uses the cuda image
-        python_version: ["3.7"]
-        pytorch_version: ["1.8"]
+        python_version: ["3.9"]
+        pytorch_version: ["1.10", "1.11"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -73,9 +73,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        python_version: ["3.7", "3.9"]
+        pytorch_version: ["1.8", "1.11"]
         include:
           # the config used in '.azure-pipelines/gpu-tests.yml'
-          - {python_version: "3.7", pytorch_version: "1.8"}
           - {python_version: "3.9", pytorch_version: "1.10"}
     steps:
       - name: Checkout

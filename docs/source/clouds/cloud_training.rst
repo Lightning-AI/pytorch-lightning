@@ -1,48 +1,86 @@
 .. _grid:
 
-##############
-Cloud Training
-##############
+##################
+Train on the cloud
+##################
+**Audience:** Users who want to develop and train models on the cloud (public cloud, private cloud or onprem clusters).
 
-Lightning makes it easy to scale your training, without the boilerplate.
-If you want to train your models on the cloud, without dealing with engineering infrastructure and servers, you can try `Grid.ai <https://www.grid.ai/>`_.
-
-Developed by the creators of `PyTorch Lightning <https://www.pytorchlightning.ai/>`_, Grid is a platform that allows you to:
-
-
-- **Scale your models to multi-GPU and multiple nodes** instantly with interactive sessions
-- **Run Hyperparameter Sweeps on 100s of GPUs** in one command
-- **Upload huge datasets** for availability at scale
-- **Iterate faster and cheaper**, you only pay for what you need
-
-
-****************
-Training on Grid
-****************
+----
 
 .. raw:: html
 
-    <video width="50%" max-width="400px" controls
+    <div class="display-card-container">
+        <div class="row">
+
+.. Add callout items below this line
+
+.. displayitem::
+   :header: 1: Access a GPU machine on the cloud
+   :description: Learn to train models using an interactive cloud machine.
+   :col_css: col-md-4
+   :button_link: session_basic.html
+   :height: 200
+   :tag: basic
+
+.. displayitem::
+   :header: 2: Run a model in the background on the cloud
+   :description: Learn to run a model in the background on a cloud machine.
+   :col_css: col-md-4
+   :button_link: run_basic.html
+   :height: 200
+   :tag: intermediate
+
+.. displayitem::
+   :header: 3: Save up to 80% on cloud costs with fault-tolerant training
+   :description: Run on the cloud for 1/10th the price with fault-tolerant training.
+   :col_css: col-md-4
+   :button_link: fault_tolerant_training_basic.html
+   :height: 200
+   :tag: intermediate
+
+.. displayitem::
+   :header: 4: Run many models at once
+   :description: Run many models at once (sweep) to find the best performing model.
+   :col_css: col-md-4
+   :button_link: run_intermediate.html
+   :height: 200
+   :tag: intermediate
+
+.. displayitem::
+   :header: 5: Run on your own cloud
+   :description: Learn how to run on your Company or University private clouds.
+   :col_css: col-md-4
+   :button_link: run_expert.html
+   :height: 200
+   :tag: expert
+
+.. raw:: html
+
+        </div>
+    </div>
+
+----
+
+.. raw:: html
+
+   <div class="row" style='font-size: 14px'>
+      <div class='col-md-6'>
+
+.. raw:: html
+
+    <video width="100%" max-width="400px" controls
     poster="https://grid-docs.s3.us-east-2.amazonaws.com/grid.png"
     src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/grid.mp4"></video>
 
-|
 
-You can launch any Lightning model on Grid using the Grid `CLI <https://pypi.org/project/lightning-grid/>`_:
+.. raw:: html
 
-.. code-block:: bash
+      </div>
+      <div class='col-md-6'>
 
-    grid run --instance_type v100 --gpus 4 my_model.py --accelerator 'gpu' --devices 4 --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
+`Grid.ai <https://www.grid.ai/>`_ is the official cloud training solution for PyTorch Lightning. Grid is designed to support researcher workloads at both academic labs and major companies.
 
-You can also start runs or interactive sessions from the `Grid platform <https://platform.grid.ai>`_, where you can upload datasets, view artifacts, view the logs, the cost, log into tensorboard, and so much more.
+.. raw:: html
 
-
-**********
-Learn More
-**********
-
-`Sign up for Grid <http://platform.grid.ai>`_ and receive free credits to get you started!
-
-`Grid in 3 minutes <https://docs.grid.ai/#introduction>`_
-
-`Grid.ai Terms of Service <https://www.grid.ai/terms-of-service/>`_
+      </div>
+   </div>

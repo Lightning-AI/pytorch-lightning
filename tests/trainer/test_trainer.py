@@ -1041,7 +1041,7 @@ def test_gpu_choice():
     num_gpus = torch.cuda.device_count()
     Trainer(accelerator="gpu", devices=num_gpus, auto_select_gpus=True)
 
-    with pytest.raises(MisconfigurationException, match=r".*But your machine only has.*"):
+    with pytest.raises(MisconfigurationException, match=r".*but your machine only has.*"):
         Trainer(accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
 
 
@@ -1746,6 +1746,8 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
         accelerator="gpu",
         devices=2,
         strategy="ddp",
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
 
     # simulate random failure in training_step on rank 0
