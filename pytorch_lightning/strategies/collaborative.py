@@ -45,7 +45,7 @@ class CollaborativeStrategy(Strategy):
         verbose: bool = True,
         averager_opts: Optional[Dict] = None,
         host_maddrs: Optional[List] = None,
-        initial_peers: Optional[List] = None,
+        initial_peers: Optional[Union[str, List]] = None,
         endpoint: Optional[bool] = None,
         peer_endpoint: Optional[str] = None,
         persistent: bool = True,
@@ -332,7 +332,7 @@ class HiveMindScheduler:
             self.scheduler.step()
             self.current_step += 1
 
-    def load_state_dict(self, state_dict: Dict):
+    def load_state_dict(self, state_dict: Dict) -> None:
         self.scheduler.load_state_dict(state_dict)
 
     def state_dict(self) -> Dict:
@@ -351,7 +351,7 @@ class DHTManager:
     def __init__(
         self,
         host_maddrs: Optional[List],
-        initial_peers: Optional[List],
+        initial_peers: Optional[Union[str, List]],
         persistent: bool,
         endpoint: Optional[bool],
         peer_endpoint: Optional[str],
@@ -429,12 +429,13 @@ class DHTManager:
             )
 
     def _log_endpoint_helper_message(self, visible_addresses: List[str]) -> None:
+        assert self.host is not None
         resolved_host = self.host
         if "0.0.0.0" in self.host:
             # use the visible multi-addresses to figure out the IP that has been exposed
-            # todo: this is pretty hacky, worth investigating.
+            # todo (sean): this is pretty hacky, worth investigating.
             p = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+")
-            # todo: we select one address from here, could we have multiple?
+            # todo (sean): we select one address from here, could we have multiple?
             resolved_host = {p.findall(maddr)[0] for maddr in visible_addresses}.pop()
         log.info(
             "\nSidecar endpoint enabled to serve peers.\n"
@@ -448,7 +449,7 @@ class DHTManager:
         dht = self.dht
 
         class DHTHandler(BaseHTTPRequestHandler):
-            def do_GET(self):
+            def do_GET(self) -> None:
                 """Respond to a GET request."""
                 self.send_response(200)
                 self.send_header("Content-type", "text/html")
@@ -484,6 +485,7 @@ class DHTManager:
         return peers
 
     def _get_peers(self) -> List[str]:
+        assert self.peer_endpoint is not None
         url = f"http://{self.peer_endpoint}" if not self.peer_endpoint.startswith("http://") else self.peer_endpoint
         r = requests.get(url)
         return r.text.split(",")
