@@ -142,6 +142,7 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
             " Please use `val_dataloader()` directly."
         )
 
+
 def _check_on_post_move_to_device(model: "pl.LightningModule") -> None:
     r"""
     Checks if `on_post_move_to_device` method is overridden and sends a deprecation warning.
