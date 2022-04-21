@@ -47,28 +47,6 @@ def test_v1_7_0_datamodule_transform_properties(tmpdir):
         _ = LightningDataModule(val_transforms="b")
 
 
-def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
-    class TestModel(BoringModel):
-        def get_progress_bar_dict(self):
-            items = super().get_progress_bar_dict()
-            items.pop("v_num", None)
-            return items
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-    )
-    test_model = TestModel()
-    with pytest.deprecated_call(match=r"`LightningModule.get_progress_bar_dict` method was deprecated in v1.5"):
-        trainer.fit(test_model)
-    standard_metrics_postfix = trainer.progress_bar_callback.main_progress_bar.postfix
-    assert "loss" in standard_metrics_postfix
-    assert "v_num" not in standard_metrics_postfix
-
-    with pytest.deprecated_call(match=r"`trainer.progress_bar_dict` is deprecated in v1.5"):
-        _ = trainer.progress_bar_dict
-
-
 def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
     class CustomBoringModel(BoringModel):
         def on_train_dataloader(self):
