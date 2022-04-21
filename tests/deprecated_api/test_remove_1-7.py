@@ -49,22 +49,6 @@ def test_v1_7_0_datamodule_transform_properties(tmpdir):
         _ = LightningDataModule(val_transforms="b")
     with pytest.deprecated_call(match=r"DataModule property `test_transforms` was deprecated in v1.5"):
         _ = LightningDataModule(test_transforms="c")
-    with pytest.deprecated_call(match=r"DataModule property `test_transforms` was deprecated in v1.5"):
-        _ = LightningDataModule(test_transforms="c", dims=(1, 1, 1))
-
-
-def test_v1_7_0_datamodule_size_property(tmpdir):
-    dm = MNISTDataModule()
-    with pytest.deprecated_call(match=r"DataModule property `size` was deprecated in v1.5"):
-        dm.size()
-
-
-def test_v1_7_0_datamodule_dims_property(tmpdir):
-    dm = MNISTDataModule()
-    with pytest.deprecated_call(match=r"DataModule property `dims` was deprecated in v1.5"):
-        _ = dm.dims
-    with pytest.deprecated_call(match=r"DataModule property `dims` was deprecated in v1.5"):
-        _ = LightningDataModule(dims=(1, 1, 1))
 
 
 def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):

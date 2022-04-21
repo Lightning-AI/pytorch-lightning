@@ -501,9 +501,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         return self.trainer.callback_metrics.get(key)
 
     def _should_check_val_epoch(self):
-        return (
-            self.trainer.enable_validation
-            and (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
+        return self.trainer.enable_validation and (
+            self.trainer.check_val_every_n_epoch is None
+            or (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
         )
 
     def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
@@ -524,7 +524,13 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
         elif self.trainer.val_check_batch != float("inf"):
-            is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
+            # if `check_val_every_n_epoch is `None`, run a validation loop every n training batches
+            # else condition it based on the batch_idx of the current epoch
+            current_iteration = (
+                self._batches_that_stepped if self.trainer.check_val_every_n_epoch is None else batch_idx
+            )
+            is_val_check_batch = (current_iteration + 1) % self.trainer.val_check_batch == 0
+
         return is_val_check_batch
 
     def _save_loggers_on_train_batch_end(self) -> None:
