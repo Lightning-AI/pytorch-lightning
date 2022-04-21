@@ -24,7 +24,7 @@ Training on unreliable mixed GPUs across the internet
 
 .. displayitem::
    :header: 2: Speed up training by enabling under-the-hood optimizations
-   :description: Learn which flags to use with the `CollaborativeStrategy` to speed up training.
+   :description: Learn which flags to use with the CollaborativeStrategy to speed up training.
    :col_css: col-md-4
    :button_link: collaborative_training_intermediate.html
    :height: 200
