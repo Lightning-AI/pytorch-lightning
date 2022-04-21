@@ -13,7 +13,7 @@ Here is a callback factory function that returns two special callbacks:
 .. code-block:: python
     :caption: factories.py
 
-    def my_callbacks_factory():
+    def my_custom_callbacks_factory():
         return [MyCallback1(), MyCallback2()]
 
 If we make this `factories.py` file into an installable package, we can define an **entry point** for this factory function.
