@@ -31,6 +31,7 @@ import yaml
 from packaging import version
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
+from jsonargparse import ParserError
 
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
@@ -1554,49 +1555,63 @@ def test_cli_logger_shorthand():
 def test_cli_auto_seeding():
 
     with mock.patch("sys.argv", ["any.py"]):
-        from jsonargparse import ParserError
-
         with pytest.raises(ParserError):
             cli = LightningCLI(
                 TestModel,
                 run=False,
-                seed_everything_default=int(np.iinfo(np.int32).max + 1),
+                seed_everything_default=int(np.iinfo(np.uint32).max + 1),
                 trainer_defaults={"logger": False},
                 parser_kwargs={"error_handler": None},
             )
             assert cli.seed_everything_default is False
 
     with mock.patch("sys.argv", ["any.py"]):
-        from jsonargparse import ParserError
-
         with pytest.raises(ParserError):
             cli = LightningCLI(
                 TestModel,
                 run=False,
-                seed_everything_default=int(np.iinfo(np.int32).min - 1),
+                seed_everything_default=int(np.iinfo(np.uint32).min - 1),
                 trainer_defaults={"logger": False},
                 parser_kwargs={"error_handler": None},
             )
-            assert cli.seed_everything_default is False
-
-    with mock.patch("sys.argv", ["any.py"]):
-        with pytest.warns(LightningDeprecationWarning):
-            cli = LightningCLI(TestModel, run=False, seed_everything_default=None, trainer_defaults={"logger": False})
             assert cli.seed_everything_default is False
 
     with mock.patch("sys.argv", ["any.py"]):
         cli = LightningCLI(TestModel, run=False, seed_everything_default=False, trainer_defaults={"logger": False})
         assert cli.seed_everything_default is False
-        assert cli.config["seed_everything"] is None
+        assert cli.config["seed_everything"] is False
 
     with mock.patch("sys.argv", ["any.py"]):
         cli = LightningCLI(TestModel, run=False, seed_everything_default=True, trainer_defaults={"logger": False})
+        assert cli.seed_everything_default is True
         assert isinstance(cli.config["seed_everything"], int)
 
     with mock.patch("sys.argv", ["any.py", "--seed_everything", "3"]):
         cli = LightningCLI(TestModel, run=False, seed_everything_default=False, trainer_defaults={"logger": False})
+        assert cli.seed_everything_default is False
         assert cli.config["seed_everything"] == 3
 
     with mock.patch("sys.argv", ["any.py", "--seed_everything", "3"]):
         cli = LightningCLI(TestModel, run=False, seed_everything_default=True, trainer_defaults={"logger": False})
+        assert cli.seed_everything_default is True
         assert cli.config["seed_everything"] == 3
+
+    with mock.patch("sys.argv", ["any.py", "--seed_everything", "3"]):
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=10, trainer_defaults={"logger": False})
+        assert cli.seed_everything_default is 10
+        assert cli.config["seed_everything"] == 3
+
+    with mock.patch("sys.argv", ["any.py", "--seed_everything", "false"]):
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=10, trainer_defaults={"logger": False})
+        assert cli.seed_everything_default is 10
+        assert cli.config["seed_everything"] is False
+
+    with mock.patch("sys.argv", ["any.py", "--seed_everything", "false"]):
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=True, trainer_defaults={"logger": False})
+        assert cli.seed_everything_default is True
+        assert cli.config["seed_everything"] is False
+
+    with mock.patch("sys.argv", ["any.py", "--seed_everything", "true"]):
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=False, trainer_defaults={"logger": False})
+        assert cli.seed_everything_default is False
+        assert isinstance(cli.config["seed_everything"], int)

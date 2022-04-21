@@ -13,10 +13,14 @@
 # limitations under the License.
 
 import pytest
+from unittest import mock
+
 
 import pytorch_lightning.loggers.base as logger_base
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
-
+from pytorch_lightning.utilities.cli import LightningCLI
+from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.datamodule import LightningDataModule
 
 def test_lightning_logger_base_deprecation_warning():
     class CustomDeprecatedLogger(logger_base.LightningLoggerBase):
@@ -78,3 +82,13 @@ def test_lightning_logger_base_merge_dicts_deprecation_warning():
         dflt_func = min
         agg_funcs = {"a": min, "v": max, "d": {"d1": sum}}
         logger_base.merge_dicts([d1, d2, d3], agg_funcs, dflt_func)
+
+
+def test_lightningCLI_seed_everything_default_to_None_deprecation_warning():
+
+    with mock.patch("sys.argv", ["any.py"]):
+        with pytest.deprecated_call(
+            match= "Setting `LightningCLI.seed_everything_default` to `None` is deprecated in v1.7 "
+                   "and will be removed in v1.9. Set it to `False` instead."
+        ):
+            LightningCLI(LightningModule, LightningDataModule, run=False, seed_everything_default=None)
