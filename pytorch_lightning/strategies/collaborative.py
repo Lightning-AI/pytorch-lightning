@@ -57,7 +57,7 @@ class CollaborativeStrategy(Strategy):
     ):
         """Provides capabilities to train using the Hivemind Library, training collaboratively across the internet
         with unreliable machines. `For more information: https://pytorch-
-        lightning.readthedocs.io/en/latest/advanced/collaborative_training.html`.
+        lightning.readthedocs.io/en/latest/strategies/collaborative_training.html`.
 
         Arguments:
 
@@ -281,6 +281,7 @@ class CollaborativeStrategy(Strategy):
         raise ValueError
 
     def model_to_device(self) -> None:
+        assert self.model is not None
         self.model.to(self.root_device)
 
     def setup(self, trainer: "pl.Trainer") -> None:
@@ -301,7 +302,7 @@ class CollaborativeStrategy(Strategy):
 
     def teardown(self) -> None:
         super().teardown()
-        if self.on_gpu:
+        if self.on_gpu and self.lightning_module is not None:
             # GPU teardown
             self.lightning_module.cpu()
             # clean up memory
@@ -497,7 +498,8 @@ class DHTManager:
         initial_peers = os.environ.get(self.INITIAL_PEERS_ENV, self.initial_peers)
         self.initial_peers = initial_peers.split(",") if isinstance(initial_peers, str) else initial_peers
 
-        self.port = os.environ.get(self.PORT_ENV, self.port)
+        port = os.environ.get(self.PORT_ENV, self.port)
+        self.port = int(port) if isinstance(port, str) else port
         self.host = os.environ.get(self.HOST_ENV, self.host)
 
     @property

@@ -244,7 +244,7 @@ Current Lightning Users
    Metrics <https://torchmetrics.readthedocs.io/en/stable/>
    Model <model/build_model.rst>
    Model Parallel <advanced/model_parallel>
-   Collaborative Training <advanced/collaborative_training>
+   Collaborative Training <strategies/collaborative_training>
    Plugins <extensions/plugins>
    Progress bar <common/progress_bar>
    Production <deploy/production_advanced>
