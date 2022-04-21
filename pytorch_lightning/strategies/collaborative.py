@@ -35,9 +35,9 @@ class CollaborativeStrategy(Strategy):
         run_id: str = "lightning_run",
         batch_size: Optional[int] = None,
         delay_state_averaging: bool = False,
-        delay_optimizer_step: bool = False,
+        delay_optimizer_step: Optional[bool] = None,
         delay_grad_averaging: bool = False,
-        offload_optimizer: bool = False,
+        offload_optimizer: Optional[bool] = None,
         reuse_grad_buffers: bool = False,
         scheduler_fn: Optional[Callable] = None,
         matchmaking_time: float = 5.0,
@@ -210,8 +210,8 @@ class CollaborativeStrategy(Strategy):
             assert self.lightning_module is not None
             # turn off zero_grad by Lightning
             if is_overridden("optimizer_zero_grad", self.lightning_module):
-                raise rank_zero_warn(
-                    "You have overridden `optimizer_zero_grad` which will be dangerous. "
+                rank_zero_warn(
+                    "You have overridden `optimizer_zero_grad` which will be disabled. "
                     "When CollaborativeStrategy(reuse_grad_buffers=True), "
                     "the optimizer cannot call zero grad, as this would "
                     "delete the gradients before they are averaged."

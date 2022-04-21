@@ -7,12 +7,14 @@ from unittest.mock import PropertyMock
 
 import pytest
 import torch
+from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
 from pytorch_lightning.strategies import CollaborativeStrategy
 from pytorch_lightning.strategies.collaborative import HiveMindScheduler
 from pytorch_lightning.utilities import _HIVEMIND_AVAILABLE
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -62,7 +64,7 @@ def test_initial_peer_message(caplog, endpoint, expected_message):
 
 @RunIf(hivemind=True)
 @mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
-def test_optimizer_wrapped_args_parsed(caplog):
+def test_optimizer_wrapped():
     class TestModel(BoringModel):
         def on_before_backward(self, loss: torch.Tensor) -> None:
             optimizer = self.trainer.optimizers[0]
@@ -75,7 +77,7 @@ def test_optimizer_wrapped_args_parsed(caplog):
 
 @RunIf(hivemind=True)
 @mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
-def test_scheduler_wrapped(caplog):
+def test_scheduler_wrapped():
     class TestModel(BoringModel):
         def on_before_backward(self, loss: torch.Tensor) -> None:
             scheduler = self.trainer.lr_scheduler_configs[0].scheduler
@@ -110,6 +112,7 @@ def test_scheduler_wrapped(caplog):
 @mock.patch("pytorch_lightning.strategies.collaborative.DHTManager._get_peers", autospec=True)
 @mock.patch("http.server.ThreadingHTTPServer", autospec=True)
 def test_env_variables_parsed(mock_dht, mock_peers, mock_server):
+    """Test that env variables are parsed correctly."""
     strategy = CollaborativeStrategy(target_batch_size=1)
     assert strategy.dht_manager.initial_peers == ["TEST_PEERS"]
     assert strategy.dht_manager.host == "TEST_HOST"
@@ -120,9 +123,76 @@ def test_env_variables_parsed(mock_dht, mock_peers, mock_server):
 
 @RunIf(hivemind=True)
 @mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
+def test_reuse_grad_buffers_warning():
+    """Test to ensure we warn when a user overrides `optimizer_zero_grad` and `reuse_grad_buffers` is True."""
+
+    class TestModel(BoringModel):
+        def on_before_backward(self, loss: torch.Tensor) -> None:
+            optimizer = self.trainer.optimizers[0]
+            assert isinstance(optimizer, hivemind.Optimizer)
+
+        def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
+            pass
+
+    model = TestModel()
+    trainer = pl.Trainer(
+        strategy=CollaborativeStrategy(target_batch_size=1, reuse_grad_buffers=True), fast_dev_run=True
+    )
+
+    with pytest.warns(UserWarning, match="You have overridden `optimizer_zero_grad` which will be disabled."):
+        trainer.fit(model)
+
+
+@RunIf(hivemind=True)
+@mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
+def test_raise_exception_multiple_optimizers():
+    """Test that we raise an exception when multiple optimizers are provided."""
+
+    class TestModel(BoringModel):
+        def configure_optimizers(self):
+            optimizer = torch.optim.SGD(self.layer.parameters(), lr=0.1)
+            lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
+            return [optimizer, optimizer], [lr_scheduler]
+
+    model = TestModel()
+    trainer = pl.Trainer(
+        strategy=CollaborativeStrategy(target_batch_size=1, reuse_grad_buffers=True), fast_dev_run=True
+    )
+
+    with pytest.raises(MisconfigurationException, match="Hivemind only supports training with one optimizer."):
+        trainer.fit(model)
+
+
+@RunIf(hivemind=True)
+@mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
+@pytest.mark.parametrize(
+    "delay_grad_averaging, delay_state_averaging, delay_optimizer_step",
+    [(True, True, True), (False, True, False)],
+)
+def test_warn_if_argument_passed(delay_grad_averaging, delay_state_averaging, delay_optimizer_step):
+    """Test ensures that valid combination of HiveMind delay arguments warn if scheduler isn't passed in as a
+    function."""
+    model = BoringModel()
+    trainer = pl.Trainer(
+        strategy=CollaborativeStrategy(
+            target_batch_size=1,
+            delay_grad_averaging=delay_grad_averaging,
+            delay_state_averaging=delay_state_averaging,
+            delay_optimizer_step=delay_optimizer_step,
+        ),
+        fast_dev_run=True,
+    )
+
+    with pytest.warns(UserWarning, match="requires a scheduler_fn to be passed to the strategy"):
+        trainer.fit(model)
+
+
+@RunIf(hivemind=True)
+@mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
 @mock.patch("http.server.ThreadingHTTPServer", autospec=True)
 @mock.patch("pytorch_lightning.strategies.collaborative.CollaborativeStrategy.num_peers", new_callable=PropertyMock)
 def test_args_passed_to_optimizer(mock_peers, mock_server):
+    """Test to ensure arguments are correctly passed to the hivemind optimizer wrapper."""
     mock_peers.return_value = 1
     compression = hivemind.ScaledFloat16Compression()
     with mock.patch("hivemind.Optimizer", wraps=hivemind.Optimizer) as mock_optimizer:
@@ -168,6 +238,7 @@ def test_args_passed_to_optimizer(mock_peers, mock_server):
     [(None, ["/ip4/0.0.0.0/tcp/0", "/ip4/0.0.0.0/udp/0/quic"]), (["/ip4/127.0.0.1/tcp/0"], ["/ip4/127.0.0.1/tcp/0"])],
 )
 def test_maddrs(host_maddrs, expected_maddrs):
+    """Test that the multiple addresses are correctly assigned."""
     strategy = CollaborativeStrategy(target_batch_size=1, host_maddrs=host_maddrs)
     assert strategy.dht.kwargs["host_maddrs"] == expected_maddrs
 
