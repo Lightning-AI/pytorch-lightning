@@ -13,7 +13,6 @@
 # limitations under the License.
 import os
 import shutil
-import sys
 from collections import ChainMap, OrderedDict
 from functools import partial
 from typing import Any, IO, Iterable, List, Optional, Sequence, Type, Union
@@ -385,13 +384,13 @@ class EvaluationLoop(DataLoaderLoop):
                 row_format = f"{{:^{max_length}}}" * len(table_headers)
                 half_term_size = int(term_size / 2)
 
-                bar_character = "-"
                 try:
-                    unicode_dash = "─"
-                    unicode_dash.encode(sys.stdout.encoding)
-                    bar_character = unicode_dash
+                    # some terminals do not support this character
+                    "─".encode(file.encoding)
                 except UnicodeEncodeError:
-                    pass
+                    bar_character = "-"
+                else:
+                    bar_character = "─"
                 bar = bar_character * term_size
 
                 lines = [bar, row_format.format(*table_headers).rstrip(), bar]
