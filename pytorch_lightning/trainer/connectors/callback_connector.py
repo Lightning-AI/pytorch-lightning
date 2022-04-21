@@ -253,7 +253,8 @@ class CallbackConnector:
             factories = iter_entry_points("pytorch_lightning.callbacks_factory")
 
         for factory in factories:
-            callbacks_list: List[Callback] = factory.load()()
+            callback_factory = factory.load()
+            callbacks_list: List[Callback] = callback_factory()
             if not isinstance(callbacks_list, list):
                 raise TypeError(
                     f"The entry point '{factory.name}' returned a {type(callbacks_list)} but is expected to return"
