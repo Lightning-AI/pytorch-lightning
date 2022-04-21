@@ -870,7 +870,7 @@ class LightningCLI:
         if isinstance(config_seed, bool) and config_seed:
             config_seed = _select_seed_randomly()
 
-        if config_seed is not False:
+        if config_seed is not None and config_seed is not False:
             seed_everything(config_seed, workers=True)
             self.config["seed_everything"] = config_seed
 
