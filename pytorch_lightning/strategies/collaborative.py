@@ -20,7 +20,7 @@ from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HIVEMIND_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import LRSchedulerTypeUnion
+from pytorch_lightning.utilities.types import _LRScheduler, ReduceLROnPlateau
 
 if _HIVEMIND_AVAILABLE:
     import hivemind
@@ -320,7 +320,7 @@ class HiveMindScheduler:
     This code ensures that we only step when the HiveMind optimizer reaches the global step.
     """
 
-    def __init__(self, optimizer: "hivemind.Optimizer", scheduler: LRSchedulerTypeUnion):
+    def __init__(self, optimizer: "hivemind.Optimizer", scheduler: Union[_LRScheduler, ReduceLROnPlateau]):
         # copy most of the `Scheduler` methods into this instance. `__del__` is skipped in case the scheduler has
         # implemented custom logic which we would not want to call on destruction of the `HiveMindScheduler`
         self.__dict__ = {k: v for k, v in scheduler.__dict__.items() if k not in ("step", "__del__")}
