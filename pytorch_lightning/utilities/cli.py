@@ -476,7 +476,7 @@ class LightningCLI:
         save_config_multifile: bool = False,
         trainer_class: Union[Type[Trainer], Callable[..., Trainer]] = Trainer,
         trainer_defaults: Optional[Dict[str, Any]] = None,
-        seed_everything_default: Optional[Union[bool, uint32]] = True,
+        seed_everything_default: Union[bool, uint32] = True,
         description: str = "pytorch-lightning trainer command line tool",
         env_prefix: str = "PL",
         env_parse: bool = False,
