@@ -31,8 +31,8 @@ Training on unreliable mixed GPUs across the internet
    :tag: intermediate
 
 .. displayitem::
-   :header: 3: Save up to 80% on cloud costs with fault-tolerant training
-   :description: Run on the cloud for 1/10th the price with fault-tolerant training.
+   :header: 3: Optimize Memory and Communication using compression hooks
+   :description: Enable gradient buffer optimizations and communication improvements to reduce bottlenecks in communication.
    :col_css: col-md-4
    :button_link: collaborative_training_expert.html
    :height: 200
@@ -43,5 +43,3 @@ Training on unreliable mixed GPUs across the internet
 
         </div>
     </div>
-
-----
