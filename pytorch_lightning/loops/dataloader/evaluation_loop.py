@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import sys
 import shutil
-import torch
+import sys
 from collections import ChainMap, OrderedDict
-from deprecate.utils import void
 from functools import partial
-from torch.utils.data.dataloader import DataLoader
 from typing import Any, IO, Iterable, List, Optional, Sequence, Type, Union
+
+import torch
+from deprecate.utils import void
+from torch.utils.data.dataloader import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import GPUAccelerator
@@ -390,7 +391,7 @@ class EvaluationLoop(DataLoaderLoop):
 
                 try:
                     # some terminals do not support this character
-                    if hasattr(file, 'encoding') and file.encoding is not None:
+                    if hasattr(file, "encoding") and file.encoding is not None:
                         "─".encode(file.encoding)
                 except UnicodeEncodeError:
                     bar_character = "-"

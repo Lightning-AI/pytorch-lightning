@@ -870,15 +870,12 @@ def test_native_print_results(monkeypatch, inputs, expected):
     assert out.getvalue().replace(os.linesep, "\n") == expected.lstrip()
 
 
-
 inputs0 = ([{"log": torch.tensor(5)}, {"no_log": torch.tensor(6)}], RunningStage.TESTING)
+
 
 @pytest.mark.parametrize(
     ["inputs", "encoding"],
-    [
-        pytest.param(inputs0, 'latin-1', id="case0"),
-        pytest.param(inputs0, 'utf-8', id="case1")
-    ],
+    [pytest.param(inputs0, "latin-1", id="case0"), pytest.param(inputs0, "utf-8", id="case1")],
 )
 def test_native_print_results_encodings(monkeypatch, inputs, encoding):
     import pytorch_lightning.loops.dataloader.evaluation_loop as imports
@@ -891,9 +888,8 @@ def test_native_print_results_encodings(monkeypatch, inputs, encoding):
     # Attempt to encode everything the file is told to write with the given encoding
     for call in out.method_calls:
         name, args, kwargs = call
-        if name == 'write':
+        if name == "write":
             args[0].encode(encoding)
-
 
 
 expected0 = """
