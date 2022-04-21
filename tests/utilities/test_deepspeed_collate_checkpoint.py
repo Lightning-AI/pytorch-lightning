@@ -33,6 +33,8 @@ def test_deepspeed_collate_checkpoint(tmpdir):
         devices=2,
         fast_dev_run=True,
         precision=16,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
     checkpoint_path = os.path.join(tmpdir, "model.pt")
