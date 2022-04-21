@@ -394,7 +394,8 @@ class Trainer(
             val_check_interval: How often to check the validation set. Pass a ``float`` in the range [0.0, 1.0] to check
                 after a fraction of the training epoch. Pass an ``int`` to check after a fixed number of training
                 batches. An ``int`` value can only be higher than the number of training batches when
-                ``check_val_every_n_epoch=None``.
+                ``check_val_every_n_epoch=None``, which validates after every ``N`` training batches across complete
+                training.
                 Default: ``1.0``.
 
             enable_model_summary: Whether to enable model summarization by default.
