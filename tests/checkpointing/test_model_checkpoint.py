@@ -1184,6 +1184,25 @@ def test_check_val_every_n_epochs_top_k_integration(tmpdir):
     assert set(os.listdir(tmpdir)) == {"epoch=1.ckpt", "epoch=3.ckpt"}
 
 
+def test_model_checkpoint_load_last(tmpdir):
+    model = BoringModel()
+    mc = ModelCheckpoint(dirpath=tmpdir, save_last=True, every_n_train_steps=2)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=5,
+        callbacks=mc,
+        enable_model_summary=False,
+        logger=False,
+        enable_checkpointing=True,
+    )
+
+    trainer.fit(model)
+    trainer.test(ckpt_path="last")
+    assert trainer._ckpt_path == os.path.join(tmpdir, "last.ckpt")
+
+
 def test_model_checkpoint_saveload_ckpt(tmpdir):
     def make_assertions(cb_restore, written_ckpt):
         expected_keys = {

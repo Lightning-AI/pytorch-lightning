@@ -1449,10 +1449,10 @@ class Trainer(
             ckpt_path = self.checkpoint_callback.best_model_path
 
         if ckpt_path == "last":
-            candidates = [ft.ckpt_path for ft in ft_checkpoints if ft.ckpt_path] + [
-                cb.last_model_path for cb in self.checkpoint_callbacks if cb.last_model_path
+            candidates = [ft.ckpt_path for ft in ft_checkpoints] + [
+                cb.last_model_path for cb in self.checkpoint_callbacks
             ]
-            candidates_fs = {path: get_filesystem(path) for path in candidates}
+            candidates_fs = {path: get_filesystem(path) for path in candidates if path}
             candidates_ts = {path: fs.modified(path) for path, fs in candidates_fs.items() if fs.exists(path)}
             if not candidates_ts:
                 rank_zero_warn(
