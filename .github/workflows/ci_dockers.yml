@@ -91,6 +91,7 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
+            CUDA_VERSION=${{ matrix.cuda_version }}
           file: dockers/base-cuda/Dockerfile
           push: false
         timeout-minutes: 75
