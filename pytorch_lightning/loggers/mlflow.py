@@ -153,37 +153,39 @@ class MLFlowLogger(Logger):
             self.logger.experiment.some_mlflow_function()
 
         """
+        try:
+            if self._initialized:
+                return self._mlflow_client
 
-        if self._initialized:
-            return self._mlflow_client
+            if self._run_id is not None:
+                run = self._mlflow_client.get_run(self._run_id)
+                self._experiment_id = run.info.experiment_id
+                self._initialized = True
+                return self._mlflow_client
 
-        if self._run_id is not None:
-            run = self._mlflow_client.get_run(self._run_id)
-            self._experiment_id = run.info.experiment_id
-            self._initialized = True
-            return self._mlflow_client
-
-        if self._experiment_id is None:
-            expt = self._mlflow_client.get_experiment_by_name(self._experiment_name)
-            if expt is not None:
-                self._experiment_id = expt.experiment_id
-            else:
-                log.warning(f"Experiment with name {self._experiment_name} not found. Creating it.")
-                self._experiment_id = self._mlflow_client.create_experiment(
-                    name=self._experiment_name, artifact_location=self._artifact_location
-                )
-
-        if self._run_id is None:
-            if self._run_name is not None:
-                self.tags = self.tags or {}
-                if MLFLOW_RUN_NAME in self.tags:
-                    log.warning(
-                        f"The tag {MLFLOW_RUN_NAME} is found in tags. The value will be overridden by {self._run_name}."
+            if self._experiment_id is None:
+                expt = self._mlflow_client.get_experiment_by_name(self._experiment_name)
+                if expt is not None:
+                    self._experiment_id = expt.experiment_id
+                else:
+                    log.warning(f"Experiment with name {self._experiment_name} not found. Creating it.")
+                    self._experiment_id = self._mlflow_client.create_experiment(
+                        name=self._experiment_name, artifact_location=self._artifact_location
                     )
-                self.tags[MLFLOW_RUN_NAME] = self._run_name
-            run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=resolve_tags(self.tags))
-            self._run_id = run.info.run_id
-        self._initialized = True
+
+            if self._run_id is None:
+                if self._run_name is not None:
+                    self.tags = self.tags or {}
+                    if MLFLOW_RUN_NAME in self.tags:
+                        log.warning(
+                            f"The tag {MLFLOW_RUN_NAME} is found in tags. The value will be overridden by {self._run_name}."
+                        )
+                    self.tags[MLFLOW_RUN_NAME] = self._run_name
+                run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=resolve_tags(self.tags))
+                self._run_id = run.info.run_id
+            self._initialized = True
+        except Exception as e:
+            print(f"Exception occured in MLFlowLogger.experiment, exception was generated from {e.__class__.__name__}")
         return self._mlflow_client
 
     @property
@@ -221,33 +223,39 @@ class MLFlowLogger(Logger):
 
     @rank_zero_only
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-        assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
+        try:
+            assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
-        metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
+            metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
-        timestamp_ms = int(time() * 1000)
-        for k, v in metrics.items():
-            if isinstance(v, str):
-                log.warning(f"Discarding metric with string value {k}={v}.")
-                continue
+            timestamp_ms = int(time() * 1000)
+            for k, v in metrics.items():
+                if isinstance(v, str):
+                    log.warning(f"Discarding metric with string value {k}={v}.")
+                    continue
 
-            new_k = re.sub("[^a-zA-Z0-9_/. -]+", "", k)
-            if k != new_k:
-                rank_zero_warn(
-                    "MLFlow only allows '_', '/', '.' and ' ' special characters in metric name."
-                    f" Replacing {k} with {new_k}.",
-                    category=RuntimeWarning,
-                )
-                k = new_k
+                new_k = re.sub("[^a-zA-Z0-9_/. -]+", "", k)
+                if k != new_k:
+                    rank_zero_warn(
+                        "MLFlow only allows '_', '/', '.' and ' ' special characters in metric name."
+                        f" Replacing {k} with {new_k}.",
+                        category=RuntimeWarning,
+                    )
+                    k = new_k
 
-            self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
+                self.experiment.log_metric(self.run_id, k, v, timestamp_ms, step)
+        except Exception as e:
+            print(f"Exception occured in MLFlowLogger.log_metrics, exception was generated from {e.__class__.__name__}")
 
     @rank_zero_only
     def finalize(self, status: str = "FINISHED") -> None:
-        super().finalize(status)
-        status = "FINISHED" if status == "success" else status
-        if self.experiment.get_run(self.run_id):
-            self.experiment.set_terminated(self.run_id, status)
+        try:
+            super().finalize(status)
+            status = "FINISHED" if status == "success" else status
+            if self.experiment.get_run(self.run_id):
+                self.experiment.set_terminated(self.run_id, status)
+        except Exception as e:
+            print(f"Exception occured in MLFlowLogger.finalize, exception was generated from {e.__class__.__name__}")
 
     @property
     def save_dir(self) -> Optional[str]:
