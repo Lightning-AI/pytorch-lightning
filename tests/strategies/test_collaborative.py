@@ -113,7 +113,7 @@ def test_env_variables_parsed(mock_dht, mock_peers, mock_server):
     strategy = CollaborativeStrategy(target_batch_size=1)
     assert strategy.dht_manager.initial_peers == ["TEST_PEERS"]
     assert strategy.dht_manager.host == "TEST_HOST"
-    assert strategy.dht_manager.port == "1300"
+    assert strategy.dht_manager.port == 1300
     assert strategy.dht_manager.endpoint
     assert strategy.dht_manager.peer_endpoint == "TEST_PEER_ENDPOINT"
 
