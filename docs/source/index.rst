@@ -201,6 +201,7 @@ Current Lightning Users
    Finetune a model <advanced/transfer_learning>
    Manage experiments <visualize/logging_intermediate>
    clouds/cluster
+   Training over the internet <strategies/collaborative_training>
    advanced/model_parallel
    clouds/cloud_training
    Save and load model progress <common/checkpointing_basic>
