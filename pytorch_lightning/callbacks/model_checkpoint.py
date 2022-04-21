@@ -517,9 +517,12 @@ class ModelCheckpoint(Callback):
                 if auto_insert_metric_name:
                     filename = filename.replace(group, name + "={" + name)
 
+                # support for dots: https://stackoverflow.com/a/7934969
+                filename = filename.replace(group, f"{{0[{name}]")
+
                 if name not in metrics:
                     metrics[name] = 0
-            filename = filename.format(**metrics)
+            filename = filename.format(metrics)
 
         if prefix:
             filename = cls.CHECKPOINT_JOIN_CHAR.join([prefix, filename])
