@@ -14,6 +14,7 @@ Compress Gradients & State
 Hivemind allows you to compress gradients and state before sending to other machines. This helps reduce the communication overhead substantially when training across the internet.
 
 Below we enable Float16 compression, which compresses gradients and state to Float16 before sending to other machines.
+
 .. code-block:: python
 
     import pytorch_lightning as pl
@@ -53,6 +54,7 @@ Size Adaptive Compression has been used in a variety of Hivemind applications an
             state_averaging_compression=compression,
         ),
     )
+
 
 PowerSGD
 """"""""
