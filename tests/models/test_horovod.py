@@ -168,7 +168,7 @@ def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
     _run_horovod(trainer_options)
 
 
-@RunIf(horovod=True, skip_windows=True)
+@RunIf(horovod=True, skip_windows=True, min_gpus=2)
 def test_horovod_raises_unsupported_accumulate_grad_batches(tmpdir):
     """Ensure MisConfigurationException for different `accumulate_grad_batches` at different epochs for Horovod
     Strategy on multi-gpus."""
@@ -178,7 +178,7 @@ def test_horovod_raises_unsupported_accumulate_grad_batches(tmpdir):
         enable_progress_bar=False,
         accumulate_grad_batches={0: 4, 2: 2},
         accelerator="auto",
-        devices=1,
+        devices=2,
         strategy="horovod",
     )
     with pytest.raises(MisconfigurationException, match="Horovod.*does not support.*accumulate_grad_batches"):
@@ -262,7 +262,7 @@ def test_horovod_gather(tmpdir):
     _run_horovod(trainer_options)
 
 
-@RunIf(min_gpus=1, skip_windows=True, horovod=True, horovod_nccl=True)
+@RunIf(min_gpus=2, skip_windows=True, horovod=True, horovod_nccl=True)
 def test_horovod_transfer_batch_to_gpu(tmpdir):
     class TestTrainingStepModel(BoringModel):
         def training_step(self, batch, *args, **kwargs):
@@ -282,7 +282,7 @@ def test_horovod_transfer_batch_to_gpu(tmpdir):
         limit_train_batches=0.4,
         limit_val_batches=0.2,
         accelerator="gpu",
-        devices=1,
+        devices=2,
         strategy="horovod",
     )
     tpipes.run_model_test_without_loggers(trainer_options, model)
