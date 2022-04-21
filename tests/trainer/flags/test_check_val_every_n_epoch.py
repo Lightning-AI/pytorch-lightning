@@ -76,8 +76,6 @@ def test_check_val_every_n_epoch_with_max_steps(tmpdir):
 
     trainer.fit(model)
 
-    # with a data length of 10, validation every 5 epochs, and max_steps=90, we should
-    # validate once
     assert trainer.current_epoch == max_epochs
     assert trainer.global_step == max_epochs * data_samples_train
     assert list(model.validation_called_at_step) == [data_samples_train * check_val_every_n_epoch]

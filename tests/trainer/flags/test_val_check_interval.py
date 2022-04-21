@@ -99,9 +99,6 @@ def test_validation_check_interval_exceed_data_length_correct(tmpdir, use_infini
 
     assert trainer.current_epoch == 1 if use_infinite_dataset else max_epochs
     assert trainer.global_step == max_steps
-
-    # with a data length of 10 (or infinite), a val_check_interval of 15, and max_steps=30,
-    # we should have validated twice
     assert sorted(list(model.validation_called_at_step)) == [3, 6, 9, 12]
 
 
@@ -117,7 +114,7 @@ def test_validation_check_interval_exceed_data_length_wrong():
 
 
 def test_val_check_interval_float_with_none_check_val_every_n_epoch():
-    """Test that an exception is raised with `val_check_interval` is set to float with
+    """Test that an exception is raised when `val_check_interval` is set to float with
     `check_val_every_n_epoch=None`"""
     with pytest.raises(
         MisconfigurationException, match="`val_check_interval` should be an integer when `check_val_every_n_epoch=None`"
