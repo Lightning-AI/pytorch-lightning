@@ -54,7 +54,6 @@ from pytorch_lightning.utilities.cli import (
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
-from pytorch_lightning.utilities.rank_zero import LightningDeprecationWarning
 from tests.helpers import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import no_warning_call

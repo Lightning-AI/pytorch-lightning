@@ -15,7 +15,6 @@
 
 import inspect
 import os
-import random
 import sys
 from functools import partial, update_wrapper
 from types import MethodType, ModuleType
@@ -41,7 +40,7 @@ from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTu
 if _JSONARGPARSE_AVAILABLE:
     from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, Namespace, set_config_read_mode
     from jsonargparse.optionals import import_docstring_parse
-    from jsonargparse.typing import register_type, restricted_number_type
+    from jsonargparse.typing import restricted_number_type
 
     uint32 = restricted_number_type("uint32", int, [(">=", np.iinfo(np.uint32).min), ("<=", np.iinfo(np.uint32).max)])
 
