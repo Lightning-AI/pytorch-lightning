@@ -82,7 +82,7 @@ def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[i
         MisconfigurationException:
             If no GPUs are available but the value of gpus variable indicates request for GPUs
     """
-    # Check that gpus param is None, Int, String or List
+    # Check that gpus param is None, Int, String or Sequence of Ints
     _check_data_type(gpus)
 
     # Handle the case when no gpus are requested
@@ -227,8 +227,7 @@ def _check_unique(device_ids: List[int]) -> None:
 
 
 def _check_data_type(device_ids: Any) -> None:
-    """Checks that the device_ids argument is one of: None, Int, String or List. Raises a MisconfigurationException
-    otherwise.
+    """Checks that the device_ids argument is one of None, int, string, or sequence of integers.
 
     Args:
         device_ids: gpus/tpu_cores parameter as passed to the Trainer
@@ -237,10 +236,16 @@ def _check_data_type(device_ids: Any) -> None:
         MisconfigurationException:
             If ``device_ids`` of GPU/TPUs aren't ``int``, ``str``, sequence of ``int`` or ``None``
     """
-    if device_ids is not None and (
-        not isinstance(device_ids, (int, str, MutableSequence, tuple)) or isinstance(device_ids, bool)
-    ):
-        raise MisconfigurationException("Device ID's (GPU/TPU) must be int, string or sequence of ints or None.")
+    msg = "Device IDs (GPU/TPU) must be an int, a string, a sequence of ints or None, but you passed"
+
+    if device_ids is None:
+        return
+    elif isinstance(device_ids, (MutableSequence, tuple)):
+        for id_ in device_ids:
+            if type(id_) is not int:
+                raise MisconfigurationException(f"{msg} a sequence of {type(id_).__name__}.")
+    elif type(device_ids) not in (int, str):
+        raise MisconfigurationException(f"{msg} {type(device_ids).__name__}.")
 
 
 def _tpu_cores_valid(tpu_cores: Any) -> bool:

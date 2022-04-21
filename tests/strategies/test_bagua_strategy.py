@@ -55,6 +55,8 @@ def test_async_algorithm(tmpdir):
         strategy=bagua_strategy,
         accelerator="gpu",
         devices=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
