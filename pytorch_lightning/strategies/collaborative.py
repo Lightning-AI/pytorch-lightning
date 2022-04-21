@@ -62,37 +62,38 @@ class CollaborativeStrategy(Strategy):
         Arguments:
 
             target_batch_size: When training, the batch size to accumulate to before running a step. The larger this
-            batch size, the more work can be done asynchronously without communication.
+                batch size, the more work can be done asynchronously without communication.
 
             run_id: A unique identifier of this training run, used as a common prefix for all DHT keys.
-            batch_size: The local batch size per process. If not provided, we infer this from the first batch of data
-            passed in at training.
+                batch_size: The local batch size per process. If not provided,
+                we infer this from the first batch of data passed in at training.
 
             delay_state_averaging: If enabled (default), average parameters and extra tensors in a background thread;
-            if set to False, average parameters synchronously within the corresponding hivemind.Optimizer.step call.
+                if set to False, average parameters synchronously within the corresponding hivemind.Optimizer.step call.
 
             delay_optimizer_step: Run optimizer in background, apply results in future .step.
-            requires `offload_optimizer`.
+                requires `offload_optimizer`.
 
             delay_grad_averaging: Average gradients in background; requires offload_optimizer and delay_optimizer_step.
 
             offload_optimizer: offload the optimizer to host memory, saving GPU memory for parameters and gradients.
 
             reuse_grad_buffers: Use model's .grad buffers for gradient accumulation.
-              This is more memory efficient, but it requires that we do not call `zero_grad` in the `LightningModule`.
+                This is more memory efficient, but it requires that we do not call `zero_grad` in the `LightningModule`.
 
             scheduler_fn: callable(optimizer) -> PyTorch LRScheduler or a pre-initialized PyTorch scheduler.
-            When using `offload_optimizer`/`delay_optimizer_step`/`delay_state_averaging` a scheduler_fn is required
-            instead of passing a scheduler to the `pl.LightningModule`. This is because the optimizer is re-created
-            and the scheduler needs to be re-created as well.
+                When using `offload_optimizer`/`delay_optimizer_step`/`delay_state_averaging` a scheduler_fn is required
+                instead of passing a scheduler to the `pl.LightningModule`. This is because the optimizer is re-created
+                and the scheduler needs to be re-created as well.
 
             matchmaking_time: When looking for group, wait for peers to join for up to this many seconds.
-            Increase if you see "averaged gradients with N peers" where N is below 0.9x on >=25% of epochs.
-            Training with low-latency network, decreasing matchmaking_time allows training with smaller batch sizes.
+                Increase if you see "averaged gradients with N peers" where N is below 0.9x on >=25% of epochs.
+                Training with low-latency network, decreasing matchmaking_time allows training with smaller batch sizes.
 
             averaging_timeout: If an averaging step hangs for this long, it will be cancelled automatically.
-            Increase averaging_timeout if you see "Proceeding with local gradients" at least 25% of the time.
-            Do not set this timeout too high, as it may cause your optimizer to hang after some types of network errors.
+                Increase averaging_timeout if you see "Proceeding with local gradients" at least 25% of the time.
+                Do not set this timeout too high, as it may cause your optimizer to hang
+                after some types of network errors.
 
             allreduce_timeout: Timeout for a single attempt to run all-reduce.
 
@@ -101,25 +102,25 @@ class CollaborativeStrategy(Strategy):
             averager_opts: Additional keyword arguments forwarded to both GradientAverager and TrainingStateAverager.
 
             host_maddrs: List of multi-addrs to create visible peers for other processes.
-            https://learning-at-home.readthedocs.io/en/latest/user/dht.html#running-across-the-internet
+                https://learning-at-home.readthedocs.io/en/latest/user/dht.html#running-across-the-internet
 
             initial_peers: If connecting to a running process, a list of initial peers needs to be passed in.
-            This can also be set via the env variable `INITIAL_PEERS`.
+                This can also be set via the env variable `INITIAL_PEERS`.
 
             endpoint: Enable if a side-car endpoint server is required on the process to server initial peers.
-            This is useful when using some form of orchestration such as torchelastic.
+                This is useful when using some form of orchestration such as torchelastic.
 
             peer_endpoint: The endpoint to request initial peers from.
 
             persistent: When using an endpoint, this controls whether other processes that are not the endpoint
-            server log/checkpoint. If `persistent` is True, we do not log/checkpoint from other processes.
+                server log/checkpoint. If `persistent` is True, we do not log/checkpoint from other processes.
 
             host: When creating the endpoint, the host IP to use.
 
             port: When creating the endpoint, the host port to use.
 
             retry_initial_peers: When connecting to the `peer_endpoint`, how many time to retry before raising
-            an exception.
+                an exception.
 
             retry_peer_sleep_duration: When connecting to the `peer_endpoint`, how long to wait between retries.
 
