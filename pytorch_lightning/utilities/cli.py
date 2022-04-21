@@ -36,11 +36,14 @@ from pytorch_lightning.utilities.meta import get_all_subclasses
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple, LRSchedulerTypeUnion
+from pytorch_lightning.utilities.seed import _select_seed_randomly
 
 if _JSONARGPARSE_AVAILABLE:
     from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, Namespace, set_config_read_mode
     from jsonargparse.optionals import import_docstring_parse
-    from jsonargparse.typing import restricted_number_type
+    from jsonargparse.typing import restricted_number_type, register_type
+
+    uint32 = restricted_number_type("uint32", int, [(">=", np.iinfo(np.uint32).min), ("<=", np.iinfo(np.uint32).max)])
 
     set_config_read_mode(fsspec_enabled=True)
 else:
@@ -473,7 +476,7 @@ class LightningCLI:
         save_config_multifile: bool = False,
         trainer_class: Union[Type[Trainer], Callable[..., Trainer]] = Trainer,
         trainer_defaults: Optional[Dict[str, Any]] = None,
-        seed_everything_default: Optional[Union[bool, int]] = True,
+        seed_everything_default: Optional[Union[bool, uint32]] = True,
         description: str = "pytorch-lightning trainer command line tool",
         env_prefix: str = "PL",
         env_parse: bool = False,
@@ -513,7 +516,7 @@ class LightningCLI:
                 :ref:`the CLI docs <lightning-cli>`.
             seed_everything_default: Value for the :func:`~pytorch_lightning.utilities.seed.seed_everything`
                 seed argument. Set to True to automatically choose a valid seed.
-                Set to False if you want to set your seeds manually.
+                Setting it to False will not call seed_everything.
             description: Description of the tool shown when running ``--help``.
             env_prefix: Prefix for environment variables.
             env_parse: Whether environment variable parsing is enabled.
@@ -601,22 +604,10 @@ class LightningCLI:
     def add_default_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         """Adds default arguments to the parser."""
 
-        min_value = np.iinfo(np.int32).min
-        max_value = np.iinfo(np.int32).max
-        int32 = restricted_number_type("int32", int, [(">=", min_value), ("<=", max_value)])
-
-        if isinstance(self.seed_everything_default, bool):
-            if self.seed_everything_default:
-                seed = random.randint(min_value, max_value)
-            else:
-                seed = None
-        else:
-            seed = self.seed_everything_default
-
         parser.add_argument(
             "--seed_everything",
-            type=Optional[int32],
-            default=seed,
+            type=Union[bool, uint32],
+            default=self.seed_everything_default,
             help="Set to an int to run seed_everything with this value before classes instantiation.",
         )
 
@@ -876,8 +867,14 @@ class LightningCLI:
 
         config_seed = self._get(self.config, "seed_everything")
 
-        if config_seed is not None:
+        if isinstance(config_seed, bool):
+            if config_seed:
+                config_seed = _select_seed_randomly()
+
+        if config_seed is not False:
             seed_everything(config_seed, workers=True)
+            self.config["seed_everything"] = config_seed
+
 
 
 def _class_path_from_class(class_type: Type) -> str:
