@@ -54,19 +54,13 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     name: str = ...
 
-    def __init__(self, val_transforms=None, test_transforms=None):
+    def __init__(self, val_transforms=None):
         super().__init__()
         if val_transforms is not None:
             rank_zero_deprecation(
                 "DataModule property `val_transforms` was deprecated in v1.5 and will be removed in v1.7."
             )
-        if test_transforms is not None:
-            rank_zero_deprecation(
-                "DataModule property `test_transforms` was deprecated in v1.5 and will be removed in v1.7."
-            )
         self._val_transforms = val_transforms
-        self._test_transforms = test_transforms
-
         # Pointer to the trainer object
         self.trainer = None
 
@@ -88,25 +82,6 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
             "DataModule property `val_transforms` was deprecated in v1.5 and will be removed in v1.7."
         )
         self._val_transforms = t
-
-    @property
-    def test_transforms(self):
-        """Optional transforms (or collection of transforms) you can apply to test dataset.
-
-        .. deprecated:: v1.5     Will be removed in v1.7.0.
-        """
-
-        rank_zero_deprecation(
-            "DataModule property `test_transforms` was deprecated in v1.5 and will be removed in v1.7."
-        )
-        return self._test_transforms
-
-    @test_transforms.setter
-    def test_transforms(self, t):
-        rank_zero_deprecation(
-            "DataModule property `test_transforms` was deprecated in v1.5 and will be removed in v1.7."
-        )
-        self._test_transforms = t
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs) -> ArgumentParser:
