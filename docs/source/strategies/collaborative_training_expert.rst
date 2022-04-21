@@ -17,9 +17,10 @@ Below we enable Float16 compression, which compresses gradients and state to Flo
 
 .. code-block:: python
 
+    from hivemind import Float16Compression
+
     import pytorch_lightning as pl
     from pytorch_lightning.strategies import CollaborativeStrategy
-    from hivemind import Float16Compression
 
 
     trainer = pl.Trainer(
@@ -37,9 +38,10 @@ Size Adaptive Compression has been used in a variety of Hivemind applications an
 
 .. code-block:: python
 
+    from hivemind import Float16Compression, Uniform8BitQuantization
+
     import pytorch_lightning as pl
     from pytorch_lightning.strategies import CollaborativeStrategy
-    from hivemind import Float16Compression, SizeAdaptiveCompression, Uniform8BitQuantization
 
 
     # compresses values above threshold with 8bit Quantization, lower with Float16
