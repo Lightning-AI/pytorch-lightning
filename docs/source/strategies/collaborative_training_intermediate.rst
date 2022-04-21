@@ -1,3 +1,5 @@
+:orphan:
+
 .. _collaborative_training_intermediate:
 
 Training on unreliable mixed GPUs across the internet (Intermediate)
