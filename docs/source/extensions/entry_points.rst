@@ -4,7 +4,7 @@ Entry Points
 
 Lightning supports registering Trainer callbacks directly through
 `Entry Points <https://setuptools.pypa.io/en/latest/userguide/entry_point.html>`_. Entry points allow an arbitrary
-package to *install* callbacks that the Lightning Trainer can automatically use, without you having to add them
+package to include callbacks that the Lightning Trainer can automatically use, without you having to add them
 to the Trainer manually. This is useful in production environments where it is common to provide specialized monitoring
 and logging callbacks globally for every application.
 
