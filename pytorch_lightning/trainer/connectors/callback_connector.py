@@ -247,9 +247,11 @@ class CallbackConnector:
         """
         if _PYTHON_GREATER_EQUAL_3_8_0:
             import importlib.metadata
+
             factories = importlib.metadata.entry_points().get("pytorch_lightning.callbacks_factory", ())
         else:
             from pkg_resources import iter_entry_points
+
             factories = iter_entry_points("pytorch_lightning.callbacks_factory")
 
         for factory in factories:
