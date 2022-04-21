@@ -6,7 +6,7 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from pytorch_lightning.loggers.base import DummyLogger
+from pytorch_lightning.loggers.logger import DummyLogger
 from tests.helpers import BoringModel
 
 

@@ -87,8 +87,7 @@ class ModelCheckpoint(Callback):
         save_last: When ``True``, saves an exact copy of the checkpoint to a file `last.ckpt` whenever a checkpoint
             file gets saved. This allows accessing the latest checkpoint in a deterministic manner. Default: ``None``.
         save_top_k: if ``save_top_k == k``,
-            the best k models according to
-            the quantity monitored will be saved.
+            the best k models according to the quantity monitored will be saved.
             if ``save_top_k == 0``, no models are saved.
             if ``save_top_k == -1``, all models are saved.
             Please note that the monitors are checked every ``every_n_epochs`` epochs.
@@ -103,6 +102,7 @@ class ModelCheckpoint(Callback):
             For example, ``filename='checkpoint_{epoch:02d}-{acc:02.0f}`` with epoch ``1`` and acc ``1.12`` will resolve
             to ``checkpoint_epoch=01-acc=01.ckpt``. Is useful to set it to ``False`` when metric names contain ``/``
             as this will result in extra folders.
+            For example, ``filename='epoch={epoch}-step={step}-val_acc={val/acc:.2f}', auto_insert_metric_name=False``
         save_weights_only: if ``True``, then only the model's weights will be
             saved. Otherwise, the optimizer states, lr-scheduler states, etc are added in the checkpoint too.
         every_n_train_steps: Number of training steps between checkpoints.
@@ -196,7 +196,7 @@ class ModelCheckpoint(Callback):
 
         *monitor, mode, every_n_train_steps, every_n_epochs, train_time_interval, save_on_train_epoch_end*
 
-        Read more: :ref:`Persisting Callback State`
+        Read more: :ref:`Persisting Callback State <extensions/callbacks_state:save callback state>`
     """
 
     CHECKPOINT_JOIN_CHAR = "-"
@@ -567,26 +567,26 @@ class ModelCheckpoint(Callback):
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
     def __resolve_ckpt_dir(self, trainer: "pl.Trainer") -> None:
-        """Determines model checkpoint save directory at runtime. References attributes from the trainer's logger
-        to determine where to save checkpoints. The base path for saving weights is set in this priority:
+        """Determines model checkpoint save directory at runtime. Reference attributes from the trainer's logger to
+        determine where to save checkpoints. The path for saving weights is set in this priority:
 
-        1.  Checkpoint callback's path (if passed in)
-        2.  The default_root_dir from trainer if trainer has no logger
-        3.  The weights_save_path from trainer, if user provides it (deprecated)
-        4.  User provided weights_saved_path
+        1.  The ``ModelCheckpoint``'s ``dirpath`` if passed in
+        2.  The ``Trainer``'s ``weights_saved_path`` if passed in (deprecated)
+        3.  The ``Logger``'s ``log_dir`` if the trainer has loggers
+        4.  The ``Trainer``'s ``default_root_dir`` if the trainer has no loggers
 
-        The base path gets extended with logger name and version (if these are available)
-        and subfolder "checkpoints".
+        The path gets extended with subdirectory "checkpoints".
         """
         if self.dirpath is not None:
-            return  # short circuit
+            # short circuit if dirpath was passed to ModelCheckpoint
+            return
 
         # TODO: Remove weights_save_path logic here in v1.8
-        if trainer.loggers:
-            if trainer._weights_save_path_internal != trainer.default_root_dir:
-                # the user has changed weights_save_path, it overrides anything
-                save_dir = trainer._weights_save_path_internal
-            elif len(trainer.loggers) == 1:
+        if trainer._weights_save_path_internal != trainer.default_root_dir:
+            # the user has changed weights_save_path
+            ckpt_path = os.path.join(trainer._weights_save_path_internal, "checkpoints")
+        elif trainer.loggers:
+            if len(trainer.loggers) == 1:
                 save_dir = trainer.logger.save_dir or trainer.default_root_dir
             else:
                 save_dir = trainer.default_root_dir
@@ -597,7 +597,8 @@ class ModelCheckpoint(Callback):
 
             ckpt_path = os.path.join(save_dir, str(name), version, "checkpoints")
         else:
-            ckpt_path = os.path.join(trainer._weights_save_path_internal, "checkpoints")
+            # if no loggers, use default_root_dir
+            ckpt_path = os.path.join(trainer.default_root_dir, "checkpoints")
 
         ckpt_path = trainer.strategy.broadcast(ckpt_path)
 

@@ -54,7 +54,7 @@ def _module_available(module_path: str) -> bool:
         return False
     try:
         importlib.import_module(module_path)
-    except ModuleNotFoundError:
+    except ImportError:
         return False
     return True
 
@@ -64,10 +64,12 @@ def _compare_version(package: str, op: Callable, version: str, use_base_version:
 
     >>> _compare_version("torch", operator.ge, "0.1")
     True
+    >>> _compare_version("does_not_exist", operator.ge, "0.0")
+    False
     """
     try:
         pkg = importlib.import_module(package)
-    except (ModuleNotFoundError, DistributionNotFound):
+    except (ImportError, DistributionNotFound):
         return False
     try:
         if hasattr(pkg, "__version__"):
@@ -85,7 +87,7 @@ def _compare_version(package: str, op: Callable, version: str, use_base_version:
 
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
-_PYTHON_GREATER_EQUAL_3_8_0 = _compare_version("python", operator.ge, "3.8.0")
+_PYTHON_GREATER_EQUAL_3_8_0 = Version(platform.python_version()) >= Version("3.8.0")
 _TORCH_GREATER_EQUAL_1_8_1 = _compare_version("torch", operator.ge, "1.8.1")
 _TORCH_GREATER_EQUAL_1_9 = _compare_version("torch", operator.ge, "1.9.0")
 _TORCH_GREATER_EQUAL_1_9_1 = _compare_version("torch", operator.ge, "1.9.1")
@@ -104,7 +106,7 @@ _GROUP_AVAILABLE = not _IS_WINDOWS and _module_available("torch.distributed.grou
 _HOROVOD_AVAILABLE = _module_available("horovod.torch")
 _HYDRA_AVAILABLE = _package_available("hydra")
 _HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
-_JSONARGPARSE_AVAILABLE = _package_available("jsonargparse") and _compare_version("jsonargparse", operator.ge, "4.5.0")
+_JSONARGPARSE_AVAILABLE = _package_available("jsonargparse") and _compare_version("jsonargparse", operator.ge, "4.6.0")
 _KINETO_AVAILABLE = _TORCH_GREATER_EQUAL_1_8_1 and torch.profiler.kineto_available()
 _NEPTUNE_AVAILABLE = _package_available("neptune")
 _NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", operator.ge, "0.9.0")

@@ -54,12 +54,8 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     name: str = ...
 
-    def __init__(self, train_transforms=None, val_transforms=None, test_transforms=None, dims=None):
+    def __init__(self, val_transforms=None, test_transforms=None):
         super().__init__()
-        if train_transforms is not None:
-            rank_zero_deprecation(
-                "DataModule property `train_transforms` was deprecated in v1.5 and will be removed in v1.7."
-            )
         if val_transforms is not None:
             rank_zero_deprecation(
                 "DataModule property `val_transforms` was deprecated in v1.5 and will be removed in v1.7."
@@ -68,34 +64,11 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
             rank_zero_deprecation(
                 "DataModule property `test_transforms` was deprecated in v1.5 and will be removed in v1.7."
             )
-        if dims is not None:
-            rank_zero_deprecation("DataModule property `dims` was deprecated in v1.5 and will be removed in v1.7.")
-        self._train_transforms = train_transforms
         self._val_transforms = val_transforms
         self._test_transforms = test_transforms
-        self._dims = dims if dims is not None else ()
 
         # Pointer to the trainer object
         self.trainer = None
-
-    @property
-    def train_transforms(self):
-        """Optional transforms (or collection of transforms) you can apply to train dataset.
-
-        .. deprecated:: v1.5     Will be removed in v1.7.0.
-        """
-
-        rank_zero_deprecation(
-            "DataModule property `train_transforms` was deprecated in v1.5 and will be removed in v1.7."
-        )
-        return self._train_transforms
-
-    @train_transforms.setter
-    def train_transforms(self, t):
-        rank_zero_deprecation(
-            "DataModule property `train_transforms` was deprecated in v1.5 and will be removed in v1.7."
-        )
-        self._train_transforms = t
 
     @property
     def val_transforms(self):
@@ -134,33 +107,6 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
             "DataModule property `test_transforms` was deprecated in v1.5 and will be removed in v1.7."
         )
         self._test_transforms = t
-
-    @property
-    def dims(self):
-        """A tuple describing the shape of your data. Extra functionality exposed in ``size``.
-
-        .. deprecated:: v1.5     Will be removed in v1.7.0.
-        """
-        rank_zero_deprecation("DataModule property `dims` was deprecated in v1.5 and will be removed in v1.7.")
-        return self._dims
-
-    @dims.setter
-    def dims(self, d):
-        rank_zero_deprecation("DataModule property `dims` was deprecated in v1.5 and will be removed in v1.7.")
-        self._dims = d
-
-    def size(self, dim=None) -> Union[Tuple, List[Tuple]]:
-        """Return the dimension of each input either as a tuple or list of tuples. You can index this just as you
-        would with a torch tensor.
-
-        .. deprecated:: v1.5     Will be removed in v1.7.0.
-        """
-        rank_zero_deprecation("DataModule property `size` was deprecated in v1.5 and will be removed in v1.7.")
-
-        if dim is not None:
-            return self.dims[dim]
-
-        return self.dims
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs) -> ArgumentParser:

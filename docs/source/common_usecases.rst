@@ -1,165 +1,171 @@
 :orphan:
 
-Conceptual Guides
-=================
+################
+Common Workflows
+################
 
-.. include:: links.rst
+Customize and extend Lightning for things like custom hardware or distributed strategies.
+
+.. join_slack::
+   :align: left
+
+----
 
 .. raw:: html
 
-    <div class="tutorials-callout-container">
+    <div class="display-card-container">
         <div class="row">
 
 .. Add callout items below this line
 
-.. customcalloutitem::
-   :description: Learn to train Lightning models on the cloud
-   :header: Cloud Training
-   :button_link:  clouds/cloud_training.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Lightning checkpoints have everything you need to save and restore your models
-   :header: Checkpointing
-   :button_link: common/checkpointing.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Learn to train on your university or company's cluster
-   :header: Cluster Training
-   :button_link: clouds/cluster.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Tricks for debugging your Lightning Models
-   :header: Debugging
-   :button_link: common/debugging.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Save time and money by training until key metrics stop improving or time has elapsed
-   :header: Early Stopping
-   :button_link: common/early_stopping.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Here you'll find the latest SOTA training techniques such as SWA, accumulated gradients, etc...
-   :header: Effective Training Techniques
-   :button_link: advanced/training_tricks.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Avoid over-fitting (memorizing the dataset) with these techniques
-   :header: Evaluation
+.. displayitem::
+   :header: Avoid overfitting
+   :description: Add a training and test loop.
+   :col_css: col-md-12
    :button_link: common/evaluation.html
-   :card_style: text-container-small
+   :height: 100
 
-.. customcalloutitem::
-   :description: Before coding a complex model, use lightning-flash to create a baseline in a few lines of code
-   :header: Fast Baselines
-   :button_link: ecosystem/flash.html
-   :card_style: text-container-small
+.. displayitem::
+   :header: Build a model
+   :description: Steps to build a model.
+   :col_css: col-md-12
+   :button_link: model/build_model.html
+   :height: 100
 
-.. customcalloutitem::
-   :description: Enable fault-tolerant training in clusters/clouds where machines might fail (ie: pre-emtible machines)
-   :header: Fault-Tolerant Training
-   :button_link: advanced/fault_tolerant_training.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Make your models more flexible by enabling command-line arguments
-   :header: Hyperparameters (via command-line)
+.. displayitem::
+   :header: Configure hyperparameters from the CLI
+   :description: Enable basic CLI with Lightning.
+   :col_css: col-md-12
    :button_link: common/hyperparameters.html
-   :card_style: text-container-small
+   :height: 100
 
-.. customcalloutitem::
-   :description: Use the latest tricks to easily productionize your Lightning models
-   :header: Inference in Production
-   :button_link: common/production_inference.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Reduce configuration boilerplate with the Lightning CLI
-   :header: Lightning CLI
-   :button_link: common/lightning_cli.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Visualize your machine learning experiments with these experiment managers
-   :header: Loggers (experiment managers)
-   :button_link: common/loggers.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Use the model registry to mix and match your models and Datamodules
-   :header: Model and Datamodule Registry
-   :button_link: common/lightning_cli.html#multiple-models-and-or-datasets
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Train 1TB+ parameter models with these advanced built-in techniques
-   :header: Model Parallelism
-   :button_link: advanced/model_parallel.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Increase batch-sizes and improve speeds by training using 16-bit precision and more
-   :header: N-Bit Precision
-   :button_link: advanced/precision.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Enable manual optimization to fully control the optimization procedure for advanced research
-   :header: Manual Optimization
-   :button_link: common/optimization.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Use these profilers to find bottlenecks in your model
-   :header: Profiling
-   :button_link: advanced/profiler.html
-   :card_style: text-container-small
-
-.. customcalloutitem::
-   :description: Use these built-in progress bars or learn how to make your own!
-   :header: Progress Bar
+.. displayitem::
+   :header: Customize the progress bar
+   :description: Change the progress bar behavior.
+   :col_css: col-md-12
    :button_link: common/progress_bar.html
-   :card_style: text-container-small
+   :height: 100
 
-.. customcalloutitem::
-   :description: Compress model sizes to speed up model inference for deployment without loss of performance (accuracy)
-   :header: Pruning and Quantization
-   :button_link: advanced/pruning_quantization.html
-   :card_style: text-container-small
+.. displayitem::
+   :header: Deploy models into production
+   :description: Deploy models with different levels of scale.
+   :col_css: col-md-12
+   :button_link: deploy/production.html
+   :height: 100
 
-.. customcalloutitem::
-   :description: Work with data on any local or cloud filesystem such as S3 on AWS, GCS on Google Cloud, or ADL on Azure
-   :header: Remote Filesystems
-   :button_link: common/remote_fs.html
-   :card_style: text-container-small
+.. displayitem::
+   :header: Effective Training Techniques
+   :description: Explore advanced training techniques.
+   :col_css: col-md-12
+   :button_link: advanced/training_tricks.html
+   :height: 100
 
-.. customcalloutitem::
-   :description: Building the next Deepspeed, FSDP or fancy scaling technique? Add them to Lightning here
-   :header: Strategy Registry
-   :button_link: advanced/strategy_registry.html
-   :card_style: text-container-small
+.. displayitem::
+   :header: Eliminate config boilerplate
+   :description: Control your training via CLI and YAML.
+   :col_css: col-md-12
+   :button_link: cli/lightning_cli.html
+   :height: 100
 
-.. customcalloutitem::
-   :description: Simplify metrics calculations to scale-proof your models
-   :header: Torchmetrics
-   :button_link: ecosystem/metrics.html
-   :card_style: text-container-small
+.. displayitem::
+   :header: Find bottlenecks in your code
+   :description: Learn to find bottlenecks in your code.
+   :col_css: col-md-12
+   :button_link: tuning/profiler.html
+   :height: 100
 
-.. customcalloutitem::
-   :description: Use models training on large datasets to achieve better results when you don't have much data
-   :header: Transfer Learning (finetuning)
+.. displayitem::
+   :header: Finetune a model
+   :description: Learn to use pretrained models
+   :col_css: col-md-12
    :button_link: advanced/transfer_learning.html
-   :card_style: text-container-small
+   :height: 100
 
+.. displayitem::
+   :header: Manage Experiments
+   :description: Learn to track and visualize experiments
+   :col_css: col-md-12
+   :button_link: visualize/logging_intermediate.html
+   :height: 100
+
+.. displayitem::
+   :header: Run on an on-prem cluster
+   :description: Learn to run on your own cluster
+   :col_css: col-md-12
+   :button_link: clouds/cluster.html
+   :height: 100
+
+.. displayitem::
+   :header: Save and load model progress
+   :description: Save and load progress with checkpoints.
+   :col_css: col-md-12
+   :button_link: common/checkpointing_basic.html
+   :height: 100
+
+.. displayitem::
+   :header: Save memory with half-precision
+   :description: Enable half-precision to train faster and save memory.
+   :col_css: col-md-12
+   :button_link: common/precision.html
+   :height: 100
+
+.. displayitem::
+   :header: Train 1 trillion+ parameter models
+   :description: Scale GPU training to 1 trillion + parameter models
+   :col_css: col-md-12
+   :button_link: advanced/model_parallel.html
+   :height: 100
+
+.. displayitem::
+   :header: Train on the cloud
+   :description: Run models on the cloud.
+   :col_css: col-md-12
+   :button_link: clouds/cloud_training.html
+   :height: 100
+
+.. displayitem::
+   :header: Train on single or multiple GPUs
+   :description: Train models faster with GPUs.
+   :col_css: col-md-12
+   :button_link: accelerators/gpu.html
+   :height: 100
+
+.. displayitem::
+   :header: Train on single or multiple HPUs
+   :description: Train models faster with HPUs.
+   :col_css: col-md-12
+   :button_link: accelerators/hpu.html
+   :height: 100
+
+.. displayitem::
+   :header: Train on single or multiple IPUs
+   :description: Train models faster with IPUs.
+   :col_css: col-md-12
+   :button_link: accelerators/ipu.html
+   :height: 100
+
+.. displayitem::
+   :header: Train on single or multiple TPUs
+   :description: Train models faster with TPUs.
+   :col_css: col-md-12
+   :button_link: accelerators/tpu.html
+   :height: 100
+
+.. displayitem::
+   :header: Track and Visualize Experiments
+   :description: Learn to track and visualize experiments
+   :col_css: col-md-12
+   :button_link: visualize/logging_intermediate.html
+   :height: 100
+
+.. displayitem::
+   :header: Use a pure PyTorch training loop
+   :description: Run your pure PyTorch loop with Lightning.
+   :col_css: col-md-12
+   :button_link: model/own_your_loop.html
+   :height: 100
 
 .. raw:: html
 
         </div>
     </div>
-
-.. End of callout item section

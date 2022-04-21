@@ -987,7 +987,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
             # test that gradient is clipped correctly
             parameters = self.parameters()
             grad_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), 2) for p in parameters]), 2)
-            torch.testing.assert_allclose(grad_norm, torch.tensor(0.05))
+            torch.testing.assert_allclose(grad_norm, torch.tensor(0.05, device=self.device))
             self.assertion_called = True
 
     model = TestModel()
@@ -1018,7 +1018,7 @@ def test_gradient_clipping_by_value(tmpdir, precision):
             parameters = self.parameters()
             grad_max_list = [torch.max(p.grad.detach().abs()) for p in parameters]
             grad_max = torch.max(torch.stack(grad_max_list))
-            torch.testing.assert_allclose(grad_max.abs(), torch.tensor(1e-10))
+            torch.testing.assert_allclose(grad_max.abs(), torch.tensor(1e-10, device=self.device))
             self.assertion_called = True
 
     model = TestModel()
@@ -1041,7 +1041,7 @@ def test_gpu_choice():
     num_gpus = torch.cuda.device_count()
     Trainer(accelerator="gpu", devices=num_gpus, auto_select_gpus=True)
 
-    with pytest.raises(MisconfigurationException, match=r".*But your machine only has.*"):
+    with pytest.raises(MisconfigurationException, match=r".*but your machine only has.*"):
         Trainer(accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
 
 
@@ -1114,46 +1114,6 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         trainer.fit(model, val_dataloaders=val_dataloaders)
 
         assert mocked.call_count == sum(trainer.num_val_batches)
-
-
-@pytest.mark.parametrize(
-    ["trainer_kwargs", "strategy_cls", "strategy_name", "accelerator_cls", "devices"],
-    [
-        ({"accelerator": None}, SingleDeviceStrategy, "single_device", CPUAccelerator, 1),
-        ({"accelerator": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 1),
-        ({"accelerator": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 1),
-        ({"accelerator": "ddp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
-        ({"accelerator": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 1),
-        ({"accelerator": "ddp_cpu", "num_processes": 2}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 2),
-        ({"accelerator": "ddp2"}, DDPStrategy, "ddp", CPUAccelerator, 1),
-        ({"accelerator": None, "gpus": 1}, SingleDeviceStrategy, "single_device", GPUAccelerator, 1),
-        ({"accelerator": "dp", "gpus": 1}, DataParallelStrategy, "dp", GPUAccelerator, 1),
-        ({"accelerator": "ddp", "gpus": 1}, DDPStrategy, "ddp", GPUAccelerator, 1),
-        ({"accelerator": "ddp_cpu", "num_processes": 2, "gpus": 1}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 2),
-        ({"accelerator": "ddp2", "gpus": 1}, DDP2Strategy, "ddp2", GPUAccelerator, 1),
-        ({"accelerator": None, "gpus": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
-        ({"accelerator": "dp", "gpus": 2}, DataParallelStrategy, "dp", GPUAccelerator, 2),
-        ({"accelerator": "ddp", "gpus": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
-        ({"accelerator": "ddp2", "gpus": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
-        ({"accelerator": "ddp2", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
-        ({"accelerator": "dp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
-    ],
-)
-def test_trainer_config_accelerator(monkeypatch, trainer_kwargs, strategy_cls, strategy_name, accelerator_cls, devices):
-    if trainer_kwargs.get("gpus") is not None:
-        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-        monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
-
-    if trainer_kwargs["accelerator"] in (None, "ddp_cpu"):
-        trainer = Trainer(**trainer_kwargs)
-    else:
-        with pytest.deprecated_call(match=r"accelerator='.*'\)` has been deprecated in v1.5"):
-            trainer = Trainer(**trainer_kwargs)
-
-    assert isinstance(trainer.strategy, strategy_cls)
-    assert strategy_cls.strategy_name == strategy_name
-    assert isinstance(trainer.accelerator, accelerator_cls)
-    assert trainer.num_devices == devices
 
 
 def test_trainer_subclassing():
@@ -1406,8 +1366,9 @@ def test_trainer_predict_1_gpu(tmpdir):
 
 
 @RunIf(skip_windows=True)
-def test_trainer_predict_ddp_spawn(tmpdir):
-    predict(tmpdir, strategy="ddp_spawn", accelerator="auto", devices=2)
+@pytest.mark.parametrize("accelerator", ["cpu", pytest.param("gpu", marks=RunIf(min_gpus=2))])
+def test_trainer_predict_ddp_spawn(tmpdir, accelerator):
+    predict(tmpdir, strategy="ddp_spawn", accelerator=accelerator, devices=2)
 
 
 @pytest.mark.parametrize("dataset_cls", [RandomDataset, RandomIterableDatasetWithLen, RandomIterableDataset])
@@ -1678,12 +1639,10 @@ class TrainerStagesModel(BoringModel):
         assert not self.training
 
 
-@pytest.mark.parametrize(
-    "strategy,num_processes", [(None, 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True))]
-)
-def test_model_in_correct_mode_during_stages(tmpdir, strategy, num_processes):
+@pytest.mark.parametrize("strategy,devices", [(None, 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True))])
+def test_model_in_correct_mode_during_stages(tmpdir, strategy, devices):
     model = TrainerStagesModel()
-    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, num_processes=num_processes, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, accelerator="cpu", devices=devices, fast_dev_run=True)
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
@@ -1707,7 +1666,12 @@ def test_fit_test_synchronization(tmpdir):
     model = TestDummyModelForCheckpoint()
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="x", mode="min", save_top_k=1)
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, strategy="ddp_spawn", num_processes=2, callbacks=[checkpoint]
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        strategy="ddp_spawn",
+        accelerator="cpu",
+        devices=2,
+        callbacks=[checkpoint],
     )
     trainer.fit(model)
     assert os.path.exists(checkpoint.best_model_path), f"Could not find checkpoint at rank {trainer.global_rank}"
@@ -1782,6 +1746,8 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
         accelerator="gpu",
         devices=2,
         strategy="ddp",
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
 
     # simulate random failure in training_step on rank 0
