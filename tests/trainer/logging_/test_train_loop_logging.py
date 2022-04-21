@@ -456,11 +456,12 @@ def test_logging_sync_dist_true_ddp(tmpdir):
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=2,
-        enable_model_summary=False,
         strategy="ddp",
         accelerator="gpu",
         devices=2,
         profiler="pytorch",
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
