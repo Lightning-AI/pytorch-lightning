@@ -886,8 +886,8 @@ def test_native_print_results_encodings(monkeypatch, inputs, encoding):
     EvaluationLoop._print_results(*inputs, file=out)
 
     # Attempt to encode everything the file is told to write with the given encoding
-    for call in out.method_calls:
-        name, args, kwargs = call
+    for call_ in out.method_calls:
+        name, args, kwargs = call_
         if name == "write":
             args[0].encode(encoding)
 
