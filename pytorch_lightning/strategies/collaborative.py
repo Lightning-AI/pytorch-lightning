@@ -76,7 +76,7 @@ class CollaborativeStrategy(Strategy):
 
             delay_grad_averaging: Average gradients in background; requires offload_optimizer and delay_optimizer_step.
 
-            offload_optimizer: offload the optimizer to host memory, saving GPU memory for parameters and gradients.
+            offload_optimizer: Offload the optimizer to host memory, saving GPU memory for parameters and gradients.
 
             reuse_grad_buffers: Use model's .grad buffers for gradient accumulation.
                 This is more memory efficient, but it requires that we do not call `zero_grad` in the `LightningModule`.
@@ -320,7 +320,7 @@ class HiveMindScheduler:
     This code ensures that we only step when the HiveMind optimizer reaches the global step.
     """
 
-    def __init__(self, optimizer: "hivemind.Optimizer", scheduler: LRSchedulerTypeUnion):
+    def __init__(self, optimizer: "hivemind.Optimizer", scheduler: LRSchedulerTypeUnion) -> None:
         # copy most of the `Scheduler` methods into this instance. `__del__` is skipped in case the scheduler has
         # implemented custom logic which we would not want to call on destruction of the `HiveMindScheduler`
         self.__dict__ = {k: v for k, v in scheduler.__dict__.items() if k not in ("step", "__del__")}
@@ -361,7 +361,7 @@ class DHTManager:
         port: Optional[int],
         retry_initial_peers: int = 5,
         retry_peer_sleep_duration: int = 5,
-    ):
+    ) -> None:
         """Manages the `hivemind.DHT` connection and provides a side-car endpoint server for initial peer access.
 
         Arguments:
@@ -470,7 +470,7 @@ class DHTManager:
 
     def _get_initial_peers_from_endpoint(self, retry_initial_peers: int, retry_peer_sleep_duration: int) -> List:
         peers = None
-        for x in range(retry_initial_peers):
+        for _ in range(retry_initial_peers):
             try:
                 peers = self._get_peers()
                 break
