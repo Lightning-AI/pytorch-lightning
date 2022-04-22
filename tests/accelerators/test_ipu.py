@@ -101,10 +101,7 @@ class IPUClassificationModel(ClassificationModel):
 @mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
 def test_fail_if_no_ipus(mock_ipu_acc_avail, tmpdir):
     with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
-        Trainer(default_root_dir=tmpdir, ipus=1)
-
-    with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
-        Trainer(default_root_dir=tmpdir, ipus=1, accelerator="ipu")
+        Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1)
 
 
 @RunIf(ipu=True)
@@ -398,7 +395,8 @@ def test_manual_poptorch_opts(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        ipus=2,
+        accelerator="ipu",
+        devices=2,
         fast_dev_run=True,
         strategy=IPUStrategy(inference_opts=inference_opts, training_opts=training_opts),
     )
@@ -552,13 +550,13 @@ def test_precision_plugin(tmpdir):
 
 @RunIf(ipu=True)
 def test_accelerator_ipu():
-    trainer = Trainer(accelerator="ipu", ipus=1)
+    trainer = Trainer(accelerator="ipu", devices=1)
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
     trainer = Trainer(accelerator="ipu")
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
-    trainer = Trainer(accelerator="auto", ipus=8)
+    trainer = Trainer(accelerator="auto", devices=8)
     assert isinstance(trainer.accelerator, IPUAccelerator)
 
 
@@ -592,8 +590,8 @@ def test_accelerator_ipu_with_ipus_priority():
 
 @RunIf(ipu=True)
 def test_set_devices_if_none_ipu():
-
-    trainer = Trainer(accelerator="ipu", ipus=8)
+    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
+        trainer = Trainer(accelerator="ipu", ipus=8)
     assert trainer.num_devices == 8
 
 

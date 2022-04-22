@@ -158,7 +158,7 @@ So you can run it like so:
 Validation
 ----------
 You can perform an evaluation epoch over the validation set, outside of the training loop,
-using :meth:`pytorch_lightning.trainer.trainer.Trainer.validate`. This might be
+using :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`. This might be
 useful if you want to collect new metrics from a model right at its initialization
 or after it has already been trained.
 
@@ -438,7 +438,7 @@ benchmark
 |
 
 Defaults to ``True`` if :paramref:`~pytorch_lightning.trainer.Trainer.deterministic` is not set.
-This flag sets the ``torch.backends.cudnn.deterministic`` flag. You can read more about its impact
+This flag sets the ``torch.backends.cudnn.benchmark`` flag. You can read more about its impact
 `here <https://pytorch.org/docs/stable/notes/randomness.html#cuda-convolution-benchmarking>`__
 
 This is likely to increase the speed of your system if your input sizes don't change. However, if they do, then it
@@ -464,12 +464,11 @@ deterministic
 
 |
 
-If true enables cudnn.deterministic.
+This flag sets the ``torch.backends.cudnn.deterministic`` flag.
 Might make your system slower, but ensures reproducibility.
 Also sets ``$HOROVOD_FUSION_THRESHOLD=0``.
 
-For more info check `[pytorch docs]
-<https://pytorch.org/docs/stable/notes/randomness.html>`_.
+For more info check `PyTorch docs <https://pytorch.org/docs/stable/notes/randomness.html>`_.
 
 Example::
 
@@ -736,6 +735,9 @@ See Also:
 gpus
 ^^^^
 
+.. warning:: ``gpus=x`` has been deprecated in v1.7 and will be removed in v2.0.
+    Please use ``accelerator='gpu'`` and ``devices=x`` instead.
+
 .. raw:: html
 
     <video width="50%" max-width="400px" controls
@@ -777,7 +779,7 @@ Example::
     trainer = Trainer(gpus=[1, 4], num_nodes=4)
 
 See Also:
-    - :ref:`accelerators/gpu:Multi GPU Training`
+    - :ref:`Multi GPU Training <multi_gpu>`
 
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
@@ -915,7 +917,7 @@ logger
 
 |
 
-:doc:`Logger <../common/loggers>` (or iterable collection of loggers) for experiment tracking. A ``True`` value uses the default ``TensorBoardLogger`` shown below. ``False`` will disable logging.
+:doc:`Logger <../visualize/loggers>` (or iterable collection of loggers) for experiment tracking. A ``True`` value uses the default ``TensorBoardLogger`` shown below. ``False`` will disable logging.
 
 .. testcode::
 
@@ -1055,6 +1057,9 @@ Number of GPU nodes for distributed training.
 num_processes
 ^^^^^^^^^^^^^
 
+.. warning:: ``num_processes=x`` has been deprecated in v1.7 and will be removed in v2.0.
+    Please use ``accelerator='cpu'`` and ``devices=x`` instead.
+
 .. raw:: html
 
     <video width="50%" max-width="400px" controls
@@ -1146,9 +1151,9 @@ plugins
 
 :ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
 
-- :ref:`DDP <gpu>`
+- :ref:`Checkpoint IO <checkpointing_expert>`
 - `TorchElastic <https://pytorch.org/elastic/0.2.2/index.html>`_
-- :ref:`Apex <amp>`
+- :ref:`Precision Plugins <precision_expert>`
 
 To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own
 :class:`~pytorch_lightning.plugins.environments.ClusterEnvironment`.
@@ -1258,7 +1263,7 @@ profiler
 
 To profile individual steps during training and assist in identifying bottlenecks.
 
-See the :doc:`profiler documentation <../advanced/profiler>`. for more details.
+See the :doc:`profiler documentation <../tuning/profiler>`. for more details.
 
 .. testcode::
 
@@ -1409,7 +1414,7 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
     trainer = Trainer(strategy=CustomDDPStrategy(), accelerator="gpu", devices=2)
 
 See Also:
-    - :ref:`accelerators/gpu:Multi GPU Training`.
+    - :ref:`Multi GPU Training <multi_gpu>`.
     - :doc:`Model Parallel GPU training guide <../advanced/model_parallel>`.
     - :doc:`TPU training guide <../accelerators/tpu>`.
 
@@ -1456,6 +1461,9 @@ track_grad_norm
 
 tpu_cores
 ^^^^^^^^^
+
+.. warning:: ``tpu_cores=x`` has been deprecated in v1.7 and will be removed in v2.0.
+    Please use ``accelerator='tpu'`` and ``devices=x`` instead.
 
 .. raw:: html
 
@@ -1745,7 +1753,7 @@ The list of loggers currently being used by the Trainer.
 
 .. code-block:: python
 
-    # List of LightningLoggerBase objects
+    # List of Logger objects
     loggers = trainer.loggers
     for logger in loggers:
         logger.log_metrics({"foo": 1.0})
@@ -1807,3 +1815,18 @@ estimated_stepping_batches
 **************************
 
 Check out :meth:`~pytorch_lightning.trainer.trainer.Trainer.estimated_stepping_batches`.
+
+state
+*****
+
+The current state of the Trainer, including the current function that is running, the stage of
+execution within that function, and the status of the Trainer.
+
+.. code-block:: python
+
+    # fn in ("fit", "validate", "test", "predict", "tune")
+    trainer.state.fn
+    # status in ("initializing", "running", "finished", "interrupted")
+    trainer.state.status
+    # stage in ("train", "sanity_check", "validate", "test", "predict", "tune")
+    trainer.state.stage

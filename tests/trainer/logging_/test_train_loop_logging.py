@@ -395,7 +395,7 @@ class LoggingSyncDistModel(BoringModel):
         return super().validation_step(batch, batch_idx)
 
 
-@pytest.mark.parametrize("devices", [1, pytest.param(2, marks=RunIf(skip_windows=True))])
+@pytest.mark.parametrize("devices", [1, pytest.param(2, marks=RunIf(min_gpus=2, skip_windows=True))])
 def test_logging_sync_dist_true(tmpdir, devices):
     """Tests to ensure that the sync_dist flag works (should just return the original value)"""
     fake_result = 1
@@ -456,11 +456,12 @@ def test_logging_sync_dist_true_ddp(tmpdir):
         limit_train_batches=1,
         limit_val_batches=1,
         max_epochs=2,
-        enable_model_summary=False,
         strategy="ddp",
         accelerator="gpu",
         devices=2,
         profiler="pytorch",
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
