@@ -43,7 +43,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Marked `swa_lrs` argument in `StochasticWeightAveraging` callback as required ([#12556](https://github.com/PyTorchLightning/pytorch-lightning/pull/12556))
 
 
--
+- Make positional arguments required for classes passed into the `add_argparse_args` function. ([#1250](https://github.com/PyTorchLightning/pytorch-lightning/pull/12504))
 
 
 -
