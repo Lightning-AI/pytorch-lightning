@@ -227,7 +227,7 @@ class ExternalCallback(Callback):
     pass
 
 
-def test_configure_external_callbacks(monkeypatch):
+def test_configure_external_callbacks():
     """Test that the connector collects Callback instances from factories registered through entry points."""
 
     def factory_no_callback():
