@@ -88,7 +88,7 @@ class ModelHooks:
             Use ``on_fit_start`` instead.
         """
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, unused: int = 0) -> Optional[int]:
+    def on_train_batch_start(self, batch: Any, batch_idx: int) -> Optional[int]:
         """Called in the training loop before anything happens for that batch.
 
         If you return -1 here, you will skip training for the rest of the current epoch.
@@ -96,17 +96,15 @@ class ModelHooks:
         Args:
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
-            unused: Deprecated argument. Will be removed in v1.7.
         """
 
-    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, unused: int = 0) -> None:
+    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int) -> None:
         """Called in the training loop after the batch.
 
         Args:
             outputs: The outputs of training_step_end(training_step(x))
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
-            unused: Deprecated argument. Will be removed in v1.7.
         """
 
     def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
@@ -361,21 +359,27 @@ class DataHooks:
                 self.split = data_split
                 self.some_state = some_other_state()
 
-        In DDP ``prepare_data`` can be called in two ways (using Trainer(prepare_data_per_node)):
+        In a distributed environment, ``prepare_data`` can be called in two ways
+        (using :ref:`prepare_data_per_node<common/lightning_module:prepare_data_per_node>`)
 
         1. Once per node. This is the default and is only called on LOCAL_RANK=0.
         2. Once in total. Only called on GLOBAL_RANK=0.
-
-        See :ref:`prepare_data_per_node<common/lightning_module:prepare_data_per_node>`.
 
         Example::
 
             # DEFAULT
             # called once per node on LOCAL_RANK=0 of that node
-            Trainer(prepare_data_per_node=True)
+            class LitDataModule(LightningDataModule):
+                def __init__(self):
+                    super().__init__()
+                    self.prepare_data_per_node = True
+
 
             # call on GLOBAL_RANK=0 (great for shared file systems)
-            Trainer(prepare_data_per_node=False)
+            class LitDataModule(LightningDataModule):
+                def __init__(self):
+                    super().__init__()
+                    self.prepare_data_per_node = False
 
         This is called before requesting the dataloaders:
 
@@ -387,6 +391,7 @@ class DataHooks:
             model.train_dataloader()
             model.val_dataloader()
             model.test_dataloader()
+            model.predict_dataloader()
         """
 
     def setup(self, stage: Optional[str] = None) -> None:

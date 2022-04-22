@@ -97,7 +97,14 @@ def test_fully_sharded_strategy_checkpoint(tmpdir):
 
     model = TestFSDPModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, accelerator="gpu", devices=1, strategy="fsdp", precision=16, max_epochs=1
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        devices=1,
+        strategy="fsdp",
+        precision=16,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
@@ -116,6 +123,8 @@ def test_fully_sharded_strategy_checkpoint_multi_gpus(tmpdir):
         precision=16,
         max_epochs=1,
         callbacks=[ck],
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     _run_multiple_stages(trainer, model)
 
@@ -161,6 +170,8 @@ def test_fsdp_gradient_clipping_raises(tmpdir):
         precision=16,
         gradient_clip_val=1,
         gradient_clip_algorithm="norm",
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     with pytest.raises(
         MisconfigurationException, match="gradient_clip_algorithm='norm'` is currently not supported for `FullySharded"

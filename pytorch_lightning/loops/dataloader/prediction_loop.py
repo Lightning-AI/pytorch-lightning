@@ -116,7 +116,7 @@ class PredictionLoop(DataLoaderLoop):
         Also calls ``on_predict_start`` and ``on_predict_epoch_start`` hooks.
         """
         # enable eval mode + no grads
-        self._on_predict_model_eval()
+        self.trainer._call_lightning_module_hook("on_predict_model_eval")
         self.trainer.lightning_module.zero_grad()
 
         # hook
@@ -151,8 +151,3 @@ class PredictionLoop(DataLoaderLoop):
         self.trainer._call_callback_hooks("on_predict_end")
         self.trainer._call_lightning_module_hook("on_predict_end")
         self.trainer._call_strategy_hook("on_predict_end")
-
-    def _on_predict_model_eval(self) -> None:
-        """Calls ``on_predict_model_eval`` hook."""
-        model_ref = self.trainer.lightning_module
-        model_ref.on_predict_model_eval()

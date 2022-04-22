@@ -1,7 +1,7 @@
-.. _model_parallel:
+.. _model-parallel:
 
-Model Parallel GPU Training
-===========================
+Train 1 trillion+ parameter models
+==================================
 
 When training large models, fitting larger batch sizes, or trying to increase throughput using multi-GPU compute, Lightning provides advanced optimized distributed training strategies to support these cases and offer substantial improvements in memory usage.
 
@@ -37,7 +37,7 @@ This means we cannot sacrifice throughput as much as if we were fine-tuning, bec
 Overall:
 
 * When **fine-tuning** a model, use advanced memory efficient strategies such as :ref:`deepspeed-zero-stage-3` or :ref:`deepspeed-zero-stage-3-offload`, allowing you to fine-tune larger models if you are limited on compute
-* When **pre-training** a model, use simpler optimizations such :ref:`sharded`, :ref:`deepspeed-zero-stage-2` or :ref:`fully-sharded`, scaling the number of GPUs to reach larger parameter sizes
+* When **pre-training** a model, use simpler optimizations such :ref:`sharded-training`, :ref:`deepspeed-zero-stage-2` or :ref:`fully-sharded-training`, scaling the number of GPUs to reach larger parameter sizes
 * For both fine-tuning and pre-training, use :ref:`deepspeed-activation-checkpointing` or :ref:`fairscale-activation-checkpointing` as the throughput degradation is not significant
 
 For example when using 128 GPUs, you can **pre-train** large 10 to 20 Billion parameter models using :ref:`deepspeed-zero-stage-2` without having to take a performance hit with more advanced optimized multi-gpu strategy.
@@ -53,7 +53,7 @@ Sharding techniques help when model sizes are fairly large; roughly 500M+ parame
 
 ----------
 
-.. _sharded:
+.. _sharded-training:
 
 Sharded Training
 ^^^^^^^^^^^^^^^^
@@ -91,7 +91,7 @@ Internally we re-initialize your optimizers and shard them across your machines 
 
 ----------
 
-.. _fully-sharded:
+.. _fully-sharded-training:
 
 Fully Sharded Training
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -206,7 +206,7 @@ This saves memory when training larger models however requires wrapping modules 
             self.block_2 = nn.Linear(32, 2)
 
 
-.. _deepspeed:
+.. _deepspeed_advanced:
 
 DeepSpeed
 ^^^^^^^^^
@@ -296,7 +296,6 @@ Below we show an example of running `ZeRO-Offload <https://www.deepspeed.ai/tuto
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
 
     model = MyModel()
     trainer = Trainer(accelerator="gpu", devices=4, strategy="deepspeed_stage_2_offload", precision=16)
@@ -341,7 +340,6 @@ For even more speed benefit, DeepSpeed offers an optimized CPU version of ADAM c
 
     import pytorch_lightning
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
     from deepspeed.ops.adam import DeepSpeedCPUAdam
 
 
@@ -385,7 +383,6 @@ Also please have a look at our :ref:`deepspeed-zero-stage-3-tips` which contains
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
     from deepspeed.ops.adam import FusedAdam
 
 
@@ -409,7 +406,6 @@ You can also use the Lightning Trainer to run predict or evaluate with DeepSpeed
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
 
 
     class MyModel(pl.LightningModule):
@@ -435,7 +431,6 @@ This reduces the time taken to initialize very large models, as well as ensure w
 
     import torch.nn as nn
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
     from deepspeed.ops.adam import FusedAdam
 
 
@@ -549,7 +544,6 @@ This saves memory when training larger models, however requires using a checkpoi
 .. code-block:: python
 
     from pytorch_lightning import Trainer
-    from pytorch_lightning.strategies import DeepSpeedStrategy
     import deepspeed
 
 
@@ -686,7 +680,7 @@ In some cases you may want to define your own DeepSpeed Config, to access all pa
     }
 
     model = MyModel()
-    trainer = Trainer(accelerator="gpu", devices=4, strategy=DeepSpeedStrategy(deepspeed_config), precision=16)
+    trainer = Trainer(accelerator="gpu", devices=4, strategy=DeepSpeedStrategy(config=deepspeed_config), precision=16)
     trainer.fit(model)
 
 
@@ -699,7 +693,7 @@ We support taking the config as a json formatted file:
 
     model = MyModel()
     trainer = Trainer(
-        accelerator="gpu", devices=4, strategy=DeepSpeedStrategy("/path/to/deepspeed_config.json"), precision=16
+        accelerator="gpu", devices=4, strategy=DeepSpeedStrategy(config="/path/to/deepspeed_config.json"), precision=16
     )
     trainer.fit(model)
 
