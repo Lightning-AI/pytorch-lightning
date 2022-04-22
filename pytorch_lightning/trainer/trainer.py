@@ -1434,9 +1434,8 @@ class Trainer(
         if ckpt_path == "best":
             if len(self.checkpoint_callbacks) > 1:
                 rank_zero_warn(
-                    f'`.{fn}(ckpt_path="best")` is called with Trainer configured with multiple'
-                    f" `ModelCheckpoint` callbacks. It will use the best"
-                    " checkpoint path from first checkpoint callback."
+                    f'`.{fn}(ckpt_path="best")` is called with Trainer configured with multiple `ModelCheckpoint`'
+                    " callbacks. It will use the best checkpoint path from first checkpoint callback."
                 )
 
             if not self.checkpoint_callback:
@@ -1451,8 +1450,7 @@ class Trainer(
                         f" Please pass an exact checkpoint path to `.{fn}(ckpt_path=...)`"
                     )
                 raise MisconfigurationException(
-                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint`'
-                    f" is not configured to save the best model."
+                    f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'
                 )
             # load best weights
             ckpt_path = self.checkpoint_callback.best_model_path
@@ -1470,8 +1468,7 @@ class Trainer(
                 )
                 return
 
-            last_ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_fs))
-            ckpt_path = last_ckpt_path
+            ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts))
 
         if not ckpt_path:
             raise MisconfigurationException(
