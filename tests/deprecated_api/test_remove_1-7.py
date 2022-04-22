@@ -20,7 +20,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from pytorch_lightning import Callback, LightningDataModule, Trainer
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
@@ -34,37 +34,8 @@ from pytorch_lightning.plugins.environments import (
 from pytorch_lightning.strategies import SingleDeviceStrategy
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
-from tests.helpers.datamodules import MNISTDataModule
 from tests.loggers.test_logger import CustomLogger
 from tests.plugins.environments.test_lsf_environment import _make_rankfile
-
-
-def test_v1_7_0_datamodule_transform_properties(tmpdir):
-    dm = MNISTDataModule()
-    with pytest.deprecated_call(match=r"DataModule property `val_transforms` was deprecated in v1.5"):
-        dm.val_transforms = "b"
-    with pytest.deprecated_call(match=r"DataModule property `test_transforms` was deprecated in v1.5"):
-        dm.test_transforms = "c"
-    with pytest.deprecated_call(match=r"DataModule property `val_transforms` was deprecated in v1.5"):
-        _ = LightningDataModule(val_transforms="b")
-    with pytest.deprecated_call(match=r"DataModule property `test_transforms` was deprecated in v1.5"):
-        _ = LightningDataModule(test_transforms="c")
-    with pytest.deprecated_call(match=r"DataModule property `test_transforms` was deprecated in v1.5"):
-        _ = LightningDataModule(test_transforms="c", dims=(1, 1, 1))
-
-
-def test_v1_7_0_datamodule_size_property(tmpdir):
-    dm = MNISTDataModule()
-    with pytest.deprecated_call(match=r"DataModule property `size` was deprecated in v1.5"):
-        dm.size()
-
-
-def test_v1_7_0_datamodule_dims_property(tmpdir):
-    dm = MNISTDataModule()
-    with pytest.deprecated_call(match=r"DataModule property `dims` was deprecated in v1.5"):
-        _ = dm.dims
-    with pytest.deprecated_call(match=r"DataModule property `dims` was deprecated in v1.5"):
-        _ = LightningDataModule(dims=(1, 1, 1))
 
 
 def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):

@@ -170,7 +170,13 @@ def test_ddp_sharded_strategy_fit_ckpt_path_gpu_to_cpu(tmpdir):
 def test_ddp_sharded_strategy_test_multigpu(tmpdir, trainer_kwargs):
     """Test to ensure we can use validate and test without fit."""
     model = BoringModel()
-    trainer = Trainer(strategy="ddp_sharded_spawn", fast_dev_run=True, **trainer_kwargs)
+    trainer = Trainer(
+        strategy="ddp_sharded_spawn",
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        **trainer_kwargs,
+    )
 
     trainer.validate(model)
     trainer.test(model)
@@ -196,7 +202,13 @@ def test_ddp_sharded_strategy_manual_optimization_spawn(tmpdir):
     # todo (sean): this test has been split out as running both tests using parametrize causes "Address in use"
     model = ManualBoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, strategy="ddp_sharded_spawn", fast_dev_run=2, accelerator="gpu", devices=2
+        default_root_dir=tmpdir,
+        strategy="ddp_sharded_spawn",
+        fast_dev_run=2,
+        accelerator="gpu",
+        devices=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -204,7 +216,15 @@ def test_ddp_sharded_strategy_manual_optimization_spawn(tmpdir):
 @RunIf(min_gpus=2, skip_windows=True, standalone=True, fairscale=True)
 def test_ddp_sharded_strategy_manual_optimization(tmpdir):
     model = ManualBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, strategy="ddp_sharded", fast_dev_run=2, accelerator="gpu", devices=2)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        strategy="ddp_sharded",
+        fast_dev_run=2,
+        accelerator="gpu",
+        devices=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
     trainer.fit(model)
 
 
