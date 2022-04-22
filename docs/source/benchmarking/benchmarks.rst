@@ -1,3 +1,5 @@
+:orphan:
+
 Benchmark with vanilla PyTorch
 ==============================
 
