@@ -121,6 +121,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed support for passing strategy names or strategy instances to the plugins Trainer argument ([#12700](https://github.com/PyTorchLightning/pytorch-lightning/pull/12700))
 
 
+- Removed the deprecated `val_transforms` argument from the `LightningDataModule` constructor ([#12763](https://github.com/PyTorchLightning/pytorch-lightning/pull/12763))
+
+
 - Removed the deprecated `test_transforms` argument from the `LightningDataModule` constructor ([#12773](https://github.com/PyTorchLightning/pytorch-lightning/pull/12773))
 
 
