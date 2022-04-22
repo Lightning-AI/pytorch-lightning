@@ -121,6 +121,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed support for passing strategy names or strategy instances to the plugins Trainer argument ([#12700](https://github.com/PyTorchLightning/pytorch-lightning/pull/12700))
 
 
+- Removed the deprecated `val_transforms` argument from the `LightningDataModule` constructor ([#12763](https://github.com/PyTorchLightning/pytorch-lightning/pull/12763))
+
+
 - Removed the deprecated `test_transforms` argument from the `LightningDataModule` constructor ([#12773](https://github.com/PyTorchLightning/pytorch-lightning/pull/12773))
 
 
@@ -138,7 +141,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - When using custom DataLoaders in LightningDataModule, multiple inheritance is resolved properly ([#12716](https://github.com/PyTorchLightning/pytorch-lightning/pull/12716))
 
 
--
+- Fixed support for `ModelCheckpoint` monitors with dots ([#12783](https://github.com/PyTorchLightning/pytorch-lightning/pull/12783))
 
 
 ## [1.6.1] - 2022-04-13
