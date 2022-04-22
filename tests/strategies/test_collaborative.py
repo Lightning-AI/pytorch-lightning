@@ -114,11 +114,11 @@ def test_scheduler_wrapped():
 def test_env_variables_parsed(mock_dht, mock_peers, mock_server):
     """Test that env variables are parsed correctly."""
     strategy = CollaborativeStrategy(target_batch_size=1)
-    assert strategy.dht_manager.initial_peers == ["TEST_PEERS"]
-    assert strategy.dht_manager.host == "TEST_HOST"
-    assert strategy.dht_manager.port == 1300
-    assert strategy.dht_manager.endpoint
-    assert strategy.dht_manager.peer_endpoint == "TEST_PEER_ENDPOINT"
+    assert strategy.dht_manager._initial_peers == ["TEST_PEERS"]
+    assert strategy.dht_manager._host == "TEST_HOST"
+    assert strategy.dht_manager._port == 1300
+    assert strategy.dht_manager._endpoint
+    assert strategy.dht_manager._peer_endpoint == "TEST_PEER_ENDPOINT"
 
 
 @RunIf(hivemind=True)

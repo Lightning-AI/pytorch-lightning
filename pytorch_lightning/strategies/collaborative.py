@@ -139,16 +139,14 @@ class CollaborativeStrategy(Strategy):
             retry_initial_peers=retry_initial_peers,
             retry_peer_sleep_duration=retry_peer_sleep_duration,
         )
-        self.target_batch_size = target_batch_size
-        self.batch_size = batch_size
-        self.scheduler_fn = scheduler_fn
-        self.delay_state_averaging = delay_state_averaging
-        self.delay_optimizer_step = delay_optimizer_step
-        self.offload_optimizer = offload_optimizer
-        self.opt = None
-        self.run_id = run_id
-        self.reuse_grad_buffers = reuse_grad_buffers
-        self.optimizer_kwargs = dict(
+        self._target_batch_size = target_batch_size
+        self._batch_size = batch_size
+        self._scheduler_fn = scheduler_fn
+        self._require_scheduler_fn = delay_optimizer_step or delay_state_averaging or offload_optimizer
+        self._opt = None
+        self._run_id = run_id
+        self._reuse_grad_buffers = reuse_grad_buffers
+        self._optimizer_kwargs = dict(
             matchmaking_time=matchmaking_time,
             averaging_timeout=averaging_timeout,
             delay_optimizer_step=delay_optimizer_step,
@@ -167,7 +165,7 @@ class CollaborativeStrategy(Strategy):
                 "This machine is not a persistent machine. Checkpointing/Logging has been disabled.", UserWarning
             )
         rank_zero_only.rank = 1 if self.dht_manager.disable_logging_checkpointing else 0
-        self.hivemind_initialized = False
+        self._hivemind_initialized = False
 
         self.global_rank = 0
         self.local_rank = 0
@@ -175,8 +173,8 @@ class CollaborativeStrategy(Strategy):
 
     @property
     def num_peers(self) -> int:
-        if self.opt:
-            return self.opt.tracker.global_progress.num_peers
+        if self._opt:
+            return self._opt.tracker.global_progress.num_peers
         return 1
 
     @property
@@ -210,36 +208,34 @@ class CollaborativeStrategy(Strategy):
             raise MisconfigurationException("Hivemind only supports training with one optimizer.")
         optimizer = self.optimizers[0]
 
-        enabling_features = self.delay_optimizer_step or self.delay_state_averaging or self.offload_optimizer
-
-        if enabling_features and self.scheduler_fn is None:
+        if self._require_scheduler_fn and self._scheduler_fn is None:
             rank_zero_warn(
                 "Enabling delay_optimizer_step, delay_state_averaging or offload_optimizer "
                 "requires a scheduler_fn to be passed to the strategy if a scheduler is being used "
                 "(this is because the optimizer is re-created within Hivemind)."
             )
 
-        scheduler = self.scheduler_fn if enabling_features else None
-        params = optimizer.param_groups if enabling_features else None
-        optimizer = type(optimizer) if enabling_features else optimizer
+        scheduler = self._scheduler_fn if self._require_scheduler_fn else None
+        params = optimizer.param_groups if self._require_scheduler_fn else None
+        optimizer = type(optimizer) if self._require_scheduler_fn else optimizer
         opt = hivemind.Optimizer(
             dht=self.dht,
-            run_id=self.run_id,
+            run_id=self._run_id,
             params=params,
             optimizer=optimizer,
             scheduler=scheduler,
-            target_batch_size=self.target_batch_size,
-            batch_size_per_step=self.batch_size,
-            **self.optimizer_kwargs,
+            target_batch_size=self._target_batch_size,
+            batch_size_per_step=self._batch_size,
+            **self._optimizer_kwargs,
         )
 
-        if not self.scheduler_fn:
+        if not self._scheduler_fn:
             self._wrap_schedulers(opt)
         opt.load_state_from_peers()
         self.optimizers = [opt]
-        self.opt = opt
+        self._opt = opt
 
-        if self.reuse_grad_buffers:
+        if self._reuse_grad_buffers:
             assert self.lightning_module is not None
             # turn off zero_grad by Lightning
             if is_overridden("optimizer_zero_grad", self.lightning_module):
@@ -264,12 +260,12 @@ class CollaborativeStrategy(Strategy):
             )
 
     def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
-        if not self.hivemind_initialized:
-            self.hivemind_initialized = True
-            if self.batch_size is None:
+        if not self._hivemind_initialized:
+            self._hivemind_initialized = True
+            if self._batch_size is None:
                 try:
-                    self.batch_size = extract_batch_size(batch)
-                    log.info(f"Found per machine batch size automatically from the batch: {self.batch_size}")
+                    self._batch_size = extract_batch_size(batch)
+                    log.info(f"Found per machine batch size automatically from the batch: {self._batch_size}")
                 except Exception as e:
                     raise MisconfigurationException(
                         "We tried to infer the batch size from the first batch of data are were unable to. "
@@ -301,8 +297,8 @@ class CollaborativeStrategy(Strategy):
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
-        if self.opt:
-            self.opt.shutdown()
+        if self._opt:
+            self._opt.shutdown()
         log.info("Shutting down hivemind DHT.")
         self.dht.shutdown()
 
@@ -382,23 +378,23 @@ class DHTManager:
 
             retry_peer_sleep_duration: When connecting to the `peer_endpoint`, how long to wait between retries.
         """
-        self.persistent = persistent
-        self.endpoint = endpoint
-        self.initial_peers = initial_peers
-        self.peer_endpoint = peer_endpoint
-        self.host = host
-        self.port = port
+        self._persistent = persistent
+        self._endpoint = endpoint
+        self._initial_peers = initial_peers
+        self._peer_endpoint = peer_endpoint
+        self._host = host
+        self._port = port
 
         self._parse_env_vars()
 
-        if self.peer_endpoint and self.initial_peers is None:
-            self.initial_peers = self._get_initial_peers_from_endpoint(
+        if self._peer_endpoint and self._initial_peers is None:
+            self._initial_peers = self._get_initial_peers_from_endpoint(
                 retry_initial_peers=retry_initial_peers, retry_peer_sleep_duration=retry_peer_sleep_duration
             )
 
         self.dht = hivemind.DHT(
             start=True,
-            initial_peers=self.initial_peers,
+            initial_peers=self._initial_peers,
             host_maddrs=host_maddrs if host_maddrs is not None else ["/ip4/0.0.0.0/tcp/0", "/ip4/0.0.0.0/udp/0/quic"],
         )
 
@@ -406,14 +402,14 @@ class DHTManager:
             str(a) for a in self.dht.get_visible_maddrs() if not ipaddress.ip_address(a.values()[0]).is_loopback
         ]
 
-        if self.endpoint:
-            self.host = self.host if self.host is not None else self.DEFAULT_HOST
-            self.port = self.port if self.port is not None else self.DEFAULT_PORT
-            self._start_server_process(self.host, self.port)
+        if self._endpoint:
+            self._host = self._host if self._host is not None else self.DEFAULT_HOST
+            self._port = self._port if self._port is not None else self.DEFAULT_PORT
+            self._start_server_process(self._host, self._port)
             self._log_endpoint_helper_message(visible_addresses)
-        elif self.peer_endpoint:
+        elif self._peer_endpoint:
             log.info("Machine received initial peers from endpoint.")
-        elif self.initial_peers is None:
+        elif self._initial_peers is None:
             log.info(
                 f"\nOther machines can connect running the same command:\n"
                 f"INITIAL_PEERS={','.join(visible_addresses)} python ...\n"
@@ -422,9 +418,9 @@ class DHTManager:
             )
 
     def _log_endpoint_helper_message(self, visible_addresses: List[str]) -> None:
-        assert self.host is not None
-        resolved_host = self.host
-        if "0.0.0.0" in self.host:
+        assert self._host is not None
+        resolved_host = self._host
+        if "0.0.0.0" in self._host:
             # use the visible multi-addresses to figure out the IP that has been exposed
             # todo (sean): this is pretty hacky, worth investigating.
             p = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+")
@@ -433,9 +429,9 @@ class DHTManager:
         log.info(
             "\nSidecar endpoint enabled to serve peers.\n"
             "Other peers can connect via:\n"
-            f"PEER_ENDPOINT={resolved_host}:{self.port} python ...\n"
+            f"PEER_ENDPOINT={resolved_host}:{self._port} python ...\n"
             "or pass the peer endpoint address to the strategy:\n"
-            f"CollaborativeStrategy(peer_endpoint='{resolved_host}:{self.port}')"
+            f"CollaborativeStrategy(peer_endpoint='{resolved_host}:{self._port}')"
         )
 
     def _start_server_process(self, host: str, port: int) -> None:
@@ -478,23 +474,23 @@ class DHTManager:
         return peers
 
     def _get_peers(self) -> List[str]:
-        assert self.peer_endpoint is not None
-        url = f"http://{self.peer_endpoint}" if not self.peer_endpoint.startswith("http://") else self.peer_endpoint
+        assert self._peer_endpoint is not None
+        url = f"http://{self._peer_endpoint}" if not self._peer_endpoint.startswith("http://") else self._peer_endpoint
         r = requests.get(url)
         return r.text.split(",")
 
     def _parse_env_vars(self) -> None:
-        endpoint = os.environ.get(self.ENDPOINT_ENV, self.endpoint)
-        self.endpoint = endpoint == "1" if isinstance(endpoint, str) else endpoint
-        self.peer_endpoint = os.environ.get(self.PEER_ENDPOINT_ENV, self.peer_endpoint)
-        initial_peers = os.environ.get(self.INITIAL_PEERS_ENV, self.initial_peers)
-        self.initial_peers = initial_peers.split(",") if isinstance(initial_peers, str) else initial_peers
+        endpoint = os.environ.get(self.ENDPOINT_ENV, self._endpoint)
+        self._endpoint = endpoint == "1" if isinstance(endpoint, str) else endpoint
+        self._peer_endpoint = os.environ.get(self.PEER_ENDPOINT_ENV, self._peer_endpoint)
+        initial_peers = os.environ.get(self.INITIAL_PEERS_ENV, self._initial_peers)
+        self._initial_peers = initial_peers.split(",") if isinstance(initial_peers, str) else initial_peers
 
-        port = os.environ.get(self.PORT_ENV, self.port)
-        self.port = int(port) if isinstance(port, str) else port
-        self.host = os.environ.get(self.HOST_ENV, self.host)
+        port = os.environ.get(self.PORT_ENV, self._port)
+        self._port = int(port) if isinstance(port, str) else port
+        self._host = os.environ.get(self.HOST_ENV, self._host)
 
     @property
     def disable_logging_checkpointing(self) -> bool:
         # if this node is a peer, we do not log/checkpoint in persistent mode.
-        return self.persistent and (self.initial_peers or self.peer_endpoint)
+        return self._persistent and (self._initial_peers or self._peer_endpoint)
