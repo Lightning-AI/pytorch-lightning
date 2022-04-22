@@ -31,8 +31,9 @@ from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _fl
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 try:
-    import wandb
     from wandb.wandb_run import Run
+
+    import wandb
 except ModuleNotFoundError:
     # needed for test mocks, these tests shall be updated
     wandb, Run = None, None
@@ -512,16 +513,13 @@ class WandbLogger(Logger):
         Returns:
             The path to the downloaded artifact.
         """
-
         if wandb.run is not None and use_artifact:
             artifact = wandb.run.use_artifact(artifact)
-
         else:
             api = wandb.Api()
             artifact = api.artifact(artifact, type=type)
 
-        artifact_dir = artifact.download(root=dir)
-        return artifact_dir
+        return artifact.download(root=dir)
 
     def use_artifact(self, artifact: str, type: Optional[str] = None) -> "wandb.Artifact":
         """Logs to the wandb dashboard that the mentioned artifact is used by the run.
