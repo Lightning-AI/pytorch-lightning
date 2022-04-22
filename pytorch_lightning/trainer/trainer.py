@@ -1918,6 +1918,7 @@ class Trainer(
 
         The val dataloader must be initialized before training loop starts, as the training loop
         inspects the val dataloader to determine whether to run the evaluation loop.
+
         Args:
             model: The ``LightningModule`` if called outside of the trainer scope.
         """
