@@ -1242,10 +1242,6 @@ def test_specific_gpu_device_id(tmpdir):
 
 @RunIf(min_gpus=2, min_torch="1.10.0", standalone=True, deepspeed=True)
 def test_deepspeed_with_meta_device(tmpdir):
-    import sys
-
-    sys.setrecursionlimit(10000)  # 1000 by default # FIXME
-
     with init_meta_context():
         model = BoringModel()
     assert model.layer.weight.device.type == "meta"
