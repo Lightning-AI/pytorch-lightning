@@ -1559,7 +1559,6 @@ def test_cli_auto_seeding():
                 TestModel,
                 run=False,
                 seed_everything_default=int(np.iinfo(np.uint32).max + 1),
-                trainer_defaults={"logger": False},
                 parser_kwargs={"error_handler": None},
             )
             assert cli.seed_everything_default is False
@@ -1570,47 +1569,46 @@ def test_cli_auto_seeding():
                 TestModel,
                 run=False,
                 seed_everything_default=int(np.iinfo(np.uint32).min - 1),
-                trainer_defaults={"logger": False},
                 parser_kwargs={"error_handler": None},
             )
             assert cli.seed_everything_default is False
 
     with mock.patch("sys.argv", ["any.py"]):
-        cli = LightningCLI(TestModel, run=False, seed_everything_default=False, trainer_defaults={"logger": False})
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=False)
         assert cli.seed_everything_default is False
         assert cli.config["seed_everything"] is False
 
     with mock.patch("sys.argv", ["any.py"]):
-        cli = LightningCLI(TestModel, run=False, seed_everything_default=True, trainer_defaults={"logger": False})
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=True)
         assert cli.seed_everything_default is True
         assert isinstance(cli.config["seed_everything"], int)
 
     with mock.patch("sys.argv", ["any.py", "--seed_everything", "3"]):
-        cli = LightningCLI(TestModel, run=False, seed_everything_default=False, trainer_defaults={"logger": False})
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=False)
         assert cli.seed_everything_default is False
         assert cli.config["seed_everything"] == 3
 
     with mock.patch("sys.argv", ["any.py", "--seed_everything", "3"]):
-        cli = LightningCLI(TestModel, run=False, seed_everything_default=True, trainer_defaults={"logger": False})
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=True)
         assert cli.seed_everything_default is True
         assert cli.config["seed_everything"] == 3
 
     with mock.patch("sys.argv", ["any.py", "--seed_everything", "3"]):
-        cli = LightningCLI(TestModel, run=False, seed_everything_default=10, trainer_defaults={"logger": False})
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=10)
         assert cli.seed_everything_default == 10
         assert cli.config["seed_everything"] == 3
 
     with mock.patch("sys.argv", ["any.py", "--seed_everything", "false"]):
-        cli = LightningCLI(TestModel, run=False, seed_everything_default=10, trainer_defaults={"logger": False})
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=10)
         assert cli.seed_everything_default == 10
         assert cli.config["seed_everything"] is False
 
     with mock.patch("sys.argv", ["any.py", "--seed_everything", "false"]):
-        cli = LightningCLI(TestModel, run=False, seed_everything_default=True, trainer_defaults={"logger": False})
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=True)
         assert cli.seed_everything_default is True
         assert cli.config["seed_everything"] is False
 
     with mock.patch("sys.argv", ["any.py", "--seed_everything", "true"]):
-        cli = LightningCLI(TestModel, run=False, seed_everything_default=False, trainer_defaults={"logger": False})
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=False)
         assert cli.seed_everything_default is False
         assert isinstance(cli.config["seed_everything"], int)
