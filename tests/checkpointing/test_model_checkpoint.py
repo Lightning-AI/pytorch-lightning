@@ -452,6 +452,12 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     )
     assert ckpt_name == "epoch=003-val_acc=0.03"
 
+    # dots in the metric name
+    ckpt_name = ModelCheckpoint._format_checkpoint_name(
+        "mAP@0.50={val/mAP@0.50:.4f}", {"val/mAP@0.50": 0.2}, auto_insert_metric_name=False
+    )
+    assert ckpt_name == "mAP@0.50=0.2000"
+
 
 class ModelCheckpointExtensionTest(ModelCheckpoint):
     FILE_EXTENSION = ".tpkc"
