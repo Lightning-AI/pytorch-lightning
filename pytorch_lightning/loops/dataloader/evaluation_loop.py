@@ -321,8 +321,11 @@ class EvaluationLoop(DataLoaderLoop):
     @staticmethod
     def _get_keys(data: dict) -> Iterable[str]:
         if any(isinstance(v, dict) for v in data.values()):
-            for v in data.values():
-                yield from apply_to_collection(v, dict, dict.keys)
+            for k, v in data.items():
+                if isinstance(v, dict):
+                    yield from apply_to_collection(v, dict, dict.keys)
+                else:
+                    yield k
         else:
             yield from data.keys()
 
@@ -338,7 +341,10 @@ class EvaluationLoop(DataLoaderLoop):
     def _print_results(results: List[_OUT_DICT], stage: str, file: Optional[IO[str]] = None) -> None:
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
-        metrics = sorted({k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys})
+        metrics_all = [k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys]
+        metrics = sorted(set(metrics_all))
+        if len(metrics_all) != len(metrics):
+            rank_zero_warn("We found multiple keys in your metrics, which can happen in nested dictionaries")
         if not metrics:
             return
         headers = [f"DataLoader {i}" for i in range(len(results))]

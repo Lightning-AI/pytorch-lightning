@@ -849,6 +849,35 @@ expected3 = """
 inputs4 = ([{}], "foo")
 expected4 = ""
 
+inputs5 = (
+    [
+        {
+            "test_loss": torch.tensor(0.5),
+            "accuracy": torch.tensor(1.5),
+            "macro avg": {
+                "precision": torch.tensor(2.5),
+                "recall": torch.tensor(3.5),
+                "f1-score": torch.tensor(4.5),
+                "support": torch.tensor(5.5),
+            },
+        }
+    ],
+    RunningStage.TESTING,
+)
+
+expected5 = """
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+       Test metric             DataLoader 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+        accuracy                    1.5
+        f1-score                    4.5
+        precision                   2.5
+         recall                     3.5
+         support                    5.5
+        test_loss                   0.5
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+"""
+
 
 @pytest.mark.parametrize(
     ["inputs", "expected"],
@@ -858,6 +887,7 @@ expected4 = ""
         pytest.param(inputs2, expected2, id="case2"),
         pytest.param(inputs3, expected3, id="case3"),
         pytest.param(inputs4, expected4, id="empty case"),
+        pytest.param(inputs5, expected5, id="ragged dict"),
     ],
 )
 def test_native_print_results(monkeypatch, inputs, expected):
