@@ -19,15 +19,13 @@ import os
 import traceback
 import warnings
 from argparse import ArgumentParser, Namespace
-from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Generator, Iterable, List, Optional, Type, Union
+from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Type, Union
 from weakref import proxy
 
 import torch
-import torch.distributed as dist
 from packaging.version import Version
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
@@ -99,7 +97,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, has_len_all_ranks
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TORCH_GREATER_EQUAL_1_9
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
@@ -1318,7 +1316,7 @@ class Trainer(
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self._evaluation_loop.trainer = self
 
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context():
+        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), torch.no_grad():
             eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
@@ -1334,7 +1332,7 @@ class Trainer(
         self.reset_predict_dataloader(self.lightning_module)
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self.predict_loop.trainer = self
-        with _evaluation_context():
+        with torch.no_grad():
             return self.predict_loop.run()
 
     def _run_sanity_check(self) -> None:
@@ -2748,18 +2746,6 @@ class Trainer(
 
         max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
         return max_estimated_steps
-
-
-@contextmanager
-def _evaluation_context() -> Generator:
-    # inference mode is not supported with gloo backend (#9431)
-    context_manager_class = (
-        torch.inference_mode
-        if _TORCH_GREATER_EQUAL_1_9 and not (dist.is_initialized() and dist.get_backend() == "gloo")
-        else torch.no_grad
-    )
-    with context_manager_class():
-        yield
 
 
 def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> Union[int, float]:
