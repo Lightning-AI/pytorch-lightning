@@ -33,7 +33,6 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
 
-
 _log = logging.getLogger(__name__)
 
 
@@ -302,9 +301,11 @@ def _configure_external_callbacks() -> List[Callback]:
     """
     if _PYTHON_GREATER_EQUAL_3_8_0:
         from importlib.metadata import entry_points
+
         factories = entry_points().get("pytorch_lightning.callbacks_factory", ())
     else:
         from pkg_resources import iter_entry_points
+
         factories = iter_entry_points("pytorch_lightning.callbacks_factory")
 
     external_callbacks = []
