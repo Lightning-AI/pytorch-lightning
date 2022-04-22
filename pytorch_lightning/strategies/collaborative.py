@@ -175,7 +175,7 @@ class CollaborativeStrategy(Strategy):
     def _initialize_hivemind(self) -> None:
         if len(self.optimizers) > 1:
             raise MisconfigurationException("Hivemind only supports training with one optimizer.")
-        (optimizer,) = self.optimizers
+        optimizer = self.optimizers[0]
 
         enabling_features = self.delay_optimizer_step or self.delay_state_averaging or self.offload_optimizer
 
