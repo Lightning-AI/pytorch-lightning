@@ -39,14 +39,6 @@ from tests.loggers.test_logger import CustomLogger
 from tests.plugins.environments.test_lsf_environment import _make_rankfile
 
 
-def test_v1_7_0_datamodule_transform_properties(tmpdir):
-    dm = MNISTDataModule()
-    with pytest.deprecated_call(match=r"DataModule property `val_transforms` was deprecated in v1.5"):
-        dm.val_transforms = "b"
-    with pytest.deprecated_call(match=r"DataModule property `val_transforms` was deprecated in v1.5"):
-        _ = LightningDataModule(val_transforms="b")
-
-
 def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
     class CustomBoringModel(BoringModel):
         def on_train_dataloader(self):
