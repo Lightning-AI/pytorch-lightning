@@ -425,7 +425,7 @@ class DataConnector:
         self.trainer._call_lightning_module_hook("on_" + hook, pl_module=model)
         with _replace_dataloader_init_method():
             # under this context manager, the arguments passed to `DataLoader.__init__` will be captured and saved as
-            # attributes on the instance in case the dataloader needs to be re-instantiated later by Ligtning
+            # attributes on the instance in case the dataloader needs to be re-instantiated later by Lightning
             dataloader = source.dataloader()
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
@@ -461,11 +461,7 @@ class DataConnector:
     @staticmethod
     def _check_eval_shuffling(dataloader, mode):
         # limit this warning only for samplers assigned automatically when shuffle is set
-        if (
-            hasattr(dataloader, "sampler")
-            and isinstance(dataloader.sampler, (RandomSampler, SequentialSampler))
-            and _is_dataloader_shuffled(dataloader)
-        ):
+        if _is_dataloader_shuffled(dataloader):
             rank_zero_warn(
                 f"Your `{mode.dataloader_prefix}_dataloader`'s sampler has shuffling enabled,"
                 " it is strongly recommended that you turn shuffling off for val/test/predict dataloaders.",
