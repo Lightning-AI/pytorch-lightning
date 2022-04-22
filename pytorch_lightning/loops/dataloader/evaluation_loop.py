@@ -15,7 +15,7 @@ import os
 import shutil
 from collections import ChainMap, OrderedDict
 from functools import partial
-from typing import Any, IO, Iterable, List, Optional, Sequence, Type, Union
+from typing import Any, IO, Iterable, List, Optional, Sequence, Tuple, Type, Union
 
 import torch
 from deprecate.utils import void
@@ -319,47 +319,49 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer._logger_connector.on_epoch_end()
 
     @staticmethod
-    def _get_keys(data: dict) -> Iterable[str]:
-        if any(isinstance(v, dict) for v in data.values()):
-            for k, v in data.items():
-                if isinstance(v, dict):
-                    yield from apply_to_collection(v, dict, dict.keys)
-                else:
-                    yield k
-        else:
-            yield from data.keys()
+    def _get_keys(data: dict) -> Iterable[Tuple[str, ...]]:
+        for k, v in data.items():
+            if isinstance(v, dict):
+                for new_key in apply_to_collection(v, dict, EvaluationLoop._get_keys):
+                    yield (k, *new_key)
+            else:
+                yield (k,)
 
     @staticmethod
-    def _find_value(data: dict, target: str) -> Iterable[Any]:
-        for k, v in data.items():
-            if k == target:
-                yield v
-            elif isinstance(v, dict):
-                yield from EvaluationLoop._find_value(v, target)
+    def _find_value(data: dict, target: Iterable[str]) -> Optional[Any]:
+        target_start, *rest = target
+        result = data.get(target_start, None)
+        if result is None:
+            return None
+        if not rest:
+            return result
+        return EvaluationLoop._find_value(result, rest)
 
     @staticmethod
     def _print_results(results: List[_OUT_DICT], stage: str, file: Optional[IO[str]] = None) -> None:
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
-        metrics_all = [k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys]
-        metrics = sorted(set(metrics_all))
-        if len(metrics_all) != len(metrics):
-            rank_zero_warn("We found multiple keys in your metrics, which can happen in nested dictionaries")
-        if not metrics:
+        metrics_paths = {k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys}
+        metrics_strs = [":".join(metric) for metric in metrics_paths]
+
+        if not metrics_strs:
             return
+
+        # sort both lists based on metrics_strs.
+        metrics_paths, metrics_strs = zip(*[(path, s) for (path, s) in sorted(zip(metrics_paths, metrics_strs))])
+
         headers = [f"DataLoader {i}" for i in range(len(results))]
 
         # fallback is useful for testing of printed output
         term_size = shutil.get_terminal_size(fallback=(120, 30)).columns or 120
-        max_length = int(min(max(len(max(metrics + headers, key=len)), 25), term_size / 2))
+        max_length = int(min(max(len(max(metrics_strs, key=len)), len(max(headers, key=len)), 25), term_size / 2))
 
-        rows: List[List[Any]] = [[] for _ in metrics]
+        rows: List[List[Any]] = [[] for _ in metrics_paths]
 
         for result in results:
-            for metric, row in zip(metrics, rows):
-                v = list(EvaluationLoop._find_value(result, metric))
-                if v:
-                    val = v[0]
+            for metric, row in zip(metrics_paths, rows):
+                val = EvaluationLoop._find_value(result, metric)
+                if val is not None:
                     if isinstance(val, torch.Tensor):
                         val = val.item() if val.numel() == 1 else val.tolist()
                     row.append(f"{val}")
@@ -382,7 +384,7 @@ class EvaluationLoop(DataLoaderLoop):
                 columns[0].style = "cyan"
 
                 table = Table(*columns)
-                for metric, row in zip(metrics, table_rows):
+                for metric, row in zip(metrics_strs, table_rows):
                     row.insert(0, metric)
                     table.add_row(*row)
                 console.print(table)
@@ -392,7 +394,7 @@ class EvaluationLoop(DataLoaderLoop):
 
                 bar = "─" * term_size
                 lines = [bar, row_format.format(*table_headers).rstrip(), bar]
-                for metric, row in zip(metrics, table_rows):
+                for metric, row in zip(metrics_strs, table_rows):
                     # deal with column overflow
                     if len(metric) > half_term_size:
                         while len(metric) > half_term_size:

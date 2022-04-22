@@ -794,8 +794,12 @@ expected0 = """
 
 inputs1 = (
     [
-        {"performance": {"log1": torch.tensor(5), "log2": torch.tensor(3)}},
-        {"test": {"no_log1": torch.tensor(6), "no_log2": torch.tensor(1)}},
+        {
+            "value": torch.tensor(2),
+            "performance": {"log:1": torch.tensor(5), "log2": torch.tensor(3), "log3": torch.tensor(7)},
+            "extra": {"log3": torch.tensor(7)},
+        },
+        {"different value": torch.tensor(1.5), "tes:t": {"no_log1": torch.tensor(6), "no_log2": torch.tensor(1)}},
     ],
     RunningStage.TESTING,
 )
@@ -803,10 +807,14 @@ expected1 = """
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
        Test metric             DataLoader 0             DataLoader 1
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-          log1                       5
-          log2                       3
-         no_log1                                              6
-         no_log2                                              1
+     different value                                         1.5
+       extra:log3                    7
+    performance:log2                 3
+    performance:log3                 7
+    performance:log:1                5
+      tes:t:no_log1                                           6
+      tes:t:no_log2                                           1
+          value                      2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 """
 
@@ -849,35 +857,6 @@ expected3 = """
 inputs4 = ([{}], "foo")
 expected4 = ""
 
-inputs5 = (
-    [
-        {
-            "test_loss": torch.tensor(0.5),
-            "accuracy": torch.tensor(1.5),
-            "macro avg": {
-                "precision": torch.tensor(2.5),
-                "recall": torch.tensor(3.5),
-                "f1-score": torch.tensor(4.5),
-                "support": torch.tensor(5.5),
-            },
-        }
-    ],
-    RunningStage.TESTING,
-)
-
-expected5 = """
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-       Test metric             DataLoader 0
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-        accuracy                    1.5
-        f1-score                    4.5
-        precision                   2.5
-         recall                     3.5
-         support                    5.5
-        test_loss                   0.5
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-"""
-
 
 @pytest.mark.parametrize(
     ["inputs", "expected"],
@@ -887,7 +866,6 @@ expected5 = """
         pytest.param(inputs2, expected2, id="case2"),
         pytest.param(inputs3, expected3, id="case3"),
         pytest.param(inputs4, expected4, id="empty case"),
-        pytest.param(inputs5, expected5, id="ragged dict"),
     ],
 )
 def test_native_print_results(monkeypatch, inputs, expected):
@@ -913,10 +891,14 @@ expected1 = """
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃       Test metric       ┃      DataLoader 0       ┃       DataLoader 1       ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│          log1           │            5            │                          │
-│          log2           │            3            │                          │
-│         no_log1         │                         │            6             │
-│         no_log2         │                         │            1             │
+│     different value     │                         │           1.5            │
+│       extra:log3        │            7            │                          │
+│    performance:log2     │            3            │                          │
+│    performance:log3     │            7            │                          │
+│    performance:log:1    │            5            │                          │
+│      tes:t:no_log1      │                         │            6             │
+│      tes:t:no_log2      │                         │            1             │
+│          value          │            2            │                          │
 └─────────────────────────┴─────────────────────────┴──────────────────────────┘
 """
 
