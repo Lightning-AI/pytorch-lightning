@@ -14,7 +14,7 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.strategies.strategy import Strategy, TBroadcast
-from pytorch_lightning.utilities import _XLA_AVAILABLE, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities import rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -65,7 +65,8 @@ class CollaborativeStrategy(Strategy):
                 batch size, the more work can be done asynchronously without communication.
 
             run_id: A unique identifier of this training run, used as a common prefix for all DHT keys.
-                batch_size: The local batch size per process. If not provided,
+
+            batch_size: The local batch size per process. If not provided,
                 we infer this from the first batch of data passed in at training.
 
             delay_state_averaging: If enabled (default), average parameters and extra tensors in a background thread;
@@ -102,7 +103,7 @@ class CollaborativeStrategy(Strategy):
             averager_opts: Additional keyword arguments forwarded to both GradientAverager and TrainingStateAverager.
 
             host_maddrs: List of multi-addrs to create visible peers for other processes.
-                https://learning-at-home.readthedocs.io/en/latest/user/dht.html#running-across-the-internet
+                `https://learning-at-home.readthedocs.io/en/latest/user/dht.html#running-across-the-internet`
 
             initial_peers: If connecting to a running process, a list of initial peers needs to be passed in.
                 This can also be set via the env variable `INITIAL_PEERS`.
@@ -171,6 +172,38 @@ class CollaborativeStrategy(Strategy):
         self.global_rank = 0
         self.local_rank = 0
         self.world_size = 1
+
+    @property
+    def num_peers(self) -> int:
+        if self.opt:
+            return self.opt.tracker.global_progress.num_peers
+        return 1
+
+    @property
+    def dht(self) -> "hivemind.DHT":
+        return self.dht_manager.dht
+
+    @property
+    def root_device(self) -> torch.device:
+        # todo: cyclic import, someone show me the way
+        from pytorch_lightning.accelerators.cpu import CPUAccelerator
+        from pytorch_lightning.accelerators.gpu import GPUAccelerator
+
+        if isinstance(self.accelerator, GPUAccelerator):
+            return torch.device(f"cuda:{torch.cuda.current_device()}")
+        elif isinstance(self.accelerator, CPUAccelerator):
+            return torch.device("cpu")
+        raise ValueError
+
+    @property
+    def is_global_zero(self) -> bool:
+        return True
+
+    def setup(self, trainer: "pl.Trainer") -> None:
+        self.model_to_device()
+        super().setup(trainer)
+        if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED):
+            self.precision_plugin.scaler = hivemind.GradScaler()
 
     def _initialize_hivemind(self) -> None:
         if len(self.optimizers) > 1:
@@ -245,55 +278,15 @@ class CollaborativeStrategy(Strategy):
                     )
             self._initialize_hivemind()
 
-    @property
-    def num_peers(self) -> int:
-        if self.opt:
-            return self.opt.tracker.global_progress.num_peers
-        return 1
-
-    @property
-    def dht(self) -> "hivemind.DHT":
-        return self.dht_manager.dht
-
-    @property
-    def on_tpu(self) -> bool:
-        return self.root_device.type == "xla" and _XLA_AVAILABLE
-
-    @property
-    def on_gpu(self) -> bool:
-        return self.root_device.type == "cuda" and torch.cuda.is_available()
-
     def reduce(self, tensor: Union[Any, torch.Tensor], *args: Any, **kwargs: Any) -> Union[Any, torch.Tensor]:
         return tensor
 
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
         return tensor
 
-    @property
-    def root_device(self) -> torch.device:
-        # todo: cyclic import, someone show me the way
-        from pytorch_lightning.accelerators.cpu import CPUAccelerator
-        from pytorch_lightning.accelerators.gpu import GPUAccelerator
-
-        if isinstance(self.accelerator, GPUAccelerator):
-            return torch.device(f"cuda:{torch.cuda.current_device()}")
-        elif isinstance(self.accelerator, CPUAccelerator):
-            return torch.device("cpu")
-        raise ValueError
-
     def model_to_device(self) -> None:
         assert self.model is not None
         self.model.to(self.root_device)
-
-    def setup(self, trainer: "pl.Trainer") -> None:
-        self.model_to_device()
-        super().setup(trainer)
-        if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED):
-            self.precision_plugin.scaler = hivemind.GradScaler()
-
-    @property
-    def is_global_zero(self) -> bool:
-        return True
 
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         pass
@@ -303,7 +296,7 @@ class CollaborativeStrategy(Strategy):
 
     def teardown(self) -> None:
         super().teardown()
-        if self.on_gpu and self.lightning_module is not None:
+        if self.root_device.type == "cuda" and self.lightning_module is not None:
             # GPU teardown
             self.lightning_module.cpu()
             # clean up memory
@@ -367,30 +360,28 @@ class DHTManager:
         Arguments:
 
             host_maddrs: List of multi-addrs to create visible peers for other processes.
-            https://learning-at-home.readthedocs.io/en/latest/user/dht.html#running-across-the-internet
+                `https://learning-at-home.readthedocs.io/en/latest/user/dht.html#running-across-the-internet`
 
             initial_peers: If connecting to a running process, a list of initial peers needs to be passed in.
-            This can also be set via the env variable `INITIAL_PEERS`.
+                This can also be set via the env variable `INITIAL_PEERS`.
 
             endpoint: Enable if a side-car endpoint server is required on the process to server initial peers.
-            This is useful when using some form of orchestration such as torchelastic.
+                This is useful when using some form of orchestration such as torchelastic.
 
             peer_endpoint: The endpoint to request initial peers from.
 
             persistent: When using an endpoint, this controls whether other processes that are not the endpoint
-            server log/checkpoint. If `persistent` is True, we do not log/checkpoint from other processes.
+                server log/checkpoint. If `persistent` is True, we do not log/checkpoint from other processes.
 
             host: When creating the endpoint, the host IP to use.
 
             port: When creating the endpoint, the host port to use.
 
             retry_initial_peers: When connecting to the `peer_endpoint`, how many time to retry before raising
-            an exception.
+                an exception.
 
             retry_peer_sleep_duration: When connecting to the `peer_endpoint`, how long to wait between retries.
         """
-        logging.basicConfig()
-        log.setLevel(logging.INFO)
         self.persistent = persistent
         self.endpoint = endpoint
         self.initial_peers = initial_peers
@@ -505,7 +496,5 @@ class DHTManager:
 
     @property
     def disable_logging_checkpointing(self) -> bool:
-        if self.persistent and (self.initial_peers or self.peer_endpoint):
-            # if this node is a peer, we do not log/checkpoint in persistent mode.
-            return True
-        return False
+        # if this node is a peer, we do not log/checkpoint in persistent mode.
+        return self.persistent and (self.initial_peers or self.peer_endpoint)
