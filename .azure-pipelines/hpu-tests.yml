@@ -35,7 +35,7 @@ jobs:
     - bash: |
         pip install . --requirement requirements/extra.txt
         pip install . --requirement requirements/test.txt
-        pip uninstall -y horovod  # HotFix: not sure how it got there...
+        pip uninstall -y horovod  # TODO: not sure how it got there...
       displayName: 'Install dependencies'
 
     - bash: |
