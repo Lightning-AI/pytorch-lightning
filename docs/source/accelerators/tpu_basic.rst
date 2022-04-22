@@ -128,5 +128,3 @@ The official PyTorch XLA `performance guide <https://github.com/pytorch/xla/blob
 has more detailed information on how PyTorch code can be optimized for TPU. In particular, the
 `metrics report <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#get-a-metrics-report>`_ allows
 one to identify operations that lead to context switching.
-
-----
