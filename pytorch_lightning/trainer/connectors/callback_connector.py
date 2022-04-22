@@ -102,7 +102,7 @@ class CallbackConnector:
         if self.trainer.state._fault_tolerant_mode.is_enabled:
             self._configure_fault_tolerance_callbacks()
 
-        self._configure_external_callbacks()
+        self.trainer.callbacks.extend(_configure_external_callbacks())
 
         # push all model checkpoint callbacks to the end
         # it is important that these are the last callbacks to run
@@ -245,27 +245,6 @@ class CallbackConnector:
         # don't use `log_dir` to minimize the chances of failure
         self.trainer.callbacks.append(_FaultToleranceCheckpoint(dirpath=self.trainer.default_root_dir))
 
-    def _configure_external_callbacks(self) -> None:
-        """Add external callbacks registered through entry points.
-
-        The entry points are expected to be functions returning a list of callbacks, which will be added to the Trainer
-        callback list.
-        """
-        if _PYTHON_GREATER_EQUAL_3_8_0:
-            factories = importlib.metadata.entry_points().get("pytorch_lightning.callbacks_factory", ())
-        else:
-            factories = iter_entry_points("pytorch_lightning.callbacks_factory")
-
-        for factory in factories:
-            callback_factory = factory.load()
-            callbacks_list: List[Callback] = callback_factory()
-            callbacks_list = [callbacks_list] if isinstance(callbacks_list, Callback) else callbacks_list
-            _log.info(
-                f"Adding {len(callbacks_list)} callbacks from entry point '{factory.name}':"
-                f" {', '.join(type(cb).__name__ for cb in callbacks_list)}"
-            )
-            self.trainer.callbacks.extend(callbacks_list)
-
     def _attach_model_logging_functions(self):
         lightning_module = self.trainer.lightning_module
         for callback in self.trainer.callbacks:
@@ -316,3 +295,29 @@ class CallbackConnector:
         checkpoints = [c for c in callbacks if isinstance(c, ModelCheckpoint)]
         not_checkpoints = [c for c in callbacks if not isinstance(c, ModelCheckpoint)]
         return not_checkpoints + checkpoints
+
+
+def _configure_external_callbacks() -> List[Callback]:
+    """Collect external callbacks registered through entry points.
+
+    The entry points are expected to be functions returning a list of callbacks.
+
+    Return:
+        A list of all callbacks collected from external factories.
+    """
+    if _PYTHON_GREATER_EQUAL_3_8_0:
+        factories = importlib.metadata.entry_points().get("pytorch_lightning.callbacks_factory", ())
+    else:
+        factories = iter_entry_points("pytorch_lightning.callbacks_factory")
+
+    external_callbacks = []
+    for factory in factories:
+        callback_factory = factory.load()
+        callbacks_list: List[Callback] = callback_factory()
+        callbacks_list = [callbacks_list] if isinstance(callbacks_list, Callback) else callbacks_list
+        _log.info(
+            f"Adding {len(callbacks_list)} callbacks from entry point '{factory.name}':"
+            f" {', '.join(type(cb).__name__ for cb in callbacks_list)}"
+        )
+        external_callbacks.extend(callbacks_list)
+    return external_callbacks
