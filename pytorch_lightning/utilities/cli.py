@@ -602,7 +602,6 @@ class LightningCLI:
 
     def add_default_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         """Adds default arguments to the parser."""
-
         parser.add_argument(
             "--seed_everything",
             type=Union[bool, uint32],
@@ -863,7 +862,6 @@ class LightningCLI:
 
     def _set_seed(self) -> None:
         """Sets the seed."""
-
         config_seed = self._get(self.config, "seed_everything")
 
         if isinstance(config_seed, bool) and config_seed:

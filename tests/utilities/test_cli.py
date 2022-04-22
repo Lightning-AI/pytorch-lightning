@@ -1612,3 +1612,4 @@ def test_cli_auto_seeding():
         cli = LightningCLI(TestModel, run=False, seed_everything_default=False)
         assert cli.seed_everything_default is False
         assert isinstance(cli.config["seed_everything"], int)
+
