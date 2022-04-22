@@ -1,6 +1,5 @@
 .. testsetup:: *
 
-    from pytorch_lightning import Trainer
     from pytorch_lightning.callbacks import StochasticWeightAveraging
 
 .. _training_tricks:
