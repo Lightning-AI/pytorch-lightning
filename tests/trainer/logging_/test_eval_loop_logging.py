@@ -875,7 +875,7 @@ def test_native_print_results_encodings(monkeypatch, encoding):
     import pytorch_lightning.loops.dataloader.evaluation_loop as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
-    
+
     results = [{"log": torch.tensor(5)}, {"no_log": torch.tensor(6)}]
     out = mock.Mock()
     out.encoding = encoding
