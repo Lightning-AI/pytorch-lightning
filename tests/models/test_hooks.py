@@ -642,7 +642,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume(tmpdir):
         dict(name="Callback.on_pretrain_routine_end", args=(trainer, model)),
         dict(name="on_pretrain_routine_end"),
         dict(name="train", args=(True,)),
-        dict(name="on_train_dataloader"),
         dict(name="train_dataloader"),
         dict(name="Callback.on_train_start", args=(trainer, model)),
         dict(name="on_train_start"),
