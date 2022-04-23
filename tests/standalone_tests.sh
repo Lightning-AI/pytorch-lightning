@@ -25,9 +25,6 @@ grep_output=$(grep --recursive --word-regexp 'tests' --regexp 'standalone=True' 
 # file paths, remove duplicates
 files=$(echo "$grep_output" | cut -f1 -d: | sort | uniq)
 
-echo "asdfasdfasdf"
-echo $files
-
 # get the list of parametrizations. we need to call them separately. the last two lines are removed.
 # note: if there's a syntax error, this will fail with some garbled output
 if [[ "$OSTYPE" == "darwin"* ]]; then
