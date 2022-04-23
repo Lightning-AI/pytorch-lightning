@@ -39,6 +39,7 @@ fi
 parametrizations_arr=($parametrizations)
 
 echo "assdafsdaf"
+echo $parametrizations
 
 # tests to skip - space separated
 blocklist='tests/profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx'
