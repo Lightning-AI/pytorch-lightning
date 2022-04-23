@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# set -e  # FIXME
+set -e
 
 # this environment variable allows special tests to run
 export PL_RUN_STANDALONE_TESTS=1
