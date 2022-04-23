@@ -97,16 +97,6 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
             " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
         )
 
-    # ----------------------------------------------
-    # verify model does not have on_train_dataloader
-    # ----------------------------------------------
-    has_on_train_dataloader = is_overridden("on_train_dataloader", model)
-    if has_on_train_dataloader:
-        rank_zero_deprecation(
-            "Method `on_train_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
-            " Please use `train_dataloader()` directly."
-        )
-
     trainer.overridden_optimizer_step = is_overridden("optimizer_step", model)
     trainer.overridden_optimizer_zero_grad = is_overridden("optimizer_zero_grad", model)
     automatic_optimization = model.automatic_optimization
