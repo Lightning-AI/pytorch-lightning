@@ -33,12 +33,9 @@ echo $files
 if [[ "$OSTYPE" == "darwin"* ]]; then
   parametrizations=$(pytest $files --collect-only --quiet "$@" | tail -r | sed -e '1,3d' | tail -r)
 else
-  echo "asdfasdfasdf"
   parametrizations=$(pytest $files --collect-only --quiet "$@" | head -n -2)
 fi
 parametrizations_arr=($parametrizations)
-
-echo "assdafsdaf"
 
 # tests to skip - space separated
 blocklist='tests/profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx'
@@ -46,8 +43,6 @@ report=''
 
 for i in "${!parametrizations_arr[@]}"; do
   parametrization=${parametrizations_arr[$i]}
-  echo "assdafsdaf" $i $parametrization
-
 
   # check blocklist
   if echo $blocklist | grep -F "${parametrization}"; then
