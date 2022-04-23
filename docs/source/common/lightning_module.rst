@@ -1609,11 +1609,6 @@ predict_dataloader
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.predict_dataloader
     :noindex:
 
-on_train_dataloader
-~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_train_dataloader
-    :noindex:
 
 on_val_dataloader
 ~~~~~~~~~~~~~~~~~
