@@ -25,7 +25,6 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_debug as new_rank_ze
 from pytorch_lightning.utilities.rank_zero import rank_zero_only  # noqa: F401
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 from pytorch_lightning.utilities.rank_zero import rank_zero_info as new_rank_zero_info
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn as new_rank_zero_warn
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -282,6 +281,8 @@ def register_ddp_comm_hook(
         ...     ddp_comm_wrapper=default.fp16_compress_wrapper,
         ... )
     """
+    from pytorch_lightning.utilities import rank_zero_warn
+
     if ddp_comm_hook is None:
         return
     # inform mypy that ddp_comm_hook is callable
