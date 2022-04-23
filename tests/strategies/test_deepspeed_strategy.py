@@ -32,7 +32,7 @@ from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
 from pytorch_lightning.strategies import DeepSpeedStrategy
 from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE, _DEEPSPEED_GREATER_EQUAL_0_6
+from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE, _DEEPSPEED_GREATER_EQUAL_0_5_9, _DEEPSPEED_GREATER_EQUAL_0_6
 from pytorch_lightning.utilities.meta import init_meta_context
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.datamodules import ClassifDataModule
@@ -42,6 +42,10 @@ if _DEEPSPEED_AVAILABLE:
     import deepspeed
     from deepspeed.utils.zero_to_fp32 import convert_zero_checkpoint_to_fp32_state_dict
 
+    if _DEEPSPEED_GREATER_EQUAL_0_5_9:
+        from deepspeed.runtime.zero.stage_1_and_2 import DeepSpeedZeroOptimizer
+    else:
+        from deepspeed.runtime.zero.stage2 import FP16_DeepSpeedZeroOptimizer as DeepSpeedZeroOptimizer
 
 class ModelParallelBoringModel(BoringModel):
     def __init__(self):
@@ -296,9 +300,7 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
 
     class TestCB(Callback):
         def on_train_start(self, trainer, pl_module) -> None:
-            from deepspeed.runtime.zero.stage2 import FP16_DeepSpeedZeroOptimizer
-
-            assert isinstance(trainer.optimizers[0], FP16_DeepSpeedZeroOptimizer)
+            assert isinstance(trainer.optimizers[0], DeepSpeedZeroOptimizer)
             assert isinstance(trainer.optimizers[0].optimizer, torch.optim.SGD)
             assert isinstance(trainer.lr_scheduler_configs[0].scheduler, torch.optim.lr_scheduler.StepLR)
             # check that the lr_scheduler config was preserved
@@ -337,9 +339,8 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
     class TestCB(Callback):
         def on_train_start(self, trainer, pl_module) -> None:
             from deepspeed.runtime.lr_schedules import WarmupLR
-            from deepspeed.runtime.zero.stage2 import FP16_DeepSpeedZeroOptimizer
 
-            assert isinstance(trainer.optimizers[0], FP16_DeepSpeedZeroOptimizer)
+            assert isinstance(trainer.optimizers[0], DeepSpeedZeroOptimizer)
             assert isinstance(trainer.optimizers[0].optimizer, torch.optim.SGD)
             assert isinstance(trainer.lr_scheduler_configs[0].scheduler, WarmupLR)
             assert trainer.lr_scheduler_configs[0].interval == "step"
