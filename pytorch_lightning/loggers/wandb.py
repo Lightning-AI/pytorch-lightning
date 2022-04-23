@@ -498,7 +498,13 @@ class WandbLogger(Logger):
 
     @classmethod
     @rank_zero_only
-    def download_artifact(cls, artifact: str, save_dir: Optional[str] = None, artifact_type: Optional[str] = None, use_artifact: Optional[bool] = True) -> str:
+    def download_artifact(
+        cls,
+        artifact: str,
+        save_dir: Optional[str] = None,
+        artifact_type: Optional[str] = None,
+        use_artifact: Optional[bool] = True,
+    ) -> str:
         """Downloads an artifact from the wandb server.
 
         Args:
@@ -515,10 +521,10 @@ class WandbLogger(Logger):
         else:
             api = wandb.Api()
             artifact = api.artifact(artifact, type=artifact_type)
-        
+
         artifact_dir = artifact.download(root=save_dir)
         return artifact_dir
-    
+
     def use_artifact(self, artifact: str, type: Optional[str] = None) -> "wandb.Artifact":
         """Logs to the wandb dashboard that the mentioned artifact is used by the run.
 
