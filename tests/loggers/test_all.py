@@ -29,7 +29,6 @@ from pytorch_lightning.loggers import (
     MLFlowLogger,
     NeptuneLogger,
     TensorBoardLogger,
-    TestTubeLogger,
     WandbLogger,
 )
 from pytorch_lightning.loggers.logger import DummyExperiment
@@ -45,7 +44,6 @@ LOGGER_CTX_MANAGERS = (
     mock.patch("pytorch_lightning.loggers.mlflow.mlflow"),
     mock.patch("pytorch_lightning.loggers.mlflow.MlflowClient"),
     mock.patch("pytorch_lightning.loggers.neptune.neptune", new_callable=create_neptune_mock),
-    mock.patch("pytorch_lightning.loggers.test_tube.Experiment"),
     mock.patch("pytorch_lightning.loggers.wandb.wandb"),
 )
 ALL_LOGGER_CLASSES = (
@@ -54,10 +52,8 @@ ALL_LOGGER_CLASSES = (
     MLFlowLogger,
     NeptuneLogger,
     TensorBoardLogger,
-    TestTubeLogger,
     WandbLogger,
 )
-ALL_LOGGER_CLASSES_WO_TTUBE = tuple(filter(lambda cls: cls is not TestTubeLogger, ALL_LOGGER_CLASSES))
 ALL_LOGGER_CLASSES_WO_NEPTUNE = tuple(filter(lambda cls: cls is not NeptuneLogger, ALL_LOGGER_CLASSES))
 ALL_LOGGER_CLASSES_WO_NEPTUNE_WANDB = tuple(filter(lambda cls: cls is not WandbLogger, ALL_LOGGER_CLASSES_WO_NEPTUNE))
 
@@ -82,7 +78,7 @@ def _instantiate_logger(logger_class, save_dir, **override_kwargs):
     return logger
 
 
-@pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES_WO_TTUBE)
+@pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES)
 def test_loggers_fit_test_all(tmpdir, monkeypatch, logger_class):
     """Verify that basic functionality of all loggers."""
     with contextlib.ExitStack() as stack:
@@ -127,10 +123,6 @@ def _test_loggers_fit_test(tmpdir, logger_class):
     if logger_class == CometLogger:
         logger.experiment.id = "foo"
         logger.experiment.project_name = "bar"
-
-    if logger_class == TestTubeLogger:
-        logger.experiment.version = "foo"
-        logger.experiment.name = "bar"
 
     if logger_class == MLFlowLogger:
         logger = mock_mlflow_run_creation(logger, experiment_id="foo", run_id="bar")
@@ -232,11 +224,7 @@ def test_loggers_pickle_all(tmpdir, monkeypatch, logger_class):
     """
     _patch_comet_atexit(monkeypatch)
     try:
-        if logger_class is TestTubeLogger:
-            with pytest.deprecated_call(match="TestTubeLogger is deprecated since v1.5"):
-                _test_loggers_pickle(tmpdir, monkeypatch, logger_class)
-        else:
-            _test_loggers_pickle(tmpdir, monkeypatch, logger_class)
+        _test_loggers_pickle(tmpdir, monkeypatch, logger_class)
     except (ImportError, ModuleNotFoundError):
         pytest.xfail(f"pickle test requires {logger_class.__class__} dependencies to be installed.")
 
@@ -316,11 +304,7 @@ def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """Test that loggers get replaced by dummy loggers on global rank > 0."""
     _patch_comet_atexit(monkeypatch)
     try:
-        if logger_class is TestTubeLogger:
-            with pytest.deprecated_call(match="TestTubeLogger is deprecated since v1.5"):
-                _test_logger_created_on_rank_zero_only(tmpdir, logger_class)
-        else:
-            _test_logger_created_on_rank_zero_only(tmpdir, logger_class)
+        _test_logger_created_on_rank_zero_only(tmpdir, logger_class)
     except (ImportError, ModuleNotFoundError):
         pytest.xfail(f"multi-process test requires {logger_class.__class__} dependencies to be installed.")
 
@@ -377,14 +361,6 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
         logger = _instantiate_logger(TensorBoardLogger, save_dir=tmpdir, prefix=prefix)
         logger.log_metrics({"test": 1.0}, step=0)
         logger.experiment.add_scalar.assert_called_once_with("tmp-test", 1.0, 0)
-
-    # TestTube
-    with mock.patch("pytorch_lightning.loggers.test_tube.Experiment"), pytest.deprecated_call(
-        match="TestTubeLogger is deprecated since v1.5"
-    ):
-        logger = _instantiate_logger(TestTubeLogger, save_dir=tmpdir, prefix=prefix)
-        logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.log.assert_called_once_with({"tmp-test": 1.0}, global_step=0)
 
     # WandB
     with mock.patch("pytorch_lightning.loggers.wandb.wandb") as wandb:
