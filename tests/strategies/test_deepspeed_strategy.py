@@ -32,7 +32,11 @@ from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
 from pytorch_lightning.strategies import DeepSpeedStrategy
 from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE, _DEEPSPEED_GREATER_EQUAL_0_5_9, _DEEPSPEED_GREATER_EQUAL_0_6
+from pytorch_lightning.utilities.imports import (
+    _DEEPSPEED_AVAILABLE,
+    _DEEPSPEED_GREATER_EQUAL_0_5_9,
+    _DEEPSPEED_GREATER_EQUAL_0_6,
+)
 from pytorch_lightning.utilities.meta import init_meta_context
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.datamodules import ClassifDataModule
@@ -46,6 +50,7 @@ if _DEEPSPEED_AVAILABLE:
         from deepspeed.runtime.zero.stage_1_and_2 import DeepSpeedZeroOptimizer
     else:
         from deepspeed.runtime.zero.stage2 import FP16_DeepSpeedZeroOptimizer as DeepSpeedZeroOptimizer
+
 
 class ModelParallelBoringModel(BoringModel):
     def __init__(self):
