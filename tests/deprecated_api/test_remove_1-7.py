@@ -71,9 +71,6 @@ def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
 
 def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
     class CustomBoringModel(BoringModel):
-        def on_train_dataloader(self):
-            print("on_train_dataloader")
-
         def on_val_dataloader(self):
             print("on_val_dataloader")
 
