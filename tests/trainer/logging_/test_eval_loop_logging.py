@@ -876,10 +876,9 @@ def test_native_print_results_encodings(monkeypatch, encoding):
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
 
-    results = [{"log": torch.tensor(5)}, {"no_log": torch.tensor(6)}]
     out = mock.Mock()
     out.encoding = encoding
-    EvaluationLoop._print_results(results, RunningStage.TESTING, file=out)
+    EvaluationLoop._print_results(*inputs0, file=out)
 
     # Attempt to encode everything the file is told to write with the given encoding
     for call_ in out.method_calls:
