@@ -70,6 +70,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
+- Removed the deprecated `TestTubeLogger` ([#12859](https://github.com/PyTorchLightning/pytorch-lightning/pull/12859))
+
+
 - Removed the deprecated `pytorch_lightning.core.memory.LayerSummary` and `pytorch_lightning.core.memory.ModelSummary` ([#12593](https://github.com/PyTorchLightning/pytorch-lightning/pull/12593))
 
 
