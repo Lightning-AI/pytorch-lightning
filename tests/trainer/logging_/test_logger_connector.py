@@ -262,8 +262,6 @@ def test_fx_validator_integration(tmpdir):
         limit_predict_batches=1,
         callbacks=callback,
     )
-    with pytest.deprecated_call(match="on_train_dataloader` is deprecated in v1.5"):
-        trainer.fit(model)
 
     not_supported.update(
         {
