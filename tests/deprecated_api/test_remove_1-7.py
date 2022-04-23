@@ -90,11 +90,6 @@ def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
     model = CustomBoringModel()
 
     with pytest.deprecated_call(
-        match="Method `on_train_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
-    ):
-        _run(model, "fit")
-
-    with pytest.deprecated_call(
         match="Method `on_val_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
     ):
         _run(model, "fit")
