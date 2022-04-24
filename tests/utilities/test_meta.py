@@ -13,11 +13,11 @@
 # limitations under the License.
 from torch import nn
 
-from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.utilities.meta import init_meta_context, is_on_meta_device, materialize_module
-from tests.helpers.runif import RunIf
 from tests.helpers.boring_model import BoringModel
+from tests.helpers.runif import RunIf
 
 
 class MLP(nn.Module):
