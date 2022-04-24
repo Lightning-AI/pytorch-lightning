@@ -24,6 +24,7 @@ grep_output=$(grep --recursive --word-regexp 'tests' --regexp 'standalone=True' 
 
 # file paths, remove duplicates
 files=$(echo "$grep_output" | cut -f1 -d: | sort | uniq)
+printf $files
 
 # get the list of parametrizations. we need to call them separately. the last two lines are removed.
 # note: if there's a syntax error, this will fail with some garbled output
@@ -34,7 +35,7 @@ else
 fi
 parametrizations_arr=($parametrizations)
 
-# tests to skip - space separated
+# TODO: tests to skip - space separated
 blocklist='tests/profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx'
 report=''
 
