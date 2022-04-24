@@ -13,9 +13,11 @@
 # limitations under the License.
 from torch import nn
 
+from pytorch_lightning.trainer.trainer import Trainer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.meta import init_meta_context, is_on_meta_device, materialize_module
 from tests.helpers.runif import RunIf
+from tests.helpers.boring_model import BoringModel
 
 
 class MLP(nn.Module):
@@ -24,7 +26,7 @@ class MLP(nn.Module):
         self.layer = nn.Sequential(*[nn.Linear(1, 1) for _ in range(num_layers)] + [nn.Dropout(), nn.LayerNorm(1)])
 
 
-class BoringModel(LightningModule):
+class SimpleBoringModel(LightningModule):
     def __init__(self, num_layers: int):
         super().__init__()
         self.save_hyperparameters()
@@ -48,7 +50,7 @@ def test_init_meta_context():
         assert not is_on_meta_device(mlp)
         assert not is_on_meta_device(nn.Module())
 
-        model = BoringModel(4)
+        model = SimpleBoringModel(4)
         assert model.layer[0].weight.device.type == "meta"
         materialize_module(model)
         assert model.layer[0].weight.device.type == "cpu"
@@ -68,3 +70,17 @@ def test_init_meta_context():
 
     m = nn.Linear(in_features=1, out_features=1)
     assert m.weight.device.type == "cpu"
+
+
+@RunIf(min_torch="1.10.0", standalone=True)
+def test_fit_with_init_meta_context():
+    """Test fitting a model initialized on meta device."""
+    with init_meta_context():
+        model = BoringModel()
+    trainer = Trainer(
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+    )
+    trainer.fit(model)
