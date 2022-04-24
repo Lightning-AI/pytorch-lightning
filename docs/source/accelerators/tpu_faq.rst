@@ -53,26 +53,16 @@ Sometimes, there can still be old programs running on the TPUs, which would make
 How to resolve the replication issue?
 *************************************
 
-Pickle is Python's mechanism for serializing and unserializing data. A majority of distributed modes require that your code is fully pickle compliant. If you run into an issue with pickling try the following to figure out the issue
+.. code-block::
 
-.. code-block:: python
+    File "/usr/local/lib/python3.6/dist-packages/torch_xla/core/xla_model.py", line 200, in set_replication
+        replication_devices = xla_replication_devices(devices)
+    File "/usr/local/lib/python3.6/dist-packages/torch_xla/core/xla_model.py", line 187, in xla_replication_devices
+        .format(len(local_devices), len(kind_devices)))
+    RuntimeError: Cannot replicate if number of devices (1) is different from 8
 
-    import pickle
-
-    model = YourModel()
-    pickle.dumps(model)
-
-If you `ddp` your code doesn't need to be pickled.
-
-.. code-block:: python
-
-    Trainer(accelerator="gpu", devices=4, strategy="ddp")
-
-If you use `ddp_spawn` the pickling requirement remains. This is a limitation of Python.
-
-.. code-block:: python
-
-    Trainer(accelerator="gpu", devices=4, strategy="ddp_spawn")
+This error is raised when the XLA device is called outside the spawn process. Internally in `TPUSpawn` Strategy for training on multiple tpu cores, we use XLA's `xmp.spawn`.
+Don't use ``xm.xla_device()`` while working on Lightning + TPUs!
 
 ----
 
