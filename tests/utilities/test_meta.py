@@ -72,7 +72,7 @@ def test_init_meta_context():
     assert m.weight.device.type == "cpu"
 
 
-@RunIf(min_torch="1.10.0")
+@RunIf(min_torch="1.10.0", standalone=True)
 def test_fit_with_init_meta_context():
     """Test fitting a model initialized on meta device."""
     with init_meta_context():
