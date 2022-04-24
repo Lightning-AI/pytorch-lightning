@@ -76,7 +76,7 @@ hosted on GCP.
 
 To get a TPU on colab, follow these steps:
 
-1. Go to `<https://colab.research.google.com/>`_.
+1. Go to `Google Colab <https://colab.research.google.com/>`_.
 
 2. Click "new notebook" (bottom right of pop-up).
 
