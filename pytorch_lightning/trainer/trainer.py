@@ -23,7 +23,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Generator, Iterable, List, Optional, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Type, Union
 from weakref import proxy
 
 import torch
@@ -1918,6 +1918,7 @@ class Trainer(
 
         The val dataloader must be initialized before training loop starts, as the training loop
         inspects the val dataloader to determine whether to run the evaluation loop.
+
         Args:
             model: The ``LightningModule`` if called outside of the trainer scope.
         """
@@ -2189,19 +2190,6 @@ class Trainer(
     @property
     def data_parallel(self) -> bool:
         return isinstance(self.strategy, ParallelStrategy)
-
-    @property
-    def progress_bar_dict(self) -> dict:
-        """Read-only for progress bar metrics."""
-        rank_zero_deprecation(
-            "`trainer.progress_bar_dict` is deprecated in v1.5 and will be removed in v1.7."
-            " Use `ProgressBarBase.get_metrics` instead."
-        )
-        ref_model = self.lightning_module
-        ref_model = cast(pl.LightningModule, ref_model)
-        if self.progress_bar_callback:
-            return self.progress_bar_callback.get_metrics(self, ref_model)
-        return self.progress_bar_metrics
 
     @property
     def enable_validation(self) -> bool:
