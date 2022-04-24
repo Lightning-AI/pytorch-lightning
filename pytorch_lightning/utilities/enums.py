@@ -142,7 +142,7 @@ class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
     def deprecate(self) -> None:
         rank_zero_deprecation(
             "`DistributedType` Enum has been deprecated in v1.6 and will be removed in v1.8."
-            " Use the string value `{self.value!r}` instead."
+            f" Use the string value `{self.value!r}` instead."
         )
 
 
@@ -162,7 +162,7 @@ class DeviceType(LightningEnum, metaclass=_OnAccessEnumMeta):
     def deprecate(self) -> None:
         rank_zero_deprecation(
             "`DeviceType` Enum has been deprecated in v1.6 and will be removed in v1.8."
-            " Use the string value `{self.value!r}` instead."
+            f" Use the string value `{self.value!r}` instead."
         )
 
 
