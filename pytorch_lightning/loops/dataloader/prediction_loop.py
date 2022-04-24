@@ -80,8 +80,11 @@ class PredictionLoop(DataLoaderLoop):
             self.dataloader_progress.reset_on_run()
 
     def on_run_start(self) -> None:  # type: ignore[override]
-        """Calls ``_on_predict_start`` hook."""
+        """Calls ``_on_predict_model_eval``, ``_on_predict_start`` and ``_on_predict_epoch_start`` hooks."""
+        self.trainer._call_lightning_module_hook("on_predict_model_eval")
+        self.trainer.lightning_module.zero_grad()
         self._on_predict_start()
+        self._on_predict_epoch_start()
 
     def advance(self, *args: Any, **kwargs: Any) -> None:
         """Predicts one entire dataloader."""
@@ -111,19 +114,13 @@ class PredictionLoop(DataLoaderLoop):
         return results
 
     def _on_predict_start(self) -> None:
-        """Sets model to eval mode and disables gradients.
-
-        Also calls ``on_predict_start`` and ``on_predict_epoch_start`` hooks.
-        """
-        # enable eval mode + no grads
-        self.trainer._call_lightning_module_hook("on_predict_model_eval")
-        self.trainer.lightning_module.zero_grad()
-
-        # hook
+        """Calls ``on_predict_start`` hooks."""
         self.trainer._call_callback_hooks("on_predict_start")
         self.trainer._call_lightning_module_hook("on_predict_start")
         self.trainer._call_strategy_hook("on_predict_start")
 
+    def _on_predict_epoch_start(self) -> None:
+        """Calls ``on_predict_epoch_start`` hooks."""
         self.trainer._call_callback_hooks("on_predict_epoch_start")
         self.trainer._call_lightning_module_hook("on_predict_epoch_start")
 
