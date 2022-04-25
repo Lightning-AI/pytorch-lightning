@@ -347,5 +347,5 @@ def test_scaler_updated_precision_16(mocked_cuda_available, mocked_device_count)
 @RunIf(hivemind=True)
 def test_raise_when_peer_endpoint_unsuccessful():
     port = find_free_network_port()
-    with pytest.raises(MisconfigurationException, match="Was unable to get peers"):
+    with pytest.raises(MisconfigurationException, match="Unable to get peers"):
         CollaborativeStrategy(target_batch_size=1, peer_endpoint=f"localhost:{port}", retry_peer_sleep_duration=0)
