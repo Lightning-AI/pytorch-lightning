@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 import shutil
+import sys
 from collections import ChainMap, OrderedDict
 from functools import partial
 from typing import Any, IO, Iterable, List, Optional, Sequence, Type, Union
@@ -336,6 +337,10 @@ class EvaluationLoop(DataLoaderLoop):
 
     @staticmethod
     def _print_results(results: List[_OUT_DICT], stage: str, file: Optional[IO[str]] = None) -> None:
+        # print to stdout by default
+        if file is None:
+            file = sys.stdout
+
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
         metrics = sorted({k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys})
@@ -384,7 +389,16 @@ class EvaluationLoop(DataLoaderLoop):
                 row_format = f"{{:^{max_length}}}" * len(table_headers)
                 half_term_size = int(term_size / 2)
 
-                bar = "─" * term_size
+                try:
+                    # some terminals do not support this character
+                    if hasattr(file, "encoding") and file.encoding is not None:
+                        "─".encode(file.encoding)
+                except UnicodeEncodeError:
+                    bar_character = "-"
+                else:
+                    bar_character = "─"
+                bar = bar_character * term_size
+
                 lines = [bar, row_format.format(*table_headers).rstrip(), bar]
                 for metric, row in zip(metrics, table_rows):
                     # deal with column overflow
