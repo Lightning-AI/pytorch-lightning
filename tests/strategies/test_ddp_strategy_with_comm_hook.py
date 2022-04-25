@@ -36,7 +36,7 @@ def test_ddp_fp16_compress_comm_hook(tmpdir):
     class TestDDPStrategy(DDPStrategy):
         def teardown(self):
             # check here before unwrapping DistributedDataParallel in self.teardown
-            trainer_comm_hook = trainer.strategy.model._get_ddp_logging_data()["comm_hook"]
+            trainer_comm_hook = self.model._get_ddp_logging_data()["comm_hook"]
             expected_comm_hook = default.fp16_compress_hook.__qualname__
             assert trainer_comm_hook == expected_comm_hook
             return super().teardown()
@@ -64,7 +64,7 @@ def test_ddp_sgd_comm_hook(tmpdir):
     class TestDDPStrategy(DDPStrategy):
         def teardown(self):
             # check here before unwrapping DistributedDataParallel in self.teardown
-            trainer_comm_hook = trainer.strategy.model._get_ddp_logging_data()["comm_hook"]
+            trainer_comm_hook = self.model._get_ddp_logging_data()["comm_hook"]
             expected_comm_hook = powerSGD.powerSGD_hook.__qualname__
             assert trainer_comm_hook == expected_comm_hook
             return super().teardown()
@@ -95,7 +95,7 @@ def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
     class TestDDPStrategy(DDPStrategy):
         def teardown(self):
             # check here before unwrapping DistributedDataParallel in self.teardown
-            trainer_comm_hook = trainer.strategy.model._get_ddp_logging_data()["comm_hook"]
+            trainer_comm_hook = self.model._get_ddp_logging_data()["comm_hook"]
             expected_comm_hook = default.fp16_compress_wrapper(powerSGD.powerSGD_hook).__qualname__
             assert trainer_comm_hook == expected_comm_hook
             return super().teardown()
@@ -145,6 +145,14 @@ def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
 @RunIf(min_gpus=2, min_torch="1.10.0", skip_windows=True, standalone=True)
 def test_ddp_post_local_sgd_comm_hook(tmpdir):
     """Test for DDP post-localSGD hook."""
+    class TestDDPStrategy(DDPStrategy):
+        def teardown(self):
+            # check here before unwrapping DistributedDataParallel in self.teardown
+            trainer_comm_hook = self.strategy.model._get_ddp_logging_data()["comm_hook"]
+            expected_comm_hook = post_localSGD.post_localSGD_hook.__qualname__
+            assert trainer_comm_hook == expected_comm_hook
+            return super().teardown()
+
     model = BoringModel()
 
     strategy = DDPStrategy(
@@ -167,9 +175,6 @@ def test_ddp_post_local_sgd_comm_hook(tmpdir):
         enable_model_summary=False,
     )
     trainer.fit(model)
-    trainer_comm_hook = trainer.strategy.model._get_ddp_logging_data()["comm_hook"]
-    expected_comm_hook = post_localSGD.post_localSGD_hook.__qualname__
-    assert trainer_comm_hook == expected_comm_hook
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
