@@ -155,7 +155,7 @@ def test_ddp_post_local_sgd_comm_hook(tmpdir):
 
     model = BoringModel()
 
-    strategy = DDPStrategy(
+    strategy = TestDDPStrategy(
         ddp_comm_state=post_localSGD.PostLocalSGDState(
             process_group=None,
             subgroup=None,
