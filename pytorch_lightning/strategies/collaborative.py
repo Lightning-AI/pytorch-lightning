@@ -56,8 +56,8 @@ class CollaborativeStrategy(Strategy):
         **optimizer_kwargs: Any,
     ):
         """Provides capabilities to train using the Hivemind Library, training collaboratively across the internet
-        with unreliable machines. `For more information: https://pytorch-
-        lightning.readthedocs.io/en/latest/strategies/collaborative_training.html`.
+        with unreliable machines. For more information, `refer to the docs <https://pytorch-
+        lightning.readthedocs.io/en/latest/strategies/collaborative_training.html>`__.
 
         .. warning:: ``CollaborativeStrategy`` is experimental and subject to change.
 
@@ -419,7 +419,7 @@ class DHTManager:
             log.info("Machine received initial peers from endpoint.")
         elif self._initial_peers is None:
             log.info(
-                f"\nOther machines can connect running the same command:\n"
+                "\nOther machines can connect running the same command:\n"
                 f"INITIAL_PEERS={','.join(visible_addresses)} python ...\n"
                 "or passing the peers to the strategy:\n"
                 f"CollaborativeStrategy(initial_peers='{','.join(visible_addresses)}')"
