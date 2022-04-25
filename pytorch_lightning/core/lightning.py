@@ -32,12 +32,11 @@ from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.callbacks.progress import base as progress_base
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
-from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loggers import Logger
 from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
@@ -45,7 +44,6 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.memory import get_model_size_mb
 from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -77,7 +75,6 @@ class LightningModule(
             "local_rank",
             "logger",
             "loggers",
-            "model_size",
             "automatic_optimization",
             "truncated_bptt_steps",
             "use_amp",
@@ -246,12 +243,12 @@ class LightningModule(
         self._truncated_bptt_steps = truncated_bptt_steps
 
     @property
-    def logger(self) -> Optional[LightningLoggerBase]:
+    def logger(self) -> Optional[Logger]:
         """Reference to the logger object in the Trainer."""
         return self.trainer.logger if self.trainer else None
 
     @property
-    def loggers(self) -> List[LightningLoggerBase]:
+    def loggers(self) -> List[Logger]:
         """Reference to the list of loggers in the Trainer."""
         return self.trainer.loggers if self.trainer else []
 
@@ -687,7 +684,7 @@ class LightningModule(
                 return loss
 
         See Also:
-            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
+            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
     def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
@@ -861,7 +858,7 @@ class LightningModule(
                     ...
 
         See Also:
-            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
+            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
     def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
@@ -989,7 +986,7 @@ class LightningModule(
         """
 
     def test_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        """Use this when testing with dp or ddp2 because :meth:`test_step` will operate on only part of the batch.
+        """Use this when testing with DP or DDP2 because :meth:`test_step` will operate on only part of the batch.
         However, this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
@@ -1039,7 +1036,7 @@ class LightningModule(
                 self.log("test_loss", loss)
 
         See Also:
-            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
+            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
     def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
@@ -1733,35 +1730,6 @@ class LightningModule(
 
         self.train()
 
-    def get_progress_bar_dict(self) -> Dict[str, Union[int, str]]:
-        r"""
-        .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of
-            `pytorch_lightning.callbacks.progress.base.get_metrics` and will be removed in v1.7.
-
-        Implement this to override the default items displayed in the progress bar.
-        By default it includes the average loss value, split index of BPTT (if used)
-        and the version of the experiment when using a logger.
-
-        .. code-block::
-
-            Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, loss=4.501, v_num=10]
-
-        Here is an example how to override the defaults:
-
-        .. code-block:: python
-
-            def get_progress_bar_dict(self):
-                # don't show the version number
-                items = super().get_progress_bar_dict()
-                items.pop("v_num", None)
-                return items
-
-        Return:
-            Dictionary with the items to be displayed in the progress bar.
-        """
-        return progress_base.get_standard_metrics(self.trainer, self)
-
     def _verify_is_manual_optimization(self, fn_name):
         if self.automatic_optimization:
             raise MisconfigurationException(
@@ -1927,21 +1895,6 @@ class LightningModule(
         self._running_torchscript = False
 
         return torchscript_module
-
-    @property
-    def model_size(self) -> float:
-        """Returns the model size in MegaBytes (MB)
-
-        Note:
-            This property will not return correct value for Deepspeed (stage 3) and fully-sharded training.
-        """
-        if not self._running_torchscript:  # remove with the deprecation removal
-            rank_zero_deprecation(
-                "The `LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7."
-                " Please use the `pytorch_lightning.utilities.memory.get_model_size_mb`.",
-                stacklevel=5,
-            )
-        return get_model_size_mb(self)
 
     @property
     def use_amp(self) -> bool:

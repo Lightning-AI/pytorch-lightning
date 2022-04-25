@@ -5,8 +5,8 @@
 .. _progress_bar:
 
 
-Progress Bar
-============
+Customize the progress bar
+==========================
 
 Lightning supports two different types of progress bars (`tqdm <https://github.com/tqdm/tqdm>`_ and `rich <https://github.com/Textualize/rich>`_). :class:`~pytorch_lightning.callbacks.TQDMProgressBar` is used by default,
 but you can override it by passing a custom :class:`~pytorch_lightning.callbacks.TQDMProgressBar` or :class:`~pytorch_lightning.callbacks.RichProgressBar` to the ``callbacks`` argument of the :class:`~pytorch_lightning.trainer.trainer.Trainer`.

@@ -27,12 +27,10 @@ from pytorch_lightning.loops.utilities import (
     _block_parallel_sync_behavior,
     _build_training_step_kwargs,
     _extract_hiddens,
-    check_finite_loss,
 )
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -310,10 +308,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         def backward_fn(loss: Tensor) -> None:
             self.trainer._call_strategy_hook("backward", loss, optimizer, opt_idx)
 
-            # check if model weights are nan
-            if self.trainer._terminate_on_nan:
-                detect_nan_parameters(self.trainer.lightning_module)
-
         return backward_fn
 
     def _run_optimization_start(self, opt_idx: int, optimizer: torch.optim.Optimizer) -> None:
@@ -436,9 +430,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         result = self.output_result_cls.from_training_step_output(
             training_step_output, self.trainer.accumulate_grad_batches
         )
-
-        if self.trainer._terminate_on_nan:
-            check_finite_loss(result.closure_loss)
 
         if self.trainer.move_metrics_to_cpu:
             # hiddens and the training step output are not moved as they are not considered "metrics"

@@ -117,14 +117,14 @@ def _populate_registries(subclasses: bool) -> None:
             MODEL_REGISTRY(cls)
         for cls in get_all_subclasses(pl.LightningDataModule):
             DATAMODULE_REGISTRY(cls)
-        for cls in get_all_subclasses(pl.loggers.LightningLoggerBase):
+        for cls in get_all_subclasses(pl.loggers.Logger):
             LOGGER_REGISTRY(cls)
     else:
         # manually register torch's subclasses and our subclasses
         OPTIMIZER_REGISTRY.register_classes(torch.optim, Optimizer)
         LR_SCHEDULER_REGISTRY.register_classes(torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler)
         CALLBACK_REGISTRY.register_classes(pl.callbacks, pl.Callback)
-        LOGGER_REGISTRY.register_classes(pl.loggers, pl.loggers.LightningLoggerBase)
+        LOGGER_REGISTRY.register_classes(pl.loggers, pl.loggers.Logger)
     # `ReduceLROnPlateau` does not subclass `_LRScheduler`
     LR_SCHEDULER_REGISTRY(cls=ReduceLROnPlateau)
 
@@ -487,7 +487,7 @@ class LightningCLI:
         A full configuration yaml would be parsed from ``PL_CONFIG`` if set.
         Individual settings are so parsed from variables named for example ``PL_TRAINER__MAX_EPOCHS``.
 
-        For more info, read :ref:`the CLI docs <common/lightning_cli:LightningCLI>`.
+        For more info, read :ref:`the CLI docs <lightning-cli>`.
 
         .. warning:: ``LightningCLI`` is in beta and subject to change.
 
@@ -507,7 +507,7 @@ class LightningCLI:
             trainer_defaults: Set to override Trainer defaults or add persistent callbacks. The callbacks added through
                 this argument will not be configurable from a configuration file and will always be present for
                 this particular CLI. Alternatively, configurable callbacks can be added as explained in
-                :ref:`the CLI docs <common/lightning_cli:Configurable callbacks>`.
+                :ref:`the CLI docs <lightning-cli>`.
             seed_everything_default: Default value for the :func:`~pytorch_lightning.utilities.seed.seed_everything`
                 seed argument.
             description: Description of the tool shown when running ``--help``.
@@ -575,6 +575,7 @@ class LightningCLI:
 
     def init_parser(self, **kwargs: Any) -> LightningArgumentParser:
         """Method that instantiates the argument parser."""
+        kwargs.setdefault("dump_header", [f"pytorch_lightning=={pl.__version__}"])
         return LightningArgumentParser(**kwargs)
 
     def setup_parser(

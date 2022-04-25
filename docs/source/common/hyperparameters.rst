@@ -1,15 +1,12 @@
 .. testsetup:: *
 
-    import torch
     from argparse import ArgumentParser, Namespace
-    from pytorch_lightning.trainer.trainer import Trainer
-    from pytorch_lightning.core.lightning import LightningModule
-    import sys
 
     sys.argv = ["foo"]
 
-Hyperparameters
----------------
+Configure hyperparameters from the CLI
+--------------------------------------
+
 Lightning has utilities to interact seamlessly with the command line ``ArgumentParser``
 and plays well with the hyperparameter optimization framework of your choice.
 

@@ -1,5 +1,5 @@
 ###########################################
-LightningLite - Stepping Stone to Lightning
+LightningLite (Stepping Stone to Lightning)
 ###########################################
 
 
@@ -69,7 +69,6 @@ The ``run`` function contains custom training loop used to train ``MyModel`` on 
 
     run(args)
 
-
 ----------
 
 
@@ -124,7 +123,7 @@ Here are five required steps to convert to :class:`~pytorch_lightning.lite.Light
     Lite(...).run(args)
 
 
-That's all. You can now train on any kind of device and scale your training.
+That's all. You can now train on any kind of device and scale your training. Check out `this <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_2_lite.py>`_ full MNIST training example with LightningLite.
 
 :class:`~pytorch_lightning.lite.LightningLite` takes care of device management, so you don't have to.
 You should remove any device-specific logic within your code.
@@ -432,6 +431,9 @@ Configure the devices to run on. Can be of type:
 gpus
 ====
 
+.. warning:: ``gpus=x`` has been deprecated in v1.7 and will be removed in v2.0.
+    Please use ``accelerator='gpu'`` and ``devices=x`` instead.
+
 Shorthand for setting ``devices=X`` and ``accelerator="gpu"``.
 
 .. code-block:: python
@@ -445,6 +447,9 @@ Shorthand for setting ``devices=X`` and ``accelerator="gpu"``.
 
 tpu_cores
 =========
+
+.. warning:: ``tpu_cores=x`` has been deprecated in v1.7 and will be removed in v2.0.
+    Please use ``accelerator='tpu'`` and ``devices=x`` instead.
 
 Shorthand for ``devices=X`` and ``accelerator="tpu"``.
 
