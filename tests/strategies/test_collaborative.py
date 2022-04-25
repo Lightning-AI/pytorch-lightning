@@ -23,7 +23,7 @@ if _HIVEMIND_AVAILABLE:
     import hivemind
 
 
-@mock.patch("pytorch_lightning.strategies.collaborative._HIVEMIND_AVAILABLE", new_callable=lambda: False)
+@mock.patch("pytorch_lightning.strategies.collaborative._HIVEMIND_AVAILABLE", return_value=False)
 def test_raise_exception_if_hivemind_unavailable(mock_import):
     """Test that we raise an exception when Hivemind is not available."""
     with pytest.raises(MisconfigurationException, match="you must have Hivemind installed"):
