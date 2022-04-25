@@ -2192,6 +2192,19 @@ class Trainer(
         return isinstance(self.strategy, ParallelStrategy)
 
     @property
+    def progress_bar_dict(self) -> dict:
+        """Read-only for progress bar metrics."""
+        rank_zero_deprecation(
+            "`trainer.progress_bar_dict` is deprecated in v1.5 and will be removed in v1.7."
+            " Use `ProgressBarBase.get_metrics` instead."
+        )
+        ref_model = self.lightning_module
+        ref_model = cast(pl.LightningModule, ref_model)
+        if self.progress_bar_callback:
+            return self.progress_bar_callback.get_metrics(self, ref_model)
+        return self.progress_bar_metrics
+
+    @property
     def enable_validation(self) -> bool:
         """Check if we should run validation during training."""
         return (
