@@ -672,7 +672,7 @@ Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es) to ensure your 
 applies to fitting, validating, testing, and predicting. This flag is **only** recommended for debugging purposes and
 should not be used to limit the number of batches to run.
 
-.. testcode::
+.. code-block:: python
 
     # default used by the Trainer
     trainer = Trainer(fast_dev_run=False)
@@ -695,8 +695,8 @@ impact to subsequent runs. These are the changes enabled:
 - Sets ``Trainer(check_every_n_epoch=1)``.
 - Disables all loggers.
 - Disables passing logged metrics to loggers.
-- The ``ModelCheckpoint`` callbacks will not trigger.
-- Early stopping will not trigger.
+- The :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks will not trigger.
+- The :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callbacks will not trigger.
 - Sets ``limit_{train,val,test,predict}_batches`` to 1 or the number passed.
 - Disables the Tuner.
 - If using the CLI, the configuration file is not saved.
