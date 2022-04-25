@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG CUDA_VERSION=11.1
+ARG CUDA_VERSION=11.3.1
 
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
 

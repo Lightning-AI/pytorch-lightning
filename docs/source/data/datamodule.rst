@@ -185,12 +185,13 @@ To define a DataModule the following methods are used to create train/val/test/p
 prepare_data
 ============
 Downloading and saving data with multiple processes (distributed settings) will result in corrupted data. Lightning
-ensures the :meth:`~pytorch_lightning.core.hooks.DataHooks.prepare_data` is called only within a single process,
+ensures the :meth:`~pytorch_lightning.core.hooks.DataHooks.prepare_data` is called only within a single process on CPU,
 so you can safely add your downloading logic within. In case of multi-node training, the execution of this hook
-depends upon :ref:`prepare_data_per_node<data/datamodule:prepare_data_per_node>`.
+depends upon :ref:`prepare_data_per_node<data/datamodule:prepare_data_per_node>`. :meth:`~pytorch_lightning.core.hooks.DataHooks.setup` is called after
+``prepare_data`` and there is a barrier in between which ensures that all the processes proceed to ``setup`` once the data is prepared and available for use.
 
-- download
-- tokenize
+- download, i.e. download data only once on the disk from a single process
+- tokenize. Since it's a one time process, it is not recommended to do it on all processes
 - etc...
 
 .. code-block:: python
@@ -202,7 +203,10 @@ depends upon :ref:`prepare_data_per_node<data/datamodule:prepare_data_per_node>`
             MNIST(os.getcwd(), train=False, download=True, transform=transforms.ToTensor())
 
 
-.. warning:: ``prepare_data`` is called from the main process. It is not recommended to assign state here (e.g. ``self.x = y``).
+.. warning::
+
+    ``prepare_data`` is called from the main process. It is not recommended to assign state here (e.g. ``self.x = y``) since it is called on a single process and if you assign
+    states here then they won't be available for other processes.
 
 
 setup
@@ -232,6 +236,23 @@ There are also data operations you might want to perform on every GPU. Use :meth
             # Assign Test split(s) for use in Dataloaders
             if stage in (None, "test"):
                 self.mnist_test = MNIST(self.data_dir, train=False, download=True, transform=self.transform)
+
+
+For eg., if you are working with NLP task where you need to tokenize the text and use it, then you can do something like as follows:
+
+.. code-block:: python
+
+    class LitDataModule(LightningDataModule):
+        def prepare_data(self):
+            dataset = load_Dataset(...)
+            train_dataset = ...
+            val_dataset = ...
+            # tokenize
+            # save it to disk
+
+        def setup(self, stage):
+            # load it back here
+            dataset = load_dataset_from_disk(...)
 
 
 This method expects a ``stage`` argument.

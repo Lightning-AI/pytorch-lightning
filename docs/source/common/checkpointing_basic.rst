@@ -1,3 +1,5 @@
+:orphan:
+
 .. _checkpointing_basic:
 
 #####################
