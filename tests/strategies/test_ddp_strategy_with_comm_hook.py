@@ -147,6 +147,7 @@ def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
 @RunIf(min_gpus=2, min_torch="1.10.0", skip_windows=True, standalone=True)
 def test_ddp_post_local_sgd_comm_hook(tmpdir):
     """Test for DDP post-localSGD hook."""
+
     class TestDDPStrategy(DDPStrategy):
         def teardown(self):
             # check here before unwrapping DistributedDataParallel in self.teardown
