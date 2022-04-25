@@ -336,7 +336,7 @@ For certain types of work at the bleeding-edge of research, Lightning offers exp
    :description: Enable meta-learning, reinforcement learning, GANs with full control.
    :col_css: col-md-4
    :image_center: https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/loops.png
-   :button_link: ../model/custom_loop_expert.html
+   :button_link: ../extensions/loops.html
    :image_height: 220px
    :height: 320
 

@@ -9,7 +9,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--
+- Enabled `torch.inference_mode` for evaluation and prediction ([#12715](https://github.com/PyTorchLightning/pytorch-lightning/pull/12715))
+
+
+- Added support for setting `val_check_interval` to a value higher than the amount of training batches when `check_val_every_n_epoch=None` ([#11993](https://github.com/PyTorchLightning/pytorch-lightning/pull/11993))
 
 
 - Include the `pytorch_lightning` version as a header in the CLI config files ([#12532](https://github.com/PyTorchLightning/pytorch-lightning/pull/12532))
@@ -40,7 +43,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Marked `swa_lrs` argument in `StochasticWeightAveraging` callback as required ([#12556](https://github.com/PyTorchLightning/pytorch-lightning/pull/12556))
 
 
-- Changed `seed_everything_default` argument in the `LightningCLI` to type `Union[bool, int]`. If set to `True` a seed is automatically generated for the parser argument `--seed_everything`.
+- Changed `seed_everything_default` argument in the `LightningCLI` to type `Union[bool, int]`. If set to `True` a seed is automatically generated for the parser argument `--seed_everything`. ([#12822](https://github.com/PyTorchLightning/pytorch-lightning/pull/12822))
+
+
+- Make positional arguments required for classes passed into the `add_argparse_args` function. ([#12504](https://github.com/PyTorchLightning/pytorch-lightning/pull/12504))
 
 
 -
@@ -66,6 +72,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 -
 
 ### Removed
+
+- Removed the deprecated `TestTubeLogger` ([#12859](https://github.com/PyTorchLightning/pytorch-lightning/pull/12859))
+
 
 - Removed the deprecated `pytorch_lightning.core.memory.LayerSummary` and `pytorch_lightning.core.memory.ModelSummary` ([#12593](https://github.com/PyTorchLightning/pytorch-lightning/pull/12593))
 
@@ -118,14 +127,30 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed support for passing strategy names or strategy instances to the plugins Trainer argument ([#12700](https://github.com/PyTorchLightning/pytorch-lightning/pull/12700))
 
 
+- Removed the deprecated `val_transforms` argument from the `LightningDataModule` constructor ([#12763](https://github.com/PyTorchLightning/pytorch-lightning/pull/12763))
+
+
+- Removed the deprecated `test_transforms` argument from the `LightningDataModule` constructor ([#12773](https://github.com/PyTorchLightning/pytorch-lightning/pull/12773))
+
+
 - Removed deprecated `dataloader_idx` argument from `on_train_batch_start/end` hooks `Callback` and `LightningModule` ([#12769](https://github.com/PyTorchLightning/pytorch-lightning/pull/12769))
+
+
+- Removed deprecated `get_progress_bar_dict` property from `LightningModule` ([#12839](https://github.com/PyTorchLightning/pytorch-lightning/pull/12839))
 
 ### Fixed
 
--
+
+- Fixed `ImportError` when `torch.distributed` is not available. ([#12794](https://github.com/PyTorchLightning/pytorch-lightning/pull/12794))
 
 
--
+- When using custom DataLoaders in LightningDataModule, multiple inheritance is resolved properly ([#12716](https://github.com/PyTorchLightning/pytorch-lightning/pull/12716))
+
+
+- Fixed encoding issues on terminals that do not support unicode characters ([#12828](https://github.com/PyTorchLightning/pytorch-lightning/pull/12828))
+
+
+- Fixed support for `ModelCheckpoint` monitors with dots ([#12783](https://github.com/PyTorchLightning/pytorch-lightning/pull/12783))
 
 
 ## [1.6.1] - 2022-04-13

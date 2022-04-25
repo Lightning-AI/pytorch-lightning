@@ -28,7 +28,7 @@ Extend the functionality of the Lightning CLI.
    :description: Learn how to run on your Company or University private clouds.
    :col_css: col-md-6
    :button_link: ../clouds/run_expert.html
-   :height: 200
+   :height: 150
    :tag: expert
 
 .. raw:: html
