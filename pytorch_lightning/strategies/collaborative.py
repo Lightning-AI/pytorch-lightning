@@ -51,8 +51,8 @@ class CollaborativeStrategy(Strategy):
         persistent: bool = True,
         host: Optional[str] = None,
         port: Optional[int] = None,
-        retry_initial_peers: int = 5,
-        retry_peer_sleep_duration: int = 5,
+        retry_endpoint_attempts: int = 5,
+        retry_endpoint_sleep_duration: int = 5,
         **optimizer_kwargs: Any,
     ):
         """Provides capabilities to train using the Hivemind Library, training collaboratively across the internet
@@ -122,10 +122,10 @@ class CollaborativeStrategy(Strategy):
 
             port: When creating the endpoint, the host port to use.
 
-            retry_initial_peers: When connecting to the `peer_endpoint`, how many time to retry before raising
+            retry_endpoint_attempts: When connecting to the `peer_endpoint`, how many time to retry before raising
                 an exception.
 
-            retry_peer_sleep_duration: When connecting to the `peer_endpoint`, how long to wait between retries.
+            retry_endpoint_sleep_duration: When connecting to the `peer_endpoint`, how long to wait between retries.
 
             optimizer_kwargs: kwargs are passed to the `hivemind.Optimizer` class.
         """
@@ -144,8 +144,8 @@ class CollaborativeStrategy(Strategy):
             port=port,
             host_maddrs=host_maddrs,
             initial_peers=initial_peers,
-            retry_initial_peers=retry_initial_peers,
-            retry_peer_sleep_duration=retry_peer_sleep_duration,
+            retry_endpoint_attempts=retry_endpoint_attempts,
+            retry_endpoint_sleep_duration=retry_endpoint_sleep_duration,
         )
         self._target_batch_size = target_batch_size
         self._batch_size = batch_size
@@ -344,11 +344,11 @@ class HiveMindScheduler:
 
 
 class DHTManager:
-    ENDPOINT_ENV: str = "ENDPOINT"
-    PEER_ENDPOINT_ENV: str = "PEER_ENDPOINT"
-    INITIAL_PEERS_ENV: str = "INITIAL_PEERS"
-    HOST_ENV: str = "HOST"
-    PORT_ENV: str = "PORT"
+    ENDPOINT_ENV: str = "PL_ENDPOINT"
+    PEER_ENDPOINT_ENV: str = "PL_PEER_ENDPOINT"
+    INITIAL_PEERS_ENV: str = "PL_INITIAL_PEERS"
+    HOST_ENV: str = "PL_HOST"
+    PORT_ENV: str = "PL_PORT"
     DEFAULT_HOST: str = "0.0.0.0"
     DEFAULT_PORT: int = 1440
 
@@ -361,8 +361,8 @@ class DHTManager:
         peer_endpoint: Optional[str],
         host: Optional[str],
         port: Optional[int],
-        retry_initial_peers: int = 5,
-        retry_peer_sleep_duration: int = 5,
+        retry_endpoint_attempts: int = 5,
+        retry_endpoint_sleep_duration: int = 5,
     ) -> None:
         """Manages the `hivemind.DHT` connection and provides a side-car endpoint server for initial peer access.
 
@@ -386,10 +386,10 @@ class DHTManager:
 
             port: When creating the endpoint, the host port to use.
 
-            retry_initial_peers: When connecting to the `peer_endpoint`, how many time to retry before raising
+            retry_endpoint_attempts: When connecting to the `peer_endpoint`, how many time to retry before raising
                 an exception.
 
-            retry_peer_sleep_duration: When connecting to the `peer_endpoint`, how long to wait between retries.
+            retry_endpoint_sleep_duration: When connecting to the `peer_endpoint`, how long to wait between retries.
         """
         self._persistent = persistent
         self._endpoint = endpoint
@@ -402,7 +402,7 @@ class DHTManager:
 
         if self._peer_endpoint and self._initial_peers is None:
             self._initial_peers = self._get_initial_peers_from_endpoint(
-                retry_initial_peers=retry_initial_peers, retry_peer_sleep_duration=retry_peer_sleep_duration
+                retry_initial_peers=retry_endpoint_attempts, retry_peer_sleep_duration=retry_endpoint_sleep_duration
             )
 
         self.dht = hivemind.DHT(
