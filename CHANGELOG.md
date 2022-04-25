@@ -10,7 +10,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - Enabled `torch.inference_mode` for evaluation and prediction ([#12715](https://github.com/PyTorchLightning/pytorch-lightning/pull/12715))
-- Added attribute lookup pass-through for the wrapped model returned by `LightningLite.setup()` ([#12597](https://github.com/PyTorchLightning/pytorch-lightning/pull/12597))
 
 
 - Added support for setting `val_check_interval` to a value higher than the amount of training batches when `check_val_every_n_epoch=None` ([#11993](https://github.com/PyTorchLightning/pytorch-lightning/pull/11993))
@@ -146,6 +145,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed support for `ModelCheckpoint` monitors with dots ([#12783](https://github.com/PyTorchLightning/pytorch-lightning/pull/12783))
+
+  
+- The model wrapper returned by `LightningLite.setup()` now properly supports pass-through when looking up attributes ([#12597](https://github.com/PyTorchLightning/pytorch-lightning/pull/12597))
 
 
 ## [1.6.1] - 2022-04-13
