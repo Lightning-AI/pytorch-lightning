@@ -469,7 +469,7 @@ class DHTManager:
             try:
                 peers = self._get_peers()
                 break
-            except Exception:
+            except requests.exceptions.RequestException:
                 log.info(f"Failed to get peers, retrying in {retry_peer_sleep_duration} seconds...")
                 time.sleep(retry_peer_sleep_duration)
         if peers is None:
