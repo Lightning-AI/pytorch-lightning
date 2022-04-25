@@ -474,9 +474,9 @@ class DHTManager:
                 time.sleep(retry_peer_sleep_duration)
         if peers is None:
             raise MisconfigurationException(
-                f"Was unable to get peers. Tried {retry_initial_peers} times waiting {retry_peer_sleep_duration}s."
+                f"Unable to get peers. Tried {retry_initial_peers} times waiting {retry_peer_sleep_duration}s."
                 f"These parameters can be extended by passing "
-                "to the strategy (CollaborativeStrategy(retry_connection=x, retry_sleep_duration=y)"
+                "to the strategy (CollaborativeStrategy(retry_connection=x, retry_sleep_duration=y))."
             )
         log.info(f"Received initial peers from collaborative server: {peers}")
         return peers
