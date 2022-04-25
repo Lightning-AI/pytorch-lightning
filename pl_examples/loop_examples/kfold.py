@@ -239,7 +239,7 @@ class KFoldLoop(Loop):
             return getattr(self.fit_loop, key)
         return self.__dict__[key]
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Dict[str, Any]) -> None:
         self.__dict__.update(state)
 
 
