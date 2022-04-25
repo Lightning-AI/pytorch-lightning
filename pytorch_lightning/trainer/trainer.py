@@ -621,10 +621,7 @@ class Trainer(
             self.check_val_every_n_epoch = 1
             self.loggers = [DummyLogger()] if self.loggers else []
 
-            rank_zero_info(
-                "Running in fast_dev_run mode: will run a full train,"
-                f" val, test and prediction loop using {num_batches} batch(es)."
-            )
+            rank_zero_info(f"Running in fast_dev_run mode: will run the requested loop using {num_batches} batch(es).")
 
         self.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
         self.limit_val_batches = _determine_batch_limits(limit_val_batches, "limit_val_batches")

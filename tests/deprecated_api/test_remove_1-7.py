@@ -22,7 +22,7 @@ import torch
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
-from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
+from pytorch_lightning.loggers import LoggerCollection
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
@@ -82,12 +82,6 @@ def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
         match="Method `on_predict_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
     ):
         _run(model, "predict")
-
-
-@mock.patch("pytorch_lightning.loggers.test_tube.Experiment")
-def test_v1_7_0_test_tube_logger(_, tmpdir):
-    with pytest.deprecated_call(match="The TestTubeLogger is deprecated since v1.5 and will be removed in v1.7"):
-        _ = TestTubeLogger(tmpdir)
 
 
 def test_v1_7_0_on_interrupt(tmpdir):
