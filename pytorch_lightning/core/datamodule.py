@@ -19,7 +19,6 @@ from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
-from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args, get_init_arguments_and_types
 
 
@@ -54,34 +53,10 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     name: str = ...
 
-    def __init__(self, val_transforms=None):
+    def __init__(self) -> None:
         super().__init__()
-        if val_transforms is not None:
-            rank_zero_deprecation(
-                "DataModule property `val_transforms` was deprecated in v1.5 and will be removed in v1.7."
-            )
-        self._val_transforms = val_transforms
         # Pointer to the trainer object
         self.trainer = None
-
-    @property
-    def val_transforms(self):
-        """Optional transforms (or collection of transforms) you can apply to validation dataset.
-
-        .. deprecated:: v1.5     Will be removed in v1.7.0.
-        """
-
-        rank_zero_deprecation(
-            "DataModule property `val_transforms` was deprecated in v1.5 and will be removed in v1.7."
-        )
-        return self._val_transforms
-
-    @val_transforms.setter
-    def val_transforms(self, t):
-        rank_zero_deprecation(
-            "DataModule property `val_transforms` was deprecated in v1.5 and will be removed in v1.7."
-        )
-        self._val_transforms = t
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs) -> ArgumentParser:
