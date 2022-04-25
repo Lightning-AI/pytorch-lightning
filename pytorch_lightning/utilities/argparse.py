@@ -266,7 +266,13 @@ def add_argparse_args(
             use_type = _precision_allowed_type
 
         parser.add_argument(
-            f"--{arg}", dest=arg, default=arg_default, type=use_type, help=args_help.get(arg), **arg_kwargs
+            f"--{arg}",
+            dest=arg,
+            default=arg_default,
+            type=use_type,
+            help=args_help.get(arg),
+            required=(arg_default == inspect._empty),
+            **arg_kwargs,
         )
 
     if use_argument_group:

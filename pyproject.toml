@@ -61,7 +61,6 @@ module = [
     "pytorch_lightning.loggers.mlflow",
     "pytorch_lightning.loggers.neptune",
     "pytorch_lightning.loggers.tensorboard",
-    "pytorch_lightning.loggers.test_tube",
     "pytorch_lightning.loggers.wandb",
     "pytorch_lightning.loops.epoch.training_epoch_loop",
     "pytorch_lightning.strategies.ddp",
