@@ -140,7 +140,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Fixed support for `ModelCheckpoint` monitors with dots ([#12783](https://github.com/PyTorchLightning/pytorch-lightning/pull/12783))
 
-- Fixed printing of ragged dictionaries in `EvaluationLoop._print_results` ([#12857](https://github.com/PyTorchLightning/pytorch-lightning/pull/12857))
+- Fixed printing of ragged dictionaries in `Trainer.validate` and `Trainer.test` ([#12857](https://github.com/PyTorchLightning/pytorch-lightning/pull/12857))
 
 
 ## [1.6.1] - 2022-04-13
