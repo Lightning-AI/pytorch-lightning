@@ -22,10 +22,10 @@ jobs:
     cancelTimeoutInMinutes: "2"
 
     pool: intel-hpus
-    
+
     container:
       image: "vault.habana.ai/gaudi-docker/1.4.0/ubuntu20.04/habanalabs/pytorch-installer-1.10.2:latest"
-    
+
     workspace:
       clean: all
 
