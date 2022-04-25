@@ -666,115 +666,128 @@ def test_benchmark_option(benchmark_, deterministic, expected):
 
 
 @pytest.mark.parametrize("ckpt_path", (None, "last"))
+@pytest.mark.parametrize("fn", ("fit", "validate"))
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+def test_checkpoint_path_input_last_fault_tolerant(tmpdir, ckpt_path, fn):
+    should_signal = True
+
+    class ExitGracefullyException(Exception):
+        pass
+
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            self.log("foo", -batch_idx)
+            if should_signal and batch_idx == 1:
+                raise ExitGracefullyException
+            return super().validation_step(batch, batch_idx)
+
+        def training_step(self, batch, batch_idx):
+            if should_signal and batch_idx == 1:
+                raise ExitGracefullyException
+            return super().training_step(batch, batch_idx)
+
+    model = TestModel()
+    model.test_epoch_end = None
+    mc = ModelCheckpoint(monitor="foo")
+    trainer = Trainer(
+        max_epochs=2,
+        limit_val_batches=3,
+        enable_progress_bar=False,
+        default_root_dir=tmpdir,
+        callbacks=[mc],
+    )
+    assert trainer.ckpt_path is None
+    trainer_fn = getattr(trainer, fn)
+
+    from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
+
+    ft_checkpoints = [cb for cb in trainer.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
+    ft_ckpt_path = ft_checkpoints[0].ckpt_path
+
+    if fn == "validate":
+        should_signal = False
+        trainer.fit(model)
+        should_signal = True
+
+    with pytest.raises(ExitGracefullyException):
+        trainer_fn(model)
+
+    should_signal = False
+
+    if ckpt_path == "last":
+        ctxt = nullcontext()
+        final_path = ft_ckpt_path
+
+    elif fn == "fit":  # and ckpt_path == best
+        ctxt = pytest.warns(UserWarning, match="Because fault tolerance is enabled")
+        final_path = ft_ckpt_path
+    else:  # ckpt_path == best and fn == validate
+        ctxt = pytest.warns(UserWarning, match="There is also a fault-tolerant checkpoint available")
+        final_path = mc.best_model_path
+
+    with ctxt:
+        if fn == "fit":
+            trainer_fn(model, ckpt_path=ckpt_path)
+        else:
+            trainer_fn(ckpt_path=ckpt_path)
+        assert trainer.ckpt_path == final_path
+
+
+@pytest.mark.parametrize("ckpt_path", (None, "last"))
 @pytest.mark.parametrize("save_last", (True, False))
 @pytest.mark.parametrize("fn", ("fit", "validate"))
-@pytest.mark.parametrize("ft_enabled", (True, False))
-def test_checkpoint_path_input_last(tmpdir, ckpt_path, save_last, fn, ft_enabled):
-    with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1" if ft_enabled else "0"}):
-        should_signal = ft_enabled
+def test_checkpoint_path_input_last(tmpdir, ckpt_path, save_last, fn):
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx):
+            self.log("foo", -batch_idx)
+            return super().validation_step(batch, batch_idx)
 
-        class ExitGracefullyException(Exception):
-            pass
+        def training_step(self, batch, batch_idx):
+            return super().training_step(batch, batch_idx)
 
-        class TestModel(BoringModel):
-            def validation_step(self, batch, batch_idx):
-                self.log("foo", -batch_idx)
-                if should_signal and batch_idx == 1:
-                    raise ExitGracefullyException
-                return super().validation_step(batch, batch_idx)
+    model = TestModel()
+    model.test_epoch_end = None
+    mc = ModelCheckpoint(monitor="foo", save_last=save_last)
+    trainer = Trainer(
+        max_epochs=2,
+        limit_val_batches=3,
+        enable_progress_bar=False,
+        default_root_dir=tmpdir,
+        callbacks=[mc],
+    )
+    assert trainer.ckpt_path is None
+    trainer_fn = getattr(trainer, fn)
 
-            def training_step(self, batch, batch_idx):
-                if should_signal and batch_idx == 1:
-                    raise ExitGracefullyException
-                return super().training_step(batch, batch_idx)
-
-        model = TestModel()
-        model.test_epoch_end = None
-        mc = ModelCheckpoint(monitor="foo", save_last=save_last)
-        trainer = Trainer(
-            max_epochs=2,
-            limit_val_batches=3,
-            enable_progress_bar=False,
-            default_root_dir=tmpdir,
-            callbacks=[mc],
-        )
-        assert trainer.ckpt_path is None
-        trainer_fn = getattr(trainer, fn)
-
-        if ft_enabled:
-            from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
-
-            ft_checkpoints = [cb for cb in trainer.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
-            ft_ckpt_path = ft_checkpoints[0].ckpt_path
-
-            if fn == "fit":
-                with pytest.raises(ExitGracefullyException):
-                    trainer_fn(model)
-
-                should_signal = False
-
-                if ckpt_path is None:
-                    ctxt = pytest.warns(UserWarning, match="Because fault tolerance is enabled")
-                else:
-                    ctxt = nullcontext()
-
-                with ctxt:
-                    trainer_fn(model, ckpt_path=ckpt_path)
-
-                assert trainer.ckpt_path == ft_ckpt_path
-
-            else:
-                should_signal = False
-                trainer.fit(model)
-                should_signal = True
-
-                with pytest.raises(ExitGracefullyException):
-                    trainer_fn(model)
-
-                should_signal = False
-
-                if ckpt_path is None:
-                    ctxt = pytest.warns(UserWarning, match="There is also a fault-tolerant checkpoint available")
-                    final_path = mc.best_model_path
-                else:
-                    ctxt = nullcontext()
-                    final_path = ft_ckpt_path
-
-                with ctxt:
-                    trainer_fn(ckpt_path=ckpt_path)
-                    assert trainer.ckpt_path == final_path
-
+    if fn == "fit":
+        if ckpt_path is None:
+            ctxt = nullcontext()
         else:
-            if fn == "fit":
-                if ckpt_path is None:
-                    ctxt = nullcontext()
-                else:
-                    ctxt = pytest.warns(UserWarning, match="No checkpoint will be loaded")
+            ctxt = pytest.warns(UserWarning, match="No checkpoint will be loaded")
 
-                with ctxt:
-                    trainer_fn(model, ckpt_path=ckpt_path)
+        with ctxt:
+            trainer_fn(model, ckpt_path=ckpt_path)
 
-                assert trainer.ckpt_path is None
+        assert trainer.ckpt_path is None
+    else:
+        trainer.fit(model)
+        if ckpt_path is None:
+            ctxt = pytest.warns(
+                UserWarning,
+                match=r"(?!.*however it is default only when fitting)^"
+                r".*The best model of the previous `fit` call will be used",
+            )
+            final_path = mc.best_model_path
+        else:
+            if save_last:
+                ctxt = nullcontext()
+                final_path = mc.last_model_path
             else:
-                trainer.fit(model)
-                if ckpt_path is None:
-                    ctxt = pytest.warns(
-                        UserWarning,
-                        match=r"(?!.*however it is default only when fitting)^"
-                        r".*The best model of the previous `fit` call will be used",
-                    )
-                    final_path = mc.best_model_path
-                else:
-                    if save_last:
-                        ctxt = nullcontext()
-                        final_path = mc.last_model_path
-                    else:
-                        ctxt = pytest.warns(UserWarning, match="No checkpoint will be loaded")
-                        final_path = None
+                ctxt = pytest.warns(UserWarning, match="No checkpoint will be loaded")
+                final_path = None
 
-                with ctxt:
-                    trainer_fn(ckpt_path=ckpt_path)
-                    assert trainer.ckpt_path == final_path
+        with ctxt:
+            trainer_fn(ckpt_path=ckpt_path)
+            assert trainer.ckpt_path == final_path
 
 
 @pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))

@@ -1389,13 +1389,12 @@ class Trainer(
         from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 
         ft_checkpoints = [cb for cb in self.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
+        ft_ckpt_path = None
         if ft_checkpoints:
-            ft_ckpt_path = ft_checkpoints[0].ckpt_path
-            fs = get_filesystem(ft_ckpt_path)
-            if not fs.exists(ft_ckpt_path):
-                ft_ckpt_path = None
-        else:
-            ft_ckpt_path = None
+            tmp_ft_ckpt_path = ft_checkpoints[0].ckpt_path
+            fs = get_filesystem(tmp_ft_ckpt_path)
+            if fs.exists(tmp_ft_ckpt_path):
+                ft_ckpt_path = tmp_ft_ckpt_path
 
         fn = self.state.fn.value
 
@@ -1414,22 +1413,28 @@ class Trainer(
             return
 
         if model_connected and ckpt_path is None:
-            full_msg = (
-                f"`.{fn}(ckpt_path=None)` was called without a model."
-                "{partial_message}"
-                f" You can pass `{fn}(ckpt_path='best')` to use the best model or"
-                f" `{fn}(ckpt_path='last')` to use the last model."
-                " If you pass a value, this warning will be silenced."
-            )
-
-            partial_message = " The best model of the previous `fit` call will be used."
             if ft_ckpt_path:
-                partial_message += (
-                    " There is also a fault-tolerant checkpoint available, however it is default only when fitting."
+                full_msg = (
+                    f"`.{fn}(ckpt_path=None)` was called without a model."
+                    " The best model of the previous `fit` call will be used."
+                    " There is also a fault-tolerant checkpoint available,"
+                    " however it is default only when fitting."
+                    f" You can pass `{fn}(ckpt_path='best')` to use the best model or"
+                    f" `{fn}(ckpt_path='last')` to use the last model."
+                    " If you pass a value, this warning will be silenced."
                 )
+            else:
+                full_msg = (
+                    f"`.{fn}(ckpt_path=None)` was called without a model."
+                    " The best model of the previous `fit` call will be used."
+                    f" You can pass `{fn}(ckpt_path='best')` to use the best model or"
+                    f" `{fn}(ckpt_path='last')` to use the last model."
+                    " If you pass a value, this warning will be silenced."
+                )
+
             ckpt_path = "best"
 
-            rank_zero_warn(full_msg.format(partial_message=partial_message))
+            rank_zero_warn(full_msg)
 
         if ckpt_path == "best":
             if len(self.checkpoint_callbacks) > 1:
