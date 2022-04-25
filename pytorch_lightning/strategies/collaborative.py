@@ -278,7 +278,7 @@ class CollaborativeStrategy(Strategy):
                 try:
                     self._batch_size = extract_batch_size(batch)
                     log.info(f"Found per machine batch size automatically from the batch: {self._batch_size}")
-                except Exception as e:
+                except (MisconfigurationException, RecursionError) as e:
                     raise MisconfigurationException(
                         "We tried to infer the batch size from the first batch of data. "
                         "Please provide the batch size to the Strategy by "
