@@ -187,6 +187,10 @@ class CollaborativeStrategy(Strategy):
 
     @property
     def dht(self) -> "hivemind.DHT":
+        """Hivemind Distributed Hash Table which stores values across all peers.
+
+        See documentation for more details: `https://learning-at-home.readthedocs.io/en/latest/modules/dht.html`
+        """
         return self.dht_manager.dht
 
     @property
@@ -276,8 +280,9 @@ class CollaborativeStrategy(Strategy):
                     log.info(f"Found per machine batch size automatically from the batch: {self._batch_size}")
                 except Exception as e:
                     raise MisconfigurationException(
-                        "We tried to infer the batch size from the first batch of data are were unable to. "
-                        "Please provide the batch size to the Strategy (CollaborativeStrategy"
+                        "We tried to infer the batch size from the first batch of data. "
+                        "Please provide the batch size to the Strategy by "
+                        "``Trainer(strategy=CollaborativeStrategy(batch_size=x))``. "
                         f"exception raised: {e}"
                     )
             self._initialize_hivemind()
