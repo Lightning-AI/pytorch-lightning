@@ -59,6 +59,8 @@ class CollaborativeStrategy(Strategy):
         with unreliable machines. `For more information: https://pytorch-
         lightning.readthedocs.io/en/latest/strategies/collaborative_training.html`.
 
+        .. warning:: ``CollaborativeStrategy`` is experimental and subject to change.
+
         Arguments:
 
             target_batch_size: When training, the batch size to accumulate to before running a step. The larger this
@@ -127,6 +129,12 @@ class CollaborativeStrategy(Strategy):
 
             optimizer_kwargs: kwargs are passed to the `hivemind.Optimizer` class.
         """
+        if not _HIVEMIND_AVAILABLE:
+            raise MisconfigurationException(
+                "To use the `CollaborativeStrategy`, you must have Hivemind installed."
+                " Install it by running `pip install -U hivemind`."
+            )
+
         super().__init__()
         self.dht_manager = DHTManager(
             persistent=persistent,

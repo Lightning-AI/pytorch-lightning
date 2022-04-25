@@ -23,6 +23,13 @@ if _HIVEMIND_AVAILABLE:
     import hivemind
 
 
+@mock.patch("pytorch_lightning.strategies.collaborative._HIVEMIND_AVAILABLE", new_callable=lambda: False)
+def test_raise_exception_if_hivemind_unavailable(mock_import):
+    """Test that we raise an exception when Hivemind is not available."""
+    with pytest.raises(MisconfigurationException, match="you must have Hivemind installed"):
+        CollaborativeStrategy(target_batch_size=1)
+
+
 @RunIf(hivemind=True)
 @mock.patch("hivemind.DHT", autospec=True)
 def test_strategy(mock_dht):
@@ -144,7 +151,6 @@ def test_reuse_grad_buffers_warning():
 
 
 @RunIf(hivemind=True)
-@mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
 def test_raise_exception_multiple_optimizers():
     """Test that we raise an exception when multiple optimizers are provided."""
 
@@ -155,9 +161,7 @@ def test_raise_exception_multiple_optimizers():
             return [optimizer, optimizer], [lr_scheduler]
 
     model = TestModel()
-    trainer = pl.Trainer(
-        strategy=CollaborativeStrategy(target_batch_size=1, reuse_grad_buffers=True), fast_dev_run=True
-    )
+    trainer = pl.Trainer(strategy=CollaborativeStrategy(target_batch_size=1), fast_dev_run=True)
 
     with pytest.raises(MisconfigurationException, match="Hivemind only supports training with one optimizer."):
         trainer.fit(model)
