@@ -20,9 +20,9 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from pytorch_lightning import Callback, LightningDataModule, Trainer
+from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
-from pytorch_lightning.loggers import LoggerCollection, TestTubeLogger
+from pytorch_lightning.loggers import LoggerCollection
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
@@ -34,39 +34,8 @@ from pytorch_lightning.plugins.environments import (
 from pytorch_lightning.strategies import SingleDeviceStrategy
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
-from tests.helpers.datamodules import MNISTDataModule
 from tests.loggers.test_logger import CustomLogger
 from tests.plugins.environments.test_lsf_environment import _make_rankfile
-
-
-def test_v1_7_0_datamodule_transform_properties(tmpdir):
-    dm = MNISTDataModule()
-    with pytest.deprecated_call(match=r"DataModule property `val_transforms` was deprecated in v1.5"):
-        dm.val_transforms = "b"
-    with pytest.deprecated_call(match=r"DataModule property `val_transforms` was deprecated in v1.5"):
-        _ = LightningDataModule(val_transforms="b")
-
-
-def test_v1_7_0_moved_get_progress_bar_dict(tmpdir):
-    class TestModel(BoringModel):
-        def get_progress_bar_dict(self):
-            items = super().get_progress_bar_dict()
-            items.pop("v_num", None)
-            return items
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=True,
-    )
-    test_model = TestModel()
-    with pytest.deprecated_call(match=r"`LightningModule.get_progress_bar_dict` method was deprecated in v1.5"):
-        trainer.fit(test_model)
-    standard_metrics_postfix = trainer.progress_bar_callback.main_progress_bar.postfix
-    assert "loss" in standard_metrics_postfix
-    assert "v_num" not in standard_metrics_postfix
-
-    with pytest.deprecated_call(match=r"`trainer.progress_bar_dict` is deprecated in v1.5"):
-        _ = trainer.progress_bar_dict
 
 
 def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
@@ -105,12 +74,6 @@ def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
         match="Method `on_predict_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
     ):
         _run(model, "predict")
-
-
-@mock.patch("pytorch_lightning.loggers.test_tube.Experiment")
-def test_v1_7_0_test_tube_logger(_, tmpdir):
-    with pytest.deprecated_call(match="The TestTubeLogger is deprecated since v1.5 and will be removed in v1.7"):
-        _ = TestTubeLogger(tmpdir)
 
 
 def test_v1_7_0_on_interrupt(tmpdir):

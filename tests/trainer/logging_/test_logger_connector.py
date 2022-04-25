@@ -194,7 +194,6 @@ class HookedModel(BoringModel):
                 "on_before_batch_transfer",
                 "transfer_batch_to_device",
                 "on_after_batch_transfer",
-                "get_progress_bar_dict",
             }
         )
         # remove `nn.Module` hooks

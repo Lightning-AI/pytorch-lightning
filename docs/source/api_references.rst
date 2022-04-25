@@ -93,7 +93,6 @@ loggers
     mlflow
     neptune
     tensorboard
-    test_tube
     wandb
 
 loops

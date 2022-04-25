@@ -23,7 +23,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Generator, Iterable, List, Optional, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Type, Union
 from weakref import proxy
 
 import torch
@@ -1918,6 +1918,7 @@ class Trainer(
 
         The val dataloader must be initialized before training loop starts, as the training loop
         inspects the val dataloader to determine whether to run the evaluation loop.
+
         Args:
             model: The ``LightningModule`` if called outside of the trainer scope.
         """
