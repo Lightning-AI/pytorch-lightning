@@ -168,6 +168,18 @@ def test_raise_exception_multiple_optimizers():
 
 
 @RunIf(hivemind=True)
+@mock.patch("pytorch_lightning.utilities.data._extract_batch_size", autospec=True, return_value=[None])
+def test_raise_exception_no_batch_size(mock_extract_batch_size):
+    """Test that we raise an exception when no batch size is automatically found."""
+
+    model = BoringModel()
+    trainer = pl.Trainer(strategy=CollaborativeStrategy(target_batch_size=1), fast_dev_run=True)
+
+    with pytest.raises(MisconfigurationException, match="Please provide the batch size to the Strategy."):
+        trainer.fit(model)
+
+
+@RunIf(hivemind=True)
 @mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
 @pytest.mark.parametrize(
     "delay_grad_averaging, delay_state_averaging, delay_optimizer_step",
