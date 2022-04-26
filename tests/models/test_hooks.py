@@ -201,10 +201,11 @@ def test_transfer_batch_hook_ddp(tmpdir):
         limit_train_batches=2,
         limit_val_batches=0,
         max_epochs=1,
-        enable_model_summary=False,
         strategy="ddp",
         accelerator="gpu",
         devices=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 

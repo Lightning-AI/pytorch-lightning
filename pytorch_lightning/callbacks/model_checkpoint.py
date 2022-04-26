@@ -102,6 +102,7 @@ class ModelCheckpoint(Callback):
             For example, ``filename='checkpoint_{epoch:02d}-{acc:02.0f}`` with epoch ``1`` and acc ``1.12`` will resolve
             to ``checkpoint_epoch=01-acc=01.ckpt``. Is useful to set it to ``False`` when metric names contain ``/``
             as this will result in extra folders.
+            For example, ``filename='epoch={epoch}-step={step}-val_acc={val/acc:.2f}', auto_insert_metric_name=False``
         save_weights_only: if ``True``, then only the model's weights will be
             saved. Otherwise, the optimizer states, lr-scheduler states, etc are added in the checkpoint too.
         every_n_train_steps: Number of training steps between checkpoints.
@@ -516,9 +517,12 @@ class ModelCheckpoint(Callback):
                 if auto_insert_metric_name:
                     filename = filename.replace(group, name + "={" + name)
 
+                # support for dots: https://stackoverflow.com/a/7934969
+                filename = filename.replace(group, f"{{0[{name}]")
+
                 if name not in metrics:
                     metrics[name] = 0
-            filename = filename.format(**metrics)
+            filename = filename.format(metrics)
 
         if prefix:
             filename = cls.CHECKPOINT_JOIN_CHAR.join([prefix, filename])
