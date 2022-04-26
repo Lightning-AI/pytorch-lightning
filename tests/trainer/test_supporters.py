@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
 import os
 from typing import Sequence
 from unittest import mock
@@ -36,6 +37,7 @@ from pytorch_lightning.utilities.auto_restart import CaptureMapDataset, FastForw
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 def test_tensor_running_accum_reset():
@@ -311,7 +313,7 @@ def test_nested_calc_num_data(input_data, compute_func, expected_length):
     assert calculated_length == expected_length
 
 
-@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1", "PL_TRAINER_GPUS": "2"})
+@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
 @mock.patch("torch.cuda.device_count", return_value=2)
 @mock.patch("torch.cuda.is_available", return_value=True)
 @pytest.mark.parametrize("use_fault_tolerant", [False, True])
@@ -348,7 +350,6 @@ def test_combined_data_loader_validation_test(
     )
 
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": str(int(use_fault_tolerant))}):
-
         trainer = Trainer(replace_sampler_ddp=replace_sampler_ddp, strategy="ddp", accelerator="gpu", devices=2)
         dataloader = trainer._data_connector._prepare_dataloader(dataloader, shuffle=True)
         _count = 0
@@ -381,11 +382,12 @@ def test_combined_data_loader_validation_test(
     apply_to_collection(dataloader.loaders, DataLoader, _assert_dataset)
 
 
+@pytest.mark.parametrize("accelerator", ["cpu", pytest.param("gpu", marks=RunIf(min_gpus=2))])
 @pytest.mark.parametrize("replace_sampler_ddp", [False, True])
-def test_combined_data_loader_with_max_size_cycle_and_ddp(replace_sampler_ddp):
+def test_combined_data_loader_with_max_size_cycle_and_ddp(accelerator, replace_sampler_ddp):
     """This test makes sure distributed sampler has been properly injected in dataloaders when using CombinedLoader
     with ddp and `max_size_cycle` mode."""
-    trainer = Trainer(strategy="ddp", accelerator="auto", devices=2, replace_sampler_ddp=replace_sampler_ddp)
+    trainer = Trainer(strategy="ddp", accelerator=accelerator, devices=2, replace_sampler_ddp=replace_sampler_ddp)
 
     dataloader = CombinedLoader(
         {"a": DataLoader(RandomDataset(32, 8), batch_size=1), "b": DataLoader(RandomDataset(32, 8), batch_size=1)},
@@ -452,18 +454,22 @@ def test_combined_dataloader_for_training_with_ddp(
     }
     if use_combined_loader:
         dataloader = CombinedLoader(dataloader, mode=mode)
-    expected_length_before_ddp = min(n1, n2) if is_min_size_mode else max(n1, n2)
-    expected_length_after_ddp = expected_length_before_ddp // 2 if replace_sampler_ddp else expected_length_before_ddp
     model = BoringModel()
     trainer = Trainer(
         strategy="ddp",
         accelerator="auto",
-        devices=2,
+        devices="auto",
         replace_sampler_ddp=replace_sampler_ddp,
         multiple_trainloader_mode="max_size_cycle" if use_combined_loader else mode,
     )
     trainer._data_connector.attach_data(
         model=model, train_dataloaders=dataloader, val_dataloaders=None, datamodule=None
+    )
+    expected_length_before_ddp = min(n1, n2) if is_min_size_mode else max(n1, n2)
+    expected_length_after_ddp = (
+        math.ceil(expected_length_before_ddp / trainer.num_devices)
+        if replace_sampler_ddp
+        else expected_length_before_ddp
     )
     trainer.reset_train_dataloader(model=model)
     assert trainer.train_dataloader is not None

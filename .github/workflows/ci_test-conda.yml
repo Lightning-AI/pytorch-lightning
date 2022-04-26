@@ -30,6 +30,9 @@ jobs:
 
     timeout-minutes: 30
     steps:
+    - name: Workaround for https://github.com/actions/checkout/issues/760
+      run: git config --global --add safe.directory /__w/pytorch-lightning/pytorch-lightning
+
     - uses: actions/checkout@v2
 
     - name: Update dependencies

@@ -35,6 +35,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.boring_model import BoringDataModule
 from tests.helpers.runif import RunIf
+from tests.helpers.utils import no_warning_call
 
 if _HYDRA_EXPERIMENTAL_AVAILABLE:
     from hydra.experimental import compose, initialize
@@ -862,18 +863,28 @@ def test_colliding_hparams(tmpdir):
         trainer.fit(model, datamodule=data)
 
 
-def test_nn_modules_raises_warning_when_saved_as_hparams():
+def test_nn_modules_warning_when_saved_as_hparams():
     class TorchModule(torch.nn.Module):
         def __init__(self):
             super().__init__()
             self.l1 = torch.nn.Linear(4, 5)
 
-    class CustomBoringModel(BoringModel):
+    class CustomBoringModelWarn(BoringModel):
         def __init__(self, encoder, decoder, other_hparam=7):
             super().__init__()
             self.save_hyperparameters()
 
     with pytest.warns(UserWarning, match="is an instance of `nn.Module` and is already saved"):
-        model = CustomBoringModel(encoder=TorchModule(), decoder=TorchModule())
+        model = CustomBoringModelWarn(encoder=TorchModule(), decoder=TorchModule())
 
     assert list(model.hparams) == ["encoder", "decoder", "other_hparam"]
+
+    class CustomBoringModelNoWarn(BoringModel):
+        def __init__(self, encoder, decoder, other_hparam=7):
+            super().__init__()
+            self.save_hyperparameters("other_hparam")
+
+    with no_warning_call(UserWarning, match="is an instance of `nn.Module` and is already saved"):
+        model = CustomBoringModelNoWarn(encoder=TorchModule(), decoder=TorchModule())
+
+    assert list(model.hparams) == ["other_hparam"]
