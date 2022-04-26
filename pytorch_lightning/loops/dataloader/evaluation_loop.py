@@ -13,6 +13,7 @@
 # limitations under the License.
 import os
 import shutil
+import sys
 from collections import ChainMap, OrderedDict
 from functools import partial
 from typing import Any, IO, Iterable, List, Optional, Sequence, Type, Union
@@ -251,39 +252,27 @@ class EvaluationLoop(DataLoaderLoop):
         assert self._results is not None
         self._results.to(device=self.trainer.lightning_module.device)
 
-        if self.trainer.testing:
-            self.trainer._call_callback_hooks("on_test_start", *args, **kwargs)
-            self.trainer._call_lightning_module_hook("on_test_start", *args, **kwargs)
-            self.trainer._call_strategy_hook("on_test_start", *args, **kwargs)
-        else:
-            self.trainer._call_callback_hooks("on_validation_start", *args, **kwargs)
-            self.trainer._call_lightning_module_hook("on_validation_start", *args, **kwargs)
-            self.trainer._call_strategy_hook("on_validation_start", *args, **kwargs)
+        hook_name = "on_test_start" if self.trainer.testing else "on_validation_start"
+        self.trainer._call_callback_hooks(hook_name, *args, **kwargs)
+        self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
+        self.trainer._call_strategy_hook(hook_name, *args, **kwargs)
 
     def _on_evaluation_model_eval(self) -> None:
         """Sets model to eval mode."""
-        if self.trainer.testing:
-            self.trainer._call_lightning_module_hook("on_test_model_eval")
-        else:
-            self.trainer._call_lightning_module_hook("on_validation_model_eval")
+        hook_name = "on_test_model_eval" if self.trainer.testing else "on_validation_model_eval"
+        self.trainer._call_lightning_module_hook(hook_name)
 
     def _on_evaluation_model_train(self) -> None:
         """Sets model to train mode."""
-        if self.trainer.testing:
-            self.trainer._call_lightning_module_hook("on_test_model_train")
-        else:
-            self.trainer._call_lightning_module_hook("on_validation_model_train")
+        hook_name = "on_test_model_train" if self.trainer.testing else "on_validation_model_train"
+        self.trainer._call_lightning_module_hook(hook_name)
 
     def _on_evaluation_end(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_end`` hook."""
-        if self.trainer.testing:
-            self.trainer._call_callback_hooks("on_test_end", *args, **kwargs)
-            self.trainer._call_lightning_module_hook("on_test_end", *args, **kwargs)
-            self.trainer._call_strategy_hook("on_test_end", *args, **kwargs)
-        else:
-            self.trainer._call_callback_hooks("on_validation_end", *args, **kwargs)
-            self.trainer._call_lightning_module_hook("on_validation_end", *args, **kwargs)
-            self.trainer._call_strategy_hook("on_validation_end", *args, **kwargs)
+        hook_name = "on_test_end" if self.trainer.testing else "on_validation_end"
+        self.trainer._call_callback_hooks(hook_name, *args, **kwargs)
+        self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
+        self.trainer._call_strategy_hook(hook_name, *args, **kwargs)
 
         # reset the logger connector state
         self.trainer._logger_connector.reset_results()
@@ -294,12 +283,9 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer._call_callback_hooks("on_epoch_start", *args, **kwargs)
         self.trainer._call_lightning_module_hook("on_epoch_start", *args, **kwargs)
 
-        if self.trainer.testing:
-            self.trainer._call_callback_hooks("on_test_epoch_start", *args, **kwargs)
-            self.trainer._call_lightning_module_hook("on_test_epoch_start", *args, **kwargs)
-        else:
-            self.trainer._call_callback_hooks("on_validation_epoch_start", *args, **kwargs)
-            self.trainer._call_lightning_module_hook("on_validation_epoch_start", *args, **kwargs)
+        hook_name = "on_test_epoch_start" if self.trainer.testing else "on_validation_epoch_start"
+        self.trainer._call_callback_hooks(hook_name, *args, **kwargs)
+        self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
 
     def _evaluation_epoch_end(self, outputs: List[EPOCH_OUTPUT]) -> None:
         """Runs ``{validation/test}_epoch_end``"""
@@ -311,10 +297,8 @@ class EvaluationLoop(DataLoaderLoop):
         )
 
         # call the model epoch end
-        if self.trainer.testing:
-            self.trainer._call_lightning_module_hook("test_epoch_end", output_or_outputs)
-        else:
-            self.trainer._call_lightning_module_hook("validation_epoch_end", output_or_outputs)
+        hook_name = "test_epoch_end" if self.trainer.testing else "validation_epoch_end"
+        self.trainer._call_lightning_module_hook(hook_name, output_or_outputs)
 
     def _on_evaluation_epoch_end(self) -> None:
         """Runs ``on_{validation/test}_epoch_end`` hook."""
@@ -344,6 +328,10 @@ class EvaluationLoop(DataLoaderLoop):
 
     @staticmethod
     def _print_results(results: List[_OUT_DICT], stage: str, file: Optional[IO[str]] = None) -> None:
+        # print to stdout by default
+        if file is None:
+            file = sys.stdout
+
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
         metrics = sorted({k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys})
@@ -392,7 +380,16 @@ class EvaluationLoop(DataLoaderLoop):
                 row_format = f"{{:^{max_length}}}" * len(table_headers)
                 half_term_size = int(term_size / 2)
 
-                bar = "─" * term_size
+                try:
+                    # some terminals do not support this character
+                    if hasattr(file, "encoding") and file.encoding is not None:
+                        "─".encode(file.encoding)
+                except UnicodeEncodeError:
+                    bar_character = "-"
+                else:
+                    bar_character = "─"
+                bar = bar_character * term_size
+
                 lines = [bar, row_format.format(*table_headers).rstrip(), bar]
                 for metric, row in zip(metrics, table_rows):
                     # deal with column overflow

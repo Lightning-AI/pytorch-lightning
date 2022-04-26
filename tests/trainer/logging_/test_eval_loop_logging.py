@@ -870,6 +870,23 @@ def test_native_print_results(monkeypatch, inputs, expected):
     assert out.getvalue().replace(os.linesep, "\n") == expected.lstrip()
 
 
+@pytest.mark.parametrize("encoding", ["latin-1", "utf-8"])
+def test_native_print_results_encodings(monkeypatch, encoding):
+    import pytorch_lightning.loops.dataloader.evaluation_loop as imports
+
+    monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
+
+    out = mock.Mock()
+    out.encoding = encoding
+    EvaluationLoop._print_results(*inputs0, file=out)
+
+    # Attempt to encode everything the file is told to write with the given encoding
+    for call_ in out.method_calls:
+        name, args, kwargs = call_
+        if name == "write":
+            args[0].encode(encoding)
+
+
 expected0 = """
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃       Test metric       ┃      DataLoader 0       ┃       DataLoader 1       ┃

@@ -78,6 +78,11 @@ class ProgressBarBase(Callback):
         return "Predicting"
 
     @property
+    def _val_processed(self) -> int:
+        # use total in case validation runs more than once per training epoch
+        return self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.total.processed
+
+    @property
     def train_batch_idx(self) -> int:
         """The number of batches processed during training.
 
@@ -215,7 +220,7 @@ class ProgressBarBase(Callback):
         Return:
             Dictionary with the items to be displayed in the progress bar.
         """
-        standard_metrics = pl_module.get_progress_bar_dict()
+        standard_metrics = get_standard_metrics(trainer, pl_module)
         pbar_metrics = trainer.progress_bar_metrics
         duplicates = list(standard_metrics.keys() & pbar_metrics.keys())
         if duplicates:

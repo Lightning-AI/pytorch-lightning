@@ -220,10 +220,8 @@ class EvaluationEpochLoop(Loop):
         Returns:
             the outputs of the step
         """
-        if self.trainer.testing:
-            output = self.trainer._call_strategy_hook("test_step", *kwargs.values())
-        else:
-            output = self.trainer._call_strategy_hook("validation_step", *kwargs.values())
+        hook_name = "test_step" if self.trainer.testing else "validation_step"
+        output = self.trainer._call_strategy_hook(hook_name, *kwargs.values())
 
         return output
 

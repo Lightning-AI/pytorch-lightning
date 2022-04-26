@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 
 
 def rank_zero_only(fn: Callable) -> Callable:
-    """Function that can be used as a decorator to enable a function/method being called only on rank 0."""
+    """Function that can be used as a decorator to enable a function/method being called only on global rank 0."""
 
     @wraps(fn)
     def wrapped_fn(*args: Any, **kwargs: Any) -> Optional[Any]:
@@ -39,7 +39,7 @@ def rank_zero_only(fn: Callable) -> Callable:
 def _get_rank() -> int:
     # SLURM_PROCID can be set even if SLURM is not managing the multiprocessing,
     # therefore LOCAL_RANK needs to be checked first
-    rank_keys = ("RANK", "LOCAL_RANK", "SLURM_PROCID")
+    rank_keys = ("RANK", "LOCAL_RANK", "SLURM_PROCID", "JSM_NAMESPACE_RANK")
     for key in rank_keys:
         rank = os.environ.get(key)
         if rank is not None:
@@ -65,13 +65,13 @@ def _debug(*args: Any, stacklevel: int = 2, **kwargs: Any) -> None:
 
 @rank_zero_only
 def rank_zero_debug(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
-    """Function used to log debug-level messages only on rank 0."""
+    """Function used to log debug-level messages only on global rank 0."""
     _debug(*args, stacklevel=stacklevel, **kwargs)
 
 
 @rank_zero_only
 def rank_zero_info(*args: Any, stacklevel: int = 4, **kwargs: Any) -> None:
-    """Function used to log info-level messages only on rank 0."""
+    """Function used to log info-level messages only on global rank 0."""
     _info(*args, stacklevel=stacklevel, **kwargs)
 
 
@@ -88,7 +88,7 @@ def _warn(message: Union[str, Warning], stacklevel: int = 2, **kwargs: Any) -> N
 
 @rank_zero_only
 def rank_zero_warn(message: Union[str, Warning], stacklevel: int = 4, **kwargs: Any) -> None:
-    """Function used to log warn-level messages only on rank 0."""
+    """Function used to log warn-level messages only on global rank 0."""
     _warn(message, stacklevel=stacklevel, **kwargs)
 
 

@@ -702,11 +702,11 @@ def test_warning_with_small_dataloader_and_logging_interval(tmpdir):
     dataloader = DataLoader(RandomDataset(32, length=10))
     model.train_dataloader = lambda: dataloader
 
-    with pytest.warns(UserWarning, match=r"The number of training samples \(10\) is smaller than the logging interval"):
+    with pytest.warns(UserWarning, match=r"The number of training batches \(10\) is smaller than the logging interval"):
         trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, log_every_n_steps=11)
         trainer.fit(model)
 
-    with pytest.warns(UserWarning, match=r"The number of training samples \(1\) is smaller than the logging interval"):
+    with pytest.warns(UserWarning, match=r"The number of training batches \(1\) is smaller than the logging interval"):
         trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, log_every_n_steps=2, limit_train_batches=1)
         trainer.fit(model)
 
