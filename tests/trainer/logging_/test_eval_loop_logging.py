@@ -25,7 +25,6 @@ import pytest
 import torch
 
 from pytorch_lightning import callbacks, Trainer
-from pytorch_lightning.callbacks import RichProgressBar
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.loops.dataloader import EvaluationLoop
 from pytorch_lightning.trainer.states import RunningStage
@@ -962,37 +961,3 @@ def test_rich_print_results(inputs, expected):
         EvaluationLoop._print_results(*inputs)
     expected = expected[1:]  # remove the initial line break from the """ string
     assert capture.get() == expected.lstrip()
-
-
-@RunIf(rich=True, skip_windows=True)
-def test_rich_print_results_with_progress_bar(tmpdir):
-    """Test whether Rich table is rendered on its own line.
-
-    Test to counter the issue #12824
-    """
-
-    expected = "\n┏━━━━━━━"
-
-    class MyModel(BoringModel):
-        def test_step(self, batch, batch_idx):
-            self.log("c", self.global_step)
-            return super().test_step(batch, batch_idx)
-
-    with redirect_stdout(StringIO()) as out:
-        model = MyModel()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            limit_train_batches=2,
-            limit_val_batches=2,
-            limit_test_batches=2,
-            max_epochs=2,
-            enable_model_summary=False,
-            enable_checkpointing=False,
-            log_every_n_steps=1,
-            callbacks=RichProgressBar(),
-        )
-
-        trainer.fit(model)
-        trainer.test(model)
-
-    assert expected in out.getvalue()
