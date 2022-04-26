@@ -91,6 +91,100 @@ def test_ddp_comm_hook(tmpdir, strategy_kwargs, expected_comm_hook_name):
 
 
 @RunIf(min_gpus=2, min_torch="1.9.0", skip_windows=True, standalone=True)
+def test_ddp_fp16_compress_comm_hook(tmpdir):
+    """Test for DDP FP16 compress hook."""
+
+    class TestDDPStrategy(DDPStrategy):
+        def teardown(self):
+            # check here before unwrapping DistributedDataParallel in self.teardown
+            trainer_comm_hook = self.model._get_ddp_logging_data()["comm_hook"]
+            expected_comm_hook = default.fp16_compress_hook.__qualname__
+            assert trainer_comm_hook == expected_comm_hook
+            return super().teardown()
+
+    model = BoringModel()
+    strategy = TestDDPStrategy(ddp_comm_hook=default.fp16_compress_hook)
+    trainer = Trainer(
+        max_epochs=1,
+        accelerator="gpu",
+        devices=2,
+        strategy=strategy,
+        default_root_dir=tmpdir,
+        sync_batchnorm=True,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+
+
+@RunIf(min_gpus=2, min_torch="1.9.0", skip_windows=True, standalone=True)
+def test_ddp_sgd_comm_hook(tmpdir):
+    """Test for DDP FP16 compress hook."""
+
+    class TestDDPStrategy(DDPStrategy):
+        def teardown(self):
+            # check here before unwrapping DistributedDataParallel in self.teardown
+            trainer_comm_hook = self.model._get_ddp_logging_data()["comm_hook"]
+            expected_comm_hook = powerSGD.powerSGD_hook.__qualname__
+            assert trainer_comm_hook == expected_comm_hook
+            return super().teardown()
+
+    model = BoringModel()
+    strategy = TestDDPStrategy(
+        ddp_comm_state=powerSGD.PowerSGDState(process_group=None),
+        ddp_comm_hook=powerSGD.powerSGD_hook,
+    )
+    trainer = Trainer(
+        max_epochs=1,
+        accelerator="gpu",
+        devices=2,
+        strategy=strategy,
+        default_root_dir=tmpdir,
+        sync_batchnorm=True,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+
+
+@RunIf(min_gpus=2, min_torch="1.9.0", skip_windows=True, standalone=True)
+def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
+    """Test for DDP FP16 compress wrapper for SGD hook."""
+
+    class TestDDPStrategy(DDPStrategy):
+        def teardown(self):
+            # check here before unwrapping DistributedDataParallel in self.teardown
+            trainer_comm_hook = self.model._get_ddp_logging_data()["comm_hook"]
+            expected_comm_hook = default.fp16_compress_wrapper(powerSGD.powerSGD_hook).__qualname__
+            assert trainer_comm_hook == expected_comm_hook
+            return super().teardown()
+
+    model = BoringModel()
+    strategy = TestDDPStrategy(
+        ddp_comm_state=powerSGD.PowerSGDState(process_group=None),
+        ddp_comm_hook=powerSGD.powerSGD_hook,
+        ddp_comm_wrapper=default.fp16_compress_wrapper,
+    )
+    trainer = Trainer(
+        max_epochs=1,
+        accelerator="gpu",
+        devices=2,
+        strategy=strategy,
+        default_root_dir=tmpdir,
+        sync_batchnorm=True,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+
+
+@RunIf(min_gpus=2, min_torch="1.9.0", skip_windows=True, standalone=True)
 def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
     """Test for DDP Spawn FP16 compress hook."""
     model = BoringModel()
@@ -103,6 +197,43 @@ def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
         default_root_dir=tmpdir,
         sync_batchnorm=True,
         fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
+
+
+@RunIf(min_gpus=2, min_torch="1.10.0", skip_windows=True, standalone=True)
+def test_ddp_post_local_sgd_comm_hook(tmpdir):
+    """Test for DDP post-localSGD hook."""
+
+    class TestDDPStrategy(DDPStrategy):
+        def teardown(self):
+            # check here before unwrapping DistributedDataParallel in self.teardown
+            trainer_comm_hook = self.model._get_ddp_logging_data()["comm_hook"]
+            expected_comm_hook = post_localSGD.post_localSGD_hook.__qualname__
+            assert trainer_comm_hook == expected_comm_hook
+            return super().teardown()
+
+    model = BoringModel()
+
+    strategy = TestDDPStrategy(
+        ddp_comm_state=post_localSGD.PostLocalSGDState(
+            process_group=None,
+            subgroup=None,
+            start_localSGD_iter=8,
+        ),
+        ddp_comm_hook=post_localSGD.post_localSGD_hook,
+        model_averaging_period=4,
+    )
+    trainer = Trainer(
+        fast_dev_run=True,
+        accelerator="gpu",
+        devices=2,
+        strategy=strategy,
+        default_root_dir=tmpdir,
+        sync_batchnorm=True,
         enable_progress_bar=False,
         enable_model_summary=False,
     )
