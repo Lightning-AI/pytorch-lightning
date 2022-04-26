@@ -77,6 +77,7 @@ class CPUAccelerator(Accelerator):
             description=f"{cls.__class__.__name__}",
         )
 
+
 def get_cpu_process_metrics() -> dict[str, float]:
     if not _PSUTIL_AVAILABLE:
         raise ModuleNotFoundError(
