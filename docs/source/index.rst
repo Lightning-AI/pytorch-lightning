@@ -158,6 +158,7 @@ Current Lightning Users
 
    starter/introduction
    Organize existing PyTorch into Lightning <starter/converting>
+   starter/installation
 
 
 .. toctree::
@@ -198,17 +199,17 @@ Current Lightning Users
    advanced/training_tricks
    cli/lightning_cli
    tuning/profiler
-   Finetune a model <advanced/transfer_learning>
    Manage experiments <visualize/logging_intermediate>
    clouds/cluster
-   advanced/model_parallel
-   clouds/cloud_training
    Save and load model progress <common/checkpointing>
    Save memory with half-precision <common/precision>
+   advanced/model_parallel
+   clouds/cloud_training
    Train on single or multiple GPUs <accelerators/gpu>
    Train on single or multiple HPUs <accelerators/hpu>
    Train on single or multiple IPUs <accelerators/ipu>
    Train on single or multiple TPUs <accelerators/tpu>
+   Use a pretrained model <advanced/transfer_learning>
    model/own_your_loop
 
 .. toctree::
@@ -226,6 +227,7 @@ Current Lightning Users
    Early stopping <common/early_stopping>
    Experiment manager (Logger) <visualize/experiment_managers>
    Fault tolerant training  <clouds/fault_tolerant_training>
+   Finetuning <advanced/transfer_learning>
    Flash <https://lightning-flash.readthedocs.io/en/stable/>
    Grid AI <clouds/cloud_training>
    GPU <accelerators/gpu>
@@ -248,6 +250,7 @@ Current Lightning Users
    Progress bar <common/progress_bar>
    Production <deploy/production_advanced>
    Predict <deploy/production_basic>
+   Pretrained models <advanced/transfer_learning>
    Profiler <tuning/profiler>
    Pruning and Quantization <advanced/pruning_quantization>
    Remote filesystem and FSSPEC <common/remote_fs>
