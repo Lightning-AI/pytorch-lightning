@@ -5,20 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
-## [1.6.2] - 2022-04-26
+## [1.6.2] - 2022-04-27
 
 ### Fixed
 
-
 - Fixed `ImportError` when `torch.distributed` is not available. ([#12794](https://github.com/PyTorchLightning/pytorch-lightning/pull/12794))
-
-
 - When using custom DataLoaders in LightningDataModule, multiple inheritance is resolved properly ([#12716](https://github.com/PyTorchLightning/pytorch-lightning/pull/12716))
-
-
 - Fixed encoding issues on terminals that do not support unicode characters ([#12828](https://github.com/PyTorchLightning/pytorch-lightning/pull/12828))
-
-
 - Fixed support for `ModelCheckpoint` monitors with dots ([#12783](https://github.com/PyTorchLightning/pytorch-lightning/pull/12783))
 
 
