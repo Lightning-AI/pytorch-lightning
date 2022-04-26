@@ -16,7 +16,7 @@ import shutil
 import sys
 from collections import ChainMap, OrderedDict
 from functools import partial
-from typing import Any, IO, Iterable, List, Optional, Sequence, Type, Union
+from typing import Any, Iterable, List, Optional, Sequence, Type, Union
 
 import torch
 from deprecate.utils import void
@@ -319,11 +319,7 @@ class EvaluationLoop(DataLoaderLoop):
                 yield from EvaluationLoop._find_value(v, target)
 
     @staticmethod
-    def _print_results(results: List[_OUT_DICT], stage: str, file: Optional[IO[str]] = None) -> None:
-        # print to stdout by default
-        if file is None:
-            file = sys.stdout
-
+    def _print_results(results: List[_OUT_DICT], stage: str) -> None:
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
         metrics = sorted({k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys})
@@ -367,17 +363,15 @@ class EvaluationLoop(DataLoaderLoop):
                     table.add_row(*row)
 
                 console = get_console()
-                with console.capture() as capture:
-                    console.print(table)
-                print(capture.get(), end="", file=file)
+                console.print(table)
             else:
                 row_format = f"{{:^{max_length}}}" * len(table_headers)
                 half_term_size = int(term_size / 2)
 
                 try:
                     # some terminals do not support this character
-                    if hasattr(file, "encoding") and file.encoding is not None:
-                        "─".encode(file.encoding)
+                    if sys.stdout.encoding is not None:
+                        "─".encode(sys.stdout.encoding)
                 except UnicodeEncodeError:
                     bar_character = "-"
                 else:
@@ -396,7 +390,7 @@ class EvaluationLoop(DataLoaderLoop):
                     else:
                         lines.append(row_format.format(metric, *row).rstrip())
                 lines.append(bar)
-                print(os.linesep.join(lines), file=file)
+                print(os.linesep.join(lines))
 
 
 def _select_data_fetcher_type(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:
