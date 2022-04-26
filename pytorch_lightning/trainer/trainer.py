@@ -1814,11 +1814,14 @@ class Trainer(
             self.train_dataloader = CombinedLoader(loaders, self._data_connector.multiple_trainloader_mode)
 
         module = model or self.lightning_module or self.datamodule
-        self.num_training_batches = (
+        orig_train_batches = self.num_training_batches = (
             len(self.train_dataloader)
             if has_len_all_ranks(self.train_dataloader, self.strategy, module)
             else float("inf")
         )
+
+        if orig_train_batches == 0:
+            raise MisconfigurationException("You have provided an empty `DataLoader` inside `train_dataloader`.")
 
         if isinstance(self.limit_train_batches, int):
             self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
@@ -1860,6 +1863,20 @@ class Trainer(
                 f" Trainer(log_every_n_steps={self.log_every_n_steps}). Set a lower value for log_every_n_steps if"
                 " you want to see logs for the training epoch.",
                 category=PossibleUserWarning,
+            )
+
+        if (
+            self.num_training_batches == 0
+            and self.limit_train_batches > 0.0
+            and isinstance(self.limit_train_batches, float)
+            and orig_train_batches != float("inf")
+        ):
+            min_pct = 1.0 / orig_train_batches
+            raise MisconfigurationException(
+                f"You requested to check {self.limit_train_batches} of the `train_dataloader` but"
+                f" {self.limit_train_batches} * {orig_train_batches} < 1. Please increase the"
+                f" `limit_train_batches` argument. Try at least"
+                f" `limit_train_batches={min_pct}`"
             )
 
         # store epoch of dataloader reset for reload_dataloaders_every_n_epochs

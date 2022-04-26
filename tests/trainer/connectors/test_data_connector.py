@@ -25,6 +25,7 @@ from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelecto
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.data import _update_dataloader
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests.helpers.boring_model import BoringDataModule, BoringModel, RandomDataset
@@ -539,3 +540,37 @@ def test_eval_shuffle_with_distributed_sampler_replacement(shuffle):
     trainer._data_connector.attach_data(model)
     trainer.reset_val_dataloader(model)
     assert trainer.val_dataloaders[0].sampler.shuffle == shuffle
+
+
+def test_empty_dataloader():
+    """Test that a `MisconfigurationException` is raised with dataloader with no data is provided."""
+    batch_size = 16
+    dl = DataLoader(RandomDataset(32, batch_size - 1), batch_size=batch_size, drop_last=True)
+    trainer = Trainer()
+    model = BoringModel()
+
+    trainer._data_connector.attach_data(model=model, train_dataloaders=dl)
+    with pytest.raises(
+        MisconfigurationException, match="You have provided an empty `DataLoader` inside `train_dataloader`"
+    ):
+        trainer.reset_train_dataloader(model)
+
+    trainer._data_connector.attach_data(model=model, val_dataloaders=dl)
+    with pytest.raises(
+        MisconfigurationException, match="You have provided an empty `DataLoader` inside `val_dataloader`"
+    ):
+        trainer.reset_val_dataloader(model)
+
+
+def test_error_raised_with_float_limit_train_dataloader():
+    batch_size = 16
+    dl = DataLoader(RandomDataset(32, batch_size * 9), batch_size=batch_size)
+    trainer = Trainer(limit_train_batches=0.1, limit_val_batches=0.1)
+    model = BoringModel()
+
+    trainer._data_connector.attach_data(model=model, train_dataloaders=dl)
+    with pytest.raises(
+        MisconfigurationException,
+        match="Please increase the `limit_train_batches` argument. Try at least",
+    ):
+        trainer.reset_train_dataloader(model)

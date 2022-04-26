@@ -388,6 +388,11 @@ class DataConnector:
                 orig_num_batches = num_batches = (
                     len(dataloader) if has_len_all_ranks(dataloader, self.trainer.strategy, module) else float("inf")
                 )
+                if orig_num_batches == 0:
+                    raise MisconfigurationException(
+                        f"You have provided an empty `DataLoader` inside `{mode.dataloader_prefix}_dataloader`."
+                    )
+
                 self._worker_check(dataloader, f"{mode.dataloader_prefix}_dataloader {i}")
 
                 # percent or num_steps
@@ -405,12 +410,17 @@ class DataConnector:
                         f" specifies `num_{mode.dataloader_prefix}_batches` to use."
                     )
 
-                if num_batches == 0 and limit_eval_batches > 0.0 and isinstance(limit_eval_batches, float):
-                    min_pct = 1.0 / len(dataloader)
+                if (
+                    num_batches == 0
+                    and limit_eval_batches > 0.0
+                    and isinstance(limit_eval_batches, float)
+                    and orig_num_batches != float("inf")
+                ):
+                    min_pct = 1.0 / orig_num_batches
                     raise MisconfigurationException(
                         f"You requested to check {limit_eval_batches} of the `{mode.dataloader_prefix}_dataloader` but"
                         f" {limit_eval_batches} * {orig_num_batches} < 1. Please increase the"
-                        f" `limit_{mode.dataloader_prefix}_batches` flag. Try at least"
+                        f" `limit_{mode.dataloader_prefix}_batches` argument. Try at least"
                         f" `limit_{mode.dataloader_prefix}_batches={min_pct}`"
                     )
 
