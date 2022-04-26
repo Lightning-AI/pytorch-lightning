@@ -23,8 +23,8 @@ if _HIVEMIND_AVAILABLE:
     import hivemind
 
 
-@mock.patch("pytorch_lightning.strategies.collaborative._HIVEMIND_AVAILABLE", return_value=False)
-def test_raise_exception_if_hivemind_unavailable(mock_import):
+@mock.patch("pytorch_lightning.strategies.collaborative._HIVEMIND_AVAILABLE", False)
+def test_raise_exception_if_hivemind_unavailable():
     """Test that we raise an exception when Hivemind is not available."""
     with pytest.raises(MisconfigurationException, match="you must have Hivemind installed"):
         CollaborativeStrategy(target_batch_size=1)
@@ -334,11 +334,9 @@ def test_multiple_peers(num_processes, wait_seconds):
             assert any(global_step > 0 for global_step in process_steps)
 
 
-@RunIf(hivemind=True)
-@mock.patch("torch.cuda.is_available", return_value=True)
-@mock.patch("torch.cuda.device_count", return_value=1)
+@RunIf(hivemind=True, min_gpus=1)
 @mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
-def test_scaler_updated_precision_16(mocked_cuda_available, mocked_device_count):
+def test_scaler_updated_precision_16():
     class TestModel(BoringModel):
         def on_fit_start(self) -> None:
             assert isinstance(self.trainer.precision_plugin.scaler, hivemind.GradScaler)
