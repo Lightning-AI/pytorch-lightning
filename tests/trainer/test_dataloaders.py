@@ -523,6 +523,7 @@ def test_warning_on_zero_len_dataloader(tmpdir):
     train_dataloader = DataLoader(RandomDataset(32, 0))
     val_dataloader = DataLoader(RandomDataset(32, 0))
     trainer._data_connector.attach_data(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
+
     with pytest.warns(UserWarning, match="Total length of `CombinedLoader` across ranks is zero"):
         trainer.reset_train_dataloader(model)
     assert trainer.num_training_batches == 0
