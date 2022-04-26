@@ -30,7 +30,7 @@ By default, the plugins get selected based on the rest of the Trainer settings s
 
 -----------
 
-.. _precision_plugins:
+.. _precision-plugins:
 
 *****************
 Precision Plugins
@@ -65,7 +65,7 @@ The full list of built-in precision plugins is listed below.
     TPUBf16PrecisionPlugin
     TPUPrecisionPlugin
 
-More information regarding precision with Lightning can be found :doc:`here <../advanced/precision>`
+More information regarding precision with Lightning can be found :ref:`here <precision>`
 
 -----------
 
@@ -92,7 +92,7 @@ Below is a list of built-in plugins for checkpointing.
     TorchCheckpointIO
     XLACheckpointIO
 
-Learn more about custom checkpointing with Lightning :ref:`here <customize_checkpointing>`.
+Learn more about custom checkpointing with Lightning :ref:`here <checkpointing_expert>`.
 
 -----------
 

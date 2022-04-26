@@ -32,7 +32,6 @@ from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.callbacks.progress import base as progress_base
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -685,7 +684,7 @@ class LightningModule(
                 return loss
 
         See Also:
-            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
+            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
     def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
@@ -859,7 +858,7 @@ class LightningModule(
                     ...
 
         See Also:
-            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
+            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
     def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
@@ -987,7 +986,7 @@ class LightningModule(
         """
 
     def test_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        """Use this when testing with dp or ddp2 because :meth:`test_step` will operate on only part of the batch.
+        """Use this when testing with DP or DDP2 because :meth:`test_step` will operate on only part of the batch.
         However, this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
@@ -1037,7 +1036,7 @@ class LightningModule(
                 self.log("test_loss", loss)
 
         See Also:
-            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
+            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
     def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
@@ -1730,35 +1729,6 @@ class LightningModule(
             param.requires_grad = True
 
         self.train()
-
-    def get_progress_bar_dict(self) -> Dict[str, Union[int, str]]:
-        r"""
-        .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of
-            `pytorch_lightning.callbacks.progress.base.get_metrics` and will be removed in v1.7.
-
-        Implement this to override the default items displayed in the progress bar.
-        By default it includes the average loss value, split index of BPTT (if used)
-        and the version of the experiment when using a logger.
-
-        .. code-block::
-
-            Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, loss=4.501, v_num=10]
-
-        Here is an example how to override the defaults:
-
-        .. code-block:: python
-
-            def get_progress_bar_dict(self):
-                # don't show the version number
-                items = super().get_progress_bar_dict()
-                items.pop("v_num", None)
-                return items
-
-        Return:
-            Dictionary with the items to be displayed in the progress bar.
-        """
-        return progress_base.get_standard_metrics(self.trainer, self)
 
     def _verify_is_manual_optimization(self, fn_name):
         if self.automatic_optimization:
