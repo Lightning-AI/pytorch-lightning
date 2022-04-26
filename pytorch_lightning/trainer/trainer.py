@@ -1821,7 +1821,10 @@ class Trainer(
         )
 
         if orig_train_batches == 0:
-            raise MisconfigurationException("You have provided an empty `DataLoader` inside `train_dataloader`.")
+            return
+
+        # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
+        self._last_train_dl_reload_epoch = self.current_epoch
 
         if isinstance(self.limit_train_batches, int):
             self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
@@ -1878,9 +1881,6 @@ class Trainer(
                 f" `limit_train_batches` argument. Try at least"
                 f" `limit_train_batches={min_pct}`"
             )
-
-        # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
-        self._last_train_dl_reload_epoch = self.current_epoch
 
     def reset_val_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the validation dataloader and determines the number of batches.

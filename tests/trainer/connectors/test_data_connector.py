@@ -542,26 +542,6 @@ def test_eval_shuffle_with_distributed_sampler_replacement(shuffle):
     assert trainer.val_dataloaders[0].sampler.shuffle == shuffle
 
 
-def test_empty_dataloader():
-    """Test that a `MisconfigurationException` is raised with dataloader with no data is provided."""
-    batch_size = 16
-    dl = DataLoader(RandomDataset(32, batch_size - 1), batch_size=batch_size, drop_last=True)
-    trainer = Trainer()
-    model = BoringModel()
-
-    trainer._data_connector.attach_data(model=model, train_dataloaders=dl)
-    with pytest.raises(
-        MisconfigurationException, match="You have provided an empty `DataLoader` inside `train_dataloader`"
-    ):
-        trainer.reset_train_dataloader(model)
-
-    trainer._data_connector.attach_data(model=model, val_dataloaders=dl)
-    with pytest.raises(
-        MisconfigurationException, match="You have provided an empty `DataLoader` inside `val_dataloader`"
-    ):
-        trainer.reset_val_dataloader(model)
-
-
 def test_error_raised_with_float_limit_train_dataloader():
     batch_size = 16
     dl = DataLoader(RandomDataset(32, batch_size * 9), batch_size=batch_size)

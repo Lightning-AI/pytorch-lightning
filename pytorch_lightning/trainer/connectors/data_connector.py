@@ -388,10 +388,10 @@ class DataConnector:
                 orig_num_batches = num_batches = (
                     len(dataloader) if has_len_all_ranks(dataloader, self.trainer.strategy, module) else float("inf")
                 )
+
                 if orig_num_batches == 0:
-                    raise MisconfigurationException(
-                        f"You have provided an empty `DataLoader` inside `{mode.dataloader_prefix}_dataloader`."
-                    )
+                    loader_num_batches.append(num_batches)
+                    continue
 
                 self._worker_check(dataloader, f"{mode.dataloader_prefix}_dataloader {i}")
 
