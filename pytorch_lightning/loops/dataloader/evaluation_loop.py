@@ -369,7 +369,7 @@ class EvaluationLoop(DataLoaderLoop):
                 console = get_console()
                 with console.capture() as capture:
                     console.print(table)
-                print(capture.get(), file=file)
+                print(capture.get(), end="", file=file)
             else:
                 row_format = f"{{:^{max_length}}}" * len(table_headers)
                 half_term_size = int(term_size / 2)
