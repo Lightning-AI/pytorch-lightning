@@ -42,7 +42,7 @@ from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signatu
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
 if _RICH_AVAILABLE:
-    from rich.console import Console
+    from rich import get_console
     from rich.table import Column, Table
 
 
@@ -358,8 +358,6 @@ class EvaluationLoop(DataLoaderLoop):
             table_headers.insert(0, f"{stage} Metric".capitalize())
 
             if _RICH_AVAILABLE:
-                console = Console(file=file)
-
                 columns = [Column(h, justify="center", style="magenta", width=max_length) for h in table_headers]
                 columns[0].style = "cyan"
 
@@ -367,7 +365,11 @@ class EvaluationLoop(DataLoaderLoop):
                 for metric, row in zip(metrics, table_rows):
                     row.insert(0, metric)
                     table.add_row(*row)
-                console.print(table)
+
+                console = get_console()
+                with console.capture() as capture:
+                    console.print(table)
+                print(capture.get(), file=file)
             else:
                 row_format = f"{{:^{max_length}}}" * len(table_headers)
                 half_term_size = int(term_size / 2)
