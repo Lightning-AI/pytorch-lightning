@@ -136,6 +136,11 @@ jobs:
       run: |
         python requirements/check-avail-extras.py
 
+    # FIXME
+    - name: Test init_meta_context
+      run: |
+        PL_RUN_STANDALONE_TESTS=1 python -m pytest tests/utilities/test_meta.py::test_fit_with_init_meta_context -vv
+
     - name: Tests
       run: |
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
