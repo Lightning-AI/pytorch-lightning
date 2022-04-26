@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections import defaultdict
-from contextlib import redirect_stdout
-from io import StringIO
 from unittest import mock
 from unittest.mock import DEFAULT, Mock
 
@@ -402,37 +400,3 @@ def test_rich_progress_bar_correct_value_epoch_end(tmpdir):
 
     trainer.test(model, verbose=False)
     assert pbar.calls["test"] == []
-
-
-@RunIf(rich=True)
-def test_rich_print_results_with_progress_bar(tmpdir):
-    """Test whether Rich table is rendered on its own line.
-
-    Test to counter the issue #12824
-    """
-
-    expected = "\n┏━━━━━━━"
-
-    class MyModel(BoringModel):
-        def test_step(self, batch, batch_idx):
-            self.log("c", self.global_step)
-            return super().test_step(batch, batch_idx)
-
-    with redirect_stdout(StringIO()) as out:
-        model = MyModel()
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            limit_train_batches=2,
-            limit_val_batches=2,
-            limit_test_batches=2,
-            max_epochs=2,
-            enable_model_summary=False,
-            enable_checkpointing=False,
-            log_every_n_steps=1,
-            callbacks=RichProgressBar(),
-        )
-
-        trainer.fit(model)
-        trainer.test(model)
-
-    assert expected in out.getvalue()
