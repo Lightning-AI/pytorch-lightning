@@ -2364,6 +2364,11 @@ class Trainer(
             storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
 
         """
+        if self.model is None:
+            raise AttributeError(
+                "Saving a checkpoint is only possible if a model is attached to the Trainer. Did you call"
+                " `Trainer.save_checkpoint()` before calling `Trainer.{fit,validate,test,predict}`?"
+            )
         self._checkpoint_connector.save_checkpoint(filepath, weights_only=weights_only, storage_options=storage_options)
 
     """
