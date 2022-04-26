@@ -31,66 +31,6 @@ if torch.distributed.is_available():
 
 
 @RunIf(min_gpus=2, min_torch="1.9.0", skip_windows=True, standalone=True)
-@pytest.mark.parametrize(
-    ["strategy_kwargs", "expected_comm_hook_name"],
-    [
-        pytest.param(
-            dict(ddp_comm_hook=default.fp16_compress_hook), default.fp16_compress_hook.__qualname__, id="fp16_compress"
-        ),
-        pytest.param(
-            dict(ddp_comm_state=powerSGD.PowerSGDState(process_group=None), ddp_comm_hook=powerSGD.powerSGD_hook),
-            powerSGD.powerSGD_hook.__qualname__,
-            id="powerSGD",
-        ),
-        pytest.param(
-            dict(
-                ddp_comm_state=powerSGD.PowerSGDState(process_group=None),
-                ddp_comm_hook=powerSGD.powerSGD_hook,
-                ddp_comm_wrapper=default.fp16_compress_wrapper,
-            ),
-            default.fp16_compress_wrapper(powerSGD.powerSGD_hook).__qualname__,
-            id="powerSGD_fp16_compress",
-        ),
-        pytest.param(
-            dict(
-                ddp_comm_state=post_localSGD.PostLocalSGDState(
-                    process_group=None, subgroup=None, start_localSGD_iter=8
-                ),
-                ddp_comm_hook=post_localSGD.post_localSGD_hook,
-                model_averaging_period=4,
-            ),
-            post_localSGD.post_localSGD_hook.__qualname__,
-            id="post_localSGD",
-            marks=RunIf(min_torch="1.10.0"),
-        ),
-    ],
-)
-def test_ddp_comm_hook(tmpdir, strategy_kwargs, expected_comm_hook_name):
-    class TestDDPStrategy(DDPStrategy):
-        def teardown(self):
-            # check here before unwrapping DistributedDataParallel in self.teardown
-            trainer_comm_hook = self.model._get_ddp_logging_data()["comm_hook"]
-            assert trainer_comm_hook == expected_comm_hook_name
-            return super().teardown()
-
-    model = BoringModel()
-    strategy = TestDDPStrategy(**strategy_kwargs)
-    trainer = Trainer(
-        max_epochs=1,
-        accelerator="gpu",
-        devices=2,
-        strategy=strategy,
-        default_root_dir=tmpdir,
-        sync_batchnorm=True,
-        fast_dev_run=True,
-        enable_progress_bar=False,
-        enable_model_summary=False,
-    )
-    trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-
-
-@RunIf(min_gpus=2, min_torch="1.9.0", skip_windows=True, standalone=True)
 def test_ddp_fp16_compress_comm_hook(tmpdir):
     """Test for DDP FP16 compress hook."""
 
