@@ -1108,7 +1108,7 @@ class LightningModule(
 
             class MyModel(LightningModule):
 
-                def predicts_step(self, batch, batch_idx, dataloader_idx=0):
+                def predict_step(self, batch, batch_idx, dataloader_idx=0):
                     return self(batch)
 
             dm = ...
