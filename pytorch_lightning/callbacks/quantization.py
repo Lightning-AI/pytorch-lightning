@@ -252,7 +252,7 @@ class QuantizationAwareTraining(Callback):
             model.qconfig = self._qconfig
 
         if self._check_feasible_fuse(model):
-            torch.quantization.fuse_modules(model, self._modules_to_fuse, inplace=True)
+            torch.ao.quantization.fuse_modules_qat(model, self._modules_to_fuse, inplace=True)
 
         # Prepare the model for QAT. This inserts observers and fake_quants in
         # the model that will observe weight and activation tensors during calibration.
