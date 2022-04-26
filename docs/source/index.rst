@@ -157,7 +157,6 @@ Current Lightning Users
    :caption: Get Started
 
    starter/introduction
-   Organize existing PyTorch into Lightning <starter/converting>
    starter/installation
 
 
@@ -200,6 +199,7 @@ Current Lightning Users
    cli/lightning_cli
    tuning/profiler
    Manage experiments <visualize/logging_intermediate>
+   Organize existing PyTorch into Lightning <starter/converting>
    clouds/cluster
    Save and load model progress <common/checkpointing>
    Save memory with half-precision <common/precision>
