@@ -40,9 +40,6 @@ from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTu
 if _JSONARGPARSE_AVAILABLE:
     from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, Namespace, set_config_read_mode
     from jsonargparse.optionals import import_docstring_parse
-    from jsonargparse.typing import restricted_number_type
-
-    uint32 = restricted_number_type("uint32", int, [(">=", np.iinfo(np.uint32).min), ("<=", np.iinfo(np.uint32).max)])
 
     set_config_read_mode(fsspec_enabled=True)
 else:
@@ -475,7 +472,7 @@ class LightningCLI:
         save_config_multifile: bool = False,
         trainer_class: Union[Type[Trainer], Callable[..., Trainer]] = Trainer,
         trainer_defaults: Optional[Dict[str, Any]] = None,
-        seed_everything_default: Union[bool, uint32] = True,
+        seed_everything_default: Union[bool, int] = True,
         description: str = "pytorch-lightning trainer command line tool",
         env_prefix: str = "PL",
         env_parse: bool = False,
@@ -604,9 +601,9 @@ class LightningCLI:
         """Adds default arguments to the parser."""
         parser.add_argument(
             "--seed_everything",
-            type=Union[bool, uint32],
+            type=Union[bool, int],
             default=self.seed_everything_default,
-            help="Set to an int to run seed_everything with this value before classes instantiation.",
+            help="Set to an int to run seed_everything with this value before classes instantiation. Set to True to use a random seed.",
         )
 
     def add_core_arguments_to_parser(self, parser: LightningArgumentParser) -> None:

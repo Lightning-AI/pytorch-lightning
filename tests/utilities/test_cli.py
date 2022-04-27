@@ -1554,26 +1554,6 @@ def test_cli_logger_shorthand():
 def test_cli_auto_seeding():
 
     with mock.patch("sys.argv", ["any.py"]):
-        with pytest.raises(ParserError):
-            cli = LightningCLI(
-                TestModel,
-                run=False,
-                seed_everything_default=int(np.iinfo(np.uint32).max + 1),
-                parser_kwargs={"error_handler": None},
-            )
-            assert cli.seed_everything_default is False
-
-    with mock.patch("sys.argv", ["any.py"]):
-        with pytest.raises(ParserError):
-            cli = LightningCLI(
-                TestModel,
-                run=False,
-                seed_everything_default=int(np.iinfo(np.uint32).min - 1),
-                parser_kwargs={"error_handler": None},
-            )
-            assert cli.seed_everything_default is False
-
-    with mock.patch("sys.argv", ["any.py"]):
         cli = LightningCLI(TestModel, run=False, seed_everything_default=False)
         assert cli.seed_everything_default is False
         assert cli.config["seed_everything"] is False
