@@ -34,7 +34,7 @@ class DeviceStatsMonitor(Callback):
     is a special callback as it requires a ``logger`` to passed as argument to the ``Trainer``.
 
     Args:
-        cpu_stats: if ``True``, will also record CPU stats in addition to accelerator stats.
+        cpu_stats: if ``True``, it will record CPU stats.
 
     Raises:
         MisconfigurationException:
@@ -47,7 +47,7 @@ class DeviceStatsMonitor(Callback):
         >>> trainer = Trainer(callbacks=[device_stats]) # doctest: +SKIP
     """
 
-    def __init__(self, cpu_stats: bool = True) -> None:
+    def __init__(self, cpu_stats: Optional[bool] = None) -> None:
         self.cpu_stats = cpu_stats
 
     def setup(
@@ -75,8 +75,11 @@ class DeviceStatsMonitor(Callback):
         if not trainer._logger_connector.should_update_logs:
             return
 
+        device_stats = {}
         device = trainer.strategy.root_device
-        device_stats = trainer.accelerator.get_device_stats(device)
+
+        if self.cpu_stats is None or self.cpu_stats:
+            device_stats = trainer.accelerator.get_device_stats(device)
 
         if self.cpu_stats and device.type != "cpu":
             # Don't query CPU stats twice if CPU is accelerator
