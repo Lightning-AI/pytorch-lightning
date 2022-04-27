@@ -17,8 +17,8 @@ from pytorch_lightning.strategies.ddp2 import DDP2Strategy  # noqa: F401
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy  # noqa: F401
 from pytorch_lightning.strategies.deepspeed import DeepSpeedStrategy  # noqa: F401
 from pytorch_lightning.strategies.dp import DataParallelStrategy  # noqa: F401
-from pytorch_lightning.strategies.fully_sharded_native import DDPFullyShardedNativeStrategy  # noqa: F401
 from pytorch_lightning.strategies.fully_sharded import DDPFullyShardedStrategy  # noqa: F401
+from pytorch_lightning.strategies.fully_sharded_native import DDPFullyShardedNativeStrategy  # noqa: F401
 from pytorch_lightning.strategies.horovod import HorovodStrategy  # noqa: F401
 from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy  # noqa: F401
 from pytorch_lightning.strategies.ipu import IPUStrategy  # noqa: F401

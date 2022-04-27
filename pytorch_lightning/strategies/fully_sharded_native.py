@@ -13,33 +13,30 @@
 # limitations under the License.
 import contextlib
 import logging
-from typing import Union, Any, Generator, Dict, List, Optional
+from typing import Any, Dict, Generator, List, Optional, Union
+
+import torch
+from torch.distributed.distributed_c10d import _get_default_group, ProcessGroup
 
 import pytorch_lightning as pl
-import torch
-from pytorch_lightning.plugins.environments.cluster_environment import (
-    ClusterEnvironment,
-)
+from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.strategies.parallel import ParallelStrategy
+from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import (
-    init_dist_connection,
-    sync_ddp_if_available,
-    ReduceOp,
-    group as _group,
     _get_process_group_backend_from_env,
     distributed_available,
     get_default_process_group_backend_for_device,
 )
+from pytorch_lightning.utilities.distributed import group as _group
+from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.seed import reset_seed
-from torch.distributed.distributed_c10d import _get_default_group, ProcessGroup
 
 if _TORCH_GREATER_EQUAL_1_11:
     from torch.distributed.fsdp.fully_sharded_data_parallel import (
@@ -58,7 +55,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
     strategy_name = "fsdp_native"
     _registered_strategies: List[str] = []
 
-    def __init__( # type: ignore[no-untyped-def]
+    def __init__(  # type: ignore[no-untyped-def]
         self,
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
@@ -66,8 +63,8 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         process_group_backend: Optional[str] = None,
-        cpu_offload = None,
-        backward_prefetch = None,
+        cpu_offload=None,
+        backward_prefetch=None,
     ) -> None:
         """Strategy for Fully Sharded Data Parallel provided by torch.Distributed.
 
@@ -111,9 +108,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             precision_plugin=precision_plugin,
         )
         self._process_group = None
-        self.num_processes = (
-            len(self.parallel_devices) if self.parallel_devices is not None else 0
-        )
+        self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
         self._process_group_backend: Optional[str] = process_group_backend
         self.cpu_offload: Optional[CPUOffload] = cpu_offload
         self.backward_prefetch: Optional[BackwardPrefetch] = backward_prefetch
@@ -164,9 +159,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
     def model_to_device(self) -> None:
         # ensure we update the device type in the lightning module
-        log.info(
-            f"{self.__class__.__name__}: moving model to device [{self.root_device}]..."
-        )
+        log.info(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         self.lightning_module.to(self.root_device)
 
     @contextlib.contextmanager

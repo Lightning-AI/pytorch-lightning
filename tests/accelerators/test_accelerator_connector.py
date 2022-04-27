@@ -636,8 +636,8 @@ def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock
 def test_check_native_fsdp_strategy_and_fallback():
     with pytest.raises(
         MisconfigurationException,
-        match=f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "\
-        "but GPU accelerator is not used."
+        match=f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
+        "but GPU accelerator is not used.",
     ):
         Trainer(accelerator="cpu", strategy="fsdp_native")
 
@@ -648,16 +648,15 @@ def test_check_native_fsdp_strategy_and_fallback():
 @RunIf(min_torch="1.11")
 def test_mixed_precision_support_with_native_fsdp_strategy(device_count_mock, mock_cuda_available, tmpdir):
     with pytest.raises(
-        MisconfigurationException,
-        match="DDPFullyShardedNativeStrategy currently doesn't support Mixed Precision"
+        MisconfigurationException, match="DDPFullyShardedNativeStrategy currently doesn't support Mixed Precision"
     ):
         trainer = Trainer(
             default_root_dir=tmpdir,
             fast_dev_run=True,
             strategy="fsdp_native",
-            accelerator='gpu',
+            accelerator="gpu",
             devices=1,
-            precision=16
+            precision=16,
         )
         assert isinstance(trainer.strategy, DDPFullyShardedNativeStrategy)
 

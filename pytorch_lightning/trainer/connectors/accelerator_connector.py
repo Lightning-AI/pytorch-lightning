@@ -81,12 +81,7 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import (
-    _HOROVOD_AVAILABLE,
-    _HPU_AVAILABLE,
-    _IPU_AVAILABLE,
-    _TPU_AVAILABLE,
-)
+from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE, _HPU_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE
 
 log = logging.getLogger(__name__)
 
@@ -586,11 +581,11 @@ class AcceleratorConnector:
             rank_zero_warn(f"{strategy_flag!r} is not supported on CPUs, hence setting `strategy='ddp'`.")
             strategy_flag = "ddp"
         if (
-            strategy_flag in DDPFullyShardedNativeStrategy.get_registered_strategies() or
-            isinstance(self._strategy_flag, DDPFullyShardedNativeStrategy)
+            strategy_flag in DDPFullyShardedNativeStrategy.get_registered_strategies()
+            or isinstance(self._strategy_flag, DDPFullyShardedNativeStrategy)
         ) and self._accelerator_flag != "gpu":
             raise MisconfigurationException(
-                f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "\
+                f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
                 "but GPU accelerator is not used."
             )
 
@@ -673,7 +668,9 @@ class AcceleratorConnector:
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
             if isinstance(self.strategy, DDPFullyShardedNativeStrategy):
-                raise MisconfigurationException("DDPFullyShardedNativeStrategy currently doesn't support Mixed Precision")
+                raise MisconfigurationException(
+                    "DDPFullyShardedNativeStrategy currently doesn't support Mixed Precision"
+                )
 
             if self._amp_type_flag == AMPType.NATIVE:
                 device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
@@ -726,7 +723,10 @@ class AcceleratorConnector:
                 "it's not supported. Try using `amp_type='native'` instead."
             )
         if self._precision_flag in (16, "bf16") and self._amp_type_flag == AMPType.APEX:
-            if isinstance(self.strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy, DDPFullyShardedStrategy, DDPFullyShardedNativeStrategy)):
+            if isinstance(
+                self.strategy,
+                (DDPShardedStrategy, DDPSpawnShardedStrategy, DDPFullyShardedStrategy, DDPFullyShardedNativeStrategy),
+            ):
                 raise MisconfigurationException(
                     "Sharded plugins are not supported with apex, please switch to `amp_backend='native'`."
                 )

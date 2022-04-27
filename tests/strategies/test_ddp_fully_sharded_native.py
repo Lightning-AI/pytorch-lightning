@@ -4,13 +4,14 @@ from unittest import mock
 
 import pytest
 import torch
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
-from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 
 if _TORCH_GREATER_EQUAL_1_11:
     from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
@@ -23,7 +24,7 @@ def test_invalid_on_cpu(tmpdir):
     with pytest.raises(
         MisconfigurationException,
         match=f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
-        "but GPU accelerator is not used."
+        "but GPU accelerator is not used.",
     ):
         trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp_native")
         assert isinstance(trainer.strategy, DDPFullyShardedNativeStrategy)
@@ -35,12 +36,17 @@ def test_invalid_on_cpu(tmpdir):
 @mock.patch("torch.cuda.is_available", return_value=True)
 @RunIf(min_torch="1.11")
 def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
-    """Test to ensure that plugin native amp plugin raises Misconfiguration error"""
+    """Test to ensure that plugin native amp plugin raises Misconfiguration error."""
     with pytest.raises(
         MisconfigurationException, match="DDPFullyShardedNativeStrategy currently doesn't support Mixed Precision"
     ):
         trainer = Trainer(
-            default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp_native", accelerator='gpu', devices=1, precision=16
+            default_root_dir=tmpdir,
+            fast_dev_run=True,
+            strategy="fsdp_native",
+            accelerator="gpu",
+            devices=1,
+            precision=16,
         )
         assert isinstance(trainer.strategy, DDPFullyShardedNativeStrategy)
 
@@ -101,7 +107,15 @@ def test_fully_sharded_native_strategy_sync_batchnorm(tmpdir):
     """Test to ensure that sync_batchnorm works when using fsdp_native and GPU, and all stages can be run."""
 
     model = TestFSDPModel()
-    trainer = Trainer(default_root_dir=tmpdir, accelerator='gpu', devices=2, strategy="fsdp_native", precision=16, max_epochs=1, sync_batchnorm=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        devices=2,
+        strategy="fsdp_native",
+        precision=16,
+        max_epochs=1,
+        sync_batchnorm=True,
+    )
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
@@ -110,7 +124,9 @@ def test_fully_sharded_native_strategy_checkpoint(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
 
     model = TestFSDPModel()
-    trainer = Trainer(default_root_dir=tmpdir, accelerator='gpu', devices=1, strategy="fsdp_native", precision=16, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir, accelerator="gpu", devices=1, strategy="fsdp_native", precision=16, max_epochs=1
+    )
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
@@ -120,7 +136,15 @@ def test_fully_sharded_native_strategy_checkpoint_multi_gpus(tmpdir):
 
     model = TestFSDPModel()
     ck = ModelCheckpoint(save_last=True)
-    trainer = Trainer(default_root_dir=tmpdir, accelerator='gpu', devices=2, strategy="fsdp_native", precision=16, max_epochs=1, callbacks=[ck])
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        devices=2,
+        strategy="fsdp_native",
+        precision=16,
+        max_epochs=1,
+        callbacks=[ck],
+    )
     _run_multiple_stages(trainer, model)
 
 
