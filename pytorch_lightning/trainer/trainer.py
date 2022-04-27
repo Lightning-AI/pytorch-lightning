@@ -67,7 +67,7 @@ from pytorch_lightning.strategies import ParallelStrategy, Strategy
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
-from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
+from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
@@ -175,7 +175,7 @@ class Trainer(
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, str]] = None,
         benchmark: Optional[bool] = None,
-        deterministic: bool = False,
+        deterministic: Union[bool, _LITERAL_WARN] = False,
         reload_dataloaders_every_n_epochs: int = 0,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
@@ -259,6 +259,8 @@ class Trainer(
                 Default: ``False``.
 
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
+                Set to ``"warn"`` to use deterministic algorithms whenever possible, throwing warnings on operations
+                that don't support deterministic mode (requires Pytorch 1.11+).
                 Default: ``False``.
 
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
@@ -623,10 +625,7 @@ class Trainer(
             self.check_val_every_n_epoch = 1
             self.loggers = [DummyLogger()] if self.loggers else []
 
-            rank_zero_info(
-                "Running in fast_dev_run mode: will run a full train,"
-                f" val, test and prediction loop using {num_batches} batch(es)."
-            )
+            rank_zero_info(f"Running in fast_dev_run mode: will run the requested loop using {num_batches} batch(es).")
 
         self.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
         self.limit_val_batches = _determine_batch_limits(limit_val_batches, "limit_val_batches")
@@ -2409,6 +2408,11 @@ class Trainer(
             storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
 
         """
+        if self.model is None:
+            raise AttributeError(
+                "Saving a checkpoint is only possible if a model is attached to the Trainer. Did you call"
+                " `Trainer.save_checkpoint()` before calling `Trainer.{fit,validate,test,predict}`?"
+            )
         self._checkpoint_connector.save_checkpoint(filepath, weights_only=weights_only, storage_options=storage_options)
 
     """
