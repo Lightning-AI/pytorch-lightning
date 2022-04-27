@@ -16,7 +16,7 @@ import shutil
 import sys
 from collections import ChainMap, OrderedDict
 from functools import partial
-from typing import Any, IO, Iterable, List, Optional, Sequence, Type, Union
+from typing import Any, Iterable, List, Optional, Sequence, Type, Union
 
 import torch
 from deprecate.utils import void
@@ -42,7 +42,7 @@ from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signatu
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
 if _RICH_AVAILABLE:
-    from rich.console import Console
+    from rich import get_console
     from rich.table import Column, Table
 
 
@@ -336,11 +336,7 @@ class EvaluationLoop(DataLoaderLoop):
                 yield from EvaluationLoop._find_value(v, target)
 
     @staticmethod
-    def _print_results(results: List[_OUT_DICT], stage: str, file: Optional[IO[str]] = None) -> None:
-        # print to stdout by default
-        if file is None:
-            file = sys.stdout
-
+    def _print_results(results: List[_OUT_DICT], stage: str) -> None:
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
         metrics = sorted({k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys})
@@ -375,8 +371,6 @@ class EvaluationLoop(DataLoaderLoop):
             table_headers.insert(0, f"{stage} Metric".capitalize())
 
             if _RICH_AVAILABLE:
-                console = Console(file=file)
-
                 columns = [Column(h, justify="center", style="magenta", width=max_length) for h in table_headers]
                 columns[0].style = "cyan"
 
@@ -384,6 +378,8 @@ class EvaluationLoop(DataLoaderLoop):
                 for metric, row in zip(metrics, table_rows):
                     row.insert(0, metric)
                     table.add_row(*row)
+
+                console = get_console()
                 console.print(table)
             else:
                 row_format = f"{{:^{max_length}}}" * len(table_headers)
@@ -391,8 +387,8 @@ class EvaluationLoop(DataLoaderLoop):
 
                 try:
                     # some terminals do not support this character
-                    if hasattr(file, "encoding") and file.encoding is not None:
-                        "─".encode(file.encoding)
+                    if sys.stdout.encoding is not None:
+                        "─".encode(sys.stdout.encoding)
                 except UnicodeEncodeError:
                     bar_character = "-"
                 else:
@@ -411,7 +407,7 @@ class EvaluationLoop(DataLoaderLoop):
                     else:
                         lines.append(row_format.format(metric, *row).rstrip())
                 lines.append(bar)
-                print(os.linesep.join(lines), file=file)
+                print(os.linesep.join(lines))
 
 
 def _select_data_fetcher_type(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:
