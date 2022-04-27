@@ -762,6 +762,9 @@ class DeepSpeedStrategy(DDPStrategy):
             TypeError:
                 If ``storage_options`` arg is passed in
         """
+        # broadcast the filepath from rank 0 to ensure all the states are saved in a common filepath
+        filepath = self.broadcast(filepath)
+
         if storage_options is not None:
             raise TypeError(
                 "`Trainer.save_checkpoint(..., storage_options=...)` with `storage_options` arg"

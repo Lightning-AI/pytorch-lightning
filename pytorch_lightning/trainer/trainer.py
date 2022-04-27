@@ -65,7 +65,7 @@ from pytorch_lightning.strategies import ParallelStrategy, Strategy
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
-from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
+from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
@@ -173,7 +173,7 @@ class Trainer(
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, str]] = None,
         benchmark: Optional[bool] = None,
-        deterministic: bool = False,
+        deterministic: Union[bool, _LITERAL_WARN] = False,
         reload_dataloaders_every_n_epochs: int = 0,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
@@ -257,6 +257,8 @@ class Trainer(
                 Default: ``False``.
 
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
+                Set to ``"warn"`` to use deterministic algorithms whenever possible, throwing warnings on operations
+                that don't support deterministic mode (requires Pytorch 1.11+).
                 Default: ``False``.
 
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
