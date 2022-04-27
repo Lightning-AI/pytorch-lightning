@@ -21,9 +21,9 @@ Now you can install using `pip <https://pypi.org/project/pytorch-lightning/>`_ u
 
 --------------
 
-*****************
-Instal with Conda
-*****************
+******************
+Install with Conda
+******************
 
 If you don't have conda installed, follow the `Conda Installation Guide <https://docs.conda.io/projects/conda/en/latest/user-guide/install>`_.
 Lightning can be installed with `conda <https://anaconda.org/conda-forge/pytorch-lightning>`_ using the following command:
