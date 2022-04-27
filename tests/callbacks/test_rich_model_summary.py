@@ -41,8 +41,8 @@ def test_rich_progress_bar_import_error(monkeypatch):
 
 
 @RunIf(rich=True)
-@mock.patch("pytorch_lightning.callbacks.rich_model_summary.Console.print", autospec=True)
-@mock.patch("pytorch_lightning.callbacks.rich_model_summary.Table.add_row", autospec=True)
+@mock.patch("rich.console.Console.print", autospec=True)
+@mock.patch("rich.table.Table.add_row", autospec=True)
 def test_rich_summary_tuples(mock_table_add_row, mock_console):
     """Ensure that tuples are converted into string, and print is called correctly."""
     model_summary = RichModelSummary()
