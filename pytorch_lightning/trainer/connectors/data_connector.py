@@ -381,7 +381,6 @@ class DataConnector:
         loader_num_batches = []
 
         # determine number of batches
-        # datasets could be none, 1 or 2+
         module = model or self.trainer.lightning_module or self.datamodule
         if len(dataloaders) != 0:
             for i, dataloader in enumerate(dataloaders):
@@ -390,7 +389,7 @@ class DataConnector:
                 )
 
                 if orig_num_batches == 0:
-                    loader_num_batches.append(num_batches)
+                    loader_num_batches.append(orig_num_batches)
                     continue
 
                 self._worker_check(dataloader, f"{mode.dataloader_prefix}_dataloader {i}")
@@ -400,14 +399,13 @@ class DataConnector:
 
                 # limit num batches either as a percent or num steps
                 if isinstance(limit_eval_batches, int):
-                    num_batches = min(num_batches, int(limit_eval_batches))
-                elif num_batches != float("inf"):
-                    num_batches = int(num_batches * limit_eval_batches)
+                    num_batches = min(orig_num_batches, limit_eval_batches)
+                elif isinstance(limit_eval_batches, float) and orig_num_batches != float("inf"):
+                    num_batches = int(orig_num_batches * limit_eval_batches)
                 elif limit_eval_batches != 1.0:
                     raise MisconfigurationException(
-                        f"When using an IterableDataset for `limit_{mode}_batches`,"
-                        f" `Trainer(limit_{mode.dataloader_prefix}_batches)` must be `1.0` or an int. An int k"
-                        f" specifies `num_{mode.dataloader_prefix}_batches` to use."
+                        f"When using an `IterableDataset`, `Trainer(limit_{mode.dataloader_prefix}_batches)` must be"
+                        f"`1.0` or an int. An int specifies `num_{mode.dataloader_prefix}_batches` to use."
                     )
 
                 if (

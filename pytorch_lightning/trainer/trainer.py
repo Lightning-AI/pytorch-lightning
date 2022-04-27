@@ -1819,7 +1819,6 @@ class Trainer(
             if has_len_all_ranks(self.train_dataloader, self.strategy, module)
             else float("inf")
         )
-
         if orig_train_batches == 0:
             return
 
@@ -1827,14 +1826,13 @@ class Trainer(
         self._last_train_dl_reload_epoch = self.current_epoch
 
         if isinstance(self.limit_train_batches, int):
-            self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
+            self.num_training_batches = min(orig_train_batches, self.limit_train_batches)
         elif self.num_training_batches != float("inf"):
-            self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
+            self.num_training_batches = int(orig_train_batches * self.limit_train_batches)
         elif self.limit_train_batches != 1.0:
             raise MisconfigurationException(
-                "When using an IterableDataset for `limit_train_batches`,"
-                " `Trainer(limit_train_batches)` must be `1.0` or an int. An int k specifies"
-                " `num_training_batches` to use."
+                "When using an `IterableDataset`, `Trainer(limit_train_batches)` must be `1.0` or an int."
+                "An int specifies `num_training_batches` to use."
             )
 
         if isinstance(self.val_check_interval, int):
