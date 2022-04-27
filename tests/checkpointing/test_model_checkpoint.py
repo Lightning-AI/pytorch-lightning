@@ -1299,6 +1299,25 @@ def test_save_last_saves_correct_last_model_path(tmpdir):
     assert ckpt["callbacks"][mc.state_key]["last_model_path"] == full_path
 
 
+def test_save_last_versioning(tmpdir):
+    for _ in range(2):
+        mc = ModelCheckpoint(dirpath=tmpdir, save_last=True)
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            max_epochs=2,
+            callbacks=mc,
+            limit_train_batches=1,
+            limit_val_batches=0,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            logger=False,
+        )
+        model = BoringModel()
+        trainer.fit(model)
+
+    assert {"last.ckpt", "last-v1.ckpt"} <= set(os.listdir(tmpdir))
+
+
 def test_none_monitor_saves_correct_best_model_path(tmpdir):
     mc = ModelCheckpoint(dirpath=tmpdir, monitor=None)
     trainer = Trainer(callbacks=mc)
