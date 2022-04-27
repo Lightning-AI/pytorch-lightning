@@ -15,6 +15,7 @@
 import collections
 import itertools
 import os
+from contextlib import redirect_stdout
 from io import StringIO
 from unittest import mock
 from unittest.mock import call
@@ -28,9 +29,12 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.loops.dataloader import EvaluationLoop
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
+from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _RICH_AVAILABLE
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
+
+if _RICH_AVAILABLE:
+    from rich import get_console
 
 
 def test__validation_step__log(tmpdir):
@@ -872,10 +876,29 @@ def test_native_print_results(monkeypatch, inputs, expected):
     import pytorch_lightning.loops.dataloader.evaluation_loop as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
-    out = StringIO()
-    EvaluationLoop._print_results(*inputs, file=out)
+
+    with redirect_stdout(StringIO()) as out:
+        EvaluationLoop._print_results(*inputs)
     expected = expected[1:]  # remove the initial line break from the """ string
     assert out.getvalue().replace(os.linesep, "\n") == expected.lstrip()
+
+
+@pytest.mark.parametrize("encoding", ["latin-1", "utf-8"])
+def test_native_print_results_encodings(monkeypatch, encoding):
+    import pytorch_lightning.loops.dataloader.evaluation_loop as imports
+
+    monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
+
+    out = mock.Mock()
+    out.encoding = encoding
+    with redirect_stdout(out) as out:
+        EvaluationLoop._print_results(*inputs0)
+
+    # Attempt to encode everything the file is told to write with the given encoding
+    for call_ in out.method_calls:
+        name, args, kwargs = call_
+        if name == "write":
+            args[0].encode(encoding)
 
 
 expected0 = """
@@ -945,7 +968,8 @@ expected3 = """
 )
 @RunIf(skip_windows=True, rich=True)
 def test_rich_print_results(inputs, expected):
-    out = StringIO()
-    EvaluationLoop._print_results(*inputs, file=out)
+    console = get_console()
+    with console.capture() as capture:
+        EvaluationLoop._print_results(*inputs)
     expected = expected[1:]  # remove the initial line break from the """ string
-    assert out.getvalue() == expected.lstrip()
+    assert capture.get() == expected.lstrip()
