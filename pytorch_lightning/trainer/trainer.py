@@ -2700,19 +2700,21 @@ class Trainer(
 
     @property
     def logger(self) -> Optional[LightningLoggerBase]:
-        if len(self.loggers) == 0:
+        loggers = self.loggers
+        if len(loggers) == 0:
             return None
-        if len(self.loggers) == 1:
-            return self.loggers[0]
+        if len(loggers) == 1:
+            return loggers[0]
         else:
-            rank_zero_warn(
-                "Using trainer.logger when Trainer is configured to use multiple loggers."
-                " This behavior will change in v1.8 when LoggerCollection is removed, and"
-                " trainer.logger will return the first logger in trainer.loggers"
+            rank_zero_deprecation(
+                "Using `trainer.logger` when multiple loggers are configured."
+                " This behavior will change in v1.8 when `LoggerCollection` is removed, and"
+                " `trainer.logger` will return the first logger available.",
+                stacklevel=5,
             )
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                return LoggerCollection(self.loggers)
+                return LoggerCollection(loggers)
 
     @logger.setter
     def logger(self, logger: Optional[LightningLoggerBase]) -> None:
