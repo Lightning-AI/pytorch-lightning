@@ -1979,4 +1979,4 @@ class LightningModule(
         self._register_state_dict_hook(state_dict_hook)
 
         # We need to make sure the self inside the method is a weakref proxy
-        Module._register_load_state_dict_pre_hook(weakref.proxy(self), pre_load_state_dict_hook, True)
+        self.__class__._register_load_state_dict_pre_hook(weakref.proxy(self), pre_load_state_dict_hook, True)
