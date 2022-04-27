@@ -6,6 +6,7 @@ from unittest import mock
 from unittest.mock import PropertyMock
 
 import pytest
+import requests
 import torch
 from torch.optim import Optimizer
 
@@ -355,7 +356,15 @@ def test_scaler_updated_precision_16():
 
 
 @RunIf(hivemind=True)
-def test_raise_when_peer_endpoint_unsuccessful():
+def test_raise_when_peer_endpoint_unsuccessful(caplog):
     port = find_free_network_port()
     with pytest.raises(MisconfigurationException, match="Unable to get peers"):
-        CollaborativeStrategy(target_batch_size=1, peer_endpoint=f"localhost:{port}", retry_endpoint_sleep_duration=0)
+        with mock.patch("requests.get", wraps=requests.get) as requests_mock:
+            CollaborativeStrategy(
+                target_batch_size=1,
+                peer_endpoint=f"localhost:{port}",
+                retry_endpoint_attempts=10,
+                retry_endpoint_sleep_duration=0,
+            )
+    assert "Failed to get peers, retrying" in caplog.text
+    assert requests_mock.call_count == 10
