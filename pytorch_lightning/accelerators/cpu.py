@@ -18,16 +18,8 @@ import torch
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
+from pytorch_lightning.utilities.memory import get_cpu_process_metrics
 from pytorch_lightning.utilities.types import _DEVICE
-
-if _PSUTIL_AVAILABLE:
-    import psutil
-
-# CPU device metrics
-_CPU_VM_PERCENT = "cpu_vm_percent"
-_CPU_PERCENT = "cpu_percent"
-_CPU_SWAP_PERCENT = "cpu_swap_percent"
 
 
 class CPUAccelerator(Accelerator):
@@ -43,7 +35,7 @@ class CPUAccelerator(Accelerator):
         if root_device.type != "cpu":
             raise MisconfigurationException(f"Device should be CPU, got {root_device} instead.")
 
-    def get_device_stats(self, device: _DEVICE) -> dict[str, Any]:
+    def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
         """Get CPU stats from psutil."""
         return get_cpu_process_metrics()
 
@@ -76,18 +68,3 @@ class CPUAccelerator(Accelerator):
             cls,
             description=f"{cls.__class__.__name__}",
         )
-
-
-def get_cpu_process_metrics() -> dict[str, float]:
-    if not _PSUTIL_AVAILABLE:
-        raise ModuleNotFoundError(
-            "`get_cpu_process_metrics` requires `psutil` to be installed."
-            " Install it by running `pip install -U psutil`."
-        )
-
-    metrics = {
-        _CPU_VM_PERCENT: psutil.virtual_memory().percent,
-        _CPU_PERCENT: psutil.cpu_percent(),
-        _CPU_SWAP_PERCENT: psutil.swap_memory().percent,
-    }
-    return metrics
