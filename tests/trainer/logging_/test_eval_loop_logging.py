@@ -800,7 +800,7 @@ inputs1 = (
     [
         {
             "value": torch.tensor(2),
-            "performance": {"log:1": torch.tensor(5), "log2": torch.tensor(3), "log3": torch.tensor(7)},
+            "performance": {"log:1": torch.tensor(0), "log2": torch.tensor(3), "log3": torch.tensor(7)},
             "extra": {"log3": torch.tensor(7)},
         },
         {"different value": torch.tensor(1.5), "tes:t": {"no_log1": torch.tensor(6), "no_log2": torch.tensor(1)}},
@@ -815,7 +815,7 @@ expected1 = """
        extra:log3                    7
     performance:log2                 3
     performance:log3                 7
-    performance:log:1                5
+    performance:log:1                0
       tes:t:no_log1                                           6
       tes:t:no_log2                                           1
           value                      2
@@ -918,7 +918,7 @@ expected1 = """
 │       extra:log3        │            7            │                          │
 │    performance:log2     │            3            │                          │
 │    performance:log3     │            7            │                          │
-│    performance:log:1    │            5            │                          │
+│    performance:log:1    │            0            │                          │
 │      tes:t:no_log1      │                         │            6             │
 │      tes:t:no_log2      │                         │            1             │
 │          value          │            2            │                          │
