@@ -141,6 +141,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed `fuse_modules` to be qat-aware for `pytorch>1.10`. ([#12891](https://github.com/PyTorchLightning/pytorch-lightning/pull/12891))
+
 
 - Fixed `ImportError` when `torch.distributed` is not available. ([#12794](https://github.com/PyTorchLightning/pytorch-lightning/pull/12794))
 
