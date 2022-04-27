@@ -908,7 +908,7 @@ def instantiate_class(args: Union[Any, Tuple[Any, ...]], init: Dict[str, Any]) -
 
 
 def _get_short_description(component: object) -> Optional[str]:
-    parse = import_docstring_parse("LightningCLI(run=True)")
+    parse, _ = import_docstring_parse("LightningCLI(run=True)")
     try:
         docstring = parse(component.__doc__)
         return docstring.short_description
