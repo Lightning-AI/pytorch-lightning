@@ -18,7 +18,7 @@ from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 from pytorch_lightning.utilities.model_summary import get_human_readable_count
 
 if _RICH_AVAILABLE:
-    from rich.console import Console
+    from rich import get_console
     from rich.table import Table
 
 
@@ -73,7 +73,7 @@ class RichModelSummary(ModelSummary):
         model_size: float,
     ) -> None:
 
-        console = Console()
+        console = get_console()
 
         table = Table(header_style="bold magenta")
         table.add_column(" ", style="dim")
