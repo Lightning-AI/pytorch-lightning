@@ -31,8 +31,10 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch.ao.quantization.qconfig import QConfig
+    from torch.ao.quantization import fuse_modules_qat as fuse_modules
 else:
     from torch.quantization import QConfig
+    from torch.quantization import fuse_modules
 
 
 def wrap_qat_forward_context(
@@ -252,7 +254,7 @@ class QuantizationAwareTraining(Callback):
             model.qconfig = self._qconfig
 
         if self._check_feasible_fuse(model):
-            torch.ao.quantization.fuse_modules_qat(model, self._modules_to_fuse, inplace=True)
+            fuse_modules(model, self._modules_to_fuse, inplace=True)
 
         # Prepare the model for QAT. This inserts observers and fake_quants in
         # the model that will observe weight and activation tensors during calibration.
