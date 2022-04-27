@@ -405,7 +405,7 @@ class DataConnector:
                 elif limit_eval_batches != 1.0:
                     raise MisconfigurationException(
                         f"When using an `IterableDataset`, `Trainer(limit_{mode.dataloader_prefix}_batches)` must be"
-                        f"`1.0` or an int. An int specifies `num_{mode.dataloader_prefix}_batches` to use."
+                        f" `1.0` or an int. An int specifies `num_{mode.dataloader_prefix}_batches` to use."
                     )
 
                 if (
