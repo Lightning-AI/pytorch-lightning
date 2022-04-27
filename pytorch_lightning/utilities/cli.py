@@ -21,7 +21,6 @@ from types import MethodType, ModuleType
 from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Type, Union
 from unittest import mock
 
-import numpy as np
 import torch
 import yaml
 from torch.optim import Optimizer
@@ -603,7 +602,10 @@ class LightningCLI:
             "--seed_everything",
             type=Union[bool, int],
             default=self.seed_everything_default,
-            help="Set to an int to run seed_everything with this value before classes instantiation. Set to True to use a random seed.",
+            help=(
+                "Set to an int to run seed_everything with this value before classes instantiation."
+                "Set to True to use a random seed."
+            ),
         )
 
     def add_core_arguments_to_parser(self, parser: LightningArgumentParser) -> None:

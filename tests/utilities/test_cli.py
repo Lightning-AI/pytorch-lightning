@@ -24,11 +24,9 @@ from typing import List, Optional, Union
 from unittest import mock
 from unittest.mock import ANY
 
-import numpy as np
 import pytest
 import torch
 import yaml
-from jsonargparse import ParserError
 from packaging import version
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
@@ -1552,7 +1550,6 @@ def test_cli_logger_shorthand():
 
 
 def test_cli_auto_seeding():
-
     with mock.patch("sys.argv", ["any.py"]):
         cli = LightningCLI(TestModel, run=False, seed_everything_default=False)
         assert cli.seed_everything_default is False
