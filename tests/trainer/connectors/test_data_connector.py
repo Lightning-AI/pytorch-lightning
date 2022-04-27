@@ -25,7 +25,6 @@ from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelecto
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.data import _update_dataloader
-from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests.helpers.boring_model import BoringDataModule, BoringModel, RandomDataset

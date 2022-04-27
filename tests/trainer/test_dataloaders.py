@@ -967,7 +967,7 @@ def test_inf_dataloader_raise_error_with_partial_batch_limits(tmpdir, stage, dat
     trainer = Trainer(**trainer_kwargs)
     trainer_fn = "fit" if stage == RunningStage.TRAINING else stage.value
 
-    with pytest.raises(MisconfigurationException, match=r"using an IterableDataset .* must be `1.0` or an int"):
+    with pytest.raises(MisconfigurationException, match=r"IterableDataset`.*limit_.*_batches\)`.*`1.0` or an int"):
         getattr(trainer, trainer_fn)(model)
 
 
