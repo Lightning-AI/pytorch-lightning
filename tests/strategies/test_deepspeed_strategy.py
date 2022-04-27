@@ -1172,19 +1172,30 @@ def test_deepspeed_with_meta_device(tmpdir):
 def test_deepspeed_multi_save_same_filepath(tmpdir):
     """Test that verifies that deepspeed saves only latest checkpoint in the specified path and deletes the old
     sharded checkpoints."""
-    model = BoringModel()
+
+    class CustomModel(BoringModel):
+        def training_step(self, *args, **kwargs):
+            self.log("grank", self.global_rank)
+            return super().training_step(*args, **kwargs)
+
+    model = CustomModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         strategy="deepspeed",
         accelerator="gpu",
         devices=2,
-        callbacks=[ModelCheckpoint(save_top_k=1, save_last=True)],
+        callbacks=[ModelCheckpoint(filename="{epoch}_{step}_{grank}", save_top_k=1)],
         limit_train_batches=1,
         limit_val_batches=0,
         num_sanity_val_steps=0,
         max_epochs=2,
     )
     trainer.fit(model)
-    ckpt_path = os.path.join(trainer.checkpoint_callback.dirpath, "last.ckpt")
-    expected = ["latest", "zero_to_fp32.py", "checkpoint"]
-    assert set(expected) == set(os.listdir(ckpt_path))
+
+    filepath = "epoch=1_step=2_grank=0.0.ckpt"
+    expected = {filepath}
+    assert expected == set(os.listdir(trainer.checkpoint_callback.dirpath))
+
+    ckpt_path = os.path.join(trainer.checkpoint_callback.dirpath, filepath)
+    expected = {"latest", "zero_to_fp32.py", "checkpoint"}
+    assert expected == set(os.listdir(ckpt_path))
