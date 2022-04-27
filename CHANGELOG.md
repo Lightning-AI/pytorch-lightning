@@ -157,7 +157,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Use only a single instance of `rich.console.Console` throughout codebase ([#12886](https://github.com/PyTorchLightning/pytorch-lightning/pull/12886))
 
 
-- Fixed number of references of LightningModule so it can be deleted ([#12897](https://github.com/PyTorchLightning/pytorch-lightning/pull/12897))
+- Fixed the number of references of `LightningModule` so it can be deleted ([#12897](https://github.com/PyTorchLightning/pytorch-lightning/pull/12897))
 
 
 ## [1.6.1] - 2022-04-13
