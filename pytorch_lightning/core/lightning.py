@@ -19,6 +19,7 @@ import logging
 import numbers
 import os
 import tempfile
+import weakref
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, overload, Sequence, Tuple, Union
@@ -1976,4 +1977,6 @@ class LightningModule(
         from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook
 
         self._register_state_dict_hook(state_dict_hook)
-        self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
+
+        # We need to make sure the self inside the method is a weakref proxy
+        Module._register_load_state_dict_pre_hook(weakref.proxy(self), pre_load_state_dict_hook, True)
