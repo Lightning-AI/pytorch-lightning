@@ -18,6 +18,7 @@ from collections import Counter
 from typing import Dict, List, Optional, Union
 
 import torch
+from typing_extensions import Literal
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
@@ -81,12 +82,20 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE, _HPU_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE
+from pytorch_lightning.utilities.imports import (
+    _HOROVOD_AVAILABLE,
+    _HPU_AVAILABLE,
+    _IPU_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_11,
+    _TPU_AVAILABLE,
+)
 
 log = logging.getLogger(__name__)
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
+
+_LITERAL_WARN = Literal["warn"]
 
 
 class AcceleratorConnector:
@@ -103,7 +112,7 @@ class AcceleratorConnector:
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
-        deterministic: bool = False,
+        deterministic: Union[bool, _LITERAL_WARN] = False,
         auto_select_gpus: bool = False,
         num_processes: Optional[int] = None,  # deprecated
         tpu_cores: Optional[Union[List[int], str, int]] = None,  # deprecated
@@ -206,9 +215,12 @@ class AcceleratorConnector:
         # 6. Instantiate Strategy - Part 2
         self._lazy_init_strategy()
 
-    def _init_deterministic(self, deterministic: bool) -> None:
+    def _init_deterministic(self, deterministic: Union[bool, _LITERAL_WARN]) -> None:
         self.deterministic = deterministic
-        torch.use_deterministic_algorithms(deterministic)
+        if _TORCH_GREATER_EQUAL_1_11 and deterministic == "warn":
+            torch.use_deterministic_algorithms(True, warn_only=True)
+        else:
+            torch.use_deterministic_algorithms(deterministic)
         if deterministic:
             # fixing non-deterministic part of horovod
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383

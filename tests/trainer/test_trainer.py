@@ -1746,6 +1746,8 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
         accelerator="gpu",
         devices=2,
         strategy="ddp",
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
 
     # simulate random failure in training_step on rank 0
@@ -2131,3 +2133,10 @@ def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_
     trainer = Trainer(**trainer_kwargs)
     assert trainer.device_ids == expected_device_ids
     assert trainer.num_devices == len(expected_device_ids)
+
+
+def test_trainer_save_checkpoint_no_model_attached():
+    trainer = Trainer()
+    assert trainer.model is None
+    with pytest.raises(AttributeError, match="Saving a checkpoint is only possible if a model is attached"):
+        trainer.save_checkpoint("checkpoint.ckpt")
