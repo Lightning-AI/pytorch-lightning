@@ -402,7 +402,6 @@ def test_lightning_module_configure_gradient_clipping_different_argument_values(
         trainer.fit(model)
 
 
-@RunIf(skip_windows=True, min_torch="1.10")
 def test_proper_refcount():
     torch_module = nn.Module()
     lightning_module = LightningModule()
