@@ -30,11 +30,10 @@ from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 if _TORCH_GREATER_EQUAL_1_10:
-    from torch.ao.quantization.qconfig import QConfig
     from torch.ao.quantization import fuse_modules_qat as fuse_modules
+    from torch.ao.quantization.qconfig import QConfig
 else:
-    from torch.quantization import QConfig
-    from torch.quantization import fuse_modules
+    from torch.quantization import fuse_modules, QConfig
 
 
 def wrap_qat_forward_context(
