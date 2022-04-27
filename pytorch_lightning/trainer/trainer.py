@@ -1872,12 +1872,12 @@ class Trainer(
             and isinstance(self.limit_train_batches, float)
             and orig_train_batches != float("inf")
         ):
-            min_pct = 1.0 / orig_train_batches
+            min_percentage = 1.0 / orig_train_batches
             raise MisconfigurationException(
                 f"You requested to check {self.limit_train_batches} of the `train_dataloader` but"
                 f" {self.limit_train_batches} * {orig_train_batches} < 1. Please increase the"
                 f" `limit_train_batches` argument. Try at least"
-                f" `limit_train_batches={min_pct}`"
+                f" `limit_train_batches={min_percentage}`"
             )
 
     def reset_val_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:

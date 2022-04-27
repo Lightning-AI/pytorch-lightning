@@ -414,12 +414,12 @@ class DataConnector:
                     and isinstance(limit_eval_batches, float)
                     and orig_num_batches != float("inf")
                 ):
-                    min_pct = 1.0 / orig_num_batches
+                    min_percentage = 1.0 / orig_num_batches
                     raise MisconfigurationException(
                         f"You requested to check {limit_eval_batches} of the `{mode.dataloader_prefix}_dataloader` but"
                         f" {limit_eval_batches} * {orig_num_batches} < 1. Please increase the"
                         f" `limit_{mode.dataloader_prefix}_batches` argument. Try at least"
-                        f" `limit_{mode.dataloader_prefix}_batches={min_pct}`"
+                        f" `limit_{mode.dataloader_prefix}_batches={min_percentage}`"
                     )
 
                 loader_num_batches.append(num_batches)
