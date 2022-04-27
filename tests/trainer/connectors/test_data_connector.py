@@ -542,7 +542,7 @@ def test_eval_shuffle_with_distributed_sampler_replacement(shuffle):
     assert trainer.val_dataloaders[0].sampler.shuffle == shuffle
 
 
-def test_error_raised_with_float_limit_train_dataloader():
+def test_error_raised_with_insufficient_float_limit_train_dataloader():
     batch_size = 16
     dl = DataLoader(RandomDataset(32, batch_size * 9), batch_size=batch_size)
     trainer = Trainer(limit_train_batches=0.1, limit_val_batches=0.1)
