@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Allow to load last checkpoint using `ckpt_path="last"` ([#12816](https://github.com/PyTorchLightning/pytorch-lightning/pull/12816))
+- Added support for reloading the last checkpoint saved by passing `ckpt_path="last"` ([#12816](https://github.com/PyTorchLightning/pytorch-lightning/pull/12816))
 
 
 - Added a friendly error message when attempting to call `Trainer.save_checkpoint()` without a model attached ([#12772](https://github.com/PyTorchLightning/pytorch-lightning/pull/12772))
