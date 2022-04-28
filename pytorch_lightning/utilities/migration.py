@@ -20,6 +20,10 @@ import threading
 import pytorch_lightning.utilities.argparse
 
 
+# Create a global lock to ensure no race condition with deleting sys modules
+lock = threading.Lock()
+
+
 class pl_legacy_patch:
     """Registers legacy artifacts (classes, methods, etc.) that were removed but still need to be included for
     unpickling old checkpoints. The following patches apply.
@@ -35,12 +39,8 @@ class pl_legacy_patch:
             torch.load("path/to/legacy/checkpoint.ckpt")
     """
 
-    def __init__(self) -> None:
-        # Create a lock to ensure no race condition with deleting sys modules
-        self.lock = threading.Lock()
-
     def __enter__(self) -> None:
-        self.lock.acquire()
+        lock.acquire()
         # `pl.utilities.argparse_utils` was renamed to `pl.utilities.argparse`
         legacy_argparse_module = ModuleType("pytorch_lightning.utilities.argparse_utils")
         sys.modules["pytorch_lightning.utilities.argparse_utils"] = legacy_argparse_module
@@ -55,4 +55,4 @@ class pl_legacy_patch:
         if hasattr(pytorch_lightning.utilities.argparse, "_gpus_arg_default"):
             delattr(pytorch_lightning.utilities.argparse, "_gpus_arg_default")
         del sys.modules["pytorch_lightning.utilities.argparse_utils"]
-        self.lock.release()
+        lock.release()
