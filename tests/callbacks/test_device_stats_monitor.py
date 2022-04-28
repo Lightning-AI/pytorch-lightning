@@ -28,12 +28,6 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
-CPU_METRIC_KEYS = [
-    _CPU_VM_PERCENT,
-    _CPU_SWAP_PERCENT,
-    _CPU_PERCENT,
-]
-
 
 @RunIf(min_gpus=1)
 def test_device_stats_gpu_from_torch(tmpdir):
@@ -73,6 +67,11 @@ def test_device_stats_gpu_from_torch(tmpdir):
 def test_device_stats_cpu(tmpdir, cpu_stats):
     """Test CPU stats are logged when no accelerator is used."""
     model = BoringModel()
+    CPU_METRIC_KEYS = [
+        _CPU_VM_PERCENT,
+        _CPU_SWAP_PERCENT,
+        _CPU_PERCENT,
+    ]
 
     class DebugLogger(CSVLogger):
         def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
