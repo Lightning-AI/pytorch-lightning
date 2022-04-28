@@ -737,21 +737,15 @@ def test_checkpoint_path_input_last_fault_tolerant(tmpdir, ckpt_path, fn):
 @pytest.mark.parametrize("save_last", (True, False))
 @pytest.mark.parametrize("fn", ("fit", "validate"))
 def test_checkpoint_path_input_last(tmpdir, ckpt_path, save_last, fn):
-    class TestModel(BoringModel):
-        def validation_step(self, batch, batch_idx):
-            self.log("foo", -batch_idx)
-            return super().validation_step(batch, batch_idx)
-
-        def training_step(self, batch, batch_idx):
-            return super().training_step(batch, batch_idx)
-
-    model = TestModel()
-    model.test_epoch_end = None
-    mc = ModelCheckpoint(monitor="foo", save_last=save_last)
+    model = BoringModel()
+    mc = ModelCheckpoint(save_last=save_last)
     trainer = Trainer(
-        max_epochs=2,
-        limit_val_batches=3,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        enable_model_summary=False,
         enable_progress_bar=False,
+        logger=False,
         default_root_dir=tmpdir,
         callbacks=[mc],
     )
@@ -759,14 +753,9 @@ def test_checkpoint_path_input_last(tmpdir, ckpt_path, save_last, fn):
     trainer_fn = getattr(trainer, fn)
 
     if fn == "fit":
-        if ckpt_path is None:
-            ctxt = nullcontext()
-        else:
-            ctxt = pytest.warns(UserWarning, match="No checkpoint will be loaded")
-
+        ctxt = nullcontext() if ckpt_path is None else pytest.warns(UserWarning, match="No checkpoint will be loaded")
         with ctxt:
             trainer_fn(model, ckpt_path=ckpt_path)
-
         assert trainer.ckpt_path is None
     else:
         trainer.fit(model)
@@ -787,7 +776,7 @@ def test_checkpoint_path_input_last(tmpdir, ckpt_path, save_last, fn):
 
         with ctxt:
             trainer_fn(ckpt_path=ckpt_path)
-            assert trainer.ckpt_path == final_path
+        assert trainer.ckpt_path == final_path
 
 
 @pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
