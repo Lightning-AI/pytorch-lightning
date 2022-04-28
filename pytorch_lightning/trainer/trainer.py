@@ -1388,16 +1388,9 @@ class Trainer(
         from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 
         ft_checkpoints = [cb for cb in self.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
-        ft_ckpt_path = None
-        if ft_checkpoints:
-            tmp_ft_ckpt_path = ft_checkpoints[0].ckpt_path
-            fs = get_filesystem(tmp_ft_ckpt_path)
-            if fs.exists(tmp_ft_ckpt_path):
-                ft_ckpt_path = tmp_ft_ckpt_path
-
         fn = self.state.fn.value
 
-        if ckpt_path is None and ft_ckpt_path is not None and self.state.fn == TrainerFn.FITTING:
+        if ckpt_path is None and ft_checkpoints and self.state.fn == TrainerFn.FITTING:
             ckpt_path = "last"
             rank_zero_warn(
                 f"`.{fn}(ckpt_path=None)` was called without a model."
@@ -1415,7 +1408,7 @@ class Trainer(
             ckpt_path = "best"
             ft_tip = (
                 " There is also a fault-tolerant checkpoint available, however it is used by default only when fitting."
-                if ft_ckpt_path
+                if ft_checkpoints
                 else ""
             )
             rank_zero_warn(
