@@ -22,7 +22,8 @@ from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 
 Task, Style = None, None
 if _RICH_AVAILABLE:
-    from rich.console import Console, RenderableType
+    from rich import get_console, reconfigure
+    from rich.console import RenderableType
     from rich.progress import BarColumn, Progress, ProgressColumn, Task, TaskID, TextColumn
     from rich.progress_bar import ProgressBar
     from rich.style import Style
@@ -278,7 +279,8 @@ class RichProgressBar(ProgressBarBase):
     def _init_progress(self, trainer):
         if self.is_enabled and (self.progress is None or self._progress_stopped):
             self._reset_progress_bar_ids()
-            self._console = Console(**self._console_kwargs)
+            reconfigure(**self._console_kwargs)
+            self._console = get_console()
             self._console.clear_live()
             self._metric_component = MetricsTextColumn(trainer, self.theme.metrics)
             self.progress = CustomProgress(

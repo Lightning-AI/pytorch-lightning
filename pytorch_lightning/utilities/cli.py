@@ -409,7 +409,7 @@ class LightningCLI:
         A full configuration yaml would be parsed from ``PL_CONFIG`` if set.
         Individual settings are so parsed from variables named for example ``PL_TRAINER__MAX_EPOCHS``.
 
-        For more info, read :ref:`the CLI docs <common/lightning_cli:LightningCLI>`.
+        For more info, read :ref:`the CLI docs <lightning-cli>`.
 
         .. warning:: ``LightningCLI`` is in beta and subject to change.
 
@@ -429,7 +429,7 @@ class LightningCLI:
             trainer_defaults: Set to override Trainer defaults or add persistent callbacks. The callbacks added through
                 this argument will not be configurable from a configuration file and will always be present for
                 this particular CLI. Alternatively, configurable callbacks can be added as explained in
-                :ref:`the CLI docs <common/lightning_cli:Configurable callbacks>`.
+                :ref:`the CLI docs <lightning-cli>`.
             seed_everything_default: Default value for the :func:`~pytorch_lightning.utilities.seed.seed_everything`
                 seed argument.
             description: Description of the tool shown when running ``--help``.
@@ -805,7 +805,7 @@ def instantiate_class(args: Union[Any, Tuple[Any, ...]], init: Dict[str, Any]) -
 
 
 def _get_short_description(component: object) -> Optional[str]:
-    parse = import_docstring_parse("LightningCLI(run=True)")
+    parse, _ = import_docstring_parse("LightningCLI(run=True)")
     try:
         docstring = parse(component.__doc__)
         return docstring.short_description

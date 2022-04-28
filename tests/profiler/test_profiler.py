@@ -352,7 +352,6 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=5,
         limit_val_batches=5,
@@ -360,6 +359,8 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         strategy="ddp",
         accelerator="gpu",
         devices=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
     expected = {"[pl][profile][Strategy]DDPStrategy.validation_step"}
@@ -481,7 +482,14 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, profiler=profiler, accelerator="gpu", devices=1)
+    trainer = Trainer(
+        fast_dev_run=True,
+        profiler=profiler,
+        accelerator="gpu",
+        devices=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
     trainer.fit(model)
 
 

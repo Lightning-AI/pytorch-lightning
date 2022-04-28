@@ -18,6 +18,7 @@ from collections import Counter
 from typing import Dict, List, Optional, Union
 
 import torch
+from typing_extensions import Literal
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
@@ -69,6 +70,7 @@ from pytorch_lightning.strategies import (
     StrategyRegistry,
     TPUSpawnStrategy,
 )
+from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _StrategyType,
     AMPType,
@@ -79,12 +81,20 @@ from pytorch_lightning.utilities import (
     rank_zero_warn,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _HOROVOD_AVAILABLE, _HPU_AVAILABLE, _IPU_AVAILABLE, _TPU_AVAILABLE
+from pytorch_lightning.utilities.imports import (
+    _HOROVOD_AVAILABLE,
+    _HPU_AVAILABLE,
+    _IPU_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_11,
+    _TPU_AVAILABLE,
+)
 
 log = logging.getLogger(__name__)
 
 if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
+
+_LITERAL_WARN = Literal["warn"]
 
 
 class AcceleratorConnector:
@@ -101,9 +111,10 @@ class AcceleratorConnector:
         sync_batchnorm: bool = False,
         benchmark: Optional[bool] = None,
         replace_sampler_ddp: bool = True,
-        deterministic: bool = False,
+        deterministic: Union[bool, _LITERAL_WARN] = False,
+        auto_select_gpus: bool = False,
         num_processes: Optional[int] = None,  # deprecated
-        tpu_cores: Optional[Union[List[int], int]] = None,  # deprecated
+        tpu_cores: Optional[Union[List[int], str, int]] = None,  # deprecated
         ipus: Optional[int] = None,  # deprecated
         gpus: Optional[Union[List[int], str, int]] = None,  # deprecated
     ) -> None:
@@ -166,6 +177,7 @@ class AcceleratorConnector:
         self.checkpoint_io: Optional[CheckpointIO] = None
         self._amp_type_flag: Optional[LightningEnum] = None
         self._amp_level_flag: Optional[str] = amp_level
+        self._auto_select_gpus: bool = auto_select_gpus
 
         self._check_config_and_set_final_flags(
             strategy=strategy,
@@ -202,9 +214,12 @@ class AcceleratorConnector:
         # 6. Instantiate Strategy - Part 2
         self._lazy_init_strategy()
 
-    def _init_deterministic(self, deterministic: bool) -> None:
+    def _init_deterministic(self, deterministic: Union[bool, _LITERAL_WARN]) -> None:
         self.deterministic = deterministic
-        torch.use_deterministic_algorithms(deterministic)
+        if _TORCH_GREATER_EQUAL_1_11 and deterministic == "warn":
+            torch.use_deterministic_algorithms(True, warn_only=True)
+        else:
+            torch.use_deterministic_algorithms(deterministic)
         if deterministic:
             # fixing non-deterministic part of horovod
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
@@ -362,7 +377,7 @@ class AcceleratorConnector:
         num_processes: Optional[int],
         gpus: Optional[Union[List[int], str, int]],
         ipus: Optional[int],
-        tpu_cores: Optional[Union[List[int], int]],
+        tpu_cores: Optional[Union[List[int], str, int]],
     ) -> None:
         self._num_nodes_flag = int(num_nodes) if num_nodes is not None else 1
         self._devices_flag = devices
@@ -496,6 +511,8 @@ class AcceleratorConnector:
         self._gpus = self._devices_flag if not self._gpus else self._gpus
         self._tpu_cores = self._devices_flag if not self._tpu_cores else self._tpu_cores
 
+        self._set_devices_flag_if_auto_select_gpus_passed()
+
         self._devices_flag = self.accelerator.parse_devices(self._devices_flag)
         if not self._parallel_devices:
             self._parallel_devices = self.accelerator.get_parallel_devices(self._devices_flag)
@@ -503,6 +520,11 @@ class AcceleratorConnector:
     def _set_devices_flag_if_auto_passed(self) -> None:
         if self._devices_flag == "auto" or self._devices_flag is None:
             self._devices_flag = self.accelerator.auto_device_count()
+
+    def _set_devices_flag_if_auto_select_gpus_passed(self) -> None:
+        if self._auto_select_gpus and isinstance(self._gpus, int) and isinstance(self.accelerator, GPUAccelerator):
+            self._devices_flag = pick_multiple_gpus(self._gpus)
+            log.info(f"Auto select gpus: {self._devices_flag}")
 
     def _choose_and_init_cluster_environment(self) -> ClusterEnvironment:
         if isinstance(self._cluster_environment_flag, ClusterEnvironment):
