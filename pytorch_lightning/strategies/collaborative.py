@@ -505,4 +505,4 @@ class DHTManager:
     @property
     def disable_logging_checkpointing(self) -> bool:
         # if this node is a peer, we do not log/checkpoint in persistent mode.
-        return self._persistent and (self._initial_peers or self._peer_endpoint)
+        return self._persistent and (self._initial_peers is not None or self._peer_endpoint is not None)
