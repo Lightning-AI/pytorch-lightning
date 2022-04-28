@@ -156,7 +156,7 @@ _CPU_SWAP_PERCENT = "cpu_swap_percent"
 def get_cpu_process_metrics() -> Dict[str, float]:
     if not _PSUTIL_AVAILABLE:
         raise ModuleNotFoundError(
-            "`get_cpu_process_metrics` requires `psutil` to be installed."
+            "Fetching CPU device stats requires `psutil` to be installed."
             " Install it by running `pip install -U psutil`."
         )
 
