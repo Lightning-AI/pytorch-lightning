@@ -331,7 +331,7 @@ class EvaluationLoop(DataLoaderLoop):
 
         metrics_strs = [":".join(metric) for metric in metrics_paths]
         # sort both lists based on metrics_strs
-        metrics_paths, metrics_strs = zip(*sorted(zip(metrics_paths, metrics_strs)))
+        metrics_strs, metrics_paths = zip(*sorted(zip(metrics_strs, metrics_paths)))
 
         headers = [f"DataLoader {i}" for i in range(len(results))]
 
