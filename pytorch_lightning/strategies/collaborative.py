@@ -42,7 +42,7 @@ class CollaborativeStrategy(Strategy):
         scheduler_fn: Optional[Callable] = None,
         matchmaking_time: float = 5.0,
         averaging_timeout: float = 30.0,
-        verbose: bool = True,
+        verbose: bool = False,
         averager_opts: Optional[Dict] = None,
         host_maddrs: Optional[List] = None,
         initial_peers: Optional[Union[str, List]] = None,

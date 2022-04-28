@@ -56,7 +56,7 @@ def test_logging_disabled_when_second_peer(mock_dht, mock_http, initial_peers, p
 @RunIf(hivemind=True)
 @mock.patch.dict(
     os.environ,
-    {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor", "PORT": str(find_free_network_port())},
+    {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor", "PL_PORT": str(find_free_network_port())},
     clear=True,
 )
 @pytest.mark.parametrize(
