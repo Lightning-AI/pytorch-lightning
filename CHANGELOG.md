@@ -47,7 +47,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Marked `swa_lrs` argument in `StochasticWeightAveraging` callback as required ([#12556](https://github.com/PyTorchLightning/pytorch-lightning/pull/12556))
 
 
-- Make positional arguments required for classes passed into the `add_argparse_args` function. ([#1250](https://github.com/PyTorchLightning/pytorch-lightning/pull/12504))
+- Changed `seed_everything_default` argument in the `LightningCLI` to type `Union[bool, int]`. If set to `True` a seed is automatically generated for the parser argument `--seed_everything`. ([#12822](https://github.com/PyTorchLightning/pytorch-lightning/pull/12822))
+
+
+- Make positional arguments required for classes passed into the `add_argparse_args` function. ([#12504](https://github.com/PyTorchLightning/pytorch-lightning/pull/12504))
 
 
 -
@@ -64,7 +67,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `num_processes`, `gpus`, `tpu_cores,` and `ipus` from the `Trainer` constructor in favor of using the `accelerator` and `devices` arguments ([#11040](https://github.com/PyTorchLightning/pytorch-lightning/pull/11040))
 
 
--
+- Deprecated setting `LightningCLI(seed_everything_default=None)` in favor of `False` ([#12804](https://github.com/PyTorchLightning/pytorch-lightning/issues/12804)).
 
 
 -
@@ -150,7 +153,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 -  Fixed an issue wrt recursive invocation of DDP configuration in hpu parallel plugin ([#12912](https://github.com/PyTorchLightning/pytorch-lightning/pull/12912))
 
 
--
+- Fixed an issue where sharded grad scaler is passed in when using BF16 with the `ShardedStrategy` ([#12915](https://github.com/PyTorchLightning/pytorch-lightning/pull/12915))
+
+
+- Fixed printing of ragged dictionaries in `Trainer.validate` and `Trainer.test` ([#12857](https://github.com/PyTorchLightning/pytorch-lightning/pull/12857))
 
 
 ## [1.6.2] - 2022-04-27

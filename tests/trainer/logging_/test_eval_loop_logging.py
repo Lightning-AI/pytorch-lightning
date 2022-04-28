@@ -798,8 +798,12 @@ expected0 = """
 
 inputs1 = (
     [
-        {"performance": {"log1": torch.tensor(5), "log2": torch.tensor(3)}},
-        {"test": {"no_log1": torch.tensor(6), "no_log2": torch.tensor(1)}},
+        {
+            "value": torch.tensor(2),
+            "performance": {"log:1": torch.tensor(0), "log2": torch.tensor(3), "log3": torch.tensor(7)},
+            "extra": {"log3": torch.tensor(7)},
+        },
+        {"different value": torch.tensor(1.5), "tes:t": {"no_log1": torch.tensor(6), "no_log2": torch.tensor(1)}},
     ],
     RunningStage.TESTING,
 )
@@ -807,10 +811,14 @@ expected1 = """
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
        Test metric             DataLoader 0             DataLoader 1
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-          log1                       5
-          log2                       3
-         no_log1                                              6
-         no_log2                                              1
+     different value                                         1.5
+       extra:log3                    7
+    performance:log2                 3
+    performance:log3                 7
+    performance:log:1                0
+      tes:t:no_log1                                           6
+      tes:t:no_log2                                           1
+          value                      2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 """
 
@@ -906,10 +914,14 @@ expected1 = """
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃       Test metric       ┃      DataLoader 0       ┃       DataLoader 1       ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│          log1           │            5            │                          │
-│          log2           │            3            │                          │
-│         no_log1         │                         │            6             │
-│         no_log2         │                         │            1             │
+│     different value     │                         │           1.5            │
+│       extra:log3        │            7            │                          │
+│    performance:log2     │            3            │                          │
+│    performance:log3     │            7            │                          │
+│    performance:log:1    │            0            │                          │
+│      tes:t:no_log1      │                         │            6             │
+│      tes:t:no_log2      │                         │            1             │
+│          value          │            2            │                          │
 └─────────────────────────┴─────────────────────────┴──────────────────────────┘
 """
 
