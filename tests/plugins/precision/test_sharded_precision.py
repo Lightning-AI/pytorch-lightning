@@ -30,7 +30,7 @@ if _FAIRSCALE_AVAILABLE:
     [
         (16, torch.cuda.amp.GradScaler(), torch.cuda.amp.GradScaler),
         (16, None, ShardedGradScaler),
-        ("bf16", None, None),
+        pytest.param("bf16", None, None, marks=RunIf(min_torch="1.10")),
         (32, None, None),
     ],
 )
