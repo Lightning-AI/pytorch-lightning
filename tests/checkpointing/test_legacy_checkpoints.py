@@ -14,6 +14,7 @@
 import glob
 import os
 import sys
+import threading
 from unittest.mock import patch
 
 import pytest
@@ -63,6 +64,8 @@ class LimitNbEpochs(Callback):
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
 def test_legacy_ckpt_threading(tmpdir, pl_version: str):
     def load_model():
+        import torch
+        from pytorch_lightning.utilities.migration import pl_legacy_patch
         with pl_legacy_patch():
             _ = torch.load(PATH_LEGACY)
 
