@@ -32,6 +32,10 @@ from pytorch_lightning.utilities.data import _get_dataloader_init_kwargs
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.warnings import WarningCache
+
+warning_cache = WarningCache()
 
 if _POPTORCH_AVAILABLE:
     import poptorch
@@ -133,6 +137,8 @@ class IPUStrategy(ParallelStrategy):
         pl.trainer.connectors.data_connector._update_dataloader = self._convert_to_poptorch_loader
 
         super().setup(trainer)
+
+        self._disable_zero_grad()
 
         model = LightningIPUModule(self.lightning_module, self.precision_plugin.precision)
         self.model = model
@@ -259,6 +265,17 @@ class IPUStrategy(ParallelStrategy):
         args = apply_to_collection(args, dtype=list, function=to_tuple)
         args = apply_to_collection(args, dtype=(int, float), function=to_tensor)
         return args
+
+    def _disable_zero_grad(self):
+        if is_overridden("optimizer_zero_grad", self.lightning_module):
+            warning_cache.warn(
+                "You have overridden the `LightningModule.optimizer_zero_grad` hook but it will be ignored since"
+                " IPUs handle the zeroing of gradients internally."
+            )
+        def override_fn(*args: Any, **kwargs: Any) -> None:
+            pass
+
+        self.lightning_module.optimizer_zero_grad = override_fn  # type: ignore[assignment]
 
     def _step(self, stage: RunningStage, *args: Any, **kwargs: Any):
         args = self._prepare_input(args)
