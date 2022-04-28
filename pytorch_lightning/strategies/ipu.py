@@ -266,7 +266,7 @@ class IPUStrategy(ParallelStrategy):
         args = apply_to_collection(args, dtype=(int, float), function=to_tensor)
         return args
 
-    def _disable_zero_grad(self):
+    def _disable_zero_grad(self) -> None:
         if is_overridden("optimizer_zero_grad", self.lightning_module):
             warning_cache.warn(
                 "You have overridden the `LightningModule.optimizer_zero_grad` hook but it will be ignored since"
