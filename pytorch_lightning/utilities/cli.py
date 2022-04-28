@@ -893,6 +893,8 @@ def instantiate_class(args: Union[Any, Tuple[Any, ...]], init: Dict[str, Any]) -
 
 
 def _get_short_description(component: object) -> Optional[str]:
+    if component.__doc__ is None:
+        return None
     if not docstring_parser:
         rank_zero_warn(f"Failed parsing docstring for {component}: docstring-parser package is required")
     else:
