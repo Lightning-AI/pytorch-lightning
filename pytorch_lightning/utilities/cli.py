@@ -37,12 +37,16 @@ from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTu
 
 if _JSONARGPARSE_AVAILABLE:
     from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, Namespace, set_config_read_mode
-    from jsonargparse.optionals import import_docstring_parse
 
     set_config_read_mode(fsspec_enabled=True)
 else:
     locals()["ArgumentParser"] = object
     locals()["Namespace"] = object
+
+try:
+    import docstring_parser
+except ImportError:
+    docstring_parser = False
 
 
 class _Registry(dict):
@@ -889,9 +893,11 @@ def instantiate_class(args: Union[Any, Tuple[Any, ...]], init: Dict[str, Any]) -
 
 
 def _get_short_description(component: object) -> Optional[str]:
-    parse, _ = import_docstring_parse("LightningCLI(run=True)")
-    try:
-        docstring = parse(component.__doc__)
-        return docstring.short_description
-    except ValueError:
-        rank_zero_warn(f"Failed parsing docstring for {component}")
+    if not docstring_parser:
+        rank_zero_warn(f"Failed parsing docstring for {component}: docstring-parser package is required")
+    else:
+        try:
+            docstring = docstring_parser.parse(component.__doc__)
+            return docstring.short_description
+        except (ValueError, docstring_parser.ParseError) as ex:
+            rank_zero_warn(f"Failed parsing docstring for {component}: {ex}")
