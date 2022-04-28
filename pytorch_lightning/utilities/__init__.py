@@ -46,7 +46,6 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _module_available,
     _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
-    _PSUTIL_AVAILABLE,
     _RICH_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_9,
     _TORCH_GREATER_EQUAL_1_10,

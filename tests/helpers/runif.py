@@ -20,7 +20,7 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
-from pytorch_lightning.utilities import (
+from pytorch_lightning.utilities.imports import (
     _APEX_AVAILABLE,
     _BAGUA_AVAILABLE,
     _DEEPSPEED_AVAILABLE,

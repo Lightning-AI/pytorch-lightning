@@ -13,8 +13,10 @@
 # limitations under the License.
 from typing import Dict, Optional
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
+import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import DeviceStatsMonitor
@@ -259,23 +261,13 @@ def test_prefix_metric_keys(tmpdir):
     assert converted_metrics == {"foo.1": 1.0, "foo.2": 2.0, "foo.3": 3.0}
 
 
-@mock.patch("pytorch_lightning.utilities.imports._PSUTIL_AVAILABLE", return_value=False)
-def test_warning_being_raised_when_psutil_is_not_available_with_device_stats(mock_psutil_available):
+def test_warning_being_raised_when_psutil_is_not_available_with_device_stats(monkeypatch):
     """Test that warning is raised when psutil is not available."""
+    import pytorch_lightning.callbacks.device_stats_monitor as imports
 
-    model = BoringModel()
-
-    class DebugStatsMonitor(DeviceStatsMonitor):
-        def setup(self, trainer, pl_module, stage):
-            super().setup(trainer, pl_module, stage)
-            raise SystemExit
-
-    trainer = Trainer(
-        callbacks=DebugStatsMonitor(),
-        max_epochs=1,
-        log_every_n_steps=1,
-        enable_checkpointing=False,
-        enable_progress_bar=False,
-    )
-    with pytest.raises(SystemExit), pytest.warns(UserWarning, match="psutil is not available"):
-        trainer.fit(model)
+    monkeypatch.setattr(imports, "_PSUTIL_AVAILABLE", False)
+    monitor = DeviceStatsMonitor()
+    trainer = Trainer()
+    assert trainer.strategy.root_device == torch.device("cpu")
+    with pytest.warns(UserWarning, match="psutil` is not installed"):
+        monitor.setup(trainer, Mock())
