@@ -14,11 +14,10 @@
 from __future__ import annotations
 
 import sys
-from types import ModuleType, TracebackType
 import threading
+from types import ModuleType, TracebackType
 
 import pytorch_lightning.utilities.argparse
-
 
 # Create a global lock to ensure no race condition with deleting sys modules
 lock = threading.Lock()

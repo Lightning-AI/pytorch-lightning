@@ -65,7 +65,9 @@ class LimitNbEpochs(Callback):
 def test_legacy_ckpt_threading(tmpdir, pl_version: str):
     def load_model():
         import torch
+
         from pytorch_lightning.utilities.migration import pl_legacy_patch
+
         with pl_legacy_patch():
             _ = torch.load(PATH_LEGACY)
 
