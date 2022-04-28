@@ -57,5 +57,5 @@ jobs:
         run: |
           ls
           pip install $(python -c "import glob ; print(' '.join(glob.glob('*.whl')))")
-          pip show lightning-sandbox
-          python -c "import pl_sandbox ;  print(pl_sandbox.__version__)"
+          pip show lightning-devtools
+          python -c "import pl_devtools ;  print(pl_devtools.__version__)"

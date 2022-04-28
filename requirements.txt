@@ -1,2 +1,0 @@
-torch>=1.6
-pytorch-lightning>=1.0

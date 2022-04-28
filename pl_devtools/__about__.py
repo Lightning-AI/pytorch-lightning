@@ -3,7 +3,7 @@ __author__ = "PyTorchLightning et al."
 __author_email__ = "name@pytorchlightning.ai"
 __license__ = "TBD"
 __copyright__ = f"Copyright (c) 2020-2021, {__author__}."
-__homepage__ = "https://github.com/PyTorchLightning/lightning-sandbox"
+__homepage__ = "https://github.com/PyTorchLightning/dev-toolbox"
 __docs__ = "PyTorch Lightning Sample project."
 __long_doc__ = """
 What is it?

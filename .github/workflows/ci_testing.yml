@@ -74,7 +74,7 @@ jobs:
 
     - name: Tests
       run: |
-        coverage run --source pl_sandbox -m pytest pl_sandbox tests -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        coverage run --source pl_devtools -m pytest pl_devtools tests -v --junitxml=junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@v2

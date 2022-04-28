@@ -23,7 +23,7 @@ def _load_requirements(path_dir: str, file_name: str = "requirements.txt", comme
     """Load requirements from a file.
 
     >>> _load_requirements(_PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-    ['torch...', 'pytorch-lightning...]
+    []
     """
     with open(os.path.join(path_dir, file_name)) as file:
         lines = [ln.strip() for ln in file.readlines()]
@@ -58,7 +58,7 @@ def _load_readme_description(path_dir: str, homepage: str, ver: str) -> str:
 
     # readthedocs badge
     text = text.replace("badge/?version=stable", f"badge/?version={ver}")
-    text = text.replace("lightning-sandbox.readthedocs.io/en/stable/", f"lightning-sandbox.readthedocs.io/en/{ver}")
+    text = text.replace("dev-toolbox.readthedocs.io/en/stable/", f"dev-toolbox.readthedocs.io/en/{ver}")
     # codecov badge
     text = text.replace("/branch/master/graph/badge.svg", f"/release/{ver}/graph/badge.svg")
     # replace github badges for release ones
