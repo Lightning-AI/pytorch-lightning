@@ -1,0 +1,32 @@
+pull_request_rules:
+
+  - name: warn on conflicts
+    conditions:
+      - conflict
+      - -draft # filter-out GH draft PRs
+      - -label="has conflicts"
+    actions:
+      # comment:
+      #   message: This pull request is now in conflict... :(
+      label:
+        add: [ "has conflicts" ]
+
+  - name: resolved conflicts
+    conditions:
+      - -conflict
+      - label="has conflicts"
+      - -draft # filter-out GH draft PRs
+      - -merged # not merged yet
+      - -closed
+    actions:
+      label:
+        remove: [ "has conflicts" ]
+
+  - name: add core reviewer
+    conditions:
+      # number of review approvals
+      - "#approved-reviews-by<2"
+    actions:
+      request_reviews:
+        users:
+          - Borda

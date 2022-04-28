@@ -1,0 +1,30 @@
+# File : .pep8speaks.yml
+
+scanner:
+    diff_only: True  # If False, the entire file touched by the Pull Request is scanned for errors. If True, only the diff is scanned.
+    linter: pycodestyle  # Other option is flake8
+
+pycodestyle:  # Same as scanner.linter value. Other option is flake8
+    max-line-length: 120  # Default is 79 in PEP 8
+    ignore:  # Errors and warnings to ignore
+        - W504  # line break after binary operator
+        - E402  # module level import not at top of file
+        - E731  # do not assign a lambda expression, use a def
+        - C406  # Unnecessary list literal - rewrite as a dict literal.
+        - E741  # ambiguous variable name
+        - F401
+        - F841
+
+no_blank_comment: True  # If True, no comment is made on PR without any errors.
+descending_issues_order: False  # If True, PEP 8 issues in message will be displayed in descending order of line numbers in the file
+
+message:  # Customize the comment made by the bot,
+    opened:  # Messages when a new PR is submitted
+        header: "Hello @{name}! Thanks for opening this PR. "
+                # The keyword {name} is converted into the author's username
+        footer: "Do see the [Hitchhiker's guide to code style](https://goo.gl/hqbW4r)"
+                # The messages can be written as they would over GitHub
+    updated:  # Messages when new commits are added to the PR
+        header: "Hello @{name}! Thanks for updating this PR. "
+        footer: ""  # Why to comment the link to the style guide everytime? :)
+    no_errors: "There are currently no PEP 8 issues detected in this Pull Request. Cheers! :beers: "
