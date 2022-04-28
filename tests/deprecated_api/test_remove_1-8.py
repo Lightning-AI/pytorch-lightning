@@ -758,10 +758,11 @@ def test_v1_8_0_logger_collection(tmpdir):
     trainer1.logger
     trainer1.loggers
     trainer2.loggers
-    trainer2.logger
 
+    with pytest.deprecated_call(match="logger` will return the first logger"):
+        _ = trainer2.logger
     with pytest.deprecated_call(match="`LoggerCollection` is deprecated in v1.6"):
-        LoggerCollection([logger1, logger2])
+        _ = LoggerCollection([logger1, logger2])
 
 
 def test_v1_8_0_precision_plugin_checkpoint_hooks(tmpdir):

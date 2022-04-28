@@ -19,13 +19,15 @@ import os
 import traceback
 import warnings
 from argparse import ArgumentParser, Namespace
+from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Type, Union
 from weakref import proxy
 
 import torch
+import torch.distributed as dist
 from packaging.version import Version
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
@@ -63,7 +65,7 @@ from pytorch_lightning.strategies import ParallelStrategy, Strategy
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
-from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
+from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
@@ -97,7 +99,7 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, has_len_all_ranks
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TORCH_GREATER_EQUAL_1_9
 from pytorch_lightning.utilities.meta import is_on_meta_device, materialize_module
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_warn
@@ -145,7 +147,7 @@ class Trainer(
         enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
-        check_val_every_n_epoch: int = 1,
+        check_val_every_n_epoch: Optional[int] = 1,
         fast_dev_run: Union[int, bool] = False,
         accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
         max_epochs: Optional[int] = None,
@@ -171,7 +173,7 @@ class Trainer(
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, str]] = None,
         benchmark: Optional[bool] = None,
-        deterministic: bool = False,
+        deterministic: Union[bool, _LITERAL_WARN] = False,
         reload_dataloaders_every_n_epochs: int = 0,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
@@ -242,9 +244,10 @@ class Trainer(
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`.
                 Default: ``True``.
 
-            check_val_every_n_epoch: Check val every n train epochs.
+            check_val_every_n_epoch: Perform a validation loop every after every `N` training epochs. If ``None``,
+                validation will be done solely based on the number of training batches, requiring ``val_check_interval``
+                to be an integer value.
                 Default: ``1``.
-
 
             default_root_dir: Default path for logs and weights when no logger/ckpt_callback passed.
                 Default: ``os.getcwd()``.
@@ -254,6 +257,8 @@ class Trainer(
                 Default: ``False``.
 
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
+                Set to ``"warn"`` to use deterministic algorithms whenever possible, throwing warnings on operations
+                that don't support deterministic mode (requires Pytorch 1.11+).
                 Default: ``False``.
 
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
@@ -403,7 +408,8 @@ class Trainer(
 
             val_check_interval: How often to check the validation set. Pass a ``float`` in the range [0.0, 1.0] to check
                 after a fraction of the training epoch. Pass an ``int`` to check after a fixed number of training
-                batches.
+                batches. An ``int`` value can only be higher than the number of training batches when
+                ``check_val_every_n_epoch=None``.
                 Default: ``1.0``.
 
             enable_model_summary: Whether to enable model summarization by default.
@@ -524,8 +530,9 @@ class Trainer(
         # init data flags
         self.check_val_every_n_epoch: int
         self._data_connector.on_trainer_init(
-            check_val_every_n_epoch,
+            val_check_interval,
             reload_dataloaders_every_n_epochs,
+            check_val_every_n_epoch,
         )
 
         # gradient clipping
@@ -616,10 +623,7 @@ class Trainer(
             self.check_val_every_n_epoch = 1
             self.loggers = [DummyLogger()] if self.loggers else []
 
-            rank_zero_info(
-                "Running in fast_dev_run mode: will run a full train,"
-                f" val, test and prediction loop using {num_batches} batch(es)."
-            )
+            rank_zero_info(f"Running in fast_dev_run mode: will run the requested loop using {num_batches} batch(es).")
 
         self.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
         self.limit_val_batches = _determine_batch_limits(limit_val_batches, "limit_val_batches")
@@ -1313,7 +1317,7 @@ class Trainer(
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self._evaluation_loop.trainer = self
 
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), torch.no_grad():
+        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context():
             eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
@@ -1329,7 +1333,7 @@ class Trainer(
         self.reset_predict_dataloader(self.lightning_module)
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self.predict_loop.trainer = self
-        with torch.no_grad():
+        with _evaluation_context():
             return self.predict_loop.run()
 
     def _run_sanity_check(self) -> None:
@@ -1829,11 +1833,12 @@ class Trainer(
 
         if isinstance(self.val_check_interval, int):
             self.val_check_batch = self.val_check_interval
-            if self.val_check_batch > self.num_training_batches:
+            if self.val_check_batch > self.num_training_batches and self.check_val_every_n_epoch is not None:
                 raise ValueError(
                     f"`val_check_interval` ({self.val_check_interval}) must be less than or equal "
                     f"to the number of the training batches ({self.num_training_batches}). "
                     "If you want to disable validation set `limit_val_batches` to 0.0 instead."
+                    "If you want to validate based on the total training batches, set `check_val_every_n_epoch=None`."
                 )
         else:
             if not has_len_all_ranks(self.train_dataloader, self.strategy, module):
@@ -1912,6 +1917,7 @@ class Trainer(
 
         The val dataloader must be initialized before training loop starts, as the training loop
         inspects the val dataloader to determine whether to run the evaluation loop.
+
         Args:
             model: The ``LightningModule`` if called outside of the trainer scope.
         """
@@ -2185,19 +2191,6 @@ class Trainer(
         return isinstance(self.strategy, ParallelStrategy)
 
     @property
-    def progress_bar_dict(self) -> dict:
-        """Read-only for progress bar metrics."""
-        rank_zero_deprecation(
-            "`trainer.progress_bar_dict` is deprecated in v1.5 and will be removed in v1.7."
-            " Use `ProgressBarBase.get_metrics` instead."
-        )
-        ref_model = self.lightning_module
-        ref_model = cast(pl.LightningModule, ref_model)
-        if self.progress_bar_callback:
-            return self.progress_bar_callback.get_metrics(self, ref_model)
-        return self.progress_bar_metrics
-
-    @property
     def enable_validation(self) -> bool:
         """Check if we should run validation during training."""
         return (
@@ -2373,6 +2366,11 @@ class Trainer(
             storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
 
         """
+        if self.model is None:
+            raise AttributeError(
+                "Saving a checkpoint is only possible if a model is attached to the Trainer. Did you call"
+                " `Trainer.save_checkpoint()` before calling `Trainer.{fit,validate,test,predict}`?"
+            )
         self._checkpoint_connector.save_checkpoint(filepath, weights_only=weights_only, storage_options=storage_options)
 
     """
@@ -2626,19 +2624,21 @@ class Trainer(
 
     @property
     def logger(self) -> Optional[Logger]:
-        if len(self.loggers) == 0:
+        loggers = self.loggers
+        if len(loggers) == 0:
             return None
-        if len(self.loggers) == 1:
-            return self.loggers[0]
+        if len(loggers) == 1:
+            return loggers[0]
         else:
-            rank_zero_warn(
-                "Using trainer.logger when Trainer is configured to use multiple loggers."
-                " This behavior will change in v1.8 when LoggerCollection is removed, and"
-                " trainer.logger will return the first logger in trainer.loggers"
+            rank_zero_deprecation(
+                "Using `trainer.logger` when multiple loggers are configured."
+                " This behavior will change in v1.8 when `LoggerCollection` is removed, and"
+                " `trainer.logger` will return the first logger available.",
+                stacklevel=5,
             )
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                return LoggerCollection(self.loggers)
+                return LoggerCollection(loggers)
 
     @logger.setter
     def logger(self, logger: Optional[Logger]) -> None:
@@ -2742,6 +2742,18 @@ class Trainer(
 
         max_estimated_steps = min(max_estimated_steps, self.max_steps) if self.max_steps != -1 else max_estimated_steps
         return max_estimated_steps
+
+
+@contextmanager
+def _evaluation_context() -> Generator:
+    # inference mode is not supported with gloo backend (#9431)
+    context_manager_class = (
+        torch.inference_mode
+        if _TORCH_GREATER_EQUAL_1_9 and not (dist.is_initialized() and dist.get_backend() == "gloo")
+        else torch.no_grad
+    )
+    with context_manager_class():
+        yield
 
 
 def _determine_batch_limits(batches: Optional[Union[int, float]], name: str) -> Union[int, float]:

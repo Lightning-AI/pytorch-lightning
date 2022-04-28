@@ -52,13 +52,6 @@ That's it! Your model will train on all 8 TPU cores.
 
 ----------------
 
-Distributed Backend with TPU
-----------------------------
-The ``accelerator`` option used for GPUs does not apply to TPUs.
-TPUs work in DDP mode by default (distributing over each core)
-
-----------------
-
 TPU VM
 ------
 Lightning supports training on the new Cloud TPU VMs.
@@ -82,14 +75,22 @@ You could learn more about the Cloud TPU VM architecture `here <https://cloud.go
 TPU Pod
 -------
 To train on more than 8 cores, your code actually doesn't change!
+
+All TPU VMs in a Pod setup are required to access the model code and data.
+One easy way to achieve this is to use the following startup script when creating the TPU VM pod.
+It will perform the data downloading on all TPU VMs. Note that you need to export the corresponding environment variables following the instruction in Create TPU Node.
+
+.. code-block:: bash
+
+    gcloud alpha compute tpus tpu-vm create ${TPU_POD_NAME} --zone ${ZONE} --project ${PROJECT_ID} --accelerator-type ${ACCELERATOR_TYPE} --version ${RUNTIME_VERSION} --metadata startup-script=setup.py
+
+Then you could ssh to any TPU worker, e.g. worker 0, check if data/model downloading is finished and
+start the training after generating the ssh-keys to ssh between VM workers on a pod.
 All you need to do is submit the following command:
 
 .. code-block:: bash
 
-    $ python -m torch_xla.distributed.xla_dist
-    --tpu=$TPU_POD_NAME
-    --conda-env=torch-xla-nightly
-    -- python /usr/share/torch-xla-1.8.1/pytorch/xla/test/test_train_imagenet.py --fake_data
+    python3 -m torch_xla.distributed.xla_dist --tpu=$TPU_POD_NAME -- python3 train.py --max_epochs=5 --batch_size=32
 
 See `this guide <https://cloud.google.com/tpu/docs/tutorials/pytorch-pod>`_
 on how to set up the instance groups and VMs needed to run TPU Pods.

@@ -699,7 +699,7 @@ def test_parallel_devices_in_strategy_confilict_with_accelerator(parallel_device
         Trainer(strategy=DDPStrategy(parallel_devices=parallel_devices), accelerator=accelerator)
 
 
-@pytest.mark.parametrize("deterministic", [True, False])
+@pytest.mark.parametrize("deterministic", [True, False, pytest.param("warn", marks=RunIf(min_torch="1.11.0"))])
 def test_deterministic_init(deterministic):
     trainer = Trainer(accelerator="auto", deterministic=deterministic)
     assert trainer._accelerator_connector.deterministic == deterministic
