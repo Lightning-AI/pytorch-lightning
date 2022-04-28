@@ -25,7 +25,7 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE
+from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import _get_dataloader_init_kwargs
@@ -33,9 +33,6 @@ from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import WarningCache
-
-warning_cache = WarningCache()
 
 if _POPTORCH_AVAILABLE:
     import poptorch
@@ -267,16 +264,14 @@ class IPUStrategy(ParallelStrategy):
         return args
 
     def _disable_zero_grad(self) -> None:
-        if is_overridden("optimizer_zero_grad", self.lightning_module):
-            warning_cache.warn(
+        lightning_module = self.lightning_module
+        if is_overridden("optimizer_zero_grad", lightning_module):
+            assert lightning_module is not None  # `is_overridden` returns False otherwise
+            rank_zero_warn(
                 "You have overridden the `LightningModule.optimizer_zero_grad` hook but it will be ignored since"
                 " IPUs handle the zeroing of gradients internally."
             )
-
-        def override_fn(*args: Any, **kwargs: Any) -> None:
-            pass
-
-        self.lightning_module.optimizer_zero_grad = override_fn  # type: ignore[assignment]
+            lightning_module.optimizer_zero_grad = None  # type: ignore[assignment]
 
     def _step(self, stage: RunningStage, *args: Any, **kwargs: Any):
         args = self._prepare_input(args)
