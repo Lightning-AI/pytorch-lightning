@@ -23,9 +23,10 @@ from typing import Any, Dict, Optional
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
 from pytorch_lightning.utilities.memory import get_cpu_process_metrics
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
 
 
 class DeviceStatsMonitor(Callback):
@@ -35,7 +36,7 @@ class DeviceStatsMonitor(Callback):
 
     Args:
         cpu_stats: if ``None``, it will log CPU stats only if the accelerator is CPU.
-            It will raise a warning if `psutil` is not installed till version 1.7.0.
+            It will raise a warning if `psutil` is not installed till version 1.9.0.
             if ``True``, it will log CPU stats regardless of the accelerator, and it will
             raise an exception if `psutil` is not installed.
             if ``False``, it will not log CPU stats regardless of the accelerator.
@@ -82,8 +83,18 @@ class DeviceStatsMonitor(Callback):
         device_stats = {}
         device = trainer.strategy.root_device
 
-        if self.cpu_stats is None or self.cpu_stats:
-            device_stats = trainer.accelerator.get_device_stats(device)
+        if self.cpu_stats is None:
+            if device.type == "cpu" and not _PSUTIL_AVAILABLE:
+                rank_zero_warn(
+                    "`psutil` is not installed. `DeviceStatsMonitor` will not log CPU stats."
+                    " To install `psutil`, run `pip install psutil`."
+                    " It will raise an exception if `psutil` is not installed post version 1.9.0."
+                )
+                return
+        elif not self.cpu_stats and device.type == "cpu":
+            return
+
+        device_stats = trainer.accelerator.get_device_stats(device)
 
         if self.cpu_stats and device.type != "cpu":
             # Don't query CPU stats twice if CPU is accelerator

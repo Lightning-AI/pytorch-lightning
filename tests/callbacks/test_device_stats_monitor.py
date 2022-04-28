@@ -87,8 +87,8 @@ def test_device_stats_gpu_from_nvidia(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        max_epochs=2,
-        limit_train_batches=7,
+        max_epochs=1,
+        limit_train_batches=2,
         log_every_n_steps=1,
         accelerator="gpu",
         devices=1,
@@ -101,7 +101,7 @@ def test_device_stats_gpu_from_nvidia(tmpdir):
     trainer.fit(model)
 
 
-@pytest.mark.parametrize("cpu_stats", [True, False])
+@pytest.mark.parametrize("cpu_stats", [None, True, False])
 @RunIf(min_gpus=1, min_torch="1.8")
 def test_device_stats_gpu_from_torch_toggle_cpu(tmpdir, cpu_stats):
     """Test only CPU stats can be enabled/disabled when using GPU."""
@@ -118,13 +118,13 @@ def test_device_stats_gpu_from_torch_toggle_cpu(tmpdir, cpu_stats):
             ]
 
             # If cpu stats, also check CPU metric keys are logged
-            fields += CPU_METRIC_KEYS if cpu_stats else []
+            fields = CPU_METRIC_KEYS if cpu_stats or cpu_stats is None else []
             for f in fields:
                 assert any(f in h for h in metrics)
 
-            # If not cpu stats, make sure CPU metric keys aren't logged
-            if not cpu_stats:
-                assert not any(f in h for h in metrics), "CPU Stats should not be included"
+                # If not cpu stats, make sure CPU metric keys aren't logged
+                if cpu_stats is not None and not cpu_stats:
+                    assert not any(f in h for h in metrics), "CPU Stats should not be included"
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -143,18 +143,23 @@ def test_device_stats_gpu_from_torch_toggle_cpu(tmpdir, cpu_stats):
     trainer.fit(model)
 
 
-def test_device_stats_cpu(tmpdir):
+@pytest.mark.parametrize("cpu_stats", [None, True, False])
+def test_device_stats_cpu(tmpdir, cpu_stats):
     """Test CPU stats are logged when no accelerator is used."""
     model = BoringModel()
 
     class DebugLogger(CSVLogger):
         @rank_zero_only
         def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
-            fields = CPU_METRIC_KEYS
+            fields = CPU_METRIC_KEYS if cpu_stats or cpu_stats is None else []
             for f in fields:
                 assert any(f in h for h in metrics)
 
-    device_stats = DeviceStatsMonitor()
+                # If not cpu stats, make sure CPU metric keys aren't logged
+                if cpu_stats is not None and not cpu_stats:
+                    assert not any(f in h for h in metrics), "CPU Stats should not be included"
+
+    device_stats = DeviceStatsMonitor(cpu_stats=cpu_stats)
     trainer = Trainer(
         default_root_dir=tmpdir,
         max_epochs=1,
