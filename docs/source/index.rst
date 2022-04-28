@@ -290,9 +290,3 @@ Current Lightning Users
 .. raw:: html
 
    </div>
-
-Indices and tables
-------------------
-
-* :ref:`genindex`
-* :ref:`search`
