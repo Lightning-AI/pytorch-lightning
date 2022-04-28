@@ -37,10 +37,10 @@ from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
-from pytorch_lightning.loggers import Logger
+from pytorch_lightning.loggers import Logger, LoggerCollection
 from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
+from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType, warnings
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
@@ -246,7 +246,26 @@ class LightningModule(
     @property
     def logger(self) -> Optional[Logger]:
         """Reference to the logger object in the Trainer."""
-        return self.trainer.logger if self.trainer else None
+        # this should match the implementation of `trainer.logger`
+        # we don't reuse it so we can properly set the deprecation stacklevel
+        if self.trainer is None:
+            return
+        loggers = self.trainer.loggers
+        if len(loggers) == 0:
+            return None
+        if len(loggers) == 1:
+            return loggers[0]
+        else:
+            if not self._running_torchscript:
+                rank_zero_deprecation(
+                    "Using `lightning_module.logger` when multiple loggers are configured."
+                    " This behavior will change in v1.8 when `LoggerCollection` is removed, and"
+                    " `lightning_module.logger` will return the first logger available.",
+                    stacklevel=5,
+                )
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                return LoggerCollection(loggers)
 
     @property
     def loggers(self) -> List[Logger]:

@@ -1,140 +1,13 @@
 :orphan:
 
-TPU training (Basic)
-====================
-**Audience:** Users looking to train on single or multiple TPU cores.
+.. _tpu_faq:
 
-----
+TPU training (FAQ)
+==================
 
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/yt_thumbs/thumb_tpus.png"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/tpu_cores.mp4"></video>
-
-|
-
-Lightning supports running on TPUs. At this moment, TPUs are available
-on Google Cloud (GCP), Google Colab and Kaggle Environments. For more information on TPUs
-`watch this video <https://www.youtube.com/watch?v=kPMpmcl_Pyw>`_.
-
-----------------
-
-What is a TPU?
---------------
-Tensor Processing Unit (TPU) is an AI accelerator application-specific integrated circuit (ASIC) developed by Google specifically for neural networks.
-
-A TPU has 8 cores where each core is optimized for 128x128 matrix multiplies. In general, a single TPU is about as fast as 5 V100 GPUs!
-
-A TPU pod hosts many TPUs on it. Currently, TPU v3 Pod has up to 2048 TPU cores and 32 TiB of memory!
-You can request a full pod from Google cloud or a "slice" which gives you
-some subset of those 2048 cores.
-
-----
-
-Run on 1 TPU core
------------------
-Enable the following Trainer arguments to run on 1 TPU.
-
-.. code::
-
-    trainer = Trainer(accelerator="tpu", devices=1)
-
-----
-
-Run on multiple TPU cores
--------------------------
-For multiple TPU cores, change the value of the devices flag.
-
-.. code::
-
-    trainer = Trainer(accelerator="tpu", devices=8)
-
-----
-
-Run on a specific TPU core
---------------------------
-
-To run on a specific core, specify the index of the TPU core.
-
-.. code-block:: python
-
-    trainer = pl.Trainer(accelerator="tpu", devices=[5])
-
-This example runs on the 5th core, not on five cores.
-
-----
-
-How to access TPUs
-------------------
-To access TPUs, there are three main ways.
-
-Google Colab
-^^^^^^^^^^^^
-Colab is like a jupyter notebook with a free GPU or TPU
-hosted on GCP.
-
-To get a TPU on colab, follow these steps:
-
-1. Go to `https://colab.research.google.com/ <https://colab.research.google.com/>`_.
-
-2. Click "new notebook" (bottom right of pop-up).
-
-3. Click runtime > change runtime settings. Select Python 3, and hardware accelerator "TPU".
-   This will give you a TPU with 8 cores.
-
-4. Next, insert this code into the first cell and execute.
-   This will install the xla library that interfaces between PyTorch and the TPU.
-
-   .. code-block::
-
-        !pip install cloud-tpu-client==0.10 https://storage.googleapis.com/tpu-pytorch/wheels/torch_xla-1.9-cp37-cp37m-linux_x86_64.whl
-
-5. Once the above is done, install PyTorch Lightning.
-
-   .. code-block::
-
-        !pip install pytorch-lightning
-
-6. Then set up your LightningModule as normal.
-
-Google Cloud (GCP)
-^^^^^^^^^^^^^^^^^^
-?
-
-Kaggle
-^^^^^^
-For starting Kaggle projects with TPUs, refer to this `kernel <https://www.kaggle.com/pytorchlightning/pytorch-on-tpu-with-pytorch-lightning>`_.
-
-----
-
-Optimize Performance
---------------------
-
-The TPU was designed for specific workloads and operations to carry out large volumes of matrix multiplication,
-convolution operations and other commonly used ops in applied deep learning.
-The specialization makes it a strong choice for NLP tasks, sequential convolutional networks, and under low precision operation.
-There are cases in which training on TPUs is slower when compared with GPUs, for possible reasons listed:
-
-- Too small batch size.
-- Explicit evaluation of tensors during training, e.g. ``tensor.item()``
-- Tensor shapes (e.g. model inputs) change often during training.
-- Limited resources when using TPU's with PyTorch `Link <https://github.com/pytorch/xla/issues/2054#issuecomment-627367729>`_
-- XLA Graph compilation during the initial steps `Reference <https://github.com/pytorch/xla/issues/2383#issuecomment-666519998>`_
-- Some tensor ops are not fully supported on TPU, or not supported at all. These operations will be performed on CPU (context switch).
-- PyTorch integration is still experimental. Some performance bottlenecks may simply be the result of unfinished implementation.
-
-The official PyTorch XLA `performance guide <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#known-performance-caveats>`_
-has more detailed information on how PyTorch code can be optimized for TPU. In particular, the
-`metrics report <https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#get-a-metrics-report>`_ allows
-one to identify operations that lead to context switching.
-
-----
-
-FAQ
----
-
-**XLA configuration is missing**
+*****************************
+XLA configuration is missing?
+*****************************
 
 .. code-block::
 
@@ -164,7 +37,9 @@ And for the old TPU + 2VM architecture, you could set it by:
 
 ----
 
-**How to clear up the programs using TPUs in the background**
+**********************************************************
+How to clear up the programs using TPUs in the background?
+**********************************************************
 
 .. code-block:: bash
 
@@ -174,7 +49,9 @@ Sometimes, there can still be old programs running on the TPUs, which would make
 
 ----
 
-**Replication issue**
+*************************************
+How to resolve the replication issue?
+*************************************
 
 .. code-block::
 
@@ -189,7 +66,9 @@ Don't use ``xm.xla_device()`` while working on Lightning + TPUs!
 
 ----
 
-**Unsupported datatype transfer to TPU**
+**************************************
+Unsupported datatype transfer to TPUs?
+**************************************
 
 .. code-block::
 
@@ -203,7 +82,9 @@ PyTorch XLA only supports Tensor objects for CPU to TPU data transfer. Might cau
 
 ----
 
-**Using `tpu_spawn_debug` Strategy alias**
+*************************************************
+How to setup the debug mode for Training on TPUs?
+*************************************************
 
 .. code-block:: python
 
@@ -234,22 +115,3 @@ The report includes things like (`XLA Reference <https://github.com/pytorch/xla/
 * how many times we issue XLA compilations and time spent on issuing.
 * how many times we execute and time spent on execution
 * how many device data handles we create/destroy etc.
-
-----
-
-**TPU Pod Training Startup script**
-
-All TPU VMs in a Pod setup are required to access the model code and data.
-One easy way to achieve this is to use the following startup script when creating the TPU VM pod.
-It will perform the data downloading on all TPU VMs. Note that you need to export the corresponding environment variables following the instruction in Create TPU Node.
-
-.. code-block:: bash
-
-    gcloud alpha compute tpus tpu-vm create ${TPU_NAME} --zone ${ZONE} --project ${PROJECT_ID} --accelerator-type v3-32 --version ${RUNTIME_VERSION} --metadata startup-script=setup.py
-
-Then users could ssh to any TPU worker, e.g. worker 0, check if data/model downloading is finished and
-start the training after generating the ssh-keys to ssh between VM workers on a pod:
-
-.. code-block:: bash
-
-    python3 -m torch_xla.distributed.xla_dist --tpu=$TPU_NAME -- python3 train.py --max_epochs=5 --batch_size=32
