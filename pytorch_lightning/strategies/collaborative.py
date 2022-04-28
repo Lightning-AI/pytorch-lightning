@@ -20,7 +20,7 @@ from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HIVEMIND_AVAILABLE
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import LRSchedulerTypeUnion
+from pytorch_lightning.utilities.types import _LRScheduler, ReduceLROnPlateau
 
 if _HIVEMIND_AVAILABLE:
     import hivemind
@@ -266,8 +266,13 @@ class CollaborativeStrategy(Strategy):
     def _wrap_schedulers(self, opt: "hivemind.Optimizer") -> None:
         # wrap schedulers so that they only update when the hivemind optimizer updates
         for scheduler_config in self.lr_scheduler_configs:
+            scheduler = scheduler_config.scheduler
+            if isinstance(scheduler, ReduceLROnPlateau):
+                raise ValueError(
+                    "The `ReduceLROnPlateau` scheduler is not currently supported with `CollaborativeStrategy`."
+                )
             scheduler_config.scheduler = HiveMindScheduler(
-                scheduler=scheduler_config.scheduler,
+                scheduler=scheduler,
                 optimizer=opt,
             )
 
@@ -321,7 +326,7 @@ class HiveMindScheduler:
     This code ensures that we only step when the HiveMind optimizer reaches the global step.
     """
 
-    def __init__(self, optimizer: "hivemind.Optimizer", scheduler: LRSchedulerTypeUnion) -> None:
+    def __init__(self, optimizer: "hivemind.Optimizer", scheduler: _LRScheduler) -> None:
         # copy most of the `Scheduler` methods into this instance. `__del__` is skipped in case the scheduler has
         # implemented custom logic which we would not want to call on destruction of the `HiveMindScheduler`
         self.__dict__ = {k: v for k, v in scheduler.__dict__.items() if k not in ("step", "__del__")}
@@ -332,7 +337,7 @@ class HiveMindScheduler:
 
     def step(self, epoch: Optional[int] = None) -> None:
         while self.current_step < self.optimizer.local_epoch:
-            self.scheduler.step()
+            self.scheduler.step(epoch=epoch)
             self.current_step += 1
 
     def load_state_dict(self, state_dict: Dict) -> None:
