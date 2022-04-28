@@ -26,9 +26,6 @@ from torch.nn import Module
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
 
-if _PSUTIL_AVAILABLE:
-    import psutil
-
 
 def recursive_detach(in_dict: Any, to_cpu: bool = False) -> Any:
     """Detach all tensors in `in_dict`.
@@ -159,10 +156,10 @@ def get_cpu_process_metrics() -> Dict[str, float]:
             "Fetching CPU device stats requires `psutil` to be installed."
             " Install it by running `pip install -U psutil`."
         )
+    import psutil
 
-    metrics = {
+    return {
         _CPU_VM_PERCENT: psutil.virtual_memory().percent,
         _CPU_PERCENT: psutil.cpu_percent(),
         _CPU_SWAP_PERCENT: psutil.swap_memory().percent,
     }
-    return metrics

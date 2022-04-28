@@ -65,37 +65,27 @@ class DeviceStatsMonitor(Callback):
             raise MisconfigurationException(
                 "Cannot use `DeviceStatsMonitor` callback with `Trainer` that has no logger."
             )
+        # warn in setup to warn once
         device = trainer.strategy.root_device
+        if self.cpu_stats is None and device.type == "cpu" and not _PSUTIL_AVAILABLE:
+            rank_zero_warn(
+                "`DeviceStatsMonitor` will not log CPU stats as `psutil` is not installed."
+                " To install `psutil`, run `pip install psutil`."
+                " It will raise an exception if `psutil` is not installed post v1.9.0."
+            )
 
-        if self.cpu_stats is None:
-            if device.type == "cpu" and not _PSUTIL_AVAILABLE:
-                rank_zero_warn(
-                    "`DeviceStatsMonitor` will not log CPU stats as `psutil` is not installed."
-                    " To install `psutil`, run `pip install psutil`."
-                    " It will raise an exception if `psutil` is not installed post v1.9.0."
-                )
-
-    def _get_and_log_device_stats(
-        self,
-        trainer: "pl.Trainer",
-        pl_module: "pl.LightningModule",
-        batch: Any,
-        batch_idx: int,
-        key: str,
-    ) -> None:
+    def _get_and_log_device_stats(self, trainer: "pl.Trainer", key: str) -> None:
+        if not trainer._logger_connector.should_update_logs:
+            return
         if not trainer.loggers:
             raise MisconfigurationException("Cannot use `DeviceStatsMonitor` callback with `Trainer(logger=False)`.")
 
-        if not trainer._logger_connector.should_update_logs:
-            return
-
-        device_stats = {}
         device = trainer.strategy.root_device
-
-        if self.cpu_stats is None:
-            if device.type == "cpu" and not _PSUTIL_AVAILABLE:
-                return
-        elif not self.cpu_stats and device.type == "cpu":
+        if self.cpu_stats is None and device.type == "cpu" and not _PSUTIL_AVAILABLE:
+            # we just warn for now
+            return
+        if self.cpu_stats is False and device.type == "cpu":
+            # cpu stats are disabled
             return
 
         device_stats = trainer.accelerator.get_device_stats(device)
@@ -117,7 +107,7 @@ class DeviceStatsMonitor(Callback):
         batch_idx: int,
         unused: Optional[int] = 0,
     ) -> None:
-        self._get_and_log_device_stats(trainer, pl_module, batch, batch_idx, "on_train_batch_start")
+        self._get_and_log_device_stats(trainer, "on_train_batch_start")
 
     def on_train_batch_end(
         self,
@@ -128,7 +118,7 @@ class DeviceStatsMonitor(Callback):
         batch_idx: int,
         unused: int = 0,
     ) -> None:
-        self._get_and_log_device_stats(trainer, pl_module, batch, batch_idx, "on_train_batch_end")
+        self._get_and_log_device_stats(trainer, "on_train_batch_end")
 
 
 def _prefix_metric_keys(metrics_dict: Dict[str, float], prefix: str, separator: str) -> Dict[str, float]:
