@@ -307,7 +307,7 @@ class EvaluationLoop(DataLoaderLoop):
         for k, v in data.items():
             if isinstance(v, dict):
                 for new_key in apply_to_collection(v, dict, EvaluationLoop._get_keys):
-                    yield k, *new_key
+                    yield (k, *new_key)  # this need to be in parenthesis for older python versions
             else:
                 yield k,
 
