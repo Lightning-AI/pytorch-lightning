@@ -74,15 +74,15 @@ class CollaborativeStrategy(Strategy):
             delay_state_averaging: If enabled (default), average parameters and extra tensors in a background thread;
                 if set to False, average parameters synchronously within the corresponding hivemind.Optimizer.step call.
 
-            delay_optimizer_step: Run optimizer in background, apply results in future .step.
+            delay_optimizer_step: Run optimizer in background, apply results in future ``.step``.
                 requires `offload_optimizer`.
 
             delay_grad_averaging: Average gradients in background; requires offload_optimizer and delay_optimizer_step.
 
             offload_optimizer: Offload the optimizer to host memory, saving GPU memory for parameters and gradients.
 
-            reuse_grad_buffers: Use model's .grad buffers for gradient accumulation.
-                This is more memory efficient, but it requires that we do not call `zero_grad` in the `LightningModule`.
+            reuse_grad_buffers: Use the model's gradient buffers (params.grad) for gradient accumulation.
+                This is more memory efficient, but it requires that we do not call ``zero_grad`` in the ``LightningModule``.
 
             scheduler_fn: callable(optimizer) -> PyTorch LRScheduler or a pre-initialized PyTorch scheduler.
                 When using `offload_optimizer`/`delay_optimizer_step`/`delay_state_averaging` a scheduler_fn is required
@@ -102,13 +102,13 @@ class CollaborativeStrategy(Strategy):
 
             verbose: Report internal Hivemind events such as accumulating gradients and running background tasks.
 
-            averager_opts: Additional keyword arguments forwarded to both GradientAverager and TrainingStateAverager.
+            averager_opts: Additional keyword arguments forwarded to both ``GradientAverager`` and ``TrainingStateAverager``.
 
             host_maddrs: List of multi-addrs to create visible peers for other processes.
                 `https://learning-at-home.readthedocs.io/en/latest/user/dht.html#running-across-the-internet`
 
             initial_peers: If connecting to a running process, a list of initial peers needs to be passed in.
-                This can also be set via the env variable `INITIAL_PEERS`.
+                This can also be set via the env variable ``INITIAL_PEERS``.
 
             endpoint: Enable if a side-car endpoint server is required on the process to server initial peers.
                 This is useful when using some form of orchestration such as torchelastic.
@@ -116,7 +116,7 @@ class CollaborativeStrategy(Strategy):
             peer_endpoint: The endpoint to request initial peers from.
 
             persistent: When using an endpoint, this controls whether other processes that are not the endpoint
-                server log/checkpoint. If `persistent` is True, we do not log/checkpoint from other processes.
+                server log/checkpoint. If ``persistent`` is True, we do not log/checkpoint from other processes.
 
             host: When creating the endpoint, the host IP to use.
 
@@ -195,7 +195,6 @@ class CollaborativeStrategy(Strategy):
 
     @property
     def root_device(self) -> torch.device:
-        # todo: cyclic import, someone show me the way
         from pytorch_lightning.accelerators.cpu import CPUAccelerator
         from pytorch_lightning.accelerators.gpu import GPUAccelerator
 
@@ -222,8 +221,8 @@ class CollaborativeStrategy(Strategy):
 
         if self._require_scheduler_fn and self._scheduler_fn is None:
             rank_zero_warn(
-                "Enabling delay_optimizer_step, delay_state_averaging or offload_optimizer "
-                "requires a scheduler_fn to be passed to the strategy if a scheduler is being used "
+                "Enabling `delay_optimizer_step`, `delay_state_averaging` or `offload_optimizer` "
+                "requires a `scheduler_fn` to be passed to the strategy if a scheduler is being used "
                 "(this is because the optimizer is re-created within Hivemind)."
             )
 
