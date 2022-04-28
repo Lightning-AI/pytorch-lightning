@@ -283,8 +283,7 @@ class CollaborativeStrategy(Strategy):
                         "We tried to infer the batch size from the first batch of data. "
                         "Please provide the batch size to the Strategy by "
                         "``Trainer(strategy=CollaborativeStrategy(batch_size=x))``. "
-                        f"exception raised: {e}"
-                    )
+                    ) from e
             self._initialize_hivemind()
 
     def reduce(self, tensor: Union[Any, torch.Tensor], *args: Any, **kwargs: Any) -> Union[Any, torch.Tensor]:
