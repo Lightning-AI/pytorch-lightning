@@ -20,7 +20,7 @@ from types import ModuleType, TracebackType
 import pytorch_lightning.utilities.argparse
 
 # Create a global lock to ensure no race condition with deleting sys modules
-lock = threading.Lock()
+_lock = threading.Lock()
 
 
 class pl_legacy_patch:
@@ -39,7 +39,7 @@ class pl_legacy_patch:
     """
 
     def __enter__(self) -> None:
-        lock.acquire()
+        _lock.acquire()
         # `pl.utilities.argparse_utils` was renamed to `pl.utilities.argparse`
         legacy_argparse_module = ModuleType("pytorch_lightning.utilities.argparse_utils")
         sys.modules["pytorch_lightning.utilities.argparse_utils"] = legacy_argparse_module
@@ -54,4 +54,4 @@ class pl_legacy_patch:
         if hasattr(pytorch_lightning.utilities.argparse, "_gpus_arg_default"):
             delattr(pytorch_lightning.utilities.argparse, "_gpus_arg_default")
         del sys.modules["pytorch_lightning.utilities.argparse_utils"]
-        lock.release()
+        _lock.release()
