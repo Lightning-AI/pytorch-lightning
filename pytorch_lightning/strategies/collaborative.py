@@ -248,20 +248,16 @@ class CollaborativeStrategy(Strategy):
         self._opt = opt
 
         if self._reuse_grad_buffers:
-            assert self.lightning_module is not None
+            lightning_module = self.lightning_module
             # turn off zero_grad by Lightning
-            if is_overridden("optimizer_zero_grad", self.lightning_module):
+            if is_overridden("optimizer_zero_grad", lightning_module):
+                assert lightning_module is not None  # `is_overridden` returns False otherwise
                 rank_zero_warn(
-                    "You have overridden `optimizer_zero_grad` which will be disabled. "
-                    "When CollaborativeStrategy(reuse_grad_buffers=True), "
-                    "the optimizer cannot call zero grad, as this would "
-                    "delete the gradients before they are averaged."
+                    "You have overridden `optimizer_zero_grad` which will be disabled."
+                    " When `CollaborativeStrategy(reuse_grad_buffers=True)`, the optimizer cannot call zero grad,"
+                    " as this would delete the gradients before they are averaged."
                 )
-
-            def override_fn(*args: Any, **kwargs: Any) -> None:
-                pass
-
-            self.lightning_module.optimizer_zero_grad = override_fn  # type: ignore[assignment]
+                lightning_module.optimizer_zero_grad = None  # type: ignore[assignment]
 
     def _wrap_schedulers(self, opt: "hivemind.Optimizer") -> None:
         # wrap schedulers so that they only update when the hivemind optimizer updates
@@ -269,11 +265,11 @@ class CollaborativeStrategy(Strategy):
             scheduler = scheduler_config.scheduler
             if isinstance(scheduler, ReduceLROnPlateau):
                 raise ValueError(
-                    "The `ReduceLROnPlateau` scheduler is not currently supported with `CollaborativeStrategy`."
+                    f"The `ReduceLROnPlateau` scheduler is not currently supported with `{self.__class__.__name__}`."
                 )
             scheduler_config.scheduler = HiveMindScheduler(
-                scheduler=scheduler,
                 optimizer=opt,
+                scheduler=scheduler,
             )
 
     def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
