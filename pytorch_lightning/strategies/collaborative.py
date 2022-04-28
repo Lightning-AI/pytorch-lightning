@@ -69,10 +69,11 @@ class CollaborativeStrategy(Strategy):
                 we infer this from the first batch of data passed in at training.
 
             delay_state_averaging: If enabled (default), average parameters and extra tensors in a background thread;
-                if set to False, average parameters synchronously within the corresponding hivemind.Optimizer.step call.
+                if set to False, average parameters synchronously within the
+                corresponding :meth:`hivemind.Optimizer.step` call.
 
-            delay_optimizer_step: Run optimizer in background, apply results in future .step.
-                requires `offload_optimizer`.
+            delay_optimizer_step: Run optimizer in background, apply results in future .step. requires
+                :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.offload_optimizer`..
 
             delay_grad_averaging: Average gradients in background; requires offload_optimizer and delay_optimizer_step.
 
@@ -384,8 +385,8 @@ class DHTManager:
 
             port: When creating the endpoint, the host port to use.
 
-            retry_initial_peers: When connecting to the `peer_endpoint`, how many time to retry before raising
-            an exception.
+            retry_initial_peers:
+                :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.retry_initial_peers`..
 
             retry_peer_sleep_duration: When connecting to the `peer_endpoint`, how long to wait between retries.
         """
