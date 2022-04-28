@@ -307,16 +307,16 @@ class EvaluationLoop(DataLoaderLoop):
         for k, v in data.items():
             if isinstance(v, dict):
                 for new_key in apply_to_collection(v, dict, EvaluationLoop._get_keys):
-                    yield (k, *new_key)
+                    yield k, *new_key
             else:
-                yield (k,)
+                yield k,
 
     @staticmethod
     def _find_value(data: dict, target: Iterable[str]) -> Optional[Any]:
         target_start, *rest = target
-        result = data.get(target_start, None)
-        if result is None:
+        if target_start not in data:
             return None
+        result = data[target_start]
         if not rest:
             return result
         return EvaluationLoop._find_value(result, rest)
@@ -326,13 +326,12 @@ class EvaluationLoop(DataLoaderLoop):
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
         metrics_paths = {k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys}
-        metrics_strs = [":".join(metric) for metric in metrics_paths]
-
-        if not metrics_strs:
+        if not metrics_paths:
             return
 
-        # sort both lists based on metrics_strs.
-        metrics_paths, metrics_strs = zip(*[(path, s) for (path, s) in sorted(zip(metrics_paths, metrics_strs))])
+        metrics_strs = [":".join(metric) for metric in metrics_paths]
+        # sort both lists based on metrics_strs
+        metrics_paths, metrics_strs = zip(*sorted(zip(metrics_paths, metrics_strs)))
 
         headers = [f"DataLoader {i}" for i in range(len(results))]
 
