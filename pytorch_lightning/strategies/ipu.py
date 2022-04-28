@@ -31,8 +31,8 @@ from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import _get_dataloader_init_kwargs
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
@@ -272,6 +272,7 @@ class IPUStrategy(ParallelStrategy):
                 "You have overridden the `LightningModule.optimizer_zero_grad` hook but it will be ignored since"
                 " IPUs handle the zeroing of gradients internally."
             )
+
         def override_fn(*args: Any, **kwargs: Any) -> None:
             pass
 
