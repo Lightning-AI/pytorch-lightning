@@ -1412,28 +1412,20 @@ class Trainer(
             return
 
         if model_connected and ckpt_path is None:
-            if ft_ckpt_path:
-                full_msg = (
-                    f"`.{fn}(ckpt_path=None)` was called without a model."
-                    " The best model of the previous `fit` call will be used."
-                    " There is also a fault-tolerant checkpoint available,"
-                    " however it is default only when fitting."
-                    f" You can pass `{fn}(ckpt_path='best')` to use the best model or"
-                    f" `{fn}(ckpt_path='last')` to use the last model."
-                    " If you pass a value, this warning will be silenced."
-                )
-            else:
-                full_msg = (
-                    f"`.{fn}(ckpt_path=None)` was called without a model."
-                    " The best model of the previous `fit` call will be used."
-                    f" You can pass `{fn}(ckpt_path='best')` to use the best model or"
-                    f" `{fn}(ckpt_path='last')` to use the last model."
-                    " If you pass a value, this warning will be silenced."
-                )
-
             ckpt_path = "best"
-
-            rank_zero_warn(full_msg)
+            ft_tip = (
+                " There is also a fault-tolerant checkpoint available, however it is used by default only when fitting."
+                if ft_ckpt_path
+                else ""
+            )
+            rank_zero_warn(
+                f"`.{fn}(ckpt_path=None)` was called without a model."
+                " The best model of the previous `fit` call will be used."
+                + ft_tip
+                + f" You can pass `.{fn}(ckpt_path='best')` to use the best model or"
+                f" `.{fn}(ckpt_path='last')` to use the last model."
+                " If you pass a value, this warning will be silenced."
+            )
 
         if ckpt_path == "best":
             if len(self.checkpoint_callbacks) > 1:
@@ -1466,12 +1458,12 @@ class Trainer(
             candidates_fs = {path: get_filesystem(path) for path in candidates if path}
             candidates_ts = {path: fs.modified(path) for path, fs in candidates_fs.items() if fs.exists(path)}
             if not candidates_ts:
+                # not an error so it can be set and forget before the first `fit` run
                 rank_zero_warn(
                     f'.{fn}(ckpt_path="last") is set, but there is no fault tolerant'
                     " or last checkpoint available. No checkpoint will be loaded."
                 )
                 return
-
             ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts))
 
         if not ckpt_path:
