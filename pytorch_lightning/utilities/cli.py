@@ -29,7 +29,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _JSONARGPARSE_AVAILABLE
+from pytorch_lightning.utilities.imports import _DOCSTRING_PARSER_AVAILABLE, _JSONARGPARSE_AVAILABLE
 from pytorch_lightning.utilities.meta import get_all_subclasses
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_warn
@@ -43,10 +43,8 @@ else:
     locals()["ArgumentParser"] = object
     locals()["Namespace"] = object
 
-try:
+if _DOCSTRING_PARSER_AVAILABLE:
     import docstring_parser
-except ImportError:
-    docstring_parser = False
 
 
 class _Registry(dict):
@@ -895,7 +893,7 @@ def instantiate_class(args: Union[Any, Tuple[Any, ...]], init: Dict[str, Any]) -
 def _get_short_description(component: object) -> Optional[str]:
     if component.__doc__ is None:
         return None
-    if not docstring_parser:
+    if not _DOCSTRING_PARSER_AVAILABLE:
         rank_zero_warn(f"Failed parsing docstring for {component}: docstring-parser package is required")
     else:
         try:
