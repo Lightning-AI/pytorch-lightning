@@ -68,8 +68,8 @@ class CollaborativeStrategy(Strategy):
 
             run_id: A unique identifier of this training run, used as a common prefix for all DHT keys.
 
-            batch_size: The local batch size per process. If not provided,
-                we infer this from the first batch of data passed in at training.
+            batch_size: The local batch size per process. If not provided, we infer this from the first batch of data
+                passed in at training. Note that this should not change throughout training.
 
             delay_state_averaging: If enabled (default), average parameters and extra tensors in a background thread;
                 if set to False, average parameters synchronously within the corresponding hivemind.Optimizer.step call.
@@ -82,7 +82,8 @@ class CollaborativeStrategy(Strategy):
             offload_optimizer: Offload the optimizer to host memory, saving GPU memory for parameters and gradients.
 
             reuse_grad_buffers: Use the model's gradient buffers (params.grad) for gradient accumulation.
-                This is more memory efficient, but it requires that we do not call ``zero_grad`` in the ``LightningModule``.
+                This is more memory efficient, but it requires that we do not call
+                ``zero_grad`` in the ``LightningModule``.
 
             scheduler_fn: callable(optimizer) -> PyTorch LRScheduler or a pre-initialized PyTorch scheduler.
                 When using `offload_optimizer`/`delay_optimizer_step`/`delay_state_averaging` a scheduler_fn is required
@@ -102,7 +103,8 @@ class CollaborativeStrategy(Strategy):
 
             verbose: Report internal Hivemind events such as accumulating gradients and running background tasks.
 
-            averager_opts: Additional keyword arguments forwarded to both ``GradientAverager`` and ``TrainingStateAverager``.
+            averager_opts: Additional keyword arguments forwarded to both
+                ``GradientAverager`` and ``TrainingStateAverager``.
 
             host_maddrs: List of multi-addrs to create visible peers for other processes.
                 `https://learning-at-home.readthedocs.io/en/latest/user/dht.html#running-across-the-internet`
@@ -274,6 +276,8 @@ class CollaborativeStrategy(Strategy):
     def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
         if not self._hivemind_initialized:
             self._hivemind_initialized = True
+            # todo (sean): we could technically support a dynamic batch size by inferring each step
+            # and passing it to the ``hivemind.Optimizer``.
             if self._batch_size is None:
                 try:
                     self._batch_size = extract_batch_size(batch)
