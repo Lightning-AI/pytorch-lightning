@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pytest
+import torch
 
 from pytorch_lightning.plugins import ShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
@@ -24,9 +25,17 @@ if _FAIRSCALE_AVAILABLE:
 
 
 @RunIf(fairscale=True)
-@pytest.mark.parametrize("precision,expected", [(16, ShardedGradScaler), ("bf16", None), (32, None)])
-def test_sharded_precision_scaler(precision, expected):
-    plugin = ShardedNativeMixedPrecisionPlugin(precision=precision, device="cuda")
+@pytest.mark.parametrize(
+    "precision,scaler,expected",
+    [
+        (16, torch.cuda.amp.GradScaler(), torch.cuda.amp.GradScaler),
+        (16, None, ShardedGradScaler),
+        ("bf16", None, None),
+        (32, None, None),
+    ],
+)
+def test_sharded_precision_scaler(precision, scaler, expected):
+    plugin = ShardedNativeMixedPrecisionPlugin(precision=precision, scaler=scaler, device="cuda")
     if expected:
         assert isinstance(plugin.scaler, expected)
     else:
