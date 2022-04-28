@@ -102,7 +102,7 @@ def test_device_stats_gpu_from_nvidia(tmpdir):
 
 
 @pytest.mark.parametrize("cpu_stats", [None, True, False])
-@RunIf(min_gpus=1, min_torch="1.8")
+@RunIf(min_gpus=1, min_torch="1.8", psutil=True)
 def test_device_stats_gpu_from_torch_toggle_cpu(tmpdir, cpu_stats):
     """Test only CPU stats can be enabled/disabled when using GPU."""
     model = BoringModel()
@@ -143,6 +143,7 @@ def test_device_stats_gpu_from_torch_toggle_cpu(tmpdir, cpu_stats):
     trainer.fit(model)
 
 
+@RunIf(psutil=True)
 @pytest.mark.parametrize("cpu_stats", [None, True, False])
 def test_device_stats_cpu(tmpdir, cpu_stats):
     """Test CPU stats are logged when no accelerator is used."""
@@ -175,6 +176,7 @@ def test_device_stats_cpu(tmpdir, cpu_stats):
     trainer.fit(model)
 
 
+@RunIf(psutil=True)
 @mock.patch("pytorch_lightning.accelerators.cpu.get_cpu_process_metrics")
 @mock.patch("pytorch_lightning.callbacks.device_stats_monitor.get_cpu_process_metrics")
 def test_device_stats_cpu_queried_once(cpu_metrics_device_stats_mock, cpu_metrics_cpu_accelerator_mock, tmpdir):
@@ -255,3 +257,25 @@ def test_prefix_metric_keys(tmpdir):
     separator = "."
     converted_metrics = _prefix_metric_keys(metrics, prefix, separator)
     assert converted_metrics == {"foo.1": 1.0, "foo.2": 2.0, "foo.3": 3.0}
+
+
+@mock.patch("pytorch_lightning.utilities.imports._PSUTIL_AVAILABLE", return_value=False)
+def test_warning_being_raised_when_psutil_is_not_available_with_device_stats(mock_psutil_available):
+    """Test that warning is raised when psutil is not available."""
+
+    model = BoringModel()
+
+    class DebugStatsMonitor(DeviceStatsMonitor):
+        def setup(self, trainer, pl_module, stage):
+            super().setup(trainer, pl_module, stage)
+            raise SystemExit
+
+    trainer = Trainer(
+        callbacks=DebugStatsMonitor(),
+        max_epochs=1,
+        log_every_n_steps=1,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+    with pytest.raises(SystemExit), pytest.warns(UserWarning, match="psutil is not available"):
+        trainer.fit(model)

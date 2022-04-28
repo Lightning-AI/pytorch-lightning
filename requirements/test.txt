@@ -9,6 +9,7 @@ pre-commit>=1.0
 pytest-forked
 sklearn
 jsonargparse
+psutil
 
 # needed in tests
 cloudpickle>=1.3

@@ -25,8 +25,8 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
 from pytorch_lightning.utilities.memory import get_cpu_process_metrics
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation, rank_zero_warn
 
 
 class DeviceStatsMonitor(Callback):
@@ -65,6 +65,15 @@ class DeviceStatsMonitor(Callback):
             raise MisconfigurationException(
                 "Cannot use `DeviceStatsMonitor` callback with `Trainer` that has no logger."
             )
+        device = trainer.strategy.root_device
+
+        if self.cpu_stats is None:
+            if device.type == "cpu" and not _PSUTIL_AVAILABLE:
+                rank_zero_warn(
+                    "`DeviceStatsMonitor` will not log CPU stats as `psutil` is not installed."
+                    " To install `psutil`, run `pip install psutil`."
+                    " It will raise an exception if `psutil` is not installed post v1.9.0."
+                )
 
     def _get_and_log_device_stats(
         self,
@@ -85,11 +94,6 @@ class DeviceStatsMonitor(Callback):
 
         if self.cpu_stats is None:
             if device.type == "cpu" and not _PSUTIL_AVAILABLE:
-                rank_zero_warn(
-                    "`psutil` is not installed. `DeviceStatsMonitor` will not log CPU stats."
-                    " To install `psutil`, run `pip install psutil`."
-                    " It will raise an exception if `psutil` is not installed post version 1.9.0."
-                )
                 return
         elif not self.cpu_stats and device.type == "cpu":
             return
