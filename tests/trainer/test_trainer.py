@@ -668,21 +668,22 @@ def test_benchmark_option(benchmark_, deterministic, expected):
 
 @pytest.mark.parametrize("ckpt_path", (None, "last"))
 @pytest.mark.parametrize("fn", (TrainerFn.FITTING, TrainerFn.VALIDATING))
-def test_checkpoint_path_input_last_fault_tolerant(ckpt_path, fn):
+def test_checkpoint_path_input_last_fault_tolerant(tmpdir, ckpt_path, fn):
     mc = ModelCheckpoint()
     mc.best_model_path = "foobar"
     # manually create to simulate fault-tolerant training
-    ft_ckpt = _FaultToleranceCheckpoint("foo")
+    ft_ckpt = _FaultToleranceCheckpoint(tmpdir)
+    Path(ft_ckpt.ckpt_path).touch()
 
     trainer = Trainer(callbacks=[mc, ft_ckpt])
     trainer.state.fn = fn
 
     if ckpt_path == "last":
         ctxt = nullcontext()
-        final_path = "foo/.pl_auto_save.ckpt"
+        final_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
     elif fn == "fit":  # and ckpt_path == best
         ctxt = pytest.warns(UserWarning, match="Because fault tolerance is enabled")
-        final_path = "foo/.pl_auto_save.ckpt"
+        final_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
     else:  # ckpt_path == best and fn == validate
         ctxt = pytest.warns(UserWarning, match="There is also a fault-tolerant checkpoint available")
         final_path = "foobar"
