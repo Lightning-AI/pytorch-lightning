@@ -17,11 +17,11 @@ from unittest import mock
 import pytest
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators.cpu import _CPU_PERCENT, _CPU_SWAP_PERCENT, _CPU_VM_PERCENT
 from pytorch_lightning.callbacks import DeviceStatsMonitor
 from pytorch_lightning.callbacks.device_stats_monitor import _prefix_metric_keys
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.memory import _CPU_PERCENT, _CPU_SWAP_PERCENT, _CPU_VM_PERCENT
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf

@@ -34,7 +34,11 @@ class DeviceStatsMonitor(Callback):
     is a special callback as it requires a ``logger`` to passed as argument to the ``Trainer``.
 
     Args:
-        cpu_stats: if ``True``, it will record CPU stats.
+        cpu_stats: if ``None``, it will log CPU stats only if the accelerator is CPU.
+            It will raise a warning if `psutil` is not installed till version 1.7.0.
+            if ``True``, it will log CPU stats regardless of the accelerator, and it will
+            raise an exception if `psutil` is not installed.
+            if ``False``, it will not log CPU stats regardless of the accelerator.
 
     Raises:
         MisconfigurationException:
