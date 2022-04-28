@@ -37,6 +37,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, GPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
+from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -666,71 +667,29 @@ def test_benchmark_option(benchmark_, deterministic, expected):
 
 
 @pytest.mark.parametrize("ckpt_path", (None, "last"))
-@pytest.mark.parametrize("fn", ("fit", "validate"))
-@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-def test_checkpoint_path_input_last_fault_tolerant(tmpdir, ckpt_path, fn):
-    should_signal = True
+@pytest.mark.parametrize("fn", (TrainerFn.FITTING, TrainerFn.VALIDATING))
+def test_checkpoint_path_input_last_fault_tolerant(ckpt_path, fn):
+    mc = ModelCheckpoint()
+    mc.best_model_path = "foobar"
+    # manually create to simulate fault-tolerant training
+    ft_ckpt = _FaultToleranceCheckpoint("foo")
 
-    class ExitGracefullyException(Exception):
-        pass
-
-    class TestModel(BoringModel):
-        def validation_step(self, batch, batch_idx):
-            self.log("foo", -batch_idx)
-            if should_signal and batch_idx == 1:
-                raise ExitGracefullyException
-            return super().validation_step(batch, batch_idx)
-
-        def training_step(self, batch, batch_idx):
-            if should_signal and batch_idx == 1:
-                raise ExitGracefullyException
-            return super().training_step(batch, batch_idx)
-
-    model = TestModel()
-    model.test_epoch_end = None
-    mc = ModelCheckpoint(monitor="foo")
-    trainer = Trainer(
-        max_epochs=2,
-        limit_val_batches=3,
-        enable_progress_bar=False,
-        default_root_dir=tmpdir,
-        callbacks=[mc],
-    )
-    assert trainer.ckpt_path is None
-    trainer_fn = getattr(trainer, fn)
-
-    from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
-
-    ft_checkpoints = [cb for cb in trainer.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
-    ft_ckpt_path = ft_checkpoints[0].ckpt_path
-
-    if fn == "validate":
-        should_signal = False
-        trainer.fit(model)
-        should_signal = True
-
-    with pytest.raises(ExitGracefullyException):
-        trainer_fn(model)
-
-    should_signal = False
+    trainer = Trainer(callbacks=[mc, ft_ckpt])
+    trainer.state.fn = fn
 
     if ckpt_path == "last":
         ctxt = nullcontext()
-        final_path = ft_ckpt_path
-
+        final_path = "foo/.pl_auto_save.ckpt"
     elif fn == "fit":  # and ckpt_path == best
         ctxt = pytest.warns(UserWarning, match="Because fault tolerance is enabled")
-        final_path = ft_ckpt_path
+        final_path = "foo/.pl_auto_save.ckpt"
     else:  # ckpt_path == best and fn == validate
         ctxt = pytest.warns(UserWarning, match="There is also a fault-tolerant checkpoint available")
-        final_path = mc.best_model_path
+        final_path = "foobar"
 
     with ctxt:
-        if fn == "fit":
-            trainer_fn(model, ckpt_path=ckpt_path)
-        else:
-            trainer_fn(ckpt_path=ckpt_path)
-        assert trainer.ckpt_path == final_path
+        ckpt_path = trainer._Trainer__set_ckpt_path(ckpt_path, model_provided=fn == "fit", model_connected=True)
+    assert ckpt_path == final_path
 
 
 @pytest.mark.parametrize("ckpt_path", (None, "last"))
