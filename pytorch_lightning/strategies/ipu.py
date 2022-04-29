@@ -135,6 +135,9 @@ class IPUStrategy(ParallelStrategy):
 
         super().setup(trainer)
 
+        # disable the `optimizer_zero_grad` function by setting it to `None`. 
+        # this is because the IPU zeros the gradients internally
+        self._optimizer_zero_grad_original = self.lightning_module.optimizer_zero_grad
         self._disable_zero_grad()
 
         model = LightningIPUModule(self.lightning_module, self.precision_plugin.precision)
@@ -302,6 +305,10 @@ class IPUStrategy(ParallelStrategy):
         if self._update_dataloader_original is not None:
             # undo dataloader patching
             pl.trainer.connectors.data_connector._update_dataloader = self._update_dataloader_original
+
+        if self._optimizer_zero_grad_original is not None:
+            # re-enable `optimizer_zero_grad`
+            self.lightning_module.optimizer_zero_grad = self._optimizer_zero_grad_original
 
         for model in self.poptorch_models.values():
             model.destroy()
