@@ -106,7 +106,7 @@ class CustomClassificationModelDP(ClassificationModel):
 def test_model_properties_fit_ckpt_path(tmpdir):
     """Test that properties like `current_epoch` and `global_step` in model and trainer are always the same."""
     model = BoringModel()
-    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
+    checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_last=True)
     trainer_args = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
@@ -199,9 +199,7 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
             if self.trainer.state.fn == TrainerFn.TUNING:
                 self._test_on_val_test_predict_tune_start()
             else:
-                # `-1` because this checkpoint is saved `on_train_epoch_end` which is considered part of the epoch so
-                # the `current_epoch` count has not been increased yet
-                assert self.trainer.current_epoch - 1 == state_dict["epoch"]
+                assert self.trainer.current_epoch == state_dict["epoch"]
                 assert self.trainer.global_step == state_dict["global_step"]
                 assert self._check_model_state_dict()
                 assert self._check_optimizers()
@@ -399,7 +397,8 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
         limit_val_batches=5,
         callbacks=[checkpoint],
         logger=logger,
-        gpus=[0, 1],
+        accelerator="gpu",
+        devices=[0, 1],
         strategy="dp",
         default_root_dir=tmpdir,
     )
@@ -445,7 +444,8 @@ def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
         limit_val_batches=2,
         callbacks=[checkpoint],
         logger=logger,
-        gpus=[0, 1],
+        accelerator="gpu",
+        devices=[0, 1],
         strategy="ddp_spawn",
         default_root_dir=tmpdir,
     )
@@ -564,7 +564,7 @@ def test_dp_resume(tmpdir):
     model = CustomClassificationModelDP(lr=0.1)
     dm = ClassifDataModule()
 
-    trainer_options = dict(max_epochs=1, gpus=2, strategy="dp", default_root_dir=tmpdir)
+    trainer_options = dict(max_epochs=1, accelerator="gpu", devices=2, strategy="dp", default_root_dir=tmpdir)
 
     # get logger
     logger = tutils.get_default_logger(tmpdir)

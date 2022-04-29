@@ -21,6 +21,14 @@ from importlib.util import module_from_spec, spec_from_file_location
 
 import pt_lightning_sphinx_theme
 
+# -----------------------
+# VARIABLES WHEN WORKING ON DOCS... MAKE THIS TRUE TO BUILD FASTER
+# -----------------------
+_PL_FAST_DOCS_DEV = bool(int(os.getenv("PL_FAST_DOCS_DEV", 0)))
+
+# -----------------------
+# BUILD stuff
+# -----------------------
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, "..", "..")
 PATH_RAW_NB = os.path.join(PATH_ROOT, "_notebooks")
@@ -28,6 +36,7 @@ sys.path.insert(0, os.path.abspath(PATH_ROOT))
 sys.path.append(os.path.join(PATH_RAW_NB, ".actions"))
 
 _SHOULD_COPY_NOTEBOOKS = True
+
 
 try:
     from assistant import AssistantCLI
@@ -112,7 +121,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_paramlinks",
     "sphinx_togglebutton",
-    "pt_lightning_sphinx_theme.extensions.lightning_tutorials",
+    "pt_lightning_sphinx_theme.extensions.lightning",
 ]
 
 # Suppress warnings about duplicate labels (needed for PL tutorials)
@@ -158,6 +167,11 @@ exclude_patterns = [
     "notebooks/sample-template*",
 ]
 
+if _PL_FAST_DOCS_DEV:
+    exclude_patterns.append("notebooks/*")
+    exclude_patterns.append("tutorials.rst")
+
+
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
 
@@ -170,6 +184,7 @@ pygments_style = None
 # https://sphinx-themes.org
 html_theme = "pt_lightning_sphinx_theme"
 html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
+# html_theme_path = ["/Users/williamfalcon/Developer/opensource/lightning_sphinx_theme"]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -371,11 +386,15 @@ doctest_test_doctest_blocks = ""
 doctest_global_setup = """
 import importlib
 import os
+import sys
 from typing import Optional
+
 import torch
-from torch import nn
 import pytorch_lightning as pl
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer
+from torch import nn
+from torch.utils.data import IterableDataset, DataLoader, Dataset
+from pytorch_lightning import LightningDataModule, LightningModule, Trainer, seed_everything
+from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _XLA_AVAILABLE,

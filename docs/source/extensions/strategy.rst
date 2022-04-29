@@ -1,8 +1,8 @@
-.. _strategy:
+:orphan:
 
-########
-Strategy
-########
+###################
+What is a Strategy?
+###################
 
 Strategy controls the model distribution across training, evaluation, and prediction to be used by the :doc:`Trainer <../common/trainer>`. It can be controlled by passing different
 strategy with aliases (``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"`` and so on) as well as a custom strategy to the ``strategy`` parameter for Trainer.
@@ -18,10 +18,17 @@ The Strategy in PyTorch Lightning handles the following responsibilities:
 
 :class:`~pytorch_lightning.strategies.strategy.Strategy` also manages the accelerator, precision, and checkpointing plugins.
 
+.. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/strategies/overview.jpeg
+    :alt: Illustration of the Strategy as a composition of the Accelerator and several plugins
 
-****************************************
-Training Strategies with Various Configs
-****************************************
+We expose Strategies mainly for expert users that want to extend Lightning for new hardware support or new distributed backends (e.g. a backend not yet supported by `PyTorch <https://pytorch.org/docs/stable/distributed.html#backends>`_ itself).
+
+
+----
+
+###########################
+Enable Different Strategies
+###########################
 
 .. code-block:: python
 
@@ -46,13 +53,11 @@ Training Strategies with Various Configs
     # Training with the default IPU strategy on 8 IPUs
     trainer = Trainer(accelerator="ipu", devices=8)
 
+----
 
-----------
-
-
-************************
+########################
 Create a Custom Strategy
-************************
+########################
 
 Expert users may choose to extend an existing strategy by overriding its methods.
 
@@ -85,12 +90,11 @@ can then be passed into the ``Trainer`` directly via the ``strategy`` parameter.
 
 The complete list of built-in strategies is listed below.
 
-----------
+----
 
-
-****************************
-Built-In Training Strategies
-****************************
+#############################
+Available Training Strategies
+#############################
 
 .. currentmodule:: pytorch_lightning.strategies
 
@@ -108,9 +112,11 @@ Built-In Training Strategies
     DataParallelStrategy
     DeepSpeedStrategy
     HorovodStrategy
+    HPUParallelStrategy
     IPUStrategy
     ParallelStrategy
     SingleDeviceStrategy
+    SingleHPUStrategy
     SingleTPUStrategy
     Strategy
     TPUSpawnStrategy

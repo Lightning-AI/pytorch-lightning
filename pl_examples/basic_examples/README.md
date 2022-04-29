@@ -50,7 +50,7 @@ This script shows you the result of the conversion to the `LightningModule` and 
 python mnist_examples/image_classifier_4_lightning_module.py
 
 # GPUs (any number)
-python mnist_examples/image_classifier_4_lightning_module.py --trainer.gpus 2
+python mnist_examples/image_classifier_4_lightning_module.py --trainer.accelerator 'gpu' --trainer.devices 2
 ```
 
 ______________________________________________________________________
@@ -64,10 +64,10 @@ This script shows you how to extract the data related components into a `Lightni
 python mnist_examples/image_classifier_5_lightning_datamodule.py
 
 # GPUs (any number)
-python mnist_examples/image_classifier_5_lightning_datamodule.py --trainer.gpus 2
+python mnist_examples/image_classifier_5_lightning_datamodule.py --trainer.accelerator 'gpu' --trainer.devices 2
 
 # Distributed Data Parallel (DDP)
-python mnist_examples/image_classifier_5_lightning_datamodule.py --trainer.gpus 2 --trainer.strategy 'ddp'
+python mnist_examples/image_classifier_5_lightning_datamodule.py --trainer.accelerator 'gpu' --trainer.devices 2 --trainer.strategy 'ddp'
 ```
 
 ______________________________________________________________________
@@ -81,10 +81,10 @@ This script shows you how to implement a CNN auto-encoder.
 python autoencoder.py
 
 # GPUs (any number)
-python autoencoder.py --trainer.gpus 2
+python autoencoder.py --trainer.accelerator 'gpu' --trainer.devices 2
 
 # Distributed Data Parallel (DDP)
-python autoencoder.py --trainer.gpus 2 --trainer.strategy 'ddp'
+python autoencoder.py --trainer.accelerator 'gpu' --trainer.devices 2 --trainer.strategy 'ddp'
 ```
 
 ______________________________________________________________________
@@ -99,10 +99,10 @@ A system describes a `LightningModule` which takes a single `torch.nn.Module` wh
 python backbone_image_classifier.py
 
 # GPUs (any number)
-python backbone_image_classifier.py --trainer.gpus 2
+python backbone_image_classifier.py --trainer.accelerator 'gpu' --trainer.devices 2
 
 # Distributed Data Parallel (DDP)
-python backbone_image_classifier.py --trainer.gpus 2 --trainer.strategy 'ddp'
+python backbone_image_classifier.py --trainer.accelerator 'gpu' --trainer.devices 2 --trainer.strategy 'ddp'
 ```
 
 ______________________________________________________________________

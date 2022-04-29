@@ -6,7 +6,11 @@ import torch
 from torch.nn import Module
 
 import pytorch_lightning as pl
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, unwrap_lightning_module
+from pytorch_lightning.overrides.base import (
+    _LightningModuleWrapperBase,
+    _LightningPrecisionModuleWrapperBase,
+    unwrap_lightning_module,
+)
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -24,21 +28,7 @@ if _BAGUA_AVAILABLE:
     from bagua.torch_api.communication import allreduce_inplace, barrier, broadcast_object, is_initialized
     from bagua.torch_api.communication import ReduceOp as BaguaReduceOp
     from bagua.torch_api.data_parallel.distributed import DistributedDataParallel_V1_9_0 as BaguaDistributedDataParallel
-else:
-    BaguaReduceOp = None
-    BaguaDistributedDataParallel = None
 
-log = logging.getLogger(__name__)
-
-
-class LightningBaguaModule(_LightningModuleWrapperBase):
-    def __init__(self, pl_module: "pl.LightningModule") -> None:
-        super().__init__(pl_module)
-        # Bagua use `bagua_module_name` to distinguish different modules
-        self._bagua_module_name = f"{pl_module.__class__.__name__}{id(pl_module)}"
-
-
-if _BAGUA_AVAILABLE:
     # Convert a reduce op to its equivalent `bagua.torch_api.ReduceOp`
     _bagua_reduce_ops = {
         ReduceOp.SUM: BaguaReduceOp.SUM,
@@ -54,6 +44,15 @@ if _BAGUA_AVAILABLE:
     }
 else:
     _bagua_reduce_ops = {}
+
+log = logging.getLogger(__name__)
+
+
+class LightningBaguaModule(_LightningModuleWrapperBase):
+    def __init__(self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]) -> None:
+        super().__init__(pl_module)
+        # Bagua use `bagua_module_name` to distinguish different modules
+        self._bagua_module_name = f"{pl_module.__class__.__name__}{id(pl_module)}"
 
 
 class BaguaStrategy(DDPStrategy):
@@ -106,11 +105,11 @@ class BaguaStrategy(DDPStrategy):
         self._bagua_kwargs = bagua_kwargs
 
     @property
-    def lightning_module(self) -> "pl.LightningModule":
-        model = self._model
+    def lightning_module(self) -> Optional["pl.LightningModule"]:
+        model = self.model
         if isinstance(model, BaguaDistributedDataParallel):
             model = model.module
-        return unwrap_lightning_module(model)  # type: ignore[arg-type]
+        return unwrap_lightning_module(model) if model is not None else None
 
     def setup_distributed(self) -> None:
         reset_seed()
@@ -161,10 +160,12 @@ class BaguaStrategy(DDPStrategy):
         self._model = self._setup_model(model)
 
         # start the background communication for async algorithm
+        assert self.lightning_module is not None
+        assert self.lightning_module.trainer is not None
         if self.lightning_module.trainer.training and self._bagua_algorithm == "async":
             self.model.bagua_algorithm.resume(self.model)  # type: ignore
 
-    def _setup_model(self, model: Module) -> BaguaDistributedDataParallel:
+    def _setup_model(self, model: Module) -> "BaguaDistributedDataParallel":
         """Wraps the model into a Bagua distributed module."""
 
         if self._bagua_algorithm == "qadam":
@@ -188,6 +189,8 @@ class BaguaStrategy(DDPStrategy):
 
     def teardown(self) -> None:
         # abort the background communication for async algorithm
+        assert self.lightning_module is not None
+        assert self.lightning_module.trainer is not None
         if self.lightning_module.trainer.training and self._bagua_algorithm == "async":
             self.model.bagua_algorithm.abort(self.model)  # type: ignore
 

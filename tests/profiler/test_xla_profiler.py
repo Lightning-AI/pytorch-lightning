@@ -18,15 +18,13 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.profiler import XLAProfiler
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_8, _TPU_AVAILABLE
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 if _TPU_AVAILABLE:
+    import torch_xla.debug.profiler as xp
     import torch_xla.utils.utils as xu
-
-    if _TORCH_GREATER_EQUAL_1_8:
-        import torch_xla.debug.profiler as xp
 
 
 @RunIf(tpu=True)

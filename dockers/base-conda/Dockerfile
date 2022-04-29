@@ -104,16 +104,6 @@ RUN \
     pip install -r requirements-examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
     rm assistant.py
 
-RUN \
-   apt-get purge -y cmake && \
-   wget -q https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2.tar.gz && \
-   tar -zxvf cmake-3.20.2.tar.gz && \
-   cd cmake-3.20.2 && \
-   ./bootstrap -- -DCMAKE_USE_OPENSSL=OFF && \
-   make && \
-   make install && \
-   cmake  --version
-
 ENV \
     # if you want this environment to be the default o \ne, uncomment the following line:
     CONDA_DEFAULT_ENV=${CONDA_ENV} \
@@ -148,11 +138,32 @@ RUN \
     python -c "from apex import amp"
 
 RUN \
+    # install FairScale
+    pip install fairscale==0.4.5 && \
+    python -c "import fairscale; print(fairscale.__version__)"
+
+RUN \
+    # install DeepSpeed
+    pip install deepspeed==0.6.0 && \
+    python -c "import deepspeed; print(deepspeed.__version__)"
+
+RUN \
+    # install Bagua
+    CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
+    pip install "bagua-cuda$CUDA_VERSION_MM==0.9.0" && \
+    python -c "import bagua_core; bagua_core.install_deps()" && \
+    python -c "import bagua; print(bagua.__version__)"
+
+COPY requirements/check-avail-extras.py check-avail-extras.py
+COPY requirements/check-avail-strategies.py check-avail-strategies.py
+
+RUN \
     # Show what we have
     pip --version && \
     conda info && \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
-    python -c "import horovod.torch" && \
-    python -c "from horovod.torch import nccl_built; nccl_built()"
+    python check-avail-extras.py && \
+    python check-avail-strategies.py && \
+    rm check-avail-*.py

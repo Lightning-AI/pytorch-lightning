@@ -15,6 +15,7 @@
 import collections
 import itertools
 import os
+from contextlib import redirect_stdout
 from io import StringIO
 from unittest import mock
 from unittest.mock import call
@@ -28,8 +29,12 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.loops.dataloader import EvaluationLoop
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _RICH_AVAILABLE
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
+
+if _RICH_AVAILABLE:
+    from rich import get_console
 
 
 def test__validation_step__log(tmpdir):
@@ -573,10 +578,8 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     assert mock_log_metrics.mock_calls[0] == call({"hp_metric": -1}, 0)
 
     def get_metrics_at_idx(idx):
-        mock_calls = list(mock_log_metrics.mock_calls)
-        if isinstance(mock_calls[idx].kwargs, dict):
-            return mock_calls[idx].kwargs["metrics"]
-        return mock_calls[idx][2]["metrics"]
+        mock_call = mock_log_metrics.mock_calls[idx]
+        return mock_call.kwargs["metrics"] if _PYTHON_GREATER_EQUAL_3_8_0 else mock_call[2]["metrics"]
 
     expected = {"valid_loss_0_step", "valid_loss_2"}
     assert set(get_metrics_at_idx(1)) == expected
@@ -755,7 +758,8 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
     }
 
 
-def test_logging_multi_dataloader_on_epoch_end(tmpdir):
+@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+def test_logging_multi_dataloader_on_epoch_end(mock_log_metrics, tmpdir):
     class CustomBoringModel(BoringModel):
         def test_step(self, batch, batch_idx, dataloader_idx):
             self.log("foo", dataloader_idx + 1)
@@ -765,13 +769,21 @@ def test_logging_multi_dataloader_on_epoch_end(tmpdir):
             self.log("foobar", sum(sum(o) for o in outputs))
 
         def test_dataloader(self):
-            return [super().val_dataloader(), super().val_dataloader()]
+            return [super().test_dataloader(), super().test_dataloader()]
 
     model = CustomBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer = Trainer(default_root_dir=tmpdir, limit_test_batches=1)
     results = trainer.test(model)
+
     # what's logged in `test_epoch_end` gets included in the results of each dataloader
     assert results == [{"foo/dataloader_idx_0": 1, "foobar": 3}, {"foo/dataloader_idx_1": 2, "foobar": 3}]
+    cb_metrics = set(trainer.callback_metrics)
+    assert cb_metrics == {"foo/dataloader_idx_0", "foo/dataloader_idx_1", "foobar"}
+
+    mock_call = mock_log_metrics.mock_calls[0]
+    logged_metrics = mock_call.kwargs["metrics"] if _PYTHON_GREATER_EQUAL_3_8_0 else mock_call[2]["metrics"]
+    cb_metrics.add("epoch")
+    assert set(logged_metrics) == cb_metrics
 
 
 inputs0 = ([{"log": torch.tensor(5)}, {"no_log": torch.tensor(6)}], RunningStage.TESTING)
@@ -786,8 +798,12 @@ expected0 = """
 
 inputs1 = (
     [
-        {"performance": {"log1": torch.tensor(5), "log2": torch.tensor(3)}},
-        {"test": {"no_log1": torch.tensor(6), "no_log2": torch.tensor(1)}},
+        {
+            "value": torch.tensor(2),
+            "performance": {"log:1": torch.tensor(0), "log2": torch.tensor(3), "log3": torch.tensor(7)},
+            "extra": {"log3": torch.tensor(7)},
+        },
+        {"different value": torch.tensor(1.5), "tes:t": {"no_log1": torch.tensor(6), "no_log2": torch.tensor(1)}},
     ],
     RunningStage.TESTING,
 )
@@ -795,10 +811,14 @@ expected1 = """
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
        Test metric             DataLoader 0             DataLoader 1
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-          log1                       5
-          log2                       3
-         no_log1                                              6
-         no_log2                                              1
+     different value                                         1.5
+       extra:log3                    7
+    performance:log2                 3
+    performance:log3                 7
+    performance:log:1                0
+      tes:t:no_log1                                           6
+      tes:t:no_log2                                           1
+          value                      2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 """
 
@@ -838,6 +858,9 @@ expected3 = """
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 """
 
+inputs4 = ([{}], "foo")
+expected4 = ""
+
 
 @pytest.mark.parametrize(
     ["inputs", "expected"],
@@ -846,16 +869,36 @@ expected3 = """
         pytest.param(inputs1, expected1, id="case1"),
         pytest.param(inputs2, expected2, id="case2"),
         pytest.param(inputs3, expected3, id="case3"),
+        pytest.param(inputs4, expected4, id="empty case"),
     ],
 )
 def test_native_print_results(monkeypatch, inputs, expected):
     import pytorch_lightning.loops.dataloader.evaluation_loop as imports
 
     monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
-    out = StringIO()
-    EvaluationLoop._print_results(*inputs, file=out)
+
+    with redirect_stdout(StringIO()) as out:
+        EvaluationLoop._print_results(*inputs)
     expected = expected[1:]  # remove the initial line break from the """ string
     assert out.getvalue().replace(os.linesep, "\n") == expected.lstrip()
+
+
+@pytest.mark.parametrize("encoding", ["latin-1", "utf-8"])
+def test_native_print_results_encodings(monkeypatch, encoding):
+    import pytorch_lightning.loops.dataloader.evaluation_loop as imports
+
+    monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
+
+    out = mock.Mock()
+    out.encoding = encoding
+    with redirect_stdout(out) as out:
+        EvaluationLoop._print_results(*inputs0)
+
+    # Attempt to encode everything the file is told to write with the given encoding
+    for call_ in out.method_calls:
+        name, args, kwargs = call_
+        if name == "write":
+            args[0].encode(encoding)
 
 
 expected0 = """
@@ -871,10 +914,14 @@ expected1 = """
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃       Test metric       ┃      DataLoader 0       ┃       DataLoader 1       ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│          log1           │            5            │                          │
-│          log2           │            3            │                          │
-│         no_log1         │                         │            6             │
-│         no_log2         │                         │            1             │
+│     different value     │                         │           1.5            │
+│       extra:log3        │            7            │                          │
+│    performance:log2     │            3            │                          │
+│    performance:log3     │            7            │                          │
+│    performance:log:1    │            0            │                          │
+│      tes:t:no_log1      │                         │            6             │
+│      tes:t:no_log2      │                         │            1             │
+│          value          │            2            │                          │
 └─────────────────────────┴─────────────────────────┴──────────────────────────┘
 """
 
@@ -916,11 +963,13 @@ expected3 = """
         pytest.param(inputs1, expected1, id="case1"),
         pytest.param(inputs2, expected2, id="case2"),
         pytest.param(inputs3, expected3, id="case3"),
+        pytest.param(inputs4, expected4, id="empty case"),
     ],
 )
-@RunIf(rich=True, skip_windows=True)
+@RunIf(skip_windows=True, rich=True)
 def test_rich_print_results(inputs, expected):
-    out = StringIO()
-    EvaluationLoop._print_results(*inputs, file=out)
+    console = get_console()
+    with console.capture() as capture:
+        EvaluationLoop._print_results(*inputs)
     expected = expected[1:]  # remove the initial line break from the """ string
-    assert out.getvalue() == expected.lstrip()
+    assert capture.get() == expected.lstrip()

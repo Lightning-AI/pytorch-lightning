@@ -1,10 +1,7 @@
-API References
-==============
-
 .. include:: links.rst
 
-Accelerator API
----------------
+accelerators
+------------
 
 .. currentmodule:: pytorch_lightning.accelerators
 
@@ -16,11 +13,42 @@ Accelerator API
     Accelerator
     CPUAccelerator
     GPUAccelerator
+    HPUAccelerator
     IPUAccelerator
     TPUAccelerator
 
-Core API
---------
+callbacks
+---------
+
+.. currentmodule:: pytorch_lightning.callbacks
+
+.. autosummary::
+    :toctree: api
+    :nosignatures:
+    :template: classtemplate.rst
+
+    BackboneFinetuning
+    BaseFinetuning
+    BasePredictionWriter
+    Callback
+    DeviceStatsMonitor
+    EarlyStopping
+    GradientAccumulationScheduler
+    LambdaCallback
+    LearningRateMonitor
+    ModelCheckpoint
+    ModelPruning
+    ModelSummary
+    ProgressBarBase
+    QuantizationAwareTraining
+    RichModelSummary
+    RichProgressBar
+    StochasticWeightAveraging
+    Timer
+    TQDMProgressBar
+
+core
+----
 
 .. currentmodule:: pytorch_lightning.core
 
@@ -39,67 +67,19 @@ Core API
     ~optimizer.LightningOptimizer
     ~saving.ModelIO
 
-Strategy API
-------------
-
-.. currentmodule:: pytorch_lightning.strategies
-
-.. autosummary::
-    :toctree: api
-    :nosignatures:
-    :template: classtemplate.rst
-
-    BaguaStrategy
-    DDP2Strategy
-    DDPFullyShardedStrategy
-    DDPShardedStrategy
-    DDPSpawnShardedStrategy
-    DDPSpawnStrategy
-    DDPStrategy
-    DataParallelStrategy
-    DeepSpeedStrategy
-    HorovodStrategy
-    IPUStrategy
-    ParallelStrategy
-    SingleDeviceStrategy
-    SingleTPUStrategy
-    Strategy
-    TPUSpawnStrategy
-
-Callbacks API
+lightninglite
 -------------
 
-.. currentmodule:: pytorch_lightning.callbacks
+.. currentmodule:: pytorch_lightning.lite
 
 .. autosummary::
     :toctree: api
     :nosignatures:
-    :template: classtemplate.rst
 
-    BackboneFinetuning
-    BaseFinetuning
-    BasePredictionWriter
-    Callback
-    DeviceStatsMonitor
-    EarlyStopping
-    GPUStatsMonitor
-    GradientAccumulationScheduler
-    LambdaCallback
-    LearningRateMonitor
-    ModelCheckpoint
-    ModelPruning
-    ModelSummary
-    ProgressBarBase
-    QuantizationAwareTraining
-    RichModelSummary
-    RichProgressBar
-    StochasticWeightAveraging
-    Timer
-    TQDMProgressBar
-    XLAStatsMonitor
+    LightningLite
 
-Loggers API
------------
+loggers
+-------
 
 .. currentmodule:: pytorch_lightning.loggers
 
@@ -113,14 +93,13 @@ Loggers API
     mlflow
     neptune
     tensorboard
-    test_tube
     wandb
 
-Loop API
---------
+loops
+^^^^^
 
 Base Classes
-^^^^^^^^^^^^
+""""""""""""
 
 .. currentmodule:: pytorch_lightning.loops
 
@@ -131,10 +110,6 @@ Base Classes
 
     ~dataloader.dataloader_loop.DataLoaderLoop
     ~base.Loop
-
-
-Default Loop Implementations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Training
 """"""""
@@ -181,11 +156,11 @@ Prediction
     ~dataloader.PredictionLoop
 
 
-Plugins API
------------
+plugins
+^^^^^^^
 
-Precision Plugins
-^^^^^^^^^^^^^^^^^
+precision
+"""""""""
 
 .. currentmodule:: pytorch_lightning.plugins.precision
 
@@ -198,6 +173,7 @@ Precision Plugins
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FullyShardedNativeMixedPrecisionPlugin
+    HPUPrecisionPlugin
     IPUPrecisionPlugin
     MixedPrecisionPlugin
     NativeMixedPrecisionPlugin
@@ -206,8 +182,8 @@ Precision Plugins
     TPUBf16PrecisionPlugin
     TPUPrecisionPlugin
 
-Cluster Environments
-^^^^^^^^^^^^^^^^^^^^
+environments
+""""""""""""
 
 .. currentmodule:: pytorch_lightning.plugins.environments
 
@@ -223,8 +199,8 @@ Cluster Environments
     SLURMEnvironment
     TorchElasticEnvironment
 
-Checkpoint IO Plugins
-^^^^^^^^^^^^^^^^^^^^^
+io
+""
 
 .. currentmodule:: pytorch_lightning.plugins.io
 
@@ -234,12 +210,13 @@ Checkpoint IO Plugins
     :template: classtemplate.rst
 
     CheckpointIO
+    HPUCheckpointIO
     TorchCheckpointIO
     XLACheckpointIO
 
 
-Other Plugins
-^^^^^^^^^^^^^
+others
+""""""
 
 .. currentmodule:: pytorch_lightning.plugins
 
@@ -251,9 +228,8 @@ Other Plugins
     LayerSync
     NativeSyncBatchNorm
 
-
-Profiler API
-------------
+profiler
+--------
 
 .. currentmodule:: pytorch_lightning.profiler
 
@@ -269,9 +245,8 @@ Profiler API
     SimpleProfiler
     XLAProfiler
 
-
-Trainer API
------------
+trainer
+-------
 
 .. currentmodule:: pytorch_lightning.trainer.trainer
 
@@ -282,19 +257,37 @@ Trainer API
 
     Trainer
 
-LightningLite API
------------------
+strategies
+----------
 
-.. currentmodule:: pytorch_lightning.lite
+.. currentmodule:: pytorch_lightning.strategies
 
 .. autosummary::
     :toctree: api
     :nosignatures:
+    :template: classtemplate.rst
 
-    LightningLite
+    BaguaStrategy
+    DDP2Strategy
+    DDPFullyShardedStrategy
+    DDPShardedStrategy
+    DDPSpawnShardedStrategy
+    DDPSpawnStrategy
+    DDPStrategy
+    DataParallelStrategy
+    DeepSpeedStrategy
+    HorovodStrategy
+    HPUParallelStrategy
+    IPUStrategy
+    ParallelStrategy
+    SingleDeviceStrategy
+    SingleHPUStrategy
+    SingleTPUStrategy
+    Strategy
+    TPUSpawnStrategy
 
-Tuner API
----------
+tuner
+-----
 
 .. currentmodule:: pytorch_lightning.tuner.tuning
 
@@ -305,8 +298,8 @@ Tuner API
 
     Tuner
 
-Utilities API
--------------
+utilities
+---------
 
 .. currentmodule:: pytorch_lightning.utilities
 
