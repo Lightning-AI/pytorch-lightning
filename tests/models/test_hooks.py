@@ -589,11 +589,8 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
     trainer.fit(model)
     best_model_path = trainer.checkpoint_callback.best_model_path
 
-    # resume from checkpoint with HookedModel
     called = []
-    model = HookedModel(called)
     callback = HookedCallback(called)
-
     # already performed 1 step, resume and do 2 more
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -610,6 +607,8 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         dict(name="Callback.on_init_end", args=(trainer,)),
     ]
 
+    # resume from checkpoint with HookedModel
+    model = HookedModel(called)
     trainer.fit(model, ckpt_path=best_model_path)
     loaded_ckpt = {
         "callbacks": ANY,
