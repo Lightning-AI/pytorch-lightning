@@ -123,15 +123,10 @@ class FitLoop(Loop[None]):
 
     @Loop.restarting.setter
     def restarting(self, restarting: bool) -> None:
-        # if the last epoch completely finished, we are not actually restarting, we can check this to see if all
-        # current values are equal
-        values = (
-            self.epoch_progress.current.ready,
-            self.epoch_progress.current.started,
-        )
-        finished_before_on_train_end = any(v != self.epoch_progress.current.processed for v in values)
-        restarting &= finished_before_on_train_end
-        restarting |= self._iteration_based_training()
+        # if the last epoch completely finished, we are not actually restarting
+        values = self.epoch_progress.current.ready, self.epoch_progress.current.started
+        epoch_unfinished = any(v != self.epoch_progress.current.processed for v in values)
+        restarting = restarting and epoch_unfinished or self._iteration_based_training()
         Loop.restarting.fset(self, restarting)  # call the parent setter
 
     @property
