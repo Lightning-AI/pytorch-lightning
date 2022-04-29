@@ -52,4 +52,3 @@ class pl_legacy_patch:
 
         if "pytorch_lightning.utilities.argparse_utils" in sys.modules:
             del sys.modules["pytorch_lightning.utilities.argparse_utils"]
-
