@@ -28,7 +28,7 @@ Lightning supports multiple ways of doing distributed training.
 - Bagua (``strategy='bagua'``) (multiple-gpus across many machines with advanced training algorithms)
 
 .. note::
-    If you request multiple GPUs or nodes without setting a mode, DDP Spawn will be automatically used.
+    If you request multiple GPUs or nodes without specifying the strategy, DDP Spawn will be automatically used.
 
 For a deeper understanding of what Lightning is doing, feel free to read this
 `guide <https://medium.com/@_willfalcon/9-tips-for-training-lightning-fast-neural-networks-in-pytorch-8e63a502f565>`_.
@@ -85,9 +85,9 @@ variables:
 .. code-block:: bash
 
     # example for 3 GPUs DDP
-    MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=0 LOCAL_RANK=0 python my_file.py --accelerator 'gpu' --devices 3 --etc
-    MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=1 LOCAL_RANK=0 python my_file.py --accelerator 'gpu' --devices 3 --etc
-    MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=2 LOCAL_RANK=0 python my_file.py --accelerator 'gpu' --devices 3 --etc
+    MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=0 LOCAL_RANK=0 python my_file.py --accelerator 'gpu' --devices 3 --strategy 'ddp'
+    MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=1 LOCAL_RANK=0 python my_file.py --accelerator 'gpu' --devices 3 --strategy 'ddp'
+    MASTER_ADDR=localhost MASTER_PORT=random() WORLD_SIZE=3 NODE_RANK=2 LOCAL_RANK=0 python my_file.py --accelerator 'gpu' --devices 3 --strategy 'ddp'
 
 We use DDP this way because `ddp_spawn` has a few limitations (due to Python and PyTorch):
 

@@ -4,7 +4,7 @@
 
 GPU training (Basic)
 ====================
-**Audience:** Users looking to save money and run large models faster using single or multiple
+**Audience:** Users looking to save money and run large models faster using single or multiple GPUs
 
 ----
 
@@ -64,9 +64,10 @@ a comma separated list of GPU ids:
     # Equivalent using a string
     Trainer(accelerator="gpu", devices="0, 1")
 
-    # To use all available GPUs put -1 or '-1'
+    # To use all available GPUs put "auto" or -1
     # equivalent to list(range(torch.cuda.device_count()))
-    Trainer(accelerator="gpu", devices=-1)
+    # It's the default if the ``devices`` flag is not specified
+    Trainer(accelerator="gpu", devices="auto")
 
 The table below lists examples of possible input formats and how they are interpreted by Lightning.
 
@@ -86,6 +87,8 @@ The table below lists examples of possible input formats and how they are interp
 | "1, 3"           | str       | [1, 3]              | GPUs 1 and 3                    |
 +------------------+-----------+---------------------+---------------------------------+
 | "-1"             | str       | [0, 1, 2, ...]      | all available GPUs              |
++------------------+-----------+---------------------+---------------------------------+
+| "auto"           | str       | [0, 1, 2, ...]      | all available GPUs              |
 +------------------+-----------+---------------------+---------------------------------+
 
 .. note::

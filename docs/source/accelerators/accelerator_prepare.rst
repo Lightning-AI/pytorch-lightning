@@ -6,7 +6,7 @@
 Hardware agnostic training (preparation)
 ########################################
 
-To train on CPU/GPU/TPU without changing your code, we need to build a few good habits :)
+To train on CPU, GPU, TPU or any other accelerator without changing your code, we need to build a few good habits :)
 
 ----
 
