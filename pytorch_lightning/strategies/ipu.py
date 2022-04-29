@@ -271,7 +271,7 @@ class IPUStrategy(ParallelStrategy):
                 "You have overridden the `LightningModule.optimizer_zero_grad` hook but it will be ignored since"
                 " IPUs handle the zeroing of gradients internally."
             )
-            lightning_module.optimizer_zero_grad = None  # type: ignore[assignment]
+        lightning_module.optimizer_zero_grad = None  # type: ignore[assignment]
 
     def _step(self, stage: RunningStage, *args: Any, **kwargs: Any):
         args = self._prepare_input(args)
