@@ -31,7 +31,14 @@ ENV \
     # MAKEFLAGS="-j$(nproc)"
     MAKEFLAGS="-j2"
 
-RUN apt-get update -qq --fix-missing  && \
+RUN \
+    # https://github.com/NVIDIA/nvidia-docker/issues/1631
+    rm /etc/apt/sources.list.d/cuda.list && \
+    rm /etc/apt/sources.list.d/nvidia-ml.list && \
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb && \
+    dpkg -i cuda-keyring_1.0-1_all.deb && \
+    rm cuda-keyring_1.0-1_all.deb && \
+    apt-get update -qq --fix-missing && \
     apt-get install -y --no-install-recommends \
         build-essential \
         pkg-config \
