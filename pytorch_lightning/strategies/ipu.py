@@ -135,7 +135,7 @@ class IPUStrategy(ParallelStrategy):
 
         super().setup(trainer)
 
-        # disable the `optimizer_zero_grad` function by setting it to `None`. 
+        # disable the `optimizer_zero_grad` function by setting it to `None`.
         # this is because the IPU zeros the gradients internally
         self._optimizer_zero_grad_original = self.lightning_module.optimizer_zero_grad
         self._disable_zero_grad()
