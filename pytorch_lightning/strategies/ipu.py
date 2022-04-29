@@ -122,6 +122,7 @@ class IPUStrategy(ParallelStrategy):
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
 
         self._update_dataloader_original: Optional[Callable] = None
+        self._optimizer_zero_grad_original: Optional[Callable] = None
 
     def setup(self, trainer: "pl.Trainer") -> None:
         # set the `accumulate_grad_batches` property as early as possible
