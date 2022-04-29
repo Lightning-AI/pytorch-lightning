@@ -29,7 +29,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _JSONARGPARSE_AVAILABLE
+from pytorch_lightning.utilities.imports import _DOCSTRING_PARSER_AVAILABLE, _JSONARGPARSE_AVAILABLE
 from pytorch_lightning.utilities.meta import get_all_subclasses
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_warn
@@ -37,12 +37,14 @@ from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTu
 
 if _JSONARGPARSE_AVAILABLE:
     from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, Namespace, set_config_read_mode
-    from jsonargparse.optionals import import_docstring_parse
 
     set_config_read_mode(fsspec_enabled=True)
 else:
     locals()["ArgumentParser"] = object
     locals()["Namespace"] = object
+
+if _DOCSTRING_PARSER_AVAILABLE:
+    import docstring_parser
 
 
 class _Registry(dict):
@@ -888,9 +890,13 @@ def instantiate_class(args: Union[Any, Tuple[Any, ...]], init: Dict[str, Any]) -
 
 
 def _get_short_description(component: object) -> Optional[str]:
-    parse, _ = import_docstring_parse("LightningCLI(run=True)")
-    try:
-        docstring = parse(component.__doc__)
-        return docstring.short_description
-    except ValueError:
-        rank_zero_warn(f"Failed parsing docstring for {component}")
+    if component.__doc__ is None:
+        return None
+    if not _DOCSTRING_PARSER_AVAILABLE:
+        rank_zero_warn(f"Failed parsing docstring for {component}: docstring-parser package is required")
+    else:
+        try:
+            docstring = docstring_parser.parse(component.__doc__)
+            return docstring.short_description
+        except (ValueError, docstring_parser.ParseError) as ex:
+            rank_zero_warn(f"Failed parsing docstring for {component}: {ex}")
