@@ -91,7 +91,7 @@ def test_device_stats_cpu(tmpdir, cpu_stats):
         logger=DebugLogger(tmpdir),
         enable_checkpointing=False,
         enable_progress_bar=False,
-        accelerator="auto",
+        accelerator="cpu",
     )
     trainer.fit(model)
 
