@@ -121,6 +121,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_paramlinks",
     "sphinx_togglebutton",
+    "sphinx_search.extension",
     "pt_lightning_sphinx_theme.extensions.lightning",
 ]
 
