@@ -28,6 +28,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Include a version suffix for new "last" checkpoints of later runs in the same directory ([#12902](https://github.com/PyTorchLightning/pytorch-lightning/pull/12902))
 
 
+- Add ability to load checkpoints when using the `LightningCLI` by providing `--load_from_checkpoint path/to/checkpoint.ckpt` ([#12940](https://github.com/PyTorchLightning/pytorch-lightning/pull/12940))
+
+
 -
 
 ### Changed

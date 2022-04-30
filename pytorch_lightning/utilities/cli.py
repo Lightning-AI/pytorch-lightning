@@ -609,6 +609,12 @@ class LightningCLI:
                 "Set to True to use a random seed."
             ),
         )
+        parser.add_argument(
+            "--load_from_checkpoint",
+            type=Optional[str],
+            default=None,
+            help="Load the lightningmodule from a given checkpoint",
+        )
 
     def add_core_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         """Adds arguments from the core classes to the parser."""
@@ -712,6 +718,12 @@ class LightningCLI:
         self.config_init = self.parser.instantiate_classes(self.config)
         self.datamodule = self._get(self.config_init, "data")
         self.model = self._get(self.config_init, "model")
+        if "load_from_checkpoint" in self.config and self.config.load_from_checkpoint:
+            self.model = self.model.load_from_checkpoint(
+                self.config.load_from_checkpoint,
+                **{p: getattr(self.model, p) for p in inspect.signature(self.model.__init__).parameters.keys()},
+            )
+
         self._add_configure_optimizers_method_to_model(self.subcommand)
         self.trainer = self.instantiate_trainer()
 

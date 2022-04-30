@@ -1589,3 +1589,34 @@ def test_cli_auto_seeding():
         cli = LightningCLI(TestModel, run=False, seed_everything_default=False)
         assert cli.seed_everything_default is False
         assert isinstance(cli.config["seed_everything"], int)
+
+
+@pytest.fixture()
+def checkpoint(tmpdir):
+    try:
+        model = TestModel(foo="not foo!", bar=20)
+
+        checkpoint_name = os.path.join(tmpdir, "checkpoint.ckpt")
+
+        trainer = Trainer(max_epochs=1)
+        trainer.fit(model)
+        trainer.model.layer.weight = torch.nn.Parameter(torch.ones(2, 32))
+
+        trainer.save_checkpoint(checkpoint_name)
+
+        yield os.path.join(tmpdir, "checkpoint.ckpt")
+    finally:
+        pass
+
+
+def test_cli_checkpoint_loading(checkpoint):
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(TestModel, run=False)
+        assert cli.config["load_from_checkpoint"] is None
+
+    with mock.patch("sys.argv", ["any.py", "--load_from_checkpoint", checkpoint, "--model.foo", "foo"]):
+        cli = LightningCLI(TestModel, run=False)
+        assert cli.config["load_from_checkpoint"] == checkpoint
+        assert cli.model.foo == "foo"
+        assert cli.model.bar == 5
+        assert torch.equal(cli.model.layer.weight, torch.ones(2, 32))
