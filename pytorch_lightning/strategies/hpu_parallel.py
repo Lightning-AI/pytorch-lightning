@@ -13,10 +13,12 @@
 # limitations under the License.
 import logging
 import os
-from typing import Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 import torch.distributed
+from torch.nn import Module
+from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -29,10 +31,6 @@ from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE, _TORCH_LESSER_EQUAL_1_10_2
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from typing import Any, Callable, Dict, Optional, Union
-from torch.nn import Module
-from torch.optim import Optimizer
-
 
 if _HPU_AVAILABLE:
     import habana_frameworks.torch.core as htcore
