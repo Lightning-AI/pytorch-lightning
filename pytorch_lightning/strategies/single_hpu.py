@@ -87,12 +87,6 @@ class SingleHPUStrategy(SingleDeviceStrategy):
         htcore.mark_step()
         return out
 
-    def predict_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        out = super().predict_step_end(step_output)
-        # Break lazy accumulation of graph after every step
-        htcore.mark_step()
-        return out
-
     def test_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
         out = super().test_step_end(step_output)
         # Break lazy accumulation of graph after every step
