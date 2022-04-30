@@ -21,7 +21,6 @@ from pytorch_lightning.utilities import _HPU_AVAILABLE, device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 
-
 class HPUAccelerator(Accelerator):
     """Accelerator for HPU devices."""
 

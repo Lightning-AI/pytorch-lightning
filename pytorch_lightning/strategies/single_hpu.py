@@ -21,8 +21,13 @@ from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
 from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _DEVICE
+from pytorch_lightning.utilities.types import STEP_OUTPUT
+from typing import Any, Callable, Dict, Optional, Union
+from torch.nn import Module
+from torch.optim import Optimizer
 
 if _HPU_AVAILABLE:
+    import habana_frameworks.torch.core as htcore
     import habana_frameworks.torch.core.hccl  # noqa: F401
     from habana_frameworks.torch.utils.library_loader import load_habana_module
 
@@ -70,6 +75,30 @@ class SingleHPUStrategy(SingleDeviceStrategy):
 
     def model_to_device(self) -> None:
         self.model.to(self.root_device)  # type: ignore
+
+    def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
+        out = super().training_step_end(step_output)
+        # Break lazy accumulation of graph after every step
+        htcore.mark_step()
+        return out
+
+    def validation_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
+        out = super().validation_step_end(step_output)
+        # Break lazy accumulation of graph after every step
+        htcore.mark_step()
+        return out
+
+    def predict_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
+        out = super().predict_step_end(step_output)
+        # Break lazy accumulation of graph after every step
+        htcore.mark_step()
+        return out
+
+    def test_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
+        out = super().test_step_end(step_output)
+        # Break lazy accumulation of graph after every step
+        htcore.mark_step()
+        return out
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
