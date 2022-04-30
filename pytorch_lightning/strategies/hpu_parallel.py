@@ -28,8 +28,14 @@ from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE, _TORCH_LESSER_EQUAL_1_10_2
+from pytorch_lightning.utilities.types import STEP_OUTPUT
+from typing import Any, Callable, Dict, Optional, Union
+from torch.nn import Module
+from torch.optim import Optimizer
+
 
 if _HPU_AVAILABLE:
+    import habana_frameworks.torch.core as htcore
     import habana_frameworks.torch.core.hccl  # noqa: F401
     from habana_frameworks.torch.utils.library_loader import load_habana_module
 
@@ -112,6 +118,30 @@ class HPUParallelStrategy(DDPStrategy):
 
         broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
+
+    def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
+        out = super().training_step_end(step_output)
+        # Break lazy accumulation of graph after every step
+        htcore.mark_step()
+        return out
+
+    def validation_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
+        out = super().validation_step_end(step_output)
+        # Break lazy accumulation of graph after every step
+        htcore.mark_step()
+        return out
+
+    def predict_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
+        out = super().predict_step_end(step_output)
+        # Break lazy accumulation of graph after every step
+        htcore.mark_step()
+        return out
+
+    def test_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
+        out = super().test_step_end(step_output)
+        # Break lazy accumulation of graph after every step
+        htcore.mark_step()
+        return out
 
     def teardown(self) -> None:
         log.detail(f"{self.__class__.__name__}: tearing down strategy.")
