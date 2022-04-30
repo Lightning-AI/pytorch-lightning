@@ -97,6 +97,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         train_dataset: Optional[Union[Dataset, Sequence[Dataset], Mapping[str, Dataset]]] = None,
         val_dataset: Optional[Union[Dataset, Sequence[Dataset]]] = None,
         test_dataset: Optional[Union[Dataset, Sequence[Dataset]]] = None,
+        predict_dataset: Optional[Union[Dataset, Sequence[Dataset]]] = None,
         batch_size: int = 1,
         num_workers: int = 0,
     ):
@@ -107,6 +108,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
             train_dataset: (optional) Dataset to be used for train_dataloader()
             val_dataset: (optional) Dataset or list of Dataset to be used for val_dataloader()
             test_dataset: (optional) Dataset or list of Dataset to be used for test_dataloader()
+            predict_dataset: (optional) Dataset or list of Dataset to be used for predict_dataloader()
             batch_size: Batch size to use for each dataloader. Default is 1.
             num_workers: Number of subprocesses to use for data loading. 0 means that the
                 data will be loaded in the main process. Number of CPUs available.
@@ -134,6 +136,11 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
                 return [dataloader(ds) for ds in test_dataset]
             return dataloader(test_dataset)
 
+        def predict_dataloader():
+            if isinstance(predict_dataset, Sequence):
+                return [dataloader(ds) for ds in predict_dataset]
+            return dataloader(predict_dataset)
+
         datamodule = cls()
         if train_dataset is not None:
             datamodule.train_dataloader = train_dataloader
@@ -141,6 +148,8 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
             datamodule.val_dataloader = val_dataloader
         if test_dataset is not None:
             datamodule.test_dataloader = test_dataloader
+        if predict_dataset is not None:
+            datamodule.predict_dataloader = predict_dataloader
         return datamodule
 
     def state_dict(self) -> Dict[str, Any]:
@@ -149,7 +158,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         Returns:
             A dictionary containing datamodule state.
         """
-        return {}
+        return dict()
 
     def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
         """Called when loading a checkpoint, implement to reload datamodule state given datamodule state_dict.
