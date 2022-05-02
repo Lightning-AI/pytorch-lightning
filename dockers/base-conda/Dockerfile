@@ -29,7 +29,11 @@ ENV \
     # CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
     MKL_THREADING_LAYER=GNU
 
-RUN apt-get update -qq --fix-missing && \
+RUN \
+    # TODO: Remove the manual key installation once the base image is updated.
+    # https://github.com/NVIDIA/nvidia-docker/issues/1631
+    apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
+    apt-get update -qq --fix-missing && \
     apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
@@ -103,16 +107,6 @@ RUN \
     pip install -r requirements-extra.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
     pip install -r requirements-examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
     rm assistant.py
-
-RUN \
-   apt-get purge -y cmake && \
-   wget -q https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2.tar.gz && \
-   tar -zxvf cmake-3.20.2.tar.gz && \
-   cd cmake-3.20.2 && \
-   ./bootstrap -- -DCMAKE_USE_OPENSSL=OFF && \
-   make && \
-   make install && \
-   cmake  --version
 
 ENV \
     # if you want this environment to be the default o \ne, uncomment the following line:
