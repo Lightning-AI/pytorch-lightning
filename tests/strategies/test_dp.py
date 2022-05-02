@@ -23,7 +23,6 @@ import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.utilities import memory
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.datamodules import ClassifDataModule
@@ -72,7 +71,8 @@ def test_multi_gpu_early_stop_dp(tmpdir):
         max_epochs=50,
         limit_train_batches=10,
         limit_val_batches=10,
-        gpus=[0, 1],
+        accelerator="gpu",
+        devices=[0, 1],
         strategy="dp",
     )
 
@@ -88,7 +88,8 @@ def test_multi_gpu_model_dp(tmpdir):
         max_epochs=1,
         limit_train_batches=10,
         limit_val_batches=10,
-        gpus=[0, 1],
+        accelerator="gpu",
+        devices=[0, 1],
         strategy="dp",
         enable_progress_bar=False,
     )
@@ -96,9 +97,6 @@ def test_multi_gpu_model_dp(tmpdir):
     model = BoringModel()
 
     tpipes.run_model_test(trainer_options, model)
-
-    # test memory helper functions
-    memory.get_memory_profile("min_max")
 
 
 class ReductionTestModel(BoringModel):
@@ -166,7 +164,7 @@ def test_dp_raise_exception_with_batch_transfer_hooks(mock_is_available, mock_de
             batch = batch.to(device)
             return batch
 
-    trainer_options = dict(default_root_dir=tmpdir, max_steps=7, gpus=[0, 1], strategy="dp")
+    trainer_options = dict(default_root_dir=tmpdir, max_steps=7, accelerator="gpu", devices=[0, 1], strategy="dp")
 
     trainer = Trainer(**trainer_options)
     model = CustomModel()
@@ -208,7 +206,8 @@ def test_dp_training_step_dict(tmpdir):
     trainer = pl.Trainer(
         default_root_dir=tmpdir,
         fast_dev_run=True,
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy="dp",
     )
     trainer.fit(model)

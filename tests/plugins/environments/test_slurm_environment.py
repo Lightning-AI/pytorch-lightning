@@ -20,7 +20,7 @@ import pytest
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 
 
-@mock.patch.dict(os.environ, {})
+@mock.patch.dict(os.environ, {}, clear=True)
 def test_default_attributes():
     """Test the default attributes when no environment variables are set."""
     env = SLURMEnvironment()
@@ -92,7 +92,7 @@ def test_master_address_from_slurm_node_list(slurm_node_list, expected):
 
 def test_detect():
     """Test the detection of a SLURM environment configuration."""
-    with mock.patch.dict(os.environ, {}):
+    with mock.patch.dict(os.environ, {}, clear=True):
         assert not SLURMEnvironment.detect()
 
     with mock.patch.dict(os.environ, {"SLURM_NTASKS": "2"}):
