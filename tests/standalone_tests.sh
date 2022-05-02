@@ -36,7 +36,7 @@ fi
 parametrizations_arr=($parametrizations)
 
 # tests to skip - space separated
-blocklist='tests/profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx tests/utilities/test_warnings.py'
+blocklist='tests/profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx'
 report=''
 
 for i in "${!parametrizations_arr[@]}"; do
