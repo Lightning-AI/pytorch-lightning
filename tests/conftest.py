@@ -23,7 +23,7 @@ import torch.distributed
 
 from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
-from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_8
+from pytorch_lightning.utilities.imports import _IS_WINDOWS
 from tests import _PATH_DATASETS
 
 
@@ -64,6 +64,8 @@ def restore_env_variables():
         "PL_GLOBAL_SEED",
         "PL_SEED_WORKERS",
         "WANDB_MODE",
+        "WANDB_REQUIRE_SERVICE",
+        "WANDB_SERVICE",
         "HOROVOD_FUSION_THRESHOLD",
         "RANK",  # set by DeepSpeed
         "POPLAR_ENGINE_OPTIONS",  # set by IPUStrategy
@@ -112,10 +114,7 @@ def teardown_process_group():
 def reset_deterministic_algorithm():
     """Ensures that torch determinism settings are reset before the next test runs."""
     yield
-    if _TORCH_GREATER_EQUAL_1_8:
-        torch.use_deterministic_algorithms(False)
-    else:
-        torch.set_deterministic(False)
+    torch.use_deterministic_algorithms(False)
 
 
 @pytest.fixture
@@ -188,3 +187,27 @@ def pytest_collection_modifyitems(items):
             # has `@RunIf(slow=True)`
             if marker.name == "skipif" and marker.kwargs.get("slow")
         ]
+    elif os.getenv("PL_RUN_IPU_TESTS", "0") == "1":
+        items[:] = [
+            item
+            for item in items
+            for marker in item.own_markers
+            # has `@RunIf(ipu=True)`
+            if marker.name == "skipif" and marker.kwargs.get("ipu")
+        ]
+
+
+def pytest_addoption(parser):
+    parser.addoption("--hpus", action="store", type=int, default=1, help="Number of hpus 1-8")
+    parser.addoption(
+        "--hmp-bf16", action="store", type=str, default="./ops_bf16_mnist.txt", help="bf16 ops list file in hmp O1 mode"
+    )
+    parser.addoption(
+        "--hmp-fp32", action="store", type=str, default="./ops_fp32_mnist.txt", help="fp32 ops list file in hmp O1 mode"
+    )
+
+
+@pytest.fixture
+def hpus(request):
+    hpus = request.config.getoption("--hpus")
+    return hpus

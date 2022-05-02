@@ -13,9 +13,10 @@
 # limitations under the License.
 import os
 import shutil
-from collections import OrderedDict
+import sys
+from collections import ChainMap, OrderedDict
 from functools import partial
-from typing import Any, IO, Iterable, List, Optional, Sequence, Type, Union
+from typing import Any, Iterable, List, Optional, Sequence, Tuple, Type, Union
 
 import torch
 from deprecate.utils import void
@@ -41,7 +42,7 @@ from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signatu
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
 if _RICH_AVAILABLE:
-    from rich.console import Console
+    from rich import get_console
     from rich.table import Column, Table
 
 
@@ -66,8 +67,6 @@ class EvaluationLoop(DataLoaderLoop):
         # case where user does:
         # return dl1, dl2
         dataloaders = self.dataloaders
-        if dataloaders is None:
-            return 0
         length = len(dataloaders)
         if length > 0 and isinstance(dataloaders[0], (list, tuple)):
             length = len(dataloaders[0])
@@ -78,7 +77,7 @@ class EvaluationLoop(DataLoaderLoop):
         """Returns the validation or test dataloaders."""
         dataloaders = self.trainer.test_dataloaders if self.trainer.testing else self.trainer.val_dataloaders
         if dataloaders is None:
-            raise RuntimeError("Dataloaders should be available.")
+            return []
         return dataloaders
 
     @property
@@ -141,7 +140,7 @@ class EvaluationLoop(DataLoaderLoop):
         void(*args, **kwargs)
 
         dataloader_idx = self.current_dataloader_idx
-        dataloader = self.trainer.strategy.process_dataloader(self.current_dataloader)
+        dataloader = self.current_dataloader
         assert self._data_fetcher is not None
         self._data_fetcher.setup(
             dataloader,
@@ -160,6 +159,18 @@ class EvaluationLoop(DataLoaderLoop):
         if not self.trainer.sanity_checking:
             # indicate the loop has run
             self._has_run = True
+
+    def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
+        dataloader = self.current_dataloader
+        if (
+            dataloader is not None
+            and getattr(dataloader, "sampler", None)
+            and callable(getattr(dataloader.sampler, "set_epoch", None))
+        ):
+            # set seed for distributed sampler (enables shuffling for each epoch)
+            dataloader.sampler.set_epoch(self.trainer.fit_loop.epoch_progress.current.processed)
+
+        super().on_advance_start(*args, **kwargs)
 
     def on_advance_end(self) -> None:
         self.trainer._logger_connector.epoch_end_reached()
@@ -183,11 +194,13 @@ class EvaluationLoop(DataLoaderLoop):
         logged_outputs, self._logged_outputs = self._logged_outputs, []  # free memory
         # include any logged outputs on epoch_end
         epoch_end_logged_outputs = self.trainer._logger_connector.update_eval_epoch_metrics()
+        all_logged_outputs = dict(ChainMap(*logged_outputs))  # list[dict] -> dict
+        all_logged_outputs.update(epoch_end_logged_outputs)
         for dl_outputs in logged_outputs:
             dl_outputs.update(epoch_end_logged_outputs)
 
         # log metrics
-        self.trainer._logger_connector.log_eval_end_metrics()
+        self.trainer._logger_connector.log_eval_end_metrics(all_logged_outputs)
 
         # hook
         self._on_evaluation_end()
@@ -231,39 +244,27 @@ class EvaluationLoop(DataLoaderLoop):
         assert self._results is not None
         self._results.to(device=self.trainer.lightning_module.device)
 
-        if self.trainer.testing:
-            self.trainer._call_callback_hooks("on_test_start", *args, **kwargs)
-            self.trainer._call_lightning_module_hook("on_test_start", *args, **kwargs)
-            self.trainer._call_strategy_hook("on_test_start", *args, **kwargs)
-        else:
-            self.trainer._call_callback_hooks("on_validation_start", *args, **kwargs)
-            self.trainer._call_lightning_module_hook("on_validation_start", *args, **kwargs)
-            self.trainer._call_strategy_hook("on_validation_start", *args, **kwargs)
+        hook_name = "on_test_start" if self.trainer.testing else "on_validation_start"
+        self.trainer._call_callback_hooks(hook_name, *args, **kwargs)
+        self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
+        self.trainer._call_strategy_hook(hook_name, *args, **kwargs)
 
     def _on_evaluation_model_eval(self) -> None:
         """Sets model to eval mode."""
-        if self.trainer.testing:
-            self.trainer._call_lightning_module_hook("on_test_model_eval")
-        else:
-            self.trainer._call_lightning_module_hook("on_validation_model_eval")
+        hook_name = "on_test_model_eval" if self.trainer.testing else "on_validation_model_eval"
+        self.trainer._call_lightning_module_hook(hook_name)
 
     def _on_evaluation_model_train(self) -> None:
         """Sets model to train mode."""
-        if self.trainer.testing:
-            self.trainer._call_lightning_module_hook("on_test_model_train")
-        else:
-            self.trainer._call_lightning_module_hook("on_validation_model_train")
+        hook_name = "on_test_model_train" if self.trainer.testing else "on_validation_model_train"
+        self.trainer._call_lightning_module_hook(hook_name)
 
     def _on_evaluation_end(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_end`` hook."""
-        if self.trainer.testing:
-            self.trainer._call_callback_hooks("on_test_end", *args, **kwargs)
-            self.trainer._call_lightning_module_hook("on_test_end", *args, **kwargs)
-            self.trainer._call_strategy_hook("on_test_end", *args, **kwargs)
-        else:
-            self.trainer._call_callback_hooks("on_validation_end", *args, **kwargs)
-            self.trainer._call_lightning_module_hook("on_validation_end", *args, **kwargs)
-            self.trainer._call_strategy_hook("on_validation_end", *args, **kwargs)
+        hook_name = "on_test_end" if self.trainer.testing else "on_validation_end"
+        self.trainer._call_callback_hooks(hook_name, *args, **kwargs)
+        self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
+        self.trainer._call_strategy_hook(hook_name, *args, **kwargs)
 
         # reset the logger connector state
         self.trainer._logger_connector.reset_results()
@@ -274,12 +275,9 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer._call_callback_hooks("on_epoch_start", *args, **kwargs)
         self.trainer._call_lightning_module_hook("on_epoch_start", *args, **kwargs)
 
-        if self.trainer.testing:
-            self.trainer._call_callback_hooks("on_test_epoch_start", *args, **kwargs)
-            self.trainer._call_lightning_module_hook("on_test_epoch_start", *args, **kwargs)
-        else:
-            self.trainer._call_callback_hooks("on_validation_epoch_start", *args, **kwargs)
-            self.trainer._call_lightning_module_hook("on_validation_epoch_start", *args, **kwargs)
+        hook_name = "on_test_epoch_start" if self.trainer.testing else "on_validation_epoch_start"
+        self.trainer._call_callback_hooks(hook_name, *args, **kwargs)
+        self.trainer._call_lightning_module_hook(hook_name, *args, **kwargs)
 
     def _evaluation_epoch_end(self, outputs: List[EPOCH_OUTPUT]) -> None:
         """Runs ``{validation/test}_epoch_end``"""
@@ -291,10 +289,8 @@ class EvaluationLoop(DataLoaderLoop):
         )
 
         # call the model epoch end
-        if self.trainer.testing:
-            self.trainer._call_lightning_module_hook("test_epoch_end", output_or_outputs)
-        else:
-            self.trainer._call_lightning_module_hook("validation_epoch_end", output_or_outputs)
+        hook_name = "test_epoch_end" if self.trainer.testing else "validation_epoch_end"
+        self.trainer._call_lightning_module_hook(hook_name, output_or_outputs)
 
     def _on_evaluation_epoch_end(self) -> None:
         """Runs ``on_{validation/test}_epoch_end`` hook."""
@@ -307,39 +303,48 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer._logger_connector.on_epoch_end()
 
     @staticmethod
-    def _get_keys(data: dict) -> Iterable[str]:
-        if any(isinstance(v, dict) for v in data.values()):
-            for v in data.values():
-                yield from apply_to_collection(v, dict, dict.keys)
-        else:
-            yield from data.keys()
-
-    @staticmethod
-    def _find_value(data: dict, target: str) -> Iterable[Any]:
+    def _get_keys(data: dict) -> Iterable[Tuple[str, ...]]:
         for k, v in data.items():
-            if k == target:
-                yield v
-            elif isinstance(v, dict):
-                yield from EvaluationLoop._find_value(v, target)
+            if isinstance(v, dict):
+                for new_key in apply_to_collection(v, dict, EvaluationLoop._get_keys):
+                    yield (k, *new_key)  # this need to be in parenthesis for older python versions
+            else:
+                yield k,
 
     @staticmethod
-    def _print_results(results: List[_OUT_DICT], stage: str, file: Optional[IO[str]] = None) -> None:
+    def _find_value(data: dict, target: Iterable[str]) -> Optional[Any]:
+        target_start, *rest = target
+        if target_start not in data:
+            return None
+        result = data[target_start]
+        if not rest:
+            return result
+        return EvaluationLoop._find_value(result, rest)
+
+    @staticmethod
+    def _print_results(results: List[_OUT_DICT], stage: str) -> None:
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
-        metrics = sorted({k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys})
+        metrics_paths = {k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys}
+        if not metrics_paths:
+            return
+
+        metrics_strs = [":".join(metric) for metric in metrics_paths]
+        # sort both lists based on metrics_strs
+        metrics_strs, metrics_paths = zip(*sorted(zip(metrics_strs, metrics_paths)))
+
         headers = [f"DataLoader {i}" for i in range(len(results))]
 
         # fallback is useful for testing of printed output
         term_size = shutil.get_terminal_size(fallback=(120, 30)).columns or 120
-        max_length = int(min(max(len(max(metrics + headers, key=len)), 25), term_size / 2))
+        max_length = int(min(max(len(max(metrics_strs, key=len)), len(max(headers, key=len)), 25), term_size / 2))
 
-        rows: List[List[Any]] = [[] for _ in metrics]
+        rows: List[List[Any]] = [[] for _ in metrics_paths]
 
         for result in results:
-            for metric, row in zip(metrics, rows):
-                v = list(EvaluationLoop._find_value(result, metric))
-                if v:
-                    val = v[0]
+            for metric, row in zip(metrics_paths, rows):
+                val = EvaluationLoop._find_value(result, metric)
+                if val is not None:
                     if isinstance(val, torch.Tensor):
                         val = val.item() if val.numel() == 1 else val.tolist()
                     row.append(f"{val}")
@@ -356,23 +361,32 @@ class EvaluationLoop(DataLoaderLoop):
             table_headers.insert(0, f"{stage} Metric".capitalize())
 
             if _RICH_AVAILABLE:
-                console = Console(file=file)
-
                 columns = [Column(h, justify="center", style="magenta", width=max_length) for h in table_headers]
                 columns[0].style = "cyan"
 
                 table = Table(*columns)
-                for metric, row in zip(metrics, table_rows):
+                for metric, row in zip(metrics_strs, table_rows):
                     row.insert(0, metric)
                     table.add_row(*row)
+
+                console = get_console()
                 console.print(table)
             else:
                 row_format = f"{{:^{max_length}}}" * len(table_headers)
                 half_term_size = int(term_size / 2)
 
-                bar = "─" * term_size
+                try:
+                    # some terminals do not support this character
+                    if sys.stdout.encoding is not None:
+                        "─".encode(sys.stdout.encoding)
+                except UnicodeEncodeError:
+                    bar_character = "-"
+                else:
+                    bar_character = "─"
+                bar = bar_character * term_size
+
                 lines = [bar, row_format.format(*table_headers).rstrip(), bar]
-                for metric, row in zip(metrics, table_rows):
+                for metric, row in zip(metrics_strs, table_rows):
                     # deal with column overflow
                     if len(metric) > half_term_size:
                         while len(metric) > half_term_size:
@@ -383,7 +397,7 @@ class EvaluationLoop(DataLoaderLoop):
                     else:
                         lines.append(row_format.format(metric, *row).rstrip())
                 lines.append(bar)
-                print(os.linesep.join(lines), file=file)
+                print(os.linesep.join(lines))
 
 
 def _select_data_fetcher_type(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:

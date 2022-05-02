@@ -36,6 +36,9 @@ Core Maintainers
 - Nicki Skafte (`skaftenicki <https://github.com/SkafteNicki>`_)
 - Roger Shieh (`s-rog <https://github.com/s-rog>`_)
 - Akihiro Nitta (`akihironitta <https://github.com/akihironitta>`_)
+- Danielle Pintz (`daniellepintz <https://github.com/daniellepintz>`_)
+- Siyu Wang (`four4fish <https://github.com/four4fish>`_)
+
 
 Board
 -----

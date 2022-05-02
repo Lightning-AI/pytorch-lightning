@@ -39,7 +39,7 @@ from pytorch_lightning.utilities.data import (
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 from pytorch_lightning.utilities.warnings import PossibleUserWarning, WarningCache
 
@@ -71,23 +71,21 @@ class DataConnector:
 
     def on_trainer_init(
         self,
-        check_val_every_n_epoch: int,
+        val_check_interval: Union[int, float],
         reload_dataloaders_every_n_epochs: int,
-        prepare_data_per_node: Optional[bool] = None,
+        check_val_every_n_epoch: Optional[int],
     ) -> None:
         self.trainer.datamodule = None
 
-        if prepare_data_per_node is not None:
-            rank_zero_deprecation(
-                "Setting `prepare_data_per_node` with the trainer flag is deprecated in v1.5.0 and will be removed in"
-                " v1.7.0. Please set `prepare_data_per_node` in `LightningDataModule` and/or `LightningModule`"
-                " directly instead."
-            )
-        self.trainer.prepare_data_per_node = prepare_data_per_node
-
-        if not isinstance(check_val_every_n_epoch, int):
+        if check_val_every_n_epoch is not None and not isinstance(check_val_every_n_epoch, int):
             raise MisconfigurationException(
-                f"check_val_every_n_epoch should be an integer. Found {check_val_every_n_epoch}"
+                f"`check_val_every_n_epoch` should be an integer, found {check_val_every_n_epoch!r}."
+            )
+
+        if check_val_every_n_epoch is None and isinstance(val_check_interval, float):
+            raise MisconfigurationException(
+                "`val_check_interval` should be an integer when `check_val_every_n_epoch=None`,"
+                f" found {val_check_interval!r}."
             )
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
@@ -112,28 +110,12 @@ class DataConnector:
         # check for prepare_data_per_node & datamodule lifecycle properties before calling datamodule.prepare_data
         if datamodule is not None:
             dm_prepare_data_per_node = datamodule.prepare_data_per_node
-            dm_eq_prepare_data = datamodule.prepare_data_per_node == self.trainer.prepare_data_per_node
-            if self.trainer.prepare_data_per_node is not None and not dm_eq_prepare_data:
-                raise MisconfigurationException(
-                    "Inconsistent settings found for `prepare_data_per_node`."
-                    f" Value was set with both `Trainer(prepare_data_per_node={self.trainer.prepare_data_per_node}.)`"
-                    f" and `DataModule.prepare_data_per_node={datamodule.prepare_data_per_node}`."
-                    " Move `prepare_data_per_node` setting to DataModule property."
-                )
             if (dm_prepare_data_per_node and local_rank_zero) or (not dm_prepare_data_per_node and global_rank_zero):
                 self.trainer.datamodule.prepare_data()
         # handle lightning module prepare data:
         # check for prepare_data_per_node before calling lightning_module.prepare_data
         if lightning_module is not None:
             lm_prepare_data_per_node = lightning_module.prepare_data_per_node
-            lm_eq_prepare_data = lightning_module.prepare_data_per_node == self.trainer.prepare_data_per_node
-            if (self.trainer.prepare_data_per_node is not None) and not lm_eq_prepare_data:
-                raise MisconfigurationException(
-                    "Inconsistent settings found for `prepare_data_per_node`."
-                    f" Value was set with both `Trainer(prepare_data_per_node={self.trainer.prepare_data_per_node}.)`"
-                    f" and `LightningModule.prepare_data_per_node={lightning_module.prepare_data_per_node}`."
-                    " Move `prepare_data_per_node` setting to LightningModule property."
-                )
             if (lm_prepare_data_per_node and local_rank_zero) or (not lm_prepare_data_per_node and global_rank_zero):
                 self.trainer._call_lightning_module_hook("prepare_data")
                 self.trainer._is_data_prepared = True
@@ -164,7 +146,8 @@ class DataConnector:
 
         for m in [model, ref_model]:
             m.trainer = proxy(self.trainer)
-            m.use_amp = self.trainer.amp_backend is not None
+            # Remove setting use_amp in v1.8
+            m._use_amp = self.trainer.amp_backend is not None
             m.precision = self.trainer.precision
 
     def attach_dataloaders(
@@ -219,35 +202,19 @@ class DataConnector:
 
         # ddp_spawn + num_workers > 0 don't mix! tell the user
         if dataloader.num_workers > 0 and using_spawn:
-            # checks for the attr persistent_workers available in pytorch >= 1.7
-            if hasattr(dataloader, "persistent_workers"):
-                if not dataloader.persistent_workers:
-                    rank_zero_warn(
-                        "num_workers>0, persistent_workers=False, and strategy=ddp_spawn"
-                        " may result in data loading bottlenecks."
-                        " Consider setting persistent_workers=True"
-                        " (this is a limitation of Python .spawn() and PyTorch)"
-                    )
-            else:
+            if not dataloader.persistent_workers:
                 rank_zero_warn(
-                    "num_workers>0 and strategy=ddp_spawn do not mix well"
-                    " and may result in data loading bottlenecks."
-                    " Consider setting strategy=ddp to use num_workers>0"
+                    "num_workers>0, persistent_workers=False, and strategy=ddp_spawn"
+                    " may result in data loading bottlenecks."
+                    " Consider setting persistent_workers=True"
                     " (this is a limitation of Python .spawn() and PyTorch)"
                 )
 
         elif dataloader.num_workers == 0 and using_spawn:
-            # checks for the attr persistent_workers available in pytorch >= 1.7
-            if hasattr(dataloader, "persistent_workers"):
-                if not dataloader.persistent_workers:
-                    rank_zero_warn(
-                        "strategy=ddp_spawn and num_workers=0 may result in data loading bottlenecks."
-                        " Consider setting num_workers>0 and persistent_workers=True"
-                    )
-            else:
+            if not dataloader.persistent_workers:
                 rank_zero_warn(
                     "strategy=ddp_spawn and num_workers=0 may result in data loading bottlenecks."
-                    " Consider setting strategy=ddp and set num_workers>0"
+                    " Consider setting num_workers>0 and persistent_workers=True"
                 )
 
         elif dataloader.num_workers <= 2 < num_cpus and not using_spawn:
@@ -278,6 +245,7 @@ class DataConnector:
 
         - Injecting a `DistributedDataSampler` into the `DataLoader` if on a distributed environment
         - Wrapping the datasets and samplers into fault-tolerant components
+        - Wrapping the dataloader based on strategy-specific logic
         """
         if isinstance(dataloader, CombinedLoader):
             # apply `_prepare_dataloader` on all the collection of loaders
@@ -312,6 +280,8 @@ class DataConnector:
 
             sampler = self._resolve_sampler(dataloader, shuffle=shuffle, mode=mode)
             dataloader = _update_dataloader(dataloader, sampler, mode=mode)
+
+        dataloader = self.trainer.strategy.process_dataloader(dataloader)
 
         if cycle_iterator is not None:
             cycle_iterator.loader = dataloader
@@ -382,6 +352,9 @@ class DataConnector:
 
         # always get the loaders first so we can count how many there are
         dataloaders = self._request_dataloader(mode, model=model)
+
+        if self.trainer.overfit_batches > 0:
+            dataloaders = self._resolve_overfit_batches(dataloaders, mode)
 
         if not isinstance(dataloaders, list):
             dataloaders = [dataloaders]
@@ -468,7 +441,7 @@ class DataConnector:
         return dataloader
 
     @staticmethod
-    def _resolve_overfit_batches(dataloader: Collection[DataLoader]) -> Collection[DataLoader]:
+    def _resolve_overfit_batches(dataloaders: Collection[DataLoader], mode: RunningStage) -> Collection[DataLoader]:
         all_have_sequential_sampler = True
 
         def resolve_has_no_sequential_sampler(dataloader: DataLoader):
@@ -477,27 +450,27 @@ class DataConnector:
                 dataloader.sampler, SequentialSampler
             )
 
-        apply_to_collection(dataloader, DataLoader, resolve_has_no_sequential_sampler)
+        apply_to_collection(dataloaders, DataLoader, resolve_has_no_sequential_sampler)
 
         if not all_have_sequential_sampler:
             rank_zero_warn(
                 "You requested to overfit but enabled training dataloader shuffling."
-                " We are turning off the training dataloader shuffling for you."
+                f" We are turning off the {mode.dataloader_prefix} dataloader shuffling for you."
             )
 
             def replace_sampler(dataloader: DataLoader) -> DataLoader:
-                return _update_dataloader(dataloader, SequentialSampler(dataloader.dataset), mode=RunningStage.TRAINING)
+                return _update_dataloader(dataloader, sampler=SequentialSampler(dataloader.dataset), mode=mode)
 
-            dataloader = apply_to_collection(dataloader, DataLoader, replace_sampler)
+            dataloaders = apply_to_collection(dataloaders, DataLoader, replace_sampler)
 
-        return dataloader
+        return dataloaders
 
     @staticmethod
     def _check_eval_shuffling(dataloader, mode):
         if _is_dataloader_shuffled(dataloader):
             rank_zero_warn(
-                f"Your `{mode.dataloader_prefix}_dataloader` has `shuffle=True`,"
-                " it is strongly recommended that you turn this off for val/test/predict dataloaders.",
+                f"Your `{mode.dataloader_prefix}_dataloader`'s sampler has shuffling enabled,"
+                " it is strongly recommended that you turn shuffling off for val/test/predict dataloaders.",
                 category=PossibleUserWarning,
             )
 
