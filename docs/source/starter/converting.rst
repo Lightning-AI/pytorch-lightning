@@ -1,25 +1,18 @@
-.. testsetup:: *
-
-    from pytorch_lightning.core.lightning import LightningModule
-    from pytorch_lightning.core.datamodule import LightningDataModule
-    from pytorch_lightning.trainer.trainer import Trainer
-
 .. _converting:
 
-
 ######################################
-How to organize PyTorch into Lightning
+How to Organize PyTorch Into Lightning
 ######################################
 
-To enable your code to work with Lightning, here's how to organize PyTorch into Lightning:
+To enable your code to work with Lightning, perform the following to organize PyTorch into Lightning.
 
 --------
 
-*******************************
-1. Move your Computational Code
-*******************************
+******************************
+1. Keep you Computational Code
+******************************
 
-Move the model architecture and forward pass to your :class:`~pytorch_lightning.core.lightning.LightningModule`.
+Keep your regular nn.Module architecture
 
 .. testcode::
 
@@ -29,7 +22,7 @@ Move the model architecture and forward pass to your :class:`~pytorch_lightning.
     import torch.nn.functional as F
 
 
-    class LitModel(pl.LightningModule):
+    class LitModel(nn.Module):
         def __init__(self):
             super().__init__()
             self.layer_1 = nn.Linear(28 * 28, 128)
@@ -44,64 +37,131 @@ Move the model architecture and forward pass to your :class:`~pytorch_lightning.
 
 --------
 
-********************************************
-2. Move the Optimizer(s) and LR Scheduler(s)
-********************************************
+***************************
+2. Configure Training Logic
+***************************
+In the training_step of the LightningModule configure how your training routine behaves with a batch of training data:
 
+.. testcode::
+
+    class LitModel(pl.LightningModule):
+        def __init__(self, encoder):
+            super().__init__()
+            self.encoder = encoder
+
+        def training_step(self, batch, batch_idx):
+            x, y = batch
+            y_hat = self.encoder(x)
+            loss = F.cross_entropy(y_hat, y)
+            return loss
+
+.. note:: If you need to fully own the training loop for complicated legacy projects, check out :doc:`Own your loop <../model/own_your_loop>`.
+
+----
+
+****************************************
+3. Move Optimizer(s) and LR Scheduler(s)
+****************************************
 Move your optimizers to the :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers` hook.
 
 .. testcode::
 
     class LitModel(pl.LightningModule):
         def configure_optimizers(self):
-            optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+            optimizer = torch.optim.Adam(self.encoder.parameters(), lr=1e-3)
             lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1)
             return [optimizer], [lr_scheduler]
 
 --------
 
-*******************************
-3. Configure the Training Logic
-*******************************
-
-Lightning automates the training loop for you and manages all of the associated components such as: epoch and batch tracking, optimizers and schedulers,
-and metric reduction. As a user, you just need to define how your model behaves with a batch of training data within the
-:meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` method. When using Lightning, simply override the
-:meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` method which takes the current ``batch`` and the ``batch_idx``
-as arguments. Optionally, it can take ``optimizer_idx`` if your LightningModule defines multiple optimizers within its
-:meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers` hook.
-
-.. testcode::
-
-    class LitModel(pl.LightningModule):
-        def training_step(self, batch, batch_idx):
-            x, y = batch
-            y_hat = self(x)
-            loss = F.cross_entropy(y_hat, y)
-            return loss
-
---------
-
-*********************************
-4. Configure the Validation Logic
-*********************************
-
-Lightning also automates the validation loop for you and manages all of the associated components such as: epoch and batch tracking, and metrics reduction. As a user,
-you just need to define how your model behaves with a batch of validation data within the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`
-method. When using Lightning, simply override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` method which takes the current
-``batch`` and the ``batch_idx`` as arguments. Optionally, it can take ``dataloader_idx`` if you configure multiple dataloaders.
-
-To add an (optional) validation loop add logic to the
-:meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` hook (make sure to use the hook parameters, ``batch`` and ``batch_idx`` in this case).
+***************************************
+4. Organize Validation Logic (optional)
+***************************************
+If you need a validation loop, configure how your validation routine behaves with a batch of validation data:
 
 .. testcode::
 
     class LitModel(pl.LightningModule):
         def validation_step(self, batch, batch_idx):
             x, y = batch
-            y_hat = self(x)
+            y_hat = self.encoder(x)
             val_loss = F.cross_entropy(y_hat, y)
             self.log("val_loss", val_loss)
+
+.. tip:: ``trainer.validate()`` loads the best checkpoint automatically by default if checkpointing was enabled during fitting.
+
+--------
+
+************************************
+5. Organize Testing Logic (optional)
+************************************
+If you need a test loop, configure how your testing routine behaves with a batch of test data:
+
+.. testcode::
+
+    class LitModel(pl.LightningModule):
+        def test_step(self, batch, batch_idx):
+            x, y = batch
+            y_hat = self.encoder(x)
+            test_loss = F.cross_entropy(y_hat, y)
+            self.log("test_loss", test_loss)
+
+--------
+
+****************************************
+6. Configure Prediction Logic (optional)
+****************************************
+If you need a prediction loop, configure how your prediction routine behaves with a batch of test data:
+
+.. testcode::
+
+    class LitModel(LightningModule):
+        def predict_step(self, batch, batch_idx):
+            x, y = batch
+            pred = self.encoder(x)
+            return pred
+
+--------
+
+******************************************
+7. Remove any .cuda() or .to(device) Calls
+******************************************
+
+Your :doc:`LightningModule <../common/lightning_module>` can automatically run on any hardware!
+
+If you have any explicit calls to ``.cuda()`` or ``.to(device)``, you can remove them since Lightning makes sure that the data coming from :class:`~torch.utils.data.DataLoader`
+and all the :class:`~torch.nn.Module` instances initialized inside ``LightningModule.__init__`` are moved to the respective devices automatically.
+If you still need to access the current device, you can use ``self.device`` anywhere in your ``LightningModule`` except in the ``__init__`` and ``setup`` methods.
+
+.. testcode::
+
+    class LitModel(LightningModule):
+        def training_step(self, batch, batch_idx):
+            z = torch.randn(4, 5, device=self.device)
+            ...
+
+Hint: If you are initializing a :class:`~torch.Tensor` within the ``LightningModule.__init__`` method and want it to be moved to the device automatically you should call
+:meth:`~torch.nn.Module.register_buffer` to register it as a parameter.
+
+.. testcode::
+
+    class LitModel(LightningModule):
+        def __init__(self):
+            super().__init__()
+            self.register_buffer("running_mean", torch.zeros(num_features))
+
+--------
+
+********************
+8. Use your own data
+********************
+Regular PyTorch DataLoaders work with Lightning. For more modular and scalable datasets, check out :doc:`LightningDataModule <../data/datamodule>`.
+
+----
+
+************
+Good to know
+************
 
 Additionally, you can run only the validation loop using :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate` method.
 
@@ -112,27 +172,6 @@ Additionally, you can run only the validation loop using :meth:`~pytorch_lightni
 
 .. note:: ``model.eval()`` and ``torch.no_grad()`` are called automatically for validation.
 
-.. tip:: ``trainer.validate()`` loads the best checkpoint automatically by default if checkpointing was enabled during fitting.
-
---------
-
-**************************
-5. Configure Testing Logic
-**************************
-
-Lightning automates the testing loop for you and manages all the associated components, such as epoch and batch tracking, metrics reduction. As a user,
-you just need to define how your model behaves with a batch of testing data within the :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step`
-method. When using Lightning, simply override the :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` method which takes the current
-``batch`` and the ``batch_idx`` as arguments. Optionally, it can take ``dataloader_idx`` if you configure multiple dataloaders.
-
-.. testcode::
-
-    class LitModel(pl.LightningModule):
-        def test_step(self, batch, batch_idx):
-            x, y = batch
-            y_hat = self(x)
-            test_loss = F.cross_entropy(y_hat, y)
-            self.log("test_loss", test_loss)
 
 The test loop isn't used within :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit`, therefore, you would need to explicitly call :meth:`~pytorch_lightning.trainer.trainer.Trainer.test`.
 
@@ -145,25 +184,6 @@ The test loop isn't used within :meth:`~pytorch_lightning.trainer.trainer.Traine
 
 .. tip:: ``trainer.test()`` loads the best checkpoint automatically by default if checkpointing is enabled.
 
---------
-
-*****************************
-6. Configure Prediction Logic
-*****************************
-
-Lightning automates the prediction loop for you and manages all of the associated components such as epoch and batch tracking. As a user,
-you just need to define how your model behaves with a batch of data within the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step`
-method. When using Lightning, simply override the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` method which takes the current
-``batch`` and the ``batch_idx`` as arguments. Optionally, it can take ``dataloader_idx`` if you configure multiple dataloaders.
-If you don't override ``predict_step`` hook, it by default calls :meth:`~pytorch_lightning.core.lightning.LightningModule.forward` method on the batch.
-
-.. testcode::
-
-    class LitModel(LightningModule):
-        def predict_step(self, batch, batch_idx):
-            x, y = batch
-            pred = self(x)
-            return pred
 
 The predict loop will not be used until you call :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`.
 
@@ -175,62 +195,3 @@ The predict loop will not be used until you call :meth:`~pytorch_lightning.train
 .. note:: ``model.eval()`` and ``torch.no_grad()`` are called automatically for testing.
 
 .. tip:: ``trainer.predict()`` loads the best checkpoint automatically by default if checkpointing is enabled.
-
---------
-
-******************************************
-7. Remove any .cuda() or .to(device) Calls
-******************************************
-
-Your :doc:`LightningModule <../common/lightning_module>` can automatically run on any hardware!
-
-If you have any explicit calls to ``.cuda()`` or ``.to(device)``, you can remove them since Lightning makes sure that the data coming from :class:`~torch.utils.data.DataLoader`
-and all the :class:`~torch.nn.Module` instances initialized inside ``LightningModule.__init__`` are moved to the respective devices automatically.
-
-.. testcode::
-
-    class LitModel(LightningModule):
-        def __init__(self):
-            super().__init__()
-            self.register_buffer("running_mean", torch.zeros(num_features))
-
-If you still need to access the current device, you can use ``self.device`` anywhere in ``LightningModule`` except ``__init__`` method. You are initializing a
-:class:`~torch.Tensor` within ``LightningModule.__init__`` method and want it to be moved to the device automatically you must :meth:`~torch.nn.Module.register_buffer`
-to register it as a parameter.
-
-.. testcode::
-
-    class LitModel(LightningModule):
-        def training_step(self, batch, batch_idx):
-            z = torch.randn(4, 5, device=self.device)
-            ...
-
---------
-
-********************
-8. Use your own data
-********************
-
-To use your DataLoaders, you can override the respective dataloader hooks in the :class:`~pytorch_lightning.core.lightning.LightningModule`:
-
-.. testcode::
-
-    class LitModel(LightningModule):
-        def train_dataloader(self):
-            return DataLoader(...)
-
-        def val_dataloader(self):
-            return DataLoader(...)
-
-        def test_dataloader(self):
-            return DataLoader(...)
-
-        def predict_dataloader(self):
-            return DataLoader(...)
-
-Alternatively, you can pass your dataloaders in one of the following ways:
-
-* Pass in the dataloaders explictly inside ``trainer.fit/.validate/.test/.predict`` calls.
-* Use a :ref:`LightningDataModule <datamodules>`.
-
-Checkout :ref:`data` doc to understand data management within Lightning.

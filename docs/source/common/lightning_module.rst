@@ -96,6 +96,8 @@ Here are the only required methods.
 .. code-block:: python
 
     import pytorch_lightning as pl
+    import torch.nn as nn
+    import torch.nn.functional as F
 
 
     class LitModel(pl.LightningModule):
@@ -398,7 +400,7 @@ Validation Epoch-level Metrics
 ==============================
 
 If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
-override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end` method.
+override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end` method. Note that this method is called before :meth:`~pytorch_lightning.core.lightning.LightningModule.training_epoch_end`.
 
 .. code-block:: python
 
@@ -629,7 +631,7 @@ In the case where you want to scale your inference, you should be using
 
     data_module = ...
     model = Autoencoder()
-    trainer = Trainer(gpus=2)
+    trainer = Trainer(accelerator="gpu", devices=2)
     trainer.predict(model, data_module)
 
 Inference in Production
@@ -687,7 +689,7 @@ Then pass in any arbitrary model to be fit with this task
     for model in [resnet50(), vgg16(), BidirectionalRNN()]:
         task = ClassificationTask(model)
 
-        trainer = Trainer(gpus=2)
+        trainer = Trainer(accelerator="gpu", devices=2)
         trainer.fit(task, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
 Tasks can be arbitrarily complex such as implementing GAN training, self-supervised or even RL.
@@ -710,7 +712,7 @@ The following example shows how you can run inference in the Python runtime:
 .. code-block:: python
 
     task = ClassificationTask(model)
-    trainer = Trainer(gpus=2)
+    trainer = Trainer(accelerator="gpu", devices=2)
     trainer.fit(task, train_dataloader, val_dataloader)
     trainer.save_checkpoint("best_model.ckpt")
 
@@ -772,6 +774,8 @@ freeze
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.freeze
     :noindex:
+
+.. _lm-log:
 
 log
 ~~~
@@ -914,7 +918,7 @@ These are properties available in a LightningModule.
 current_epoch
 ~~~~~~~~~~~~~
 
-The current epoch
+The number of epochs run.
 
 .. code-block:: python
 
@@ -944,12 +948,13 @@ usually do not need to use this property, but it is useful to know how to access
     def training_step(self, batch, batch_idx):
         if self.global_rank == 0:
             # do something only once across all the nodes
-            self.log("global_step", self.trainer.global_step)
+            ...
 
 global_step
 ~~~~~~~~~~~
 
-The current step (does not reset each epoch)
+The number of optimizer steps taken (does not reset each epoch).
+This includes multiple optimizers and TBPTT steps (if enabled).
 
 .. code-block:: python
 
@@ -993,7 +998,7 @@ The list of loggers currently being used by the Trainer.
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        # List of LightningLoggerBase objects
+        # List of Logger objects
         loggers = self.loggers
         for logger in loggers:
             logger.log_metrics({"foo": 1.0})
@@ -1001,16 +1006,16 @@ The list of loggers currently being used by the Trainer.
 local_rank
 ~~~~~~~~~~~
 
-The ``global_rank`` is the index of the current process across all the devices for the current node.
+The ``local_rank`` is the index of the current process across all the devices for the current node.
 You usually do not need to use this property, but it is useful to know how to access it if needed.
 For example, if using 10 machines (or nodes), the GPU at index 0 on each machine has local_rank = 0.
 
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        if self.global_rank == 0:
+        if self.local_rank == 0:
             # do something only once across each node
-            self.log("global_step", self.trainer.global_step)
+            ...
 
 precision
 ~~~~~~~~~
@@ -1034,11 +1039,6 @@ Pointer to the trainer
         max_steps = self.trainer.max_steps
         any_flag = self.trainer.any_flag
 
-use_amp
-~~~~~~~
-
-``True`` if using Automatic Mixed Precision (AMP)
-
 prepare_data_per_node
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -1058,7 +1058,7 @@ automatic_optimization
 When set to ``False``, Lightning does not automate the optimization process. This means you are responsible for handling
 your optimizers. However, we do take care of precision and any accelerators used.
 
-See :ref:`manual optimization<common/optimizers:Manual optimization>` for details.
+See :ref:`manual optimization <common/optimization:Manual optimization>` for details.
 
 .. code-block:: python
 
@@ -1113,11 +1113,6 @@ Set and access example_input_array, which basically represents a single batch.
     def on_train_epoch_end(self):
         # generate some images using the example_input_array
         gen_images = self.generator(self.example_input_array)
-
-model_size
-~~~~~~~~~~
-
-Get the model file size (in megabytes) using ``self.model_size`` inside LightningModule.
 
 truncated_bptt_steps
 ~~~~~~~~~~~~~~~~~~~~
@@ -1222,9 +1217,6 @@ for more information.
         on_fit_start()
         setup("fit")
         configure_optimizers()
-
-        on_pretrain_routine_start()
-        on_pretrain_routine_end()
 
         # the sanity check runs here
 
@@ -1387,18 +1379,6 @@ on_validation_end
 ~~~~~~~~~~~~~~~~~
 
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.on_validation_end
-    :noindex:
-
-on_pretrain_routine_start
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_pretrain_routine_start
-    :noindex:
-
-on_pretrain_routine_end
-~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_pretrain_routine_end
     :noindex:
 
 on_test_batch_start

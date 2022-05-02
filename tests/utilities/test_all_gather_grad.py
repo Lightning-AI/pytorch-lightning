@@ -54,7 +54,7 @@ def _test_all_gather_ddp(rank, world_size):
     assert torch.allclose(grad2, tensor2.grad)
 
 
-@RunIf(skip_windows=True, skip_49370=True, skip_hanging_spawn=True)
+@RunIf(skip_windows=True, skip_hanging_spawn=True)
 def test_all_gather_ddp_spawn():
     world_size = 3
     torch.multiprocessing.spawn(_test_all_gather_ddp, args=(world_size,), nprocs=world_size)
@@ -106,6 +106,8 @@ def test_all_gather_collection(tmpdir):
         accelerator="gpu",
         devices=2,
         strategy="ddp",
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
 
     trainer.fit(model)
@@ -129,6 +131,14 @@ def test_all_gather_sync_grads(tmpdir):
             return loss
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="gpu", devices=2, strategy="ddp")
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        accelerator="gpu",
+        devices=2,
+        strategy="ddp",
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
     trainer.fit(model)
     assert model.training_step_called

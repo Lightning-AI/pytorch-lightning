@@ -27,12 +27,10 @@ from pytorch_lightning.loops.utilities import (
     _block_parallel_sync_behavior,
     _build_training_step_kwargs,
     _extract_hiddens,
-    check_finite_loss,
 )
 from pytorch_lightning.trainer.progress import OptimizationProgress
 from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.finite_checks import detect_nan_parameters
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -228,7 +226,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         closure = self._make_closure(kwargs, optimizer)
 
         if (
-            # when the training type plugin handles accumulation, we want to always call the optimizer step
+            # when the strategy handles accumulation, we want to always call the optimizer step
             not self.trainer.strategy.handles_gradient_accumulation
             and self.trainer.fit_loop._should_accumulate()
         ):
@@ -305,10 +303,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         def backward_fn(loss: Tensor) -> None:
             self.trainer._call_strategy_hook("backward", loss, optimizer, opt_idx)
 
-            # check if model weights are nan
-            if self.trainer._terminate_on_nan:
-                detect_nan_parameters(self.trainer.lightning_module)
-
         return backward_fn
 
     def _run_optimization_start(self, opt_idx: int, optimizer: torch.optim.Optimizer) -> None:
@@ -354,7 +348,11 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         else:
             optimizer = self.trainer.strategy._lightning_optimizers[opt_idx]
 
-        self.optim_progress.optimizer.step.increment_ready()
+        # if `strategy.handles_gradient_accumulation`, this method will be called to route into the strategy, but we
+        # need to check again if `should_accumulate` before increasing the counters
+        should_accumulate = self.trainer.fit_loop._should_accumulate()
+        if not should_accumulate:
+            self.optim_progress.optimizer.step.increment_ready()
 
         # model hook
         self.trainer._call_lightning_module_hook(
@@ -369,7 +367,8 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
             using_lbfgs=is_lbfgs,
         )
 
-        self.optim_progress.optimizer.step.increment_completed()
+        if not should_accumulate:
+            self.optim_progress.optimizer.step.increment_completed()
 
     def _on_before_zero_grad(self, optimizer: torch.optim.Optimizer) -> None:
         """Calls the ``on_before_zero_grad`` hook.
@@ -417,9 +416,6 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         result = self.output_result_cls.from_training_step_output(
             training_step_output, self.trainer.accumulate_grad_batches
         )
-
-        if self.trainer._terminate_on_nan:
-            check_finite_loss(result.closure_loss)
 
         if self.trainer.move_metrics_to_cpu:
             # hiddens and the training step output are not moved as they are not considered "metrics"

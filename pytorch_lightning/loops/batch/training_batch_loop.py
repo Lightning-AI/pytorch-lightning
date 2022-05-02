@@ -76,7 +76,7 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
         # replace the batch with the split batch
         self.split_idx, kwargs["batch"] = self._remaining_splits.pop(0)
 
-        self.trainer.logger_connector.on_train_split_start(self.split_idx)
+        self.trainer._logger_connector.on_train_split_start(self.split_idx)
 
         outputs: Optional[Union[_OPTIMIZER_LOOP_OUTPUTS_TYPE, _MANUAL_LOOP_OUTPUTS_TYPE]] = None  # for mypy
         # choose which loop will run the optimization
@@ -104,6 +104,11 @@ class TrainingBatchLoop(Loop[_OUTPUTS_TYPE]):
     def teardown(self) -> None:
         self.optimizer_loop.teardown()
         self.manual_loop.teardown()
+        # release memory
+        if self.accumulated_loss.memory is not None:
+            self.accumulated_loss.memory = self.accumulated_loss.memory.cpu()
+        if self.running_loss.memory is not None:
+            self.running_loss.memory = self.running_loss.memory.cpu()
 
     def _tbptt_split_batch(self, batch: Any) -> List[Any]:
         """Splits a single batch into a list of sequence steps for tbptt.

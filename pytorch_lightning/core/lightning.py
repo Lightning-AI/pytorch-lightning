@@ -32,21 +32,18 @@ from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.callbacks.progress import base as progress_base
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
-from pytorch_lightning.loggers import LightningLoggerBase
+from pytorch_lightning.loggers import Logger, LoggerCollection
 from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
+from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType, warnings
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.memory import get_model_size_mb
-from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -66,7 +63,7 @@ class LightningModule(
     CheckpointHooks,
     Module,
 ):
-    # Below is for property support of JIT in PyTorch 1.7
+    # Below is for property support of JIT
     # since none of these are important when using JIT, we are going to ignore them.
     __jit_unused_properties__ = (
         [
@@ -78,9 +75,9 @@ class LightningModule(
             "local_rank",
             "logger",
             "loggers",
-            "model_size",
             "automatic_optimization",
             "truncated_bptt_steps",
+            "use_amp",
         ]
         + DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -94,10 +91,9 @@ class LightningModule(
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
         # pointer to the trainer object
-        self.trainer = None
+        self.trainer: Optional["pl.Trainer"] = None
 
-        # true if using amp
-        self.use_amp: bool = False
+        self._use_amp: bool = False
 
         # the precision used
         self.precision: int = 32
@@ -110,7 +106,7 @@ class LightningModule(
         self._param_requires_grad_state = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
-        # TODO: remove after the 1.6 release
+        # TODO: remove in 1.8
         self._running_torchscript = False
 
         self._register_sharded_tensor_state_dict_hooks_if_available()
@@ -247,12 +243,31 @@ class LightningModule(
         self._truncated_bptt_steps = truncated_bptt_steps
 
     @property
-    def logger(self) -> Optional[LightningLoggerBase]:
+    def logger(self) -> Optional[Logger]:
         """Reference to the logger object in the Trainer."""
-        return self.trainer.logger if self.trainer else None
+        # this should match the implementation of `trainer.logger`
+        # we don't reuse it so we can properly set the deprecation stacklevel
+        if self.trainer is None:
+            return
+        loggers = self.trainer.loggers
+        if len(loggers) == 0:
+            return None
+        if len(loggers) == 1:
+            return loggers[0]
+        else:
+            if not self._running_torchscript:
+                rank_zero_deprecation(
+                    "Using `lightning_module.logger` when multiple loggers are configured."
+                    " This behavior will change in v1.8 when `LoggerCollection` is removed, and"
+                    " `lightning_module.logger` will return the first logger available.",
+                    stacklevel=5,
+                )
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                return LoggerCollection(loggers)
 
     @property
-    def loggers(self) -> List[LightningLoggerBase]:
+    def loggers(self) -> List[Logger]:
         """Reference to the list of loggers in the Trainer."""
         return self.trainer.loggers if self.trainer else []
 
@@ -380,7 +395,7 @@ class LightningModule(
 
         value = apply_to_collection(value, numbers.Number, self.__to_tensor)
 
-        if self.trainer.logger_connector.should_reset_tensors(self._current_fx_name):
+        if self.trainer._logger_connector.should_reset_tensors(self._current_fx_name):
             # if we started a new epoch (running its first batch) the hook name has changed
             # reset any tensors for the new hook name
             results.reset(metrics=False, fx=self._current_fx_name)
@@ -433,7 +448,7 @@ class LightningModule(
             rank_zero_only=rank_zero_only,
         )
 
-        self.trainer.logger_connector._current_fx = self._current_fx_name
+        self.trainer._logger_connector._current_fx = self._current_fx_name
 
     def log_dict(
         self,
@@ -688,7 +703,7 @@ class LightningModule(
                 return loss
 
         See Also:
-            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
+            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
     def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
@@ -705,10 +720,9 @@ class LightningModule(
             training_epoch_end(train_outs)
 
         Args:
-            outputs: List of outputs you defined in :meth:`training_step`.
-                If there are multiple optimizers, it is a list containing a list of outputs for each optimizer.
-                If using ``truncated_bptt_steps > 1``, each element is a list of outputs corresponding to the outputs
-                of each processed split batch.
+            outputs: List of outputs you defined in :meth:`training_step`. If there are multiple optimizers or when
+                using ``truncated_bptt_steps > 0``, the lists have the dimensions
+                (n_batches, tbptt_steps, n_optimizers). Dimensions of length 1 are squeezed.
 
         Return:
             None
@@ -863,7 +877,7 @@ class LightningModule(
                     ...
 
         See Also:
-            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
+            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
     def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
@@ -991,7 +1005,7 @@ class LightningModule(
         """
 
     def test_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        """Use this when testing with dp or ddp2 because :meth:`test_step` will operate on only part of the batch.
+        """Use this when testing with DP or DDP2 because :meth:`test_step` will operate on only part of the batch.
         However, this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
@@ -1041,7 +1055,7 @@ class LightningModule(
                 self.log("test_loss", loss)
 
         See Also:
-            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
+            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
     def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
@@ -1107,18 +1121,18 @@ class LightningModule(
 
         The :class:`~pytorch_lightning.callbacks.BasePredictionWriter` should be used while using a spawn
         based accelerator. This happens for ``Trainer(strategy="ddp_spawn")``
-        or training on 8 TPU cores with ``Trainer(tpu_cores=8)`` as predictions won't be returned.
+        or training on 8 TPU cores with ``Trainer(accelerator="tpu", devices=8)`` as predictions won't be returned.
 
         Example ::
 
             class MyModel(LightningModule):
 
-                def predicts_step(self, batch, batch_idx, dataloader_idx=0):
+                def predict_step(self, batch, batch_idx, dataloader_idx=0):
                     return self(batch)
 
             dm = ...
             model = MyModel()
-            trainer = Trainer(gpus=2)
+            trainer = Trainer(accelerator="gpu", devices=2)
             predictions = trainer.predict(model, dm)
 
 
@@ -1331,7 +1345,7 @@ class LightningModule(
         """Call this directly from your :meth:`training_step` when doing optimizations manually. By using this,
         Lightning can ensure that all the proper scaling gets applied when using mixed precision.
 
-        See :ref:`manual optimization<common/optimizers:Manual optimization>` for more examples.
+        See :ref:`manual optimization<common/optimization:Manual optimization>` for more examples.
 
         Example::
 
@@ -1384,7 +1398,7 @@ class LightningModule(
         # Iterate over all optimizer parameters to preserve their `requires_grad` information
         # in case these are pre-defined during `configure_optimizers`
         param_requires_grad_state = {}
-        for opt in self.optimizers(use_pl_optimizer=False):
+        for opt in self.trainer.optimizers:
             for group in opt.param_groups:
                 for param in group["params"]:
                     # If a param already appear in param_requires_grad_state, continue
@@ -1408,7 +1422,7 @@ class LightningModule(
         Args:
             optimizer_idx: The index of the optimizer to untoggle.
         """
-        for opt_idx, opt in enumerate(self.optimizers(use_pl_optimizer=False)):
+        for opt_idx, opt in enumerate(self.trainer.optimizers):
             if optimizer_idx != opt_idx:
                 for group in opt.param_groups:
                     for param in group["params"]:
@@ -1707,28 +1721,6 @@ class LightningModule(
 
         return splits
 
-    def summarize(self, max_depth: int = 1) -> ModelSummary:
-        """Summarize this LightningModule.
-
-        .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of `pytorch_lightning.utilities.model_summary.summarize`
-            and will be removed in v1.7.
-
-        Args:
-            max_depth: The maximum depth of layer nesting that the summary will include. A value of 0 turns the
-                layer summary off. Default: 1.
-
-        Return:
-            The model summary object
-        """
-        rank_zero_deprecation(
-            "The `LightningModule.summarize` method is deprecated in v1.5 and will be removed in v1.7. "
-            "Use `pytorch_lightning.utilities.model_summary.summarize` instead.",
-            stacklevel=6,
-        )
-
-        return summarize(self, max_depth)
-
     def freeze(self) -> None:
         r"""
         Freeze all params for inference.
@@ -1756,35 +1748,6 @@ class LightningModule(
             param.requires_grad = True
 
         self.train()
-
-    def get_progress_bar_dict(self) -> Dict[str, Union[int, str]]:
-        r"""
-        .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of
-            `pytorch_lightning.callbacks.progress.base.get_metrics` and will be removed in v1.7.
-
-        Implement this to override the default items displayed in the progress bar.
-        By default it includes the average loss value, split index of BPTT (if used)
-        and the version of the experiment when using a logger.
-
-        .. code-block::
-
-            Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, loss=4.501, v_num=10]
-
-        Here is an example how to override the defaults:
-
-        .. code-block:: python
-
-            def get_progress_bar_dict(self):
-                # don't show the version number
-                items = super().get_progress_bar_dict()
-                items.pop("v_num", None)
-                return items
-
-        Return:
-            Dictionary with the items to be displayed in the progress bar.
-        """
-        return progress_base.get_standard_metrics(self.trainer, self)
 
     def _verify_is_manual_optimization(self, fn_name):
         if self.automatic_optimization:
@@ -1953,19 +1916,34 @@ class LightningModule(
         return torchscript_module
 
     @property
-    def model_size(self) -> float:
-        """Returns the model size in MegaBytes (MB)
+    def use_amp(self) -> bool:
+        r"""
+        .. deprecated:: v1.6.
 
-        Note:
-            This property will not return correct value for Deepspeed (stage 3) and fully-sharded training.
+            This property was deprecated in v1.6 and will be removed in v1.8.
         """
         if not self._running_torchscript:  # remove with the deprecation removal
             rank_zero_deprecation(
-                "The `LightningModule.model_size` property was deprecated in v1.5 and will be removed in v1.7."
-                " Please use the `pytorch_lightning.utilities.memory.get_model_size_mb`.",
+                "`LightningModule.use_amp` was deprecated in v1.6 and will be removed in v1.8."
+                " Please use `Trainer.amp_backend`.",
                 stacklevel=5,
             )
-        return get_model_size_mb(self)
+        return self._use_amp
+
+    @use_amp.setter
+    def use_amp(self, use_amp: bool) -> None:
+        r"""
+        .. deprecated:: v1.6.
+
+            This property was deprecated in v1.6 and will be removed in v1.8.
+        """
+        if not self._running_torchscript:  # remove with the deprecation removal
+            rank_zero_deprecation(
+                "`LightningModule.use_amp` was deprecated in v1.6 and will be removed in v1.8."
+                " Please use `Trainer.amp_backend`.",
+                stacklevel=5,
+            )
+        self._use_amp = use_amp
 
     def add_to_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
         """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory

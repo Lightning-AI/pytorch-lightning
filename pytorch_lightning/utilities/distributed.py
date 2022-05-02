@@ -1,4 +1,3 @@
-# Copyright The PyTorch Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,15 +17,15 @@ import os
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
-from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
+from pytorch_lightning.utilities.imports import _HPU_AVAILABLE, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug as new_rank_zero_debug
 from pytorch_lightning.utilities.rank_zero import rank_zero_only  # noqa: F401
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 from pytorch_lightning.utilities.rank_zero import rank_zero_info as new_rank_zero_info
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn as new_rank_zero_warn
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -124,6 +123,14 @@ def sync_ddp(
             op = getattr(ReduceOp, reduce_op.upper())
     else:
         op = reduce_op
+
+    # WA for HPU. HPU doesn't support Long types, forcefully set it to float
+    if _HPU_AVAILABLE:
+        is_hpu_backend = os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
+        if is_hpu_backend:
+            if (result.type() == "torch.LongTensor") or (result.type() == "torch.hpu.LongTensor"):
+                new_rank_zero_info("Long tensor unsupported on HPU, casting to float")
+                result = result.float()
 
     # sync all processes before reduction
     torch.distributed.barrier(group=group)
@@ -275,11 +282,6 @@ def register_ddp_comm_hook(
         ...     ddp_comm_wrapper=default.fp16_compress_wrapper,
         ... )
     """
-    from pytorch_lightning.utilities import rank_zero_warn
-
-    if not _TORCH_GREATER_EQUAL_1_8:
-        rank_zero_warn("Not registering DDP comm hook. To use communication hooks, please use pytorch>=1.8.0.")
-        return
     if ddp_comm_hook is None:
         return
     # inform mypy that ddp_comm_hook is callable
@@ -287,19 +289,36 @@ def register_ddp_comm_hook(
 
     if ddp_comm_wrapper is not None:
         if not _TORCH_GREATER_EQUAL_1_9:
-            rank_zero_warn("Not applying DDP comm wrapper. To use communication wrapper, please use pytorch>=1.9.0.")
+            new_rank_zero_warn(
+                "Not applying DDP comm wrapper. To use communication wrapper, please use pytorch>=1.9.0."
+            )
         else:
             new_rank_zero_info(
                 f"DDP comm wrapper is provided, apply {ddp_comm_wrapper.__qualname__}({ddp_comm_hook.__qualname__})."
             )
             ddp_comm_hook = ddp_comm_wrapper(ddp_comm_hook)
 
-    rank_zero_debug(f"Registering DDP comm hook: {ddp_comm_hook.__qualname__}.")
+    new_rank_zero_debug(f"Registering DDP comm hook: {ddp_comm_hook.__qualname__}.")
     model.register_comm_hook(state=ddp_comm_state, hook=ddp_comm_hook)
 
 
 def tpu_distributed() -> bool:
     return _TPU_AVAILABLE and xm.xrt_world_size() > 1
+
+
+def get_default_process_group_backend_for_device(device: torch.device) -> str:
+    return "nccl" if device.type == "cuda" else "gloo"
+
+
+def _get_process_group_backend_from_env() -> Optional[str]:
+    torch_backend = os.getenv("PL_TORCH_DISTRIBUTED_BACKEND")
+    if torch_backend is not None:
+        rank_zero_deprecation(
+            "Environment variable `PL_TORCH_DISTRIBUTED_BACKEND`"
+            " was deprecated in v1.6 and will be removed in v1.8."
+            " Specify `process_group_backend` directly on the strategy constructor."
+        )
+    return torch_backend
 
 
 def init_dist_connection(
@@ -365,40 +384,6 @@ def _collect_states_on_rank_zero(state: Dict[str, Any]) -> Dict[int, Any]:
     if not distributed_available():
         return {0: state}
     return {rank: _broadcast_object_list(state, rank) for rank in range(torch.distributed.get_world_size())}
-
-
-class _BatchNormXd(torch.nn.modules.batchnorm._BatchNorm):
-    def _check_input_dim(self, input: torch.Tensor) -> None:
-        # The only difference between BatchNorm1d, BatchNorm2d, BatchNorm3d, etc
-        # is this method that is overwritten by the subclass.
-        # Here, we are bypassing some tensor sanity checks and trusting that the user
-        # provides the right input dimensions at inference.
-        return
-
-
-def _revert_sync_batchnorm(module: Module) -> Module:
-    # Code adapted from https://github.com/pytorch/pytorch/issues/41081#issuecomment-783961547
-    # Original author: Kapil Yedidi (@kapily)
-    converted_module = module
-    if isinstance(module, torch.nn.modules.batchnorm.SyncBatchNorm):
-        # Unfortunately, SyncBatchNorm does not store the original class - if it did
-        # we could return the one that was originally created.
-        converted_module = _BatchNormXd(
-            module.num_features, module.eps, module.momentum, module.affine, module.track_running_stats
-        )
-        if module.affine:
-            with torch.no_grad():
-                converted_module.weight = module.weight
-                converted_module.bias = module.bias
-        converted_module.running_mean = module.running_mean
-        converted_module.running_var = module.running_var
-        converted_module.num_batches_tracked = module.num_batches_tracked
-        if hasattr(module, "qconfig"):
-            converted_module.qconfig = module.qconfig
-    for name, child in module.named_children():
-        converted_module.add_module(name, _revert_sync_batchnorm(child))
-    del module
-    return converted_module
 
 
 def rank_zero_info(*args: Any, **kwargs: Any) -> Any:

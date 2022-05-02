@@ -24,7 +24,7 @@ import torch
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, StochasticWeightAveraging
-from pytorch_lightning.loggers import CSVLogger, LoggerCollection, TensorBoardLogger
+from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction, warning_cache
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -148,7 +148,7 @@ def test_simple_profiler_with_nonexisting_dirpath(tmpdir):
     assert nonexisting_tmpdir.join("fit-profiler.txt").exists()
 
 
-@RunIf(skip_windows=True, skip_49370=True)
+@RunIf(skip_windows=True)
 def test_simple_profiler_distributed_files(tmpdir):
     """Ensure the proper files are saved in distributed."""
     profiler = SimpleProfiler(dirpath=tmpdir, filename="profiler")
@@ -338,7 +338,10 @@ def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     """Checks for pickle issue reported in #6522."""
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=True, profiler="advanced", callbacks=StochasticWeightAveraging()
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        profiler="advanced",
+        callbacks=StochasticWeightAveraging(swa_lrs=1e-2),
     )
     trainer.fit(model)
 
@@ -349,7 +352,6 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=5,
         limit_val_batches=5,
@@ -357,6 +359,8 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         strategy="ddp",
         accelerator="gpu",
         devices=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
     expected = {"[pl][profile][Strategy]DDPStrategy.validation_step"}
@@ -450,9 +454,9 @@ def test_pytorch_profiler_nested(tmpdir):
     assert events_name == expected, (events_name, torch.__version__, platform.system())
 
 
-def test_pytorch_profiler_logger_collection(tmpdir):
-    """Tests whether the PyTorch profiler is able to write its trace locally when the Trainer's logger is an
-    instance of LoggerCollection.
+def test_pytorch_profiler_multiple_loggers(tmpdir):
+    """Tests whether the PyTorch profiler is able to write its trace locally when the Trainer is configured with
+    multiple loggers.
 
     See issue #8157.
     """
@@ -465,10 +469,9 @@ def test_pytorch_profiler_logger_collection(tmpdir):
     assert not look_for_trace(tmpdir)
 
     model = BoringModel()
-    # Wrap the logger in a list so it becomes a LoggerCollection
-    logger = [TensorBoardLogger(save_dir=tmpdir), CSVLogger(tmpdir)]
-    trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", logger=logger, limit_train_batches=5, max_epochs=1)
-    assert isinstance(trainer.logger, LoggerCollection)
+    loggers = [TensorBoardLogger(save_dir=tmpdir), CSVLogger(tmpdir)]
+    trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", logger=loggers, limit_train_batches=5, max_epochs=1)
+    assert len(trainer.loggers) == 2
     trainer.fit(model)
     assert look_for_trace(tmpdir)
 
@@ -479,7 +482,14 @@ def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, profiler=profiler, accelerator="gpu", devices=1)
+    trainer = Trainer(
+        fast_dev_run=True,
+        profiler=profiler,
+        accelerator="gpu",
+        devices=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
     trainer.fit(model)
 
 

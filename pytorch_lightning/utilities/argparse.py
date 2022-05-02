@@ -17,6 +17,7 @@ import inspect
 import os
 from abc import ABC
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
+from ast import literal_eval
 from contextlib import suppress
 from functools import wraps
 from typing import Any, Callable, cast, Dict, List, Tuple, Type, TypeVar, Union
@@ -121,7 +122,7 @@ def parse_env_variables(cls: Type["pl.Trainer"], template: str = "PL_%(cls_name)
             # todo: specify the possible exception
             with suppress(Exception):
                 # converting to native types like int/float/bool
-                val = eval(val)
+                val = literal_eval(val)
             env_args[arg_name] = val
     return Namespace(**env_args)
 
@@ -265,7 +266,13 @@ def add_argparse_args(
             use_type = _precision_allowed_type
 
         parser.add_argument(
-            f"--{arg}", dest=arg, default=arg_default, type=use_type, help=args_help.get(arg), **arg_kwargs
+            f"--{arg}",
+            dest=arg,
+            default=arg_default,
+            type=use_type,
+            help=args_help.get(arg),
+            required=(arg_default == inspect._empty),
+            **arg_kwargs,
         )
 
     if use_argument_group:

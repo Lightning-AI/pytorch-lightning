@@ -31,13 +31,14 @@ from packaging import version
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
-from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
+from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.loggers import LightningLoggerBase, TensorBoardLogger
+from pytorch_lightning.loggers import Logger, TensorBoardLogger
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import (
+    _populate_registries,
     CALLBACK_REGISTRY,
     DATAMODULE_REGISTRY,
     instantiate_class,
@@ -75,7 +76,7 @@ def test_default_args(mock_argparse):
     assert trainer.max_epochs == 5
 
 
-@pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], ["--weights_save_path=./"], []])
+@pytest.mark.parametrize("cli_args", [["--accumulate_grad_batches=22"], []])
 def test_add_argparse_args_redefined(cli_args):
     """Redefines some default Trainer arguments via the cli and tests the Trainer initialization correctness."""
     parser = LightningArgumentParser(add_help=False, parse_as_dict=False)
@@ -139,7 +140,6 @@ def test_add_argparse_args_redefined_error(cli_args, monkeypatch):
                 # interface.
                 min_steps=None,
                 accelerator=None,
-                weights_save_path=None,
                 profiler=None,
             ),
         ),
@@ -180,7 +180,15 @@ def test_parse_args_parsing_complex_types(cli_args, expected, instantiate):
         assert Trainer.from_argparse_args(args)
 
 
-@pytest.mark.parametrize(["cli_args", "expected_gpu"], [("--gpus 1", [0]), ("--gpus 0,", [0]), ("--gpus 0,1", [0, 1])])
+@pytest.mark.parametrize(
+    ["cli_args", "expected_gpu"],
+    [
+        ("--accelerator gpu --devices 1", [0]),
+        ("--accelerator gpu --devices 0,", [0]),
+        ("--accelerator gpu --devices 1,", [1]),
+        ("--accelerator gpu --devices 0,1", [0, 1]),
+    ],
+)
 def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
     """Test parsing of gpus and instantiation of Trainer."""
     monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
@@ -192,7 +200,7 @@ def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
         args = parser.parse_args()
 
     trainer = Trainer.from_argparse_args(args)
-    assert trainer.data_parallel_device_ids == expected_gpu
+    assert trainer.device_ids == expected_gpu
 
 
 @pytest.mark.skipif(
@@ -456,7 +464,11 @@ def test_lightning_cli_print_config():
     with mock.patch("sys.argv", cli_args), redirect_stdout(out), pytest.raises(SystemExit):
         any_model_any_data_cli()
 
-    outval = yaml.safe_load(out.getvalue())
+    text = out.getvalue()
+    # test dump_header
+    assert text.startswith(f"# pytorch_lightning=={__version__}")
+
+    outval = yaml.safe_load(text)
     assert outval["seed_everything"] == 1234
     assert outval["model"]["class_path"] == "tests.helpers.BoringModel"
     assert outval["data"]["class_path"] == "tests.helpers.BoringDataModule"
@@ -576,21 +588,14 @@ class EarlyExitTestModel(BoringModel):
         raise MisconfigurationException("Error on fit start")
 
 
+@RunIf(skip_windows=True)
 @pytest.mark.parametrize("logger", (False, True))
-@pytest.mark.parametrize(
-    "trainer_kwargs",
-    (
-        # dict(strategy="ddp_spawn")
-        # dict(strategy="ddp")
-        # the previous accl_conn will choose singleDeviceStrategy for both strategy=ddp/ddp_spawn
-        # TODO revisit this test as it never worked with DDP or DDPSpawn
-        dict(strategy="single_device"),
-        pytest.param({"tpu_cores": 1}, marks=RunIf(tpu=True)),
-    ),
-)
-def test_cli_distributed_save_config_callback(tmpdir, logger, trainer_kwargs):
+@pytest.mark.parametrize("strategy", ("ddp_spawn", "ddp"))
+def test_cli_distributed_save_config_callback(tmpdir, logger, strategy):
+    from torch.multiprocessing import ProcessRaisedException
+
     with mock.patch("sys.argv", ["any.py", "fit"]), pytest.raises(
-        MisconfigurationException, match=r"Error on fit start"
+        (MisconfigurationException, ProcessRaisedException), match=r"Error on fit start"
     ):
         LightningCLI(
             EarlyExitTestModel,
@@ -599,7 +604,9 @@ def test_cli_distributed_save_config_callback(tmpdir, logger, trainer_kwargs):
                 "logger": logger,
                 "max_steps": 1,
                 "max_epochs": 1,
-                **trainer_kwargs,
+                "strategy": strategy,
+                "accelerator": "auto",
+                "devices": 1,
             },
         )
     if logger:
@@ -740,7 +747,7 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_registries, 
             self.optim2 = instantiate_class(self.parameters(), optim2)
             self.scheduler = instantiate_class(self.optim1, scheduler)
 
-    cli_args = ["fit", f"--trainer.default_root_dir={tmpdir}", "--trainer.max_epochs=1", "--lr_scheduler.gamma=0.2"]
+    cli_args = ["fit", f"--trainer.default_root_dir={tmpdir}", "--trainer.max_epochs=1"]
     if use_registries:
         cli_args += [
             "--optim1",
@@ -753,6 +760,7 @@ def test_lightning_cli_optimizers_and_lr_scheduler_with_link_to(use_registries, 
         ]
     else:
         cli_args += ["--optim2.class_path=torch.optim.SGD", "--optim2.init_args.lr=0.01"]
+    cli_args += ["--lr_scheduler.gamma=0.2"]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(TestModel)
@@ -883,27 +891,38 @@ def test_lightning_cli_run():
     assert isinstance(cli.model, LightningModule)
 
 
-@OPTIMIZER_REGISTRY
-class CustomAdam(torch.optim.Adam):
-    pass
-
-
-@LR_SCHEDULER_REGISTRY
-class CustomCosineAnnealingLR(torch.optim.lr_scheduler.CosineAnnealingLR):
-    pass
-
-
-@CALLBACK_REGISTRY
-class CustomCallback(Callback):
-    pass
-
-
-@LOGGER_REGISTRY
-class CustomLogger(LightningLoggerBase):
-    pass
+@pytest.fixture(autouse=True)
+def clear_registries():
+    # since the registries are global, it's good to clear them after each test to avoid unwanted interactions
+    yield
+    OPTIMIZER_REGISTRY.clear()
+    LR_SCHEDULER_REGISTRY.clear()
+    CALLBACK_REGISTRY.clear()
+    MODEL_REGISTRY.clear()
+    DATAMODULE_REGISTRY.clear()
+    LOGGER_REGISTRY.clear()
 
 
 def test_registries():
+    # the registries are global so this is only necessary when this test is run standalone
+    _populate_registries(False)
+
+    @OPTIMIZER_REGISTRY
+    class CustomAdam(torch.optim.Adam):
+        pass
+
+    @LR_SCHEDULER_REGISTRY
+    class CustomCosineAnnealingLR(torch.optim.lr_scheduler.CosineAnnealingLR):
+        pass
+
+    @CALLBACK_REGISTRY
+    class CustomCallback(Callback):
+        pass
+
+    @LOGGER_REGISTRY
+    class CustomLogger(Logger):
+        pass
+
     assert "SGD" in OPTIMIZER_REGISTRY.names
     assert "RMSprop" in OPTIMIZER_REGISTRY.names
     assert "CustomAdam" in OPTIMIZER_REGISTRY.names
@@ -916,9 +935,13 @@ def test_registries():
     assert "EarlyStopping" in CALLBACK_REGISTRY.names
     assert "CustomCallback" in CALLBACK_REGISTRY.names
 
-    with pytest.raises(MisconfigurationException, match="is already present in the registry"):
-        OPTIMIZER_REGISTRY.register_classes(torch.optim, torch.optim.Optimizer)
-    OPTIMIZER_REGISTRY.register_classes(torch.optim, torch.optim.Optimizer, override=True)
+    class Foo:
+        ...
+
+    OPTIMIZER_REGISTRY(Foo, key="SGD")  # not overridden by default
+    assert OPTIMIZER_REGISTRY["SGD"] is torch.optim.SGD
+    OPTIMIZER_REGISTRY(Foo, key="SGD", override=True)
+    assert OPTIMIZER_REGISTRY["SGD"] is Foo
 
     # test `_Registry.__call__` returns the class
     assert isinstance(CustomCallback(), CustomCallback)
@@ -927,7 +950,13 @@ def test_registries():
     assert "CustomLogger" in LOGGER_REGISTRY
 
 
-@MODEL_REGISTRY
+def test_registries_register_automatically():
+    assert "SaveConfigCallback" not in CALLBACK_REGISTRY
+    with mock.patch("sys.argv", ["any.py"]):
+        LightningCLI(BoringModel, run=False, auto_registry=True)
+    assert "SaveConfigCallback" in CALLBACK_REGISTRY
+
+
 class TestModel(BoringModel):
     def __init__(self, foo, bar=5):
         super().__init__()
@@ -935,10 +964,10 @@ class TestModel(BoringModel):
         self.bar = bar
 
 
-MODEL_REGISTRY(cls=BoringModel)
-
-
 def test_lightning_cli_model_choices():
+    MODEL_REGISTRY(cls=TestModel)
+    MODEL_REGISTRY(cls=BoringModel)
+
     with mock.patch("sys.argv", ["any.py", "fit", "--model=BoringModel"]), mock.patch(
         "pytorch_lightning.Trainer._fit_impl"
     ) as run:
@@ -953,7 +982,6 @@ def test_lightning_cli_model_choices():
         assert cli.model.bar == 5
 
 
-@DATAMODULE_REGISTRY
 class MyDataModule(BoringDataModule):
     def __init__(self, foo, bar=5):
         super().__init__()
@@ -961,10 +989,11 @@ class MyDataModule(BoringDataModule):
         self.bar = bar
 
 
-DATAMODULE_REGISTRY(cls=BoringDataModule)
-
-
 def test_lightning_cli_datamodule_choices():
+    MODEL_REGISTRY(cls=BoringModel)
+    DATAMODULE_REGISTRY(cls=MyDataModule)
+    DATAMODULE_REGISTRY(cls=BoringDataModule)
+
     # with set model
     with mock.patch("sys.argv", ["any.py", "fit", "--data=BoringDataModule"]), mock.patch(
         "pytorch_lightning.Trainer._fit_impl"
@@ -1001,7 +1030,7 @@ def test_lightning_cli_datamodule_choices():
         assert not hasattr(cli.parser.groups["data"], "group_class")
 
     with mock.patch("sys.argv", ["any.py"]), mock.patch.dict(DATAMODULE_REGISTRY, clear=True):
-        cli = LightningCLI(BoringModel, run=False)
+        cli = LightningCLI(BoringModel, run=False, auto_registry=False)
         # no registered classes so not added automatically
         assert "data" not in cli.parser.groups
     assert len(DATAMODULE_REGISTRY)  # check state was not modified
@@ -1014,6 +1043,8 @@ def test_lightning_cli_datamodule_choices():
 
 @pytest.mark.parametrize("use_class_path_callbacks", [False, True])
 def test_registries_resolution(use_class_path_callbacks):
+    MODEL_REGISTRY(cls=BoringModel)
+
     """This test validates registries are used when simplified command line are being used."""
     cli_args = [
         "--optimizer",
@@ -1070,6 +1101,7 @@ def test_argv_transformation_single_callback():
         }
     ]
     expected = base + ["--trainer.callbacks", str(callbacks)]
+    _populate_registries(False)
     argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, "trainer.callbacks", input)
     assert argv == expected
 
@@ -1093,6 +1125,7 @@ def test_argv_transformation_multiple_callbacks():
         },
     ]
     expected = base + ["--trainer.callbacks", str(callbacks)]
+    _populate_registries(False)
     argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, "trainer.callbacks", input)
     assert argv == expected
 
@@ -1120,6 +1153,7 @@ def test_argv_transformation_multiple_callbacks_with_config():
     ]
     expected = base + ["--trainer.callbacks", str(callbacks)]
     nested_key = "trainer.callbacks"
+    _populate_registries(False)
     argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, nested_key, input)
     assert argv == expected
 
@@ -1156,6 +1190,7 @@ def test_argv_transformation_multiple_callbacks_with_config():
 def test_argv_transformations_with_optimizers_and_lr_schedulers(args, expected, nested_key, registry):
     base = ["any.py", "--trainer.max_epochs=1"]
     argv = base + args
+    _populate_registries(False)
     new_argv = LightningArgumentParser._convert_argv_issue_84(registry.classes, nested_key, argv)
     assert new_argv == base + [f"--{nested_key}", str(expected)]
 
@@ -1180,7 +1215,7 @@ def test_optimizers_and_lr_schedulers_reload(tmpdir):
     # validate yaml
     yaml_config = out.getvalue()
     dict_config = yaml.safe_load(yaml_config)
-    assert dict_config["optimizer"]["class_path"] == "torch.optim.adam.Adam"
+    assert dict_config["optimizer"]["class_path"] == "torch.optim.Adam"
     assert dict_config["optimizer"]["init_args"]["lr"] == 0.1
     assert dict_config["lr_scheduler"]["class_path"] == "torch.optim.lr_scheduler.OneCycleLR"
 
@@ -1225,9 +1260,8 @@ def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload
         "--lr_scheduler.max_lr=1",
         "--opt1",
         "Adam",
+        "--opt2=ASGD",
         "--opt2.lr=0.1",
-        "--opt2",
-        "ASGD",
         "--lr_scheduler.anneal_strategy=linear",
         "--something",
         "a",
@@ -1243,8 +1277,8 @@ def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload
     # validate yaml
     yaml_config = out.getvalue()
     dict_config = yaml.safe_load(yaml_config)
-    assert dict_config["opt1"]["class_path"] == "torch.optim.adam.Adam"
-    assert dict_config["opt2"]["class_path"] == "torch.optim.asgd.ASGD"
+    assert dict_config["opt1"]["class_path"] == "torch.optim.Adam"
+    assert dict_config["opt2"]["class_path"] == "torch.optim.ASGD"
     assert dict_config["opt2"]["init_args"]["lr"] == 0.1
     assert dict_config["lr_scheduler"]["class_path"] == "torch.optim.lr_scheduler.OneCycleLR"
     assert dict_config["lr_scheduler"]["init_args"]["anneal_strategy"] == "linear"
@@ -1256,8 +1290,8 @@ def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload
     with mock.patch("sys.argv", base + [f"--config={yaml_config_file}"]):
         cli = TestLightningCLI(TestModel)
 
-    assert cli.model.opt1_config["class_path"] == "torch.optim.adam.Adam"
-    assert cli.model.opt2_config["class_path"] == "torch.optim.asgd.ASGD"
+    assert cli.model.opt1_config["class_path"] == "torch.optim.Adam"
+    assert cli.model.opt2_config["class_path"] == "torch.optim.ASGD"
     assert cli.model.opt2_config["init_args"]["lr"] == 0.1
     assert cli.model.sch_config["class_path"] == "torch.optim.lr_scheduler.OneCycleLR"
     assert cli.model.sch_config["init_args"]["anneal_strategy"] == "linear"
@@ -1513,3 +1547,45 @@ def test_cli_logger_shorthand():
     with mock.patch("sys.argv", ["any.py", "--trainer.logger=False"]):
         cli = LightningCLI(TestModel, run=False)
     assert cli.trainer.logger is None
+
+
+def test_cli_auto_seeding():
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=False)
+        assert cli.seed_everything_default is False
+        assert cli.config["seed_everything"] is False
+
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=True)
+        assert cli.seed_everything_default is True
+        assert isinstance(cli.config["seed_everything"], int)
+
+    with mock.patch("sys.argv", ["any.py", "--seed_everything", "3"]):
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=False)
+        assert cli.seed_everything_default is False
+        assert cli.config["seed_everything"] == 3
+
+    with mock.patch("sys.argv", ["any.py", "--seed_everything", "3"]):
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=True)
+        assert cli.seed_everything_default is True
+        assert cli.config["seed_everything"] == 3
+
+    with mock.patch("sys.argv", ["any.py", "--seed_everything", "3"]):
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=10)
+        assert cli.seed_everything_default == 10
+        assert cli.config["seed_everything"] == 3
+
+    with mock.patch("sys.argv", ["any.py", "--seed_everything", "false"]):
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=10)
+        assert cli.seed_everything_default == 10
+        assert cli.config["seed_everything"] is False
+
+    with mock.patch("sys.argv", ["any.py", "--seed_everything", "false"]):
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=True)
+        assert cli.seed_everything_default is True
+        assert cli.config["seed_everything"] is False
+
+    with mock.patch("sys.argv", ["any.py", "--seed_everything", "true"]):
+        cli = LightningCLI(TestModel, run=False, seed_everything_default=False)
+        assert cli.seed_everything_default is False
+        assert isinstance(cli.config["seed_everything"], int)
