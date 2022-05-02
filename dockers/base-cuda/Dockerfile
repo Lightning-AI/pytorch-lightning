@@ -32,6 +32,7 @@ ENV \
     MAKEFLAGS="-j2"
 
 RUN \
+    # TODO: Remove the manual key installation once the base image is updated.
     # https://github.com/NVIDIA/nvidia-docker/issues/1631
     apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
     apt-get update -qq --fix-missing && \
