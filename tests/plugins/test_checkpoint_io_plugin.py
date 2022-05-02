@@ -76,4 +76,4 @@ def test_checkpoint_plugin_called(tmpdir):
 
     trainer.test(model, ckpt_path=ck.last_model_path)
     checkpoint_plugin.load_checkpoint.assert_called_once()
-    checkpoint_plugin.load_checkpoint.assert_called_with(tmpdir / "last.ckpt")
+    checkpoint_plugin.load_checkpoint.assert_called_with(tmpdir / "last-v1.ckpt")

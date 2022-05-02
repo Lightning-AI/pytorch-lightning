@@ -105,16 +105,6 @@ RUN \
     pip install -r requirements-examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
     rm assistant.py
 
-RUN \
-   apt-get purge -y cmake && \
-   wget -q https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2.tar.gz && \
-   tar -zxvf cmake-3.20.2.tar.gz && \
-   cd cmake-3.20.2 && \
-   ./bootstrap -- -DCMAKE_USE_OPENSSL=OFF && \
-   make && \
-   make install && \
-   cmake  --version
-
 ENV \
     # if you want this environment to be the default o \ne, uncomment the following line:
     CONDA_DEFAULT_ENV=${CONDA_ENV} \

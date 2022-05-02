@@ -29,20 +29,23 @@ import pytorch_lightning as pl
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _JSONARGPARSE_AVAILABLE
+from pytorch_lightning.utilities.imports import _DOCSTRING_PARSER_AVAILABLE, _JSONARGPARSE_AVAILABLE
 from pytorch_lightning.utilities.meta import get_all_subclasses
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.seed import _select_seed_randomly
 from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple, LRSchedulerTypeUnion
 
 if _JSONARGPARSE_AVAILABLE:
     from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, Namespace, set_config_read_mode
-    from jsonargparse.optionals import import_docstring_parse
 
     set_config_read_mode(fsspec_enabled=True)
 else:
     locals()["ArgumentParser"] = object
     locals()["Namespace"] = object
+
+if _DOCSTRING_PARSER_AVAILABLE:
+    import docstring_parser
 
 
 class _Registry(dict):
@@ -470,7 +473,7 @@ class LightningCLI:
         save_config_multifile: bool = False,
         trainer_class: Union[Type[Trainer], Callable[..., Trainer]] = Trainer,
         trainer_defaults: Optional[Dict[str, Any]] = None,
-        seed_everything_default: Optional[int] = None,
+        seed_everything_default: Union[bool, int] = True,
         description: str = "pytorch-lightning trainer command line tool",
         env_prefix: str = "PL",
         env_parse: bool = False,
@@ -508,8 +511,9 @@ class LightningCLI:
                 this argument will not be configurable from a configuration file and will always be present for
                 this particular CLI. Alternatively, configurable callbacks can be added as explained in
                 :ref:`the CLI docs <lightning-cli>`.
-            seed_everything_default: Default value for the :func:`~pytorch_lightning.utilities.seed.seed_everything`
-                seed argument.
+            seed_everything_default: Value for the :func:`~pytorch_lightning.utilities.seed.seed_everything`
+                seed argument. Set to True to automatically choose a valid seed.
+                Setting it to False will not call seed_everything.
             description: Description of the tool shown when running ``--help``.
             env_prefix: Prefix for environment variables.
             env_parse: Whether environment variable parsing is enabled.
@@ -532,6 +536,13 @@ class LightningCLI:
         self.trainer_defaults = trainer_defaults or {}
         self.seed_everything_default = seed_everything_default
 
+        if self.seed_everything_default is None:
+            rank_zero_deprecation(
+                "Setting `LightningCLI.seed_everything_default` to `None` is deprecated in v1.7 "
+                "and will be removed in v1.9. Set it to `False` instead."
+            )
+            self.seed_everything_default = False
+
         self.model_class = model_class
         # used to differentiate between the original value and the processed value
         self._model_class = model_class or LightningModule
@@ -553,9 +564,7 @@ class LightningCLI:
 
         self.subcommand = self.config["subcommand"] if run else None
 
-        seed = self._get(self.config, "seed_everything")
-        if seed is not None:
-            seed_everything(seed, workers=True)
+        self._set_seed()
 
         self.before_instantiate_classes()
         self.instantiate_classes()
@@ -593,9 +602,12 @@ class LightningCLI:
         """Adds default arguments to the parser."""
         parser.add_argument(
             "--seed_everything",
-            type=Optional[int],
+            type=Union[bool, int],
             default=self.seed_everything_default,
-            help="Set to an int to run seed_everything with this value before classes instantiation",
+            help=(
+                "Set to an int to run seed_everything with this value before classes instantiation."
+                "Set to True to use a random seed."
+            ),
         )
 
     def add_core_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
@@ -849,6 +861,17 @@ class LightningCLI:
             fn_kwargs["datamodule"] = self.datamodule
         return fn_kwargs
 
+    def _set_seed(self) -> None:
+        """Sets the seed."""
+        config_seed = self._get(self.config, "seed_everything")
+
+        if isinstance(config_seed, bool) and config_seed:
+            config_seed = _select_seed_randomly()
+
+        if config_seed is not None and config_seed is not False:
+            seed_everything(config_seed, workers=True)
+            self.config["seed_everything"] = config_seed
+
 
 def _class_path_from_class(class_type: Type) -> str:
     return class_type.__module__ + "." + class_type.__name__
@@ -889,9 +912,13 @@ def instantiate_class(args: Union[Any, Tuple[Any, ...]], init: Dict[str, Any]) -
 
 
 def _get_short_description(component: object) -> Optional[str]:
-    parse, _ = import_docstring_parse("LightningCLI(run=True)")
-    try:
-        docstring = parse(component.__doc__)
-        return docstring.short_description
-    except ValueError:
-        rank_zero_warn(f"Failed parsing docstring for {component}")
+    if component.__doc__ is None:
+        return None
+    if not _DOCSTRING_PARSER_AVAILABLE:
+        rank_zero_warn(f"Failed parsing docstring for {component}: docstring-parser package is required")
+    else:
+        try:
+            docstring = docstring_parser.parse(component.__doc__)
+            return docstring.short_description
+        except (ValueError, docstring_parser.ParseError) as ex:
+            rank_zero_warn(f"Failed parsing docstring for {component}: {ex}")
