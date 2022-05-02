@@ -11,15 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+"""Test deprecated functionality which will be removed in v1.9.0."""
 from unittest import mock
 
 import pytest
+import torch
 
 import pytorch_lightning.loggers.base as logger_base
+from pytorch_lightning import Trainer
 from pytorch_lightning.core.lightning import LightningModule
 from pytorch_lightning.utilities.cli import LightningCLI
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from tests.helpers.boring_model import BoringModel
 
 
 def test_lightning_logger_base_deprecation_warning():
@@ -90,3 +93,28 @@ def test_lightningCLI_seed_everything_default_to_None_deprecation_warning():
         "and will be removed in v1.9. Set it to `False` instead."
     ):
         LightningCLI(LightningModule, run=False, seed_everything_default=None)
+
+
+def test_v1_9_0_deprecated_dict_outputs_format(tmpdir):
+    class CustomModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            out = super().training_step(batch, batch_idx)
+            return out["loss"]
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    model = CustomModel()
+    with pytest.deprecated_call(match="will change in version v1.9 to be a list of tensors"):
+        trainer.fit(model)
+
+    class CustomModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.automatic_optimization = False
+
+        def training_step(self, batch, batch_idx):
+            return torch.tensor(1.0)
+
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    model = CustomModel()
+    with pytest.deprecated_call(match="will change in version v1.9 to be a list of tensors"):
+        trainer.fit(model)
