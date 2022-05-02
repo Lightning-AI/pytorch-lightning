@@ -12,6 +12,3 @@
 
 # install all extra dependencies for running examples
 -r ./examples.txt
-
-# install documentations requirements
--r ./docs.txt
