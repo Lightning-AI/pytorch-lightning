@@ -1004,7 +1004,7 @@ def test_lightning_cli_datamodule_short_arguments():
     # with set model
     with mock.patch("sys.argv", ["any.py", "fit", "--data=BoringDataModule"]), mock.patch(
         "pytorch_lightning.Trainer._fit_impl"
-    ) as run:
+    ) as run, mock_subclasses(LightningDataModule, BoringDataModule):
         cli = LightningCLI(BoringModel, trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.datamodule, BoringDataModule)
         run.assert_called_once_with(ANY, ANY, ANY, cli.datamodule, ANY)
@@ -1018,7 +1018,7 @@ def test_lightning_cli_datamodule_short_arguments():
     # with configurable model
     with mock.patch("sys.argv", ["any.py", "fit", "--model", "BoringModel", "--data=BoringDataModule"]), mock.patch(
         "pytorch_lightning.Trainer._fit_impl"
-    ) as run, mock_subclasses(LightningModule, BoringModel):
+    ) as run, mock_subclasses(LightningModule, BoringModel), mock_subclasses(LightningDataModule, BoringDataModule):
         cli = LightningCLI(trainer_defaults={"fast_dev_run": 1})
         assert isinstance(cli.model, BoringModel)
         assert isinstance(cli.datamodule, BoringDataModule)
