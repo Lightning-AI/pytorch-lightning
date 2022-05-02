@@ -29,7 +29,11 @@ ENV \
     # CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
     MKL_THREADING_LAYER=GNU
 
-RUN apt-get update -qq --fix-missing && \
+RUN \
+    # TODO: Remove the manual key installation once the base image is updated.
+    # https://github.com/NVIDIA/nvidia-docker/issues/1631
+    apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
+    apt-get update -qq --fix-missing && \
     apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
@@ -96,23 +100,13 @@ RUN \
     python requirements_adjust_versions.py requirements-extra.txt && \
     python -c "print(' '.join([ln for ln in open('requirements-extra.txt').readlines() if 'horovod' in ln]))" > requirements_horovod.txt && \
     pip install -q fire && \
-    python assistant.py requirements_prune_pkgs requirements-extra.txt "horovod" && \
+    python assistant.py requirements_prune_pkgs "horovod" --req_files requirements-extra.txt && \
     python requirements_adjust_versions.py requirements-examples.txt && \
     # Install remaining requirements
     pip install -r requirements.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
     pip install -r requirements-extra.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
     pip install -r requirements-examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
     rm assistant.py
-
-RUN \
-   apt-get purge -y cmake && \
-   wget -q https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2.tar.gz && \
-   tar -zxvf cmake-3.20.2.tar.gz && \
-   cd cmake-3.20.2 && \
-   ./bootstrap -- -DCMAKE_USE_OPENSSL=OFF && \
-   make && \
-   make install && \
-   cmake  --version
 
 ENV \
     # if you want this environment to be the default o \ne, uncomment the following line:
@@ -148,11 +142,32 @@ RUN \
     python -c "from apex import amp"
 
 RUN \
+    # install FairScale
+    pip install fairscale==0.4.5 && \
+    python -c "import fairscale; print(fairscale.__version__)"
+
+RUN \
+    # install DeepSpeed
+    pip install deepspeed==0.6.0 && \
+    python -c "import deepspeed; print(deepspeed.__version__)"
+
+RUN \
+    # install Bagua
+    CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
+    pip install "bagua-cuda$CUDA_VERSION_MM==0.9.0" && \
+    python -c "import bagua_core; bagua_core.install_deps()" && \
+    python -c "import bagua; print(bagua.__version__)"
+
+COPY requirements/check-avail-extras.py check-avail-extras.py
+COPY requirements/check-avail-strategies.py check-avail-strategies.py
+
+RUN \
     # Show what we have
     pip --version && \
     conda info && \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
-    python -c "import horovod.torch" && \
-    python -c "from horovod.torch import nccl_built; nccl_built()"
+    python check-avail-extras.py && \
+    python check-avail-strategies.py && \
+    rm check-avail-*.py

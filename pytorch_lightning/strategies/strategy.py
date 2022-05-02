@@ -40,8 +40,7 @@ TBroadcast = TypeVar("TBroadcast")
 
 
 class Strategy(ABC):
-    """Base class for all training type plugins that change the behaviour of the training, validation and test-
-    loop."""
+    """Base class for all strategies that change the behaviour of the training, validation and test- loop."""
 
     def __init__(
         self,
@@ -181,7 +180,7 @@ class Strategy(ABC):
         model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any,
     ) -> Any:
-        """performs the actual optimizer step.
+        """Performs the actual optimizer step.
 
         Args:
             optimizer: the optimizer performing the step
@@ -481,7 +480,7 @@ class Strategy(ABC):
         """Called when predict ends."""
         pass
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
         """Called in the training loop before anything happens for that batch."""
         pass
 

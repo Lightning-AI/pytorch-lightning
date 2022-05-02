@@ -1,4 +1,3 @@
-# Copyright The PyTorch Lightning team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,11 +20,12 @@ import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
+from pytorch_lightning.utilities.imports import _HPU_AVAILABLE, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug as new_rank_zero_debug
 from pytorch_lightning.utilities.rank_zero import rank_zero_only  # noqa: F401
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 from pytorch_lightning.utilities.rank_zero import rank_zero_info as new_rank_zero_info
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn as new_rank_zero_warn
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -123,6 +123,14 @@ def sync_ddp(
             op = getattr(ReduceOp, reduce_op.upper())
     else:
         op = reduce_op
+
+    # WA for HPU. HPU doesn't support Long types, forcefully set it to float
+    if _HPU_AVAILABLE:
+        is_hpu_backend = os.environ.get("HCCL_DISTRIBUTED_BACKEND") == "1"
+        if is_hpu_backend:
+            if (result.type() == "torch.LongTensor") or (result.type() == "torch.hpu.LongTensor"):
+                new_rank_zero_info("Long tensor unsupported on HPU, casting to float")
+                result = result.float()
 
     # sync all processes before reduction
     torch.distributed.barrier(group=group)
@@ -274,11 +282,6 @@ def register_ddp_comm_hook(
         ...     ddp_comm_wrapper=default.fp16_compress_wrapper,
         ... )
     """
-    from pytorch_lightning.utilities import rank_zero_warn
-
-    if not _TORCH_GREATER_EQUAL_1_8:
-        rank_zero_warn("Not registering DDP comm hook. To use communication hooks, please use pytorch>=1.8.0.")
-        return
     if ddp_comm_hook is None:
         return
     # inform mypy that ddp_comm_hook is callable
@@ -286,14 +289,16 @@ def register_ddp_comm_hook(
 
     if ddp_comm_wrapper is not None:
         if not _TORCH_GREATER_EQUAL_1_9:
-            rank_zero_warn("Not applying DDP comm wrapper. To use communication wrapper, please use pytorch>=1.9.0.")
+            new_rank_zero_warn(
+                "Not applying DDP comm wrapper. To use communication wrapper, please use pytorch>=1.9.0."
+            )
         else:
             new_rank_zero_info(
                 f"DDP comm wrapper is provided, apply {ddp_comm_wrapper.__qualname__}({ddp_comm_hook.__qualname__})."
             )
             ddp_comm_hook = ddp_comm_wrapper(ddp_comm_hook)
 
-    rank_zero_debug(f"Registering DDP comm hook: {ddp_comm_hook.__qualname__}.")
+    new_rank_zero_debug(f"Registering DDP comm hook: {ddp_comm_hook.__qualname__}.")
     model.register_comm_hook(state=ddp_comm_state, hook=ddp_comm_hook)
 
 

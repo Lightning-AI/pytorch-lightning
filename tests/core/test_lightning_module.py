@@ -18,12 +18,17 @@ import torch
 from torch import nn
 from torch.optim import Adam, SGD
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
+
+
+def test_lightning_module_not_abstract():
+    """Test that the LightningModule can be instantiated (it is not an abstract class)."""
+    _ = LightningModule()
 
 
 def test_property_current_epoch():
@@ -72,7 +77,7 @@ def test_property_logger(tmpdir):
     assert model.logger is None
 
     logger = TensorBoardLogger(tmpdir)
-    trainer = Mock(logger=logger)
+    trainer = Mock(loggers=[logger])
     model.trainer = trainer
     assert model.logger == logger
 
