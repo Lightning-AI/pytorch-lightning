@@ -119,7 +119,7 @@ Under the hood, the Lightning Trainer runs the following training loop on your b
     autoencoder = LitAutoEncoder(encoder, decoder)
     optimizer = autoencoder.configure_optimizers()
 
-    for batch, batch_idx in enumerate(train_loader):
+    for batch_idx, batch in enumerate(train_loader):
         loss = autoencoder(batch, batch_idx)
 
         loss.backward()
