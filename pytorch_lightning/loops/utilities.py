@@ -248,11 +248,10 @@ def _deprecate_output_format(
     if is_overridden("training_epoch_end", lightning_module) and not _v1_8_output_format(
         lightning_module.training_epoch_end
     ):
-        message = (
+        rank_zero_deprecation(
             "You returned a tensor from `training_step`. The current format of `training_epoch_end(outputs)` is"
             " a list of dictionaries, however, this has been deprecated and will change in version v1.9 to be a"
             " list of tensors. You can update your code by adding the following parameter to your hook signature:"
             " `training_epoch_end(outputs, new_format=True)`."
         )
-        rank_zero_deprecation(message)
         result.was_dict = True

@@ -142,12 +142,10 @@ def test_warning_valid_train_step_end(tmpdir):
             output = self(batch)
             return {"output": output, "batch": batch}
 
-        def training_step_end(self, outputs):
-            loss = self.loss(outputs["batch"], outputs["output"])
+        def training_step_end(self, output):
+            loss = self.loss(output["batch"], output["output"])
             return loss
 
-        # even though `training_step_end` returns a Tensor, the `strategy.training_step_end` overrides it and returns
-        # a dictionary so we still need to explicitly request the `new_format`.
         def training_epoch_end(self, outputs, new_format=True) -> None:
             # since `training_step_end` returns a tensor, these are tensors
             torch.stack(outputs).mean()
