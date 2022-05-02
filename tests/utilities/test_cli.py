@@ -482,8 +482,8 @@ def test_lightning_cli_print_config():
 
     outval = yaml.safe_load(text)
     assert outval["seed_everything"] == 1234
-    assert outval["model"]["class_path"] == "tests.helpers.BoringModel"
-    assert outval["data"]["class_path"] == "tests.helpers.BoringDataModule"
+    assert outval["model"]["class_path"] == "pytorch_lightning.demos.boring_classes.BoringModel"
+    assert outval["data"]["class_path"] == "pytorch_lightning.demos.boring_classes.BoringDataModule"
     assert outval["ckpt_path"] is None
 
 
@@ -497,9 +497,9 @@ def test_lightning_cli_submodules(tmpdir):
     config = """model:
         main_param: 2
         submodule1:
-            class_path: tests.helpers.BoringModel
+            class_path: pytorch_lightning.demos.boring_classes.BoringModel
         submodule2:
-            class_path: tests.helpers.BoringModel
+            class_path: pytorch_lightning.demos.boring_classes.BoringModel
     """
     config_path = tmpdir / "config.yaml"
     with open(config_path, "w") as f:
