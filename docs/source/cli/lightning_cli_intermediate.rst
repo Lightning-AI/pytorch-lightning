@@ -161,7 +161,7 @@ View all available options with the ``--help`` command:
         --trainer.logger LOGGER
 
     optional arguments:
-    <class '__main__.BoringModel'>:
+    <class '__main__.DemoModel'>:
         --model.out_dim OUT_DIM
                                 (type: int, default: 10)
         --model.learning_rate LEARNING_RATE
