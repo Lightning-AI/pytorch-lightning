@@ -202,4 +202,4 @@ def test_hiddens_multiple_optimizers(tmpdir):
         enable_progress_bar=False,
     )
     trainer.fit(model)
-    assert trainer.global_step == 1
+    assert trainer.global_step == 8 / 2 * 2  # time_dim_length / tbptt_steps * num_optimizers

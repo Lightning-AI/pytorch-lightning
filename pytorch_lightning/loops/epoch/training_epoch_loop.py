@@ -358,6 +358,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if (
             num_optimizers > 1
             and lightning_module.truncated_bptt_steps > 0
+            and is_overridden("on_train_batch_end", lightning_module)
             and not _v1_8_output_format(lightning_module.on_train_batch_end)
         ):
             rank_zero_deprecation(
