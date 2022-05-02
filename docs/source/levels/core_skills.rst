@@ -27,7 +27,7 @@ Learn the basics of model development with Lightning. Researchers and machine le
 .. displayitem::
    :header: Level 2: Add a validation and test set
    :description: Add validation and test sets to avoid over/underfitting.
-   :button_link: /levels/basic_level_2.html
+   :button_link: ../levels/basic_level_2.html
    :col_css: col-md-6
    :height: 150
    :tag: basic
