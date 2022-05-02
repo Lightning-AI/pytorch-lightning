@@ -232,7 +232,7 @@ def _v1_8_output_format(fx: Callable) -> bool:
     return "new_format" in parameters and parameters["new_format"].default is True
 
 
-# TODO: remove in v1.8
+# TODO: remove in v1.9
 def _deprecate_output_format(
     result: Union[
         "pl.loops.optimization.optimizer_loop.ClosureResult", "pl.loops.optimization.manual_loop.ManualResult"
@@ -250,7 +250,7 @@ def _deprecate_output_format(
     ):
         message = (
             "You returned a tensor from `training_step`. The current format of `training_epoch_end(outputs)` is"
-            " a list of dictionaries, however, this has been deprecated and will change in version v1.8 to be a"
+            " a list of dictionaries, however, this has been deprecated and will change in version v1.9 to be a"
             " list of tensors. You can update your code by adding the following parameter to your hook signature:"
             " `training_epoch_end(outputs, new_format=True)`."
         )
