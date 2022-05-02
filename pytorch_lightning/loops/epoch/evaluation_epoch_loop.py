@@ -89,16 +89,17 @@ class EvaluationEpochLoop(Loop):
         data_fetcher.fetched += self.batch_progress.current.ready
 
         stage = "test" if self.trainer.testing else "val"
-        suffix = f"{stage}_dataloader_idx_{kwargs.get('dataloader_idx', 0)}_next"
+        self._profiler_fetch_action = (
+            f"[{self.__class__.__name__}].{stage}_dataloader_idx_{kwargs.get('dataloader_idx', 0)}_next"
+        )
+        data_fetcher._start_profiler = self._on_before_fetch
+        data_fetcher._stop_profiler = self._on_after_fetch
 
-        def _on_before_fetch() -> None:
-            self.trainer.profiler.start(f"[{self.__class__.__name__}].{suffix}")
+    def _on_before_fetch(self) -> None:
+        self.trainer.profiler.start(self._profiler_fetch_action)
 
-        def _on_after_fetch() -> None:
-            self.trainer.profiler.stop(f"[{self.__class__.__name__}].{suffix}")
-
-        data_fetcher._start_profiler = _on_before_fetch
-        data_fetcher._stop_profiler = _on_after_fetch
+    def _on_after_fetch(self) -> None:
+        self.trainer.profiler.stop(self._profiler_fetch_action)
 
     def advance(  # type: ignore[override]
         self,

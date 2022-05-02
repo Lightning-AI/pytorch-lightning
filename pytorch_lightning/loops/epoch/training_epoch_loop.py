@@ -154,14 +154,14 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
 
-        def _on_before_fetch() -> None:
-            self.trainer.profiler.start(f"[{self.__class__.__name__}].train_dataloader_next")
+        data_fetcher._start_profiler = self._on_before_fetch
+        data_fetcher._stop_profiler = self._on_after_fetch
 
-        def _on_after_fetch() -> None:
-            self.trainer.profiler.stop(f"[{self.__class__.__name__}].train_dataloader_next")
+    def _on_before_fetch(self) -> None:
+        self.trainer.profiler.start(f"[{self.__class__.__name__}].train_dataloader_next")
 
-        data_fetcher._start_profiler = _on_before_fetch
-        data_fetcher._stop_profiler = _on_after_fetch
+    def _on_after_fetch(self) -> None:
+        self.trainer.profiler.stop(f"[{self.__class__.__name__}].train_dataloader_next")
 
     def advance(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
         """Runs a single training batch.
