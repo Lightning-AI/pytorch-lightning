@@ -1445,7 +1445,7 @@ class Trainer(
         self.strategy.barrier("pre_setup")
 
         if self.datamodule is not None:
-            self.datamodule.setup(stage=fn)
+            self._call_lightning_datamodule_hook("setup", stage=fn)
         self._call_callback_hooks("setup", stage=fn)
         self._call_lightning_module_hook("setup", stage=fn)
 
@@ -1472,7 +1472,7 @@ class Trainer(
         fn = self.state.fn._setup_fn
 
         if self.datamodule is not None:
-            self.datamodule.teardown(stage=fn)
+            self._call_lightning_datamodule_hook("teardown", stage=fn)
 
         self._call_callback_hooks("teardown", stage=fn)
         self._call_lightning_module_hook("teardown", stage=fn)
@@ -1538,7 +1538,7 @@ class Trainer(
         pl_module = pl_module or self.lightning_module
 
         if pl_module is None:
-            raise TypeError("No Lightning Module is available to call hooks on")
+            raise TypeError("No `LightningModule` is available to call hooks on.")
 
         fn = getattr(pl_module, hook_name)
         if not callable(fn):
@@ -1552,6 +1552,27 @@ class Trainer(
 
         # restore current_fx when nested context
         pl_module._current_fx_name = prev_fx_name
+
+        return output
+
+    def _call_lightning_datamodule_hook(
+        self,
+        hook_name: str,
+        *args: Any,
+        datamodule: Optional["pl.LightningDataModule"] = None,
+        **kwargs: Any,
+    ) -> Any:
+        datamodule = datamodule or self.datamodule
+
+        if datamodule is None:
+            raise TypeError("No `LightningDataModule` is available to call hooks on.")
+
+        fn = getattr(datamodule, hook_name)
+        if not callable(fn):
+            return
+
+        with self.profiler.profile(f"[LightningDataModule]{datamodule.__class__.__name__}.{hook_name}"):
+            output = fn(*args, **kwargs)
 
         return output
 
