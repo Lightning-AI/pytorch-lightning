@@ -555,6 +555,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         Args:
             kwargs: The kwargs passed down to the hooks.
             batch: The current batch to run through the step.
+            batch_idx: The current batch idx.
 
         Returns:
             The kwargs passed down to the hooks.
