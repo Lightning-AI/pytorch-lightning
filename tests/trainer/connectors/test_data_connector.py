@@ -284,7 +284,7 @@ def test_dataloader_reinit_for_subclass():
     dataloader = CustomDataLoader(dataset, sampler=CustomSampler(dataset))
     result = trainer._data_connector._prepare_dataloader(dataloader, shuffle=True)
     assert isinstance(result.sampler, DistributedSamplerWrapper)
-    assert isinstance(result.sampler.dataset.sampler, CustomSampler)
+    assert isinstance(result.sampler.dataset._sampler, CustomSampler)
 
 
 class LoaderTestModel(BoringModel):
