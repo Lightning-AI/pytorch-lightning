@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from typing import Any, cast, Iterable, Iterator, List, Sized, Union
+from operator import itemgetter
+from typing import Any, cast, Iterable, Iterator, List, Optional, Sized, Union
 
 import torch
 from torch import Tensor
 from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data import BatchSampler, DistributedSampler, Sampler
+from torch.utils.data import BatchSampler, Dataset, DistributedSampler, Sampler
 
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.utilities import rank_zero_deprecation
@@ -102,6 +103,117 @@ class UnrepeatedDistributedSampler(DistributedSampler):
         assert len(indices) == self.num_samples
 
         return iter(indices)
+
+
+class _DatasetFromSampler(Dataset):
+    """Dataset to create indexes from `Sampler`.
+
+    Taken from https://github.com/catalyst-team/catalyst/blob/v22.04/catalyst/data/dataset.py
+    Args:
+        sampler: PyTorch sampler
+    """
+
+    def __init__(self, sampler: Sampler):
+        """Initialisation for DatasetFromSampler."""
+        if not isinstance(sampler, Sized):
+            raise TypeError("The given sampler must implement the `__len__` method.")
+        if len(sampler) == float("inf"):
+            raise TypeError("The given sampler must be bounded.")
+        self.sampler = sampler
+        self.sampler_list: Optional[List[Any]] = None
+
+    def __getitem__(self, index: int) -> Any:
+        """Gets element of the dataset.
+
+        Args:
+            index: index of the element in the dataset
+        Returns:
+            Single element by index
+        """
+        if self.sampler_list is None:
+            self.sampler_list = list(self.sampler)
+        return self.sampler_list[index]
+
+    def __len__(self) -> int:
+        """
+        Returns:
+            int: length of the dataset
+        """
+        return len(self.sampler)
+
+
+class DistributedSamplerWrapper(DistributedSampler):
+    """Wrapper over `Sampler` for distributed training. Allows you to use any sampler in distributed mode. It is
+    especially useful in conjunction with `torch.nn.parallel.DistributedDataParallel`. In such case, each process
+    can pass a DistributedSamplerWrapper instance as a DataLoader sampler, and load a subset of subsampled data of
+    the original dataset that is exclusive to it.
+
+    .. note::
+        Sampler is assumed to be of constant size.
+
+    Taken from https://github.com/catalyst-team/catalyst/blob/v22.04/catalyst/data/sampler.py
+    """
+
+    def __init__(
+        self,
+        sampler: Sampler,
+        num_replicas: Optional[int] = None,
+        rank: Optional[int] = None,
+        shuffle: bool = True,
+        seed: int = 0,
+        drop_last: bool = False,
+    ) -> None:
+        super().__init__(_DatasetFromSampler(sampler), num_replicas, rank, shuffle, seed, drop_last)
+        self.sampler = sampler
+
+    def __iter__(self) -> Iterator:
+        self.dataset = _DatasetFromSampler(self.sampler)
+        indexes_of_indexes = list(super().__iter__())
+        subsampler_indexes = self.dataset
+        num_indices = len(indexes_of_indexes)
+
+        if num_indices >= 2:
+            return iter(itemgetter(*indexes_of_indexes)(subsampler_indexes))
+        if num_indices == 1:
+            return iter([itemgetter(*indexes_of_indexes)(subsampler_indexes)])
+        return iter([])
+
+
+class UnrepeatedDistributedSamplerWrapper(UnrepeatedDistributedSampler):
+    """Wrapper over `Sampler` for distributed training. Allows you to use any sampler in distributed mode. It is
+    especially useful in conjunction with `torch.nn.parallel.DistributedDataParallel`. In such case, each process
+    can pass a DistributedSamplerWrapper instance as a DataLoader sampler, and load a subset of subsampled data of
+    the original dataset that is exclusive to it.
+
+    .. note::
+        Sampler is assumed to be of constant size.
+
+    Taken from https://github.com/catalyst-team/catalyst/blob/v22.04/catalyst/data/sampler.py
+    """
+
+    def __init__(
+        self,
+        sampler: Sampler,
+        num_replicas: Optional[int] = None,
+        rank: Optional[int] = None,
+        shuffle: bool = True,
+        seed: int = 0,
+        drop_last: bool = False,
+    ) -> None:
+        super().__init__(_DatasetFromSampler(sampler), num_replicas, rank, shuffle, seed, drop_last)
+        self.sampler = sampler
+
+    def __iter__(self) -> Iterator:
+        self.dataset = _DatasetFromSampler(self.sampler)
+        indexes_of_indexes = list(super().__iter__())
+        subsampler_indexes = self.dataset
+        num_indices = len(indexes_of_indexes)
+
+        if num_indices >= 2:
+            return iter(itemgetter(*indexes_of_indexes)(subsampler_indexes))
+        if num_indices == 1:
+            return iter([itemgetter(*indexes_of_indexes)(subsampler_indexes)])
+        return iter([])
 
 
 class IndexBatchSamplerWrapper:

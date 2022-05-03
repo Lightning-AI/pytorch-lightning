@@ -14,12 +14,14 @@
 from contextlib import redirect_stderr
 from io import StringIO
 from re import escape
+from typing import Sized
 from unittest.mock import Mock
 
 import pytest
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector, _DataLoaderSource, warning_cache
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
@@ -271,12 +273,18 @@ def test_dataloader_reinit_for_subclass():
     assert result.dummy_kwarg is None
 
     class CustomSampler(Sampler):
-        pass
+        def __init__(self, data_source: Sized) -> None:
+            super().__init__(data_source)
+            self.data_source = data_source
+
+        def __len__(self):
+            return len(self.data_source)
 
     # Should raise an error if existing sampler is being replaced
     dataloader = CustomDataLoader(dataset, sampler=CustomSampler(dataset))
-    with pytest.raises(MisconfigurationException, match="will be replaced by `DistributedSampler`"):
-        trainer._data_connector._prepare_dataloader(dataloader, shuffle=True)
+    result = trainer._data_connector._prepare_dataloader(dataloader, shuffle=True)
+    assert isinstance(result.sampler, DistributedSamplerWrapper)
+    assert isinstance(result.sampler.dataset.sampler, CustomSampler)
 
 
 class LoaderTestModel(BoringModel):
