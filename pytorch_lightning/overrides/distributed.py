@@ -113,7 +113,7 @@ class _DatasetFromSampler(Dataset):
         sampler: PyTorch sampler
     """
 
-    def __init__(self, sampler: Sampler):
+    def __init__(self, sampler: Union[Sampler, Iterable]):
         """Initialisation for DatasetFromSampler."""
         if not isinstance(sampler, Sized):
             raise TypeError("The given sampler must implement the `__len__` method.")
@@ -156,7 +156,7 @@ class DistributedSamplerWrapper(DistributedSampler):
 
     def __init__(
         self,
-        sampler: Sampler,
+        sampler: Union[Sampler, Iterable],
         num_replicas: Optional[int] = None,
         rank: Optional[int] = None,
         shuffle: bool = True,
@@ -193,7 +193,7 @@ class UnrepeatedDistributedSamplerWrapper(UnrepeatedDistributedSampler):
 
     def __init__(
         self,
-        sampler: Sampler,
+        sampler: Union[Sampler, Iterable],
         num_replicas: Optional[int] = None,
         rank: Optional[int] = None,
         shuffle: bool = True,
