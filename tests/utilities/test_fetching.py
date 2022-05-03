@@ -512,6 +512,7 @@ def test_fetching_is_profiled():
     )
     trainer.fit(model)
     trainer.test(model)
+    trainer.predict(model)
 
     profiler = trainer.profiler
     assert isinstance(profiler, SimpleProfiler)
@@ -535,7 +536,14 @@ def test_fetching_is_profiled():
     durations = profiler.recorded_durations[key]
     assert len(durations) == fast_dev_run
     assert all(d > 0 for d in durations)
+    # predict
+    key = "[PredictionEpochLoop].predict_dataloader_idx_0_next"
+    assert key in profiler.recorded_durations
+    durations = profiler.recorded_durations[key]
+    assert len(durations) == fast_dev_run
+    assert all(d > 0 for d in durations)
 
+    # now test profiling when the dataloader_iter is polled manually
     class MyModel(BoringModel):
         def training_step(self, dataloader_iter):
             _ = next(dataloader_iter)
