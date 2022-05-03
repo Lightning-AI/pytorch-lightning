@@ -405,7 +405,7 @@ def _check_datamodule_checkpoint_hooks(trainer: "pl.Trainer") -> None:
         )
 
 
-def _check_setup_method(model: "pl.LightningModule", datamodule: "pl.LightningDataModule"):
+def _check_setup_method(model: "pl.LightningModule", datamodule: "pl.LightningDataModule") -> None:
     for obj in (model, datamodule):
         if is_overridden("setup", obj) and not is_param_in_hook_signature(obj.setup, "stage"):
             raise MisconfigurationException(f"`{obj.__class__.__name__}.setup` does not have a `stage` argument.")
