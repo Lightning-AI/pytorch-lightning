@@ -27,6 +27,7 @@ Here is a minimal example of the `setup.py` file for the package `my-package`:
     setup(
         name="my-package",
         version="0.0.1",
+        install_requires=["pytorch-lightning"],
         entry_points={
             "pytorch_lightning.callbacks_factory": [
                 # The format here must be [any name]=[module path]:[function name]
@@ -41,4 +42,4 @@ specify where to find the function within the package.
 Now, if you `pip install -e .` this package, it will register the ``my_custom_callbacks_factory`` function and Lightning
 will automatically call it to collect the callbacks whenever you run the Trainer!
 
-To unregister the factory, simply uninstall the package with `pip uninstall .` inside the package.
+To unregister the factory, simply uninstall the package with `pip uninstall "my-package"`.
