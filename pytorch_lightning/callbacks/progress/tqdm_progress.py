@@ -382,8 +382,9 @@ def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
 
 
 def _update_n(bar: _tqdm, current: int, refresh_rate: int) -> None:
-    total = bar.total
-    leftover = current % refresh_rate
-    advance = leftover if (current == total and leftover != 0) else refresh_rate
-    bar.update(advance)
-    bar.refresh()
+    if not bar.disable:
+        total = bar.total
+        leftover = current % refresh_rate
+        advance = leftover if (current == total and leftover != 0) else refresh_rate
+        bar.update(advance)
+        bar.refresh()
