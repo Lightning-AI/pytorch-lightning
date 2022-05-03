@@ -15,6 +15,7 @@ import pytest
 import torch
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
+from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.demos.boring_classes import BoringDataModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
@@ -171,6 +172,10 @@ def test_invalid_setup_method():
         def setup(self):
             pass
 
+    class CustomBoringCallback(Callback):
+        def setup(self, pl_module, trainer):
+            pass
+
     fit_kwargs = [
         {"model": CustomModel(), "datamodule": BoringDataModule()},
         {"model": BoringModel(), "datamodule": CustomDataModule()},
@@ -181,3 +186,10 @@ def test_invalid_setup_method():
 
         with pytest.raises(MisconfigurationException, match="does not have a `stage` argument"):
             trainer.fit(**kwargs)
+
+    trainer = Trainer(fast_dev_run=True, callbacks=[CustomBoringCallback()])
+    model = BoringModel()
+    dm = BoringDataModule()
+
+    with pytest.raises(MisconfigurationException, match="does not have a `stage` argument"):
+        trainer.fit(model, datamodule=dm)
