@@ -13,7 +13,7 @@
 # limitations under the License.
 import itertools
 from operator import itemgetter
-from typing import Any, cast, Iterable, Iterator, List, Optional, Sized, Union
+from typing import Any, cast, Iterable, Iterator, List, Optional, Sized, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -145,11 +145,11 @@ class _DatasetFromSampler(Dataset):
 def _subsample_dataset(dataset: Dataset, iterator_: Iterator) -> Iterator:
     indexes_of_indexes = list(iterator_)
     num_indices = len(indexes_of_indexes)
-    indices = []
+    indices: Tuple = ()
     if num_indices:
         indices = itemgetter(*indexes_of_indexes)(dataset)
         if num_indices == 1:
-            indices = [indices]
+            indices = (indices,)  # avoid splitting
     return iter(indices)
 
 
