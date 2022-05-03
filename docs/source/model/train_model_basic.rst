@@ -33,6 +33,7 @@ Define the PyTorch nn.Modules
 
     class Encoder(nn.Module):
         def __init__(self):
+            super().__init__()
             self.l1 = nn.Sequential(nn.Linear(28 * 28, 64), nn.ReLU(), nn.Linear(64, 3))
 
         def forward(self, x):
@@ -41,6 +42,7 @@ Define the PyTorch nn.Modules
 
     class Decoder(nn.Module):
         def __init__(self):
+            super().__init__()
             self.l1 = nn.Sequential(nn.Linear(3, 64), nn.ReLU(), nn.Linear(64, 28 * 28))
 
         def forward(self, x):
@@ -117,7 +119,7 @@ Under the hood, the Lightning Trainer runs the following training loop on your b
     autoencoder = LitAutoEncoder(encoder, decoder)
     optimizer = autoencoder.configure_optimizers()
 
-    for batch, batch_idx in enumerate(train_loader):
+    for batch_idx, batch in enumerate(train_loader):
         loss = autoencoder(batch, batch_idx)
 
         loss.backward()

@@ -46,7 +46,7 @@ Accelerator: TPU training
    :header: FAQ
    :description: Frequently asked questions about TPU training.
    :col_css: col-md-4
-   :button_link: gpu_faq.html
+   :button_link: tpu_faq.html
    :height: 150
 
 .. raw:: html

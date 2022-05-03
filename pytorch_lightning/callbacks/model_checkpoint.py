@@ -517,9 +517,12 @@ class ModelCheckpoint(Callback):
                 if auto_insert_metric_name:
                     filename = filename.replace(group, name + "={" + name)
 
+                # support for dots: https://stackoverflow.com/a/7934969
+                filename = filename.replace(group, f"{{0[{name}]")
+
                 if name not in metrics:
                     metrics[name] = 0
-            filename = filename.format(**metrics)
+            filename = filename.format(metrics)
 
         if prefix:
             filename = cls.CHECKPOINT_JOIN_CHAR.join([prefix, filename])
@@ -637,6 +640,12 @@ class ModelCheckpoint(Callback):
             return
 
         filepath = self.format_checkpoint_name(monitor_candidates, self.CHECKPOINT_NAME_LAST)
+
+        version_cnt = self.STARTING_VERSION
+        while self.file_exists(filepath, trainer) and filepath != self.last_model_path:
+            filepath = self.format_checkpoint_name(monitor_candidates, self.CHECKPOINT_NAME_LAST, ver=version_cnt)
+            version_cnt += 1
+
         # set the last model path before saving because it will be part of the state.
         previous, self.last_model_path = self.last_model_path, filepath
         self._save_checkpoint(trainer, filepath)
