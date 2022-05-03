@@ -539,3 +539,17 @@ def test_eval_shuffle_with_distributed_sampler_replacement(shuffle):
     trainer._data_connector.attach_data(model)
     trainer.reset_val_dataloader(model)
     assert trainer.val_dataloaders[0].sampler.shuffle == shuffle
+
+
+def test_error_raised_with_insufficient_float_limit_train_dataloader():
+    batch_size = 16
+    dl = DataLoader(RandomDataset(32, batch_size * 9), batch_size=batch_size)
+    trainer = Trainer(limit_train_batches=0.1)
+    model = BoringModel()
+
+    trainer._data_connector.attach_data(model=model, train_dataloaders=dl)
+    with pytest.raises(
+        MisconfigurationException,
+        match="Please increase the `limit_train_batches` argument. Try at least",
+    ):
+        trainer.reset_train_dataloader(model)
