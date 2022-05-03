@@ -147,6 +147,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         self.accelerator.setup(trainer)
 
         if trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
+            assert self.model is not None
             self.model = self._layer_sync.apply(self.model)
 
         if not self.cpu_offload:
@@ -159,6 +160,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
     def model_to_device(self) -> None:
         # ensure we update the device type in the lightning module
+        assert self.lightning_module is not None
         log.info(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         self.lightning_module.to(self.root_device)
 
@@ -218,15 +220,18 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         super().teardown()
 
         if (
-            self.lightning_module.trainer is not None
+            self.lightning_module is not None
+            and self.lightning_module.trainer is not None
             and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
             and self._layer_sync
         ):
+            assert self.model is not None
             self.model = self._layer_sync.revert(self.model)
 
         if self.root_device.type == "cuda":
             # GPU teardown
             log.info(f"{self.__class__.__name__}: moving model to CPU...")
+            assert self.lightning_module is not None
             self.lightning_module.cpu()
             # clean up memory
             torch.cuda.empty_cache()
