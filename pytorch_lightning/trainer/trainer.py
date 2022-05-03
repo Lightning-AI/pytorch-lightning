@@ -1884,21 +1884,25 @@ class Trainer(
             self.train_dataloader = CombinedLoader(loaders, self._data_connector.multiple_trainloader_mode)
 
         module = model or self.lightning_module or self.datamodule
-        self.num_training_batches = (
+        orig_train_batches = self.num_training_batches = (
             len(self.train_dataloader)
             if has_len_all_ranks(self.train_dataloader, self.strategy, module)
             else float("inf")
         )
+        if orig_train_batches == 0:
+            return
+
+        # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
+        self._last_train_dl_reload_epoch = self.current_epoch
 
         if isinstance(self.limit_train_batches, int):
-            self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
+            self.num_training_batches = min(orig_train_batches, self.limit_train_batches)
         elif self.num_training_batches != float("inf"):
-            self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
+            self.num_training_batches = int(orig_train_batches * self.limit_train_batches)
         elif self.limit_train_batches != 1.0:
             raise MisconfigurationException(
-                "When using an IterableDataset for `limit_train_batches`,"
-                " `Trainer(limit_train_batches)` must be `1.0` or an int. An int k specifies"
-                " `num_training_batches` to use."
+                "When using an `IterableDataset`, `Trainer(limit_train_batches)` must be `1.0` or an int."
+                "An int specifies `num_training_batches` to use."
             )
 
         if isinstance(self.val_check_interval, int):
@@ -1931,8 +1935,19 @@ class Trainer(
                 category=PossibleUserWarning,
             )
 
-        # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
-        self._last_train_dl_reload_epoch = self.current_epoch
+        if (
+            self.num_training_batches == 0
+            and self.limit_train_batches > 0.0
+            and isinstance(self.limit_train_batches, float)
+            and orig_train_batches != float("inf")
+        ):
+            min_percentage = 1.0 / orig_train_batches
+            raise MisconfigurationException(
+                f"You requested to check {self.limit_train_batches} of the `train_dataloader` but"
+                f" {self.limit_train_batches} * {orig_train_batches} < 1. Please increase the"
+                f" `limit_train_batches` argument. Try at least"
+                f" `limit_train_batches={min_percentage}`"
+            )
 
     def reset_val_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the validation dataloader and determines the number of batches.

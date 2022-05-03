@@ -396,13 +396,17 @@ class DataConnector:
         loader_num_batches = []
 
         # determine number of batches
-        # datasets could be none, 1 or 2+
         module = model or self.trainer.lightning_module or self.datamodule
         if len(dataloaders) != 0:
             for i, dataloader in enumerate(dataloaders):
                 orig_num_batches = num_batches = (
                     len(dataloader) if has_len_all_ranks(dataloader, self.trainer.strategy, module) else float("inf")
                 )
+
+                if orig_num_batches == 0:
+                    loader_num_batches.append(orig_num_batches)
+                    continue
+
                 self._worker_check(dataloader, f"{mode.dataloader_prefix}_dataloader {i}")
 
                 # percent or num_steps
@@ -410,23 +414,27 @@ class DataConnector:
 
                 # limit num batches either as a percent or num steps
                 if isinstance(limit_eval_batches, int):
-                    num_batches = min(num_batches, int(limit_eval_batches))
-                elif num_batches != float("inf"):
-                    num_batches = int(num_batches * limit_eval_batches)
+                    num_batches = min(orig_num_batches, limit_eval_batches)
+                elif isinstance(limit_eval_batches, float) and orig_num_batches != float("inf"):
+                    num_batches = int(orig_num_batches * limit_eval_batches)
                 elif limit_eval_batches != 1.0:
                     raise MisconfigurationException(
-                        f"When using an IterableDataset for `limit_{mode}_batches`,"
-                        f" `Trainer(limit_{mode.dataloader_prefix}_batches)` must be `1.0` or an int. An int k"
-                        f" specifies `num_{mode.dataloader_prefix}_batches` to use."
+                        f"When using an `IterableDataset`, `Trainer(limit_{mode.dataloader_prefix}_batches)` must be"
+                        f" `1.0` or an int. An int specifies `num_{mode.dataloader_prefix}_batches` to use."
                     )
 
-                if num_batches == 0 and limit_eval_batches > 0.0 and isinstance(limit_eval_batches, float):
-                    min_pct = 1.0 / len(dataloader)
+                if (
+                    num_batches == 0
+                    and limit_eval_batches > 0.0
+                    and isinstance(limit_eval_batches, float)
+                    and orig_num_batches != float("inf")
+                ):
+                    min_percentage = 1.0 / orig_num_batches
                     raise MisconfigurationException(
                         f"You requested to check {limit_eval_batches} of the `{mode.dataloader_prefix}_dataloader` but"
                         f" {limit_eval_batches} * {orig_num_batches} < 1. Please increase the"
-                        f" `limit_{mode.dataloader_prefix}_batches` flag. Try at least"
-                        f" `limit_{mode.dataloader_prefix}_batches={min_pct}`"
+                        f" `limit_{mode.dataloader_prefix}_batches` argument. Try at least"
+                        f" `limit_{mode.dataloader_prefix}_batches={min_percentage}`"
                     )
 
                 loader_num_batches.append(num_batches)
