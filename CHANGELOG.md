@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added `LightningDataModule.load_from_checkpoint` to support loading datamodules directly from checkpoint ([#12550](https://github.com/PyTorchLightning/pytorch-lightning/pull/12550))
+
 
 - Added a friendly error message when attempting to call `Trainer.save_checkpoint()` without a model attached ([#12772](https://github.com/PyTorchLightning/pytorch-lightning/pull/12772))
 
@@ -22,16 +24,20 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Include the `pytorch_lightning` version as a header in the CLI config files ([#12532](https://github.com/PyTorchLightning/pytorch-lightning/pull/12532))
 
 
+- Added support for `Callback` registration through entry points ([#12739](https://github.com/PyTorchLightning/pytorch-lightning/pull/12739))
+
+
 - Added support for `Trainer(deterministic="warn")` to warn instead of fail when a non-deterministic operation is encountered ([#12588](https://github.com/PyTorchLightning/pytorch-lightning/pull/12588))
+
+
+- Include a version suffix for new "last" checkpoints of later runs in the same directory ([#12902](https://github.com/PyTorchLightning/pytorch-lightning/pull/12902))
+
+
+- Added class name prefix to metrics logged by `DeviceStatsMonitor` ([#12228](https://github.com/PyTorchLightning/pytorch-lightning/pull/12228))
 
 
 - Added Native FSDP Strategy ([#12447](https://github.com/PyTorchLightning/pytorch-lightning/pull/12447))
 
-
--
-
-
--
 
 ### Changed
 
@@ -50,10 +56,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Marked `swa_lrs` argument in `StochasticWeightAveraging` callback as required ([#12556](https://github.com/PyTorchLightning/pytorch-lightning/pull/12556))
 
 
-- Make positional arguments required for classes passed into the `add_argparse_args` function. ([#1250](https://github.com/PyTorchLightning/pytorch-lightning/pull/12504))
+- `LightningCLI`'s shorthand notation changed to use jsonargparse native feature ([#12614](https://github.com/PyTorchLightning/pytorch-lightning/pull/12614))
 
 
--
+- Changed `seed_everything_default` argument in the `LightningCLI` to type `Union[bool, int]`. If set to `True` a seed is automatically generated for the parser argument `--seed_everything`. ([#12822](https://github.com/PyTorchLightning/pytorch-lightning/pull/12822))
+
+
+- Make positional arguments required for classes passed into the `add_argparse_args` function. ([#12504](https://github.com/PyTorchLightning/pytorch-lightning/pull/12504))
 
 
 -
@@ -67,7 +76,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `num_processes`, `gpus`, `tpu_cores,` and `ipus` from the `Trainer` constructor in favor of using the `accelerator` and `devices` arguments ([#11040](https://github.com/PyTorchLightning/pytorch-lightning/pull/11040))
 
 
--
+- Deprecated setting `LightningCLI(seed_everything_default=None)` in favor of `False` ([#12804](https://github.com/PyTorchLightning/pytorch-lightning/issues/12804)).
 
 
 -
@@ -144,23 +153,47 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-
-- Fixed `ImportError` when `torch.distributed` is not available. ([#12794](https://github.com/PyTorchLightning/pytorch-lightning/pull/12794))
-
-
-- When using custom DataLoaders in LightningDataModule, multiple inheritance is resolved properly ([#12716](https://github.com/PyTorchLightning/pytorch-lightning/pull/12716))
-
-
-- Fixed encoding issues on terminals that do not support unicode characters ([#12828](https://github.com/PyTorchLightning/pytorch-lightning/pull/12828))
-
-
-- Fixed support for `ModelCheckpoint` monitors with dots ([#12783](https://github.com/PyTorchLightning/pytorch-lightning/pull/12783))
+- Fixed `fuse_modules` to be qat-aware for `torch>=1.11` ([#12891](https://github.com/PyTorchLightning/pytorch-lightning/pull/12891))
 
 
 - Use only a single instance of `rich.console.Console` throughout codebase ([#12886](https://github.com/PyTorchLightning/pytorch-lightning/pull/12886))
 
 
 - Fixed an issue to ensure all the checkpoint states are saved in a common filepath with `DeepspeedStrategy` ([#12887](https://github.com/PyTorchLightning/pytorch-lightning/pull/12887))
+
+
+- Fixed an issue wrt recursive invocation of DDP configuration in hpu parallel plugin ([#12912](https://github.com/PyTorchLightning/pytorch-lightning/pull/12912))
+
+
+- Fixed fit loop restart logic to enable resume using the checkpoint ([#12821](https://github.com/PyTorchLightning/pytorch-lightning/pull/12821)
+
+
+- Enforced eval shuffle warning only for default samplers in DataLoader ([#12653](https://github.com/PyTorchLightning/pytorch-lightning/pull/12653))
+
+
+- Fixed an issue where sharded grad scaler is passed in when using BF16 with the `ShardedStrategy` ([#12915](https://github.com/PyTorchLightning/pytorch-lightning/pull/12915))
+
+
+- Fixed printing of ragged dictionaries in `Trainer.validate` and `Trainer.test` ([#12857](https://github.com/PyTorchLightning/pytorch-lightning/pull/12857))
+
+
+- Stopped `optimizer_zero_grad` from being called after IPU execution ([#12913](https://github.com/PyTorchLightning/pytorch-lightning/pull/12913))
+
+
+- Enable mixed precision in `DDPFullyShardedStrategy` when `precision=16` ([#12965](https://github.com/PyTorchLightning/pytorch-lightning/pull/12965))
+
+
+## [1.6.2] - 2022-04-27
+
+### Fixed
+
+- Fixed `ImportError` when `torch.distributed` is not available. ([#12794](https://github.com/PyTorchLightning/pytorch-lightning/pull/12794))
+- When using custom DataLoaders in LightningDataModule, multiple inheritance is resolved properly ([#12716](https://github.com/PyTorchLightning/pytorch-lightning/pull/12716))
+- Fixed encoding issues on terminals that do not support unicode characters ([#12828](https://github.com/PyTorchLightning/pytorch-lightning/pull/12828))
+- Fixed support for `ModelCheckpoint` monitors with dots ([#12783](https://github.com/PyTorchLightning/pytorch-lightning/pull/12783))
+
+
+- Fixed `TQDMProgressBar` reset and update to show correct time estimation ([#12889](https://github.com/PyTorchLightning/pytorch-lightning/pull/12889))
 
 
 ## [1.6.1] - 2022-04-13

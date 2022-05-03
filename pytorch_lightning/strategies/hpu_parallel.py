@@ -103,7 +103,7 @@ class HPUParallelStrategy(DDPStrategy):
                 self._model._set_static_graph()  # type: ignore
             self._register_ddp_hooks()
         else:
-            self.configure_ddp()
+            super().configure_ddp()
 
     def broadcast(self, obj: object, src: int = 0) -> object:  # type: ignore
         obj = [obj]

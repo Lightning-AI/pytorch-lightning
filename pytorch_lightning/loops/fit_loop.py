@@ -123,15 +123,10 @@ class FitLoop(Loop[None]):
 
     @Loop.restarting.setter
     def restarting(self, restarting: bool) -> None:
-        # if the last epoch completely finished, we are not actually restarting, we can check this to see if all
-        # current values are equal
-        values = (
-            self.epoch_progress.current.ready,
-            self.epoch_progress.current.started,
-            self.epoch_progress.current.processed,
-        )
-        finished_before_on_train_end = any(v != self.epoch_progress.current.completed for v in values)
-        restarting &= finished_before_on_train_end
+        # if the last epoch completely finished, we are not actually restarting
+        values = self.epoch_progress.current.ready, self.epoch_progress.current.started
+        epoch_unfinished = any(v != self.epoch_progress.current.processed for v in values)
+        restarting = restarting and epoch_unfinished or self._iteration_based_training()
         Loop.restarting.fset(self, restarting)  # call the parent setter
 
     @property
@@ -205,6 +200,10 @@ class FitLoop(Loop[None]):
 
     def on_run_start(self) -> None:  # type: ignore[override]
         """Calls the ``on_train_start`` hook."""
+        # update the current_epoch in-case of checkpoint reload
+        if not self._iteration_based_training():
+            self.epoch_progress.current.completed = self.epoch_progress.current.processed
+
         # reset train dataloader and val dataloader
         self.trainer.reset_train_val_dataloaders(self.trainer.lightning_module)
 
@@ -335,6 +334,9 @@ class FitLoop(Loop[None]):
     def _should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated."""
         return self.epoch_loop._should_accumulate()
+
+    def _iteration_based_training(self) -> bool:
+        return self.trainer.max_steps != -1
 
 
 def _select_data_fetcher(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:

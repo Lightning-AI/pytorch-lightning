@@ -90,6 +90,11 @@ class TestFSDPModel(BoringModel):
         assert self.layer.module[0].reshard_after_forward is True
         assert self.layer.module[2].reshard_after_forward is True
 
+        if isinstance(self.trainer.precision_plugin, FullyShardedNativeMixedPrecisionPlugin):
+            assert self.layer.mixed_precision
+            assert self.layer.module[0].mixed_precision
+            assert self.layer.module[2].mixed_precision
+
 
 @RunIf(min_gpus=1, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
 def test_fully_sharded_strategy_checkpoint(tmpdir):
