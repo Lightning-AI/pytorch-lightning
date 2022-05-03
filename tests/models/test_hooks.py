@@ -616,8 +616,7 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         "state_dict": ANY,
         "loops": ANY,
     }
-    saved_ckpt1 = {**loaded_ckpt, "global_step": 2, "epoch": 0}
-    saved_ckpt2 = {**loaded_ckpt, "global_step": 4, "epoch": 1}
+    saved_ckpt = {**loaded_ckpt, "global_step": 4, "epoch": 1}
     expected = [
         dict(name="Callback.on_init_start", args=(trainer,)),
         dict(name="Callback.on_init_end", args=(trainer,)),
@@ -647,23 +646,12 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         dict(name="on_epoch_start"),
         dict(name="Callback.on_train_epoch_start", args=(trainer, model)),
         dict(name="on_train_epoch_start"),
-        dict(name="Callback.on_train_epoch_end", args=(trainer, model)),
-        dict(name="Callback.state_dict"),
-        dict(name="Callback.on_save_checkpoint", args=(trainer, model, saved_ckpt1)),
-        dict(name="on_save_checkpoint", args=(saved_ckpt1,)),
-        dict(name="on_train_epoch_end"),
-        dict(name="Callback.on_epoch_end", args=(trainer, model)),
-        dict(name="on_epoch_end"),
-        dict(name="Callback.on_epoch_start", args=(trainer, model)),
-        dict(name="on_epoch_start"),
-        dict(name="Callback.on_train_epoch_start", args=(trainer, model)),
-        dict(name="on_train_epoch_start"),
         *model._train_batch(trainer, model, 2, current_epoch=1, current_batch=0),
         dict(name="training_epoch_end", args=([dict(loss=ANY)] * 2,)),
         dict(name="Callback.on_train_epoch_end", args=(trainer, model)),
         dict(name="Callback.state_dict"),
-        dict(name="Callback.on_save_checkpoint", args=(trainer, model, saved_ckpt2)),
-        dict(name="on_save_checkpoint", args=(saved_ckpt2,)),
+        dict(name="Callback.on_save_checkpoint", args=(trainer, model, saved_ckpt)),
+        dict(name="on_save_checkpoint", args=(saved_ckpt,)),
         dict(name="on_train_epoch_end"),
         dict(name="Callback.on_epoch_end", args=(trainer, model)),
         dict(name="on_epoch_end"),
