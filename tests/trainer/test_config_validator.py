@@ -15,6 +15,7 @@ import pytest
 import torch
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
+from pytorch_lightning.demos.boring_classes import BoringDataModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
 
@@ -156,3 +157,27 @@ def test_trainer_manual_optimization_config(tmpdir):
     trainer = Trainer(accumulate_grad_batches=2)
     with pytest.raises(MisconfigurationException, match="Automatic gradient accumulation is not supported"):
         trainer.fit(model)
+
+
+def test_invalid_setup_method():
+    """Test error message when `setup` method of `LightningModule` or `LightningDataModule` is not defined
+    correctly."""
+
+    class CustomModel(BoringModel):
+        def setup(self):
+            pass
+
+    class CustomDataModule(BoringDataModule):
+        def setup(self):
+            pass
+
+    fit_kwargs = [
+        {"model": CustomModel(), "datamodule": BoringDataModule()},
+        {"model": BoringModel(), "datamodule": CustomDataModule()},
+    ]
+
+    for kwargs in fit_kwargs:
+        trainer = Trainer(fast_dev_run=True)
+
+        with pytest.raises(MisconfigurationException, match="does not have a `stage` argument"):
+            trainer.fit(**kwargs)
