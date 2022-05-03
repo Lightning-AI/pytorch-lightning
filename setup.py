@@ -43,9 +43,10 @@ extras = {
     "examples": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="examples.txt"),
     "loggers": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="loggers.txt"),
     "extra": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="extra.txt"),
+    "strategies": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="strategies.txt"),
     "test": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="test.txt"),
 }
-extras["dev"] = extras["extra"] + extras["loggers"] + extras["test"]
+extras["dev"] = extras["extra"] + extras["loggers"] + extras["strategies"] + extras["test"]
 extras["all"] = extras["dev"] + extras["examples"]  # + extras['docs']
 
 # These packages shall be installed only on GPU machines
