@@ -151,7 +151,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     assert not pbar.val_progress_bar.leave
     assert trainer.num_sanity_val_batches == expected_sanity_steps
     assert pbar.val_progress_bar.total_values == expected_sanity_steps
-    assert pbar.val_progress_bar.n_values == ([0] + list(range(1, num_sanity_val_steps + 1))) * num_dl
+    assert pbar.val_progress_bar.n_values == list(range(num_sanity_val_steps + 1)) * num_dl
     assert pbar.val_progress_bar.descriptions == [f"Sanity Checking DataLoader {i}: " for i in range(num_dl)]
 
     # fit
@@ -170,7 +170,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
 
     # check val progress bar total
     assert pbar.val_progress_bar.total_values == m
-    assert pbar.val_progress_bar.n_values == ([0] + list(range(1, m[0] + 1))) * num_dl
+    assert pbar.val_progress_bar.n_values == list(range(m[0] + 1)) * num_dl
     assert pbar.val_progress_bar.descriptions == [f"Validation DataLoader {i}: " for i in range(num_dl)]
     assert not pbar.val_progress_bar.leave
 
@@ -179,7 +179,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
         trainer.validate(model)
     assert trainer.num_val_batches == m
     assert pbar.val_progress_bar.total_values == m
-    assert pbar.val_progress_bar.n_values == ([0] + list(range(1, m[0] + 1))) * num_dl
+    assert pbar.val_progress_bar.n_values == list(range(m[0] + 1)) * num_dl
     assert pbar.val_progress_bar.descriptions == [f"Validation DataLoader {i}: " for i in range(num_dl)]
 
     # test
@@ -188,7 +188,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     assert pbar.test_progress_bar.leave
     k = trainer.num_test_batches
     assert pbar.test_progress_bar.total_values == k
-    assert pbar.test_progress_bar.n_values == ([0] + list(range(1, k[0] + 1))) * num_dl
+    assert pbar.test_progress_bar.n_values == list(range(k[0] + 1)) * num_dl
     assert pbar.test_progress_bar.descriptions == [f"Testing DataLoader {i}: " for i in range(num_dl)]
     assert pbar.test_progress_bar.leave
 
@@ -198,7 +198,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     assert pbar.predict_progress_bar.leave
     k = trainer.num_predict_batches
     assert pbar.predict_progress_bar.total_values == k
-    assert pbar.predict_progress_bar.n_values == ([0] + list(range(1, k[0] + 1))) * num_dl
+    assert pbar.predict_progress_bar.n_values == list(range(k[0] + 1)) * num_dl
     assert pbar.predict_progress_bar.descriptions == [f"Predicting DataLoader {i}: " for i in range(num_dl)]
     assert pbar.predict_progress_bar.leave
 
