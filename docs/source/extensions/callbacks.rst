@@ -110,6 +110,7 @@ Lightning has a few built-in callbacks.
 
 ----------
 
+
 **************
 Best Practices
 **************
@@ -120,6 +121,11 @@ The following are best practices when using/designing callbacks.
 3. Do not manually call methods from the callback.
 4. Directly calling methods (eg. `on_validation_end`) is strongly discouraged.
 5. Whenever possible, your callbacks should not depend on the order in which they are executed.
+
+
+-----------
+
+.. include:: entry_points.rst
 
 -----------
 
