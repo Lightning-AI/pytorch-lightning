@@ -31,7 +31,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added class name prefix to metrics logged by `DeviceStatsMonitor` ([#12228](https://github.com/PyTorchLightning/pytorch-lightning/pull/12228))
 
 
-- Added a `DistributedSamplerWrapper` and `UnrepeatedDistributedSamplerWrapper` in order to wrap custom samplers in distributed environment ([#12959](https://github.com/PyTorchLightning/pytorch-lightning/pull/12959))
+- Automatically wrap custom samplers under a distributed environment by using Catalyst's `DistributedSamplerWrapper` ([#12959](https://github.com/PyTorchLightning/pytorch-lightning/pull/12959))
 
 ### Changed
 
