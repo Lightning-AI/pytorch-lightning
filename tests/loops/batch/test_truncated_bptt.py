@@ -174,8 +174,8 @@ def test_tbptt_logging(tmpdir, model_class):
 
 def test_hiddens_multiple_optimizers(tmpdir):
     class TBPTTModel(LSTMModel):
-        # `optimizer_idx=n` gets the hiddens from `optimizer_idx=n-1` instead of
-        # the hidden from `optimizer_idx=n`, `split_idx=m-1`
+        # TODO: `optimizer_idx=n` gets the hiddens from `optimizer_idx=n-1` instead of the hidden from
+        # `optimizer_idx=n`, `split_idx=m-1`. This is unexpected and should be changed
         test_hiddens = None
 
         def training_step(self, batch, batch_idx, optimizer_idx, hiddens):

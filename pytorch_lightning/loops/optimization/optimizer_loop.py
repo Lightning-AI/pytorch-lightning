@@ -425,7 +425,7 @@ class OptimizerLoop(Loop[_OUTPUTS_TYPE]):
         return result
 
     def _build_kwargs(self, kwargs: OrderedDict, opt_idx: int, hiddens: Optional[Any]) -> OrderedDict:
-        """Helper function to build the arguments for the current step.
+        """Helper method to build the arguments for the current step.
 
         Args:
             kwargs: The kwargs passed down to the hooks.

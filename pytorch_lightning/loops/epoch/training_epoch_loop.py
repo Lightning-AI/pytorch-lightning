@@ -550,7 +550,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             self._dataloader_state_dict = None
 
     def _build_kwargs(self, kwargs: OrderedDict, batch: Any, batch_idx: int) -> OrderedDict:
-        """Helper function to build the arguments for the current step.
+        """Helper method to build the arguments for the current step.
 
         Args:
             kwargs: The kwargs passed down to the hooks.

@@ -70,8 +70,9 @@ class YieldLoop(OptimizerLoop):
     def _get_generator(self, kwargs, opt_idx=0):
         kwargs = self._build_kwargs(kwargs, opt_idx, hiddens=None)
 
-        # Here we are basically calling `lightning_module.training_step()` and this returns a generator!
-        # The `training_step` is handled by the accelerator to enable distributed training.
+        # Here we are basically calling `lightning_module.training_step()`
+        # and this returns a generator! The `training_step` is handled by
+        # the accelerator to enable distributed training.
         return self.trainer.strategy.training_step(*kwargs.values())
 
     def _training_step(self, generator):

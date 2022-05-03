@@ -147,7 +147,7 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
         self.optim_step_progress.increment_completed()
 
     def _build_kwargs(self, kwargs: OrderedDict, hiddens: Optional[Any]) -> OrderedDict:
-        """Helper function to build the arguments for the current step.
+        """Helper method to build the arguments for the current step.
 
         Args:
             kwargs: The kwargs passed down to the hooks.
