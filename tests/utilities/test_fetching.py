@@ -488,6 +488,7 @@ def test_transfer_hooks_with_unpacking(tmpdir):
     assert dm.count_called_on_after_batch_transfer == 4
 
 
+@RunIf(skip_windows=True)  # TODO: all durations are 0 on Windows
 def test_fetching_is_profiled():
     """Test that fetching is profiled."""
 
