@@ -13,7 +13,16 @@
 # limitations under the License.
 import operator
 
-from pytorch_lightning.utilities import _module_available
+from pytorch_lightning.utilities import (
+    _APEX_AVAILABLE,
+    _BAGUA_AVAILABLE,
+    _DEEPSPEED_AVAILABLE,
+    _FAIRSCALE_AVAILABLE,
+    _HOROVOD_AVAILABLE,
+    _module_available,
+    _OMEGACONF_AVAILABLE,
+    _POPTORCH_AVAILABLE,
+)
 from pytorch_lightning.utilities.imports import _compare_version
 
 
@@ -45,3 +54,54 @@ def test_compare_version(monkeypatch):
     assert not _compare_version("torch", operator.ge, "1.10.0.rc0")
     assert _compare_version("torch", operator.ge, "1.10.0", use_base_version=True)
     assert not _compare_version("torch", operator.ge, "1.10.0")
+
+
+def test_imports():
+    try:
+        import apex  # noqa
+    except ModuleNotFoundError:
+        assert not _APEX_AVAILABLE
+    else:
+        assert _APEX_AVAILABLE
+
+    try:
+        import bagua  # noqa
+    except ModuleNotFoundError:
+        assert not _BAGUA_AVAILABLE
+    else:
+        assert _BAGUA_AVAILABLE
+
+    try:
+        import deepspeed  # noqa
+    except ModuleNotFoundError:
+        assert not _DEEPSPEED_AVAILABLE
+    else:
+        assert _DEEPSPEED_AVAILABLE
+
+    try:
+        import fairscale.nn  # noqa
+    except ModuleNotFoundError:
+        assert not _FAIRSCALE_AVAILABLE
+    else:
+        assert _FAIRSCALE_AVAILABLE
+
+    try:
+        import horovod.torch  # noqa
+    except ModuleNotFoundError:
+        assert not _HOROVOD_AVAILABLE
+    else:
+        assert _HOROVOD_AVAILABLE
+
+    try:
+        import omegaconf  # noqa
+    except ModuleNotFoundError:
+        assert not _OMEGACONF_AVAILABLE
+    else:
+        assert _OMEGACONF_AVAILABLE
+
+    try:
+        import poptorch  # noqa
+    except ModuleNotFoundError:
+        assert not _POPTORCH_AVAILABLE
+    else:
+        assert _POPTORCH_AVAILABLE

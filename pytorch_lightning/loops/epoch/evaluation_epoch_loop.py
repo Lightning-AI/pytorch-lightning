@@ -14,7 +14,7 @@
 
 from collections import OrderedDict
 from functools import lru_cache
-from typing import Any, cast, Dict, Optional
+from typing import Any, Dict, Optional
 
 from deprecate import void
 from torch.utils.data import DataLoader
@@ -84,7 +84,7 @@ class EvaluationEpochLoop(Loop):
         self._dl_max_batches = dl_max_batches
         self._reload_dataloader_state_dict(data_fetcher)
         # creates the iterator inside the fetcher but returns `self`
-        self._data_fetcher = cast(AbstractDataFetcher, iter(data_fetcher))
+        self._data_fetcher = iter(data_fetcher)
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
 
@@ -216,10 +216,8 @@ class EvaluationEpochLoop(Loop):
         Returns:
             the outputs of the step
         """
-        if self.trainer.testing:
-            output = self.trainer._call_strategy_hook("test_step", *kwargs.values())
-        else:
-            output = self.trainer._call_strategy_hook("validation_step", *kwargs.values())
+        hook_name = "test_step" if self.trainer.testing else "validation_step"
+        output = self.trainer._call_strategy_hook(hook_name, *kwargs.values())
 
         return output
 
@@ -266,7 +264,7 @@ class EvaluationEpochLoop(Loop):
         self.trainer._logger_connector.on_batch_end()
 
     def _build_kwargs(self, kwargs: OrderedDict, batch: Any, batch_idx: int) -> OrderedDict:
-        """Helper function to build the arguments for the current step.
+        """Helper method to build the arguments for the current step.
 
         Args:
             kwargs: The kwargs passed down to the hooks.
@@ -275,7 +273,8 @@ class EvaluationEpochLoop(Loop):
         Returns:
             The kwargs passed down to the hooks.
         """
-        kwargs.update({"batch": batch, "batch_idx": batch_idx})
+        kwargs.update(batch=batch, batch_idx=batch_idx)
+        # `dataloader_idx` should be last so we need to push these to the front
         kwargs.move_to_end("batch_idx", last=False)
         kwargs.move_to_end("batch", last=False)
         return kwargs

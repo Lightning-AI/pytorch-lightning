@@ -34,7 +34,9 @@ def test_invalid_on_cpu(tmpdir):
 @RunIf(fairscale_fully_sharded=True)
 def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
     """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp", gpus=1, precision=16)
+    trainer = Trainer(
+        default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp", accelerator="gpu", devices=1, precision=16
+    )
     assert isinstance(trainer.strategy, DDPFullyShardedStrategy)
     assert isinstance(trainer.strategy.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
 
@@ -83,29 +85,52 @@ class TestFSDPModel(BoringModel):
         assert isinstance(self.layer, FullyShardedDataParallel)
         assert isinstance(self.layer.module[0], FullyShardedDataParallel)
         assert isinstance(self.layer.module[2], FullyShardedDataParallel)
-        # root should not be resharding
-        assert self.layer.reshard_after_forward is False
+
         # Assert that the nested layers are set reshard_after_forward to True
         assert self.layer.module[0].reshard_after_forward is True
         assert self.layer.module[2].reshard_after_forward is True
 
+        if isinstance(self.trainer.precision_plugin, FullyShardedNativeMixedPrecisionPlugin):
+            assert self.layer.mixed_precision
+            assert self.layer.module[0].mixed_precision
+            assert self.layer.module[2].mixed_precision
 
-@RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, standalone=True)
+
+@RunIf(min_gpus=1, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
 def test_fully_sharded_strategy_checkpoint(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
 
     model = TestFSDPModel()
-    trainer = Trainer(default_root_dir=tmpdir, gpus=1, strategy="fsdp", precision=16, max_epochs=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        devices=1,
+        strategy="fsdp",
+        precision=16,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
-@RunIf(min_gpus=2, skip_windows=True, fairscale_fully_sharded=True, standalone=True)
+@RunIf(min_gpus=2, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
 def test_fully_sharded_strategy_checkpoint_multi_gpus(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
 
     model = TestFSDPModel()
     ck = ModelCheckpoint(save_last=True)
-    trainer = Trainer(default_root_dir=tmpdir, gpus=2, strategy="fsdp", precision=16, max_epochs=1, callbacks=[ck])
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        devices=2,
+        strategy="fsdp",
+        precision=16,
+        max_epochs=1,
+        callbacks=[ck],
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
     _run_multiple_stages(trainer, model)
 
 
@@ -137,7 +162,7 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     trainer.test(ckpt_path=model_path)
 
 
-@RunIf(min_gpus=1, skip_windows=True, fairscale_fully_sharded=True, standalone=True)
+@RunIf(min_gpus=1, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
 def test_fsdp_gradient_clipping_raises(tmpdir):
     """Test to ensure that an exception is raised when clipping gradients by value with FSDP."""
     model = BoringModel()
@@ -145,10 +170,13 @@ def test_fsdp_gradient_clipping_raises(tmpdir):
         default_root_dir=tmpdir,
         strategy="fsdp",
         fast_dev_run=True,
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
         precision=16,
         gradient_clip_val=1,
         gradient_clip_algorithm="norm",
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     with pytest.raises(
         MisconfigurationException, match="gradient_clip_algorithm='norm'` is currently not supported for `FullySharded"

@@ -1,8 +1,8 @@
+:orphan:
+
 .. testsetup:: *
 
-    from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-    from pytorch_lightning.core.lightning import LightningModule
 
 .. _training-speedup:
 
@@ -13,7 +13,6 @@ Speed Up Model Training
 
 When you are limited with the resources, it becomes hard to speed up model training and reduce the training time
 without affecting the model's performance. There are multiple ways you can speed up your model's time to convergence.
-
 
 ************************
 Training on Accelerators
@@ -35,13 +34,13 @@ Lightning supports a variety of plugins to speed up distributed GPU training. Mo
 .. code-block:: python
 
     # run on 1 gpu
-    trainer = Trainer(gpus=1)
+    trainer = Trainer(accelerator="gpu", devices=1)
 
-    # train on 8 gpus, using the DDP strategy
-    trainer = Trainer(gpus=8, strategy="ddp")
+    # train on 8 GPUs, using the DDP strategy
+    trainer = Trainer(accelerator="gpu", devices=8, strategy="ddp")
 
-    # train on multiple GPUs across nodes (uses 8 gpus in total)
-    trainer = Trainer(gpus=2, num_nodes=4)
+    # train on multiple GPUs across nodes (uses 8 GPUs in total)
+    trainer = Trainer(accelerator="gpu", devices=2, num_nodes=4)
 
 
 GPU Training Speedup Tips
@@ -77,53 +76,7 @@ Whereas :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` only performs two
 
 |
 
-
-When Using DDP Plugins, Set find_unused_parameters=False
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-By default, we have set ``find_unused_parameters=True`` for compatibility reasons that have been observed in the past (refer to the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
-When enabled, it can result in a performance hit and can be disabled in most cases. Read more about it `here <https://pytorch.org/docs/stable/notes/ddp.html#internal-design>`_.
-
-.. tip::
-    It applies to all DDP strategies that support ``find_unused_parameters`` as input.
-
-.. code-block:: python
-
-    from pytorch_lightning.strategies import DDPStrategy
-
-    trainer = pl.Trainer(
-        gpus=2,
-        strategy=DDPStrategy(find_unused_parameters=False),
-    )
-
-.. code-block:: python
-
-    from pytorch_lightning.strategies import DDPSpawnStrategy
-
-    trainer = pl.Trainer(
-        gpus=2,
-        strategy=DDPSpawnStrategy(find_unused_parameters=False),
-    )
-
-When Using DDP on a Multi-node Cluster, Set NCCL Parameters
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-`NCCL <https://developer.nvidia.com/nccl>`__ is the NVIDIA Collective Communications Library that is used by PyTorch to handle communication across nodes and GPUs. There are reported benefits in terms of speedups when adjusting NCCL parameters as seen in this `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues/7179>`__. In the issue, we see a 30% speed improvement when training the Transformer XLM-RoBERTa and a 15% improvement in training with Detectron2.
-
-NCCL parameters can be adjusted via environment variables.
-
-.. note::
-
-    AWS and GCP already set default values for these on their clusters. This is typically useful for custom cluster setups.
-
-* `NCCL_NSOCKS_PERTHREAD <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-nsocks-perthread>`__
-* `NCCL_SOCKET_NTHREADS <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-socket-nthreads>`__
-* `NCCL_MIN_NCHANNELS <https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-min-nchannels>`__
-
-.. code-block:: bash
-
-    export NCCL_NSOCKS_PERTHREAD=4
-    export NCCL_SOCKET_NTHREADS=2
+For more details on how to tune performance with DDP, please see the :ref:`DDP Optimizations <ddp-optimizations>` section.
 
 DataLoaders
 ^^^^^^^^^^^
@@ -186,18 +139,18 @@ This is a limitation of Python ``.spawn()`` and PyTorch.
 TPU Training
 ============
 
-You can set the ``tpu_cores`` trainer flag to 1, [7] (specific core) or eight cores.
+You can set the ``devices`` trainer argument to 1, [7] (specific core) or eight cores.
 
 .. code-block:: python
 
     # train on 1 TPU core
-    trainer = Trainer(tpu_cores=1)
+    trainer = Trainer(accelerator="tpu", devices=1)
 
     # train on 7th TPU core
-    trainer = Trainer(tpu_cores=[7])
+    trainer = Trainer(accelerator="tpu", devices=[7])
 
     # train on 8 TPU cores
-    trainer = Trainer(tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
 
 To train on more than eight cores (a POD),
 submit this script using the xla_dist script.
@@ -211,7 +164,7 @@ Example::
     -- python your_trainer_file.py
 
 
-Read more in our :ref:`accelerators` and :ref:`plugins` guides.
+Read more in our :ref:`training-speedup` and :ref:`plugins` guides.
 
 
 -----------
@@ -227,7 +180,7 @@ You can read more about it :ref:`here <early_stopping>`.
 
 ----------
 
-.. _speed_amp:
+.. _speed-amp:
 
 *********************************
 Mixed Precision (16-bit) Training
@@ -260,10 +213,10 @@ Lightning offers mixed precision training for GPUs and CPUs, as well as bfloat16
     :skipif: torch.cuda.device_count() < 4
 
     # 16-bit precision
-    trainer = Trainer(precision=16, gpus=4)
+    trainer = Trainer(precision=16, accelerator="gpu", devices=4)
 
 
-Read more about :ref:`mixed-precision training <amp>`.
+Read more about :ref:`mixed-precision training <speed-amp>`.
 
 
 ----------------
@@ -407,7 +360,7 @@ Here is an example of an advanced use case:
 
 .. testcode::
 
-    # Scenario for a GAN with gradient accumulation every two batches and optimized for multiple gpus.
+    # Scenario for a GAN with gradient accumulation every two batches and optimized for multiple GPUs.
     class SimpleGAN(LightningModule):
         def __init__(self):
             super().__init__()

@@ -55,6 +55,7 @@ class PrecisionPlugin(CheckpointHooks):
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
         """
+        assert model.trainer is not None
         model.trainer._call_callback_hooks("on_before_backward", closure_loss)
         model.trainer._call_lightning_module_hook("on_before_backward", closure_loss)
         return closure_loss
@@ -89,6 +90,7 @@ class PrecisionPlugin(CheckpointHooks):
         """
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
+        assert model.trainer is not None
         model.trainer._call_callback_hooks("on_after_backward")
         model.trainer._call_lightning_module_hook("on_after_backward")
         return closure_loss
