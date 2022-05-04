@@ -360,6 +360,7 @@ class CheckpointConnector:
             }
         """
         model = self.trainer.lightning_module
+        datamodule = self.trainer.datamodule
 
         checkpoint = {
             # the epoch and global step are saved for compatibility but they are not relevant for restoration
@@ -396,15 +397,16 @@ class CheckpointConnector:
             prec_plugin.on_save_checkpoint(checkpoint)
 
         # dump hyper-parameters
-        if model.hparams:
-            if hasattr(model, "_hparams_name"):
-                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
-            # dump arguments
-            if _OMEGACONF_AVAILABLE and isinstance(model.hparams, Container):
-                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
-                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
-            else:
-                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = dict(model.hparams)
+        for obj in (model, datamodule):
+            if obj and obj.hparams:
+                if hasattr(obj, "_hparams_name"):
+                    checkpoint[obj.CHECKPOINT_HYPER_PARAMS_NAME] = obj._hparams_name
+                # dump arguments
+                if _OMEGACONF_AVAILABLE and isinstance(obj.hparams, Container):
+                    checkpoint[obj.CHECKPOINT_HYPER_PARAMS_KEY] = obj.hparams
+                    checkpoint[obj.CHECKPOINT_HYPER_PARAMS_TYPE] = type(obj.hparams)
+                else:
+                    checkpoint[obj.CHECKPOINT_HYPER_PARAMS_KEY] = dict(obj.hparams)
 
         # dump stateful datamodule
         datamodule = self.trainer.datamodule
