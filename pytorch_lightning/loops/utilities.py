@@ -106,34 +106,25 @@ def _parse_loop_limits(
 
 
 def _build_training_step_kwargs(
+    kwargs: OrderedDict,
     lightning_module: "pl.LightningModule",
     optimizers: Sequence[Optimizer],
-    batch: Any,
-    batch_idx: int,
     opt_idx: Optional[int],
     hiddens: Optional[Any],
-) -> Dict[str, Any]:
+) -> OrderedDict:
     """Builds the keyword arguments for training_step.
 
     Args:
+        kwargs: The kwargs passed down to the hooks.
         lightning_module: the LightningModule with a `training_step` hook implementation
         optimizers: the list of optimizers from the Trainer
-        batch: the batch to train on
-        batch_idx: the index of the current batch
         opt_idx: the index of the current optimizer
         hiddens: the hidden state of the previous RNN iteration
 
     Returns:
         the keyword arguments for the training step
     """
-    # enable not needing to add opt_idx to training_step
-    step_kwargs = OrderedDict([("batch", batch)])
-
     training_step_fx = getattr(lightning_module, "training_step")
-
-    if is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
-        step_kwargs["batch_idx"] = batch_idx
-
     if len(optimizers) > 1:
         has_opt_idx_in_train_step = is_param_in_hook_signature(training_step_fx, "optimizer_idx")
         if has_opt_idx_in_train_step:
@@ -143,7 +134,7 @@ def _build_training_step_kwargs(
                     " in manual optimization optimizers must be handled by the user. Remove the optimizer_idx"
                     " argument or set `self.automatic_optimization = True`."
                 )
-            step_kwargs["optimizer_idx"] = opt_idx
+            kwargs["optimizer_idx"] = opt_idx
         elif not has_opt_idx_in_train_step and lightning_module.automatic_optimization:
             raise ValueError(
                 f"Your LightningModule defines {len(optimizers)} optimizers but"
@@ -152,9 +143,9 @@ def _build_training_step_kwargs(
 
     # pass hiddens if using tbptt
     if lightning_module.truncated_bptt_steps > 0:
-        step_kwargs["hiddens"] = hiddens
+        kwargs["hiddens"] = hiddens
 
-    return step_kwargs
+    return kwargs
 
 
 @contextmanager
@@ -182,7 +173,7 @@ def _cumulative_optimizer_frequencies(frequencies: Tuple[int]) -> np.ndarray:
 
 
 def _get_active_optimizers(
-    optimizers: List[Optimizer], frequencies: List[int], batch_idx: Optional[int] = None
+    optimizers: List[Optimizer], frequencies: List[int], batch_idx: int
 ) -> List[Tuple[int, Optimizer]]:
     """Returns the currently active optimizers. When multiple optimizers are used with different frequencies, only
     one of the optimizers is active at a time.
