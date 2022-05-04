@@ -192,6 +192,7 @@ class RecommenderModel(BoringModel):
         return DataLoader(RandomIndicesDataset(), batch_size=4)
 
 
+@pytest.mark.flaky(reruns=3)
 @RunIf(min_gpus=1)
 def test_trainer_num_prefetch_batches(tmpdir):
 
@@ -374,9 +375,10 @@ def test_stop_iteration(trigger_stop_iteration, tmpdir):
             super().__init__()
             self.trigger_stop_iteration = trigger_stop_iteration
 
-        def training_step(self, dataloader_iter: Iterator, *args) -> STEP_OUTPUT:
+        def training_step(self, dataloader_iter: Iterator) -> STEP_OUTPUT:
             output = super().training_step(dataloader_iter)
-            if self.trigger_stop_iteration and args[0] == EXPECT_NUM_BATCHES_PROCESSED:
+            batch_idx = self.trainer.fit_loop.epoch_loop.batch_idx
+            if self.trigger_stop_iteration and batch_idx == EXPECT_NUM_BATCHES_PROCESSED:
                 raise StopIteration
             return output
 

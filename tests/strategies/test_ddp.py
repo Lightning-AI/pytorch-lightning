@@ -88,7 +88,14 @@ def test_torch_distributed_backend_env_variables(tmpdir):
         with pytest.deprecated_call(match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND` was deprecated in v1.6"):
             with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
                 model = BoringModel()
-                trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="ddp", gpus=2, logger=False)
+                trainer = Trainer(
+                    default_root_dir=tmpdir,
+                    fast_dev_run=True,
+                    strategy="ddp",
+                    accelerator="gpu",
+                    devices=2,
+                    logger=False,
+                )
                 trainer.fit(model)
 
 
@@ -147,6 +154,8 @@ def test_ddp_wrapper(tmpdir, precision):
         accelerator="gpu",
         devices=2,
         callbacks=CustomCallback(),
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 

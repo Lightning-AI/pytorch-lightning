@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from typing import Any, Dict, Generator, List, Optional, overload, Tuple, Union
 
 import numpy as np
@@ -173,6 +173,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             batch_idx, batch = next(data_fetcher)
         self.batch_progress.is_last_batch = data_fetcher.done
 
+        kwargs = self._build_kwargs(OrderedDict(), batch, batch_idx)
+
         self.batch_progress.increment_ready()
 
         self.trainer._logger_connector.on_batch_start(batch, batch_idx)
@@ -205,7 +207,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             self.batch_progress.increment_started()
 
             with self.trainer.profiler.profile("run_training_batch"):
-                batch_output = self.batch_loop.run(batch, batch_idx)
+                batch_output = self.batch_loop.run(kwargs)
 
         self.batch_progress.increment_processed()
 
@@ -356,6 +358,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if (
             num_optimizers > 1
             and lightning_module.truncated_bptt_steps > 0
+            and is_overridden("on_train_batch_end", lightning_module)
             and not _v1_8_output_format(lightning_module.on_train_batch_end)
         ):
             rank_zero_deprecation(
@@ -501,9 +504,9 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         return self.trainer.callback_metrics.get(key)
 
     def _should_check_val_epoch(self):
-        return (
-            self.trainer.enable_validation
-            and (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
+        return self.trainer.enable_validation and (
+            self.trainer.check_val_every_n_epoch is None
+            or (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
         )
 
     def _should_check_val_fx(self, batch_idx: int, is_last_batch: bool) -> bool:
@@ -524,7 +527,13 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if isinstance(self.trainer.limit_train_batches, int) and is_infinite_dataset:
             is_val_check_batch = (batch_idx + 1) % self.trainer.limit_train_batches == 0
         elif self.trainer.val_check_batch != float("inf"):
-            is_val_check_batch = (batch_idx + 1) % self.trainer.val_check_batch == 0
+            # if `check_val_every_n_epoch is `None`, run a validation loop every n training batches
+            # else condition it based on the batch_idx of the current epoch
+            current_iteration = (
+                self._batches_that_stepped if self.trainer.check_val_every_n_epoch is None else batch_idx
+            )
+            is_val_check_batch = (current_iteration + 1) % self.trainer.val_check_batch == 0
+
         return is_val_check_batch
 
     def _save_loggers_on_train_batch_end(self) -> None:
@@ -539,6 +548,25 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         if self._dataloader_state_dict:
             data_fetcher.dataloader.load_state_dict(self._dataloader_state_dict)
             self._dataloader_state_dict = None
+
+    def _build_kwargs(self, kwargs: OrderedDict, batch: Any, batch_idx: int) -> OrderedDict:
+        """Helper method to build the arguments for the current step.
+
+        Args:
+            kwargs: The kwargs passed down to the hooks.
+            batch: The current batch to run through the step.
+            batch_idx: The current batch idx.
+
+        Returns:
+            The kwargs passed down to the hooks.
+        """
+        kwargs["batch"] = batch
+        training_step_fx = getattr(self.trainer.lightning_module, "training_step")
+        # the `batch_idx` is optional, however, when there's more than 1 argument we cannot differentiate whether the
+        # user wants the `batch_idx` or another key like `optimizer_idx` as we are not strict about the argument names
+        if is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
+            kwargs["batch_idx"] = batch_idx
+        return kwargs
 
 
 def _convert_optim_dict(outs: Dict[int, Dict[str, Any]], num_optimizers: int) -> List[Optional[Dict[str, Any]]]:

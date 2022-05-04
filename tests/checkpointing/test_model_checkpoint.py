@@ -452,6 +452,12 @@ def test_model_checkpoint_format_checkpoint_name(tmpdir):
     )
     assert ckpt_name == "epoch=003-val_acc=0.03"
 
+    # dots in the metric name
+    ckpt_name = ModelCheckpoint._format_checkpoint_name(
+        "mAP@0.50={val/mAP@0.50:.4f}", {"val/mAP@0.50": 0.2}, auto_insert_metric_name=False
+    )
+    assert ckpt_name == "mAP@0.50=0.2000"
+
 
 class ModelCheckpointExtensionTest(ModelCheckpoint):
     FILE_EXTENSION = ".tpkc"
@@ -1291,6 +1297,23 @@ def test_save_last_saves_correct_last_model_path(tmpdir):
     full_path = str(tmpdir / expected)
     ckpt = torch.load(full_path)
     assert ckpt["callbacks"][mc.state_key]["last_model_path"] == full_path
+
+
+def test_save_last_versioning(tmpdir):
+    model = BoringModel()
+    for _ in range(2):
+        mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=0, save_last=True)
+        trainer = Trainer(
+            max_epochs=2,
+            callbacks=mc,
+            limit_train_batches=1,
+            limit_val_batches=0,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            logger=False,
+        )
+        trainer.fit(model)
+    assert {"last.ckpt", "last-v1.ckpt"} == set(os.listdir(tmpdir))
 
 
 def test_none_monitor_saves_correct_best_model_path(tmpdir):

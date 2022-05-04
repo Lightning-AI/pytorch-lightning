@@ -87,8 +87,7 @@ class ModelCheckpoint(Callback):
         save_last: When ``True``, saves an exact copy of the checkpoint to a file `last.ckpt` whenever a checkpoint
             file gets saved. This allows accessing the latest checkpoint in a deterministic manner. Default: ``None``.
         save_top_k: if ``save_top_k == k``,
-            the best k models according to
-            the quantity monitored will be saved.
+            the best k models according to the quantity monitored will be saved.
             if ``save_top_k == 0``, no models are saved.
             if ``save_top_k == -1``, all models are saved.
             Please note that the monitors are checked every ``every_n_epochs`` epochs.
@@ -103,6 +102,7 @@ class ModelCheckpoint(Callback):
             For example, ``filename='checkpoint_{epoch:02d}-{acc:02.0f}`` with epoch ``1`` and acc ``1.12`` will resolve
             to ``checkpoint_epoch=01-acc=01.ckpt``. Is useful to set it to ``False`` when metric names contain ``/``
             as this will result in extra folders.
+            For example, ``filename='epoch={epoch}-step={step}-val_acc={val/acc:.2f}', auto_insert_metric_name=False``
         save_weights_only: if ``True``, then only the model's weights will be
             saved. Otherwise, the optimizer states, lr-scheduler states, etc are added in the checkpoint too.
         every_n_train_steps: Number of training steps between checkpoints.
@@ -196,7 +196,7 @@ class ModelCheckpoint(Callback):
 
         *monitor, mode, every_n_train_steps, every_n_epochs, train_time_interval, save_on_train_epoch_end*
 
-        Read more: :ref:`Persisting Callback State`
+        Read more: :ref:`Persisting Callback State <extensions/callbacks_state:save callback state>`
     """
 
     CHECKPOINT_JOIN_CHAR = "-"
@@ -517,9 +517,12 @@ class ModelCheckpoint(Callback):
                 if auto_insert_metric_name:
                     filename = filename.replace(group, name + "={" + name)
 
+                # support for dots: https://stackoverflow.com/a/7934969
+                filename = filename.replace(group, f"{{0[{name}]")
+
                 if name not in metrics:
                     metrics[name] = 0
-            filename = filename.format(**metrics)
+            filename = filename.format(metrics)
 
         if prefix:
             filename = cls.CHECKPOINT_JOIN_CHAR.join([prefix, filename])
@@ -567,8 +570,8 @@ class ModelCheckpoint(Callback):
         return os.path.join(self.dirpath, ckpt_name) if self.dirpath else ckpt_name
 
     def __resolve_ckpt_dir(self, trainer: "pl.Trainer") -> None:
-        """Determines model checkpoint save directory at runtime. References attributes from the trainer's logger
-        to determine where to save checkpoints. The path for saving weights is set in this priority:
+        """Determines model checkpoint save directory at runtime. Reference attributes from the trainer's logger to
+        determine where to save checkpoints. The path for saving weights is set in this priority:
 
         1.  The ``ModelCheckpoint``'s ``dirpath`` if passed in
         2.  The ``Trainer``'s ``weights_saved_path`` if passed in (deprecated)
@@ -637,6 +640,12 @@ class ModelCheckpoint(Callback):
             return
 
         filepath = self.format_checkpoint_name(monitor_candidates, self.CHECKPOINT_NAME_LAST)
+
+        version_cnt = self.STARTING_VERSION
+        while self.file_exists(filepath, trainer) and filepath != self.last_model_path:
+            filepath = self.format_checkpoint_name(monitor_candidates, self.CHECKPOINT_NAME_LAST, ver=version_cnt)
+            version_cnt += 1
+
         # set the last model path before saving because it will be part of the state.
         previous, self.last_model_path = self.last_model_path, filepath
         self._save_checkpoint(trainer, filepath)

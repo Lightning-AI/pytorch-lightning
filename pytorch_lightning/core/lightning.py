@@ -32,15 +32,14 @@ from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.callbacks.progress import base as progress_base
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
-from pytorch_lightning.loggers import Logger
+from pytorch_lightning.loggers import Logger, LoggerCollection
 from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
+from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType, warnings
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
@@ -246,7 +245,26 @@ class LightningModule(
     @property
     def logger(self) -> Optional[Logger]:
         """Reference to the logger object in the Trainer."""
-        return self.trainer.logger if self.trainer else None
+        # this should match the implementation of `trainer.logger`
+        # we don't reuse it so we can properly set the deprecation stacklevel
+        if self.trainer is None:
+            return
+        loggers = self.trainer.loggers
+        if len(loggers) == 0:
+            return None
+        if len(loggers) == 1:
+            return loggers[0]
+        else:
+            if not self._running_torchscript:
+                rank_zero_deprecation(
+                    "Using `lightning_module.logger` when multiple loggers are configured."
+                    " This behavior will change in v1.8 when `LoggerCollection` is removed, and"
+                    " `lightning_module.logger` will return the first logger available.",
+                    stacklevel=5,
+                )
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                return LoggerCollection(loggers)
 
     @property
     def loggers(self) -> List[Logger]:
@@ -685,7 +703,7 @@ class LightningModule(
                 return loss
 
         See Also:
-            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
+            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
     def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
@@ -859,7 +877,7 @@ class LightningModule(
                     ...
 
         See Also:
-            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
+            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
     def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
@@ -987,7 +1005,7 @@ class LightningModule(
         """
 
     def test_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        """Use this when testing with dp or ddp2 because :meth:`test_step` will operate on only part of the batch.
+        """Use this when testing with DP or DDP2 because :meth:`test_step` will operate on only part of the batch.
         However, this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
@@ -1037,7 +1055,7 @@ class LightningModule(
                 self.log("test_loss", loss)
 
         See Also:
-            See the :ref:`accelerators/gpu:Multi GPU Training` guide for more details.
+            See the :ref:`Multi GPU Training <gpu_intermediate>` guide for more details.
         """
 
     def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
@@ -1109,7 +1127,7 @@ class LightningModule(
 
             class MyModel(LightningModule):
 
-                def predicts_step(self, batch, batch_idx, dataloader_idx=0):
+                def predict_step(self, batch, batch_idx, dataloader_idx=0):
                     return self(batch)
 
             dm = ...
@@ -1730,35 +1748,6 @@ class LightningModule(
             param.requires_grad = True
 
         self.train()
-
-    def get_progress_bar_dict(self) -> Dict[str, Union[int, str]]:
-        r"""
-        .. deprecated:: v1.5
-            This method was deprecated in v1.5 in favor of
-            `pytorch_lightning.callbacks.progress.base.get_metrics` and will be removed in v1.7.
-
-        Implement this to override the default items displayed in the progress bar.
-        By default it includes the average loss value, split index of BPTT (if used)
-        and the version of the experiment when using a logger.
-
-        .. code-block::
-
-            Epoch 1:   4%|▎         | 40/1095 [00:03<01:37, 10.84it/s, loss=4.501, v_num=10]
-
-        Here is an example how to override the defaults:
-
-        .. code-block:: python
-
-            def get_progress_bar_dict(self):
-                # don't show the version number
-                items = super().get_progress_bar_dict()
-                items.pop("v_num", None)
-                return items
-
-        Return:
-            Dictionary with the items to be displayed in the progress bar.
-        """
-        return progress_base.get_standard_metrics(self.trainer, self)
 
     def _verify_is_manual_optimization(self, fn_name):
         if self.automatic_optimization:

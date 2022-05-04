@@ -1041,7 +1041,7 @@ def test_gpu_choice():
     num_gpus = torch.cuda.device_count()
     Trainer(accelerator="gpu", devices=num_gpus, auto_select_gpus=True)
 
-    with pytest.raises(MisconfigurationException, match=r".*But your machine only has.*"):
+    with pytest.raises(MisconfigurationException, match=r".*but your machine only has.*"):
         Trainer(accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
 
 
@@ -1114,46 +1114,6 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
         trainer.fit(model, val_dataloaders=val_dataloaders)
 
         assert mocked.call_count == sum(trainer.num_val_batches)
-
-
-@pytest.mark.parametrize(
-    ["trainer_kwargs", "strategy_cls", "strategy_name", "accelerator_cls", "devices"],
-    [
-        ({"accelerator": None}, SingleDeviceStrategy, "single_device", CPUAccelerator, 1),
-        ({"accelerator": "dp"}, DDPStrategy, "ddp", CPUAccelerator, 1),
-        ({"accelerator": "ddp"}, DDPStrategy, "ddp", CPUAccelerator, 1),
-        ({"accelerator": "ddp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
-        ({"accelerator": "ddp", "num_nodes": 2}, DDPStrategy, "ddp", CPUAccelerator, 1),
-        ({"accelerator": "ddp_cpu", "num_processes": 2}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 2),
-        ({"accelerator": "ddp2"}, DDPStrategy, "ddp", CPUAccelerator, 1),
-        ({"accelerator": None, "gpus": 1}, SingleDeviceStrategy, "single_device", GPUAccelerator, 1),
-        ({"accelerator": "dp", "gpus": 1}, DataParallelStrategy, "dp", GPUAccelerator, 1),
-        ({"accelerator": "ddp", "gpus": 1}, DDPStrategy, "ddp", GPUAccelerator, 1),
-        ({"accelerator": "ddp_cpu", "num_processes": 2, "gpus": 1}, DDPSpawnStrategy, "ddp_spawn", CPUAccelerator, 2),
-        ({"accelerator": "ddp2", "gpus": 1}, DDP2Strategy, "ddp2", GPUAccelerator, 1),
-        ({"accelerator": None, "gpus": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
-        ({"accelerator": "dp", "gpus": 2}, DataParallelStrategy, "dp", GPUAccelerator, 2),
-        ({"accelerator": "ddp", "gpus": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
-        ({"accelerator": "ddp2", "gpus": 2}, DDP2Strategy, "ddp2", GPUAccelerator, 2),
-        ({"accelerator": "ddp2", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
-        ({"accelerator": "dp", "num_processes": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
-    ],
-)
-def test_trainer_config_accelerator(monkeypatch, trainer_kwargs, strategy_cls, strategy_name, accelerator_cls, devices):
-    if trainer_kwargs.get("gpus") is not None:
-        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-        monkeypatch.setattr(torch.cuda, "device_count", lambda: trainer_kwargs["gpus"])
-
-    if trainer_kwargs["accelerator"] in (None, "ddp_cpu"):
-        trainer = Trainer(**trainer_kwargs)
-    else:
-        with pytest.deprecated_call(match=r"accelerator='.*'\)` has been deprecated in v1.5"):
-            trainer = Trainer(**trainer_kwargs)
-
-    assert isinstance(trainer.strategy, strategy_cls)
-    assert strategy_cls.strategy_name == strategy_name
-    assert isinstance(trainer.accelerator, accelerator_cls)
-    assert trainer.num_devices == devices
 
 
 def test_trainer_subclassing():
@@ -1456,58 +1416,6 @@ def test_predict_return_predictions_cpu(return_predictions, precision, tmpdir):
         assert preds[0].dtype == (torch.float64 if precision == 64 else torch.float32)
 
 
-@pytest.mark.parametrize(
-    ["limit_train_batches", "global_step", "num_training_batches", "current_epoch", "should_train"],
-    [(0.2, 0, 0, 0, False), (0.5, 10, 2, 5, True)],
-)
-def test_disabled_training_for_insufficient_limit_train_batches(
-    tmpdir, limit_train_batches, global_step, num_training_batches, current_epoch, should_train
-):
-    """Verify when `limit_train_batches` is float & between [0.0, 1.0] and.
-
-    `int(self.num_training_batches * self.limit_train_batches) == 0`, the training loop is disabled.
-    """
-
-    class CurrentModel(BoringModel):
-
-        training_step_invoked = False
-        training_epoch_end_invoked = False
-
-        def training_step(self, *args, **kwargs):
-            self.training_step_invoked = True
-            return super().training_step(*args, **kwargs)
-
-        def training_epoch_end(self, *args, **kwargs):
-            self.training_epoch_end_invoked = True
-            return super().training_epoch_end(*args, **kwargs)
-
-    dataset_len = 100
-    batch_size = 25
-
-    train = RandomDataset(32, length=dataset_len)
-    train_loader = DataLoader(train, batch_size=batch_size)
-
-    model = CurrentModel()
-
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=5, limit_train_batches=limit_train_batches)
-    trainer.fit(model, train_loader)
-
-    params_string = f"""`limit_train_batches={limit_train_batches}`, `dataset_len={dataset_len}`
-                        & `batch_size={batch_size}` as
-                        `num_training_batches={num_training_batches}`"""
-    if should_train:
-        error_string = f"should run with {params_string}"
-    else:
-        error_string = f"should not run with {params_string}"
-
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-    assert trainer.global_step == global_step
-    assert trainer.num_training_batches == num_training_batches
-    assert trainer.current_epoch == current_epoch
-    assert model.training_step_invoked == should_train, f"`training_step` {error_string}"
-    assert model.training_epoch_end_invoked == should_train, f"`training_epoch_end` {error_string}"
-
-
 @pytest.mark.parametrize(["max_steps", "max_epochs", "global_step"], [(10, 5, 10), (20, None, 20)])
 def test_repeated_fit_calls_with_max_epochs_and_steps(tmpdir, max_steps, max_epochs, global_step):
     """Ensure that the training loop is bound by `max_steps` and `max_epochs` for repeated calls of `trainer.fit`,
@@ -1679,12 +1587,10 @@ class TrainerStagesModel(BoringModel):
         assert not self.training
 
 
-@pytest.mark.parametrize(
-    "strategy,num_processes", [(None, 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True))]
-)
-def test_model_in_correct_mode_during_stages(tmpdir, strategy, num_processes):
+@pytest.mark.parametrize("strategy,devices", [(None, 1), pytest.param("ddp_spawn", 1, marks=RunIf(skip_windows=True))])
+def test_model_in_correct_mode_during_stages(tmpdir, strategy, devices):
     model = TrainerStagesModel()
-    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, num_processes=num_processes, fast_dev_run=True)
+    trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, accelerator="cpu", devices=devices, fast_dev_run=True)
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
@@ -1708,7 +1614,12 @@ def test_fit_test_synchronization(tmpdir):
     model = TestDummyModelForCheckpoint()
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="x", mode="min", save_top_k=1)
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, strategy="ddp_spawn", num_processes=2, callbacks=[checkpoint]
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        strategy="ddp_spawn",
+        accelerator="cpu",
+        devices=2,
+        callbacks=[checkpoint],
     )
     trainer.fit(model)
     assert os.path.exists(checkpoint.best_model_path), f"Could not find checkpoint at rank {trainer.global_rank}"
@@ -1783,6 +1694,8 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
         accelerator="gpu",
         devices=2,
         strategy="ddp",
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
 
     # simulate random failure in training_step on rank 0
@@ -2168,3 +2081,10 @@ def test_trainer_config_device_ids(monkeypatch, trainer_kwargs, expected_device_
     trainer = Trainer(**trainer_kwargs)
     assert trainer.device_ids == expected_device_ids
     assert trainer.num_devices == len(expected_device_ids)
+
+
+def test_trainer_save_checkpoint_no_model_attached():
+    trainer = Trainer()
+    assert trainer.model is None
+    with pytest.raises(AttributeError, match="Saving a checkpoint is only possible if a model is attached"):
+        trainer.save_checkpoint("checkpoint.ckpt")
