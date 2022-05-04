@@ -26,8 +26,9 @@ def is_param_in_hook_signature(
         min_args: whether the `signature` as at least `min_args` parameters
     """
     parameters = inspect.getfullargspec(hook_fx)
+    args = parameters.args[1:]  # ignore `self`
     return (
-        param in parameters.args
+        param in args
         or (not explicit and (parameters.varargs is not None))
-        or (isinstance(min_args, int) and len(parameters.args) >= min_args)
+        or (isinstance(min_args, int) and len(args) >= min_args)
     )
