@@ -161,6 +161,7 @@ class CollaborativeStrategy(Strategy):
         self._scheduler_fn = scheduler_fn
         self._require_scheduler_fn = delay_optimizer_step or delay_state_averaging or offload_optimizer
         self._opt = None
+        self._optimizer_zero_grad_original: Optional[Callable] = None
         self._run_id = run_id
         self._reuse_grad_buffers = reuse_grad_buffers
         self._optimizer_kwargs = dict(
