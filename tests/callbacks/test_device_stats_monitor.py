@@ -178,7 +178,7 @@ def test_prefix_metric_keys(tmpdir):
     assert converted_metrics == {"foo.1": 1.0, "foo.2": 2.0, "foo.3": 3.0}
 
 
-def test_warning_being_raised_when_psutil_is_not_available_with_device_stats(monkeypatch):
+def test_device_stats_monitor_warning_when_psutil_not_available(monkeypatch):
     """Test that warning is raised when psutil is not available."""
     import pytorch_lightning.callbacks.device_stats_monitor as imports
 
