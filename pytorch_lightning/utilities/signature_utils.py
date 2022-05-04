@@ -28,6 +28,6 @@ def is_param_in_hook_signature(
     hook_params = list(inspect.signature(hook_fx).parameters)
     return (
         param in hook_params
-        or (not explicit and "args" in hook_params)
+        or (not explicit and ("args" in hook_params or "_" in hook_params))
         or (isinstance(min_args, int) and len(hook_params) >= min_args)
     )
