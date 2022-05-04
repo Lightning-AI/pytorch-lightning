@@ -59,20 +59,20 @@ Connect models across different files with the ``MODEL_REGISTRY`` to make them a
 
 
     @pl_cli.MODEL_REGISTRY
-    class Model1(demos.DemoModel):
+    class Model1(DemoModel):
         def configure_optimizers(self):
             print("⚡", "using Model1", "⚡")
             return super().configure_optimizers()
 
 
     @pl_cli.MODEL_REGISTRY
-    class Model2(demos.DemoModel):
+    class Model2(DemoModel):
         def configure_optimizers(self):
             print("⚡", "using Model2", "⚡")
             return super().configure_optimizers()
 
 
-    cli = pl_cli.LightningCLI(datamodule_class=demos.BoringDataModule)
+    cli = pl_cli.LightningCLI(datamodule_class=BoringDataModule)
 
 Now you can choose between any model from the CLI:
 
@@ -100,20 +100,20 @@ Connect DataModules across different files with the ``DATAMODULE_REGISTRY`` to m
 
 
     @pl_cli.DATAMODULE_REGISTRY
-    class FakeDataset1(demos.BoringDataModule):
+    class FakeDataset1(BoringDataModule):
         def train_dataloader(self):
             print("⚡", "using FakeDataset1", "⚡")
             return torch.utils.data.DataLoader(self.random_train)
 
 
     @pl_cli.DATAMODULE_REGISTRY
-    class FakeDataset2(demos.BoringDataModule):
+    class FakeDataset2(BoringDataModule):
         def train_dataloader(self):
             print("⚡", "using FakeDataset2", "⚡")
             return torch.utils.data.DataLoader(self.random_train)
 
 
-    cli = pl_cli.LightningCLI(demos.DemoModel)
+    cli = pl_cli.LightningCLI(DemoModel)
 
 Now you can choose between any dataset at runtime:
 
@@ -154,7 +154,7 @@ Connect optimizers with the ``OPTIMIZER_REGISTRY`` to make them available from t
             super().step(closure)
 
 
-    cli = pl_cli.LightningCLI(demos.DemoModel, demos.BoringDataModule)
+    cli = pl_cli.LightningCLI(DemoModel, BoringDataModule)
 
 Now you can choose between any optimizer at runtime:
 
@@ -200,7 +200,7 @@ Connect learning rate schedulers with the ``LR_SCHEDULER_REGISTRY`` to make them
             super().step()
 
 
-    cli = pl_cli.LightningCLI(demos.DemoModel, demos.BoringDataModule)
+    cli = pl_cli.LightningCLI(DemoModel, BoringDataModule)
 
 Now you can choose between any learning rate scheduler at runtime:
 
@@ -240,7 +240,7 @@ A shortcut to register many classes from a package is to use the ``register_clas
     # add all PyTorch optimizers!
     pl_cli.OPTIMIZER_REGISTRY.register_classes(module=torch.optim, base_cls=torch.optim.Optimizer)
 
-    cli = pl_cli.LightningCLI(demos.DemoModel, demos.BoringDataModule)
+    cli = pl_cli.LightningCLI(DemoModel, BoringDataModule)
 
 Now use any of the optimizers in the ``torch.optim`` library:
 

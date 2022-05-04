@@ -29,21 +29,24 @@ import pytorch_lightning as pl
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _JSONARGPARSE_AVAILABLE
+from pytorch_lightning.utilities.imports import _DOCSTRING_PARSER_AVAILABLE, _JSONARGPARSE_AVAILABLE
 from pytorch_lightning.utilities.meta import get_all_subclasses
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.seed import _select_seed_randomly
-from pytorch_lightning.utilities.types import LRSchedulerType, LRSchedulerTypeTuple, LRSchedulerTypeUnion
 
 if _JSONARGPARSE_AVAILABLE:
     from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, Namespace, set_config_read_mode
-    from jsonargparse.optionals import import_docstring_parse
+    from jsonargparse.typehints import get_all_subclass_paths
+    from jsonargparse.util import import_object
 
     set_config_read_mode(fsspec_enabled=True)
 else:
     locals()["ArgumentParser"] = object
     locals()["Namespace"] = object
+
+if _DOCSTRING_PARSER_AVAILABLE:
+    import docstring_parser
 
 
 class _Registry(dict):
@@ -105,6 +108,12 @@ class ReduceLROnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
         self.monitor = monitor
 
 
+# LightningCLI requires the ReduceLROnPlateau defined here, thus it shouldn't accept the one from pytorch:
+LRSchedulerTypeTuple = (torch.optim.lr_scheduler._LRScheduler, ReduceLROnPlateau)
+LRSchedulerTypeUnion = Union[torch.optim.lr_scheduler._LRScheduler, ReduceLROnPlateau]
+LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[ReduceLROnPlateau]]
+
+
 def _populate_registries(subclasses: bool) -> None:
     if subclasses:
         # this will register any subclasses from all loaded modules including userland
@@ -132,9 +141,6 @@ def _populate_registries(subclasses: bool) -> None:
 
 class LightningArgumentParser(ArgumentParser):
     """Extension of jsonargparse's ArgumentParser for pytorch-lightning."""
-
-    # use class attribute because `parse_args` is only called on the main parser
-    _choices: Dict[str, Tuple[Tuple[Type, ...], bool]] = {}
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize argument parser that supports configuration file input.
@@ -222,7 +228,6 @@ class LightningArgumentParser(ArgumentParser):
         kwargs = {"instantiate": False, "fail_untyped": False, "skip": {"params"}}
         if isinstance(optimizer_class, tuple):
             self.add_subclass_arguments(optimizer_class, nested_key, **kwargs)
-            self.set_choices(nested_key, optimizer_class)
         else:
             self.add_class_arguments(optimizer_class, nested_key, sub_configs=True, **kwargs)
         self._optimizers[nested_key] = (optimizer_class, link_to)
@@ -247,99 +252,18 @@ class LightningArgumentParser(ArgumentParser):
         kwargs = {"instantiate": False, "fail_untyped": False, "skip": {"optimizer"}}
         if isinstance(lr_scheduler_class, tuple):
             self.add_subclass_arguments(lr_scheduler_class, nested_key, **kwargs)
-            self.set_choices(nested_key, lr_scheduler_class)
         else:
             self.add_class_arguments(lr_scheduler_class, nested_key, sub_configs=True, **kwargs)
         self._lr_schedulers[nested_key] = (lr_scheduler_class, link_to)
 
     def parse_args(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
         argv = sys.argv
-        for k, v in self._choices.items():
-            if not any(arg.startswith(f"--{k}") for arg in argv):
-                # the key wasn't passed - maybe defined in a config, maybe it's optional
-                continue
-            classes, is_list = v
-            # knowing whether the argument is a list type automatically would be too complex
-            if is_list:
-                argv = self._convert_argv_issue_85(classes, k, argv)
-            else:
-                argv = self._convert_argv_issue_84(classes, k, argv)
-        self._choices.clear()
+        nested_key = "trainer.callbacks"
+        if any(arg.startswith(f"--{nested_key}") for arg in argv):
+            classes = tuple(import_object(x) for x in get_all_subclass_paths(Callback))
+            argv = self._convert_argv_issue_85(classes, nested_key, argv)
         with mock.patch("sys.argv", argv):
             return super().parse_args(*args, **kwargs)
-
-    def set_choices(self, nested_key: str, classes: Tuple[Type, ...], is_list: bool = False) -> None:
-        """Adds support for shorthand notation for a particular nested key.
-
-        Args:
-            nested_key: The key whose choices will be set.
-            classes: A tuple of classes to choose from.
-            is_list: Whether the argument is a ``List[object]`` type.
-        """
-        self._choices[nested_key] = (classes, is_list)
-
-    @staticmethod
-    def _convert_argv_issue_84(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> List[str]:
-        """Placeholder for https://github.com/omni-us/jsonargparse/issues/84.
-
-        Adds support for shorthand notation for ``object`` arguments.
-        """
-        passed_args, clean_argv = {}, []
-        argv_key = f"--{nested_key}"
-        # get the argv args for this nested key
-        i = 0
-        while i < len(argv):
-            arg = argv[i]
-            if arg.startswith(argv_key):
-                if "=" in arg:
-                    key, value = arg.split("=")
-                else:
-                    key = arg
-                    i += 1
-                    value = argv[i]
-                passed_args[key] = value
-            else:
-                clean_argv.append(arg)
-            i += 1
-
-        # the user requested a help message
-        help_key = argv_key + ".help"
-        if help_key in passed_args:
-            argv_class = passed_args[help_key]
-            if "." in argv_class:
-                # user passed the class path directly
-                class_path = argv_class
-            else:
-                # convert shorthand format to the classpath
-                for cls in classes:
-                    if cls.__name__ == argv_class:
-                        class_path = _class_path_from_class(cls)
-                        break
-                else:
-                    raise ValueError(f"Could not generate get the class_path for {repr(argv_class)}")
-            return clean_argv + [help_key, class_path]
-
-        # generate the associated config file
-        argv_class = passed_args.pop(argv_key, "")
-        if not argv_class:
-            # the user passed a config as a str
-            class_path = passed_args[f"{argv_key}.class_path"]
-            init_args_key = f"{argv_key}.init_args"
-            init_args = {k[len(init_args_key) + 1 :]: v for k, v in passed_args.items() if k.startswith(init_args_key)}
-            config = str({"class_path": class_path, "init_args": init_args})
-        elif argv_class.startswith("{") or argv_class in ("None", "True", "False"):
-            # the user passed a config as a dict
-            config = argv_class
-        else:
-            # the user passed the shorthand format
-            init_args = {k[len(argv_key) + 1 :]: v for k, v in passed_args.items()}  # +1 to account for the period
-            for cls in classes:
-                if cls.__name__ == argv_class:
-                    config = str(_global_add_class_path(cls, init_args))
-                    break
-            else:
-                raise ValueError(f"Could not generate a config for {repr(argv_class)}")
-        return clean_argv + [argv_key, config]
 
     @staticmethod
     def _convert_argv_issue_85(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> List[str]:
@@ -611,24 +535,18 @@ class LightningCLI:
     def add_core_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         """Adds arguments from the core classes to the parser."""
         parser.add_lightning_class_args(self.trainer_class, "trainer")
-        parser.set_choices("trainer.callbacks", CALLBACK_REGISTRY.classes, is_list=True)
-        parser.set_choices("trainer.logger", LOGGER_REGISTRY.classes)
         trainer_defaults = {"trainer." + k: v for k, v in self.trainer_defaults.items() if k != "callbacks"}
         parser.set_defaults(trainer_defaults)
 
         parser.add_lightning_class_args(self._model_class, "model", subclass_mode=self.subclass_mode_model)
-        if self.model_class is None and len(MODEL_REGISTRY):
-            # did not pass a model and there are models registered
-            parser.set_choices("model", MODEL_REGISTRY.classes)
 
         if self.datamodule_class is not None:
             parser.add_lightning_class_args(self._datamodule_class, "data", subclass_mode=self.subclass_mode_data)
-        elif len(DATAMODULE_REGISTRY):
+        else:
             # this should not be required because the user might want to use the `LightningModule` dataloaders
             parser.add_lightning_class_args(
                 self._datamodule_class, "data", subclass_mode=self.subclass_mode_data, required=False
             )
-            parser.set_choices("data", DATAMODULE_REGISTRY.classes)
 
     def _add_arguments(self, parser: LightningArgumentParser) -> None:
         # default + core + custom arguments
@@ -637,9 +555,9 @@ class LightningCLI:
         self.add_arguments_to_parser(parser)
         # add default optimizer args if necessary
         if not parser._optimizers:  # already added by the user in `add_arguments_to_parser`
-            parser.add_optimizer_args(OPTIMIZER_REGISTRY.classes)
+            parser.add_optimizer_args((Optimizer,))
         if not parser._lr_schedulers:  # already added by the user in `add_arguments_to_parser`
-            parser.add_lr_scheduler_args(LR_SCHEDULER_REGISTRY.classes)
+            parser.add_lr_scheduler_args(LRSchedulerTypeTuple)
         self.link_optimizers_and_lr_schedulers(parser)
 
     def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
@@ -910,9 +828,13 @@ def instantiate_class(args: Union[Any, Tuple[Any, ...]], init: Dict[str, Any]) -
 
 
 def _get_short_description(component: object) -> Optional[str]:
-    parse, _ = import_docstring_parse("LightningCLI(run=True)")
-    try:
-        docstring = parse(component.__doc__)
-        return docstring.short_description
-    except ValueError:
-        rank_zero_warn(f"Failed parsing docstring for {component}")
+    if component.__doc__ is None:
+        return None
+    if not _DOCSTRING_PARSER_AVAILABLE:
+        rank_zero_warn(f"Failed parsing docstring for {component}: docstring-parser package is required")
+    else:
+        try:
+            docstring = docstring_parser.parse(component.__doc__)
+            return docstring.short_description
+        except (ValueError, docstring_parser.ParseError) as ex:
+            rank_zero_warn(f"Failed parsing docstring for {component}: {ex}")

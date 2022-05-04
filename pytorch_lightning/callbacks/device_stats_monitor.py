@@ -96,7 +96,9 @@ class DeviceStatsMonitor(Callback):
 
         for logger in trainer.loggers:
             separator = logger.group_separator
-            prefixed_device_stats = _prefix_metric_keys(device_stats, key, separator)
+            prefixed_device_stats = _prefix_metric_keys(
+                device_stats, f"{self.__class__.__qualname__}.{key}", separator
+            )
             logger.log_metrics(prefixed_device_stats, step=trainer.fit_loop.epoch_loop._batches_that_stepped)
 
     def on_train_batch_start(
