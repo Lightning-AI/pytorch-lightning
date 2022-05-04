@@ -259,13 +259,13 @@ class TQDMProgressBar(ProgressBarBase):
             val_checks_per_epoch = total_train_batches // trainer.val_check_batch
             total_val_batches = total_val_batches * val_checks_per_epoch
         total_batches = total_train_batches + total_val_batches
-        self.main_progress_bar.total = convert_inf(total_batches)
+        self.main_progress_bar.reset(convert_inf(total_batches))
         self.main_progress_bar.set_description(f"Epoch {trainer.current_epoch}")
 
     def on_train_batch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", *_: Any) -> None:
         current = self.train_batch_idx + self._val_processed
         if self._should_update(current, self.main_progress_bar.total):
-            _update_n(self.main_progress_bar, current)
+            _update_n(self.main_progress_bar, current, self.refresh_rate)
             self.main_progress_bar.set_postfix(self.get_metrics(trainer, pl_module))
 
     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
@@ -285,17 +285,17 @@ class TQDMProgressBar(ProgressBarBase):
         if not self.has_dataloader_changed(dataloader_idx):
             return
 
-        self.val_progress_bar.total = convert_inf(self.total_val_batches_current_dataloader)
+        self.val_progress_bar.reset(convert_inf(self.total_val_batches_current_dataloader))
         desc = self.sanity_check_description if trainer.sanity_checking else self.validation_description
         self.val_progress_bar.set_description(f"{desc} DataLoader {dataloader_idx}")
 
     def on_validation_batch_end(self, trainer: "pl.Trainer", *_: Any) -> None:
         if self._should_update(self.val_batch_idx, self.val_progress_bar.total):
-            _update_n(self.val_progress_bar, self.val_batch_idx)
+            _update_n(self.val_progress_bar, self.val_batch_idx, self.refresh_rate)
 
         current = self.train_batch_idx + self._val_processed
         if trainer.state.fn == "fit" and self._should_update(current, self.main_progress_bar.total):
-            _update_n(self.main_progress_bar, current)
+            _update_n(self.main_progress_bar, current, self.refresh_rate)
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if self._main_progress_bar is not None and trainer.state.fn == "fit":
@@ -312,12 +312,12 @@ class TQDMProgressBar(ProgressBarBase):
         if not self.has_dataloader_changed(dataloader_idx):
             return
 
-        self.test_progress_bar.total = convert_inf(self.total_test_batches_current_dataloader)
+        self.test_progress_bar.reset(convert_inf(self.total_test_batches_current_dataloader))
         self.test_progress_bar.set_description(f"{self.test_description} DataLoader {dataloader_idx}")
 
     def on_test_batch_end(self, *_: Any) -> None:
         if self._should_update(self.test_batch_idx, self.test_progress_bar.total):
-            _update_n(self.test_progress_bar, self.test_batch_idx)
+            _update_n(self.test_progress_bar, self.test_batch_idx, self.refresh_rate)
 
     def on_test_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.test_progress_bar.close()
@@ -332,12 +332,12 @@ class TQDMProgressBar(ProgressBarBase):
         if not self.has_dataloader_changed(dataloader_idx):
             return
 
-        self.predict_progress_bar.total = convert_inf(self.total_predict_batches_current_dataloader)
+        self.predict_progress_bar.reset(convert_inf(self.total_predict_batches_current_dataloader))
         self.predict_progress_bar.set_description(f"{self.predict_description} DataLoader {dataloader_idx}")
 
     def on_predict_batch_end(self, *_: Any) -> None:
         if self._should_update(self.predict_batch_idx, self.predict_progress_bar.total):
-            _update_n(self.predict_progress_bar, self.predict_batch_idx)
+            _update_n(self.predict_progress_bar, self.predict_batch_idx, self.refresh_rate)
 
     def on_predict_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self.predict_progress_bar.close()
@@ -381,7 +381,10 @@ def convert_inf(x: Optional[Union[int, float]]) -> Optional[Union[int, float]]:
     return x
 
 
-def _update_n(bar: _tqdm, value: int) -> None:
+def _update_n(bar: _tqdm, current: int, refresh_rate: int) -> None:
     if not bar.disable:
-        bar.n = value
+        total = bar.total
+        leftover = current % refresh_rate
+        advance = leftover if (current == total and leftover != 0) else refresh_rate
+        bar.update(advance)
         bar.refresh()
