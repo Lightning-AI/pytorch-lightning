@@ -109,7 +109,10 @@ ENV \
 
 RUN \
     HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
+    # CUDA 10.2 doesn't support ampere architecture (8.0).
+    if [ $CUDA_VERSION = "10.2" ]; then HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//",8.0"/}; fi && \
     export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
+    echo $HOROVOD_BUILD_CUDA_CC_LIST && \
     cat ./requirements/horovod.txt && \
     cmake --version && \
     pip install --no-cache-dir -r ./requirements/horovod.txt && \
