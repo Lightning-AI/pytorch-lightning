@@ -450,7 +450,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
         if not isinstance(self.accelerator, GPUAccelerator):
             raise MisconfigurationException(
-                f"DeepSpeed only supports GPU but `{self.accelerator.__class__.__name__}` is used."
+                f"DeepSpeed strategy is only supported on GPU but `{self.accelerator.__class__.__name__}` is used."
             )
 
         accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler

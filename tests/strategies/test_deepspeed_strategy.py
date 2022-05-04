@@ -1334,5 +1334,5 @@ def test_error_with_invalid_accelerator(tmpdir):
         fast_dev_run=True,
     )
     model = BoringModel()
-    with pytest.raises(MisconfigurationException, match="DeepSpeed only supports GPU"):
+    with pytest.raises(MisconfigurationException, match="DeepSpeed strategy is only supported on GPU"):
         trainer.fit(model)
