@@ -184,10 +184,6 @@ class CollaborativeStrategy(Strategy):
         rank_zero_only.rank = 1 if self.dht_manager.disable_logging_checkpointing else 0
         self._hivemind_initialized = False
 
-        self.global_rank = 0
-        self.local_rank = 0
-        self.world_size = 1
-
     @property
     def num_peers(self) -> int:
         if self._opt:
