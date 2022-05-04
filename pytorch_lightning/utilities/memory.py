@@ -24,7 +24,6 @@ import torch
 from torch.nn import Module
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
 
 
 def recursive_detach(in_dict: Any, to_cpu: bool = False) -> Any:
@@ -142,24 +141,3 @@ def get_model_size_mb(model: Module) -> float:
     torch.save(model.state_dict(), model_size)
     size_mb = model_size.getbuffer().nbytes / 1e6
     return size_mb
-
-
-# CPU device metrics
-_CPU_VM_PERCENT = "cpu_vm_percent"
-_CPU_PERCENT = "cpu_percent"
-_CPU_SWAP_PERCENT = "cpu_swap_percent"
-
-
-def get_cpu_process_metrics() -> Dict[str, float]:
-    if not _PSUTIL_AVAILABLE:
-        raise ModuleNotFoundError(
-            "Fetching CPU device stats requires `psutil` to be installed."
-            " Install it by running `pip install -U psutil`."
-        )
-    import psutil
-
-    return {
-        _CPU_VM_PERCENT: psutil.virtual_memory().percent,
-        _CPU_PERCENT: psutil.cpu_percent(),
-        _CPU_SWAP_PERCENT: psutil.swap_memory().percent,
-    }

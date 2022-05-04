@@ -24,7 +24,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
-from pytorch_lightning.utilities.memory import get_cpu_process_metrics
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
@@ -91,7 +90,9 @@ class DeviceStatsMonitor(Callback):
 
         if self.cpu_stats and device.type != "cpu":
             # Don't query CPU stats twice if CPU is accelerator
-            device_stats.update(get_cpu_process_metrics())
+            from pytorch_lightning.accelerators.cpu import get_cpu_stats
+
+            device_stats.update(get_cpu_stats())
 
         for logger in trainer.loggers:
             separator = logger.group_separator
