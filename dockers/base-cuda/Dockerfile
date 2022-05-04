@@ -85,10 +85,8 @@ RUN \
     python ./requirements/adjust-versions.py requirements.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust-versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust-versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
-    python -c "print(' '.join([ln for ln in open('requirements/extra.txt').readlines() if 'horovod' in ln]))" > ./requirements/horovod.txt && \
-    python assistant.py requirements_prune_pkgs "horovod" && \
     # Install all requirements \
-    pip install -r requirements/devel.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
+    pip install -r requirements/devel-base.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
     rm -rf requirements.* && \
     rm assistant.py
 
@@ -114,9 +112,8 @@ ENV \
 RUN \
     HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
     export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
-    cat ./requirements/horovod.txt && \
     cmake --version && \
-    pip install --no-cache-dir -r ./requirements/horovod.txt && \
+    pip install --no-cache-dir -r ./requirements/strategies.txt && \
     rm -rf requirements/
 
 RUN \
@@ -133,16 +130,6 @@ RUN \
     # install NVIDIA apex
     pip install -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip && \
     python -c "from apex import amp"
-
-RUN \
-    # install FairScale
-    pip install fairscale==0.4.5 && \
-    python -c "import fairscale; print(fairscale.__version__)"
-
-RUN \
-    # install DeepSpeed
-    pip install deepspeed==0.6.0 && \
-    python -c "import deepspeed; print(deepspeed.__version__)"
 
 RUN \
     # install Bagua
