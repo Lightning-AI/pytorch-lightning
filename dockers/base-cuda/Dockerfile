@@ -69,6 +69,9 @@ COPY ./.actions/assistant.py assistant.py
 ENV PYTHONPATH=/usr/lib/python${PYTHON_VERSION}/site-packages
 
 RUN \
+    # CUDA 10.2 doesn't support ampere architecture (8.0).
+    if [[ "$CUDA_VERSION" < "11.0" ]]; then export TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST//";8.0"/}; echo $TORCH_CUDA_ARCH_LIST; fi && \
+
     wget https://bootstrap.pypa.io/get-pip.py --progress=bar:force:noscroll --no-check-certificate && \
     python${PYTHON_VERSION} get-pip.py && \
     rm get-pip.py && \
@@ -109,8 +112,6 @@ ENV \
 
 RUN \
     HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
-    # CUDA 10.2 doesn't support ampere architecture (8.0).
-    if [ $CUDA_VERSION = "10.2" ]; then HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//",8.0"/}; fi && \
     export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
     echo $HOROVOD_BUILD_CUDA_CC_LIST && \
     cat ./requirements/horovod.txt && \
