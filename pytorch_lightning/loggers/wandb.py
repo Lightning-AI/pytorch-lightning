@@ -293,7 +293,7 @@ class WandbLogger(Logger):
         # set wandb init arguments
         anonymous_lut = {True: "allow", False: None}
         self._wandb_init = dict(
-            name=name,
+            name=name or project,
             project=project,
             id=version or id,
             dir=save_dir,
