@@ -200,7 +200,7 @@ def test_warn_if_argument_passed(delay_grad_averaging, delay_state_averaging, de
         fast_dev_run=True,
     )
 
-    with pytest.warns(UserWarning, match="requires a scheduler_fn to be passed to the strategy"):
+    with pytest.warns(UserWarning, match="requires a `scheduler_fn` to be passed to the strategy"):
         trainer.fit(model)
 
 
