@@ -189,7 +189,6 @@ def test_invalid_setup_method():
 
     trainer = Trainer(fast_dev_run=True, callbacks=[CustomBoringCallback()])
     model = BoringModel()
-    dm = BoringDataModule()
 
     with pytest.raises(MisconfigurationException, match="does not have a `stage` argument"):
-        trainer.fit(model, datamodule=dm)
+        trainer.fit(model)
