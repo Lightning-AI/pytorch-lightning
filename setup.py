@@ -16,6 +16,7 @@
 import os
 from importlib.util import module_from_spec, spec_from_file_location
 
+from pkg_resources import parse_requirements
 from setuptools import find_packages, setup
 
 # https://packaging.python.org/guides/single-sourcing-package-version/
@@ -46,6 +47,9 @@ extras = {
     "strategies": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="strategies.txt"),
     "test": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="test.txt"),
 }
+
+for req in parse_requirements(os.path.join(_PATH_REQUIRE, "strategies.txt")):
+    extras[req.key] = str(req)
 extras["dev"] = extras["extra"] + extras["loggers"] + extras["strategies"] + extras["test"]
 extras["all"] = extras["dev"] + extras["examples"]  # + extras['docs']
 
