@@ -14,10 +14,10 @@ pr:
   - "release/*"
 
 jobs:
-  - job: hpu
+  - job: tests
 
     # how long to run the job before automatically cancelling
-    timeoutInMinutes: "5"
+    timeoutInMinutes: "10"
     # how much time to give 'run always even if cancelled tasks' before stopping them
     cancelTimeoutInMinutes: "2"
 
@@ -33,6 +33,7 @@ jobs:
       displayName: 'Instance HW info'
 
     - bash: |
+        pip install . --requirement requirements/extra.txt
         pip install . --requirement requirements/test.txt
       displayName: 'Install dependencies'
 
