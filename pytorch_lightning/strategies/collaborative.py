@@ -210,6 +210,10 @@ class CollaborativeStrategy(Strategy):
         raise ValueError
 
     @property
+    def global_rank(self) -> int:
+        return 0
+
+    @property
     def is_global_zero(self) -> bool:
         return True
 
