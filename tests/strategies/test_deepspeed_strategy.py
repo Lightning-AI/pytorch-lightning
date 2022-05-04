@@ -1329,7 +1329,7 @@ def test_deepspeed_exception_on_cpu(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="cpu",
-        strategy=DeepSpeedStrategy(),
+        strategy="deepspeed",
         fast_dev_run=True,
     )
     strategy = trainer.strategy
