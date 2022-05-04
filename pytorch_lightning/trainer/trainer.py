@@ -65,7 +65,7 @@ from pytorch_lightning.strategies import ParallelStrategy, Strategy
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
-from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
+from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
@@ -173,7 +173,7 @@ class Trainer(
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, str]] = None,
         benchmark: Optional[bool] = None,
-        deterministic: bool = False,
+        deterministic: Union[bool, _LITERAL_WARN] = False,
         reload_dataloaders_every_n_epochs: int = 0,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
@@ -257,6 +257,8 @@ class Trainer(
                 Default: ``False``.
 
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
+                Set to ``"warn"`` to use deterministic algorithms whenever possible, throwing warnings on operations
+                that don't support deterministic mode (requires Pytorch 1.11+).
                 Default: ``False``.
 
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
@@ -621,10 +623,7 @@ class Trainer(
             self.check_val_every_n_epoch = 1
             self.loggers = [DummyLogger()] if self.loggers else []
 
-            rank_zero_info(
-                "Running in fast_dev_run mode: will run a full train,"
-                f" val, test and prediction loop using {num_batches} batch(es)."
-            )
+            rank_zero_info(f"Running in fast_dev_run mode: will run the requested loop using {num_batches} batch(es).")
 
         self.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
         self.limit_val_batches = _determine_batch_limits(limit_val_batches, "limit_val_batches")
@@ -1815,21 +1814,25 @@ class Trainer(
             self.train_dataloader = CombinedLoader(loaders, self._data_connector.multiple_trainloader_mode)
 
         module = model or self.lightning_module or self.datamodule
-        self.num_training_batches = (
+        orig_train_batches = self.num_training_batches = (
             len(self.train_dataloader)
             if has_len_all_ranks(self.train_dataloader, self.strategy, module)
             else float("inf")
         )
+        if orig_train_batches == 0:
+            return
+
+        # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
+        self._last_train_dl_reload_epoch = self.current_epoch
 
         if isinstance(self.limit_train_batches, int):
-            self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
+            self.num_training_batches = min(orig_train_batches, self.limit_train_batches)
         elif self.num_training_batches != float("inf"):
-            self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
+            self.num_training_batches = int(orig_train_batches * self.limit_train_batches)
         elif self.limit_train_batches != 1.0:
             raise MisconfigurationException(
-                "When using an IterableDataset for `limit_train_batches`,"
-                " `Trainer(limit_train_batches)` must be `1.0` or an int. An int k specifies"
-                " `num_training_batches` to use."
+                "When using an `IterableDataset`, `Trainer(limit_train_batches)` must be `1.0` or an int."
+                "An int specifies `num_training_batches` to use."
             )
 
         if isinstance(self.val_check_interval, int):
@@ -1863,8 +1866,19 @@ class Trainer(
                 category=PossibleUserWarning,
             )
 
-        # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
-        self._last_train_dl_reload_epoch = self.current_epoch
+        if (
+            self.num_training_batches == 0
+            and self.limit_train_batches > 0.0
+            and isinstance(self.limit_train_batches, float)
+            and orig_train_batches != float("inf")
+        ):
+            min_percentage = 1.0 / orig_train_batches
+            raise MisconfigurationException(
+                f"You requested to check {self.limit_train_batches} of the `train_dataloader` but"
+                f" {self.limit_train_batches} * {orig_train_batches} < 1. Please increase the"
+                f" `limit_train_batches` argument. Try at least"
+                f" `limit_train_batches={min_percentage}`"
+            )
 
     def reset_val_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the validation dataloader and determines the number of batches.
@@ -2367,6 +2381,11 @@ class Trainer(
             storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
 
         """
+        if self.model is None:
+            raise AttributeError(
+                "Saving a checkpoint is only possible if a model is attached to the Trainer. Did you call"
+                " `Trainer.save_checkpoint()` before calling `Trainer.{fit,validate,test,predict}`?"
+            )
         self._checkpoint_connector.save_checkpoint(filepath, weights_only=weights_only, storage_options=storage_options)
 
     """
@@ -2620,19 +2639,21 @@ class Trainer(
 
     @property
     def logger(self) -> Optional[Logger]:
-        if len(self.loggers) == 0:
+        loggers = self.loggers
+        if len(loggers) == 0:
             return None
-        if len(self.loggers) == 1:
-            return self.loggers[0]
+        if len(loggers) == 1:
+            return loggers[0]
         else:
-            rank_zero_warn(
-                "Using trainer.logger when Trainer is configured to use multiple loggers."
-                " This behavior will change in v1.8 when LoggerCollection is removed, and"
-                " trainer.logger will return the first logger in trainer.loggers"
+            rank_zero_deprecation(
+                "Using `trainer.logger` when multiple loggers are configured."
+                " This behavior will change in v1.8 when `LoggerCollection` is removed, and"
+                " `trainer.logger` will return the first logger available.",
+                stacklevel=5,
             )
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                return LoggerCollection(self.loggers)
+                return LoggerCollection(loggers)
 
     @logger.setter
     def logger(self, logger: Optional[Logger]) -> None:

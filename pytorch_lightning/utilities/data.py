@@ -21,7 +21,7 @@ from itertools import chain
 from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Set, Type, Union
 
 import torch
-from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler, SequentialSampler
+from torch.utils.data import BatchSampler, DataLoader, IterableDataset, RandomSampler, Sampler, SequentialSampler
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
@@ -389,9 +389,18 @@ def _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs: Dict) -> 
     return dl_kwargs
 
 
-def _is_dataloader_shuffled(dataloader: DataLoader):
-    return (
-        hasattr(dataloader, "sampler")
-        and not isinstance(dataloader.sampler, SequentialSampler)
-        and not isinstance(dataloader.dataset, IterableDataset)
-    )
+def _is_dataloader_shuffled(dataloader: object) -> bool:
+    if hasattr(dataloader, "shuffle"):
+        # this attribute is not part of PyTorch's DataLoader, but could have been set by
+        # our `_replace_dataloader_init_method` context manager
+        return dataloader.shuffle
+    if isinstance(dataloader.dataset, IterableDataset):
+        # shuffling is useless with iterable datasets
+        return False
+    if not hasattr(dataloader, "sampler"):
+        # shuffling is enabled via a sampler. No sampler, no shuffling
+        return False
+    sampler = dataloader.sampler
+    if isinstance(sampler, SequentialSampler):
+        return False
+    return isinstance(sampler, RandomSampler)

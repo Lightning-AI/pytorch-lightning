@@ -22,7 +22,6 @@ from pl_examples.domain_templates.generative_adversarial_net import MNISTDataMod
 from pytorch_lightning import Trainer
 from pytorch_lightning.loops import OptimizerLoop
 from pytorch_lightning.loops.optimization.optimizer_loop import ClosureResult
-from pytorch_lightning.loops.utilities import _build_training_step_kwargs
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 #############################################################################################
@@ -56,28 +55,25 @@ class YieldLoop(OptimizerLoop):
     def connect(self, **kwargs):
         raise NotImplementedError(f"{self.__class__.__name__} does not connect any child loops.")
 
-    def on_run_start(self, batch, optimizers, batch_idx):
-        super().on_run_start(batch, optimizers, batch_idx)
+    def on_run_start(self, optimizers, kwargs):
+        super().on_run_start(optimizers, kwargs)
         if not inspect.isgeneratorfunction(self.trainer.lightning_module.training_step):
             raise MisconfigurationException("The `LightningModule` does not yield anything in the `training_step`.")
         assert self.trainer.lightning_module.automatic_optimization
 
-        # We request the generator once and save it for later
-        # so we can call next() on it.
-        self._generator = self._get_generator(batch, batch_idx, opt_idx=0)
+        # We request the generator once and save it for later so we can call next() on it.
+        self._generator = self._get_generator(kwargs)
 
-    def _make_step_fn(self, split_batch, batch_idx, opt_idx):
+    def _make_step_fn(self, *_):
         return partial(self._training_step, self._generator)
 
-    def _get_generator(self, split_batch, batch_idx, opt_idx):
-        step_kwargs = _build_training_step_kwargs(
-            self.trainer.lightning_module, self.trainer.optimizers, split_batch, batch_idx, opt_idx, hiddens=None
-        )
+    def _get_generator(self, kwargs, opt_idx=0):
+        kwargs = self._build_kwargs(kwargs, opt_idx, hiddens=None)
 
         # Here we are basically calling `lightning_module.training_step()`
-        # and this returns a generator! The `training_step` is handled by the
-        # accelerator to enable distributed training.
-        return self.trainer.strategy.training_step(*step_kwargs.values())
+        # and this returns a generator! The `training_step` is handled by
+        # the accelerator to enable distributed training.
+        return self.trainer.strategy.training_step(*kwargs.values())
 
     def _training_step(self, generator):
         # required for logging

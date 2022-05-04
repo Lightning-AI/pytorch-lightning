@@ -36,6 +36,7 @@ repos:
         args: ['--maxkb=350', '--enforce-all']
         exclude: |
             (?x)^(
+                CHANGELOG.md|
                 docs/source/_static/images/general/fast_2.gif|
                 docs/source/_static/images/mnist_imgs/pt_to_pl.jpg|
                 docs/source/_static/images/lightning_module/pt_to_pl.png|
