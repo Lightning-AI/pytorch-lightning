@@ -86,7 +86,7 @@ class CollaborativeStrategy(Strategy):
             offload_optimizer: Offload the optimizer to host memory, saving GPU memory for parameters and gradients.
 
             reuse_grad_buffers: Use the model's gradient buffers (params.grad) for gradient accumulation
-                which is more memory effecient. Lightning will automatically disable ``zero_grad``
+                which is more memory efficient. Lightning will automatically disable ``zero_grad``
                 in the ``LightningModule``.
 
             scheduler_fn: callable(optimizer) -> PyTorch LRScheduler or a pre-initialized PyTorch scheduler.
