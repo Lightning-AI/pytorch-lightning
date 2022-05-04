@@ -19,7 +19,7 @@ pr:
 jobs:
   - job: pytest
     # how long to run the job before automatically cancelling
-    timeoutInMinutes: "45"
+    timeoutInMinutes: "55"
     # how much time to give 'run always even if cancelled tasks' before stopping them
     cancelTimeoutInMinutes: "2"
 
@@ -51,9 +51,7 @@ jobs:
       displayName: 'Image info & NVIDIA'
 
     - bash: |
-        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
-        pip install "fairscale>=0.4.5"
-        pip install "deepspeed<0.6.0"  # https://github.com/microsoft/DeepSpeed/issues/1878
+        python -c "fname = 'requirements/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
         CUDA_VERSION_MM=$(python -c "import torch ; print(''.join(map(str, torch.version.cuda.split('.')[:2])))")
         pip install "bagua-cuda$CUDA_VERSION_MM>=0.9.0"
         pip install . --requirement requirements/devel.txt
