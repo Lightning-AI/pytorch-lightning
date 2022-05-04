@@ -213,17 +213,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             num_optimizers=len(self.trainer.optimizers),
         )
 
-        # TODO: Update this in v1.7 (deprecation: #9816)
-        model_fx = self.trainer.lightning_module.on_train_batch_end
-        extra_kwargs = (
-            {"dataloader_idx": 0}
-            if callable(model_fx) and is_param_in_hook_signature(model_fx, "dataloader_idx", explicit=True)
-            else {}
-        )
-        self.trainer._call_callback_hooks("on_train_batch_end", batch_end_outputs, batch, batch_idx, **extra_kwargs)
-        self.trainer._call_lightning_module_hook(
-            "on_train_batch_end", batch_end_outputs, batch, batch_idx, **extra_kwargs
-        )
+        self.trainer._call_callback_hooks("on_train_batch_end", batch_end_outputs, batch, batch_idx)
+        self.trainer._call_lightning_module_hook("on_train_batch_end", batch_end_outputs, batch, batch_idx)
         self.trainer._call_callback_hooks("on_batch_end")
         self.trainer._logger_connector.on_batch_end()
 
