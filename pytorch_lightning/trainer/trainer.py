@@ -1559,22 +1559,15 @@ class Trainer(
         self,
         hook_name: str,
         *args: Any,
-        datamodule: Optional["pl.LightningDataModule"] = None,
         **kwargs: Any,
     ) -> Any:
-        datamodule = datamodule or self.datamodule
-
-        if datamodule is None:
+        if self.datamodule is None:
             raise TypeError("No `LightningDataModule` is available to call hooks on.")
 
-        fn = getattr(datamodule, hook_name)
-        if not callable(fn):
-            return
-
-        with self.profiler.profile(f"[LightningDataModule]{datamodule.__class__.__name__}.{hook_name}"):
-            output = fn(*args, **kwargs)
-
-        return output
+        fn = getattr(self.datamodule, hook_name)
+        if callable(fn):
+            with self.profiler.profile(f"[LightningDataModule]{self.datamodule.__class__.__name__}.{hook_name}"):
+                return fn(*args, **kwargs)
 
     def _call_callback_hooks(
         self,
