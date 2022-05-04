@@ -120,5 +120,5 @@ This can be measured with the :class:`~pytorch_lightning.callbacks.device_stats_
 
     trainer = Trainer(callbacks=[DeviceStatsMonitor()])
 
-CPU metrics will be tracked by default regardless of the accelerator used. To disable logging
+CPU metrics will be tracked by default on the CPU accelerator. To enable it for other accelerators set ``DeviceStatsMonitor(cpu_stats=True)``. To disable logging
 CPU metrics, you can specify ``DeviceStatsMonitor(cpu_stats=False)``.
