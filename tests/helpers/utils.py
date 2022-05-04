@@ -13,6 +13,7 @@
 # limitations under the License.
 import functools
 import os
+import re
 import traceback
 from contextlib import contextmanager
 from typing import Optional, Type
@@ -126,7 +127,7 @@ def no_warning_call(expected_warning: Type[Warning] = UserWarning, match: Option
             return
     else:
         for w in record.list:
-            if w.category is expected_warning and match in w.message.args[0]:
+            if w.category is expected_warning and re.compile(match).search(w.message.args[0]):
                 break
         else:
             return
