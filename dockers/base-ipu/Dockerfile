@@ -83,7 +83,6 @@ RUN \
     python -c "import torch; print(torch.__version__)" && \
     python adjust_versions.py requirements-extra.txt && \
     pip install -q fire && \
-    python assistant.py requirements_prune_pkgs fairscale,horovod --req_files requirements-extra.txt && \
     # Install remaining requirements
     pip install -r requirements-extra.txt --no-cache-dir && \
     pip install -r requirements-test.txt --no-cache-dir && \
