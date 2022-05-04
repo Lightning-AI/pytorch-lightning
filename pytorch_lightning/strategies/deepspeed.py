@@ -26,7 +26,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators.cpu import CPUAccelerator
+from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
@@ -448,8 +448,11 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             raise MisconfigurationException("DeepSpeed does not support clipping gradients by value.")
 
-        if isinstance(self.accelerator, CPUAccelerator):
-            raise MisconfigurationException("CPU is not supported for DeepSpeed")
+        if not isinstance(self.accelerator, GPUAccelerator):
+            raise MisconfigurationException(
+                f"DeepSpeed only supports GPU but `{self.accelerator.__class__.__name__}` is used."
+            )
+
         accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
 
         if accumulation_scheduler.epochs != [0]:
