@@ -279,7 +279,7 @@ class BaseFinetuning(Callback):
         # import is here to avoid circular imports
         from pytorch_lightning.loops.utilities import _get_active_optimizers
 
-        for opt_idx, optimizer in _get_active_optimizers(trainer.optimizers, trainer.optimizer_frequencies):
+        for opt_idx, optimizer in _get_active_optimizers(trainer.optimizers, trainer.optimizer_frequencies, 0):
             num_param_groups = len(optimizer.param_groups)
             self.finetune_function(pl_module, trainer.current_epoch, optimizer, opt_idx)
             current_param_groups = optimizer.param_groups
