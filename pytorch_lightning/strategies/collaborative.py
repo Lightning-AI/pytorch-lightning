@@ -256,6 +256,7 @@ class CollaborativeStrategy(Strategy):
         self._opt = opt
 
         if self._reuse_grad_buffers:
+            assert self.lightning_module is not None
             self._optimizer_zero_grad_original = self.lightning_module.optimizer_zero_grad
             self._disable_zero_grad()
 
@@ -268,6 +269,7 @@ class CollaborativeStrategy(Strategy):
                 " When `CollaborativeStrategy(reuse_grad_buffers=True)`, the optimizer cannot call zero grad,"
                 " as this would delete the gradients before they are averaged."
             )
+        assert self.lightning_module is not None
         lightning_module.optimizer_zero_grad = None  # type: ignore[assignment]
 
     def _wrap_schedulers(self, opt: "hivemind.Optimizer") -> None:
