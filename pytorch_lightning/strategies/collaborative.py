@@ -67,28 +67,32 @@ class CollaborativeStrategy(Strategy):
                 batch size, the more work can be done asynchronously without communication.
 
             run_id: A unique identifier of this training run, used as a common prefix for all DHT keys.
+                See ``https://learning-at-home.readthedocs.io/en/latest/user/dht.html``.
 
             batch_size: The local batch size per process. If not provided, we infer this from the first batch of data
                 passed in at training. Note that this should not change throughout training.
 
             delay_state_averaging: If enabled (default), average parameters and extra tensors in a background thread;
-                if set to False, average parameters synchronously within the corresponding hivemind.Optimizer.step call.
+                if set to False, average parameters synchronously within the
+                corresponding :meth:`hivemind.Optimizer.step` call.
 
-            delay_optimizer_step: Run optimizer in background, apply results in future ``.step``.
-                requires `offload_optimizer`.
+            delay_optimizer_step: Run optimizer in background, apply results in future .step. requires
+                :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.offload_optimizer`.
 
-            delay_grad_averaging: Average gradients in background; requires offload_optimizer and delay_optimizer_step.
+            delay_grad_averaging: Average gradients in background; requires
+                :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.offload_optimizer` and
+                :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.delay_optimizer_step`.
 
             offload_optimizer: Offload the optimizer to host memory, saving GPU memory for parameters and gradients.
 
-            reuse_grad_buffers: Use the model's gradient buffers (params.grad) for gradient accumulation.
-                This is more memory efficient, but it requires that we do not call
-                ``zero_grad`` in the ``LightningModule``.
+            reuse_grad_buffers: Use the model's gradient buffers (params.grad) for gradient accumulation
+                which is more memory effecient. Lightning will automatically disable ``zero_grad``
+                in the ``LightningModule``.
 
             scheduler_fn: callable(optimizer) -> PyTorch LRScheduler or a pre-initialized PyTorch scheduler.
-                When using `offload_optimizer`/`delay_optimizer_step`/`delay_state_averaging` a scheduler_fn is required
-                instead of passing a scheduler to the `pl.LightningModule`. This is because the optimizer is re-created
-                and the scheduler needs to be re-created as well.
+                When using `offload_optimizer`/`delay_optimizer_step`/`delay_state_averaging` ``scheduler_fn``
+                is required to be passed to the ``CollaborativeStrategy``. This is because the optimizer
+                is re-created and the scheduler needs to be re-created as well.
 
             matchmaking_time: When looking for group, wait for peers to join for up to this many seconds.
                 Increase if you see "averaged gradients with N peers" where N is below 0.9x on >=25% of epochs.
@@ -124,12 +128,15 @@ class CollaborativeStrategy(Strategy):
 
             port: When creating the endpoint, the host port to use.
 
-            retry_endpoint_attempts: When connecting to the `peer_endpoint`, how many time to retry before raising
-                an exception.
+            retry_endpoint_attempts: When connecting to the
+                :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.peer_endpoint`,
+                how many time to retry before raising an exception.
 
-            retry_endpoint_sleep_duration: When connecting to the `peer_endpoint`, how long to wait between retries.
+            retry_endpoint_sleep_duration: When connecting to the
+                :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.peer_endpoint`,
+                how long to wait between retries.
 
-            optimizer_kwargs: kwargs are passed to the `hivemind.Optimizer` class.
+            **optimizer_kwargs: kwargs are passed to the :class:`hivemind.Optimizer` class.
         """
         if not _HIVEMIND_AVAILABLE:
             raise MisconfigurationException(
@@ -371,28 +378,26 @@ class DHTManager:
 
         Arguments:
 
-            host_maddrs: List of multi-addrs to create visible peers for other processes.
-                `https://learning-at-home.readthedocs.io/en/latest/user/dht.html#running-across-the-internet`
+            host_maddrs: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.host_maddrs`
 
-            initial_peers: If connecting to a running process, a list of initial peers needs to be passed in.
-                This can also be set via the env variable `INITIAL_PEERS`.
+            initial_peers: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.initial_peers`
 
-            endpoint: Enable if a side-car endpoint server is required on the process to server initial peers.
-                This is useful when using some form of orchestration such as torchelastic.
+            endpoint: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.endpoint`
 
-            peer_endpoint: The endpoint to request initial peers from.
+            peer_endpoint: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.peer_endpoint`
 
-            persistent: When using an endpoint, this controls whether other processes that are not the endpoint
-                server log/checkpoint. If `persistent` is True, we do not log/checkpoint from other processes.
+            persistent: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.persistent`
 
-            host: When creating the endpoint, the host IP to use.
+            host: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.host`
 
-            port: When creating the endpoint, the host port to use.
+            port: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.port`
 
-            retry_endpoint_attempts: When connecting to the `peer_endpoint`, how many time to retry before raising
-                an exception.
+            retry_endpoint_attempts:
+                :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.retry_endpoint_attempts`
 
-            retry_endpoint_sleep_duration: When connecting to the `peer_endpoint`, how long to wait between retries.
+            retry_endpoint_sleep_duration:
+                :paramref:
+                `~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.retry_endpoint_sleep_duration`
         """
         self._persistent = persistent
         self._endpoint = endpoint
