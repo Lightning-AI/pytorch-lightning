@@ -18,8 +18,8 @@ change any hyperparameters without changing your code:
 .. code:: bash
 
     # Mix and match anything
-    $ python main.py --command fit --model.learning_rate 0.02
-    $ python main.py --command fit --model.learning_rate 0.01 --trainer.fast_dev_run True
+    $ python main.py fit --model.learning_rate 0.02
+    $ python main.py fit --model.learning_rate 0.01 --trainer.fast_dev_run True
 
 This is what the Lightning CLI enables. Without the Lightning CLI, you usually end up with a TON of boilerplate that looks like this:
 
@@ -81,33 +81,14 @@ The simplest way to control a model with the CLI is to wrap it in the LightningC
 .. code:: python
 
     # main.py
-
     import torch
     from pytorch_lightning.utilities.cli import LightningCLI
-    from pytorch_lightning import LightningModule, demos
 
+    # simple demo classes for your convenience
+    from pytorch_lightning.demos.boring_classes import DemoModel, BoringDataModule
 
-    class DemoModel(LightningModule):
-        def __init__(self, out_dim: int = 10, learning_rate: float = 0.02):
-            super().__init__()
-            self.l1 = torch.nn.Linear(32, out_dim)
-            self.learning_rate = learning_rate
-
-        def forward(self, x):
-            return torch.relu(self.l1(x.view(x.size(0), -1)))
-
-        def training_step(self, batch, batch_nb):
-            x = batch
-            x = self(x)
-            loss = x.sum()
-            return loss
-
-        def configure_optimizers(self):
-            return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
-
-
-    cli = LightningCLI(DemoModel, demos.BoringDataModule)
-    # don't call fit!!
+    cli = LightningCLI(DemoModel, BoringDataModule)
+    # note: don't call fit!!
 
 Now your model can be managed via the CLI. To see the available commands type:
 

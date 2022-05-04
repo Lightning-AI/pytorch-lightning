@@ -120,6 +120,7 @@ jobs:
           - {python_version: "3.7", pytorch_version: "1.11", cuda_version: "11.3.1"}
           # latest (used in Tutorials)
           - {python_version: "3.8", pytorch_version: "1.8", cuda_version: "11.1"}
+          - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1"}
           - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.1"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
 
