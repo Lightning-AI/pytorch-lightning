@@ -165,7 +165,7 @@ def test_device_stats_monitor_no_logger(tmpdir):
         enable_progress_bar=False,
     )
 
-    with pytest.raises(MisconfigurationException, match="`Trainer` that has no logger."):
+    with pytest.raises(MisconfigurationException, match="Cannot use `DeviceStatsMonitor` callback."):
         trainer.fit(model)
 
 
@@ -186,5 +186,6 @@ def test_device_stats_monitor_warning_when_psutil_not_available(monkeypatch):
     monitor = DeviceStatsMonitor()
     trainer = Trainer()
     assert trainer.strategy.root_device == torch.device("cpu")
+    # TODO: raise an exception from v1.9
     with pytest.warns(UserWarning, match="psutil` is not installed"):
         monitor.setup(trainer, Mock())

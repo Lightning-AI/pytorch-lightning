@@ -62,12 +62,11 @@ class DeviceStatsMonitor(Callback):
         stage: Optional[str] = None,
     ) -> None:
         if not trainer.loggers:
-            raise MisconfigurationException(
-                "Cannot use `DeviceStatsMonitor` callback with `Trainer` that has no logger."
-            )
+            raise MisconfigurationException("Cannot use `DeviceStatsMonitor` callback with `Trainer(logger=False)`.")
         # warn in setup to warn once
         device = trainer.strategy.root_device
         if self.cpu_stats is None and device.type == "cpu" and not _PSUTIL_AVAILABLE:
+            # TODO: raise an exception from v1.9
             rank_zero_warn(
                 "`DeviceStatsMonitor` will not log CPU stats as `psutil` is not installed."
                 " To install `psutil`, run `pip install psutil`."
@@ -96,9 +95,7 @@ class DeviceStatsMonitor(Callback):
 
         for logger in trainer.loggers:
             separator = logger.group_separator
-            prefixed_device_stats = _prefix_metric_keys(
-                device_stats, f"{self.__class__.__qualname__}.{key}", separator
-            )
+            prefixed_device_stats = _prefix_metric_keys(device_stats, f"{self.__class__.__qualname__}.{key}", separator)
             logger.log_metrics(prefixed_device_stats, step=trainer.fit_loop.epoch_loop._batches_that_stepped)
 
     def on_train_batch_start(
