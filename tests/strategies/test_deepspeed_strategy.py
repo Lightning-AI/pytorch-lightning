@@ -1324,7 +1324,7 @@ def test_deepspeed_with_bfloat16_precision(tmpdir):
     assert model.layer.weight.dtype == torch.bfloat16
 
 
-@RunIf(standalone=True, deepspeed=True)
+@RunIf(deepspeed=True)
 def test_error_with_invalid_accelerator(tmpdir):
     """Test DeepSpeedStrategy raises an exception if an invalid accelerator is used."""
     trainer = Trainer(
