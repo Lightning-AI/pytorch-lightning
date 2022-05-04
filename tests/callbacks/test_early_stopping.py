@@ -49,11 +49,11 @@ class EarlyStoppingTestRestore(EarlyStopping):
 
     def on_train_start(self, trainer, pl_module):
         if self.expected_state:
-            assert self.on_save_checkpoint(trainer, pl_module, {}) == self.expected_state
+            assert self.state_dict() == self.expected_state
 
     def on_train_epoch_end(self, trainer, pl_module):
         super().on_train_epoch_end(trainer, pl_module)
-        self.saved_states.append(self.on_save_checkpoint(trainer, pl_module, {}).copy())
+        self.saved_states.append(self.state_dict().copy())
 
 
 def test_resume_early_stopping_from_checkpoint(tmpdir):
@@ -354,7 +354,7 @@ class EarlyStoppingModel(BoringModel):
 
 _ES_CHECK = dict(check_on_train_epoch_end=True)
 _ES_CHECK_P3 = dict(patience=3, check_on_train_epoch_end=True)
-_SPAWN_MARK = dict(marks=RunIf(skip_windows=True, skip_49370=True))
+_SPAWN_MARK = dict(marks=RunIf(skip_windows=True))
 
 
 @pytest.mark.parametrize(

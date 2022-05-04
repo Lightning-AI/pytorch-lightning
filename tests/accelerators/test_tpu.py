@@ -26,7 +26,6 @@ from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import PrecisionPlugin, TPUPrecisionPlugin, XLACheckpointIO
 from pytorch_lightning.strategies import DDPStrategy, TPUSpawnStrategy
 from pytorch_lightning.utilities import find_shared_parameters
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import pl_multi_process_test
@@ -53,7 +52,7 @@ def test_resume_training_on_cpu(tmpdir):
     """Checks if training can be resumed from a saved checkpoint on CPU."""
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, tpu_cores=8)
+    trainer = Trainer(max_epochs=1, accelerator="tpu", devices=8)
     trainer.fit(model)
 
     model_path = trainer.checkpoint_callback.best_model_path
@@ -76,7 +75,7 @@ def test_if_test_works_after_train(tmpdir):
 
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(max_epochs=1, accelerator="tpu", devices=8, default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
     assert len(trainer.test(model)) == 1
 
@@ -85,16 +84,15 @@ def test_if_test_works_after_train(tmpdir):
 def test_accelerator_cpu_with_tpu_cores_flag():
     assert TPUAccelerator.is_available()
 
-    trainer = Trainer(accelerator="cpu", tpu_cores=8)
+    trainer = Trainer(accelerator="cpu", devices=8)
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
-    trainer = Trainer(accelerator="tpu", tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
 
 
 @RunIf(tpu=True)
-@pl_multi_process_test
 @pytest.mark.parametrize(["accelerator", "devices"], [("auto", 8), ("auto", "auto"), ("tpu", None)])
 def test_accelerator_tpu(accelerator, devices):
     assert TPUAccelerator.is_available()
@@ -103,7 +101,6 @@ def test_accelerator_tpu(accelerator, devices):
     assert isinstance(trainer.accelerator, TPUAccelerator)
     assert isinstance(trainer.strategy, TPUSpawnStrategy)
     assert trainer.num_devices == 8
-    assert trainer.tpu_cores == 8
 
 
 @RunIf(tpu=True)
@@ -114,13 +111,15 @@ def test_accelerator_tpu_with_tpu_cores_priority():
     with pytest.warns(UserWarning, match="The flag `devices=1` will be ignored,"):
         trainer = Trainer(accelerator="tpu", devices=1, tpu_cores=tpu_cores)
 
-    assert trainer.tpu_cores == tpu_cores
+    assert isinstance(trainer.accelerator, TPUAccelerator)
+    assert trainer.num_devices == tpu_cores
 
 
 @RunIf(tpu=True)
-@pl_multi_process_test
 def test_set_devices_if_none_tpu():
-    trainer = Trainer(accelerator="tpu", tpu_cores=8)
+    with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed in v2.0."):
+        trainer = Trainer(accelerator="tpu", tpu_cores=8)
+    assert isinstance(trainer.accelerator, TPUAccelerator)
     assert trainer.num_devices == 8
 
 
@@ -189,18 +188,13 @@ def test_manual_optimization_tpus(tmpdir):
         limit_train_batches=5,
         limit_test_batches=0,
         limit_val_batches=0,
-        tpu_cores=8,
+        accelerator="tpu",
+        devices=8,
     )
     trainer.fit(model)
 
     for param, param_copy in zip(model.parameters(), model_copy.parameters()):
         assert not torch.equal(param.cpu().data, param_copy.data)
-
-
-@RunIf(tpu=True)
-def test_ddp_cpu_not_supported_on_tpus():
-    with pytest.raises(MisconfigurationException, match="`accelerator='ddp_cpu'` is not supported on TPU machines"):
-        Trainer(accelerator="ddp_cpu")
 
 
 @RunIf(tpu=True)
@@ -229,7 +223,7 @@ def test_auto_parameters_tying_tpus(tmpdir):
 
     assert shared_params[0] == ["layer_1.weight", "layer_3.weight"]
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, tpu_cores=8, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, accelerator="tpu", devices=8, max_epochs=1)
     trainer.fit(model)
 
     assert torch.all(torch.eq(model.layer_1.weight, model.layer_3.weight))
@@ -261,7 +255,7 @@ def test_auto_parameters_tying_tpus_nested_module(tmpdir):
 
     model = NestedModule()
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, tpu_cores=8, max_epochs=1)
+    trainer = Trainer(default_root_dir=tmpdir, limit_train_batches=5, accelerator="tpu", devices=8, max_epochs=1)
     trainer.fit(model)
 
     assert torch.all(torch.eq(model.net_a.layer.weight, model.net_b.layer.weight))
@@ -295,7 +289,7 @@ def test_tpu_invalid_raises_set_precision_with_strategy():
 
 @RunIf(tpu=True)
 def test_xla_checkpoint_plugin_being_default():
-    trainer = Trainer(tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
     assert isinstance(trainer.strategy.checkpoint_io, XLACheckpointIO)
 
 
@@ -313,8 +307,8 @@ def test_warning_if_tpus_not_used():
         Trainer()
 
 
-@pytest.mark.skip(reason="TODO(@kaushikb11): Optimize TPU tests to avoid timeouts")
 @RunIf(tpu=True)
+@pl_multi_process_test
 @pytest.mark.parametrize(
     ["devices", "expected_device_ids"],
     [

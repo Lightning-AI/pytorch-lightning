@@ -164,7 +164,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
             cpu_offload=self.cpu_offload,
             move_grads_to_cpu=self.move_grads_to_cpu,
             flatten_parameters=self.flatten_parameters,
-            mixed_precision=(precision == PrecisionType.MIXED),
+            mixed_precision=(precision in (PrecisionType.MIXED, PrecisionType.HALF)),
             reshard_after_forward=self.reshard_after_forward,
             fp32_reduce_scatter=self.fp32_reduce_scatter,
             compute_dtype=self.compute_dtype,

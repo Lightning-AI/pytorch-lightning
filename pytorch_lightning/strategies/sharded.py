@@ -39,7 +39,7 @@ class DDPShardedStrategy(DDPStrategy):
     """Optimizer and gradient sharded training provided by FairScale."""
 
     strategy_name = "ddp_sharded"
-    _REDUCE_BUFFER_SIZE_DEFAULT: int = 2 ** 23  # 8M
+    _REDUCE_BUFFER_SIZE_DEFAULT: int = 2**23  # 8M
 
     def setup(self, trainer: "pl.Trainer") -> None:
         # share ddp pids to all processes

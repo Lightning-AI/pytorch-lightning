@@ -138,6 +138,7 @@ def apply_to_collection(
         result = deepcopy(data, memo=memo)
         # apply function to each field
         for field_name, (field_value, field_init) in fields.items():
+            v = None
             if field_init:
                 v = apply_to_collection(
                     field_value,
@@ -215,12 +216,64 @@ def apply_to_collections(
     is_namedtuple = _is_namedtuple(data1)
     is_sequence = isinstance(data1, Sequence) and not isinstance(data1, str)
     if (is_namedtuple or is_sequence) and data2 is not None:
-        assert len(data1) == len(data2), "Sequence collections have different sizes"
+        assert len(data1) == len(data2), "Sequence collections have different sizes."
         out = [
             apply_to_collections(v1, v2, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
             for v1, v2 in zip(data1, data2)
         ]
         return elem_type(*out) if is_namedtuple else elem_type(out)
+
+    if _is_dataclass_instance(data1) and data2 is not None:
+        if not _is_dataclass_instance(data2):
+            raise TypeError(
+                "Expected inputs to be dataclasses of the same type or to have identical fields"
+                f" but got input 1 of type {type(data1)} and input 2 of type {type(data2)}."
+            )
+        if not (
+            len(dataclasses.fields(data1)) == len(dataclasses.fields(data2))
+            and all(map(lambda f1, f2: isinstance(f1, type(f2)), dataclasses.fields(data1), dataclasses.fields(data2)))
+        ):
+            raise TypeError("Dataclasses fields do not match.")
+        # make a deepcopy of the data,
+        # but do not deepcopy mapped fields since the computation would
+        # be wasted on values that likely get immediately overwritten
+        data = [data1, data2]
+        fields: List[dict] = [{}, {}]
+        memo: dict = {}
+        for i in range(len(data)):
+            for field in dataclasses.fields(data[i]):
+                field_value = getattr(data[i], field.name)
+                fields[i][field.name] = (field_value, field.init)
+                if i == 0:
+                    memo[id(field_value)] = field_value
+
+        result = deepcopy(data1, memo=memo)
+
+        # apply function to each field
+        for ((field_name, (field_value1, field_init1)), (_, (field_value2, field_init2))) in zip(
+            fields[0].items(), fields[1].items()
+        ):
+            v = None
+            if field_init1 and field_init2:
+                v = apply_to_collections(
+                    field_value1,
+                    field_value2,
+                    dtype,
+                    function,
+                    *args,
+                    wrong_dtype=wrong_dtype,
+                    **kwargs,
+                )
+            if not field_init1 or not field_init2 or v is None:  # retain old value
+                return apply_to_collection(data1, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
+            try:
+                setattr(result, field_name, v)
+            except dataclasses.FrozenInstanceError as e:
+                raise MisconfigurationException(
+                    "A frozen dataclass was passed to `apply_to_collections` but this is not allowed."
+                    " HINT: is your batch a frozen dataclass?"
+                ) from e
+        return result
 
     return apply_to_collection(data1, dtype, function, *args, wrong_dtype=wrong_dtype, **kwargs)
 

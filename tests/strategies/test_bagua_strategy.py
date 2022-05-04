@@ -33,7 +33,7 @@ class BoringModel4QAdam(BoringModel):
         return [optimizer], [lr_scheduler]
 
 
-@RunIf(bagua=True, min_gpus=1)
+@RunIf(min_gpus=1, bagua=True)
 def test_bagua_default(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -45,7 +45,7 @@ def test_bagua_default(tmpdir):
     assert isinstance(trainer.strategy, BaguaStrategy)
 
 
-@RunIf(bagua=True, min_gpus=2, standalone=True)
+@RunIf(min_gpus=2, standalone=True, bagua=True)
 def test_async_algorithm(tmpdir):
     model = BoringModel()
     bagua_strategy = BaguaStrategy(algorithm="async")
@@ -55,6 +55,8 @@ def test_async_algorithm(tmpdir):
         strategy=bagua_strategy,
         accelerator="gpu",
         devices=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -62,7 +64,7 @@ def test_async_algorithm(tmpdir):
         assert torch.norm(param) < 3
 
 
-@RunIf(bagua=True, min_gpus=1)
+@RunIf(min_gpus=1, bagua=True)
 @pytest.mark.parametrize(
     "algorithm", ["gradient_allreduce", "bytegrad", "qadam", "decentralized", "low_precision_decentralized"]
 )
@@ -90,7 +92,7 @@ def test_configuration(algorithm, tmpdir):
             trainer.strategy._configure_bagua_model(trainer)
 
 
-@RunIf(bagua=True, min_gpus=1)
+@RunIf(min_gpus=1, bagua=True)
 def test_qadam_configuration(tmpdir):
     model = BoringModel4QAdam()
     bagua_strategy = BaguaStrategy(algorithm="qadam")
@@ -118,4 +120,4 @@ def test_bagua_not_available(monkeypatch):
     monkeypatch.setattr(imports, "_BAGUA_AVAILABLE", False)
     with mock.patch("torch.cuda.device_count", return_value=1):
         with pytest.raises(MisconfigurationException, match="you must have `Bagua` installed"):
-            Trainer(strategy="bagua", gpus=1)
+            Trainer(strategy="bagua", accelerator="gpu", devices=1)

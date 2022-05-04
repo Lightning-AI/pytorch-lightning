@@ -77,7 +77,7 @@ def test_property_logger(tmpdir):
     assert model.logger is None
 
     logger = TensorBoardLogger(tmpdir)
-    trainer = Mock(logger=logger)
+    trainer = Mock(loggers=[logger])
     model.trainer = trainer
     assert model.logger == logger
 

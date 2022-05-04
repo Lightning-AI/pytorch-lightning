@@ -39,11 +39,16 @@ from pytorch_lightning.utilities.distributed import init_dist_connection, Reduce
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_8, _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.distributed import (
+    init_dist_connection,
+    ReduceOp,
+    register_ddp_comm_hook,
+    sync_ddp_if_available,
+)
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-
-if _TORCH_GREATER_EQUAL_1_8:
-    from pytorch_lightning.utilities.distributed import register_ddp_comm_hook
 
 log = logging.getLogger(__name__)
 
@@ -171,20 +176,11 @@ class DDPSpawnStrategy(ParallelStrategy):
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
         # This flag does come with a performance hit, so it is suggested to disable in cases where it is possible.
         self._ddp_kwargs["find_unused_parameters"] = self._ddp_kwargs.get("find_unused_parameters", True)
-        if not self.lightning_module.automatic_optimization and not self._ddp_kwargs.get(
-            "find_unused_parameters", False
-        ):
-            # TODO: PyTorch 1.7.0 DDP introduces `self.reducer._rebuild_buckets()` breaking manual_optimization
-            rank_zero_warn(
-                "From PyTorch 1.7.0, Lightning `manual_optimization` needs to set `find_unused_parameters=True` to"
-                " properly work with DDP. Using `find_unused_parameters=True`."
-            )
-            self._ddp_kwargs["find_unused_parameters"] = True
 
     def _register_ddp_hooks(self) -> None:
         # currently, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
         # https://github.com/pytorch/pytorch/blob/v1.8.0/torch/nn/parallel/distributed.py#L1080-L1084
-        if _TORCH_GREATER_EQUAL_1_8 and self.root_device.type == "cuda" and self._is_single_process_single_device:
+        if self.root_device.type == "cuda" and self._is_single_process_single_device:
             register_ddp_comm_hook(
                 model=self.model,
                 ddp_comm_state=self._ddp_comm_state,
@@ -205,7 +201,7 @@ class DDPSpawnStrategy(ParallelStrategy):
     def barrier(self, *args, **kwargs) -> None:
         if not distributed_available():
             return
-        if _TORCH_GREATER_EQUAL_1_8 and torch.distributed.get_backend() == "nccl":
+        if torch.distributed.get_backend() == "nccl":
             torch.distributed.barrier(device_ids=self.determine_ddp_device_ids())
         else:
             torch.distributed.barrier()

@@ -194,7 +194,6 @@ class HookedModel(BoringModel):
                 "on_before_batch_transfer",
                 "transfer_batch_to_device",
                 "on_after_batch_transfer",
-                "get_progress_bar_dict",
             }
         )
         # remove `nn.Module` hooks
@@ -246,7 +245,6 @@ def test_fx_validator_integration(tmpdir):
         "on_save_checkpoint": "You can't",
         "on_load_checkpoint": "You can't",
         "on_exception": "You can't",
-        "summarize": "not managed by the `Trainer",
     }
     model = HookedModel(not_supported)
 

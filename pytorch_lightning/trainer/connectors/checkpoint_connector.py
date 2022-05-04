@@ -15,6 +15,7 @@
 import logging
 import os
 import re
+from copy import deepcopy
 from typing import Any, Dict, Optional
 
 import torch
@@ -217,6 +218,32 @@ class CheckpointConnector:
         ):
             prec_plugin.load_state_dict(self._loaded_checkpoint["native_amp_scaling_state"])
 
+    def _restore_quantization_callbacks(self) -> None:
+        """Restores all the ``QuantizationAwareTraining`` callbacks from the pre-loaded checkpoint.
+
+        The implementation is similar to :meth:`restore_callbacks` but calls the QAT callback with a special hook
+        `load_before_model` instead of `load_state_dict`.
+        """
+        if not self._loaded_checkpoint:
+            return
+
+        callback_states = self._loaded_checkpoint.get("callbacks")
+
+        if callback_states is None:
+            return
+
+        from pytorch_lightning.callbacks.quantization import QuantizationAwareTraining  # avoid circular import
+
+        for callback in self.trainer.callbacks:
+            if not isinstance(callback, QuantizationAwareTraining):
+                continue
+
+            state = callback_states.get(callback.state_key, callback_states.get(callback._legacy_state_key))
+            if state:
+                # The Quantization callbacks have a special method that must be called before restoring the weights
+                # of the model
+                callback._load_before_model(self.trainer.model, deepcopy(state))
+
     def restore_callbacks(self) -> None:
         """Restores all callbacks from the pre-loaded checkpoint."""
         if not self._loaded_checkpoint:
@@ -333,6 +360,7 @@ class CheckpointConnector:
             }
         """
         model = self.trainer.lightning_module
+        datamodule = self.trainer.datamodule
 
         checkpoint = {
             # the epoch and global step are saved for compatibility but they are not relevant for restoration
@@ -369,15 +397,16 @@ class CheckpointConnector:
             prec_plugin.on_save_checkpoint(checkpoint)
 
         # dump hyper-parameters
-        if model.hparams:
-            if hasattr(model, "_hparams_name"):
-                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
-            # dump arguments
-            if _OMEGACONF_AVAILABLE and isinstance(model.hparams, Container):
-                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
-                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
-            else:
-                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = dict(model.hparams)
+        for obj in (model, datamodule):
+            if obj and obj.hparams:
+                if hasattr(obj, "_hparams_name"):
+                    checkpoint[obj.CHECKPOINT_HYPER_PARAMS_NAME] = obj._hparams_name
+                # dump arguments
+                if _OMEGACONF_AVAILABLE and isinstance(obj.hparams, Container):
+                    checkpoint[obj.CHECKPOINT_HYPER_PARAMS_KEY] = obj.hparams
+                    checkpoint[obj.CHECKPOINT_HYPER_PARAMS_TYPE] = type(obj.hparams)
+                else:
+                    checkpoint[obj.CHECKPOINT_HYPER_PARAMS_KEY] = dict(obj.hparams)
 
         # dump stateful datamodule
         datamodule = self.trainer.datamodule

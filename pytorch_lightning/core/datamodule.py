@@ -13,14 +13,15 @@
 # limitations under the License.
 """LightningDataModule for loading DataLoaders with ease."""
 from argparse import ArgumentParser, Namespace
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, IO, List, Mapping, Optional, Sequence, Tuple, Union
 
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
-from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.core.saving import _load_from_checkpoint
 from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args, get_init_arguments_and_types
+from pytorch_lightning.utilities.types import _PATH
 
 
 class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
@@ -53,114 +54,14 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
     """
 
     name: str = ...
+    CHECKPOINT_HYPER_PARAMS_KEY = "datamodule_hyper_parameters"
+    CHECKPOINT_HYPER_PARAMS_NAME = "datamodule_hparams_name"
+    CHECKPOINT_HYPER_PARAMS_TYPE = "datamodule_hparams_type"
 
-    def __init__(self, train_transforms=None, val_transforms=None, test_transforms=None, dims=None):
+    def __init__(self) -> None:
         super().__init__()
-        if train_transforms is not None:
-            rank_zero_deprecation(
-                "DataModule property `train_transforms` was deprecated in v1.5 and will be removed in v1.7."
-            )
-        if val_transforms is not None:
-            rank_zero_deprecation(
-                "DataModule property `val_transforms` was deprecated in v1.5 and will be removed in v1.7."
-            )
-        if test_transforms is not None:
-            rank_zero_deprecation(
-                "DataModule property `test_transforms` was deprecated in v1.5 and will be removed in v1.7."
-            )
-        if dims is not None:
-            rank_zero_deprecation("DataModule property `dims` was deprecated in v1.5 and will be removed in v1.7.")
-        self._train_transforms = train_transforms
-        self._val_transforms = val_transforms
-        self._test_transforms = test_transforms
-        self._dims = dims if dims is not None else ()
-
         # Pointer to the trainer object
         self.trainer = None
-
-    @property
-    def train_transforms(self):
-        """Optional transforms (or collection of transforms) you can apply to train dataset.
-
-        .. deprecated:: v1.5     Will be removed in v1.7.0.
-        """
-
-        rank_zero_deprecation(
-            "DataModule property `train_transforms` was deprecated in v1.5 and will be removed in v1.7."
-        )
-        return self._train_transforms
-
-    @train_transforms.setter
-    def train_transforms(self, t):
-        rank_zero_deprecation(
-            "DataModule property `train_transforms` was deprecated in v1.5 and will be removed in v1.7."
-        )
-        self._train_transforms = t
-
-    @property
-    def val_transforms(self):
-        """Optional transforms (or collection of transforms) you can apply to validation dataset.
-
-        .. deprecated:: v1.5     Will be removed in v1.7.0.
-        """
-
-        rank_zero_deprecation(
-            "DataModule property `val_transforms` was deprecated in v1.5 and will be removed in v1.7."
-        )
-        return self._val_transforms
-
-    @val_transforms.setter
-    def val_transforms(self, t):
-        rank_zero_deprecation(
-            "DataModule property `val_transforms` was deprecated in v1.5 and will be removed in v1.7."
-        )
-        self._val_transforms = t
-
-    @property
-    def test_transforms(self):
-        """Optional transforms (or collection of transforms) you can apply to test dataset.
-
-        .. deprecated:: v1.5     Will be removed in v1.7.0.
-        """
-
-        rank_zero_deprecation(
-            "DataModule property `test_transforms` was deprecated in v1.5 and will be removed in v1.7."
-        )
-        return self._test_transforms
-
-    @test_transforms.setter
-    def test_transforms(self, t):
-        rank_zero_deprecation(
-            "DataModule property `test_transforms` was deprecated in v1.5 and will be removed in v1.7."
-        )
-        self._test_transforms = t
-
-    @property
-    def dims(self):
-        """A tuple describing the shape of your data. Extra functionality exposed in ``size``.
-
-        .. deprecated:: v1.5     Will be removed in v1.7.0.
-        """
-        rank_zero_deprecation("DataModule property `dims` was deprecated in v1.5 and will be removed in v1.7.")
-        return self._dims
-
-    @dims.setter
-    def dims(self, d):
-        rank_zero_deprecation("DataModule property `dims` was deprecated in v1.5 and will be removed in v1.7.")
-        self._dims = d
-
-    def size(self, dim=None) -> Union[Tuple, List[Tuple]]:
-        """Return the dimension of each input either as a tuple or list of tuples. You can index this just as you
-        would with a torch tensor.
-
-        .. deprecated:: v1.5     Will be removed in v1.7.0.
-        """
-        rank_zero_deprecation("DataModule property `size` was deprecated in v1.5 and will be removed in v1.7.")
-
-        if dim is not None:
-            return self.dims[dim]
-
-        return self.dims
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs) -> ArgumentParser:
@@ -262,3 +163,72 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
             state_dict: the datamodule state returned by ``state_dict``.
         """
         pass
+
+    @classmethod
+    def load_from_checkpoint(
+        cls,
+        checkpoint_path: Union[_PATH, IO],
+        hparams_file: Optional[_PATH] = None,
+        **kwargs,
+    ):
+        r"""
+        Primary way of loading a datamodule from a checkpoint. When Lightning saves a checkpoint
+        it stores the arguments passed to ``__init__``  in the checkpoint under ``"datamodule_hyper_parameters"``.
+
+        Any arguments specified through \*\*kwargs will override args stored in ``"datamodule_hyper_parameters"``.
+
+        Args:
+            checkpoint_path: Path to checkpoint. This can also be a URL, or file-like object
+            hparams_file: Optional path to a ``.yaml`` or ``.csv`` file with hierarchical structure
+                as in this example::
+
+                    dataloader:
+                        batch_size: 32
+
+                You most likely won't need this since Lightning will always save the hyperparameters
+                to the checkpoint.
+                However, if your checkpoint weights don't have the hyperparameters saved,
+                use this method to pass in a ``.yaml`` file with the hparams you'd like to use.
+                These will be converted into a :class:`~dict` and passed into your
+                :class:`LightningDataModule` for use.
+
+                If your datamodule's ``hparams`` argument is :class:`~argparse.Namespace`
+                and ``.yaml`` file has hierarchical structure, you need to refactor your datamodule to treat
+                ``hparams`` as :class:`~dict`.
+            \**kwargs: Any extra keyword args needed to init the datamodule. Can also be used to override saved
+                hyperparameter values.
+
+        Return:
+            :class:`LightningDataModule` instance with loaded weights and hyperparameters (if available).
+
+        Note:
+            ``load_from_checkpoint`` is a **class** method. You should use your :class:`LightningDataModule`
+            **class** to call it instead of the :class:`LightningDataModule` instance.
+
+        Example::
+
+            # load weights without mapping ...
+            datamodule = MyLightningDataModule.load_from_checkpoint('path/to/checkpoint.ckpt')
+
+            # or load weights and hyperparameters from separate files.
+            datamodule = MyLightningDataModule.load_from_checkpoint(
+                'path/to/checkpoint.ckpt',
+                hparams_file='/path/to/hparams_file.yaml'
+            )
+
+            # override some of the params with new values
+            datamodule = MyLightningDataModule.load_from_checkpoint(
+                PATH,
+                batch_size=32,
+                num_workers=10,
+            )
+
+        """
+        return _load_from_checkpoint(
+            cls,
+            checkpoint_path,
+            map_location=None,
+            hparams_file=hparams_file,
+            strict=None,
+            **kwargs,
+        )
