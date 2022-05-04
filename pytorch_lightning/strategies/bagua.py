@@ -174,9 +174,6 @@ class BaguaStrategy(DDPStrategy):
             self._configure_bagua_model(trainer)
 
         self.setup_precision_plugin()
-        self._rank_0_will_call_children_scripts = self.broadcast(self._rank_0_will_call_children_scripts)
-        if self._should_run_deadlock_detection():
-            self._share_information_to_prevent_deadlock()
 
     def _check_qadam_optimizer(self) -> None:
         has_qadam_optimizer = any([isinstance(opt, QAdamOptimizer) for opt in self.optimizers])
