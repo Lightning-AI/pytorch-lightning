@@ -115,6 +115,7 @@ jobs:
       matrix:
         include:
           # the config used in '.azure-pipelines/gpu-tests.yml'
+          - {python_version: "3.7", pytorch_version: "1.8", cuda_version: "10.2"}
           - {python_version: "3.7", pytorch_version: "1.10", cuda_version: "11.1"}
           - {python_version: "3.7", pytorch_version: "1.11", cuda_version: "11.3.1"}
           # latest (used in Tutorials)
