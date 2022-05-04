@@ -184,7 +184,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         else:
             torch.distributed.barrier()
 
-    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:  # type: ignore
         obj = [obj]
         if self.global_rank != src:
             obj = [None]
