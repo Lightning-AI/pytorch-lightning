@@ -319,9 +319,9 @@ class CollaborativeStrategy(Strategy):
     def teardown(self) -> None:
         super().teardown()
 
-        if self._optimizer_zero_grad_original is not None:
+        if self._optimizer_zero_grad_original is not None and self.lightning_module is not None:
             # re-enable `optimizer_zero_grad`
-            self.lightning_module.optimizer_zero_grad = self._optimizer_zero_grad_original
+            self.lightning_module.optimizer_zero_grad = self._optimizer_zero_grad_original  # type: ignore[assignment]
 
         if self.root_device.type == "cuda" and self.lightning_module is not None:
             # GPU teardown
