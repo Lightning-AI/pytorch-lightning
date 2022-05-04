@@ -246,6 +246,8 @@ def test_args_passed_to_optimizer(mock_peers, mock_server):
             fast_dev_run=True,
         )
         trainer.fit(model)
+        # ensures that after training with `reuse_grad_buffers` we restore the hook
+        assert model.optimizer_zero_grad is not None
 
 
 @RunIf(hivemind=True)

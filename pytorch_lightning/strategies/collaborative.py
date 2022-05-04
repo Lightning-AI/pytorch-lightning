@@ -256,16 +256,19 @@ class CollaborativeStrategy(Strategy):
         self._opt = opt
 
         if self._reuse_grad_buffers:
-            lightning_module = self.lightning_module
-            # turn off zero_grad by Lightning
-            if is_overridden("optimizer_zero_grad", lightning_module):
-                assert lightning_module is not None  # `is_overridden` returns False otherwise
-                rank_zero_warn(
-                    "You have overridden `optimizer_zero_grad` which will be disabled."
-                    " When `CollaborativeStrategy(reuse_grad_buffers=True)`, the optimizer cannot call zero grad,"
-                    " as this would delete the gradients before they are averaged."
-                )
-                lightning_module.optimizer_zero_grad = None  # type: ignore[assignment]
+            self._optimizer_zero_grad_original = self.lightning_module.optimizer_zero_grad
+            self._disable_zero_grad()
+
+    def _disable_zero_grad(self) -> None:
+        lightning_module = self.lightning_module
+        if is_overridden("optimizer_zero_grad", lightning_module):
+            assert lightning_module is not None  # `is_overridden` returns False otherwise
+            rank_zero_warn(
+                "You have overridden `optimizer_zero_grad` which will be disabled."
+                " When `CollaborativeStrategy(reuse_grad_buffers=True)`, the optimizer cannot call zero grad,"
+                " as this would delete the gradients before they are averaged."
+            )
+        lightning_module.optimizer_zero_grad = None  # type: ignore[assignment]
 
     def _wrap_schedulers(self, opt: "hivemind.Optimizer") -> None:
         # wrap schedulers so that they only update when the hivemind optimizer updates
@@ -315,6 +318,11 @@ class CollaborativeStrategy(Strategy):
 
     def teardown(self) -> None:
         super().teardown()
+
+        if self._optimizer_zero_grad_original is not None:
+            # re-enable `optimizer_zero_grad`
+            self.lightning_module.optimizer_zero_grad = self._optimizer_zero_grad_original
+
         if self.root_device.type == "cuda" and self.lightning_module is not None:
             # GPU teardown
             self.lightning_module.cpu()
