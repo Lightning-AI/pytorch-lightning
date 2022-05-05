@@ -41,11 +41,11 @@ from pytorch_lightning.utilities.seed import reset_seed
 
 MixedPrecision = None
 if _TORCH_GREATER_EQUAL_1_12:
+    from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision  # type: ignore[no-redef]
     from torch.distributed.fsdp.fully_sharded_data_parallel import (
         BackwardPrefetch,
         CPUOffload,
         FullyShardedDataParallel,
-        MixedPrecision,
     )
     from torch.distributed.fsdp.wrap import enable_wrap
 
@@ -120,7 +120,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         self._process_group_backend: Optional[str] = process_group_backend
         self.cpu_offload: Optional[CPUOffload] = cpu_offload
         self.backward_prefetch: Optional[BackwardPrefetch] = backward_prefetch
-        self.mixed_precision: Optional[MixedPrecision] = mixed_precision
+        self.mixed_precision: Optional[MixedPrecision] = mixed_precision  # type: ignore
 
     @property
     def root_device(self) -> torch.device:
@@ -138,7 +138,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         return self._process_group_backend
 
     @property
-    def mixed_precision_config(self) -> Optional[MixedPrecision]:
+    def mixed_precision_config(self) -> Optional[MixedPrecision]:  # type: ignore
         if self.mixed_precision:
             return self.mixed_precision
         plugin = self.precision_plugin
