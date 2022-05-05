@@ -168,6 +168,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue causing zero-division error for empty dataloaders ([#12885](https://github.com/PyTorchLightning/pytorch-lightning/pull/12885))
 
 
+- Fixed `Trainer(precision=64)` during evaluation ([#12983](https://github.com/PyTorchLightning/pytorch-lightning/pull/12983))
+
+
 -
 
 
