@@ -2,6 +2,7 @@ import http
 import ipaddress
 import logging
 import os
+import platform
 import re
 import threading
 import time
@@ -70,7 +71,7 @@ class CollaborativeStrategy(Strategy):
                 See ``https://learning-at-home.readthedocs.io/en/latest/user/dht.html``.
 
             batch_size: The local batch size per process. If not provided, we infer this from the first batch of data
-                passed in at training. Note that this should not change throughout training.
+                passed in at training (lazy). Note that this should not change throughout training.
 
             delay_state_averaging: If enabled (default), average parameters and extra tensors in a background thread;
                 if set to False, average parameters synchronously within the
@@ -138,9 +139,9 @@ class CollaborativeStrategy(Strategy):
 
             **optimizer_kwargs: kwargs are passed to the :class:`hivemind.Optimizer` class.
         """
-        if not _HIVEMIND_AVAILABLE:
+        if not _HIVEMIND_AVAILABLE and platform.system() != "Linux":
             raise MisconfigurationException(
-                "To use the `CollaborativeStrategy`, you must have Hivemind installed."
+                "To use the `CollaborativeStrategy`, you must have Hivemind installed and be running on Linux."
                 " Install it by running `pip install -U hivemind`."
             )
 
@@ -208,7 +209,7 @@ class CollaborativeStrategy(Strategy):
             return torch.device(f"cuda:{torch.cuda.current_device()}")
         elif isinstance(self.accelerator, CPUAccelerator):
             return torch.device("cpu")
-        raise ValueError
+        raise MisconfigurationException(f"Was unable to infer device type from the accelerator: {self.accelerator}")
 
     @property
     def global_rank(self) -> int:
