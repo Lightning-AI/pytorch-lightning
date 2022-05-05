@@ -137,7 +137,7 @@ class CollaborativeStrategy(Strategy):
 
             **optimizer_kwargs: kwargs are passed to the :class:`hivemind.Optimizer` class.
         """
-        if not _HIVEMIND_AVAILABLE and platform.system() != "Linux":
+        if not _HIVEMIND_AVAILABLE or platform.system() != "Linux":
             raise MisconfigurationException(
                 "To use the `CollaborativeStrategy`, you must have Hivemind installed and be running on Linux."
                 " Install it by running `pip install -U hivemind`."
