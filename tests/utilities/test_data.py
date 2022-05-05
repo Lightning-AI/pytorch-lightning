@@ -133,23 +133,28 @@ def test_has_len_all_rank():
 
 
 def test_update_dataloader_typerror_custom_exception():
-    class BadImpl(DataLoader):
+    class BadStandaloneGoodHookImpl(DataLoader):
         def __init__(self, foo, *args, **kwargs):
             self.foo = foo
             # positional conflict with `dataset`
             super().__init__(foo, *args, **kwargs)
 
-    dataloader = BadImpl([1, 2, 3])
+    dataloader = BadStandaloneGoodHookImpl([1, 2, 3])
     with pytest.raises(MisconfigurationException, match="`DataLoader` implementation has an error.*`dataset`"):
         _update_dataloader(dataloader, dataloader.sampler)
 
-    class BadImpl2(DataLoader):
+    with _replace_dataloader_init_method():
+        dataloader = BadStandaloneGoodHookImpl([1, 2, 3])
+        new_dataloader = _update_dataloader(dataloader, dataloader.sampler)
+        assert isinstance(new_dataloader, BadStandaloneGoodHookImpl)
+
+    class BadImpl(DataLoader):
         def __init__(self, randomize, *args, **kwargs):
             self.randomize = randomize
             # keyword conflict with `shuffle`
             super().__init__(*args, shuffle=randomize, **kwargs)
 
-    dataloader = BadImpl2(False, [])
+    dataloader = BadImpl(False, [])
     with pytest.raises(MisconfigurationException, match="`DataLoader` implementation has an error.*`shuffle`"):
         _update_dataloader(dataloader, dataloader.sampler)
 
@@ -166,30 +171,37 @@ def test_update_dataloader_typerror_custom_exception():
 
 def test_replace_dataloader_init_method():
     """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
-    sets them as attributes."""
+    sets them as private attributes."""
 
     class DataLoaderSubclass1(DataLoader):
         def __init__(self, attribute1, *args, **kwargs):
-            # intentionally not setting this attribute, calling super with different args
-            # self.attribute1 = attribute1
+            self.at1 = attribute1
             super().__init__(*args, **kwargs)
 
     class DataLoaderSubclass2(DataLoaderSubclass1):
         def __init__(self, attribute2, *args, **kwargs):
-            # intentionally not setting this attribute, calling super with different args
-            # self.attribute2 = attribute2
+            self.at2 = attribute2
             super().__init__(attribute2 + "-2", *args, **kwargs)
 
     with _replace_dataloader_init_method():
         dataloader = DataLoaderSubclass1("attribute1", dataset=range(4), batch_size=2)
 
-    assert dataloader.attribute1 == "attribute1"
+    assert dataloader.__attribute1 == "attribute1"
+    assert dataloader._set_arg_names == {"attribute1", "dataset", "batch_size"}
+    assert dataloader.dataset == range(4)
+    assert dataloader.batch_size == 2
+    assert dataloader.at1 == "attribute1"  # But the value still gets passed when it should
 
     with _replace_dataloader_init_method():
         dataloader = DataLoaderSubclass2("attribute2", dataset=range(4), batch_size=2)
 
-    assert dataloader.attribute1 == "attribute2-2"
-    assert dataloader.attribute2 == "attribute2"
+    assert dataloader.__attribute1 == "attribute2-2"
+    assert dataloader.__attribute2 == "attribute2"
+    assert dataloader._set_arg_names == {"attribute2", "dataset", "batch_size"}
+    assert dataloader.dataset == range(4)
+    assert dataloader.batch_size == 2
+    assert dataloader.at1 == "attribute2-2"  # But the value still gets passed when it should
+    assert dataloader.at2 == "attribute2"  # But the value still gets passed when it should
 
     # Failing test case from issue 12564
     class MyBaseDataLoader(DataLoader):
@@ -207,6 +219,9 @@ def test_replace_dataloader_init_method():
 
     assert dataloader.data is data
     assert dataloader.dataset == range(10)
+    assert dataloader.__data is data
+    assert dataloader.__dataset == range(10)
+    assert dataloader._set_arg_names == {"data", "batch_size"}
 
     # `poptorch.DataLoader` uses this pattern, simulate it
     class PoptorchDataLoader(DataLoader):
@@ -221,12 +236,15 @@ def test_replace_dataloader_init_method():
     # †his read-only property pattern is fine
     dataloader = PoptorchDataLoader(123, [1])
     assert dataloader.options == 123
+    assert not hasattr(dataloader, "__options")
 
     # still works with the init replacement
     with _replace_dataloader_init_method():
         dataloader = PoptorchDataLoader(123, [1])
 
     assert dataloader.options == 123
+    assert dataloader._set_arg_names == {"options"}
+    assert dataloader.__options == 123
 
 
 @pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])

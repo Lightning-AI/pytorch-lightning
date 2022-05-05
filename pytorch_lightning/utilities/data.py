@@ -197,6 +197,8 @@ def _update_dataloader(
             f" can be passed to its parent's `{argument}=...` `__init__` argument. This is likely caused by allowing"
             f" passing both a custom argument that will map to the `{argument}` argument as well as `**kwargs`."
             f" `kwargs` should be filtered to make sure they don't contain the `{argument}` key."
+            " This argument was automatically passed to your DataLoader by PyTorch Lightning,"
+            " however you are also passing it in your implementation."
         )
         raise MisconfigurationException(message) from e
     return dataloader
@@ -208,8 +210,14 @@ def _get_dataloader_init_kwargs(
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
 
-    # get the dataloader instance attributes
-    attrs = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
+    was_wrapped = hasattr(dataloader, "_set_arg_names")
+    if was_wrapped:
+        attrs = {k: getattr(dataloader, "__" + k) for k in dataloader._set_arg_names}
+        original_dataset = dataloader.__dataset  # we have this saved from _wrap_init
+    else:
+        # get the dataloader instance attributes
+        attrs = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
+        original_dataset = attrs["dataset"]
     # not part of `vars`
     attrs["multiprocessing_context"] = dataloader.multiprocessing_context
 
@@ -218,17 +226,29 @@ def _get_dataloader_init_kwargs(
     has_variadic_kwargs = any(p.kind is p.VAR_KEYWORD for p in params.values())
     if has_variadic_kwargs:
         # if the signature takes **kwargs, assume they will be passed down with `super().__init__(**kwargs)`
-        params.update(inspect.signature(DataLoader.__init__).parameters)
-        del params["self"]
+
+        # if the dataloader was wrapped in a hook, only take arguments with default values
+        #  and assume user passes their kwargs correctly
+        params.update(
+            {
+                k: v
+                for k, v in inspect.signature(DataLoader.__init__).parameters.items()
+                if not was_wrapped or (v.default is not v.empty)
+            }
+        )
+        params.pop("self", None)
 
     # keep only the params whose default is different to the current attr value
     non_defaults = {name for name, p in params.items() if name in attrs and p.default != attrs[name]}
-    # add `dataset` as it might have been replaced with `*args`
-    non_defaults.add("dataset")
+
+    if not was_wrapped:
+        # add `dataset` as it might have been replaced with `*args`
+        non_defaults.add("dataset")
 
     # kwargs to re-construct the dataloader
     dl_kwargs = {k: v for k, v in attrs.items() if k in non_defaults}
-    if isinstance(dl_kwargs["dataset"], IterableDataset):
+    dataset = dl_kwargs.get("dataset", original_dataset)
+    if isinstance(dataset, IterableDataset):
         dl_kwargs["batch_sampler"] = None
         dl_kwargs["sampler"] = None
     else:
@@ -244,12 +264,10 @@ def _get_dataloader_init_kwargs(
         required_args = sorted(required_args)
         dataloader_cls_name = dataloader.__class__.__name__
         raise MisconfigurationException(
-            f"Trying to inject `DistributedSampler` into the `{dataloader_cls_name}` instance. "
+            f"Trying to inject custom `Sampler` into the `{dataloader_cls_name}` instance. "
             "This would fail as some of the `__init__` arguments are not available as instance attributes. "
-            f"The missing attributes are {required_args}. "
-            f"HINT: If you wrote the `{dataloader_cls_name}` class, define `self.missing_arg_name` or "
-            "manually add the `DistributedSampler` as: "
-            f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
+            f"The missing attributes are {required_args}. If you instantiate your `{dataloader_cls_name}` inside a "
+            "`*_dataloader` hook of your module, this will likely go away."
         )
 
     if not has_variadic_kwargs:
@@ -259,12 +277,10 @@ def _get_dataloader_init_kwargs(
             missing_kwargs = sorted(missing_kwargs)
             dataloader_cls_name = dataloader.__class__.__name__
             raise MisconfigurationException(
-                f"Trying to inject `DistributedSampler` into the `{dataloader_cls_name}` instance. "
+                f"Trying to inject custom `Sampler` into the `{dataloader_cls_name}` instance. "
                 "This would fail as it doesn't expose all its attributes in the `__init__` signature. "
-                f"The missing arguments are {missing_kwargs}. "
-                f"HINT: If you wrote the `{dataloader_cls_name}` class, add the `__init__` arguments or "
-                "manually add the `DistributedSampler` as: "
-                f"`{dataloader_cls_name}(dataset, sampler=DistributedSampler(dataset))`."
+                f"The missing arguments are {missing_kwargs}. HINT: If you wrote the `{dataloader_cls_name}` class, "
+                "add the `__init__` arguments or allow passing **kwargs"
             )
 
     if _FaultTolerantMode.detect_current_mode().is_automatic:
@@ -336,14 +352,18 @@ def _wrap_init(init: Callable) -> Callable:
             if param.name != "self" and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
         ]
 
-        cls = type(obj)
+        set_arg_names = []
         for arg_name, arg_value in chain(zip(param_names, args), kwargs.items()):
-            if hasattr(cls, arg_name) and getattr(cls, arg_name).fset is None:
-                # the class defines a read-only (no setter) property of this name. it's likely that the implementation
-                # will set `self._arg_name = arg_value` in `__init__` which is the attribute returned by the `arg_name`
-                # property so we are fine skipping in that case
-                continue
-            setattr(obj, arg_name, arg_value)
+            if not hasattr(obj, "__" + arg_name):
+                # Set the value privately if it has not been set yet. This achieves two things:
+                # 1. The argument is the one that was passed in the outermost call
+                #    and not overriden by a call to `super().__init__()`
+                # 2. The argument is the passed value and does not get overwritten in `__init__()`
+                setattr(obj, "__" + arg_name, arg_value)
+                set_arg_names.append(arg_name)
+        if not hasattr(obj, "_set_arg_names"):
+            obj._set_arg_names = set(set_arg_names)
+
         init(obj, *args, **kwargs)
 
     return wrapper
@@ -351,8 +371,9 @@ def _wrap_init(init: Callable) -> Callable:
 
 # https://stackoverflow.com/a/63851681/9201239
 def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
-    """Returns a list of all classes that inherit directly or indirectly from the given class."""
-    subclasses = set()
+    """Returns a list of all classes that inherit directly or indirectly from the given class, including the base
+    class."""
+    subclasses = {cls}
 
     def recurse(cl: Type[Any]) -> None:
         for subclass in cl.__subclasses__():
