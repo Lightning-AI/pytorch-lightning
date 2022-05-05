@@ -679,17 +679,13 @@ class AcceleratorConnector:
                 if self._precision_flag == 16
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
-            if isinstance(self.strategy, DDPFullyShardedNativeStrategy):
-                raise MisconfigurationException(
-                    "DDPFullyShardedNativeStrategy currently doesn't support Mixed Precision"
-                )
 
             if self._amp_type_flag == AMPType.NATIVE:
                 device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
 
                 if isinstance(self.strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy)):
                     return ShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
-                if isinstance(self.strategy, DDPFullyShardedStrategy):
+                if isinstance(self.strategy, (DDPFullyShardedStrategy, DDPFullyShardedNativeStrategy)):
                     return FullyShardedNativeMixedPrecisionPlugin(self._precision_flag, device)
                 return NativeMixedPrecisionPlugin(self._precision_flag, device)
 

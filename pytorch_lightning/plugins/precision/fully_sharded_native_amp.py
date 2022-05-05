@@ -11,10 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any
+from typing import Any, Optional
+
+import torch
 
 from pytorch_lightning.plugins.precision.sharded_native_amp import ShardedNativeMixedPrecisionPlugin
+from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+
+MixedPrecision = None
+if _TORCH_GREATER_EQUAL_1_12:
+    from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision
 
 
 class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
@@ -28,4 +36,18 @@ class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
         # trace back the root FSDP. Now we only support clip by value.
         raise MisconfigurationException(
             f"`gradient_clip_algorithm='norm'` is currently not supported for `{self.__class__.__name__}`"
+        )
+
+    @property
+    def mixed_precision_config(self) -> Optional[MixedPrecision]:
+        if self.precision == PrecisionType.HALF:
+            dtype = torch.float16
+        elif self.precision == PrecisionType.BFLOAT:
+            dtype = torch.bfloat16
+        else:
+            raise MisconfigurationException(f"Was unable to infer precision type, received {self.precision}.")
+        return MixedPrecision(
+            param_dtype=dtype,
+            reduce_dtype=dtype,
+            buffer_dtype=dtype,
         )
