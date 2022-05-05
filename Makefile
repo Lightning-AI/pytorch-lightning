@@ -20,8 +20,9 @@ clean:
 	rm -rf ./docs/source/api
 
 test: clean
-	# Review the CONTRIBUTING docmentation for other ways to test.
+	# Review the CONTRIBUTING documentation for other ways to test.
 	pip install -r requirements/devel.txt
+	pip install -r requirements/strategies.txt
 	# install APEX, see https://github.com/NVIDIA/apex#linux
 
 	# run tests with coverage

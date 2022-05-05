@@ -35,31 +35,29 @@ def _load_py_module(fname, pkg="pytorch_lightning"):
 about = _load_py_module("__about__.py")
 setup_tools = _load_py_module("setup_tools.py")
 
+
+def _load_requirements(path_dir: str, file_name: str = "requirements.txt") -> list:
+    reqs = parse_requirements(open(os.path.join(path_dir, file_name)).readlines())
+    return list(map(str, reqs))
+
+
 # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
 # Define package extras. These are only installed if you specify them.
 # From remote, use like `pip install pytorch-lightning[dev, docs]`
 # From local copy of repo, use like `pip install ".[dev, docs]"`
 extras = {
     # 'docs': load_requirements(file_name='docs.txt'),
-    "examples": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="examples.txt"),
-    "loggers": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="loggers.txt"),
-    "extra": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="extra.txt"),
-    "strategies": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="strategies.txt"),
-    "test": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="test.txt"),
+    "examples": _load_requirements(path_dir=_PATH_REQUIRE, file_name="examples.txt"),
+    "loggers": _load_requirements(path_dir=_PATH_REQUIRE, file_name="loggers.txt"),
+    "extra": _load_requirements(path_dir=_PATH_REQUIRE, file_name="extra.txt"),
+    "strategies": _load_requirements(path_dir=_PATH_REQUIRE, file_name="strategies.txt"),
+    "test": _load_requirements(path_dir=_PATH_REQUIRE, file_name="test.txt"),
 }
 
-for req in parse_requirements(os.path.join(_PATH_REQUIRE, "strategies.txt")):
-    extras[req.key] = str(req)
-extras["dev"] = extras["extra"] + extras["loggers"] + extras["strategies"] + extras["test"]
-extras["all"] = extras["dev"] + extras["examples"]  # + extras['docs']
-
-# These packages shall be installed only on GPU machines
-PACKAGES_GPU_ONLY = ["horovod"]
-# create a version for CPU machines
-for ex in ("cpu", "cpu-extra"):
-    kw = ex.split("-")[1] if "-" in ex else "all"
-    # filter cpu only packages
-    extras[ex] = [pkg for pkg in extras[kw] if not any(pgpu.lower() in pkg.lower() for pgpu in PACKAGES_GPU_ONLY)]
+for req in parse_requirements(extras["strategies"]):
+    extras[req.key] = [str(req)]
+extras["dev"] = extras["extra"] + extras["loggers"] + extras["test"]
+extras["all"] = extras["dev"] + extras["examples"] + extras["strategies"]  # + extras['docs']
 
 long_description = setup_tools._load_readme_description(
     _PATH_ROOT, homepage=about.__homepage__, version=about.__version__
@@ -87,7 +85,7 @@ setup(
     keywords=["deep learning", "pytorch", "AI"],
     python_requires=">=3.7",
     setup_requires=[],
-    install_requires=setup_tools._load_requirements(_PATH_ROOT),
+    install_requires=_load_requirements(_PATH_ROOT),
     extras_require=extras,
     project_urls={
         "Bug Tracker": "https://github.com/PyTorchLightning/pytorch-lightning/issues",
