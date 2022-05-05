@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+ARG UBUNTU_VERSION=20.04
 ARG CUDA_VERSION=11.3.1
 
-FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
 
 ARG PYTHON_VERSION=3.9
 ARG PYTORCH_VERSION=1.8
