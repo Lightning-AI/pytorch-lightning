@@ -118,6 +118,7 @@ RUN \
     echo $HOROVOD_BUILD_CUDA_CC_LIST && \
     cmake --version && \
     pip install --no-cache-dir -r ./requirements/strategies.txt && \
+    horovodrun --check-build && \
     rm -rf requirements/
 
 RUN \
