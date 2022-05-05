@@ -228,14 +228,6 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             assert self.model is not None
             self.model = self._layer_sync.revert(self.model)
 
-        if self.root_device.type == "cuda":
-            # GPU teardown
-            log.info(f"{self.__class__.__name__}: moving model to CPU...")
-            assert self.lightning_module is not None
-            self.lightning_module.cpu()
-            # clean up memory
-            torch.cuda.empty_cache()
-
     @classmethod
     def get_registered_strategies(cls) -> List[str]:
         return cls._registered_strategies
