@@ -12,10 +12,12 @@ Lightning enables experts focused on researching new ways of optimizing distribu
 
 For example, Lightning worked closely with the Microsoft team to develop a Deepspeed integration and with the Facebook(Meta) team to develop a FSDP integration.
 
-----
-
-.. include:: ../advanced/strategy_registry.rst
 
 ----
 
 .. include:: ../extensions/strategy.rst
+
+
+----
+
+.. include:: ../advanced/strategy_registry.rst

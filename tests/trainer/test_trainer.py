@@ -18,6 +18,7 @@ import os
 import pickle
 import sys
 from argparse import Namespace
+from contextlib import nullcontext
 from copy import deepcopy
 from pathlib import Path
 from unittest import mock
@@ -36,6 +37,7 @@ import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, GPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
+from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -664,6 +666,79 @@ def test_benchmark_option(benchmark_, deterministic, expected):
     torch.backends.cudnn.benchmark = original_val
 
 
+@pytest.mark.parametrize("ckpt_path", (None, "last"))
+@pytest.mark.parametrize("fn", (TrainerFn.FITTING, TrainerFn.VALIDATING))
+def test_checkpoint_path_input_last_fault_tolerant(tmpdir, ckpt_path, fn):
+    mc = ModelCheckpoint()
+    mc.best_model_path = "foobar"
+    # manually create to simulate fault-tolerant training
+    ft_ckpt = _FaultToleranceCheckpoint(tmpdir)
+    Path(ft_ckpt.ckpt_path).touch()
+
+    trainer = Trainer(callbacks=[mc, ft_ckpt])
+    trainer.state.fn = fn
+
+    if ckpt_path == "last":
+        ctxt = nullcontext()
+        final_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    elif fn == "fit":  # and ckpt_path == best
+        ctxt = pytest.warns(UserWarning, match="Because fault tolerance is enabled")
+        final_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
+    else:  # ckpt_path == best and fn == validate
+        ctxt = pytest.warns(UserWarning, match="There is also a fault-tolerant checkpoint available")
+        final_path = "foobar"
+
+    with ctxt:
+        ckpt_path = trainer._Trainer__set_ckpt_path(ckpt_path, model_provided=fn == "fit", model_connected=True)
+    assert ckpt_path == final_path
+
+
+@pytest.mark.parametrize("ckpt_path", (None, "last"))
+@pytest.mark.parametrize("save_last", (True, False))
+@pytest.mark.parametrize("fn", ("fit", "validate"))
+def test_checkpoint_path_input_last(tmpdir, ckpt_path, save_last, fn):
+    model = BoringModel()
+    mc = ModelCheckpoint(save_last=save_last)
+    trainer = Trainer(
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+        logger=False,
+        default_root_dir=tmpdir,
+        callbacks=[mc],
+    )
+    assert trainer.ckpt_path is None
+    trainer_fn = getattr(trainer, fn)
+
+    if fn == "fit":
+        ctxt = nullcontext() if ckpt_path is None else pytest.warns(UserWarning, match="No checkpoint will be loaded")
+        with ctxt:
+            trainer_fn(model, ckpt_path=ckpt_path)
+        assert trainer.ckpt_path is None
+    else:
+        trainer.fit(model)
+        if ckpt_path is None:
+            ctxt = pytest.warns(
+                UserWarning,
+                match=r"(?!.*however it is default only when fitting)^"
+                r".*The best model of the previous `fit` call will be used",
+            )
+            final_path = mc.best_model_path
+        else:
+            if save_last:
+                ctxt = nullcontext()
+                final_path = mc.last_model_path
+            else:
+                ctxt = pytest.warns(UserWarning, match="No checkpoint will be loaded")
+                final_path = None
+
+        with ctxt:
+            trainer_fn(ckpt_path=ckpt_path)
+        assert trainer.ckpt_path == final_path
+
+
 @pytest.mark.parametrize("ckpt_path", (None, "best", "specific"))
 @pytest.mark.parametrize("save_top_k", (-1, 0, 1, 2))
 @pytest.mark.parametrize("fn", ("validate", "test", "predict"))
@@ -693,7 +768,7 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
     trainer.fit(model)
 
     trainer_fn = getattr(trainer, fn)
-    assert getattr(trainer, "ckpt_path") is None
+    assert trainer.ckpt_path is None
 
     if ckpt_path == "best":
         # ckpt_path is 'best', meaning we load the best weights
@@ -704,20 +779,20 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
                 trainer_fn(model, ckpt_path=ckpt_path)
         else:
             trainer_fn(ckpt_path=ckpt_path)
-            assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.best_model_path
+            assert trainer.ckpt_path == trainer.checkpoint_callback.best_model_path
 
             trainer_fn(model, ckpt_path=ckpt_path)
-            assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.best_model_path
+            assert trainer.ckpt_path == trainer.checkpoint_callback.best_model_path
     elif ckpt_path is None:
         # ckpt_path is None, meaning we don't load any checkpoints and use the provided model
         trainer_fn(model, ckpt_path=ckpt_path)
-        assert getattr(trainer, "ckpt_path") is None
+        assert trainer.ckpt_path is None
 
         if save_top_k > 0:
             # ckpt_path is None with no model provided means load the best weights
             with pytest.warns(UserWarning, match="The best model of the previous `fit` call will be used"):
                 trainer_fn(ckpt_path=ckpt_path)
-                assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.best_model_path
+                assert trainer.ckpt_path == trainer.checkpoint_callback.best_model_path
     else:
         # specific checkpoint, pick one from saved ones
         if save_top_k == 0:
@@ -730,10 +805,10 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
                 ].absolute()
             )
             trainer_fn(ckpt_path=ckpt_path)
-            assert getattr(trainer, "ckpt_path") == ckpt_path
+            assert trainer.ckpt_path == ckpt_path
 
             trainer_fn(model, ckpt_path=ckpt_path)
-            assert getattr(trainer, "ckpt_path") == ckpt_path
+            assert trainer.ckpt_path == ckpt_path
 
 
 @pytest.mark.parametrize("enable_checkpointing", (False, True))
@@ -764,14 +839,14 @@ def test_tested_checkpoint_path_best(tmpdir, enable_checkpointing, fn):
     trainer.fit(model)
 
     trainer_fn = getattr(trainer, fn)
-    assert getattr(trainer, "ckpt_path") is None
+    assert trainer.ckpt_path is None
 
     if enable_checkpointing:
         trainer_fn(ckpt_path="best")
-        assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.best_model_path
+        assert trainer.ckpt_path == trainer.checkpoint_callback.best_model_path
 
         trainer_fn(model, ckpt_path="best")
-        assert getattr(trainer, "ckpt_path") == trainer.checkpoint_callback.best_model_path
+        assert trainer.ckpt_path == trainer.checkpoint_callback.best_model_path
     else:
         with pytest.raises(MisconfigurationException, match="`ModelCheckpoint` is not configured."):
             trainer_fn(ckpt_path="best")

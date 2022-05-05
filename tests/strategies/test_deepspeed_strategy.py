@@ -1322,3 +1322,17 @@ def test_deepspeed_with_bfloat16_precision(tmpdir):
     assert trainer.strategy.precision_plugin.precision == "bf16"
     assert trainer.strategy.config["zero_optimization"]["stage"] == 3
     assert model.layer.weight.dtype == torch.bfloat16
+
+
+@RunIf(deepspeed=True)
+def test_error_with_invalid_accelerator(tmpdir):
+    """Test DeepSpeedStrategy raises an exception if an invalid accelerator is used."""
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="cpu",
+        strategy="deepspeed",
+        fast_dev_run=True,
+    )
+    model = BoringModel()
+    with pytest.raises(MisconfigurationException, match="DeepSpeed strategy is only supported on GPU"):
+        trainer.fit(model)
