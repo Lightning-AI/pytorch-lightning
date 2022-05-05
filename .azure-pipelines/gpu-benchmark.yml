@@ -35,6 +35,11 @@ jobs:
 
     steps:
       - bash: |
+          # TODO: Prepare a docker image with 1.8.2 (LTS) installed and remove manual installation.
+          pip install torch==1.8.2+cu102 torchvision==0.9.2+cu102 torchtext==0.9.2 -f https://download.pytorch.org/whl/lts/1.8/torch_lts.html
+        displayName: 'Install PyTorch LTS'
+
+      - bash: |
           python -m pytest tests/benchmarks -v --durations=0
         displayName: 'Testing: benchmarks'
         env:
