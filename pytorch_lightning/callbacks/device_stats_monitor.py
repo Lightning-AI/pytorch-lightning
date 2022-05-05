@@ -35,7 +35,7 @@ class DeviceStatsMonitor(Callback):
 
     Args:
         cpu_stats: if ``None``, it will log CPU stats only if the accelerator is CPU.
-            It will raise a warning if ``psutil`` is not installed till version 1.9.0.
+            It will raise a warning if ``psutil`` is not installed till v1.9.0.
             If ``True``, it will log CPU stats regardless of the accelerator, and it will
             raise an exception if ``psutil`` is not installed.
             If ``False``, it will not log CPU stats regardless of the accelerator.
