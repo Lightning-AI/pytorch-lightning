@@ -45,6 +45,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added class name prefix to metrics logged by `DeviceStatsMonitor` ([#12228](https://github.com/PyTorchLightning/pytorch-lightning/pull/12228))
 
 
+- Added Native FSDP Strategy ([#12447](https://github.com/PyTorchLightning/pytorch-lightning/pull/12447))
+
 
 ### Changed
 
