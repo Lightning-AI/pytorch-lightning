@@ -13,12 +13,10 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 import torch
 import torch.distributed
-from torch.nn import Module
-from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -118,22 +116,19 @@ class HPUParallelStrategy(DDPStrategy):
         return obj[0]
 
     def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        out = super().training_step_end(step_output)
         # Break lazy accumulation of graph after every step
         htcore.mark_step()
-        return out
+        return step_output
 
     def validation_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        out = super().validation_step_end(step_output)
         # Break lazy accumulation of graph after every step
         htcore.mark_step()
-        return out
+        return step_output
 
     def test_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        out = super().test_step_end(step_output)
         # Break lazy accumulation of graph after every step
         htcore.mark_step()
-        return out
+        return step_output
 
     def teardown(self) -> None:
         log.detail(f"{self.__class__.__name__}: tearing down strategy.")

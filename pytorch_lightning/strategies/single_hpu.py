@@ -12,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Callable, Dict, Optional, Union
-
-from torch.nn import Module
-from torch.optim import Optimizer
+from typing import Dict, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
@@ -76,22 +73,19 @@ class SingleHPUStrategy(SingleDeviceStrategy):
         self.model.to(self.root_device)  # type: ignore
 
     def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        out = super().training_step_end(step_output)
         # Break lazy accumulation of graph after every step
         htcore.mark_step()
-        return out
+        return step_output
 
     def validation_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        out = super().validation_step_end(step_output)
         # Break lazy accumulation of graph after every step
         htcore.mark_step()
-        return out
+        return step_output
 
     def test_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        out = super().test_step_end(step_output)
         # Break lazy accumulation of graph after every step
         htcore.mark_step()
-        return out
+        return step_output
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
