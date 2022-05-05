@@ -36,7 +36,7 @@ class CPUAccelerator(Accelerator):
             raise MisconfigurationException(f"Device should be CPU, got {root_device} instead.")
 
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
-        """Get CPU stats from psutil."""
+        """Get CPU stats from ``psutil`` package."""
         return get_cpu_stats()
 
     @staticmethod
