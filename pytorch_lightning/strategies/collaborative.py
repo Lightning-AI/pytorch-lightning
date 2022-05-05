@@ -394,11 +394,11 @@ class DHTManager:
 
             initial_peers: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.initial_peers`
 
+            persistent: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.persistent`
+
             endpoint: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.endpoint`
 
             peer_endpoint: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.peer_endpoint`
-
-            persistent: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.persistent`
 
             host: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.host`
 
