@@ -52,7 +52,7 @@ class DeviceStatsMonitor(Callback):
     """
 
     def __init__(self, cpu_stats: Optional[bool] = None) -> None:
-        self.cpu_stats = cpu_stats
+        self._cpu_stats = cpu_stats
 
     def setup(
         self,
@@ -64,31 +64,27 @@ class DeviceStatsMonitor(Callback):
             raise MisconfigurationException("Cannot use `DeviceStatsMonitor` callback with `Trainer(logger=False)`.")
         # warn in setup to warn once
         device = trainer.strategy.root_device
-        if self.cpu_stats is None and device.type == "cpu" and not _PSUTIL_AVAILABLE:
+        if self._cpu_stats is None and device.type == "cpu" and not _PSUTIL_AVAILABLE:
             # TODO: raise an exception from v1.9
             rank_zero_warn(
                 "`DeviceStatsMonitor` will not log CPU stats as `psutil` is not installed."
                 " To install `psutil`, run `pip install psutil`."
                 " It will raise an exception if `psutil` is not installed post v1.9.0."
             )
+            self._cpu_stats = False
 
     def _get_and_log_device_stats(self, trainer: "pl.Trainer", key: str) -> None:
         if not trainer._logger_connector.should_update_logs:
             return
-        if not trainer.loggers:
-            raise MisconfigurationException("Cannot use `DeviceStatsMonitor` callback with `Trainer(logger=False)`.")
 
         device = trainer.strategy.root_device
-        if self.cpu_stats is None and device.type == "cpu" and not _PSUTIL_AVAILABLE:
-            # we just warn for now
-            return
-        if self.cpu_stats is False and device.type == "cpu":
+        if self._cpu_stats is False and device.type == "cpu":
             # cpu stats are disabled
             return
 
         device_stats = trainer.accelerator.get_device_stats(device)
 
-        if self.cpu_stats and device.type != "cpu":
+        if self._cpu_stats and device.type != "cpu":
             # Don't query CPU stats twice if CPU is accelerator
             from pytorch_lightning.accelerators.cpu import get_cpu_stats
 
