@@ -14,6 +14,7 @@
 
 ARG CUDA_VERSION=11.3.1
 
+# TODO: Update OS to ubuntu20.04 when dropping CUDA 10.2
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
 
 ARG PYTHON_VERSION=3.9
