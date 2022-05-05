@@ -212,7 +212,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
-    def _determine_device_ids(self) -> Optional[List[int]]:
+    def _determine_device_ids(self) -> List[int]:
         return [self.root_device.index]
 
     def teardown(self) -> None:
