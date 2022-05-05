@@ -207,7 +207,9 @@ class CollaborativeStrategy(Strategy):
             return torch.device(f"cuda:{torch.cuda.current_device()}")
         elif isinstance(self.accelerator, CPUAccelerator):
             return torch.device("cpu")
-        raise MisconfigurationException(f"Was unable to infer device type from the accelerator: {self.accelerator}")
+        raise MisconfigurationException(
+            f"Was unable to infer device type from the accelerator: {self.accelerator.__class__.__name__}."
+        )
 
     @property
     def global_rank(self) -> int:
