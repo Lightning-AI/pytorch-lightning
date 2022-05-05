@@ -26,6 +26,7 @@ from pytorch_lightning.utilities import (
     _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
+    _HIVEMIND_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
@@ -84,6 +85,7 @@ class RunIf:
         omegaconf: bool = False,
         slow: bool = False,
         bagua: bool = False,
+        hivemind: bool = False,
         **kwargs,
     ):
         """
@@ -111,6 +113,7 @@ class RunIf:
             omegaconf: Require that omry/omegaconf is installed.
             slow: Mark the test as slow, our CI will run it in a separate job.
             bagua: Require that BaguaSys/bagua is installed.
+            hivemind: Require that Hivemind is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
@@ -230,6 +233,10 @@ class RunIf:
         if bagua:
             conditions.append(not _BAGUA_AVAILABLE or sys.platform in ("win32", "darwin"))
             reasons.append("Bagua")
+
+        if hivemind:
+            conditions.append(not _HIVEMIND_AVAILABLE or sys.platform in ("win32", "darwin"))
+            reasons.append("Hivemind")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(
