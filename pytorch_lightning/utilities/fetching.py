@@ -35,7 +35,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
-def profile_nothing() -> None:
+def _profile_nothing() -> None:
     pass
 
 
@@ -80,8 +80,8 @@ class AbstractDataFetcher(ABC):
         self.dataloader_iter: Optional[Iterator] = None
         self.fetched: int = 0
         self.done: bool = False
-        self._start_profiler = profile_nothing
-        self._stop_profiler = profile_nothing
+        self._start_profiler = _profile_nothing
+        self._stop_profiler = _profile_nothing
 
     def setup(self, dataloader: Iterable, **kwargs: Any) -> None:
         self._add_capture_metadata_collate(dataloader)
