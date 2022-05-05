@@ -13,7 +13,7 @@ trigger:
       - "release/*"
       - "refs/tags/*"
 pr:
-  # - "master"  # FIXME: Temporarily disable gpu testing as unnecessary
+  - "master"
   - "release/*"
 
 jobs:
