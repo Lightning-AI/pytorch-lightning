@@ -25,9 +25,10 @@ def is_param_in_hook_signature(
         explicit: whether the parameter has to be explicitly declared
         min_args: whether the `signature` as at least `min_args` parameters
     """
-    hook_params = list(inspect.signature(hook_fx).parameters)
+    parameters = inspect.getfullargspec(hook_fx)
+    args = parameters.args[1:]  # ignore `self`
     return (
-        param in hook_params
-        or (not explicit and "args" in hook_params)
-        or (isinstance(min_args, int) and len(hook_params) >= min_args)
+        param in args
+        or (not explicit and (parameters.varargs is not None))
+        or (isinstance(min_args, int) and len(args) >= min_args)
     )
