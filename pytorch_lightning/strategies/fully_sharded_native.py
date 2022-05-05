@@ -133,6 +133,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         # set warning rank
         rank_zero_only.rank = self.global_rank
         self._process_group_backend = self._get_process_group_backend()
+        assert self.cluster_environment is not None
         init_dist_connection(self.cluster_environment, self._process_group_backend)
         super().setup_environment()
 
