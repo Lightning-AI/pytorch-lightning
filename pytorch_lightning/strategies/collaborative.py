@@ -104,8 +104,6 @@ class CollaborativeStrategy(Strategy):
                 Do not set this timeout too high, as it may cause your optimizer to hang
                 after some types of network errors.
 
-            allreduce_timeout: Timeout for a single attempt to run all-reduce.
-
             verbose: Report internal Hivemind events such as accumulating gradients and running background tasks.
 
             averager_opts: Additional keyword arguments forwarded to both
