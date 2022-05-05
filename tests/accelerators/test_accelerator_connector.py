@@ -36,6 +36,7 @@ from pytorch_lightning.plugins.io import TorchCheckpointIO
 from pytorch_lightning.strategies import (
     DataParallelStrategy,
     DDP2Strategy,
+    DDPFullyShardedNativeStrategy,
     DDPShardedStrategy,
     DDPSpawnShardedStrategy,
     DDPSpawnStrategy,
@@ -640,6 +641,35 @@ def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock
     assert isinstance(trainer.strategy, DDPStrategy)
     assert isinstance(trainer.strategy.cluster_environment, SLURMEnvironment)
     assert trainer.strategy.local_rank == 0
+
+
+@RunIf(min_torch="1.11")
+def test_check_native_fsdp_strategy_and_fallback():
+    with pytest.raises(
+        MisconfigurationException,
+        match=f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
+        "but GPU accelerator is not used.",
+    ):
+        Trainer(accelerator="cpu", strategy="fsdp_native")
+
+
+@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
+@mock.patch("torch.cuda.device_count", return_value=1)
+@mock.patch("torch.cuda.is_available", return_value=True)
+@RunIf(min_torch="1.11")
+def test_mixed_precision_support_with_native_fsdp_strategy(device_count_mock, mock_cuda_available, tmpdir):
+    with pytest.raises(
+        MisconfigurationException, match="DDPFullyShardedNativeStrategy currently doesn't support Mixed Precision"
+    ):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            fast_dev_run=True,
+            strategy="fsdp_native",
+            accelerator="gpu",
+            devices=1,
+            precision=16,
+        )
+        assert isinstance(trainer.strategy, DDPFullyShardedNativeStrategy)
 
 
 @mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
