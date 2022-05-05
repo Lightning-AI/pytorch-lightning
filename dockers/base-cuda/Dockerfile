@@ -48,6 +48,8 @@ RUN \
         ca-certificates \
         software-properties-common \
         libopenmpi-dev \
+        openmpi-bin \
+        ssh \
     && \
 
 # Install python
