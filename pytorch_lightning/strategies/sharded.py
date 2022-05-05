@@ -57,9 +57,11 @@ class DDPShardedStrategy(DDPStrategy):
         if trainer_fn == TrainerFn.FITTING:
             if self._layer_sync:
                 self.model = self._layer_sync.apply(self.model)
-            self.configure_ddp()
 
         self.setup_precision_plugin()
+
+        if trainer_fn == TrainerFn.FITTING:
+            self.configure_ddp()
 
     def configure_ddp(self) -> None:
         self._set_ddp_kwargs()

@@ -137,9 +137,9 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         else:
             set_shared_parameters(self.model.module, shared_params)
 
+        self.setup_precision_plugin()
         self.setup_optimizers(trainer)
         optimizers_to_device(self.optimizers, self.root_device)
-        self.setup_precision_plugin()
 
     def _setup_model(self, model: Module) -> Module:
         return model

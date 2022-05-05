@@ -134,12 +134,15 @@ class DDPSpawnStrategy(ParallelStrategy):
         if trainer_fn == TrainerFn.FITTING:
             if self._layer_sync:
                 self.model = self._layer_sync.apply(self.model)
+
+        self.setup_precision_plugin()
+
+        if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
 
         # set up optimizers after the wrapped module has been moved to the device
         self.setup_optimizers(trainer)
         optimizers_to_device(self.optimizers, self.root_device)
-        self.setup_precision_plugin()
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
@@ -245,7 +248,7 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
-            if isinstance(self.model, LightningDistributedModule):
+            if isinstance(self.model, DistributedDataParallel):
                 # used when calling `trainer.fit`
                 return self.model(*args, **kwargs)
             else:

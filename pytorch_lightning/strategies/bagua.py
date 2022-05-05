@@ -159,21 +159,22 @@ class BaguaStrategy(DDPStrategy):
         # move the model to the correct device
         self.model_to_device()
 
-        if self._layer_sync and self.model:
-            self.model = self._layer_sync.apply(self.model)
-
-        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = trainer.state.fn
+
+        if trainer_fn == TrainerFn.FITTING:
+            if self._layer_sync and self.model:
+                self.model = self._layer_sync.apply(self.model)
+
+        self.setup_precision_plugin()
 
         # set up optimizers after the module has been moved to the device
         # but before the module has been wrapped
         self.setup_optimizers(trainer)
         optimizers_to_device(self.optimizers, self.root_device)
 
+        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         if trainer_fn == TrainerFn.FITTING:
             self._configure_bagua_model(trainer)
-
-        self.setup_precision_plugin()
 
     def _check_qadam_optimizer(self) -> None:
         has_qadam_optimizer = any([isinstance(opt, QAdamOptimizer) for opt in self.optimizers])

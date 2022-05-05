@@ -169,6 +169,10 @@ class DDPStrategy(ParallelStrategy):
         if trainer_fn == TrainerFn.FITTING:
             if self._layer_sync:
                 self.model = self._layer_sync.apply(self.model)
+
+        self.setup_precision_plugin()
+
+        if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
 
         # set up optimizers after the wrapped module has been moved to the device
@@ -179,8 +183,6 @@ class DDPStrategy(ParallelStrategy):
 
             if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
                 self._enable_model_averaging(self._ddp_comm_state.start_localSGD_iter)
-
-        self.setup_precision_plugin()
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
