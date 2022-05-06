@@ -352,6 +352,7 @@ def _wrap_dataloader_init(init: Callable) -> Callable:
             for param in params.values()
             if param.name != "self" and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
         ]
+        param_names = param_names[: len(args)]
 
         if not hasattr(obj, "__pl_dl_args"):
             set_arg_names = set()
@@ -368,7 +369,7 @@ def _wrap_dataloader_init(init: Callable) -> Callable:
             # We have not found value for dataset yet, but we will find it eventually
             # because it has to be passed to the original DataLoader
             dataset_value = None
-            if "dataset" in param_names[: len(args)]:
+            if "dataset" in param_names:
                 dataset_value = args[param_names.index("dataset")]
             elif "dataset" in kwargs:
                 dataset_value = kwargs["dataset"]
