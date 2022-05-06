@@ -217,7 +217,7 @@ def _get_dataloader_init_kwargs(
         # get the dataloader instance attributes
         attrs = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
         # We cannot be 100% sure the class sets dataset argument. Let's set it to None to be safe
-        # and hope we will get it from `dl_kwargs`. If not, we will fail in `if required_args:` check.
+        # and hope we can get it from the instance attributes
         original_dataset = None
     # not part of `vars`
     attrs["multiprocessing_context"] = dataloader.multiprocessing_context
