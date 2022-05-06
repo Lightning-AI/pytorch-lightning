@@ -163,7 +163,7 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 
 1. If your PR is not ready for reviews, but you want to run it on our CI, open a "Draft PR" to let us know you don't need feedback yet.
 
-1. If any of existing tests fails in your PR on our CI, refer to the following READMEs to identify what's failing and try to address it.
+1. If any of the existing tests fail in your PR on our CI, refer to the following READMEs to identify what's failing and try to address it.
 
    - [Test README](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/tests/README.md)
    - [CI/CD README](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/.github/workflows/README.md)

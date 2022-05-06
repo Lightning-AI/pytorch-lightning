@@ -26,7 +26,7 @@
 | workflow file                      | action                                                                                       |
 | ---------------------------------- | -------------------------------------------------------------------------------------------- |
 | .github/workflows/ci_test-base.yml | Validate code examples in docstrings in the package with pytest’s doctest.                   |
-| .github/workflows/docs-checks.yml  | Run doctest, build documentation, and upload built docs to make them available as artifact.  |
+| .github/workflows/docs-checks.yml  | Run doctest, build documentation, and upload built docs to make them available as artifacts.  |
 | .circleci/config.yml (build-docs)  | Build docs and host them on output.circleci-artifacts.com for easy access to the built docs. |
 | .github/workflows/docs-link.yml    | Provide a direct link to built docs on output.circleci-artifacts.com.                        |
 
@@ -59,9 +59,9 @@
 
 | workflow file                                                      | action                                                                                                                                                                                                                    |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| .github/mergify.yml                                                | Label PRs as conflicts or ready, and requests reviews if needed.                                                                                                                                                          |
-| .github/stale.yml                                                  | Close inactive issues/PRs some time after adding won't fix label to them.                                                                                                                                                 |
-| .github/workflows/probot-auto-cc.yml, .github/lightning-probot.yml | Notify maintainers of interest depending on labels added to an issue We utilise lightning-probot forked from PyTorch’s probot.                                                                                            |
+| .github/mergify.yml                                                | Label PRs as conflicts or ready, and request reviews if needed.                                                                                                                                                          |
+| .github/stale.yml                                                  | Close inactive issues/PRs sometimes after adding won't fix the label to them.                                                                                                                                                 |
+| .github/workflows/probot-auto-cc.yml, .github/lightning-probot.yml | Notify maintainers of interest depending on labels added to an issue We utilize lightning-probot forked from PyTorch’s probot.                                                                                            |
 | .pre-commit-config.yaml                                            | pre-commit.ci runs a set of linters and formatters, such as black, flake8 and isort. When formatting is applied, the bot pushes a commit with its change. This configuration is also used for running pre-commit locally. |
 | .github/workflows/ci_pr-gatekeeper.yml                             | Prevent PRs from merging into master without any Grid.ai employees’ approval.                                                                                                                                             |
 
