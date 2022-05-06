@@ -194,7 +194,7 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
 
         def train_dataloader(self):
             return DataLoader(self.random_train, batch_size=self.hparams.batch_size)
-            
+
     datamodule_class = BatchSizeDataModule_hparams if use_hparams else BatchSizeDataModule
     model_fit = HparamsBatchSizeModel(batch_size=before_batch_size)
     datamodule = datamodule_class(**hparams)
@@ -206,7 +206,7 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
     assert before_batch_size != after_batch_size
     assert after_batch_size <= len(trainer.train_dataloader.dataset)
     assert model_fit.batch_size == after_batch_size
-    
+
 
 def test_auto_scale_batch_size_duplicate_attribute_warning(tmpdir):
     """Test for a warning when model.batch_size and model.hparams.batch_size both present."""
