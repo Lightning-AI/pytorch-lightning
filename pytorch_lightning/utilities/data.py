@@ -197,8 +197,7 @@ def _update_dataloader(
             f" can be passed to its parent's `{argument}=...` `__init__` argument. This is likely caused by allowing"
             f" passing both a custom argument that will map to the `{argument}` argument as well as `**kwargs`."
             f" `kwargs` should be filtered to make sure they don't contain the `{argument}` key."
-            " This argument was automatically passed to your DataLoader by PyTorch Lightning,"
-            " however you are also passing it in your implementation."
+            " This argument was automatically passed to your DataLoader by PyTorch Lightning."
         )
         raise MisconfigurationException(message) from e
     return dataloader
