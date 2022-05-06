@@ -217,7 +217,9 @@ def _get_dataloader_init_kwargs(
     else:
         # get the dataloader instance attributes
         attrs = {k: v for k, v in vars(dataloader).items() if not k.startswith("_")}
-        original_dataset = attrs["dataset"]
+        # We cannot be 100% sure the class sets dataset argument. Let's set it to None to be safe
+        # and hope we will get it from `dl_kwargs`. If not, we will fail in `if required_args:` check.
+        original_dataset = None
     # not part of `vars`
     attrs["multiprocessing_context"] = dataloader.multiprocessing_context
 
@@ -227,16 +229,15 @@ def _get_dataloader_init_kwargs(
     if has_variadic_kwargs:
         # if the signature takes **kwargs, assume they will be passed down with `super().__init__(**kwargs)`
 
-        # if the dataloader was wrapped in a hook, only take arguments with default values
-        #  and assume user passes their kwargs correctly
-        params.update(
-            {
-                k: v
-                for k, v in inspect.signature(DataLoader.__init__).parameters.items()
-                if not was_wrapped or (v.default is not v.empty)
-            }
-        )
-        params.pop("self", None)
+        if was_wrapped:
+            # if the dataloader was wrapped in a hook, only take arguments with default values
+            #  and assume user passes their kwargs correctly
+            params.update(
+                {k: v for k, v in inspect.signature(DataLoader.__init__).parameters.items() if v.default is not v.empty}
+            )
+        else:
+            params.update(inspect.signature(DataLoader.__init__).parameters)
+            params.pop("self", None)
 
     # keep only the params whose default is different to the current attr value
     non_defaults = {name for name, p in params.items() if name in attrs and p.default != attrs[name]}
@@ -352,17 +353,28 @@ def _wrap_init(init: Callable) -> Callable:
             if param.name != "self" and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
         ]
 
-        set_arg_names = []
-        for arg_name, arg_value in chain(zip(param_names, args), kwargs.items()):
-            if not hasattr(obj, "__" + arg_name):
-                # Set the value privately if it has not been set yet. This achieves two things:
-                # 1. The argument is the one that was passed in the outermost call
-                #    and not overriden by a call to `super().__init__()`
-                # 2. The argument is the passed value and does not get overwritten in `__init__()`
-                setattr(obj, "__" + arg_name, arg_value)
-                set_arg_names.append(arg_name)
         if not hasattr(obj, "_set_arg_names"):
+            set_arg_names = set()
+            for arg_name, arg_value in chain(zip(param_names, args), kwargs.items()):
+                if not hasattr(obj, "__" + arg_name):
+                    # Set the value privately if it has not been set yet. This achieves two things:
+                    # 1. The argument is the one that was passed in the outermost call
+                    #    and not overriden by a call to `super().__init__()`
+                    # 2. The argument is the passed value and does not get overwritten in `__init__()`
+                    setattr(obj, "__" + arg_name, arg_value)
+                    set_arg_names.add(arg_name)
             obj._set_arg_names = set(set_arg_names)
+
+        if not hasattr(obj, "__dataset"):
+            # We have not found value for dataset yet, but we will find it eventually
+            # because it has to be passed to the original DataLoader
+            dataset_value = None
+            if "dataset" in param_names[: len(args)]:
+                dataset_value = args[param_names.index("dataset")]
+            elif "dataset" in kwargs:
+                dataset_value = kwargs["dataset"]
+            if dataset_value is not None:
+                setattr(obj, "__dataset", dataset_value)
 
         init(obj, *args, **kwargs)
 
@@ -371,9 +383,8 @@ def _wrap_init(init: Callable) -> Callable:
 
 # https://stackoverflow.com/a/63851681/9201239
 def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
-    """Returns a list of all classes that inherit directly or indirectly from the given class, including the base
-    class."""
-    subclasses = {cls}
+    """Returns a list of all classes that inherit directly or indirectly from the given class."""
+    subclasses = set()
 
     def recurse(cl: Type[Any]) -> None:
         for subclass in cl.__subclasses__():
@@ -388,7 +399,7 @@ def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
 def _replace_dataloader_init_method() -> Generator[None, None, None]:
     """This context manager is used to add support for re-instantiation of custom (subclasses) of
     :class:`~torch.utils.data.DataLoader`. It patches the ``__init__`` method."""
-    subclasses = _get_all_subclasses(DataLoader)
+    subclasses = _get_all_subclasses(DataLoader) | {DataLoader}
     for subclass in subclasses:
         subclass._old_init = subclass.__init__
         subclass.__init__ = _wrap_init(subclass.__init__)

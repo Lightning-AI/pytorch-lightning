@@ -195,7 +195,6 @@ def test_replace_dataloader_init_method():
     with _replace_dataloader_init_method():
         dataloader = DataLoaderSubclass2("attribute2", dataset=range(4), batch_size=2)
 
-    assert dataloader.__attribute1 == "attribute2-2"
     assert dataloader.__attribute2 == "attribute2"
     assert dataloader._set_arg_names == {"attribute2", "dataset", "batch_size"}
     assert dataloader.dataset == range(4)
