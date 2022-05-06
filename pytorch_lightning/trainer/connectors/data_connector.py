@@ -111,7 +111,7 @@ class DataConnector:
         if datamodule is not None:
             dm_prepare_data_per_node = datamodule.prepare_data_per_node
             if (dm_prepare_data_per_node and local_rank_zero) or (not dm_prepare_data_per_node and global_rank_zero):
-                self.trainer.datamodule.prepare_data()
+                self.trainer._call_lightning_datamodule_hook("prepare_data")
         # handle lightning module prepare data:
         # check for prepare_data_per_node before calling lightning_module.prepare_data
         if lightning_module is not None:

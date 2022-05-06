@@ -154,6 +154,15 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
 
+        data_fetcher._start_profiler = self._on_before_fetch
+        data_fetcher._stop_profiler = self._on_after_fetch
+
+    def _on_before_fetch(self) -> None:
+        self.trainer.profiler.start(f"[{self.__class__.__name__}].train_dataloader_next")
+
+    def _on_after_fetch(self) -> None:
+        self.trainer.profiler.stop(f"[{self.__class__.__name__}].train_dataloader_next")
+
     def advance(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
         """Runs a single training batch.
 
@@ -186,20 +195,10 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             # hook
             self.trainer._call_callback_hooks("on_batch_start")
 
-            # TODO: Update this in v1.7 (deprecation: #9816)
-            model_fx = self.trainer.lightning_module.on_train_batch_start
-            extra_kwargs = (
-                {"dataloader_idx": 0}
-                if callable(model_fx) and is_param_in_hook_signature(model_fx, "dataloader_idx", explicit=True)
-                else {}
-            )
-
             # hook
-            self.trainer._call_callback_hooks("on_train_batch_start", batch, batch_idx, **extra_kwargs)
-            response = self.trainer._call_lightning_module_hook(
-                "on_train_batch_start", batch, batch_idx, **extra_kwargs
-            )
-            self.trainer._call_strategy_hook("on_train_batch_start", batch, batch_idx, **extra_kwargs)
+            self.trainer._call_callback_hooks("on_train_batch_start", batch, batch_idx)
+            response = self.trainer._call_lightning_module_hook("on_train_batch_start", batch, batch_idx)
+            self.trainer._call_strategy_hook("on_train_batch_start", batch, batch_idx)
             if response == -1:
                 self.batch_progress.increment_processed()
                 raise StopIteration
@@ -223,17 +222,8 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             num_optimizers=len(self.trainer.optimizers),
         )
 
-        # TODO: Update this in v1.7 (deprecation: #9816)
-        model_fx = self.trainer.lightning_module.on_train_batch_end
-        extra_kwargs = (
-            {"dataloader_idx": 0}
-            if callable(model_fx) and is_param_in_hook_signature(model_fx, "dataloader_idx", explicit=True)
-            else {}
-        )
-        self.trainer._call_callback_hooks("on_train_batch_end", batch_end_outputs, batch, batch_idx, **extra_kwargs)
-        self.trainer._call_lightning_module_hook(
-            "on_train_batch_end", batch_end_outputs, batch, batch_idx, **extra_kwargs
-        )
+        self.trainer._call_callback_hooks("on_train_batch_end", batch_end_outputs, batch, batch_idx)
+        self.trainer._call_lightning_module_hook("on_train_batch_end", batch_end_outputs, batch, batch_idx)
         self.trainer._call_callback_hooks("on_batch_end")
         self.trainer._logger_connector.on_batch_end()
 
