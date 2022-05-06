@@ -48,12 +48,7 @@ class DeviceStatsMonitor(Callback):
             raise MisconfigurationException("Cannot use DeviceStatsMonitor callback with Trainer that has no logger.")
 
     def on_train_batch_start(
-        self,
-        trainer: "pl.Trainer",
-        pl_module: "pl.LightningModule",
-        batch: Any,
-        batch_idx: int,
-        unused: int = 0,
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", batch: Any, batch_idx: int
     ) -> None:
         if not trainer.loggers:
             raise MisconfigurationException("Cannot use `DeviceStatsMonitor` callback with `Trainer(logger=False)`.")
@@ -71,13 +66,7 @@ class DeviceStatsMonitor(Callback):
             logger.log_metrics(prefixed_device_stats, step=trainer.fit_loop.epoch_loop._batches_that_stepped)
 
     def on_train_batch_end(
-        self,
-        trainer: "pl.Trainer",
-        pl_module: "pl.LightningModule",
-        outputs: STEP_OUTPUT,
-        batch: Any,
-        batch_idx: int,
-        unused: int = 0,
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
     ) -> None:
         if not trainer.loggers:
             raise MisconfigurationException("Cannot use `DeviceStatsMonitor` callback with `Trainer(logger=False)`.")
