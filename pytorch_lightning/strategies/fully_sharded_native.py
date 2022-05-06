@@ -23,6 +23,7 @@ from pytorch_lightning.plugins.environments.cluster_environment import ClusterEn
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.precision.fully_sharded_native_amp import FullyShardedNativeMixedPrecisionPlugin
+from pytorch_lightning.strategies.launchers.subprocess_script import _SubprocessScriptLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
@@ -116,15 +117,29 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             precision_plugin=precision_plugin,
         )
         self._process_group = None
-        self.num_processes = len(self.parallel_devices) if self.parallel_devices is not None else 0
+        self._num_nodes = 1
         self._process_group_backend: Optional[str] = process_group_backend
         self.cpu_offload: Optional[CPUOffload] = cpu_offload
         self.backward_prefetch: Optional[BackwardPrefetch] = backward_prefetch
         self.mixed_precision: Optional[MixedPrecision] = mixed_precision  # type: ignore
+        self._rank_0_will_call_children_scripts: bool = False
 
     @property
     def root_device(self) -> torch.device:
         return self.parallel_devices[self.local_rank]
+
+    @property
+    def num_nodes(self) -> int:
+        return self._num_nodes
+
+    @num_nodes.setter
+    def num_nodes(self, num_nodes: int) -> None:
+        # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
+        self._num_nodes = num_nodes
+
+    @property
+    def num_processes(self):
+        return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
     def process_group(self) -> Optional[ProcessGroup]:
@@ -145,14 +160,26 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         if isinstance(plugin, FullyShardedNativeMixedPrecisionPlugin):
             return plugin.mixed_precision_config
 
+    @property
+    def distributed_sampler_kwargs(self) -> Dict:
+        return dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
+
     def setup_environment(self) -> None:
+        self.setup_distributed()
+        super().setup_environment()
+
+    def setup_distributed(self) -> None:
+        log.detail(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
+
+        # determine which process we are and world size
+        self.set_world_ranks()
+
         # set warning rank
         rank_zero_only.rank = self.global_rank
+
         self._process_group_backend = self._get_process_group_backend()
-        assert self.cluster_environment is not None
         init_dist_connection(self.cluster_environment, self._process_group_backend)
-        super().setup_environment()
 
     def _get_process_group_backend(self) -> str:
         return (
@@ -161,8 +188,22 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             or get_default_process_group_backend_for_device(self.root_device)
         )
 
+    def set_world_ranks(self) -> None:
+        if self.cluster_environment is None:
+            return
+        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+        rank_zero_only.rank = self.cluster_environment.global_rank()
+
+    def _configure_launcher(self) -> None:
+        if not self.cluster_environment.creates_processes_externally:
+            self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
+            self._rank_0_will_call_children_scripts = True
+
     def setup(self, trainer: "pl.Trainer") -> None:
         self.accelerator.setup(trainer)
+        # share ddp pids to all processes
+        self._rank_0_will_call_children_scripts = self.broadcast(self._rank_0_will_call_children_scripts)
 
         if trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
             assert self.model is not None
@@ -178,7 +219,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
     def model_to_device(self) -> None:
         # ensure we update the device type in the lightning module
-        assert self.lightning_module is not None
+        assert self.model is not None
         log.info(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         self.lightning_module.to(self.root_device)
 
