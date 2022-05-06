@@ -20,10 +20,10 @@ jobs:
   - job: pytest
     strategy:
       matrix:
-        'PyTorch - stable':
+        'PyTorch - LTS':
           pyVersion: '3.7'
           ptVersion: '1.8'
-        'PyTorch - latest':
+        'PyTorch - stable':
           pyVersion: '3.9'
           ptVersion: '1.11'
     # how long to run the job before automatically cancelling
