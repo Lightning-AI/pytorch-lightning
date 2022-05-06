@@ -23,6 +23,7 @@ import torch
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.profiler.simple import SimpleProfiler
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -491,3 +492,62 @@ def test_define_as_dataclass():
     assert hasattr(BoringDataModule2, "__repr__")
     assert BoringDataModule2(batch_size=32).prepare_data() is None
     assert BoringDataModule2(batch_size=32) == BoringDataModule2(batch_size=32)
+
+
+@RunIf(skip_windows=True)  # TODO: all durations are 0 on Windows
+def test_datamodule_hooks_are_profiled():
+    """Test that `LightningDataModule` hooks are profiled."""
+
+    def get_trainer():
+        trainer = Trainer(
+            max_steps=1,
+            limit_val_batches=0,
+            profiler="simple",
+            enable_model_summary=False,
+            enable_progress_bar=False,
+            logger=False,
+        )
+        return trainer
+
+    class CustomBoringDataModule(BoringDataModule):
+        def state_dict(self):
+            return {"temp": 1}
+
+    model = BoringModel()
+    dm = CustomBoringDataModule()
+    trainer = get_trainer()
+    trainer.fit(model, datamodule=dm)
+
+    profiler = trainer.profiler
+    assert isinstance(profiler, SimpleProfiler)
+
+    keys = [
+        "[LightningDataModule]CustomBoringDataModule.prepare_data",
+        "[LightningDataModule]CustomBoringDataModule.setup",
+        "[LightningDataModule]CustomBoringDataModule.state_dict",
+        "[LightningDataModule]CustomBoringDataModule.on_save_checkpoint",
+        "[LightningDataModule]CustomBoringDataModule.teardown",
+    ]
+    for key in keys:
+        assert key in profiler.recorded_durations
+        durations = profiler.recorded_durations[key]
+        assert len(durations) == 1
+        assert durations[0] > 0
+
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+    trainer = get_trainer()
+    trainer.fit(model, datamodule=dm, ckpt_path=ckpt_path)
+    profiler = trainer.profiler
+
+    keys = [
+        "[LightningDataModule]CustomBoringDataModule.prepare_data",
+        "[LightningDataModule]CustomBoringDataModule.setup",
+        "[LightningDataModule]CustomBoringDataModule.on_load_checkpoint",
+        "[LightningDataModule]CustomBoringDataModule.load_state_dict",
+        "[LightningDataModule]CustomBoringDataModule.teardown",
+    ]
+    for key in keys:
+        assert key in profiler.recorded_durations
+        durations = profiler.recorded_durations[key]
+        assert len(durations) == 1
+        assert durations[0] > 0
