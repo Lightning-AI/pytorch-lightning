@@ -123,17 +123,10 @@ class FitLoop(Loop[None]):
 
     @Loop.restarting.setter
     def restarting(self, restarting: bool) -> None:
-        # if the last epoch completely finished, we are not actually restarting, we can check this to see if all
-        # current values are equal
-        values = (
-            self.epoch_progress.current.ready,
-            self.epoch_progress.current.started,
-            self.epoch_progress.current.processed,
-        )
-        finished_before_on_train_end = any(v != self.epoch_progress.current.completed for v in values)
-        if finished_before_on_train_end:
-            self.epoch_progress.current.completed = self.epoch_progress.current.processed
-        restarting &= finished_before_on_train_end
+        # if the last epoch completely finished, we are not actually restarting
+        values = self.epoch_progress.current.ready, self.epoch_progress.current.started
+        epoch_unfinished = any(v != self.epoch_progress.current.processed for v in values)
+        restarting = restarting and epoch_unfinished or self._iteration_based_training()
         Loop.restarting.fset(self, restarting)  # call the parent setter
 
     @property
@@ -168,6 +161,9 @@ class FitLoop(Loop[None]):
         # `processed` is increased before `on_train_epoch_end`, the hook where checkpoints are typically saved.
         # we use it here because the checkpoint data won't have `completed` increased yet
         stop_epochs = _is_max_limit_reached(self.epoch_progress.current.processed, self.max_epochs)
+        if stop_epochs:
+            # in case they are not equal, override so `trainer.current_epoch` has the expected value
+            self.epoch_progress.current.completed = self.epoch_progress.current.processed
 
         should_stop = False
         if self.trainer.should_stop:
@@ -204,6 +200,10 @@ class FitLoop(Loop[None]):
 
     def on_run_start(self) -> None:  # type: ignore[override]
         """Calls the ``on_train_start`` hook."""
+        # update the current_epoch in-case of checkpoint reload
+        if not self._iteration_based_training():
+            self.epoch_progress.current.completed = self.epoch_progress.current.processed
+
         # reset train dataloader and val dataloader
         self.trainer.reset_train_val_dataloaders(self.trainer.lightning_module)
 
@@ -259,7 +259,7 @@ class FitLoop(Loop[None]):
         """Runs one whole epoch."""
         log.detail(f"{self.__class__.__name__}: advancing loop")
         assert self.trainer.train_dataloader is not None
-        dataloader = self.trainer.strategy.process_dataloader(self.trainer.train_dataloader)
+        dataloader = self.trainer.train_dataloader
         assert self._data_fetcher is not None
         self._data_fetcher.setup(
             dataloader, batch_to_device=partial(self.trainer._call_strategy_hook, "batch_to_device", dataloader_idx=0)
@@ -325,9 +325,6 @@ class FitLoop(Loop[None]):
         self.trainer._call_lightning_module_hook("on_train_end")
         self.trainer._call_strategy_hook("on_train_end")
 
-        # give accelerators a chance to finish
-        self.trainer.strategy.on_train_end()
-
     def teardown(self) -> None:
         if self._data_fetcher is not None:
             self._data_fetcher.teardown()
@@ -337,6 +334,9 @@ class FitLoop(Loop[None]):
     def _should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated."""
         return self.epoch_loop._should_accumulate()
+
+    def _iteration_based_training(self) -> bool:
+        return self.trainer.max_steps != -1
 
 
 def _select_data_fetcher(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:

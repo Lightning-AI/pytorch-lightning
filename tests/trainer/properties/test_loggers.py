@@ -16,7 +16,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import LoggerCollection, TensorBoardLogger
-from tests.loggers.test_base import CustomLogger
+from tests.loggers.test_logger import CustomLogger
 
 
 def test_trainer_loggers_property():
@@ -61,7 +61,8 @@ def test_trainer_loggers_setters():
     assert trainer.loggers == [logger1]
 
     trainer.logger = logger_collection
-    assert trainer.logger._logger_iterable == logger_collection._logger_iterable
+    with pytest.deprecated_call(match="logger` when multiple loggers are configured"):
+        assert trainer.logger._logger_iterable == logger_collection._logger_iterable
     assert trainer.loggers == [logger1, logger2]
 
     # LoggerCollection of size 1 should result in trainer.logger becoming the contained logger.
@@ -76,7 +77,8 @@ def test_trainer_loggers_setters():
     # Test setters for trainer.loggers
     trainer.loggers = [logger1, logger2]
     assert trainer.loggers == [logger1, logger2]
-    assert trainer.logger._logger_iterable == logger_collection._logger_iterable
+    with pytest.deprecated_call(match="logger` when multiple loggers are configured"):
+        assert trainer.logger._logger_iterable == logger_collection._logger_iterable
 
     trainer.loggers = [logger1]
     assert trainer.loggers == [logger1]

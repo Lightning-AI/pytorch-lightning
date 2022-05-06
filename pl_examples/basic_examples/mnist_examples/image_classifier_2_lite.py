@@ -126,7 +126,7 @@ class Lite(LightningLite):
             # all_gather is used to aggregated the value across processes
             test_loss = self.all_gather(test_loss).sum() / len(test_loader.dataset)
 
-            print(f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: ({test_acc.compute():.0f}%)\n")
+            print(f"\nTest set: Average loss: {test_loss:.4f}, Accuracy: ({100 * test_acc.compute():.0f}%)\n")
             test_acc.reset()
 
             if hparams.dry_run:

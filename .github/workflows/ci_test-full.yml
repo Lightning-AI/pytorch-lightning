@@ -43,9 +43,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Weekly reset caching
-      run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
-      id: times
+    - name: Reset caching
+      run: python -c "import time; days = time.time() / 60 / 60 / 24; print(f'TIME_PERIOD=d{int(days / 2) * 2}')" >> $GITHUB_ENV
 
     - name: basic setup
       run: |
@@ -79,9 +78,9 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements/extra.txt') }}
+        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements/extra.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
+          ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
 
     - name: Pull checkpoints from S3
       working-directory: ./legacy
@@ -105,10 +104,6 @@ jobs:
       shell: bash
 
     - name: Install extra dependencies
-      env:
-        HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
-        HOROVOD_WITHOUT_MXNET: 1
-        HOROVOD_WITHOUT_TENSORFLOW: 1
       run: |
         # adjust versions according installed Torch version
         python ./requirements/adjust-versions.py requirements/extra.txt
@@ -126,7 +121,7 @@ jobs:
         HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
         if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
           pip uninstall -y horovod
-          echo $(grep "horovod" requirements/extra.txt) > requirements/horovod.txt
+          grep "horovod" requirements/strategies.txt > requirements/horovod.txt
           pip install --no-cache-dir -r requirements/horovod.txt
         fi
         horovodrun --check-build

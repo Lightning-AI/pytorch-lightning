@@ -80,7 +80,9 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
     return seed
 
 
-def _select_seed_randomly(min_seed_value: int = 0, max_seed_value: int = 255) -> int:
+def _select_seed_randomly(
+    min_seed_value: int = np.iinfo(np.uint32).min, max_seed_value: int = np.iinfo(np.uint32).max
+) -> int:
     return random.randint(min_seed_value, max_seed_value)
 
 

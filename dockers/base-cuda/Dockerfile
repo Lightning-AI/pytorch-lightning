@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG CUDA_VERSION=11.1
+ARG CUDA_VERSION=11.3.1
+ARG UBUNTU_VERSION=20.04
 
-FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
+# TODO: Remove OS arg to always use ubuntu20.04 when dropping CUDA 10.2
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
 
 ARG PYTHON_VERSION=3.9
 ARG PYTORCH_VERSION=1.8
@@ -31,7 +33,11 @@ ENV \
     # MAKEFLAGS="-j$(nproc)"
     MAKEFLAGS="-j2"
 
-RUN apt-get update -qq --fix-missing  && \
+RUN \
+    # TODO: Remove the manual key installation once the base image is updated.
+    # https://github.com/NVIDIA/nvidia-docker/issues/1631
+    apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
+    apt-get update -qq --fix-missing && \
     apt-get install -y --no-install-recommends \
         build-essential \
         pkg-config \
@@ -43,6 +49,8 @@ RUN apt-get update -qq --fix-missing  && \
         ca-certificates \
         software-properties-common \
         libopenmpi-dev \
+        openmpi-bin \
+        ssh \
     && \
 
 # Install python
@@ -75,7 +83,6 @@ RUN \
 
     # Disable cache \
     CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
-    export BAGUA_CUDA_VERSION=$CUDA_VERSION_MM && \
     pip config set global.cache-dir false && \
     # set particular PyTorch version
     python ./requirements/adjust-versions.py requirements.txt ${PYTORCH_VERSION} && \
@@ -110,11 +117,14 @@ ENV \
     HOROVOD_WITH_MPI=1
 
 RUN \
+    # CUDA 10.2 doesn't support ampere architecture (8.0).
+    if [[ "$CUDA_VERSION" < "11.0" ]]; then export TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST//";8.0"/}; echo $TORCH_CUDA_ARCH_LIST; fi && \
     HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
     export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
-    cat ./requirements/horovod.txt && \
+    echo $HOROVOD_BUILD_CUDA_CC_LIST && \
     cmake --version && \
-    pip install --no-cache-dir -r ./requirements/horovod.txt && \
+    pip install --no-cache-dir -r ./requirements/strategies.txt && \
+    horovodrun --check-build && \
     rm -rf requirements/
 
 RUN \
@@ -128,19 +138,21 @@ RUN \
     fi
 
 RUN \
+    # CUDA 10.2 doesn't support ampere architecture (8.0).
+    if [[ "$CUDA_VERSION" < "11.0" ]]; then export TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST//";8.0"/}; echo $TORCH_CUDA_ARCH_LIST; fi && \
     # install NVIDIA apex
     pip install -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip && \
     python -c "from apex import amp"
 
 RUN \
-    # install FairScale
-    pip install fairscale==0.4.5 && \
-    python -c "import fairscale; print(fairscale.__version__)"
+    # install Bagua
+    CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
+    pip install "bagua-cuda$CUDA_VERSION_MM==0.9.0" && \
+    python -c "import bagua_core; bagua_core.install_deps()" && \
+    python -c "import bagua; print(bagua.__version__)"
 
-RUN \
-    # install DeepSpeed
-    pip install deepspeed==0.5.7 && \
-    python -c "import deepspeed; print(deepspeed.__version__)"
+COPY requirements/check-avail-extras.py check-avail-extras.py
+COPY requirements/check-avail-strategies.py check-avail-strategies.py
 
 RUN \
     # Show what we have
@@ -148,5 +160,6 @@ RUN \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
-    python -c "import horovod.torch" && \
-    python -c "from horovod.torch import nccl_built; nccl_built()"
+    python check-avail-extras.py && \
+    python check-avail-strategies.py && \
+    rm check-avail-*.py

@@ -15,7 +15,6 @@ import tests.helpers.pipelines as tpipes
 import tests.helpers.utils as tutils
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.utilities import memory
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf
@@ -32,7 +31,8 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
         max_epochs=50,
         limit_train_batches=10,
         limit_val_batches=10,
-        gpus=[0, 1],
+        accelerator="gpu",
+        devices=[0, 1],
         strategy="ddp_spawn",
     )
 
@@ -50,7 +50,8 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
         max_epochs=1,
         limit_train_batches=10,
         limit_val_batches=10,
-        gpus=[0, 1],
+        accelerator="gpu",
+        devices=[0, 1],
         strategy="ddp_spawn",
         enable_progress_bar=False,
     )
@@ -58,9 +59,6 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
     model = BoringModel()
 
     tpipes.run_model_test(trainer_options, model)
-
-    # test memory helper functions
-    memory.get_memory_profile("min_max")
 
 
 @RunIf(min_gpus=2)
@@ -76,7 +74,8 @@ def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
         max_epochs=1,
         limit_train_batches=0.2,
         limit_val_batches=0.2,
-        gpus=[0, 1],
+        accelerator="gpu",
+        devices=[0, 1],
         strategy="ddp_spawn",
     )
     trainer.fit(model, train_dataloaders=model.train_dataloader(), val_dataloaders=model.val_dataloader())
