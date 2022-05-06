@@ -145,8 +145,8 @@ def test_update_dataloader_typerror_custom_exception():
 
     with _replace_dataloader_init_method():
         dataloader = BadStandaloneGoodHookImpl([1, 2, 3])
-        new_dataloader = _update_dataloader(dataloader, dataloader.sampler)
-        assert isinstance(new_dataloader, BadStandaloneGoodHookImpl)
+    new_dataloader = _update_dataloader(dataloader, dataloader.sampler)
+    assert isinstance(new_dataloader, BadStandaloneGoodHookImpl)
 
     class BadImpl(DataLoader):
         def __init__(self, randomize, *args, **kwargs):
