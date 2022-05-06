@@ -3,7 +3,7 @@
 #####################################################
 Training on unreliable mixed GPUs across the internet
 #####################################################
-**Audience:** Users who do not have access to top tier multi-gpu/multi-node servers and want to scale training across different GPU types, or across the internet.
+**Audience:** Users who do not have access to top-tier multi-gpu/multi-node servers and want to scale training across different GPU types, or across the internet.
 
 ----
 

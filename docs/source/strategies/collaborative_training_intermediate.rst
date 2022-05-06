@@ -85,7 +85,7 @@ By default, Hivemind accumulates gradients in a separate buffer. This means addi
 
 .. warning::
     The ``CollaborativeStrategy`` will override ``zero_grad`` in your ``LightningModule`` to have no effect. This is because gradients are accumulated in the model
-    and hivemind manages when they need to be cleared.
+    and Hivemind manages when they need to be cleared.
 
 .. code-block:: python
 

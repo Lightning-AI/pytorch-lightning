@@ -16,13 +16,13 @@ To use Collaborative Training, you need to first install Hivemind.
 
     pip install hivemind
 
-The ``CollaborativeStrategy`` accumulates gradients from all processes that are collaborating till they reach a ``target_batch_size``. By default, we use the batch size
+The ``CollaborativeStrategy`` accumulates gradients from all processes that are collaborating until they reach a ``target_batch_size``. By default, we use the batch size
 of the first batch to determine what each local machine batch contributes towards the ``target_batch_size``. Once the ``target_batch_size`` is reached, an optimizer step
 is made on all processes.
 
 .. warning::
 
-    When using ``CollaborativeStrategy`` note that you cannot use gradient accumulation (``accumulate_grad_batches``). This is because hivemind manages accumulation internally.
+    When using ``CollaborativeStrategy`` note that you cannot use gradient accumulation (``accumulate_grad_batches``). This is because Hivemind manages accumulation internally.
 
 .. code-block:: python
 
@@ -40,4 +40,4 @@ is made on all processes.
     # CollaborativeStrategy(initial_peers=...)"
 
 
-Once training starts a helper message is printed, showing how to start training on other machines using the same code.
+A helper message is printed once your training begins, which shows you how to start training on other machines using the same code.

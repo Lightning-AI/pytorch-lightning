@@ -8,14 +8,14 @@ Training on unreliable mixed GPUs across the internet (Expert)
 Using Compression to Optimize communications
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Below are some ways to reduce communication when training collaboratively. As the model sizes get larger, bottlenecks in communication become more apparent.
+Below are some ways to reduce communication when training collaboratively. As the size of your model increase, bottlenecks in communication become more apparent.
 
 Compress Gradients & State
 """"""""""""""""""""""""""
 
 Hivemind allows you to compress gradients and states before sending them to other machines. This helps reduce the communication overhead substantially when training across the internet.
 
-Below we enable Float16 compression, which compresses gradients and states to Float16 before sending it to other machines.
+Below, we enable Float16 compression, which compresses gradients and states to Float16 before sending it to other machines.
 
 .. code-block:: python
 
@@ -33,7 +33,7 @@ Below we enable Float16 compression, which compresses gradients and states to Fl
         devices=1,
     )
 
-A slightly more advanced scheme is dynamic compression based on the size of values. Below we enable 8-bit quantization for large numbers, and Float16 compression for small values.
+A slightly more advanced scheme is dynamic compression based on value size. Below, we enable 8-bit quantization for large numbers, and Float16 compression for small values.
 
 Size Adaptive Compression has been used in a variety of Hivemind applications and has shown success.
 
@@ -65,7 +65,7 @@ PowerSGD
 In short, PowerSGD uses a low-rank approximation to compress gradients before all reducing.
 
 .. note::
-    PowerSGD may impact convergence, however, it is worth trying as it can substantially reduce the communication between processes.
+    Though PowerSGD can impact convergence, it can also substantially reduce communication between processes.
 
 .. code-block:: python
 
