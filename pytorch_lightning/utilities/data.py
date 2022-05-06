@@ -267,7 +267,7 @@ def _get_dataloader_init_kwargs(
             f"Trying to inject custom `Sampler` into the `{dataloader_cls_name}` instance. "
             "This would fail as some of the `__init__` arguments are not available as instance attributes. "
             f"The missing attributes are {required_args}. If you instantiate your `{dataloader_cls_name}` inside a "
-            "`*_dataloader` hook of your module, this will likely go away."
+            "`*_dataloader` hook of your module, we will do this for you. Otherwise, define `self.missing_arg_name` inside your `__init__`."
         )
 
     if not has_variadic_kwargs:
