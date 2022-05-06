@@ -35,23 +35,17 @@ def _load_py_module(fname, pkg="pytorch_lightning"):
 about = _load_py_module("__about__.py")
 setup_tools = _load_py_module("setup_tools.py")
 
-
-def _load_requirements(path_dir: str, file_name: str = "requirements.txt") -> list:
-    reqs = parse_requirements(open(os.path.join(path_dir, file_name)).readlines())
-    return list(map(str, reqs))
-
-
 # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
 # Define package extras. These are only installed if you specify them.
 # From remote, use like `pip install pytorch-lightning[dev, docs]`
 # From local copy of repo, use like `pip install ".[dev, docs]"`
 extras = {
     # 'docs': load_requirements(file_name='docs.txt'),
-    "examples": _load_requirements(path_dir=_PATH_REQUIRE, file_name="examples.txt"),
-    "loggers": _load_requirements(path_dir=_PATH_REQUIRE, file_name="loggers.txt"),
-    "extra": _load_requirements(path_dir=_PATH_REQUIRE, file_name="extra.txt"),
-    "strategies": _load_requirements(path_dir=_PATH_REQUIRE, file_name="strategies.txt"),
-    "test": _load_requirements(path_dir=_PATH_REQUIRE, file_name="test.txt"),
+    "examples": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="examples.txt"),
+    "loggers": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="loggers.txt"),
+    "extra": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="extra.txt"),
+    "strategies": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="strategies.txt"),
+    "test": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="test.txt"),
 }
 
 for req in parse_requirements(extras["strategies"]):
@@ -85,7 +79,7 @@ setup(
     keywords=["deep learning", "pytorch", "AI"],
     python_requires=">=3.7",
     setup_requires=[],
-    install_requires=_load_requirements(_PATH_ROOT),
+    install_requires=setup_tools._load_requirements(_PATH_ROOT),
     extras_require=extras,
     project_urls={
         "Bug Tracker": "https://github.com/PyTorchLightning/pytorch-lightning/issues",
