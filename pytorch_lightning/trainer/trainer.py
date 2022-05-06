@@ -15,6 +15,7 @@
 import inspect
 import logging
 import math
+import operator
 import os
 import traceback
 import warnings
@@ -22,6 +23,7 @@ from argparse import ArgumentParser, Namespace
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
+from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Type, Union
 from weakref import proxy
@@ -1386,27 +1388,37 @@ class Trainer(
         from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 
         ft_checkpoints = [cb for cb in self.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
-        if ft_checkpoints:
-            ft_ckpt_path = ft_checkpoints[0].ckpt_path
-            fs = get_filesystem(ft_ckpt_path)
-            if fs.exists(ft_ckpt_path):
-                return ft_ckpt_path
+        fn = self.state.fn.value
+
+        if ckpt_path is None and ft_checkpoints and self.state.fn == TrainerFn.FITTING:
+            ckpt_path = "last"
+            rank_zero_warn(
+                f"`.{fn}(ckpt_path=None)` was called without a model."
+                " Because fault tolerance is enabled, the last model of the previous `fit` call will be used."
+                f" You can pass `{fn}(ckpt_path='best')` to use the best model or"
+                f" `{fn}(ckpt_path='last')` to use the last model."
+                " If you pass a value, this warning will be silenced."
+            )
 
         if model_provided and ckpt_path is None:
             # use passed model to function without loading weights
             return
 
-        fn = self.state.fn.value
-
         if model_connected and ckpt_path is None:
+            ckpt_path = "best"
+            ft_tip = (
+                " There is also a fault-tolerant checkpoint available, however it is used by default only when fitting."
+                if ft_checkpoints
+                else ""
+            )
             rank_zero_warn(
                 f"`.{fn}(ckpt_path=None)` was called without a model."
                 " The best model of the previous `fit` call will be used."
-                f" You can pass `{fn}(ckpt_path='best')` to use and best model"
-                " checkpoint and avoid this warning or"
-                " `ckpt_path=trainer.checkpoint_callback.last_model_path` to use the last model."
+                + ft_tip
+                + f" You can pass `.{fn}(ckpt_path='best')` to use the best model or"
+                f" `.{fn}(ckpt_path='last')` to use the last model."
+                " If you pass a value, this warning will be silenced."
             )
-            ckpt_path = "best"
 
         if ckpt_path == "best":
             if len(self.checkpoint_callbacks) > 1:
@@ -1431,6 +1443,21 @@ class Trainer(
                 )
             # load best weights
             ckpt_path = self.checkpoint_callback.best_model_path
+
+        if ckpt_path == "last":
+            candidates = [ft.ckpt_path for ft in ft_checkpoints] + [
+                cb.last_model_path for cb in self.checkpoint_callbacks
+            ]
+            candidates_fs = {path: get_filesystem(path) for path in candidates if path}
+            candidates_ts = {path: fs.modified(path) for path, fs in candidates_fs.items() if fs.exists(path)}
+            if not candidates_ts:
+                # not an error so it can be set and forget before the first `fit` run
+                rank_zero_warn(
+                    f'.{fn}(ckpt_path="last") is set, but there is no fault tolerant'
+                    " or last checkpoint available. No checkpoint will be loaded."
+                )
+                return
+            ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts))
 
         if not ckpt_path:
             raise MisconfigurationException(
