@@ -13,9 +13,10 @@
 # limitations under the License.
 
 ARG CUDA_VERSION=11.3.1
+ARG UBUNTU_VERSION=20.04
 
-# TODO: Update OS to ubuntu20.04 when dropping CUDA 10.2
-FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu18.04
+# TODO: Remove OS arg to always use ubuntu20.04 when dropping CUDA 10.2
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
 
 ARG PYTHON_VERSION=3.9
 ARG PYTORCH_VERSION=1.8
