@@ -13,8 +13,10 @@
 # limitations under the License.
 
 ARG CUDA_VERSION=11.3.1
+ARG UBUNTU_VERSION=20.04
 
-FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
+# TODO: Remove OS arg to always use ubuntu20.04 when dropping CUDA 10.2
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
 
 ARG PYTHON_VERSION=3.9
 ARG PYTORCH_VERSION=1.8
@@ -47,6 +49,8 @@ RUN \
         ca-certificates \
         software-properties-common \
         libopenmpi-dev \
+        openmpi-bin \
+        ssh \
     && \
 
 # Install python
@@ -110,10 +114,14 @@ ENV \
     HOROVOD_WITH_MPI=1
 
 RUN \
+    # CUDA 10.2 doesn't support ampere architecture (8.0).
+    if [[ "$CUDA_VERSION" < "11.0" ]]; then export TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST//";8.0"/}; echo $TORCH_CUDA_ARCH_LIST; fi && \
     HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
     export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
+    echo $HOROVOD_BUILD_CUDA_CC_LIST && \
     cmake --version && \
     pip install --no-cache-dir -r ./requirements/strategies.txt && \
+    horovodrun --check-build && \
     rm -rf requirements/
 
 RUN \
@@ -127,6 +135,8 @@ RUN \
     fi
 
 RUN \
+    # CUDA 10.2 doesn't support ampere architecture (8.0).
+    if [[ "$CUDA_VERSION" < "11.0" ]]; then export TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST//";8.0"/}; echo $TORCH_CUDA_ARCH_LIST; fi && \
     # install NVIDIA apex
     pip install -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip && \
     python -c "from apex import amp"
