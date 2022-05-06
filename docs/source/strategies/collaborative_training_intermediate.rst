@@ -38,7 +38,8 @@ to overlap communication with computation.
             offload_optimizer=True,  # required to delay averaging
             scheduler_fn=partial(torch.optim.lr_scheduler.ExponentialLR, gamma=...),
         ),
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
     )
 
 Reducing GPU Memory requirements by re-using buffers & CPU offloading
@@ -71,7 +72,8 @@ Offloading the Optimizer state to the CPU works the same as :ref:`deepspeed-zero
             offload_optimizer=True,
             scheduler_fn=partial(torch.optim.lr_scheduler.ExponentialLR, gamma=...),
         ),
-        gpus=1,
+        accelerator="gpu",
+        devices=1,
     )
 
 Re-using Gradient Buffers
@@ -91,6 +93,5 @@ By default, Hivemind accumulates gradients in a separate buffer. This means addi
     from pytorch_lightning.strategies import CollaborativeStrategy
 
     trainer = pl.Trainer(
-        strategy=CollaborativeStrategy(target_batch_size=8192, reuse_grad_buffers=True),
-        gpus=1,
+        strategy=CollaborativeStrategy(target_batch_size=8192, reuse_grad_buffers=True), accelerator="gpu", devices=1
     )

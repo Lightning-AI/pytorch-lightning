@@ -28,7 +28,9 @@ Below we enable Float16 compression, which compresses gradients and state to Flo
             target_batch_size=target_batch_size,
             grad_compression=Float16Compression(),
             state_averaging_compression=Float16Compression(),
-        )
+        ),
+        accelerator="gpu",
+        devices=1,
     )
 
 A slightly more advanced scheme is dynamic compression based on the size of values. Below we enable 8-bit quantization for large numbers, and Float16 compression for small values.
@@ -51,6 +53,8 @@ Size Adaptive Compression has been used in a variety of Hivemind applications an
             grad_compression=compression,
             state_averaging_compression=compression,
         ),
+        accelerator="gpu",
+        devices=1,
     )
 
 PowerSGD
@@ -74,4 +78,6 @@ In short, PowerSGD uses a low rank approximation to compress gradients before al
             target_batch_size=8192,
             grad_averager_factory=partial(PowerSGDGradientAverager, averager_rank=32, min_compression_ratio=0.5),
         ),
+        accelerator="gpu",
+        devices=1,
     )

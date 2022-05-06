@@ -29,7 +29,7 @@ is made on all processes.
     import pytorch_lightning as pl
     from pytorch_lightning.strategies import CollaborativeStrategy
 
-    trainer = pl.Trainer(strategy=CollaborativeStrategy(target_batch_size=8192))
+    trainer = pl.Trainer(strategy=CollaborativeStrategy(target_batch_size=8192), accelerator="gpu", devices=1)
 
 .. code-block:: bash
 
