@@ -187,7 +187,7 @@ def test_replace_dataloader_init_method():
         dataloader = DataLoaderSubclass1("attribute1", dataset=range(4), batch_size=2)
 
     assert dataloader.__attribute1 == "attribute1"
-    assert dataloader.__pl_dl_args == (["attribute1"], ["dataset", "batch_size"])
+    assert dataloader._set_arg_names == {"attribute1", "dataset", "batch_size"}
     assert dataloader.dataset == range(4)
     assert dataloader.batch_size == 2
     assert dataloader.at1 == "attribute1"  # But the value still gets passed when it should
@@ -196,7 +196,7 @@ def test_replace_dataloader_init_method():
         dataloader = DataLoaderSubclass2("attribute2", dataset=range(4), batch_size=2)
 
     assert dataloader.__attribute2 == "attribute2"
-    assert dataloader.__pl_dl_args == (["attribute2"], ["dataset", "batch_size"])
+    assert dataloader._set_arg_names == {"attribute2", "dataset", "batch_size"}
     assert dataloader.dataset == range(4)
     assert dataloader.batch_size == 2
     assert dataloader.at1 == "attribute2-2"  # But the value still gets passed when it should
@@ -219,7 +219,8 @@ def test_replace_dataloader_init_method():
     assert dataloader.data is data
     assert dataloader.dataset == range(10)
     assert dataloader.__data is data
-    assert dataloader.__pl_dl_args == (["data"], ["batch_size"])
+    assert dataloader.__dataset == range(10)
+    assert dataloader._set_arg_names == {"data", "batch_size"}
 
     # `poptorch.DataLoader` uses this pattern, simulate it
     class PoptorchDataLoader(DataLoader):
@@ -241,7 +242,7 @@ def test_replace_dataloader_init_method():
         dataloader = PoptorchDataLoader(123, [1])
 
     assert dataloader.options == 123
-    assert dataloader.__pl_dl_args == (["options"], [])
+    assert dataloader._set_arg_names == {"options"}
     assert dataloader.__options == 123
 
     # Test we don't overwrite any value, that is set by the actual class
@@ -256,8 +257,7 @@ def test_replace_dataloader_init_method():
     assert dataloader.batch_size == 5
     assert dataloader.__batch_size == 10
     assert dataloader.__dataset == range(10)
-    # FIXME
-    assert dataloader.__pl_dl_args == (["dataset", "batch_size"], ["batch_size"])
+    assert dataloader._set_arg_names == {"batch_size", "dataset"}
 
 
 @pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])
