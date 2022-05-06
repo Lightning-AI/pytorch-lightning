@@ -72,6 +72,9 @@ The below table lists all relevant strategies available in Lightning with their 
    * - Name
      - Class
      - Description
+   * - collaborative
+     - :class:`~pytorch_lightning.strategies.CollaborativeStrategy`
+     - Strategy for training collaboratively on local machines or unreliable GPUs across the internet. :ref:`Learn more. <strategies/collaborative_training>`
    * - bagua
      - :class:`~pytorch_lightning.strategies.BaguaStrategy`
      - Strategy for training using the Bagua library, with advanced distributed training algorithms and system optimizations. :ref:`Learn more. <accelerators/gpu_intermediate:Bagua>`
