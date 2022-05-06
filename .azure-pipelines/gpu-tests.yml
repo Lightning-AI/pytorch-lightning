@@ -19,12 +19,12 @@ pr:
 jobs:
   - job: pytest
     strategy:
-    matrix:
-      "PyTorch - LTS":
-        # TODO: Unpin sha256
-        image_name: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8@sha256:b75de74d4c7c820f442f246be8500c93f8b5797b84aa8531847e5fb317ed3dda"
-      "PyTorch - stable":
-        image_name: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.11"
+      matrix:
+        "PyTorch - LTS":
+          # TODO: Unpin sha256
+          image_name: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8@sha256:b75de74d4c7c820f442f246be8500c93f8b5797b84aa8531847e5fb317ed3dda"
+        "PyTorch - stable":
+          image_name: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.11"
     # how long to run the job before automatically cancelling
     timeoutInMinutes: "55"
     # how much time to give 'run always even if cancelled tasks' before stopping them
