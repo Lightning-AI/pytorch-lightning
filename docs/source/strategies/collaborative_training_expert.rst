@@ -13,9 +13,9 @@ Below are some ways to reduce communication when training collaboratively. As th
 Compress Gradients & State
 """"""""""""""""""""""""""
 
-Hivemind allows you to compress gradients and state before sending to other machines. This helps reduce the communication overhead substantially when training across the internet.
+Hivemind allows you to compress gradients and states before sending them to other machines. This helps reduce the communication overhead substantially when training across the internet.
 
-Below we enable Float16 compression, which compresses gradients and state to Float16 before sending to other machines.
+Below we enable Float16 compression, which compresses gradients and states to Float16 before sending it to other machines.
 
 .. code-block:: python
 
@@ -62,10 +62,10 @@ PowerSGD
 """"""""
 
 `PowerSGD <https://arxiv.org/abs/1905.13727>`_ is a technique to reduce distributed communication of gradients across processes.
-In short, PowerSGD uses a low rank approximation to compress gradients before all reducing.
+In short, PowerSGD uses a low-rank approximation to compress gradients before all reducing.
 
 .. note::
-    PowerSGD may impact convergence, however it is worth trying as it can substantially reduce the communication between processes.
+    PowerSGD may impact convergence, however, it is worth trying as it can substantially reduce the communication between processes.
 
 .. code-block:: python
 

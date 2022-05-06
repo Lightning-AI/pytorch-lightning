@@ -20,7 +20,7 @@ to overlap communication with computation.
 
 .. warning::
     Enabling these flags means that you must pass in a ``scheduler_fn`` to the ``CollaborativeStrategy`` instead of relying on a scheduler from ``configure_optimizers``.
-    The optimizer is re-created by Hivemind, and as a result the scheduler has to as well.
+    The optimizer is re-created by Hivemind, and as a result, the scheduler has to as well.
 
 .. code-block:: python
 
@@ -46,7 +46,7 @@ to overlap communication with computation.
 Reducing GPU Memory requirements by re-using buffers & CPU offloading
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We can also offload optimizer state to the CPU whilst re-using gradient buffers to reduce the memory requirement for machines.
+We can also offload the optimizer state to the CPU whilst re-using gradient buffers to reduce the memory requirement for machines.
 
 Offloading Optimizer State to the CPU
 """""""""""""""""""""""""""""""""""""
@@ -58,7 +58,7 @@ Offloading the Optimizer state to the CPU works the same as :ref:`deepspeed-zero
 
 .. warning::
     Enabling these flags means that you must pass in a ``scheduler_fn`` to the ``CollaborativeStrategy`` instead of relying on a scheduler from ``configure_optimizers``.
-    The optimizer is re-created by Hivemind, and as a result the scheduler has to as well.
+    The optimizer is re-created by Hivemind, and as a result, the scheduler has to as well.
 
 .. code-block:: python
 
@@ -81,10 +81,10 @@ Offloading the Optimizer state to the CPU works the same as :ref:`deepspeed-zero
 Re-using Gradient Buffers
 """""""""""""""""""""""""
 
-By default, Hivemind accumulates gradients in a separate buffer. This means additional GPU memory is required to store gradients. You can disable this by passing `reuse_grad_buffers=False` to the `CollaborativeStrategy`.
+By default, Hivemind accumulates gradients in a separate buffer. This means additional GPU memory is required to store gradients. You can disable this by passing ``reuse_grad_buffers=False`` to the ``CollaborativeStrategy``.
 
 .. warning::
-    The `CollaborativeStrategy` will override `zero_grad` in your `LightningModule` to have no effect. This is because gradients are accumulated in the model
+    The ``CollaborativeStrategy`` will override ``zero_grad`` in your ``LightningModule`` to have no effect. This is because gradients are accumulated in the model
     and hivemind manages when they need to be cleared.
 
 .. code-block:: python
