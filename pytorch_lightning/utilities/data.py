@@ -263,11 +263,13 @@ def _get_dataloader_init_kwargs(
     if required_args:
         required_args = sorted(required_args)
         dataloader_cls_name = dataloader.__class__.__name__
+        missing_args_message = ", ".join([f"`self.{arg_name}`" for arg_name in required_args])
         raise MisconfigurationException(
             f"Trying to inject custom `Sampler` into the `{dataloader_cls_name}` instance. "
             "This would fail as some of the `__init__` arguments are not available as instance attributes. "
             f"The missing attributes are {required_args}. If you instantiate your `{dataloader_cls_name}` inside a "
-            "`*_dataloader` hook of your module, we will do this for you. Otherwise, define `self.missing_arg_name` inside your `__init__`."
+            "`*_dataloader` hook of your module, we will do this for you."
+            f" Otherwise, define {missing_args_message} inside your `__init__`."
         )
 
     if not has_variadic_kwargs:
@@ -336,9 +338,8 @@ def _auto_add_worker_init_fn(dataloader: DataLoader, rank: int) -> None:
         dataloader.worker_init_fn = partial(pl_worker_init_function, rank=rank)
 
 
-def _wrap_init(init: Callable) -> Callable:
-    """Wraps the ``__init__`` method of the dataloader in order to enable re-instantiation of custom subclasses of
-    :class:`~torch.utils.data.DataLoader`."""
+def _wrap_dataloader_init(init: Callable) -> Callable:
+    """Extra wrapper of `__init__` method specifically for DataLoader and its subclasses."""
 
     @functools.wraps(init)
     def wrapper(obj: DataLoader, *args: Any, **kwargs: Any) -> None:
@@ -352,18 +353,6 @@ def _wrap_init(init: Callable) -> Callable:
             if param.name != "self" and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
         ]
 
-        if not hasattr(obj, "_set_arg_names"):
-            set_arg_names = set()
-            for arg_name, arg_value in chain(zip(param_names, args), kwargs.items()):
-                if not hasattr(obj, "__" + arg_name):
-                    # Set the value privately if it has not been set yet. This achieves two things:
-                    # 1. The argument is the one that was passed in the outermost call
-                    #    and not overriden by a call to `super().__init__()`
-                    # 2. The argument is the passed value and does not get overwritten in `__init__()`
-                    setattr(obj, "__" + arg_name, arg_value)
-                    set_arg_names.add(arg_name)
-            obj._set_arg_names = set(set_arg_names)
-
         if not hasattr(obj, "__dataset"):
             # We have not found value for dataset yet, but we will find it eventually
             # because it has to be passed to the original DataLoader
@@ -374,6 +363,40 @@ def _wrap_init(init: Callable) -> Callable:
                 dataset_value = kwargs["dataset"]
             if dataset_value is not None:
                 setattr(obj, "__dataset", dataset_value)
+
+        init(obj, *args, **kwargs)
+
+    return wrapper
+
+
+def _wrap_init(init: Callable) -> Callable:
+    """Wraps the ``__init__`` method of the class in order to enable calling the function with original arguments
+    again."""
+
+    @functools.wraps(init)
+    def wrapper(obj: object, *args: Any, **kwargs: Any) -> None:
+
+        if not hasattr(obj, "_set_arg_names"):
+            set_arg_names = set()
+
+            # We need to inspect `init`, as inspecting `obj.__init__`
+            # can lead to inspecting the wrong function with multiple inheritance
+            params = inspect.signature(init).parameters
+
+            param_names = [
+                param.name
+                for param in params.values()
+                if param.name != "self" and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
+            ]
+
+            for arg_name, arg_value in chain(zip(param_names, args), kwargs.items()):
+                # Set the value privately if it has not been set yet. This achieves two things:
+                # 1. The argument is the one that was passed in the outermost call
+                #    and not overwritten by a call to `super().__init__()`
+                # 2. The argument is the passed value and does not get overwritten in `__init__()`
+                setattr(obj, "__" + arg_name, arg_value)
+                set_arg_names.add(arg_name)
+            obj._set_arg_names = set(set_arg_names)
 
         init(obj, *args, **kwargs)
 
@@ -401,7 +424,7 @@ def _replace_dataloader_init_method() -> Generator[None, None, None]:
     subclasses = _get_all_subclasses(DataLoader) | {DataLoader}
     for subclass in subclasses:
         subclass._old_init = subclass.__init__
-        subclass.__init__ = _wrap_init(subclass.__init__)
+        subclass.__init__ = _wrap_init(_wrap_dataloader_init(subclass.__init__))
     yield
     for subclass in subclasses:
         subclass.__init__ = subclass._old_init

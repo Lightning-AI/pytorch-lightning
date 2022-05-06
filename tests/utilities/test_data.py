@@ -245,6 +245,20 @@ def test_replace_dataloader_init_method():
     assert dataloader._set_arg_names == {"options"}
     assert dataloader.__options == 123
 
+    # Test we don't overwrite any value, that is set by the actual class
+    class IncompleteDataLoader(DataLoader):
+        def __init__(self, dataset, batch_size, **kwargs):
+            batch_size = max(batch_size - 5, 0)
+            super().__init__(dataset, batch_size=batch_size, **kwargs)
+
+    with _replace_dataloader_init_method():
+        dataloader = IncompleteDataLoader(range(10), batch_size=10)
+
+    assert dataloader.batch_size == 5
+    assert dataloader.__batch_size == 10
+    assert dataloader.__dataset == range(10)
+    assert dataloader._set_arg_names == {"batch_size", "dataset"}
+
 
 @pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])
 def test_dataloader_kwargs_replacement_with_iterable_dataset(mode):
