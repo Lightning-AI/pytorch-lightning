@@ -23,6 +23,7 @@ to overlap communication with computation.
     The optimizer is re-created by Hivemind, and as a result the scheduler has to as well.
 
 .. code-block:: python
+
     import torch
     from functools import partial
     import pytorch_lightning as pl
@@ -39,6 +40,7 @@ to overlap communication with computation.
         ),
         gpus=1,
     )
+
 Reducing GPU Memory requirements by re-using buffers & CPU offloading
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -57,6 +59,7 @@ Offloading the Optimizer state to the CPU works the same as :ref:`deepspeed-zero
     The optimizer is re-created by Hivemind, and as a result the scheduler has to as well.
 
 .. code-block:: python
+
     import torch
     from functools import partial
     import pytorch_lightning as pl
@@ -70,6 +73,7 @@ Offloading the Optimizer state to the CPU works the same as :ref:`deepspeed-zero
         ),
         gpus=1,
     )
+
 Re-using Gradient Buffers
 """""""""""""""""""""""""
 
@@ -80,6 +84,7 @@ By default, Hivemind accumulates gradients in a separate buffer. This means addi
     and hivemind manages when they need to be cleared.
 
 .. code-block:: python
+
     import torch
     from functools import partial
     import pytorch_lightning as pl

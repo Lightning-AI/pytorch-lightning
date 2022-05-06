@@ -18,6 +18,7 @@ Hivemind allows you to compress gradients and state before sending to other mach
 Below we enable Float16 compression, which compresses gradients and state to Float16 before sending to other machines.
 
 .. code-block:: python
+
     from hivemind import Float16Compression
     import pytorch_lightning as pl
     from pytorch_lightning.strategies import CollaborativeStrategy
@@ -29,11 +30,13 @@ Below we enable Float16 compression, which compresses gradients and state to Flo
             state_averaging_compression=Float16Compression(),
         )
     )
+
 A slightly more advanced scheme is dynamic compression based on the size of values. Below we enable 8-bit quantization for large numbers, and Float16 compression for small values.
 
 Size Adaptive Compression has been used in a variety of Hivemind applications and has shown success.
 
 .. code-block:: python
+
     from hivemind import Float16Compression, Uniform8BitQuantization
     import pytorch_lightning as pl
     from pytorch_lightning.strategies import CollaborativeStrategy
@@ -49,6 +52,7 @@ Size Adaptive Compression has been used in a variety of Hivemind applications an
             state_averaging_compression=compression,
         ),
     )
+
 PowerSGD
 """"""""
 
@@ -59,6 +63,7 @@ In short, PowerSGD uses a low rank approximation to compress gradients before al
     PowerSGD may impact convergence, however it is worth trying as it can substantially reduce the communication between processes.
 
 .. code-block:: python
+
     import pytorch_lightning as pl
     from pytorch_lightning.strategies import CollaborativeStrategy
     from functools import partial
