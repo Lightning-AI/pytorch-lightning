@@ -277,7 +277,7 @@ def _get_dataloader_init_kwargs(
             missing_kwargs = sorted(missing_kwargs)
             dataloader_cls_name = dataloader.__class__.__name__
             raise MisconfigurationException(
-                f"Trying to inject custom `Sampler` into the `{dataloader_cls_name}` instance. "
+                f"Trying to inject parameters into the `{dataloader_cls_name}` instance. "
                 "This would fail as it doesn't expose all its attributes in the `__init__` signature. "
                 f"The missing arguments are {missing_kwargs}. HINT: If you wrote the `{dataloader_cls_name}` class, "
                 "add the `__init__` arguments or allow passing **kwargs"
