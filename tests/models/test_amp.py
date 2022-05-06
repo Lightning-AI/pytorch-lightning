@@ -101,7 +101,7 @@ def test_amp_cpus(tmpdir, strategy, precision, devices):
 
 @RunIf(min_gpus=2, min_torch="1.10")
 @pytest.mark.parametrize("strategy", [None, "dp", "ddp_spawn"])
-@pytest.mark.parametrize("precision", [16, "bf16"])
+@pytest.mark.parametrize("precision", [16, pytest.param("bf16", marks=RunIf(bf16_cuda=True))])
 @pytest.mark.parametrize("devices", [1, 2])
 def test_amp_gpus(tmpdir, strategy, precision, devices):
     """Make sure combinations of AMP and strategies work if supported."""

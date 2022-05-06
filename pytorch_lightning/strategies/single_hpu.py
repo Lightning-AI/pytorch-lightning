@@ -20,9 +20,10 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
 from pytorch_lightning.utilities import _HPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import _DEVICE
+from pytorch_lightning.utilities.types import _DEVICE, STEP_OUTPUT
 
 if _HPU_AVAILABLE:
+    import habana_frameworks.torch.core as htcore
     import habana_frameworks.torch.core.hccl  # noqa: F401
     from habana_frameworks.torch.utils.library_loader import load_habana_module
 
@@ -70,6 +71,21 @@ class SingleHPUStrategy(SingleDeviceStrategy):
 
     def model_to_device(self) -> None:
         self.model.to(self.root_device)  # type: ignore
+
+    def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
+        # Break lazy accumulation of graph after every step
+        htcore.mark_step()
+        return step_output
+
+    def validation_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
+        # Break lazy accumulation of graph after every step
+        htcore.mark_step()
+        return step_output
+
+    def test_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
+        # Break lazy accumulation of graph after every step
+        htcore.mark_step()
+        return step_output
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
