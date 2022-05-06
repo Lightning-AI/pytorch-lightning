@@ -23,8 +23,6 @@ test: clean
 	# Review the CONTRIBUTING documentation for other ways to test.
 	pip install -r requirements/devel.txt
 	pip install -r requirements/strategies.txt
-	# install APEX, see https://github.com/NVIDIA/apex#linux
-
 	# run tests with coverage
 	python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests pl_examples -v
 	python -m coverage report
