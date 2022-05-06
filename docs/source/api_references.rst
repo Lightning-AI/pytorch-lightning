@@ -267,8 +267,8 @@ strategies
     :nosignatures:
     :template: classtemplate.rst
 
-    CollaborativeStrategy
     BaguaStrategy
+    CollaborativeStrategy
     DDP2Strategy
     DDPFullyShardedStrategy
     DDPShardedStrategy
