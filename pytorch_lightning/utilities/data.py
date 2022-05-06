@@ -209,9 +209,9 @@ def _get_dataloader_init_kwargs(
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
 
-    was_wrapped = hasattr(dataloader, "_set_arg_names")
+    was_wrapped = hasattr(dataloader, "__pl_dl_args")
     if was_wrapped:
-        attrs = {k: getattr(dataloader, "__" + k) for k in dataloader._set_arg_names}
+        attrs = {k: getattr(dataloader, "__" + k) for k in dataloader.__pl_dl_args}
         original_dataset = dataloader.__dataset  # we have this saved from _wrap_init
     else:
         # get the dataloader instance attributes
@@ -376,7 +376,7 @@ def _wrap_init(init: Callable) -> Callable:
     @functools.wraps(init)
     def wrapper(obj: object, *args: Any, **kwargs: Any) -> None:
 
-        if not hasattr(obj, "_set_arg_names"):
+        if not hasattr(obj, "__pl_dl_args"):
             set_arg_names = set()
 
             # We need to inspect `init`, as inspecting `obj.__init__`
@@ -396,7 +396,7 @@ def _wrap_init(init: Callable) -> Callable:
                 # 2. The argument is the passed value and does not get overwritten in `__init__()`
                 setattr(obj, "__" + arg_name, arg_value)
                 set_arg_names.add(arg_name)
-            obj._set_arg_names = set(set_arg_names)
+            obj.__pl_dl_args = set(set_arg_names)
 
         init(obj, *args, **kwargs)
 
