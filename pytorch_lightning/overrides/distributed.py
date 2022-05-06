@@ -22,6 +22,7 @@ from torch.utils.data import BatchSampler, Dataset, DistributedSampler, Sampler
 
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 class LightningDistributedModule(_LightningModuleWrapperBase):
@@ -116,8 +117,23 @@ class _DatasetFromSampler(Dataset):
 
     def __init__(self, sampler: Union[Sampler, Iterable]) -> None:
         if not isinstance(sampler, Sized):
-            raise TypeError("The given sampler must implement the `__len__` method.")
+            raise MisconfigurationException(
+                "You seem to have configured a sampler in your DataLoader which"
+                " does not provide `__len__` method. The sampler was about to be"
+                " replaced by `DistributedSamplerWrapper` since `replace_sampler_ddp`"
+                " is True and you are using distributed training. Either provide `__len__`"
+                " method in your sampler, remove it from DataLoader or set `replace_sampler_ddp=False`"
+                " if you want to handle distributed sampling yourself."
+            )
         if len(sampler) == float("inf"):
+            raise MisconfigurationException(
+                "You seem to have configured a sampler in your DataLoader which"
+                " does not provide finite `__len__` method. The sampler was about to be"
+                " replaced by `DistributedSamplerWrapper` since `replace_sampler_ddp`"
+                " is True and you are using distributed training. Either provide `__len__`"
+                " method in your sampler which returns a finite number, remove it from DataLoader"
+                " or set `replace_sampler_ddp=False` if you want to handle distributed sampling yourself."
+            )
             raise TypeError("The given sampler must be bounded.")
         self._sampler = sampler
         self._sampler_list: Optional[List[Any]] = None
@@ -156,9 +172,9 @@ def _subsample_dataset(dataset: Dataset, iterator_: Iterator) -> Iterator:
 class DistributedSamplerWrapper(DistributedSampler):
     """Wrapper over `Sampler` for distributed training. Allows you to use any sampler in distributed mode.
 
-    It is especially useful in conjunction with :class:`torch.nn.parallel.DistributedDataParallel`. In such case, each process
-    can pass a ``DistributedSamplerWrapper`` instance as a ``DataLoader`` sampler, and load a subset of subsampled data
-    of the original dataset that is exclusive to it.
+    It is especially useful in conjunction with :class:`torch.nn.parallel.DistributedDataParallel`.
+    In such case, each process can pass a ``DistributedSamplerWrapper`` instance as a ``DataLoader``
+    sampler, and load a subset of subsampled data of the original dataset that is exclusive to it.
 
     .. note::
         Sampler is assumed to be of constant size.

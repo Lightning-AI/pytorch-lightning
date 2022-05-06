@@ -238,7 +238,7 @@ class DataConnector:
     def _prepare_dataloader(
         self, dataloader: Any, shuffle: Optional[bool] = None, mode: Optional[RunningStage] = None
     ) -> Any:
-        """This function handles to following functionalities:
+        """This function handles the following functionalities:
 
         - Injecting a `DistributedDataSamplerWrapper` into the `DataLoader` if on a distributed environment
         - Wrapping the datasets and samplers into fault-tolerant components
