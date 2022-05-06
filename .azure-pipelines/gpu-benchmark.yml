@@ -28,13 +28,18 @@ jobs:
     cancelTimeoutInMinutes: "2"
     pool: azure-gpus-spot
     container:
-      # TODO: Unpin sha256
-      image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8@sha256:b75de74d4c7c820f442f246be8500c93f8b5797b84aa8531847e5fb317ed3dda"
+      image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8"
       options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=32g"
     workspace:
       clean: all
 
     steps:
+      - bash: |
+          # TODO: Prepare a docker image with 1.8.2 (LTS) installed and remove manual installation.
+          pip install torch==1.8.2+cu102 torchvision==0.9.2+cu102 torchtext==0.9.2 -f https://download.pytorch.org/whl/lts/1.8/torch_lts.html
+          pip list
+        displayName: 'Install PyTorch LTS'
+
       - bash: |
           python -m pytest tests/benchmarks -v --durations=0
         displayName: 'Testing: benchmarks'

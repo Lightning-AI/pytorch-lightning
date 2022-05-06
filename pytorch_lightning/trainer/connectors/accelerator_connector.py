@@ -54,6 +54,7 @@ from pytorch_lightning.plugins.environments import (
 from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
 from pytorch_lightning.strategies import (
     DDP2Strategy,
+    DDPFullyShardedNativeStrategy,
     DDPFullyShardedStrategy,
     DDPShardedStrategy,
     DDPSpawnShardedStrategy,
@@ -591,6 +592,14 @@ class AcceleratorConnector:
         if strategy_flag in ("dp", "ddp2") and self._accelerator_flag == "cpu":
             rank_zero_warn(f"{strategy_flag!r} is not supported on CPUs, hence setting `strategy='ddp'`.")
             strategy_flag = "ddp"
+        if (
+            strategy_flag in DDPFullyShardedNativeStrategy.get_registered_strategies()
+            or isinstance(self._strategy_flag, DDPFullyShardedNativeStrategy)
+        ) and self._accelerator_flag != "gpu":
+            raise MisconfigurationException(
+                f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
+                "but GPU accelerator is not used."
+            )
 
         if strategy_flag:
             self._strategy_flag = strategy_flag
@@ -670,6 +679,10 @@ class AcceleratorConnector:
                 if self._precision_flag == 16
                 else "Using bfloat16 Automatic Mixed Precision (AMP)"
             )
+            if isinstance(self.strategy, DDPFullyShardedNativeStrategy):
+                raise MisconfigurationException(
+                    "DDPFullyShardedNativeStrategy currently doesn't support Mixed Precision"
+                )
 
             if self._amp_type_flag == AMPType.NATIVE:
                 device = "cpu" if self._accelerator_flag == "cpu" else "cuda"
@@ -722,7 +735,10 @@ class AcceleratorConnector:
                 "it's not supported. Try using `amp_type='native'` instead."
             )
         if self._precision_flag in (16, "bf16") and self._amp_type_flag == AMPType.APEX:
-            if isinstance(self.strategy, (DDPShardedStrategy, DDPSpawnShardedStrategy, DDPFullyShardedStrategy)):
+            if isinstance(
+                self.strategy,
+                (DDPShardedStrategy, DDPSpawnShardedStrategy, DDPFullyShardedStrategy, DDPFullyShardedNativeStrategy),
+            ):
                 raise MisconfigurationException(
                     "Sharded plugins are not supported with apex, please switch to `amp_backend='native'`."
                 )
@@ -803,6 +819,7 @@ class AcceleratorConnector:
             DDPStrategy,
             DDPSpawnShardedStrategy,
             DDPShardedStrategy,
+            DDPFullyShardedNativeStrategy,
             DDPFullyShardedStrategy,
             DDPSpawnStrategy,
             DeepSpeedStrategy,
