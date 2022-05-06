@@ -42,6 +42,7 @@ to overlap communication with computation.
         devices=1,
     )
 
+
 Reducing GPU Memory requirements by re-using buffers & CPU offloading
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -75,6 +76,7 @@ Offloading the Optimizer state to the CPU works the same as :ref:`deepspeed-zero
         accelerator="gpu",
         devices=1,
     )
+
 
 Re-using Gradient Buffers
 """""""""""""""""""""""""

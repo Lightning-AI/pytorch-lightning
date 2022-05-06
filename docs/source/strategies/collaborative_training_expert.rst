@@ -57,6 +57,7 @@ Size Adaptive Compression has been used in a variety of Hivemind applications an
         devices=1,
     )
 
+
 PowerSGD
 """"""""
 

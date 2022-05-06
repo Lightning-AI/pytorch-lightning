@@ -39,4 +39,5 @@ is made on all processes.
     # or passing the peers to the strategy:"
     # CollaborativeStrategy(initial_peers=...)"
 
+
 Once training starts a helper message is printed, showing how to start training on other machines using the same code.
