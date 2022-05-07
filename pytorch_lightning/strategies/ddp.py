@@ -22,10 +22,10 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 import torch.distributed
+from torch.distributed import GradBucket
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
-from torch.distributed import GradBucket
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
