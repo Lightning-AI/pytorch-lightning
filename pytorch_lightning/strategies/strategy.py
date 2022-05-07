@@ -269,7 +269,7 @@ class Strategy(ABC):
         """
 
     @abstractmethod
-    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> Optional[TBroadcast]:
         """Broadcasts an object to all processes.
 
         Args:
