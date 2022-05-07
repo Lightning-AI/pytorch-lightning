@@ -219,7 +219,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
     def model_to_device(self) -> None:
         # ensure we update the device type in the lightning module
-        assert self.model is not None
+        assert self.lightning_module is not None
         log.info(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         self.lightning_module.to(self.root_device)
 

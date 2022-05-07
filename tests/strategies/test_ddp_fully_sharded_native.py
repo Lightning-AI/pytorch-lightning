@@ -161,7 +161,7 @@ def test_fully_sharded_native_strategy_checkpoint_multi_gpus(tmpdir, precision):
 
 def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     trainer.fit(model)
-
+    model_path = trainer.strategy.broadcast(model_path)
     model_path = model_path if model_path else trainer.checkpoint_callback.last_model_path
 
     trainer.save_checkpoint(model_path, weights_only=True)
@@ -169,7 +169,7 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     _assert_save_equality(trainer, model_path, cls=TestFSDPModel)
 
     # Test entry point
-    trainer.test(model)  # model is wrapped, will not call configure_shared_model
+    trainer.test(model)  # model is wrapped, will not call `configure_sharded_model`
 
     # provide model path, will create a new unwrapped model and load and then call configure_shared_model to wrap
     trainer.test(ckpt_path=model_path)
