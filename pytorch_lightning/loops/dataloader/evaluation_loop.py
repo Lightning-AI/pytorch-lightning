@@ -13,9 +13,10 @@
 # limitations under the License.
 import os
 import shutil
+import sys
 from collections import ChainMap, OrderedDict
 from functools import partial
-from typing import Any, IO, Iterable, List, Optional, Sequence, Type, Union
+from typing import Any, Iterable, List, Optional, Sequence, Tuple, Type, Union
 
 import torch
 from deprecate.utils import void
@@ -41,7 +42,7 @@ from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signatu
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
 
 if _RICH_AVAILABLE:
-    from rich.console import Console
+    from rich import get_console
     from rich.table import Column, Table
 
 
@@ -302,41 +303,48 @@ class EvaluationLoop(DataLoaderLoop):
         self.trainer._logger_connector.on_epoch_end()
 
     @staticmethod
-    def _get_keys(data: dict) -> Iterable[str]:
-        if any(isinstance(v, dict) for v in data.values()):
-            for v in data.values():
-                yield from apply_to_collection(v, dict, dict.keys)
-        else:
-            yield from data.keys()
-
-    @staticmethod
-    def _find_value(data: dict, target: str) -> Iterable[Any]:
+    def _get_keys(data: dict) -> Iterable[Tuple[str, ...]]:
         for k, v in data.items():
-            if k == target:
-                yield v
-            elif isinstance(v, dict):
-                yield from EvaluationLoop._find_value(v, target)
+            if isinstance(v, dict):
+                for new_key in apply_to_collection(v, dict, EvaluationLoop._get_keys):
+                    yield (k, *new_key)  # this need to be in parenthesis for older python versions
+            else:
+                yield k,
 
     @staticmethod
-    def _print_results(results: List[_OUT_DICT], stage: str, file: Optional[IO[str]] = None) -> None:
+    def _find_value(data: dict, target: Iterable[str]) -> Optional[Any]:
+        target_start, *rest = target
+        if target_start not in data:
+            return None
+        result = data[target_start]
+        if not rest:
+            return result
+        return EvaluationLoop._find_value(result, rest)
+
+    @staticmethod
+    def _print_results(results: List[_OUT_DICT], stage: str) -> None:
         # remove the dl idx suffix
         results = [{k.split("/dataloader_idx_")[0]: v for k, v in result.items()} for result in results]
-        metrics = sorted({k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys})
-        if not metrics:
+        metrics_paths = {k for keys in apply_to_collection(results, dict, EvaluationLoop._get_keys) for k in keys}
+        if not metrics_paths:
             return
+
+        metrics_strs = [":".join(metric) for metric in metrics_paths]
+        # sort both lists based on metrics_strs
+        metrics_strs, metrics_paths = zip(*sorted(zip(metrics_strs, metrics_paths)))
+
         headers = [f"DataLoader {i}" for i in range(len(results))]
 
         # fallback is useful for testing of printed output
         term_size = shutil.get_terminal_size(fallback=(120, 30)).columns or 120
-        max_length = int(min(max(len(max(metrics + headers, key=len)), 25), term_size / 2))
+        max_length = int(min(max(len(max(metrics_strs, key=len)), len(max(headers, key=len)), 25), term_size / 2))
 
-        rows: List[List[Any]] = [[] for _ in metrics]
+        rows: List[List[Any]] = [[] for _ in metrics_paths]
 
         for result in results:
-            for metric, row in zip(metrics, rows):
-                v = list(EvaluationLoop._find_value(result, metric))
-                if v:
-                    val = v[0]
+            for metric, row in zip(metrics_paths, rows):
+                val = EvaluationLoop._find_value(result, metric)
+                if val is not None:
                     if isinstance(val, torch.Tensor):
                         val = val.item() if val.numel() == 1 else val.tolist()
                     row.append(f"{val}")
@@ -353,23 +361,32 @@ class EvaluationLoop(DataLoaderLoop):
             table_headers.insert(0, f"{stage} Metric".capitalize())
 
             if _RICH_AVAILABLE:
-                console = Console(file=file)
-
                 columns = [Column(h, justify="center", style="magenta", width=max_length) for h in table_headers]
                 columns[0].style = "cyan"
 
                 table = Table(*columns)
-                for metric, row in zip(metrics, table_rows):
+                for metric, row in zip(metrics_strs, table_rows):
                     row.insert(0, metric)
                     table.add_row(*row)
+
+                console = get_console()
                 console.print(table)
             else:
                 row_format = f"{{:^{max_length}}}" * len(table_headers)
                 half_term_size = int(term_size / 2)
 
-                bar = "─" * term_size
+                try:
+                    # some terminals do not support this character
+                    if sys.stdout.encoding is not None:
+                        "─".encode(sys.stdout.encoding)
+                except UnicodeEncodeError:
+                    bar_character = "-"
+                else:
+                    bar_character = "─"
+                bar = bar_character * term_size
+
                 lines = [bar, row_format.format(*table_headers).rstrip(), bar]
-                for metric, row in zip(metrics, table_rows):
+                for metric, row in zip(metrics_strs, table_rows):
                     # deal with column overflow
                     if len(metric) > half_term_size:
                         while len(metric) > half_term_size:
@@ -380,7 +397,7 @@ class EvaluationLoop(DataLoaderLoop):
                     else:
                         lines.append(row_format.format(metric, *row).rstrip())
                 lines.append(bar)
-                print(os.linesep.join(lines), file=file)
+                print(os.linesep.join(lines))
 
 
 def _select_data_fetcher_type(trainer: "pl.Trainer") -> Type[AbstractDataFetcher]:

@@ -32,7 +32,11 @@ from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
 from pytorch_lightning.strategies import DeepSpeedStrategy
 from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE, _DEEPSPEED_GREATER_EQUAL_0_6
+from pytorch_lightning.utilities.imports import (
+    _DEEPSPEED_AVAILABLE,
+    _DEEPSPEED_GREATER_EQUAL_0_5_9,
+    _DEEPSPEED_GREATER_EQUAL_0_6,
+)
 from pytorch_lightning.utilities.meta import init_meta_context
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
 from tests.helpers.datamodules import ClassifDataModule
@@ -41,6 +45,11 @@ from tests.helpers.runif import RunIf
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
     from deepspeed.utils.zero_to_fp32 import convert_zero_checkpoint_to_fp32_state_dict
+
+    if _DEEPSPEED_GREATER_EQUAL_0_5_9:
+        from deepspeed.runtime.zero.stage_1_and_2 import DeepSpeedZeroOptimizer
+    else:
+        from deepspeed.runtime.zero.stage2 import FP16_DeepSpeedZeroOptimizer as DeepSpeedZeroOptimizer
 
 
 class ModelParallelBoringModel(BoringModel):
@@ -296,9 +305,7 @@ def test_deepspeed_run_configure_optimizers(tmpdir):
 
     class TestCB(Callback):
         def on_train_start(self, trainer, pl_module) -> None:
-            from deepspeed.runtime.zero.stage2 import FP16_DeepSpeedZeroOptimizer
-
-            assert isinstance(trainer.optimizers[0], FP16_DeepSpeedZeroOptimizer)
+            assert isinstance(trainer.optimizers[0], DeepSpeedZeroOptimizer)
             assert isinstance(trainer.optimizers[0].optimizer, torch.optim.SGD)
             assert isinstance(trainer.lr_scheduler_configs[0].scheduler, torch.optim.lr_scheduler.StepLR)
             # check that the lr_scheduler config was preserved
@@ -337,9 +344,8 @@ def test_deepspeed_config(tmpdir, deepspeed_zero_config):
     class TestCB(Callback):
         def on_train_start(self, trainer, pl_module) -> None:
             from deepspeed.runtime.lr_schedules import WarmupLR
-            from deepspeed.runtime.zero.stage2 import FP16_DeepSpeedZeroOptimizer
 
-            assert isinstance(trainer.optimizers[0], FP16_DeepSpeedZeroOptimizer)
+            assert isinstance(trainer.optimizers[0], DeepSpeedZeroOptimizer)
             assert isinstance(trainer.optimizers[0].optimizer, torch.optim.SGD)
             assert isinstance(trainer.lr_scheduler_configs[0].scheduler, WarmupLR)
             assert trainer.lr_scheduler_configs[0].interval == "step"
@@ -1263,13 +1269,19 @@ def test_deepspeed_with_meta_device(tmpdir):
 def test_deepspeed_multi_save_same_filepath(tmpdir):
     """Test that verifies that deepspeed saves only latest checkpoint in the specified path and deletes the old
     sharded checkpoints."""
-    model = BoringModel()
+
+    class CustomModel(BoringModel):
+        def training_step(self, *args, **kwargs):
+            self.log("grank", self.global_rank)
+            return super().training_step(*args, **kwargs)
+
+    model = CustomModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         strategy="deepspeed",
         accelerator="gpu",
         devices=2,
-        callbacks=[ModelCheckpoint(save_top_k=1, save_last=True)],
+        callbacks=[ModelCheckpoint(filename="{epoch}_{step}_{grank}", save_top_k=1)],
         limit_train_batches=1,
         limit_val_batches=0,
         num_sanity_val_steps=0,
@@ -1278,9 +1290,14 @@ def test_deepspeed_multi_save_same_filepath(tmpdir):
         enable_model_summary=False,
     )
     trainer.fit(model)
-    ckpt_path = os.path.join(trainer.checkpoint_callback.dirpath, "last.ckpt")
-    expected = ["latest", "zero_to_fp32.py", "checkpoint"]
-    assert set(expected) == set(os.listdir(ckpt_path))
+
+    filepath = "epoch=1_step=2_grank=0.0.ckpt"
+    expected = {filepath}
+    assert expected == set(os.listdir(trainer.checkpoint_callback.dirpath))
+
+    ckpt_path = os.path.join(trainer.checkpoint_callback.dirpath, filepath)
+    expected = {"latest", "zero_to_fp32.py", "checkpoint"}
+    assert expected == set(os.listdir(ckpt_path))
 
 
 @RunIf(min_gpus=2, standalone=True, deepspeed=True)
@@ -1305,3 +1322,17 @@ def test_deepspeed_with_bfloat16_precision(tmpdir):
     assert trainer.strategy.precision_plugin.precision == "bf16"
     assert trainer.strategy.config["zero_optimization"]["stage"] == 3
     assert model.layer.weight.dtype == torch.bfloat16
+
+
+@RunIf(deepspeed=True)
+def test_error_with_invalid_accelerator(tmpdir):
+    """Test DeepSpeedStrategy raises an exception if an invalid accelerator is used."""
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="cpu",
+        strategy="deepspeed",
+        fast_dev_run=True,
+    )
+    model = BoringModel()
+    with pytest.raises(MisconfigurationException, match="DeepSpeed strategy is only supported on GPU"):
+        trainer.fit(model)

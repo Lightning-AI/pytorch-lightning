@@ -38,8 +38,6 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
         __verify_train_val_loop_configuration(trainer, model)
         __verify_manual_optimization_support(trainer, model)
         __check_training_step_requires_dataloader_iter(model)
-        # TODO: Remove this in v1.7 (deprecation: #9816)
-        _check_dl_idx_in_on_train_batch_hooks(model)
     elif trainer.state.fn == TrainerFn.VALIDATING:
         __verify_eval_loop_configuration(trainer, model, "val")
     elif trainer.state.fn == TrainerFn.TESTING:
@@ -62,6 +60,7 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     _check_on_pretrain_routine(model)
     # TODO: Delete CheckpointHooks off LightningDataModule in v1.8
     _check_datamodule_checkpoint_hooks(trainer)
+    _check_setup_method(trainer)
 
 
 def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.LightningModule") -> None:
@@ -304,15 +303,6 @@ def _check_on_pretrain_routine(model: "pl.LightningModule") -> None:
             )
 
 
-def _check_dl_idx_in_on_train_batch_hooks(model: "pl.LightningModule") -> None:
-    for hook in ("on_train_batch_start", "on_train_batch_end"):
-        if is_param_in_hook_signature(getattr(model, hook), "dataloader_idx", explicit=True):
-            rank_zero_deprecation(
-                f"Base `LightningModule.{hook}` hook signature has changed in v1.5."
-                " The `dataloader_idx` argument will be removed in v1.7."
-            )
-
-
 def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
     for callback in trainer.callbacks:
         if is_overridden(method_name="on_keyboard_interrupt", instance=callback):
@@ -320,13 +310,6 @@ def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
                 "The `on_keyboard_interrupt` callback hook was deprecated in v1.5 and will be removed in v1.7."
                 " Please use the `on_exception` callback hook instead."
             )
-        # TODO: Remove this in v1.7 (deprecation: #9816)
-        for hook in ("on_train_batch_start", "on_train_batch_end"):
-            if is_param_in_hook_signature(getattr(callback, hook), "dataloader_idx", explicit=True):
-                rank_zero_deprecation(
-                    f"Base `Callback.{hook}` hook signature has changed in v1.5."
-                    " The `dataloader_idx` argument will be removed in v1.7."
-                )
         if is_overridden(method_name="on_init_start", instance=callback):
             rank_zero_deprecation(
                 "The `on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8."
@@ -402,3 +385,9 @@ def _check_datamodule_checkpoint_hooks(trainer: "pl.Trainer") -> None:
             "`LightningDataModule.on_load_checkpoint` was deprecated in"
             " v1.6 and will be removed in v1.8. Use `load_state_dict` instead."
         )
+
+
+def _check_setup_method(trainer: "pl.Trainer") -> None:
+    for obj in [trainer.lightning_module, trainer.datamodule] + trainer.callbacks:
+        if is_overridden("setup", obj) and not is_param_in_hook_signature(obj.setup, "stage"):
+            raise MisconfigurationException(f"`{obj.__class__.__name__}.setup` does not have a `stage` argument.")
