@@ -64,6 +64,9 @@ def test_lite_module_attribute_lookup():
     assert lite_module.method() == 2
     assert lite_module.forward.__self__.__class__ == _LiteModule
 
+    with pytest.raises(AttributeError):
+        _ = lite_module.not_exists
+
 
 @RunIf(min_gpus=1)
 @pytest.mark.parametrize(
