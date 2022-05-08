@@ -275,7 +275,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Don't raise a warning when `nn.Module` is not saved under hparams ([#12669](https://github.com/PyTorchLightning/pytorch-lightning/pull/12669))
 - Raise `MisconfigurationException` when the accelerator is available but the user passes invalid `([]/0/"0")` values to the `devices` flag ([#12708](https://github.com/PyTorchLightning/pytorch-lightning/pull/12708))
 - Support `auto_select_gpus` with the accelerator and devices API ([#12608](https://github.com/PyTorchLightning/pytorch-lightning/pull/12608))
-- Fix the `name` property of `WandbLogger` ([#12157](https://github.com/PyTorchLightning/pytorch-lightning/issues/12157))
+- The `WandbLogger` will now use the run name in the logs folder if it is provided, and otherwise the project name  ([#12157](https://github.com/PyTorchLightning/pytorch-lightning/issues/12157))
 
 
 ## [1.6.0] - 2022-03-29
