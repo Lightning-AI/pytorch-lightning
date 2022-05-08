@@ -40,10 +40,24 @@ def test_lite_module_wraps():
 
 def test_lite_module_attribute_lookup():
     """Test that attribute lookup passes through to the original model when possible."""
-    wrapped_module = Mock()
-    original_module = Mock()
-    original_module.attribute = 1
-    original_module.method = lambda: 2
+
+    class OriginalModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(2, 3)
+            self.attribute = 1
+
+        def method(self):
+            return 2
+
+    original_module = OriginalModule()
+
+    class ModuleWrapper(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.wrapped = original_module
+
+    wrapped_module = ModuleWrapper()
 
     lite_module = _LiteModule(wrapped_module, Mock(), original_module=original_module)
     assert lite_module.attribute == 1

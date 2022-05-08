@@ -256,7 +256,7 @@ class LightningLite(ABC):
             When using ``strategy="deepspeed"`` and multiple models were set up, it is required to pass in the
             model as argument here.
         """
-        module = model.module if model is not None else model
+        module = model._forward_module if model is not None else model
         if isinstance(self._strategy, DeepSpeedStrategy):
             if model is None:
                 if self._models_setup == 0:
