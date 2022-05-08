@@ -61,6 +61,7 @@ def test_lite_module_attribute_lookup():
 
     lite_module = _LiteModule(wrapped_module, Mock(), original_module=original_module)
     assert lite_module.attribute == 1
+    assert lite_module.layer is original_module.layer
     assert lite_module.method() == 2
     assert lite_module.forward.__self__.__class__ == _LiteModule
 
