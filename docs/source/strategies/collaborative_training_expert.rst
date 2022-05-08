@@ -65,7 +65,7 @@ PowerSGD
 """"""""
 
 `PowerSGD <https://arxiv.org/abs/1905.13727>`_ is a technique to reduce distributed communication of gradients across processes.
-In short, PowerSGD uses a low-rank approximation to compress gradients before all reducing.
+In short, PowerSGD uses a low-rank approximation to compress gradients before running an `all-reduce` step to sync gradients across all processes.
 
 .. note::
     Though PowerSGD can impact convergence, it can also substantially reduce communication between processes.

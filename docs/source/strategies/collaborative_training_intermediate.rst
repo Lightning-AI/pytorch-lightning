@@ -23,7 +23,7 @@ to overlap communication with computation.
 
 .. note::
     Enabling these flags means that you must pass in a ``scheduler_fn`` to the ``CollaborativeStrategy`` instead of relying on a scheduler from ``configure_optimizers``.
-    The optimizer is re-created by Hivemind, and as a result, the scheduler has to as well.
+    The optimizer is re-created by Hivemind, and as a result, the scheduler has to be re-created.
 
 .. code-block:: python
 
@@ -58,7 +58,7 @@ Offloading the Optimizer state to the CPU works the same as :ref:`deepspeed-zero
 
 .. note::
     Enabling these flags means that you must pass in a ``scheduler_fn`` to the ``CollaborativeStrategy`` instead of relying on a scheduler from ``configure_optimizers``.
-    The optimizer is re-created by Hivemind, and as a result, the scheduler has to as well.
+    The optimizer is re-created by Hivemind, and as a result, the scheduler has to be re-created.
 
     We suggest enabling offloading and overlapping communication to hide the additional overhead from having to communicate with the CPU.
 
