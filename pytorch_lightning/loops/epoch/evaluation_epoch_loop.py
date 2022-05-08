@@ -88,6 +88,21 @@ class EvaluationEpochLoop(Loop):
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
 
+        stage = self.trainer.state.stage
+        assert stage is not None
+        stage = stage.dataloader_prefix
+        self._profiler_fetch_action = (
+            f"[{self.__class__.__name__}].{stage}_dataloader_idx_{kwargs.get('dataloader_idx', 0)}_next"
+        )
+        data_fetcher._start_profiler = self._on_before_fetch
+        data_fetcher._stop_profiler = self._on_after_fetch
+
+    def _on_before_fetch(self) -> None:
+        self.trainer.profiler.start(self._profiler_fetch_action)
+
+    def _on_after_fetch(self) -> None:
+        self.trainer.profiler.stop(self._profiler_fetch_action)
+
     def advance(  # type: ignore[override]
         self,
         data_fetcher: AbstractDataFetcher,

@@ -13,13 +13,13 @@
 *.yml           @borda @tchaton @carmocca
 
 # Docs
-/docs/                                  @edenlightning @tchaton @borda @awaelchli
+/docs/                                  @edenlightning @tchaton @borda @awaelchli @RobertLaurella
 /.github/*.md                           @edenlightning @williamfalcon @borda
 /.github/ISSUE_TEMPLATE/                @edenlightning @borda @tchaton
 /docs/source/conf.py                    @borda @awaelchli @carmocca
 /docs/source/index.rst                  @williamfalcon
-/docs/source/levels                     @williamfalcon
-/docs/source/expertise_levels           @williamfalcon
+/docs/source/levels                     @williamfalcon @RobertLaurella
+/docs/source/expertise_levels           @williamfalcon @RobertLaurella
 
 # Packages
 /pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
