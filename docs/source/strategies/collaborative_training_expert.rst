@@ -17,6 +17,9 @@ Hivemind allows you to compress gradients and states before sending them to othe
 
 Below, we enable Float16 compression, which compresses gradients and states to Float16 before sending it to other machines.
 
+.. note::
+    Compressing gradients can affect convergence if you're lowering the precision (i.e training in Float32, but compressing gradients to FP16).
+
 .. code-block:: python
 
     from hivemind import Float16Compression
@@ -33,9 +36,9 @@ Below, we enable Float16 compression, which compresses gradients and states to F
         devices=1,
     )
 
-A slightly more advanced scheme is dynamic compression based on value size. Below, we enable 8-bit quantization for large numbers, and Float16 compression for small values.
+A slightly more advanced scheme is dynamic compression based on value size. Below, we enable 8-bit quantization for large numbers, and Float16 compression for small values, reducing communication bottlenecks even further.
 
-Size Adaptive Compression has been used in a variety of Hivemind applications and has shown success.
+Size Adaptive Compression has been used in a variety of Hivemind applications and has shown success, but does quantize gradients further, meaning we lose precision when compressing.
 
 .. code-block:: python
 

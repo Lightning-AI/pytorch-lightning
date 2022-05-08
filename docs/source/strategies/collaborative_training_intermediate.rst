@@ -19,6 +19,9 @@ the strategy, communication can happen in the background. This allows training t
 to overlap communication with computation.
 
 .. warning::
+    Enabling overlapping communication means convergence will slightly be affected.
+
+.. note::
     Enabling these flags means that you must pass in a ``scheduler_fn`` to the ``CollaborativeStrategy`` instead of relying on a scheduler from ``configure_optimizers``.
     The optimizer is re-created by Hivemind, and as a result, the scheduler has to as well.
 
@@ -54,11 +57,10 @@ Offloading Optimizer State to the CPU
 Offloading the Optimizer state to the CPU works the same as :ref:`deepspeed-zero-stage-2-offload`, where we save GPU memory by keeping all optimizer states on the CPU.
 
 .. note::
-    We suggest enabling offloading and overlapping communication to hide the additional overhead from having to communicate with the CPU.
-
-.. warning::
     Enabling these flags means that you must pass in a ``scheduler_fn`` to the ``CollaborativeStrategy`` instead of relying on a scheduler from ``configure_optimizers``.
     The optimizer is re-created by Hivemind, and as a result, the scheduler has to as well.
+
+    We suggest enabling offloading and overlapping communication to hide the additional overhead from having to communicate with the CPU.
 
 .. code-block:: python
 
@@ -81,7 +83,7 @@ Offloading the Optimizer state to the CPU works the same as :ref:`deepspeed-zero
 Re-using Gradient Buffers
 """""""""""""""""""""""""
 
-By default, Hivemind accumulates gradients in a separate buffer. This means additional GPU memory is required to store gradients. You can disable this by passing ``reuse_grad_buffers=False`` to the ``CollaborativeStrategy``.
+By default, Hivemind accumulates gradients in a separate buffer. This means additional GPU memory is required to store gradients. You can enable re-using the model parameter gradient buffers by passing ``reuse_grad_buffers=True`` to the ``CollaborativeStrategy``.
 
 .. warning::
     The ``CollaborativeStrategy`` will override ``zero_grad`` in your ``LightningModule`` to have no effect. This is because gradients are accumulated in the model
