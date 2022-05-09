@@ -60,8 +60,12 @@ class DeviceStatsMonitor(Callback):
         pl_module: "pl.LightningModule",
         stage: Optional[str] = None,
     ) -> None:
+        if stage != "fit":
+            return
+
         if not trainer.loggers:
             raise MisconfigurationException("Cannot use `DeviceStatsMonitor` callback with `Trainer(logger=False)`.")
+
         # warn in setup to warn once
         device = trainer.strategy.root_device
         if self._cpu_stats is None and device.type == "cpu" and not _PSUTIL_AVAILABLE:
