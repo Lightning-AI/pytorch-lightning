@@ -70,7 +70,6 @@ RUN \
     rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
 
-COPY ./requirements.txt requirements.txt
 COPY ./requirements/ ./requirements/
 COPY ./.actions/assistant.py assistant.py
 
@@ -86,7 +85,7 @@ RUN \
     CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
     pip config set global.cache-dir false && \
     # set particular PyTorch version
-    python ./requirements/adjust-versions.py requirements.txt ${PYTORCH_VERSION} && \
+    python ./requirements/adjust-versions.py requirements/base.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust-versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust-versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     # Install all requirements \

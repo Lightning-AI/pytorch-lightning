@@ -6,7 +6,7 @@ updates:
   # Enable version updates for python
   - package-ecosystem: "pip"
     # Look for a `requirements` in the `root` directory
-    directory: "/"
+    directory: "/requirements"
     # Check for updates once a week
     schedule:
       interval: "weekly"

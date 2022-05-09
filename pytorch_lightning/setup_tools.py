@@ -20,7 +20,7 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 
 
 def _load_requirements(
-    path_dir: str, file_name: str = "requirements.txt", comment_char: str = "#", unfreeze: bool = True
+    path_dir: str, file_name: str = "base.txt", comment_char: str = "#", unfreeze: bool = True
 ) -> List[str]:
     """Load requirements from a file.
 
