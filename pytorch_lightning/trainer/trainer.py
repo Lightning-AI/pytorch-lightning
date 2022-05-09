@@ -2802,10 +2802,10 @@ class Trainer(
 
 @contextmanager
 def _evaluation_context() -> Generator:
-    # inference mode is not supported with gloo backend (#9431)
+    # inference mode is not supported with gloo backend (#9431) and hpu backend
     context_manager_class = (
         torch.inference_mode
-        if _TORCH_GREATER_EQUAL_1_9 and not (dist.is_initialized() and dist.get_backend() == "gloo")
+        if _TORCH_GREATER_EQUAL_1_9 and not (dist.is_initialized() and dist.get_backend() == "gloo") and not (_HPU_AVAILABLE)
         else torch.no_grad
     )
     with context_manager_class():
