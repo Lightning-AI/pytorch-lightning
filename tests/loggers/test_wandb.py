@@ -43,6 +43,14 @@ def test_wandb_logger_init(wandb, monkeypatch):
     )
     wandb.init().log.assert_called_once_with({"acc": 1.0})
 
+    # test wandb.init called with project as name if name not provided
+    wandb.run = None
+    wandb.init.reset_mock()
+    WandbLogger(project="test_project").experiment
+    wandb.init.assert_called_once_with(
+        name="test_project", dir=None, id=None, project="test_project", resume="allow", anonymous=None
+    )
+
     # test wandb.init and setting logger experiment externally
     wandb.run = None
     run = wandb.init()
