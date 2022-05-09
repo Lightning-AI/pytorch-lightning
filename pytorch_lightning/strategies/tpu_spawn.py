@@ -26,6 +26,7 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.strategies.launchers.xla_spawn import _XLASpawnLauncher
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import ReduceOp
@@ -138,8 +139,10 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             set_shared_parameters(self.model.module, shared_params)
 
         self.setup_precision_plugin()
-        self.setup_optimizers(trainer)
-        optimizers_to_device(self.optimizers, self.root_device)
+
+        if trainer.state.fn == TrainerFn.FITTING:
+            self.setup_optimizers(trainer)
+            optimizers_to_device(self.optimizers, self.root_device)
 
     def _setup_model(self, model: Module) -> Module:
         return model

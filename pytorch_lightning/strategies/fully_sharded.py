@@ -138,11 +138,13 @@ class DDPFullyShardedStrategy(DDPStrategy):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.accelerator.setup(trainer)
-        self.setup_optimizers(trainer)
-        optimizers_to_device(self.optimizers, self.root_device)
 
-        if trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
-            self.model = self._layer_sync.apply(self.model)
+        if trainer.state.fn == TrainerFn.FITTING:
+            self.setup_optimizers(trainer)
+            optimizers_to_device(self.optimizers, self.root_device)
+
+            if self._layer_sync:
+                self.model = self._layer_sync.apply(self.model)
 
         self.setup_precision_plugin()
         self.configure_ddp()

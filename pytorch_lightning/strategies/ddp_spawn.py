@@ -140,10 +140,6 @@ class DDPSpawnStrategy(ParallelStrategy):
         if trainer_fn == TrainerFn.FITTING:
             self.configure_ddp()
 
-        # set up optimizers after the wrapped module has been moved to the device
-        self.setup_optimizers(trainer)
-        optimizers_to_device(self.optimizers, self.root_device)
-
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         return DistributedDataParallel(module=model, device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs)
@@ -192,6 +188,10 @@ class DDPSpawnStrategy(ParallelStrategy):
         self.pre_configure_ddp()
         self.model = self._setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
+
+        # set up optimizers after the wrapped module has been moved to the device
+        self.setup_optimizers(self.lightning_module.trainer)
+        optimizers_to_device(self.optimizers, self.root_device)
 
     def determine_ddp_device_ids(self):
         if self.root_device.type == "cpu":
