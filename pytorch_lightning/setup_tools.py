@@ -24,7 +24,7 @@ def _load_requirements(
 ) -> List[str]:
     """Load requirements from a file.
 
-    >>> _load_requirements(_PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> _load_requirements(os.path.join(_PROJECT_ROOT, "requirements"))  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     ['numpy...', 'torch...', ...]
     """
     with open(os.path.join(path_dir, file_name)) as file:
