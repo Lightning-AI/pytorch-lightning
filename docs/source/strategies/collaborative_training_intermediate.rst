@@ -91,8 +91,6 @@ By default, Hivemind accumulates gradients in a separate buffer. This means addi
 
 .. code-block:: python
 
-    import torch
-    from functools import partial
     import pytorch_lightning as pl
     from pytorch_lightning.strategies import CollaborativeStrategy
 
