@@ -5,7 +5,7 @@
 Training on unreliable mixed GPUs across the internet (Expert)
 ==============================================================
 
-Using Compression to Optimize communications
+Using Compression to Optimize Communications
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Below are some ways to reduce communication when training collaboratively. As the size of your model increase, bottlenecks in communication become more apparent.
