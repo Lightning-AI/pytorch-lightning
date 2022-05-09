@@ -2807,7 +2807,7 @@ def _evaluation_context(accelerator: Accelerator) -> Generator:
         torch.inference_mode
         if _TORCH_GREATER_EQUAL_1_9
         and not (dist.is_initialized() and dist.get_backend() == "gloo")
-        and not (isinstance(accelerator, HPUAccelerator))
+        and not isinstance(accelerator, HPUAccelerator)
         else torch.no_grad
     )
     with context_manager_class():
