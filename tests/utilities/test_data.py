@@ -8,7 +8,7 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.data import (
-    _get_dataloader_init_kwargs,
+    _get_dataloader_init_args_and_kwargs,
     _replace_dataloader_init_method,
     _update_dataloader,
     extract_batch_size,
@@ -186,8 +186,10 @@ def test_replace_dataloader_init_method():
     with _replace_dataloader_init_method():
         dataloader = DataLoaderSubclass1("attribute1", dataset=range(4), batch_size=2)
 
-    assert dataloader.__attribute1 == "attribute1"
-    assert dataloader.__pl_dl_args == {"attribute1", "dataset", "batch_size"}
+    assert dataloader.__pl_dl_kwargs == dict(dataset=range(4), batch_size=2)
+    assert dataloader.__pl_dl_arg_names == ("attribute1",)
+    assert dataloader.__pl_dl_args == ("attribute1",)
+    assert dataloader.__dataset == range(4)
     assert dataloader.dataset == range(4)
     assert dataloader.batch_size == 2
     assert dataloader.at1 == "attribute1"  # But the value still gets passed when it should
@@ -195,8 +197,10 @@ def test_replace_dataloader_init_method():
     with _replace_dataloader_init_method():
         dataloader = DataLoaderSubclass2("attribute2", dataset=range(4), batch_size=2)
 
-    assert dataloader.__attribute2 == "attribute2"
-    assert dataloader.__pl_dl_args == {"attribute2", "dataset", "batch_size"}
+    assert dataloader.__pl_dl_kwargs == dict(dataset=range(4), batch_size=2)
+    assert dataloader.__pl_dl_arg_names == ("attribute2",)
+    assert dataloader.__pl_dl_args == ("attribute2",)
+    assert dataloader.__dataset == range(4)
     assert dataloader.dataset == range(4)
     assert dataloader.batch_size == 2
     assert dataloader.at1 == "attribute2-2"  # But the value still gets passed when it should
@@ -218,9 +222,10 @@ def test_replace_dataloader_init_method():
 
     assert dataloader.data is data
     assert dataloader.dataset == range(10)
-    assert dataloader.__data is data
+    assert dataloader.__pl_dl_kwargs == dict(batch_size=2)
+    assert dataloader.__pl_dl_arg_names == ("data",)
+    assert dataloader.__pl_dl_args == (data,)
     assert dataloader.__dataset == range(10)
-    assert dataloader.__pl_dl_args == {"data", "batch_size"}
 
     # `poptorch.DataLoader` uses this pattern, simulate it
     class PoptorchDataLoader(DataLoader):
@@ -235,15 +240,17 @@ def test_replace_dataloader_init_method():
     # †his read-only property pattern is fine
     dataloader = PoptorchDataLoader(123, [1])
     assert dataloader.options == 123
-    assert not hasattr(dataloader, "__options")
 
     # still works with the init replacement
     with _replace_dataloader_init_method():
         dataloader = PoptorchDataLoader(123, [1])
 
     assert dataloader.options == 123
-    assert dataloader.__pl_dl_args == {"options"}
-    assert dataloader.__options == 123
+    assert dataloader.dataset == [1]
+    assert dataloader.__pl_dl_kwargs == dict()
+    assert dataloader.__pl_dl_arg_names == ("options",)
+    assert dataloader.__pl_dl_args == (123, [1])
+    assert dataloader.__dataset == [1]
 
     # Test we don't overwrite any value, that is set by the actual class
     class IncompleteDataLoader(DataLoader):
@@ -255,9 +262,10 @@ def test_replace_dataloader_init_method():
         dataloader = IncompleteDataLoader(range(10), batch_size=10)
 
     assert dataloader.batch_size == 5
-    assert dataloader.__batch_size == 10
+    assert dataloader.__pl_dl_kwargs == dict(batch_size=10)
+    assert dataloader.__pl_dl_arg_names == ("dataset",)
+    assert dataloader.__pl_dl_args == (range(10),)
     assert dataloader.__dataset == range(10)
-    assert dataloader.__pl_dl_args == {"batch_size", "dataset"}
 
     # Test everything works, even if custom dataloader does not specify `dataset` argname
     # and passes second argument as dataset
@@ -270,10 +278,10 @@ def test_replace_dataloader_init_method():
         dataloader = WeirdDataLoader1(10, range(10), batch_size=10)
 
     assert dataloader.dataset == range(10)
+    assert dataloader.__pl_dl_kwargs == dict(batch_size=10)
+    assert dataloader.__pl_dl_arg_names == ("arg1", "arg2")
+    assert dataloader.__pl_dl_args == (10, range(10))
     assert dataloader.__dataset == range(10)
-    assert dataloader.__arg1 == 10
-    assert dataloader.__arg2 == range(10)
-    assert dataloader.__pl_dl_args == {"arg1", "arg2", "batch_size"}
 
     # Test everything works, even if custom dataloader makes changes to the args, that make up final dataset
     class WeirdDataLoader2(DataLoader):
@@ -285,10 +293,36 @@ def test_replace_dataloader_init_method():
         dataloader = WeirdDataLoader2(range(10), range(10, 20), batch_size=10)
 
     assert dataloader.dataset == list(range(20))
+    assert dataloader.__pl_dl_kwargs == dict(batch_size=10)
+    assert dataloader.__pl_dl_arg_names == ("data_part1", "data_part2")
+    assert dataloader.__pl_dl_args == (range(10), range(10, 20))
     assert dataloader.__dataset == list(range(20))
-    assert dataloader.__data_part1 == range(10)
-    assert dataloader.__data_part2 == range(10, 20)
-    assert dataloader.__pl_dl_args == {"data_part1", "data_part2", "batch_size"}
+
+    class NoneDataLoader(DataLoader):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+    with _replace_dataloader_init_method():
+        dataloader = NoneDataLoader(None)
+
+    assert dataloader.dataset is None
+    assert dataloader.__pl_dl_kwargs == dict()
+    assert dataloader.__pl_dl_arg_names == ()
+    assert dataloader.__pl_dl_args == (None,)
+    assert dataloader.__dataset is None
+
+    class ChangingDataLoader(DataLoader):
+        def __init__(self, dataset, **kwargs):
+            super().__init__(list(dataset) + list(range(5, 10)), **kwargs)
+
+    with _replace_dataloader_init_method():
+        dataloader = ChangingDataLoader(range(5))
+
+    assert dataloader.dataset == list(range(10))
+    assert dataloader.__pl_dl_kwargs == dict()
+    assert dataloader.__pl_dl_arg_names == ("dataset",)
+    assert dataloader.__pl_dl_args == (range(5),)
+    assert dataloader.__dataset == list(range(10))
 
 
 @pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])
@@ -296,7 +330,7 @@ def test_dataloader_kwargs_replacement_with_iterable_dataset(mode):
     """Test that DataLoader kwargs are not replaced when using Iterable Dataset."""
     dataset = RandomIterableDataset(7, 100)
     dataloader = DataLoader(dataset, batch_size=32)
-    dl_kwargs = _get_dataloader_init_kwargs(dataloader, dataloader.sampler, mode=mode)
+    _, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, dataloader.sampler, mode=mode)
     assert dl_kwargs["sampler"] is None
     assert dl_kwargs["batch_sampler"] is None
     assert dl_kwargs["batch_size"] is dataloader.batch_size

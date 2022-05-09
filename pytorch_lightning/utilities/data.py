@@ -17,8 +17,7 @@ import os
 from contextlib import contextmanager
 from dataclasses import fields
 from functools import partial
-from itertools import chain
-from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Set, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Set, Tuple, Type, Union
 
 import torch
 from torch.utils.data import BatchSampler, DataLoader, IterableDataset, RandomSampler, Sampler, SequentialSampler
@@ -178,10 +177,10 @@ def get_len(dataloader: DataLoader) -> Union[int, float]:
 def _update_dataloader(
     dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
 ) -> DataLoader:
-    dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler, mode=mode)
+    dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler, mode=mode)
     dl_cls = type(dataloader)
     try:
-        dataloader = dl_cls(**dl_kwargs)
+        dataloader = dl_cls(*dl_args, **dl_kwargs)
     except TypeError as e:
         # improve exception message due to an incorrect implementation of the `DataLoader` where multiple subclass
         # `__init__` arguments map to one `DataLoader.__init__` argument
@@ -203,15 +202,23 @@ def _update_dataloader(
     return dataloader
 
 
-def _get_dataloader_init_kwargs(
+def _get_dataloader_init_args_and_kwargs(
     dataloader: DataLoader, sampler: Optional[Sampler], mode: Optional[RunningStage] = None
-) -> Dict[str, Any]:
+) -> Tuple[Tuple[Any], Dict[str, Any]]:
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
 
     was_wrapped = hasattr(dataloader, "__pl_dl_args")
     if was_wrapped:
-        attrs = {k: getattr(dataloader, "__" + k) for k in dataloader.__pl_dl_args}
+        args = dataloader.__pl_dl_args
+        attrs = dataloader.__pl_dl_kwargs
+        arg_names = dataloader.__pl_dl_arg_names
+        used_args = min(len(args), len(arg_names))
+        for arg, arg_name in zip(args, arg_names):
+            attrs[arg_name] = arg
+
+        args = args[used_args:]
+        arg_names = arg_names[used_args:]
         original_dataset = dataloader.__dataset  # we have this saved from _wrap_init
     else:
         # get the dataloader instance attributes
@@ -219,8 +226,8 @@ def _get_dataloader_init_kwargs(
         # We cannot be 100% sure the class sets dataset argument. Let's set it to None to be safe
         # and hope we can get it from the instance attributes
         original_dataset = None
-    # not part of `vars`
-    attrs["multiprocessing_context"] = dataloader.multiprocessing_context
+        # not part of `vars`
+        attrs["multiprocessing_context"] = dataloader.multiprocessing_context
 
     # get the dataloader instance `__init__` parameters
     params = dict(inspect.signature(dataloader.__init__).parameters)
@@ -238,15 +245,20 @@ def _get_dataloader_init_kwargs(
             params.update(inspect.signature(DataLoader.__init__).parameters)
             params.pop("self", None)
 
-    # keep only the params whose default is different to the current attr value
-    non_defaults = {name for name, p in params.items() if name in attrs and p.default != attrs[name]}
+    if was_wrapped:
+        dl_kwargs = attrs
+        dl_args = args
 
-    if not was_wrapped:
+    else:
+        # keep only the params whose default is different to the current attr value
+        non_defaults = {name for name, p in params.items() if name in attrs and p.default != attrs[name]}
+
         # add `dataset` as it might have been replaced with `*args`
         non_defaults.add("dataset")
+        # kwargs to re-construct the dataloader
+        dl_kwargs = {k: v for k, v in attrs.items() if k in non_defaults}
+        dl_args = ()
 
-    # kwargs to re-construct the dataloader
-    dl_kwargs = {k: v for k, v in attrs.items() if k in non_defaults}
     dataset = dl_kwargs.get("dataset", original_dataset)
     if isinstance(dataset, IterableDataset):
         dl_kwargs["batch_sampler"] = None
@@ -288,7 +300,7 @@ def _get_dataloader_init_kwargs(
     if _FaultTolerantMode.detect_current_mode().is_automatic:
         dl_kwargs = _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs)
 
-    return dl_kwargs
+    return dl_args, dl_kwargs
 
 
 def _dataloader_init_kwargs_resolve_sampler(
@@ -352,29 +364,20 @@ def _wrap_dataloader_init(init: Callable) -> Callable:
             for param in params.values()
             if param.name != "self" and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
         ]
-        param_names = param_names[: len(args)]
+        param_names = tuple(param_names[: len(args)])
 
         if not hasattr(obj, "__pl_dl_args"):
-            set_arg_names = set()
-            for arg_name, arg_value in chain(zip(param_names, args), kwargs.items()):
-                # Set the value privately if it has not been set yet. This achieves two things:
-                # 1. The argument is the one that was passed in the outermost call
-                #    and not overwritten by a call to `super().__init__()`
-                # 2. The argument is the passed value and does not get overwritten in `__init__()`
-                setattr(obj, "__" + arg_name, arg_value)
-                set_arg_names.add(arg_name)
-            obj.__pl_dl_args = set_arg_names
+            obj.__pl_dl_args = args
+            obj.__pl_dl_kwargs = kwargs
+            obj.__pl_dl_arg_names = param_names
 
-        if not hasattr(obj, "__dataset"):
-            # We have not found value for dataset yet, but we will find it eventually
-            # because it has to be passed to the original DataLoader
-            dataset_value = None
-            if "dataset" in param_names:
-                dataset_value = args[param_names.index("dataset")]
-            elif "dataset" in kwargs:
-                dataset_value = kwargs["dataset"]
-            if dataset_value is not None:
-                setattr(obj, "__dataset", dataset_value)
+        # We want to use the latest possible value for dataset argument (i.e. ideally what gets passed to DataLoader)
+        # so that we can be sure, that it will not get changed anymore.
+        # That is why we are setting this in every `__init__`
+        if "dataset" in param_names:
+            setattr(obj, "__dataset", args[param_names.index("dataset")])
+        elif "dataset" in kwargs:
+            setattr(obj, "__dataset", kwargs["dataset"])
 
         init(obj, *args, **kwargs)
 
