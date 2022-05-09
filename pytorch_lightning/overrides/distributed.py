@@ -170,7 +170,7 @@ def _subsample_dataset(dataset: Dataset, iterator_: Iterator) -> Iterator:
 
 
 class DistributedSamplerWrapper(DistributedSampler):
-    """Wrapper over `Sampler` for distributed training. Allows you to use any sampler in distributed mode.
+    """Wrapper over ``Sampler`` for distributed training. Allows you to use any sampler in distributed mode.
 
     It is especially useful in conjunction with :class:`torch.nn.parallel.DistributedDataParallel`.
     In such case, each process can pass a ``DistributedSamplerWrapper`` instance as a ``DataLoader``
