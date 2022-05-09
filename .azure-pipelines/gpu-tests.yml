@@ -33,7 +33,6 @@ jobs:
 
     pool: azure-gpus-spot
 
-    # ToDo: this need to have installed docker in the base image...
     container:
       image: $(image)
       # default shm size is 64m. Increase it to avoid:
