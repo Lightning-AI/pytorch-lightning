@@ -7,9 +7,6 @@
 # install all loggers for full package testing
 -r ./loggers.txt
 
-# install all strategies for full package testing
--r ./strategies.txt
-
 # extended list of dependencies for development and run lint and tests
 -r ./test.txt
 

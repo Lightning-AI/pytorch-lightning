@@ -89,7 +89,9 @@ class PredictionEpochLoop(Loop):
             num_dataloaders: the total number of dataloaders
             return_predictions: whether to return the obtained predictions
         """
-        batch_idx, batch = next(dataloader_iter)
+        action_name = f"[{self.__class__.__name__}].predict_dataloader_idx_{dataloader_idx}_next"
+        with self.trainer.profiler.profile(action_name):
+            batch_idx, batch = next(dataloader_iter)
         self._seen_batch_indices = self._get_batch_indices(dataloader_idx)
         # we need to truncate the list of batch indices due to prefetching in the dataloader and Lightning
         self._seen_batch_indices = self._seen_batch_indices[: (self.batch_progress.current.completed + 1)]

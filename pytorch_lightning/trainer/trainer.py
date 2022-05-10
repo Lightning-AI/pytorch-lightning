@@ -1319,7 +1319,7 @@ class Trainer(
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self._evaluation_loop.trainer = self
 
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context():
+        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context(self.accelerator):
             eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
@@ -1335,7 +1335,7 @@ class Trainer(
         self.reset_predict_dataloader(self.lightning_module)
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self.predict_loop.trainer = self
-        with _evaluation_context():
+        with _evaluation_context(self.accelerator):
             return self.predict_loop.run()
 
     def _run_sanity_check(self) -> None:
@@ -1472,7 +1472,7 @@ class Trainer(
         self.strategy.barrier("pre_setup")
 
         if self.datamodule is not None:
-            self.datamodule.setup(stage=fn)
+            self._call_lightning_datamodule_hook("setup", stage=fn)
         self._call_callback_hooks("setup", stage=fn)
         self._call_lightning_module_hook("setup", stage=fn)
 
@@ -1499,7 +1499,7 @@ class Trainer(
         fn = self.state.fn._setup_fn
 
         if self.datamodule is not None:
-            self.datamodule.teardown(stage=fn)
+            self._call_lightning_datamodule_hook("teardown", stage=fn)
 
         self._call_callback_hooks("teardown", stage=fn)
         self._call_lightning_module_hook("teardown", stage=fn)
@@ -1565,7 +1565,7 @@ class Trainer(
         pl_module = pl_module or self.lightning_module
 
         if pl_module is None:
-            raise TypeError("No Lightning Module is available to call hooks on")
+            raise TypeError("No `LightningModule` is available to call hooks on.")
 
         fn = getattr(pl_module, hook_name)
         if not callable(fn):
@@ -1581,6 +1581,20 @@ class Trainer(
         pl_module._current_fx_name = prev_fx_name
 
         return output
+
+    def _call_lightning_datamodule_hook(
+        self,
+        hook_name: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
+        if self.datamodule is None:
+            raise TypeError("No `LightningDataModule` is available to call hooks on.")
+
+        fn = getattr(self.datamodule, hook_name)
+        if callable(fn):
+            with self.profiler.profile(f"[LightningDataModule]{self.datamodule.__class__.__name__}.{hook_name}"):
+                return fn(*args, **kwargs)
 
     def _call_callback_hooks(
         self,
@@ -2787,11 +2801,15 @@ class Trainer(
 
 
 @contextmanager
-def _evaluation_context() -> Generator:
-    # inference mode is not supported with gloo backend (#9431)
+def _evaluation_context(accelerator: Accelerator) -> Generator:
+    # inference mode is not supported with gloo backend (#9431),
+    # and HPU & TPU accelerators.
     context_manager_class = (
         torch.inference_mode
-        if _TORCH_GREATER_EQUAL_1_9 and not (dist.is_initialized() and dist.get_backend() == "gloo")
+        if _TORCH_GREATER_EQUAL_1_9
+        and not (dist.is_initialized() and dist.get_backend() == "gloo")
+        and not isinstance(accelerator, HPUAccelerator)
+        and not isinstance(accelerator, TPUAccelerator)
         else torch.no_grad
     )
     with context_manager_class():

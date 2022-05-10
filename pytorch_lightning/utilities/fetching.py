@@ -35,6 +35,10 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
+def _profile_nothing() -> None:
+    pass
+
+
 class AbstractDataFetcher(ABC):
 
     """This base class should be used to implement a fault tolerant ``DataFetcher``. It is required to override the
@@ -76,6 +80,8 @@ class AbstractDataFetcher(ABC):
         self.dataloader_iter: Optional[Iterator] = None
         self.fetched: int = 0
         self.done: bool = False
+        self._start_profiler = _profile_nothing
+        self._stop_profiler = _profile_nothing
 
     def setup(self, dataloader: Iterable, **kwargs: Any) -> None:
         self._add_capture_metadata_collate(dataloader)
@@ -225,8 +231,12 @@ class DataFetcher(AbstractDataFetcher):
         if batch_to_device is not None:
             self.batch_to_device = batch_to_device
 
+    def on_fetch_start(self) -> Any:
+        self._start_profiler()
+
     def on_fetch_end(self, batch: Any, start_output: Any) -> None:
         """Hook to extend which handles the logic after fetching a batch."""
+        self._stop_profiler()
         self.batches.append(batch)
 
     def prefetching(self) -> None:
@@ -320,9 +330,12 @@ class InterBatchParallelDataFetcher(DataFetcher):
 
     def on_fetch_start(self) -> "torch.cuda.Event":
         # create a cuda event used to record the async stream of data to device.
-        return torch.cuda.Event()
+        event = torch.cuda.Event()
+        self._start_profiler()
+        return event
 
     def on_fetch_end(self, batch: Any, event: torch.cuda.Event) -> None:
+        self._stop_profiler()
         self.batches.append(batch)
         event.record()
         self.events.append(event)
@@ -344,7 +357,9 @@ class StepFuncDataLoaderIter(Iterator):
 
     def __next__(self) -> Any:
         try:
+            self.data_fetcher._start_profiler()
             data = next(self.iterator)
+            self.data_fetcher._stop_profiler()
             self.data_fetcher.fetched += 1
             return data
         except StopIteration as e:

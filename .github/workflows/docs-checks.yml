@@ -43,7 +43,7 @@ jobs:
           pip install -q fire
           # python -m pip install --upgrade --user pip
           pip install -r requirements.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
-          pip install -r requirements/devel-base.txt
+          pip install -r requirements/devel.txt
           pip install -r requirements/docs.txt
           pip list
         shell: bash
