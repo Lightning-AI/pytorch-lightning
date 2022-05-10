@@ -9,16 +9,16 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
-if _TORCH_GREATER_EQUAL_1_11:
+if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
     from torch.distributed.fsdp.wrap import wrap
 
 
-@RunIf(min_torch="1.11")
+@RunIf(min_torch="1.12dev")
 def test_invalid_on_cpu(tmpdir):
     """Test to ensure that to raise Misconfiguration for Native FSDP on CPU."""
     with pytest.raises(
@@ -34,7 +34,7 @@ def test_invalid_on_cpu(tmpdir):
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("torch.cuda.is_available", return_value=True)
-@RunIf(min_torch="1.11")
+@RunIf(min_torch="1.12dev")
 def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
     """Test to ensure that plugin native amp plugin raises Misconfiguration error."""
     with pytest.raises(
@@ -102,7 +102,7 @@ class TestFSDPModel(BoringModel):
         assert self.layer.module[2].reshard_after_forward is True
 
 
-@RunIf(min_gpus=2, skip_windows=True, standalone=True, min_torch="1.11")
+@RunIf(min_gpus=2, skip_windows=True, standalone=True, min_torch="1.12dev")
 def test_fully_sharded_native_strategy_sync_batchnorm(tmpdir):
     """Test to ensure that sync_batchnorm works when using fsdp_native and GPU, and all stages can be run."""
 
@@ -119,7 +119,7 @@ def test_fully_sharded_native_strategy_sync_batchnorm(tmpdir):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
-@RunIf(min_gpus=1, skip_windows=True, standalone=True, min_torch="1.11")
+@RunIf(min_gpus=1, skip_windows=True, standalone=True, min_torch="1.12dev")
 def test_fully_sharded_native_strategy_checkpoint(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
 
@@ -130,7 +130,7 @@ def test_fully_sharded_native_strategy_checkpoint(tmpdir):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
-@RunIf(min_gpus=2, skip_windows=True, standalone=True, min_torch="1.11")
+@RunIf(min_gpus=2, skip_windows=True, standalone=True, min_torch="1.12dev")
 def test_fully_sharded_native_strategy_checkpoint_multi_gpus(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
 
