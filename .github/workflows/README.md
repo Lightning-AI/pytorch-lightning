@@ -64,8 +64,3 @@
 | .github/workflows/probot-auto-cc.yml, .github/lightning-probot.yml | Notify maintainers of interest depending on labels added to an issue We utilize lightning-probot forked from PyTorch’s probot.                                                                                            |
 | .pre-commit-config.yaml                                            | pre-commit.ci runs a set of linters and formatters, such as black, flake8 and isort. When formatting is applied, the bot pushes a commit with its change. This configuration is also used for running pre-commit locally. |
 | .github/workflows/ci_pr-gatekeeper.yml                             | Prevent PRs from merging into master without any Grid.ai employees’ approval.                                                                                                                                             |
-
-## Dashboards
-
-- CI status in master (GitHub Actions only) hosted by the PyTorch team: https://hud2.pytorch.org/ci/PyTorchLightning/pytorch-lightning/master/
-- Azure Pipelines (GPUs): https://dev.azure.com/PytorchLightning/pytorch-lightning/_pipeline/analytics/stageawareoutcome?definitionId=6&contextType=build
