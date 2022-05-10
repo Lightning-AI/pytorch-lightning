@@ -118,8 +118,8 @@ def test_trainer_reset_correctly(tmpdir):
 
     with no_warning_call(UserWarning, match="Please add the following callbacks"):
         trainer.tuner.scale_batch_size(model, max_trials=5)
-    actual = {ca: getattr(trainer, ca) for ca in changed_attributes}
 
+    actual = {ca: getattr(trainer, ca) for ca in changed_attributes}
     assert actual == expected
 
 

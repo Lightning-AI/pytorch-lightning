@@ -93,7 +93,6 @@ def test_trainer_reset_correctly(tmpdir):
         trainer.tuner.lr_find(model, num_training=5)
 
     actual = {ca: getattr(trainer, ca) for ca in changed_attributes}
-
     assert actual == expected
     assert model.trainer == trainer
 
