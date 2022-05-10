@@ -91,7 +91,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Raise an error if there are insufficient training batches when using a float value of `limit_train_batches` ([#12885](https://github.com/PyTorchLightning/pytorch-lightning/pull/12885))
 
 
-- `DataLoader` instantiated inside a `*_dataloader` hook will now not instantiate attributes for you automatically ([#12981](https://github.com/PyTorchLightning/pytorch-lightning/pull/12981))
+- `DataLoader` instantiated inside a `*_dataloader` hook will not set the passed arguments as attributes anymore ([#12981](https://github.com/PyTorchLightning/pytorch-lightning/pull/12981))
 
 
 -
