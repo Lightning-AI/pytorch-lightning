@@ -112,6 +112,7 @@ def test_fully_sharded_native_strategy_sync_batchnorm(tmpdir):
         accelerator="gpu",
         devices=2,
         strategy="fsdp_native",
+        precision=16,
         max_epochs=1,
         sync_batchnorm=True,
     )
@@ -124,11 +125,7 @@ def test_fully_sharded_native_strategy_checkpoint(tmpdir):
 
     model = TestFSDPModel()
     trainer = Trainer(
-        default_root_dir=tmpdir,
-        accelerator="gpu",
-        devices=1,
-        strategy="fsdp_native",
-        max_epochs=1,
+        default_root_dir=tmpdir, accelerator="gpu", devices=1, strategy="fsdp_native", precision=16, max_epochs=1
     )
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
@@ -144,6 +141,7 @@ def test_fully_sharded_native_strategy_checkpoint_multi_gpus(tmpdir):
         accelerator="gpu",
         devices=2,
         strategy="fsdp_native",
+        precision=16,
         max_epochs=1,
         callbacks=[ck],
     )
