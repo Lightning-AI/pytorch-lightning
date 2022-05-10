@@ -36,7 +36,8 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, HPUAccelerator, IPUAccelerator, TPUAccelerator
-from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
+from pytorch_lightning.callbacks import Callback, EarlyStopping, ProgressBarBase
+from pytorch_lightning.callbacks.model_checkpoint import BaseModelCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -2309,17 +2310,17 @@ class Trainer(
         return [cb for cb in self.callbacks if isinstance(cb, BasePredictionWriter)]
 
     @property
-    def checkpoint_callback(self) -> Optional[ModelCheckpoint]:
+    def checkpoint_callback(self) -> Optional[BaseModelCheckpoint]:
         """The first :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callback in the
         Trainer.callbacks list, or ``None`` if it doesn't exist."""
         callbacks = self.checkpoint_callbacks
         return callbacks[0] if len(callbacks) > 0 else None
 
     @property
-    def checkpoint_callbacks(self) -> List[ModelCheckpoint]:
+    def checkpoint_callbacks(self) -> List[BaseModelCheckpoint]:
         """A list of all instances of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` found
         in the Trainer.callbacks list."""
-        return [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+        return [c for c in self.callbacks if isinstance(c, BaseModelCheckpoint)]
 
     @property
     def progress_bar_callback(self) -> Optional[ProgressBarBase]:

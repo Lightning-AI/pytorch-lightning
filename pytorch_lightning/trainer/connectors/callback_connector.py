@@ -26,6 +26,7 @@ from pytorch_lightning.callbacks import (
     RichProgressBar,
     TQDMProgressBar,
 )
+from pytorch_lightning.callbacks.model_checkpoint import BaseModelCheckpoint
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities.enums import ModelSummaryMode
@@ -286,8 +287,8 @@ class CallbackConnector:
             A new list in which the last elements are ModelCheckpoints if there were any present in the
             input.
         """
-        checkpoints = [c for c in callbacks if isinstance(c, ModelCheckpoint)]
-        not_checkpoints = [c for c in callbacks if not isinstance(c, ModelCheckpoint)]
+        checkpoints = [c for c in callbacks if isinstance(c, BaseModelCheckpoint)]
+        not_checkpoints = [c for c in callbacks if not isinstance(c, BaseModelCheckpoint)]
         return not_checkpoints + checkpoints
 
 
