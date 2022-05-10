@@ -304,14 +304,14 @@ class FitLoop(Loop[None]):
         if self.epoch_loop._num_ready_batches_reached():
             self.epoch_loop.update_lr_schedulers("epoch", update_plateau_schedulers=True)
 
-        self.epoch_progress.increment_completed()
-
         # we manually decrease here because loggers expect that the same step is used when logging epoch-end metrics
         # even when the batch loop has finished
         self.epoch_loop._batches_that_stepped -= 1
         # log epoch metrics
         self.trainer._logger_connector.update_train_epoch_metrics()
         self.epoch_loop._batches_that_stepped += 1
+
+        self.epoch_progress.increment_completed()
 
         # if fault tolerant is enabled and process has been notified, exit.
         self.trainer._exit_gracefully_on_signal()

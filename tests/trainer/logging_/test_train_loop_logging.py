@@ -16,6 +16,8 @@
 import collections
 import itertools
 from re import escape
+from unittest import mock
+from unittest.mock import ANY, call
 
 import numpy as np
 import pytest
@@ -31,7 +33,8 @@ from tests.helpers.boring_model import BoringModel, RandomDataset, RandomDictDat
 from tests.helpers.runif import RunIf
 
 
-def test__training_step__log(tmpdir):
+@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+def test__training_step__log(mock_log_metrics, tmpdir):
     """Tests that only training_step can be used."""
 
     class TestModel(BoringModel):
@@ -72,17 +75,38 @@ def test__training_step__log(tmpdir):
 
     model = TestModel()
     model.val_dataloader = None
+    limit_train_batches = 2
+    max_epochs = 2
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=2,
+        limit_train_batches=limit_train_batches,
         limit_val_batches=2,
-        max_epochs=2,
+        max_epochs=max_epochs,
         log_every_n_steps=1,
         enable_model_summary=False,
         callbacks=[ModelCheckpoint(monitor="l_se")],
     )
     trainer.fit(model)
+    expected_calls = []
+
+    for epoch in range(max_epochs):
+        expected_calls.extend(
+            [
+                *[
+                    call(
+                        metrics={"default": ANY, "l_s": ANY, "l_se_step": ANY, "epoch": epoch},
+                        step=i + epoch * limit_train_batches,
+                    )
+                    for i in range(limit_train_batches)
+                ],
+                call(
+                    metrics={"l_e": ANY, "l_se_epoch": ANY, "epoch": epoch}, step=(epoch + 1) * limit_train_batches - 1
+                ),
+            ]
+        )
+
+    mock_log_metrics.assert_has_calls(expected_calls)
 
     logged_metrics = set(trainer.logged_metrics)
     assert logged_metrics == {"default", "l_e", "l_s", "l_se_step", "l_se_epoch"}
