@@ -95,7 +95,6 @@ RUN \
     # drop packages installed with XLA
     python .actions/assistant.py requirements_prune_pkgs torch,torchvision && \
     # drop unnecessary packages
-    python .actions/assistant.py requirements_prune_pkgs fairscale,horovod && \
     python ./requirements/adjust-versions.py ./requirements/extra.txt && \
     # install PL dependencies
     pip install --requirement ./requirements/devel.txt --no-cache-dir && \

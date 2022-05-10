@@ -7,38 +7,48 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.plugins import FullyShardedNativeMixedPrecisionPlugin
-from pytorch_lightning.strategies import DDPFullyShardedStrategy
-from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
+from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
-if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
-    from fairscale.nn import FullyShardedDataParallel, wrap
+if _TORCH_GREATER_EQUAL_1_11:
+    from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
+    from torch.distributed.fsdp.wrap import wrap
 
 
+@RunIf(min_torch="1.11")
 def test_invalid_on_cpu(tmpdir):
-    """Test to ensure that to raise Misconfiguration for FSDP on CPU."""
+    """Test to ensure that to raise Misconfiguration for Native FSDP on CPU."""
     with pytest.raises(
-        MisconfigurationException, match="You selected strategy to be `ddp_fully_sharded`, but GPU is not available."
+        MisconfigurationException,
+        match=f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
+        "but GPU accelerator is not used.",
     ):
-        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp")
-        assert isinstance(trainer.strategy, DDPFullyShardedStrategy)
+        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp_native")
+        assert isinstance(trainer.strategy, DDPFullyShardedNativeStrategy)
         trainer.strategy.setup_environment()
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("torch.cuda.is_available", return_value=True)
-@RunIf(fairscale_fully_sharded=True)
+@RunIf(min_torch="1.11")
 def test_fsdp_with_sharded_amp(device_count_mock, mock_cuda_available, tmpdir):
-    """Test to ensure that plugin native amp plugin is correctly chosen when using sharded."""
-    trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=True, strategy="fsdp", accelerator="gpu", devices=1, precision=16
-    )
-    assert isinstance(trainer.strategy, DDPFullyShardedStrategy)
-    assert isinstance(trainer.strategy.precision_plugin, FullyShardedNativeMixedPrecisionPlugin)
+    """Test to ensure that plugin native amp plugin raises Misconfiguration error."""
+    with pytest.raises(
+        MisconfigurationException, match="DDPFullyShardedNativeStrategy currently doesn't support Mixed Precision"
+    ):
+        trainer = Trainer(
+            default_root_dir=tmpdir,
+            fast_dev_run=True,
+            strategy="fsdp_native",
+            accelerator="gpu",
+            devices=1,
+            precision=16,
+        )
+        assert isinstance(trainer.strategy, DDPFullyShardedNativeStrategy)
 
 
 class TestFSDPModel(BoringModel):
@@ -85,37 +95,43 @@ class TestFSDPModel(BoringModel):
         assert isinstance(self.layer, FullyShardedDataParallel)
         assert isinstance(self.layer.module[0], FullyShardedDataParallel)
         assert isinstance(self.layer.module[2], FullyShardedDataParallel)
-
+        # root should not be resharding
+        assert self.layer.reshard_after_forward is False
         # Assert that the nested layers are set reshard_after_forward to True
         assert self.layer.module[0].reshard_after_forward is True
         assert self.layer.module[2].reshard_after_forward is True
 
-        if isinstance(self.trainer.precision_plugin, FullyShardedNativeMixedPrecisionPlugin):
-            assert self.layer.mixed_precision
-            assert self.layer.module[0].mixed_precision
-            assert self.layer.module[2].mixed_precision
 
-
-@RunIf(min_gpus=1, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
-def test_fully_sharded_strategy_checkpoint(tmpdir):
-    """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
+@RunIf(min_gpus=2, skip_windows=True, standalone=True, min_torch="1.11")
+def test_fully_sharded_native_strategy_sync_batchnorm(tmpdir):
+    """Test to ensure that sync_batchnorm works when using fsdp_native and GPU, and all stages can be run."""
 
     model = TestFSDPModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="gpu",
-        devices=1,
-        strategy="fsdp",
+        devices=2,
+        strategy="fsdp_native",
         precision=16,
         max_epochs=1,
-        enable_progress_bar=False,
-        enable_model_summary=False,
+        sync_batchnorm=True,
     )
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
-@RunIf(min_gpus=2, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
-def test_fully_sharded_strategy_checkpoint_multi_gpus(tmpdir):
+@RunIf(min_gpus=1, skip_windows=True, standalone=True, min_torch="1.11")
+def test_fully_sharded_native_strategy_checkpoint(tmpdir):
+    """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
+
+    model = TestFSDPModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir, accelerator="gpu", devices=1, strategy="fsdp_native", precision=16, max_epochs=1
+    )
+    _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
+
+
+@RunIf(min_gpus=2, skip_windows=True, standalone=True, min_torch="1.11")
+def test_fully_sharded_native_strategy_checkpoint_multi_gpus(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
 
     model = TestFSDPModel()
@@ -124,26 +140,12 @@ def test_fully_sharded_strategy_checkpoint_multi_gpus(tmpdir):
         default_root_dir=tmpdir,
         accelerator="gpu",
         devices=2,
-        strategy="fsdp",
+        strategy="fsdp_native",
         precision=16,
         max_epochs=1,
         callbacks=[ck],
-        enable_progress_bar=False,
-        enable_model_summary=False,
     )
     _run_multiple_stages(trainer, model)
-
-
-def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
-    # Use FullySharded to get the state dict for the sake of comparison
-    model_state_dict = trainer.strategy.lightning_module_state_dict()
-
-    if trainer.is_global_zero:
-        saved_model = cls.load_from_checkpoint(ckpt_path)
-
-        # Assert model parameters are identical after loading
-        for ddp_param, shard_param in zip(model_state_dict.values(), saved_model.state_dict().values()):
-            assert torch.equal(ddp_param.float().cpu(), shard_param)
 
 
 def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
@@ -162,23 +164,13 @@ def _run_multiple_stages(trainer, model, model_path: Optional[str] = None):
     trainer.test(ckpt_path=model_path)
 
 
-@RunIf(min_gpus=1, skip_windows=True, standalone=True, fairscale_fully_sharded=True)
-def test_fsdp_gradient_clipping_raises(tmpdir):
-    """Test to ensure that an exception is raised when clipping gradients by value with FSDP."""
-    model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        strategy="fsdp",
-        fast_dev_run=True,
-        accelerator="gpu",
-        devices=1,
-        precision=16,
-        gradient_clip_val=1,
-        gradient_clip_algorithm="norm",
-        enable_progress_bar=False,
-        enable_model_summary=False,
-    )
-    with pytest.raises(
-        MisconfigurationException, match="gradient_clip_algorithm='norm'` is currently not supported for `FullySharded"
-    ):
-        trainer.fit(model)
+def _assert_save_equality(trainer, ckpt_path, cls=TestFSDPModel):
+    # Use FullySharded to get the state dict for the sake of comparison
+    model_state_dict = trainer.strategy.lightning_module_state_dict()
+
+    if trainer.is_global_zero:
+        saved_model = cls.load_from_checkpoint(ckpt_path)
+
+        # Assert model parameters are identical after loading
+        for ddp_param, shard_param in zip(model_state_dict.values(), saved_model.state_dict().values()):
+            assert torch.equal(ddp_param.float().cpu(), shard_param)

@@ -254,6 +254,7 @@ Current Lightning Users
    Profiler <tuning/profiler>
    Pruning and Quantization <advanced/pruning_quantization>
    Remote filesystem and FSSPEC <common/remote_fs>
+   Strategy <extensions/strategy>
    Strategy registry <advanced/strategy_registry>
    Style guide <starter/style_guide>
    Sweep <clouds/run_intermediate>
@@ -288,9 +289,3 @@ Current Lightning Users
 .. raw:: html
 
    </div>
-
-Indices and tables
-------------------
-
-* :ref:`genindex`
-* :ref:`search`

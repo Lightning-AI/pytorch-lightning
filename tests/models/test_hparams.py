@@ -33,6 +33,7 @@ from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_t
 from pytorch_lightning.utilities import _HYDRA_EXPERIMENTAL_AVAILABLE, _OMEGACONF_AVAILABLE, AttributeDict, is_picklable
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel, RandomDataset
+from tests.helpers.boring_model import BoringDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import no_warning_call
 
@@ -70,73 +71,115 @@ class SaveHparamsDecoratedModel(BoringModel):
         self.save_hyperparameters(hparams)
 
 
+class SaveHparamsDataModule(BoringDataModule):
+    """Tests that a model can take an object."""
+
+    def __init__(self, hparams):
+        super().__init__()
+        self.save_hyperparameters(hparams)
+
+
+class SaveHparamsDecoratedDataModule(BoringDataModule):
+    """Tests that a model can take an object."""
+
+    @decorate
+    @decorate
+    def __init__(self, hparams, *my_args, **my_kwargs):
+        super().__init__()
+        self.save_hyperparameters(hparams)
+
+
 # -------------------------
 # STANDARD TESTS
 # -------------------------
-def _run_standard_hparams_test(tmpdir, model, cls, try_overwrite=False):
+def _run_standard_hparams_test(tmpdir, model, cls, datamodule=None, try_overwrite=False):
     """Tests for the existence of an arg 'test_arg=14'."""
-    hparam_type = type(model.hparams)
+    obj = datamodule if issubclass(cls, LightningDataModule) else model
+
+    hparam_type = type(obj.hparams)
     # test proper property assignments
-    assert model.hparams.test_arg == 14
+    assert obj.hparams.test_arg == 14
 
     # verify we can train
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, overfit_batches=2)
-    trainer.fit(model)
+    trainer.fit(model, datamodule=datamodule if issubclass(cls, LightningDataModule) else None)
 
     # make sure the raw checkpoint saved the properties
     raw_checkpoint_path = _raw_checkpoint_path(trainer)
     raw_checkpoint = torch.load(raw_checkpoint_path)
-    assert LightningModule.CHECKPOINT_HYPER_PARAMS_KEY in raw_checkpoint
-    assert raw_checkpoint[LightningModule.CHECKPOINT_HYPER_PARAMS_KEY]["test_arg"] == 14
+    assert cls.CHECKPOINT_HYPER_PARAMS_KEY in raw_checkpoint
+    assert raw_checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY]["test_arg"] == 14
 
     # verify that model loads correctly
-    model2 = cls.load_from_checkpoint(raw_checkpoint_path)
-    assert model2.hparams.test_arg == 14
+    obj2 = cls.load_from_checkpoint(raw_checkpoint_path)
+    assert obj2.hparams.test_arg == 14
 
-    assert isinstance(model2.hparams, hparam_type)
+    assert isinstance(obj2.hparams, hparam_type)
 
     if try_overwrite:
         # verify that we can overwrite the property
-        model3 = cls.load_from_checkpoint(raw_checkpoint_path, test_arg=78)
-        assert model3.hparams.test_arg == 78
+        obj3 = cls.load_from_checkpoint(raw_checkpoint_path, test_arg=78)
+        assert obj3.hparams.test_arg == 78
 
     return raw_checkpoint_path
 
 
-@pytest.mark.parametrize("cls", [SaveHparamsModel, SaveHparamsDecoratedModel])
+@pytest.mark.parametrize(
+    "cls", [SaveHparamsModel, SaveHparamsDecoratedModel, SaveHparamsDataModule, SaveHparamsDecoratedDataModule]
+)
 def test_namespace_hparams(tmpdir, cls):
-    # init model
-    model = cls(hparams=Namespace(test_arg=14))
+    hparams = Namespace(test_arg=14)
+
+    if issubclass(cls, LightningDataModule):
+        model = BoringModel()
+        datamodule = cls(hparams=hparams)
+    else:
+        model = cls(hparams=hparams)
+        datamodule = None
 
     # run standard test suite
-    _run_standard_hparams_test(tmpdir, model, cls)
+    _run_standard_hparams_test(tmpdir, model, cls, datamodule=datamodule)
 
 
-@pytest.mark.parametrize("cls", [SaveHparamsModel, SaveHparamsDecoratedModel])
+@pytest.mark.parametrize(
+    "cls", [SaveHparamsModel, SaveHparamsDecoratedModel, SaveHparamsDataModule, SaveHparamsDecoratedDataModule]
+)
 def test_dict_hparams(tmpdir, cls):
-    # init model
-    model = cls(hparams={"test_arg": 14})
+    hparams = {"test_arg": 14}
+    if issubclass(cls, LightningDataModule):
+        model = BoringModel()
+        datamodule = cls(hparams=hparams)
+    else:
+        model = cls(hparams=hparams)
+        datamodule = None
 
     # run standard test suite
-    _run_standard_hparams_test(tmpdir, model, cls)
+    _run_standard_hparams_test(tmpdir, model, cls, datamodule=datamodule)
 
 
 @RunIf(omegaconf=True)
-@pytest.mark.parametrize("cls", [SaveHparamsModel, SaveHparamsDecoratedModel])
+@pytest.mark.parametrize(
+    "cls", [SaveHparamsModel, SaveHparamsDecoratedModel, SaveHparamsDataModule, SaveHparamsDecoratedDataModule]
+)
 def test_omega_conf_hparams(tmpdir, cls):
-    # init model
     conf = OmegaConf.create(dict(test_arg=14, mylist=[15.4, dict(a=1, b=2)]))
-    model = cls(hparams=conf)
-    assert isinstance(model.hparams, Container)
+    if issubclass(cls, LightningDataModule):
+        model = BoringModel()
+        obj = datamodule = cls(hparams=conf)
+    else:
+        obj = model = cls(hparams=conf)
+        datamodule = None
+
+    assert isinstance(obj.hparams, Container)
 
     # run standard test suite
-    raw_checkpoint_path = _run_standard_hparams_test(tmpdir, model, cls)
-    model2 = cls.load_from_checkpoint(raw_checkpoint_path)
-    assert isinstance(model2.hparams, Container)
+    raw_checkpoint_path = _run_standard_hparams_test(tmpdir, model, cls, datamodule=datamodule)
+    obj2 = cls.load_from_checkpoint(raw_checkpoint_path)
+    assert isinstance(obj2.hparams, Container)
 
     # config specific tests
-    assert model2.hparams.test_arg == 14
-    assert model2.hparams.mylist[0] == 15.4
+    assert obj2.hparams.test_arg == 14
+    assert obj2.hparams.mylist[0] == 15.4
 
 
 def test_explicit_args_hparams(tmpdir):

@@ -53,6 +53,7 @@ class MockTqdm(Tqdm):
     @n.setter
     def n(self, value):
         self.__n = value
+
         # track the changes in the `n` value
         if not len(self.n_values) or value != self.n_values[-1]:
             self.n_values.append(value)
@@ -150,7 +151,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     assert not pbar.val_progress_bar.leave
     assert trainer.num_sanity_val_batches == expected_sanity_steps
     assert pbar.val_progress_bar.total_values == expected_sanity_steps
-    assert pbar.val_progress_bar.n_values == list(range(1, num_sanity_val_steps + 1)) * num_dl
+    assert pbar.val_progress_bar.n_values == list(range(num_sanity_val_steps + 1)) * num_dl
     assert pbar.val_progress_bar.descriptions == [f"Sanity Checking DataLoader {i}: " for i in range(num_dl)]
 
     # fit
@@ -169,7 +170,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
 
     # check val progress bar total
     assert pbar.val_progress_bar.total_values == m
-    assert pbar.val_progress_bar.n_values == list(range(1, m[0] + 1)) * num_dl
+    assert pbar.val_progress_bar.n_values == list(range(m[0] + 1)) * num_dl
     assert pbar.val_progress_bar.descriptions == [f"Validation DataLoader {i}: " for i in range(num_dl)]
     assert not pbar.val_progress_bar.leave
 
@@ -178,7 +179,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
         trainer.validate(model)
     assert trainer.num_val_batches == m
     assert pbar.val_progress_bar.total_values == m
-    assert pbar.val_progress_bar.n_values == list(range(1, m[0] + 1)) * num_dl
+    assert pbar.val_progress_bar.n_values == list(range(m[0] + 1)) * num_dl
     assert pbar.val_progress_bar.descriptions == [f"Validation DataLoader {i}: " for i in range(num_dl)]
 
     # test
@@ -187,7 +188,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     assert pbar.test_progress_bar.leave
     k = trainer.num_test_batches
     assert pbar.test_progress_bar.total_values == k
-    assert pbar.test_progress_bar.n_values == list(range(1, k[0] + 1)) * num_dl
+    assert pbar.test_progress_bar.n_values == list(range(k[0] + 1)) * num_dl
     assert pbar.test_progress_bar.descriptions == [f"Testing DataLoader {i}: " for i in range(num_dl)]
     assert pbar.test_progress_bar.leave
 
@@ -197,7 +198,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     assert pbar.predict_progress_bar.leave
     k = trainer.num_predict_batches
     assert pbar.predict_progress_bar.total_values == k
-    assert pbar.predict_progress_bar.n_values == list(range(1, k[0] + 1)) * num_dl
+    assert pbar.predict_progress_bar.n_values == list(range(k[0] + 1)) * num_dl
     assert pbar.predict_progress_bar.descriptions == [f"Predicting DataLoader {i}: " for i in range(num_dl)]
     assert pbar.predict_progress_bar.leave
 
@@ -345,13 +346,13 @@ def test_tqdm_progress_bar_value_on_colab(tmpdir):
 @pytest.mark.parametrize(
     "train_batches,val_batches,refresh_rate,train_updates,val_updates",
     [
-        [2, 3, 1, [1, 2, 3, 4, 5], [1, 2, 3]],
+        [2, 3, 1, [0, 1, 2, 3, 4, 5], [0, 1, 2, 3]],
         [0, 0, 3, None, None],
-        [1, 0, 3, [1], None],
-        [1, 1, 3, [2], [1]],
-        [5, 0, 3, [3, 5], None],
-        [5, 2, 3, [3, 6, 7], [2]],
-        [5, 2, 6, [6, 7], [2]],
+        [1, 0, 3, [0, 1], None],
+        [1, 1, 3, [0, 2], [0, 1]],
+        [5, 0, 3, [0, 3, 5], None],
+        [5, 2, 3, [0, 3, 6, 7], [0, 2]],
+        [5, 2, 6, [0, 6, 7], [0, 2]],
     ],
 )
 def test_main_progress_bar_update_amount(
@@ -381,7 +382,7 @@ def test_main_progress_bar_update_amount(
         assert progress_bar.val_progress_bar.n_values == val_updates
 
 
-@pytest.mark.parametrize("test_batches,refresh_rate,updates", [[1, 3, [1]], [3, 1, [1, 2, 3]], [5, 3, [3, 5]]])
+@pytest.mark.parametrize("test_batches,refresh_rate,updates", [(1, 3, [0, 1]), (3, 1, [0, 1, 2, 3]), (5, 3, [0, 3, 5])])
 def test_test_progress_bar_update_amount(tmpdir, test_batches: int, refresh_rate: int, updates: list):
     """Test that test progress updates with the correct amount."""
     model = BoringModel()
@@ -552,7 +553,7 @@ def test_tqdm_progress_bar_can_be_pickled():
 
 @pytest.mark.parametrize(
     ["val_check_interval", "main_progress_bar_updates", "val_progress_bar_updates"],
-    [(4, [3, 6, 9, 12, 14], [3, 6, 7]), (0.5, [3, 6, 9, 12, 15, 18, 21], [3, 6, 7])],
+    [(4, [0, 3, 6, 9, 12, 14], [0, 3, 6, 7]), (0.5, [0, 3, 6, 9, 12, 15, 18, 21], [0, 3, 6, 7])],
 )
 def test_progress_bar_max_val_check_interval(
     tmpdir, val_check_interval, main_progress_bar_updates, val_progress_bar_updates

@@ -152,9 +152,11 @@ class CheckpointConnector:
 
         datamodule = self.trainer.datamodule
         if datamodule is not None:
-            datamodule.on_load_checkpoint(self._loaded_checkpoint)
+            self.trainer._call_lightning_datamodule_hook("on_load_checkpoint", self._loaded_checkpoint)
             if datamodule.__class__.__qualname__ in self._loaded_checkpoint:
-                datamodule.load_state_dict(self._loaded_checkpoint[datamodule.__class__.__qualname__])
+                self.trainer._call_lightning_datamodule_hook(
+                    "load_state_dict", self._loaded_checkpoint[datamodule.__class__.__qualname__]
+                )
 
     def restore_model(self) -> None:
         """Restores a model's weights from a PyTorch Lightning checkpoint.
@@ -360,6 +362,7 @@ class CheckpointConnector:
             }
         """
         model = self.trainer.lightning_module
+        datamodule = self.trainer.datamodule
 
         checkpoint = {
             # the epoch and global step are saved for compatibility but they are not relevant for restoration
@@ -396,20 +399,21 @@ class CheckpointConnector:
             prec_plugin.on_save_checkpoint(checkpoint)
 
         # dump hyper-parameters
-        if model.hparams:
-            if hasattr(model, "_hparams_name"):
-                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_NAME] = model._hparams_name
-            # dump arguments
-            if _OMEGACONF_AVAILABLE and isinstance(model.hparams, Container):
-                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = model.hparams
-                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_TYPE] = type(model.hparams)
-            else:
-                checkpoint[pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY] = dict(model.hparams)
+        for obj in (model, datamodule):
+            if obj and obj.hparams:
+                if hasattr(obj, "_hparams_name"):
+                    checkpoint[obj.CHECKPOINT_HYPER_PARAMS_NAME] = obj._hparams_name
+                # dump arguments
+                if _OMEGACONF_AVAILABLE and isinstance(obj.hparams, Container):
+                    checkpoint[obj.CHECKPOINT_HYPER_PARAMS_KEY] = obj.hparams
+                    checkpoint[obj.CHECKPOINT_HYPER_PARAMS_TYPE] = type(obj.hparams)
+                else:
+                    checkpoint[obj.CHECKPOINT_HYPER_PARAMS_KEY] = dict(obj.hparams)
 
         # dump stateful datamodule
         datamodule = self.trainer.datamodule
         if datamodule is not None:
-            datamodule_state_dict = datamodule.state_dict()
+            datamodule_state_dict = self.trainer._call_lightning_datamodule_hook("state_dict")
             if datamodule_state_dict:
                 checkpoint[datamodule.__class__.__qualname__] = datamodule_state_dict
 
@@ -422,7 +426,7 @@ class CheckpointConnector:
             self.trainer._call_callbacks_on_save_checkpoint(checkpoint)
         self.trainer._call_lightning_module_hook("on_save_checkpoint", checkpoint)
         if datamodule is not None:
-            datamodule.on_save_checkpoint(checkpoint)
+            self.trainer._call_lightning_datamodule_hook("on_save_checkpoint", checkpoint)
 
         # TODO: remove this in v1.8.
         environment = self.trainer._accelerator_connector.cluster_environment
