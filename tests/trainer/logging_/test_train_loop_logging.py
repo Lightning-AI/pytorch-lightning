@@ -33,7 +33,6 @@ from tests.helpers.boring_model import BoringModel, RandomDataset, RandomDictDat
 from tests.helpers.runif import RunIf
 
 
-@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
 def test__training_step__log(mock_log_metrics, tmpdir):
     """Tests that only training_step can be used."""
 
@@ -88,25 +87,6 @@ def test__training_step__log(mock_log_metrics, tmpdir):
         callbacks=[ModelCheckpoint(monitor="l_se")],
     )
     trainer.fit(model)
-    expected_calls = []
-
-    for epoch in range(max_epochs):
-        expected_calls.extend(
-            [
-                *[
-                    call(
-                        metrics={"default": ANY, "l_s": ANY, "l_se_step": ANY, "epoch": epoch},
-                        step=i + epoch * limit_train_batches,
-                    )
-                    for i in range(limit_train_batches)
-                ],
-                call(
-                    metrics={"l_e": ANY, "l_se_epoch": ANY, "epoch": epoch}, step=(epoch + 1) * limit_train_batches - 1
-                ),
-            ]
-        )
-
-    mock_log_metrics.assert_has_calls(expected_calls)
 
     logged_metrics = set(trainer.logged_metrics)
     assert logged_metrics == {"default", "l_e", "l_s", "l_se_step", "l_se_epoch"}
@@ -772,3 +752,46 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
     train_data = DataLoader(RandomDataset(32, 64), batch_size=2)
     val_data = DataLoader(RandomDataset(32, 64), batch_size=2)
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
+
+
+@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+def test__training_step__epoch_log(mock_log_metrics, tmpdir):
+    """Tests the logs created for train logs on epoch level."""
+
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            out = super().training_step(batch, batch_idx)
+            loss = out["loss"]
+            self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=False, logger=True)
+            return loss
+
+    model = TestModel()
+    limit_train_batches = 2
+    max_epochs = 2
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=0,
+        max_epochs=max_epochs,
+        log_every_n_steps=1,
+        enable_model_summary=False,
+    )
+    trainer.fit(model)
+    expected_calls = []
+
+    for epoch in range(max_epochs):
+        expected_calls.extend(
+            [
+                *[
+                    call(
+                        metrics={"train_loss_step": ANY, "epoch": epoch},
+                        step=i + epoch * limit_train_batches,
+                    )
+                    for i in range(limit_train_batches)
+                ],
+                call(metrics={"train_loss_epoch": ANY, "epoch": epoch}, step=(epoch + 1) * limit_train_batches - 1),
+            ]
+        )
+
+    mock_log_metrics.assert_has_calls(expected_calls)
