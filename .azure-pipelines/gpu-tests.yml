@@ -22,12 +22,10 @@ jobs:
       matrix:
         'PyTorch - LTS':
           image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8"
-          timeoutInMinutes: "55"
         'PyTorch - stable':
           image: "pytorchlightning/pytorch_lightning:base-cuda-py3.9-torch1.11"
-          timeoutInMinutes: "65"
     # how long to run the job before automatically cancelling
-    timeoutInMinutes: $(timeoutInMinutes)
+    timeoutInMinutes: "55"
     # how much time to give 'run always even if cancelled tasks' before stopping them
     cancelTimeoutInMinutes: "2"
 
