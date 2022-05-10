@@ -17,7 +17,7 @@ import collections
 import itertools
 from re import escape
 from unittest import mock
-from unittest.mock import ANY, call
+from unittest.mock import call
 
 import numpy as np
 import pytest
@@ -755,43 +755,34 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
 
 
 @mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
-def test__training_step__epoch_log(mock_log_metrics, tmpdir):
-    """Tests the logs created for train logs on epoch level."""
+def test_log_metrics_epoch_step_values(mock_log_metrics, tmpdir):
+    """Tests the default epoch and step values logged."""
 
-    class TestModel(BoringModel):
+    class MyModel(BoringModel):
         def training_step(self, batch, batch_idx):
-            out = super().training_step(batch, batch_idx)
-            loss = out["loss"]
-            self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=False, logger=True)
-            return loss
+            self.log("foo", 0.0, on_step=True, on_epoch=True)
+            return super().training_step(batch, batch_idx)
 
-    model = TestModel()
-    limit_train_batches = 2
-    max_epochs = 2
-
+    model = MyModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        limit_train_batches=limit_train_batches,
+        limit_train_batches=2,
         limit_val_batches=0,
-        max_epochs=max_epochs,
+        max_epochs=2,
         log_every_n_steps=1,
         enable_model_summary=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
     )
     trainer.fit(model)
-    expected_calls = []
 
-    for epoch in range(max_epochs):
-        expected_calls.extend(
-            [
-                *[
-                    call(
-                        metrics={"train_loss_step": ANY, "epoch": epoch},
-                        step=i + epoch * limit_train_batches,
-                    )
-                    for i in range(limit_train_batches)
-                ],
-                call(metrics={"train_loss_epoch": ANY, "epoch": epoch}, step=(epoch + 1) * limit_train_batches - 1),
-            ]
-        )
-
-    mock_log_metrics.assert_has_calls(expected_calls)
+    mock_log_metrics.assert_has_calls(
+        [
+            call(metrics={"foo_step": 0.0, "epoch": 0}, step=0),
+            call(metrics={"foo_step": 0.0, "epoch": 0}, step=1),
+            call(metrics={"foo_epoch": 0.0, "epoch": 0}, step=1),
+            call(metrics={"foo_step": 0.0, "epoch": 1}, step=2),
+            call(metrics={"foo_step": 0.0, "epoch": 1}, step=3),
+            call(metrics={"foo_epoch": 0.0, "epoch": 1}, step=3),
+        ]
+    )
