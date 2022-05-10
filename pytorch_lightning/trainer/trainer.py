@@ -132,7 +132,6 @@ class Trainer(
     def __init__(
         self,
         logger: Union[Logger, Iterable[Logger], bool] = True,
-        checkpoint_callback: Optional[bool] = None,
         enable_checkpointing: bool = True,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[str] = None,
@@ -233,13 +232,6 @@ class Trainer(
 
             callbacks: Add a callback or list of callbacks.
                 Default: ``None``.
-
-            checkpoint_callback: If ``True``, enable checkpointing.
-                Default: ``None``.
-
-                .. deprecated:: v1.5
-                    ``checkpoint_callback`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please consider using ``enable_checkpointing`` instead.
 
             enable_checkpointing: If ``True``, enable checkpointing.
                 It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
@@ -514,7 +506,6 @@ class Trainer(
         # Declare attributes to be set in _callback_connector on_trainer_init
         self._callback_connector.on_trainer_init(
             callbacks,
-            checkpoint_callback,
             enable_checkpointing,
             enable_progress_bar,
             process_position,

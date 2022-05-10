@@ -71,7 +71,7 @@ class CallbackConnector:
 
         # configure checkpoint callback
         # pass through the required args to figure out defaults
-        self._configure_checkpoint_callbacks(checkpoint_callback, enable_checkpointing)
+        self._configure_checkpoint_callbacks(enable_checkpointing)
 
         # configure the timer callback.
         # responsible to stop the training when max_time is reached.
@@ -133,15 +133,7 @@ class CallbackConnector:
         self.trainer.accumulate_grad_batches = grad_accum_callback.get_accumulate_grad_batches(0)
         self.trainer.accumulation_scheduler = grad_accum_callback
 
-    def _configure_checkpoint_callbacks(self, checkpoint_callback: Optional[bool], enable_checkpointing: bool) -> None:
-        if checkpoint_callback is not None:
-            rank_zero_deprecation(
-                f"Setting `Trainer(checkpoint_callback={checkpoint_callback})` is deprecated in v1.5 and will "
-                f"be removed in v1.7. Please consider using `Trainer(enable_checkpointing={checkpoint_callback})`."
-            )
-            # if both are set then checkpoint only if both are True
-            enable_checkpointing = checkpoint_callback and enable_checkpointing
-
+    def _configure_checkpoint_callbacks(self, enable_checkpointing: bool) -> None:
         if self.trainer.checkpoint_callbacks:
             if not enable_checkpointing:
                 raise MisconfigurationException(
