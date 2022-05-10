@@ -96,8 +96,7 @@ def test_device_stats_cpu(cpu_stats_mock, tmpdir, cpu_stats):
     assert cpu_stats_mock.call_count == expected
 
 
-@pytest.mark.skipif(True, reason="TODO (@kaushikb11): fix this test, timeout")
-@RunIf(tpu=True)
+@pytest.mark.skipif(True, reason="TODO (@kaushikb11): fix this test for TPUs, timeout")
 def test_device_stats_monitor_tpu(tmpdir):
     """Test TPU stats are logged using a logger."""
 
