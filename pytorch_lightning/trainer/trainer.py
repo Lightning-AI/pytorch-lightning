@@ -15,6 +15,7 @@
 import inspect
 import logging
 import math
+import operator
 import os
 import traceback
 import warnings
@@ -22,6 +23,7 @@ from argparse import ArgumentParser, Namespace
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
+from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Type, Union
 from weakref import proxy
@@ -65,7 +67,7 @@ from pytorch_lightning.strategies import ParallelStrategy, Strategy
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
-from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
+from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.trainer.connectors.checkpoint_connector import CheckpointConnector
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
@@ -173,7 +175,7 @@ class Trainer(
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[BaseProfiler, str]] = None,
         benchmark: Optional[bool] = None,
-        deterministic: bool = False,
+        deterministic: Union[bool, _LITERAL_WARN] = False,
         reload_dataloaders_every_n_epochs: int = 0,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
@@ -257,6 +259,8 @@ class Trainer(
                 Default: ``False``.
 
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
+                Set to ``"warn"`` to use deterministic algorithms whenever possible, throwing warnings on operations
+                that don't support deterministic mode (requires Pytorch 1.11+).
                 Default: ``False``.
 
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
@@ -1315,7 +1319,7 @@ class Trainer(
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self._evaluation_loop.trainer = self
 
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context():
+        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context(self.accelerator):
             eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
@@ -1331,7 +1335,7 @@ class Trainer(
         self.reset_predict_dataloader(self.lightning_module)
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self.predict_loop.trainer = self
-        with _evaluation_context():
+        with _evaluation_context(self.accelerator):
             return self.predict_loop.run()
 
     def _run_sanity_check(self) -> None:
@@ -1384,27 +1388,37 @@ class Trainer(
         from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 
         ft_checkpoints = [cb for cb in self.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
-        if ft_checkpoints:
-            ft_ckpt_path = ft_checkpoints[0].ckpt_path
-            fs = get_filesystem(ft_ckpt_path)
-            if fs.exists(ft_ckpt_path):
-                return ft_ckpt_path
+        fn = self.state.fn.value
+
+        if ckpt_path is None and ft_checkpoints and self.state.fn == TrainerFn.FITTING:
+            ckpt_path = "last"
+            rank_zero_warn(
+                f"`.{fn}(ckpt_path=None)` was called without a model."
+                " Because fault tolerance is enabled, the last model of the previous `fit` call will be used."
+                f" You can pass `{fn}(ckpt_path='best')` to use the best model or"
+                f" `{fn}(ckpt_path='last')` to use the last model."
+                " If you pass a value, this warning will be silenced."
+            )
 
         if model_provided and ckpt_path is None:
             # use passed model to function without loading weights
             return
 
-        fn = self.state.fn.value
-
         if model_connected and ckpt_path is None:
+            ckpt_path = "best"
+            ft_tip = (
+                " There is also a fault-tolerant checkpoint available, however it is used by default only when fitting."
+                if ft_checkpoints
+                else ""
+            )
             rank_zero_warn(
                 f"`.{fn}(ckpt_path=None)` was called without a model."
                 " The best model of the previous `fit` call will be used."
-                f" You can pass `{fn}(ckpt_path='best')` to use and best model"
-                " checkpoint and avoid this warning or"
-                " `ckpt_path=trainer.checkpoint_callback.last_model_path` to use the last model."
+                + ft_tip
+                + f" You can pass `.{fn}(ckpt_path='best')` to use the best model or"
+                f" `.{fn}(ckpt_path='last')` to use the last model."
+                " If you pass a value, this warning will be silenced."
             )
-            ckpt_path = "best"
 
         if ckpt_path == "best":
             if len(self.checkpoint_callbacks) > 1:
@@ -1430,6 +1444,21 @@ class Trainer(
             # load best weights
             ckpt_path = self.checkpoint_callback.best_model_path
 
+        if ckpt_path == "last":
+            candidates = [ft.ckpt_path for ft in ft_checkpoints] + [
+                cb.last_model_path for cb in self.checkpoint_callbacks
+            ]
+            candidates_fs = {path: get_filesystem(path) for path in candidates if path}
+            candidates_ts = {path: fs.modified(path) for path, fs in candidates_fs.items() if fs.exists(path)}
+            if not candidates_ts:
+                # not an error so it can be set and forget before the first `fit` run
+                rank_zero_warn(
+                    f'.{fn}(ckpt_path="last") is set, but there is no fault tolerant'
+                    " or last checkpoint available. No checkpoint will be loaded."
+                )
+                return
+            ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts))
+
         if not ckpt_path:
             raise MisconfigurationException(
                 f"`.{fn}()` found no path for the best weights: {ckpt_path!r}. Please"
@@ -1443,7 +1472,7 @@ class Trainer(
         self.strategy.barrier("pre_setup")
 
         if self.datamodule is not None:
-            self.datamodule.setup(stage=fn)
+            self._call_lightning_datamodule_hook("setup", stage=fn)
         self._call_callback_hooks("setup", stage=fn)
         self._call_lightning_module_hook("setup", stage=fn)
 
@@ -1470,7 +1499,7 @@ class Trainer(
         fn = self.state.fn._setup_fn
 
         if self.datamodule is not None:
-            self.datamodule.teardown(stage=fn)
+            self._call_lightning_datamodule_hook("teardown", stage=fn)
 
         self._call_callback_hooks("teardown", stage=fn)
         self._call_lightning_module_hook("teardown", stage=fn)
@@ -1536,7 +1565,7 @@ class Trainer(
         pl_module = pl_module or self.lightning_module
 
         if pl_module is None:
-            raise TypeError("No Lightning Module is available to call hooks on")
+            raise TypeError("No `LightningModule` is available to call hooks on.")
 
         fn = getattr(pl_module, hook_name)
         if not callable(fn):
@@ -1552,6 +1581,20 @@ class Trainer(
         pl_module._current_fx_name = prev_fx_name
 
         return output
+
+    def _call_lightning_datamodule_hook(
+        self,
+        hook_name: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
+        if self.datamodule is None:
+            raise TypeError("No `LightningDataModule` is available to call hooks on.")
+
+        fn = getattr(self.datamodule, hook_name)
+        if callable(fn):
+            with self.profiler.profile(f"[LightningDataModule]{self.datamodule.__class__.__name__}.{hook_name}"):
+                return fn(*args, **kwargs)
 
     def _call_callback_hooks(
         self,
@@ -1812,21 +1855,25 @@ class Trainer(
             self.train_dataloader = CombinedLoader(loaders, self._data_connector.multiple_trainloader_mode)
 
         module = model or self.lightning_module or self.datamodule
-        self.num_training_batches = (
+        orig_train_batches = self.num_training_batches = (
             len(self.train_dataloader)
             if has_len_all_ranks(self.train_dataloader, self.strategy, module)
             else float("inf")
         )
+        if orig_train_batches == 0:
+            return
+
+        # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
+        self._last_train_dl_reload_epoch = self.current_epoch
 
         if isinstance(self.limit_train_batches, int):
-            self.num_training_batches = min(self.num_training_batches, int(self.limit_train_batches))
+            self.num_training_batches = min(orig_train_batches, self.limit_train_batches)
         elif self.num_training_batches != float("inf"):
-            self.num_training_batches = int(self.num_training_batches * self.limit_train_batches)
+            self.num_training_batches = int(orig_train_batches * self.limit_train_batches)
         elif self.limit_train_batches != 1.0:
             raise MisconfigurationException(
-                "When using an IterableDataset for `limit_train_batches`,"
-                " `Trainer(limit_train_batches)` must be `1.0` or an int. An int k specifies"
-                " `num_training_batches` to use."
+                "When using an `IterableDataset`, `Trainer(limit_train_batches)` must be `1.0` or an int."
+                "An int specifies `num_training_batches` to use."
             )
 
         if isinstance(self.val_check_interval, int):
@@ -1860,8 +1907,19 @@ class Trainer(
                 category=PossibleUserWarning,
             )
 
-        # store epoch of dataloader reset for reload_dataloaders_every_n_epochs
-        self._last_train_dl_reload_epoch = self.current_epoch
+        if (
+            self.num_training_batches == 0
+            and self.limit_train_batches > 0.0
+            and isinstance(self.limit_train_batches, float)
+            and orig_train_batches != float("inf")
+        ):
+            min_percentage = 1.0 / orig_train_batches
+            raise MisconfigurationException(
+                f"You requested to check {self.limit_train_batches} of the `train_dataloader` but"
+                f" {self.limit_train_batches} * {orig_train_batches} < 1. Please increase the"
+                f" `limit_train_batches` argument. Try at least"
+                f" `limit_train_batches={min_percentage}`"
+            )
 
     def reset_val_dataloader(self, model: Optional["pl.LightningModule"] = None) -> None:
         """Resets the validation dataloader and determines the number of batches.
@@ -2622,19 +2680,21 @@ class Trainer(
 
     @property
     def logger(self) -> Optional[Logger]:
-        if len(self.loggers) == 0:
+        loggers = self.loggers
+        if len(loggers) == 0:
             return None
-        if len(self.loggers) == 1:
-            return self.loggers[0]
+        if len(loggers) == 1:
+            return loggers[0]
         else:
-            rank_zero_warn(
-                "Using trainer.logger when Trainer is configured to use multiple loggers."
-                " This behavior will change in v1.8 when LoggerCollection is removed, and"
-                " trainer.logger will return the first logger in trainer.loggers"
+            rank_zero_deprecation(
+                "Using `trainer.logger` when multiple loggers are configured."
+                " This behavior will change in v1.8 when `LoggerCollection` is removed, and"
+                " `trainer.logger` will return the first logger available.",
+                stacklevel=5,
             )
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                return LoggerCollection(self.loggers)
+                return LoggerCollection(loggers)
 
     @logger.setter
     def logger(self, logger: Optional[Logger]) -> None:
@@ -2741,11 +2801,15 @@ class Trainer(
 
 
 @contextmanager
-def _evaluation_context() -> Generator:
-    # inference mode is not supported with gloo backend (#9431)
+def _evaluation_context(accelerator: Accelerator) -> Generator:
+    # inference mode is not supported with gloo backend (#9431),
+    # and HPU & TPU accelerators.
     context_manager_class = (
         torch.inference_mode
-        if _TORCH_GREATER_EQUAL_1_9 and not (dist.is_initialized() and dist.get_backend() == "gloo")
+        if _TORCH_GREATER_EQUAL_1_9
+        and not (dist.is_initialized() and dist.get_backend() == "gloo")
+        and not isinstance(accelerator, HPUAccelerator)
+        and not isinstance(accelerator, TPUAccelerator)
         else torch.no_grad
     )
     with context_manager_class():

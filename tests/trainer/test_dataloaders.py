@@ -519,13 +519,18 @@ def test_mixing_of_dataloader_options(tmpdir, ckpt_path):
 def test_warning_on_zero_len_dataloader(tmpdir):
     """Test that a warning is raised if a zero-length dataloader is defined."""
     model = BoringModel()
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        fast_dev_run=1,
-    )
-    dataloader = DataLoader(RandomDataset(32, 0))
-    with pytest.warns(UserWarning, match="returned 0 length"):
-        trainer.fit(model, dataloader)
+    trainer = Trainer()
+    train_dataloader = DataLoader(RandomDataset(32, 0))
+    val_dataloader = DataLoader(RandomDataset(32, 0))
+    trainer._data_connector.attach_data(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
+
+    with pytest.warns(UserWarning, match="Total length of `CombinedLoader` across ranks is zero"):
+        trainer.reset_train_dataloader(model)
+    assert trainer.num_training_batches == 0
+
+    with pytest.warns(UserWarning, match="Total length of `DataLoader` across ranks is zero"):
+        trainer.reset_val_dataloader(model)
+    assert trainer.num_val_batches == [0]
 
 
 @RunIf(skip_windows=True)
@@ -962,7 +967,7 @@ def test_inf_dataloader_raise_error_with_partial_batch_limits(tmpdir, stage, dat
     trainer = Trainer(**trainer_kwargs)
     trainer_fn = "fit" if stage == RunningStage.TRAINING else stage.value
 
-    with pytest.raises(MisconfigurationException, match=r"using an IterableDataset .* must be `1.0` or an int"):
+    with pytest.raises(MisconfigurationException, match=r"IterableDataset`.*limit_.*_batches\)`.*`1.0` or an int"):
         getattr(trainer, trainer_fn)(model)
 
 
