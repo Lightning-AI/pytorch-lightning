@@ -50,6 +50,7 @@ class HPUPrecisionPlugin(PrecisionPlugin):
             )
         super().__init__()
         self.precision = precision
-        hmp.convert(
-            opt_level=opt_level, bf16_file_path=bf16_file_path, fp32_file_path=fp32_file_path, isVerbose=verbose
-        )
+        if precision in (16, "bf16"):
+            hmp.convert(
+                opt_level=opt_level, bf16_file_path=bf16_file_path, fp32_file_path=fp32_file_path, isVerbose=verbose
+            )
