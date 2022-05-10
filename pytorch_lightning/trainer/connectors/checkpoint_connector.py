@@ -139,8 +139,7 @@ class CheckpointConnector:
         self.restore_model()
 
         # restore callback states
-        if self.trainer.state.fn != TrainerFn.TUNING:
-            self.restore_callbacks()
+        self.restore_callbacks()
 
         # restore training state
         self.restore_training_state()

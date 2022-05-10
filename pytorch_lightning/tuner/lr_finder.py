@@ -231,9 +231,6 @@ def lr_find(
     lr_finder.results.update({"lr": trainer.callbacks[0].lrs, "loss": trainer.callbacks[0].losses})
     lr_finder._total_batch_idx = trainer.fit_loop.total_batch_idx  # for debug purpose
 
-    # Restore initial state of model
-    trainer._checkpoint_connector.restore(ckpt_path)
-    trainer.strategy.remove_checkpoint(ckpt_path)
     __lr_finder_restore_params(trainer, params)
 
     if trainer.progress_bar_callback:
@@ -246,6 +243,10 @@ def lr_find(
         # TODO: log lr.results to self.logger
         lightning_setattr(model, lr_attr_name, lr)
         log.info(f"Learning rate set to {lr}")
+
+    # Restore initial state of model
+    trainer._checkpoint_connector.restore(ckpt_path)
+    trainer.strategy.remove_checkpoint(ckpt_path)
 
     return lr_finder
 
