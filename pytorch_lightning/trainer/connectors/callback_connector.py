@@ -50,7 +50,6 @@ class CallbackConnector:
         default_root_dir: Optional[str],
         weights_save_path: Optional[str],
         enable_model_summary: bool,
-        weights_summary: Optional[str],
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
         accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
     ):
@@ -88,7 +87,7 @@ class CallbackConnector:
         self._configure_progress_bar(process_position, enable_progress_bar)
 
         # configure the ModelSummary callback
-        self._configure_model_summary_callback(enable_model_summary, weights_summary)
+        self._configure_model_summary_callback(enable_model_summary)
 
         # accumulated grads
         self._configure_accumulated_gradients(accumulate_grad_batches)
@@ -154,12 +153,6 @@ class CallbackConnector:
     def _configure_model_summary_callback(
         self, enable_model_summary: bool, weights_summary: Optional[str] = None
     ) -> None:
-        if weights_summary is None:
-            rank_zero_deprecation(
-                "Setting `Trainer(weights_summary=None)` is deprecated in v1.5 and will be removed"
-                " in v1.7. Please set `Trainer(enable_model_summary=False)` instead."
-            )
-            return
         if not enable_model_summary:
             return
 
@@ -195,7 +188,6 @@ class CallbackConnector:
         else:
             model_summary = ModelSummary(max_depth=max_depth)
         self.trainer.callbacks.append(model_summary)
-        self.trainer._weights_summary = weights_summary
 
     def _configure_progress_bar(self, process_position: int = 0, enable_progress_bar: bool = True) -> None:
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
