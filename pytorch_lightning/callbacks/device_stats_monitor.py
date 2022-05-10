@@ -21,7 +21,7 @@ Monitors and logs device stats during training.
 from typing import Any, Dict, Optional
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
