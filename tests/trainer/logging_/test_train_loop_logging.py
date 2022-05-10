@@ -33,7 +33,7 @@ from tests.helpers.boring_model import BoringModel, RandomDataset, RandomDictDat
 from tests.helpers.runif import RunIf
 
 
-def test__training_step__log(mock_log_metrics, tmpdir):
+def test__training_step__log(tmpdir):
     """Tests that only training_step can be used."""
 
     class TestModel(BoringModel):
