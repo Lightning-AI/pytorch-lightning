@@ -210,15 +210,9 @@ def _get_dataloader_init_args_and_kwargs(
 
     was_wrapped = hasattr(dataloader, "__pl_dl_args")
     if was_wrapped:
-        args = dataloader.__pl_dl_args
-        attrs = dataloader.__pl_dl_kwargs
+        dl_args = dataloader.__pl_dl_args
+        dl_kwargs = dataloader.__pl_dl_kwargs
         arg_names = dataloader.__pl_dl_arg_names
-        used_args = min(len(args), len(arg_names))
-        for arg, arg_name in zip(args, arg_names):
-            attrs[arg_name] = arg
-
-        args = args[used_args:]
-        arg_names = arg_names[used_args:]
         original_dataset = dataloader.__dataset  # we have this saved from _wrap_init
     else:
         # get the dataloader instance attributes
@@ -228,6 +222,7 @@ def _get_dataloader_init_args_and_kwargs(
         original_dataset = None
         # not part of `vars`
         attrs["multiprocessing_context"] = dataloader.multiprocessing_context
+        arg_names = ()
 
     # get the dataloader instance `__init__` parameters
     params = dict(inspect.signature(dataloader.__init__).parameters)
@@ -245,11 +240,7 @@ def _get_dataloader_init_args_and_kwargs(
             params.update(inspect.signature(DataLoader.__init__).parameters)
             params.pop("self", None)
 
-    if was_wrapped:
-        dl_kwargs = attrs
-        dl_args = args
-
-    else:
+    if not was_wrapped:
         # keep only the params whose default is different to the current attr value
         non_defaults = {name for name, p in params.items() if name in attrs and p.default != attrs[name]}
 
@@ -269,7 +260,10 @@ def _get_dataloader_init_args_and_kwargs(
     required_args = {
         p.name
         for p in params.values()
-        if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD) and p.default is p.empty and p.name not in dl_kwargs
+        if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+        and p.default is p.empty
+        and p.name not in dl_kwargs
+        and p.name not in arg_names
     }
     # the dataloader has required args which we could not extract from the existing attributes
     if required_args:
@@ -286,7 +280,7 @@ def _get_dataloader_init_args_and_kwargs(
 
     if not has_variadic_kwargs:
         # the dataloader signature does not allow keyword arguments that need to be passed
-        missing_kwargs = dl_kwargs.keys() - params.keys()
+        missing_kwargs = (dl_kwargs.keys() + arg_names) - params.keys()
         if missing_kwargs:
             missing_kwargs = sorted(missing_kwargs)
             dataloader_cls_name = dataloader.__class__.__name__
@@ -359,12 +353,12 @@ def _wrap_dataloader_init(init: Callable) -> Callable:
         # We need to inspect `init`, as inspecting `obj.__init__`
         # can lead to inspecting the wrong function with multiple inheritance
         params = inspect.signature(init).parameters
-        param_names = [
+        param_names = tuple(
             param.name
             for param in params.values()
             if param.name != "self" and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
-        ]
-        param_names = tuple(param_names[: len(args)])
+        )
+        param_names = param_names[: len(args)]
 
         if not hasattr(obj, "__pl_dl_args"):
             obj.__pl_dl_args = args
