@@ -9,10 +9,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added support for reloading the last checkpoint saved by passing `ckpt_path="last"` ([#12816](https://github.com/PyTorchLightning/pytorch-lightning/pull/12816))
+
+
 - Added `LightningDataModule.load_from_checkpoint` to support loading datamodules directly from checkpoint ([#12550](https://github.com/PyTorchLightning/pytorch-lightning/pull/12550))
 
 
 - Added a friendly error message when attempting to call `Trainer.save_checkpoint()` without a model attached ([#12772](https://github.com/PyTorchLightning/pytorch-lightning/pull/12772))
+
+
+- Added a friendly error message when attempting to use `DeepSpeedStrategy` on unsupported accelerators ([#12699](https://github.com/PyTorchLightning/pytorch-lightning/pull/12699))
 
 
 - Enabled `torch.inference_mode` for evaluation and prediction ([#12715](https://github.com/PyTorchLightning/pytorch-lightning/pull/12715))
@@ -30,10 +36,31 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for `Trainer(deterministic="warn")` to warn instead of fail when a non-deterministic operation is encountered ([#12588](https://github.com/PyTorchLightning/pytorch-lightning/pull/12588))
 
 
+- Added profiling to the loops' dataloader `__next__` calls ([#12124](https://github.com/PyTorchLightning/pytorch-lightning/pull/12124))
+
+
+- Added `CollaborativeStrategy` ([#12842](https://github.com/PyTorchLightning/pytorch-lightning/pull/12842))
+
+
 - Include a version suffix for new "last" checkpoints of later runs in the same directory ([#12902](https://github.com/PyTorchLightning/pytorch-lightning/pull/12902))
 
 
+- Added missing `predict_dataset` argument in `LightningDataModule.from_datasets` to create predict dataloaders ([#12942](https://github.com/PyTorchLightning/pytorch-lightning/pull/12942))
+
+
 - Added class name prefix to metrics logged by `DeviceStatsMonitor` ([#12228](https://github.com/PyTorchLightning/pytorch-lightning/pull/12228))
+
+
+- Added profiling of `LightningDataModule` hooks ([#12971](https://github.com/PyTorchLightning/pytorch-lightning/pull/12971))
+
+
+- Added Native FSDP Strategy ([#12447](https://github.com/PyTorchLightning/pytorch-lightning/pull/12447))
+
+
+- Added breaking of lazy graph across training, validation, test and predict steps when training with habana accelerators to ensure better performance ([#12938](https://github.com/PyTorchLightning/pytorch-lightning/pull/12938))
+
+
+- Added CPU metric tracking to `DeviceStatsMonitor` ([#11795](https://github.com/PyTorchLightning/pytorch-lightning/pull/11795))
 
 ### Changed
 
@@ -145,7 +172,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated `test_transforms` argument from the `LightningDataModule` constructor ([#12773](https://github.com/PyTorchLightning/pytorch-lightning/pull/12773))
 
 
-- Removed deprecated `dataloader_idx` argument from `on_train_batch_start/end` hooks `Callback` and `LightningModule` ([#12769](https://github.com/PyTorchLightning/pytorch-lightning/pull/12769))
+- Removed deprecated `dataloader_idx` argument from `on_train_batch_start/end` hooks `Callback` and `LightningModule` ([#12769](https://github.com/PyTorchLightning/pytorch-lightning/pull/12769), [#12977](https://github.com/PyTorchLightning/pytorch-lightning/pull/12977))
 
 
 - Removed deprecated `get_progress_bar_dict` property from `LightningModule` ([#12839](https://github.com/PyTorchLightning/pytorch-lightning/pull/12839))
@@ -155,13 +182,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue causing zero-division error for empty dataloaders ([#12885](https://github.com/PyTorchLightning/pytorch-lightning/pull/12885))
 
 
--
+- Fixed mismatching default values for the types of some arguments in the DeepSpeed and Fully-Sharded strategies which made the CLI unable to use them ([#12989](https://github.com/PyTorchLightning/pytorch-lightning/pull/12989))
 
 
--
+- Fixed an issue with unsupported torch.inference_mode() on hpu backends by making it use no_grad ([#13014](https://github.com/PyTorchLightning/pytorch-lightning/pull/13014))
 
 
--
+- Fixed `DDPStrategy` and `DDPSpawnStrategy` to initialize optimizers only after moving the module to the device ([#11952](https://github.com/PyTorchLightning/pytorch-lightning/pull/11952))
 
 
 -
@@ -561,9 +588,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed check for horovod module ([#12377](https://github.com/PyTorchLightning/pytorch-lightning/pull/12377))
 - Fixed logging to loggers with multiple eval dataloaders ([#12454](https://github.com/PyTorchLightning/pytorch-lightning/pull/12454))
 - Fixed an issue with resuming from a checkpoint trained with QAT ([#11346](https://github.com/PyTorchLightning/pytorch-lightning/pull/11346))
-
-
-- Fixed `DDPStrategy` and `DDPSpawnStrategy` to initialize optimizers only after moving the module to the device ([#11952](https://github.com/PyTorchLightning/pytorch-lightning/pull/11952))
 
 
 ## [1.5.10] - 2022-02-08

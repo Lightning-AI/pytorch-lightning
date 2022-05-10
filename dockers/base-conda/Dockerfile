@@ -91,6 +91,7 @@ ENV \
 COPY ./requirements.txt requirements.txt
 COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/examples.txt requirements-examples.txt
+COPY ./requirements/strategies.txt requirements-strategies.txt
 COPY ./requirements/adjust-versions.py requirements_adjust_versions.py
 COPY ./.actions/assistant.py assistant.py
 
@@ -123,7 +124,7 @@ RUN \
    HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
    export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
    cat requirements_horovod.txt && \
-   pip install --no-cache-dir -r requirements_horovod.txt && \
+   pip install --no-cache-dir -r requirements-strategies.txt && \
    rm requirements*
 
 RUN \
@@ -140,16 +141,6 @@ RUN \
     # install NVIDIA apex
     pip install --no-cache-dir --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip && \
     python -c "from apex import amp"
-
-RUN \
-    # install FairScale
-    pip install fairscale==0.4.5 && \
-    python -c "import fairscale; print(fairscale.__version__)"
-
-RUN \
-    # install DeepSpeed
-    pip install deepspeed==0.6.0 && \
-    python -c "import deepspeed; print(deepspeed.__version__)"
 
 RUN \
     # install Bagua

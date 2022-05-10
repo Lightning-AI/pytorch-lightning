@@ -50,7 +50,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         fp32_reduce_scatter: Optional[bool] = None,
         compute_dtype: Optional[torch.dtype] = None,
         bucket_cap_mb: int = 25,
-        min_num_params: int = 1e8,
+        min_num_params: int = 100_000_000,
         state_dict_to_cpu: bool = True,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
