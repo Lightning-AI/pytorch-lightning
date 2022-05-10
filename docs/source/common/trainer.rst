@@ -535,12 +535,6 @@ Example::
     # run val loop every 10 training epochs
     trainer = Trainer(check_val_every_n_epoch=10)
 
-checkpoint_callback
-^^^^^^^^^^^^^^^^^^^
-
-.. warning:: `checkpoint_callback` has been deprecated in v1.5 and will be removed in v1.7.
-    To disable checkpointing, pass ``enable_checkpointing = False`` to the Trainer instead.
-
 
 default_root_dir
 ^^^^^^^^^^^^^^^^
