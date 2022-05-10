@@ -43,7 +43,6 @@ class CallbackConnector:
     def on_trainer_init(
         self,
         callbacks: Optional[Union[List[Callback], Callback]],
-        checkpoint_callback: Optional[bool],
         enable_checkpointing: bool,
         enable_progress_bar: bool,
         process_position: int,
