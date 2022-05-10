@@ -1319,7 +1319,7 @@ class Trainer(
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self._evaluation_loop.trainer = self
 
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context():
+        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context(self.accelerator):
             eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
@@ -1335,7 +1335,7 @@ class Trainer(
         self.reset_predict_dataloader(self.lightning_module)
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self.predict_loop.trainer = self
-        with _evaluation_context():
+        with _evaluation_context(self.accelerator):
             return self.predict_loop.run()
 
     def _run_sanity_check(self) -> None:
@@ -2801,11 +2801,15 @@ class Trainer(
 
 
 @contextmanager
-def _evaluation_context() -> Generator:
-    # inference mode is not supported with gloo backend (#9431)
+def _evaluation_context(accelerator: Accelerator) -> Generator:
+    # inference mode is not supported with gloo backend (#9431),
+    # and HPU & TPU accelerators.
     context_manager_class = (
         torch.inference_mode
-        if _TORCH_GREATER_EQUAL_1_9 and not (dist.is_initialized() and dist.get_backend() == "gloo")
+        if _TORCH_GREATER_EQUAL_1_9
+        and not (dist.is_initialized() and dist.get_backend() == "gloo")
+        and not isinstance(accelerator, HPUAccelerator)
+        and not isinstance(accelerator, TPUAccelerator)
         else torch.no_grad
     )
     with context_manager_class():
