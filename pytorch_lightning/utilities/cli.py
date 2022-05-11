@@ -416,8 +416,8 @@ class LightningCLI:
         .. warning:: ``LightningCLI`` is in beta and subject to change.
 
         Args:
-            model_class: An optional :class:`~pytorch_lightning.core.lightning.LightningModule` class to train on or a
-                callable which returns a :class:`~pytorch_lightning.core.lightning.LightningModule` instance when
+            model_class: An optional :class:`~pytorch_lightning.core.module.LightningModule` class to train on or a
+                callable which returns a :class:`~pytorch_lightning.core.module.LightningModule` instance when
                 called. If ``None``, you can pass a registered model with ``--model=MyModel``.
             datamodule_class: An optional :class:`~pytorch_lightning.core.datamodule.LightningDataModule` class or a
                 callable which returns a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` instance when
@@ -670,7 +670,7 @@ class LightningCLI:
     def configure_optimizers(
         lightning_module: LightningModule, optimizer: Optimizer, lr_scheduler: Optional[LRSchedulerTypeUnion] = None
     ) -> Any:
-        """Override to customize the :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers`
+        """Override to customize the :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers`
         method.
 
         Args:
@@ -688,9 +688,8 @@ class LightningCLI:
         return [optimizer], [lr_scheduler]
 
     def _add_configure_optimizers_method_to_model(self, subcommand: Optional[str]) -> None:
-        """Overrides the model's :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers`
-        method if a single optimizer and optionally a scheduler argument groups are added to the parser as
-        'AUTOMATIC'."""
+        """Overrides the model's :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers` method
+        if a single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC'."""
         parser = self._parser(subcommand)
 
         def get_automatic(

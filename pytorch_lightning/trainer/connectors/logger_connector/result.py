@@ -199,7 +199,7 @@ class _Metadata:
 
 
 class _ResultMetric(Metric, DeviceDtypeModuleMixin):
-    """Wraps the value provided to `:meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
+    """Wraps the value provided to `:meth:`~pytorch_lightning.core.module.LightningModule.log`"""
 
     def __init__(self, metadata: _Metadata, is_tensor: bool) -> None:
         super().__init__()
@@ -449,7 +449,7 @@ class _ResultCollection(dict):
         metric_attribute: Optional[str] = None,
         rank_zero_only: bool = False,
     ) -> None:
-        """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
+        """See :meth:`~pytorch_lightning.core.module.LightningModule.log`"""
         # no metrics should be logged with graphs
         if not enable_graph:
             value = recursive_detach(value)

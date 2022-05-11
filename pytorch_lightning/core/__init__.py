@@ -13,6 +13,6 @@
 # limitations under the License.
 
 from pytorch_lightning.core.datamodule import LightningDataModule
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.module import LightningModule
 
 __all__ = ["LightningDataModule", "LightningModule"]

@@ -593,7 +593,7 @@ class LightningModule(
             batch_idx (``int``): Integer displaying index of this batch
             optimizer_idx (``int``): When using multiple optimizers, this argument will also be present.
             hiddens (``Any``): Passed in if
-                :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
+                :paramref:`~pytorch_lightning.core.module.LightningModule.truncated_bptt_steps` > 0.
 
         Return:
             Any of.
@@ -1112,10 +1112,9 @@ class LightningModule(
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
         """Step function called during :meth:`~pytorch_lightning.trainer.trainer.Trainer.predict`. By default, it
-        calls :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`. Override to add any processing
-        logic.
+        calls :meth:`~pytorch_lightning.core.module.LightningModule.forward`. Override to add any processing logic.
 
-        The :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` is used
+        The :meth:`~pytorch_lightning.core.module.LightningModule.predict_step` is used
         to scale inference on multi-devices.
 
         To prevent an OOM error, it is possible to use :class:`~pytorch_lightning.callbacks.BasePredictionWriter`
@@ -1257,7 +1256,7 @@ class LightningModule(
                 )
 
         Metrics can be made available to monitor by simply logging it using
-        ``self.log('metric_to_track', metric_val)`` in your :class:`~pytorch_lightning.core.lightning.LightningModule`.
+        ``self.log('metric_to_track', metric_val)`` in your :class:`~pytorch_lightning.core.module.LightningModule`.
 
         Note:
             The ``frequency`` value specified in a dict along with the ``optimizer`` key is an int corresponding
@@ -1699,7 +1698,7 @@ class LightningModule(
         Note:
             Called in the training loop after
             :meth:`~pytorch_lightning.callbacks.base.Callback.on_train_batch_start`
-            if :paramref:`~pytorch_lightning.core.lightning.LightningModule.truncated_bptt_steps` > 0.
+            if :paramref:`~pytorch_lightning.core.module.LightningModule.truncated_bptt_steps` > 0.
             Each returned batch split is passed separately to :meth:`training_step`.
         """
         time_dims = [len(x[0]) for x in batch if isinstance(x, (torch.Tensor, collections.Sequence))]
@@ -1857,7 +1856,7 @@ class LightningModule(
 
         Note:
             - Requires the implementation of the
-              :meth:`~pytorch_lightning.core.lightning.LightningModule.forward` method.
+              :meth:`~pytorch_lightning.core.module.LightningModule.forward` method.
             - The exported script will be set to evaluation mode.
             - It is recommended that you install the latest supported version of PyTorch
               to use this feature without limitations. See also the :mod:`torch.jit`

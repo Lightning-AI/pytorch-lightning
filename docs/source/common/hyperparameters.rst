@@ -116,8 +116,8 @@ improve readability and reproducibility.
 save_hyperparameters
 """"""""""""""""""""
 
-Use :meth:`~pytorch_lightning.core.lightning.LightningModule.save_hyperparameters` within your
-:class:`~pytorch_lightning.core.lightning.LightningModule`'s ``__init__`` method.
+Use :meth:`~pytorch_lightning.core.module.LightningModule.save_hyperparameters` within your
+:class:`~pytorch_lightning.core.module.LightningModule`'s ``__init__`` method.
 It will enable Lightning to store all the provided arguments under the ``self.hparams`` attribute.
 These hyperparameters will also be stored within the model checkpoint, which simplifies model re-instantiation after training.
 
@@ -164,8 +164,8 @@ In this case, exclude them explicitly:
 load_from_checkpoint
 """"""""""""""""""""
 
-LightningModules that have hyperparameters automatically saved with :meth:`~pytorch_lightning.core.lightning.LightningModule.save_hyperparameters`
-can conveniently be loaded and instantiated directly from a checkpoint with :meth:`~pytorch_lightning.core.lightning.LightningModule.load_from_checkpoint`:
+LightningModules that have hyperparameters automatically saved with :meth:`~pytorch_lightning.core.module.LightningModule.save_hyperparameters`
+can conveniently be loaded and instantiated directly from a checkpoint with :meth:`~pytorch_lightning.core.module.LightningModule.load_from_checkpoint`:
 
 .. code-block:: python
 
