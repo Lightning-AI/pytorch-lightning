@@ -406,18 +406,18 @@ def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
 def _replace_dataloader_init_method() -> Generator[None, None, None]:
     """This context manager is used to add support for re-instantiation of custom (subclasses) of
     :class:`~torch.utils.data.DataLoader`. It patches the ``__init__`` method."""
-    subclasses = _get_all_subclasses(DataLoader) | {DataLoader}
-    _wrapped = set()
-    for subclass in subclasses:
-        if subclass.__init__ not in _wrapped:
-            subclass._old_init = subclass.__init__
-            subclass.__init__ = _wrap_dataloader_init(subclass.__init__)
-            _wrapped.add(subclass.__init__)
+    classes = _get_all_subclasses(DataLoader) | {DataLoader}
+    wrapped = set()
+    for cls in classes:
+        if cls.__init__ not in wrapped:
+            cls._old_init = cls.__init__
+            cls.__init__ = _wrap_dataloader_init(cls.__init__)
+            wrapped.add(cls.__init__)
     yield
-    for subclass in subclasses:
-        if hasattr(subclass, "_old_init"):
-            subclass.__init__ = subclass._old_init
-            del subclass._old_init
+    for cls in classes:
+        if hasattr(cls, "_old_init"):
+            cls.__init__ = cls._old_init
+            del cls._old_init
 
 
 def _wrap_with_capture_dataset(dataset: Dataset) -> Dataset:
