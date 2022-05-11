@@ -87,3 +87,10 @@ Custom Checkpoint IO Plugin
 .. note::
 
     Some ``TrainingTypePlugins`` like ``DeepSpeedStrategy`` do not support custom ``CheckpointIO`` as checkpointing logic is not modifiable.
+
+
+*********************************
+Writing your own Checkpoint class
+*********************************
+
+We provide ``BaseModelCheckpoint`` class, for easier subclassing. Users may want to subclass it in case of writing custom ``ModelCheckpoint`` callback, so that the ``Trainer`` recognizes the custom class as a checkpointing callback.

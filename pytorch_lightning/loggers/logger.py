@@ -25,7 +25,7 @@ from weakref import ReferenceType
 import numpy as np
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+from pytorch_lightning.callbacks.model_checkpoint import BaseModelCheckpoint
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
 
 
@@ -86,7 +86,7 @@ class Logger(ABC):
         else:
             self._agg_default_func = np.mean
 
-    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
+    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[BaseModelCheckpoint]") -> None:
         """Called after model checkpoint callback saves a new checkpoint.
 
         Args:
@@ -236,7 +236,7 @@ class LoggerCollection(Logger):
     def __getitem__(self, index: int) -> Logger:
         return list(self._logger_iterable)[index]
 
-    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
+    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[BaseModelCheckpoint]") -> None:
         for logger in self._logger_iterable:
             logger.after_save_checkpoint(checkpoint_callback)
 
