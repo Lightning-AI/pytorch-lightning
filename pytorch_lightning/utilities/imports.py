@@ -97,10 +97,10 @@ class _RequirementAvaliable:
             self.available = False
             self.message = f"Requirement '{requirement}' not met, {ex.__class__.__name__}: {ex}"
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self.available
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.message
 
 
