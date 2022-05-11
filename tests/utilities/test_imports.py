@@ -57,7 +57,7 @@ def test_compare_version(monkeypatch):
 def test_requirement_avaliable():
     assert _RequirementAvaliable(f"torch>={torch.__version__}")
     assert not _RequirementAvaliable(f"torch<{torch.__version__}")
-    assert "InvalidRequirement" in str(_RequirementAvaliable("-"))
+    assert "Requirement '-' not met" in str(_RequirementAvaliable("-"))
 
 
 def test_imports():
