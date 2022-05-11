@@ -102,7 +102,7 @@ class _RequirementAvailable:
     def _check_requirement(self) -> None:
         if not hasattr(self, "available"):
             try:
-                pkg_resources.require([self.requirement])
+                pkg_resources.require(self.requirement)
                 self.available = True
                 self.message = f"Requirement {self.requirement!r} met"
             except Exception as ex:
