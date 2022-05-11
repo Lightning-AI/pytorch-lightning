@@ -100,3 +100,12 @@ def test_lightningCLI_seed_everything_default_to_None_deprecation_warning():
         "and will be removed in v1.9. Set it to `False` instead."
     ):
         LightningCLI(LightningModule, run=False, seed_everything_default=None)
+
+
+def test_old_callback_path():
+    from pytorch_lightning.callbacks.base import Callback
+
+    with pytest.deprecated_call(
+        match="pytorch_lightning.callbacks.base.Callback has been deprecated in v1.7" " and will be removed in v1.9."
+    ):
+        Callback()
