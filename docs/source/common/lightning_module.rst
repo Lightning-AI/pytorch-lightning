@@ -1609,24 +1609,6 @@ predict_dataloader
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.predict_dataloader
     :noindex:
 
-on_train_dataloader
-~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_train_dataloader
-    :noindex:
-
-on_test_dataloader
-~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_test_dataloader
-    :noindex:
-
-on_predict_dataloader
-~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_predict_dataloader
-    :noindex:
-
 transfer_batch_to_device
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
