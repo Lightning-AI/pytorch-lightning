@@ -422,7 +422,7 @@ Here is an example of an advanced use case:
 Set Grads to None
 *****************
 
-In order to improve performance, you can override :meth:`~pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad`.
+In order to improve performance, you can override :meth:`~pytorch_lightning.core.module.LightningModule.optimizer_zero_grad`.
 
 For a more detailed explanation of the pros / cons of this technique,
 read the documentation for :meth:`~torch.optim.Optimizer.zero_grad` by the PyTorch team.

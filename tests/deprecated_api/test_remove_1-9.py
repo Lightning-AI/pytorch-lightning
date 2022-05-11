@@ -17,7 +17,7 @@ from unittest import mock
 import pytest
 
 import pytorch_lightning.loggers.base as logger_base
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.utilities.cli import LightningCLI
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 

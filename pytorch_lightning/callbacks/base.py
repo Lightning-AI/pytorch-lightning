@@ -307,7 +307,7 @@ class Callback:
 
         Args:
             trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
-            pl_module: the current :class:`~pytorch_lightning.core.lightning.LightningModule` instance.
+            pl_module: the current :class:`~pytorch_lightning.core.module.LightningModule` instance.
             checkpoint: the checkpoint dictionary that will be saved.
 
         Returns:
@@ -327,7 +327,7 @@ class Callback:
 
         Args:
             trainer: the current :class:`~pytorch_lightning.trainer.Trainer` instance.
-            pl_module: the current :class:`~pytorch_lightning.core.lightning.LightningModule` instance.
+            pl_module: the current :class:`~pytorch_lightning.core.module.LightningModule` instance.
             callback_state: the callback state returned by ``on_save_checkpoint``.
 
         Note:

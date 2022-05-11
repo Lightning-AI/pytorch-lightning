@@ -48,7 +48,7 @@ warning_cache = WarningCache()
 class ModelCheckpoint(Callback):
     r"""
     Save the model periodically by monitoring a quantity. Every metric logged with
-    :meth:`~pytorch_lightning.core.lightning.log` or :meth:`~pytorch_lightning.core.lightning.log_dict` in
+    :meth:`~pytorch_lightning.core.module.log` or :meth:`~pytorch_lightning.core.module.log_dict` in
     LightningModule is a candidate for the monitor key. For more information, see
     :ref:`checkpointing`.
 

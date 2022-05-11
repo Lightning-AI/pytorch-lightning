@@ -61,7 +61,7 @@ and we can train this using the ``Trainer``:
     trainer = Trainer()
     trainer.fit(lightning_module, train_dataloader, val_dataloader)
 
-And remember that the forward method should define the practical use of a :class:`~pytorch_lightning.core.lightning.LightningModule`.
+And remember that the forward method should define the practical use of a :class:`~pytorch_lightning.core.module.LightningModule`.
 In this case, we want to use the ``LitAutoEncoder`` to extract image representations:
 
 .. code-block:: python

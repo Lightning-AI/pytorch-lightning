@@ -13,7 +13,7 @@
 # limitations under the License.
 from torch import nn
 
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.utilities.meta import init_meta_context, is_on_meta_device, materialize_module
 from tests.helpers.runif import RunIf
 

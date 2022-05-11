@@ -103,7 +103,7 @@ Lightning offers automatic log functionalities for logging scalars, or manual lo
 Automatic Logging
 =================
 
-Use the :meth:`~pytorch_lightning.core.lightning.LightningModule.log` or :meth:`~pytorch_lightning.core.lightning.LightningModule.log_dict`
+Use the :meth:`~pytorch_lightning.core.module.LightningModule.log` or :meth:`~pytorch_lightning.core.module.LightningModule.log_dict`
 methods to log from anywhere in a :doc:`LightningModule <../common/lightning_module>` and :doc:`callbacks <../extensions/callbacks>`.
 
 .. code-block:: python
@@ -122,18 +122,18 @@ methods to log from anywhere in a :doc:`LightningModule <../common/lightning_mod
         self.log_dict({"acc": acc, "recall": recall})
 
 .. note::
-    Everything explained below applies to both :meth:`~pytorch_lightning.core.lightning.LightningModule.log` or :meth:`~pytorch_lightning.core.lightning.LightningModule.log_dict` methods.
+    Everything explained below applies to both :meth:`~pytorch_lightning.core.module.LightningModule.log` or :meth:`~pytorch_lightning.core.module.LightningModule.log_dict` methods.
 
-Depending on where the :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method is called, Lightning auto-determines
+Depending on where the :meth:`~pytorch_lightning.core.module.LightningModule.log` method is called, Lightning auto-determines
 the correct logging mode for you. Of course you can override the default behavior by manually setting the
-:meth:`~pytorch_lightning.core.lightning.LightningModule.log` parameters.
+:meth:`~pytorch_lightning.core.module.LightningModule.log` parameters.
 
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
         self.log("my_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
-The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method has a few options:
+The :meth:`~pytorch_lightning.core.module.LightningModule.log` method has a few options:
 
 * ``on_step``: Logs the metric at the current step.
 * ``on_epoch``: Automatically accumulates and logs at the end of the epoch.
@@ -303,7 +303,7 @@ Individual logger implementations determine their flushing frequency. For exampl
 Progress Bar
 ************
 
-You can add any metric to the progress bar using :meth:`~pytorch_lightning.core.lightning.LightningModule.log`
+You can add any metric to the progress bar using :meth:`~pytorch_lightning.core.module.LightningModule.log`
 method, setting ``prog_bar=True``.
 
 
