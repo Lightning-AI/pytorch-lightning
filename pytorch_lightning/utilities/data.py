@@ -20,7 +20,15 @@ from functools import partial
 from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Set, Tuple, Type, Union
 
 import torch
-from torch.utils.data import BatchSampler, DataLoader, IterableDataset, RandomSampler, Sampler, SequentialSampler
+from torch.utils.data import (
+    BatchSampler,
+    DataLoader,
+    Dataset,
+    IterableDataset,
+    RandomSampler,
+    Sampler,
+    SequentialSampler,
+)
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
@@ -292,7 +300,9 @@ def _get_dataloader_init_args_and_kwargs(
             )
 
     if _FaultTolerantMode.detect_current_mode().is_automatic:
-        dl_kwargs = _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs)
+        dl_args, dl_kwargs = _apply_fault_tolerant_automatic_capture_dataset_wrapper_args_kwargs(
+            was_wrapped, arg_names, dl_args, dl_kwargs
+        )
 
     return dl_args, dl_kwargs
 
@@ -406,16 +416,40 @@ def _replace_dataloader_init_method() -> Generator[None, None, None]:
         del subclass._old_init
 
 
-def _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs: Dict) -> Dict:
-    dataset = dl_kwargs["dataset"]
+def _apply_fault_tolerant_automatic_capture_dataset_wrapper(dataset: Dataset) -> Dataset:
     if isinstance(dataset, IterableDataset):
         # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
-        dl_kwargs["dataset"] = CaptureIterableDataset(dataset=dataset)
+        return CaptureIterableDataset(dataset=dataset)
     elif get_len(dataset) != float("inf"):
-        dl_kwargs["dataset"] = CaptureMapDataset(dataset=dataset)
+        return CaptureMapDataset(dataset=dataset)
     else:
         raise MisconfigurationException("This shouldn't happen, please open an issue on Lightning Github repository.")
-    return dl_kwargs
+
+
+def _apply_fault_tolerant_automatic_capture_dataset_wrapper_args_kwargs(
+    was_wrapped: bool, arg_names: Tuple[str, ...], dl_args: Tuple[Any, ...], dl_kwargs: Dict[str, Any]
+) -> Dict[str, Any]:
+    if "dataset" in dl_kwargs:
+        dl_kwargs["dataset"] = _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs["dataset"])
+    elif "dataset" in arg_names:
+        dataset_idx = arg_names.index("dataset")
+        dataset = _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_args[dataset_idx])
+        dl_args = dl_args[:dataset_idx] + (dataset,) + dl_args[dataset_idx + 1 :]
+    else:
+        if was_wrapped:
+            avoid_message = (
+                " To avoid this, either pass your dataset in kwargs or use argument name `dataset`"
+                " in signature of `__init__` method of your DataLoader."
+            )
+        else:
+            avoid_message = " To avoid this, define self.dataset in `__init__` method of your DataLoader."
+
+        raise MisconfigurationException(
+            "You enabled automatic Fault Tolerant mode, but we were not able to replace your dataset"
+            " with Fault Tolerant wrapper, because you have a custom DataLoader." + avoid_message
+        )
+
+    return dl_args, dl_kwargs
 
 
 def _is_dataloader_shuffled(dataloader: object) -> bool:

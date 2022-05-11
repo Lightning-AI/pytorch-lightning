@@ -194,16 +194,16 @@ def test_replace_dataloader_init_method():
     assert dataloader.batch_size == 2
     assert dataloader.at1 == "attribute1"  # But the value still gets passed when it should
 
-    dataloader = _update_dataloader(dataloader, dataloader.sampler)
+    updated_dataloader = _update_dataloader(dataloader, dataloader.sampler)
 
-    assert isinstance(dataloader, DataLoaderSubclass1)
-    assert dataloader.dataset == range(4)
-    assert dataloader.batch_size == 2
-    assert dataloader.at1 == "attribute1"  # But the value still gets passed when it should
-    assert not hasattr(dataloader, "__pl_dl_kwargs")
-    assert not hasattr(dataloader, "__pl_dl_arg_names")
-    assert not hasattr(dataloader, "__pl_dl_args")
-    assert not hasattr(dataloader, "__dataset")
+    assert isinstance(updated_dataloader, DataLoaderSubclass1)
+    assert updated_dataloader.dataset == range(4)
+    assert updated_dataloader.batch_size == 2
+    assert updated_dataloader.at1 == "attribute1"  # But the value still gets passed when it should
+    assert not hasattr(updated_dataloader, "__pl_dl_kwargs")
+    assert not hasattr(updated_dataloader, "__pl_dl_arg_names")
+    assert not hasattr(updated_dataloader, "__pl_dl_args")
+    assert not hasattr(updated_dataloader, "__dataset")
 
     with _replace_dataloader_init_method():
         dataloader = DataLoaderSubclass2("attribute2", dataset=range(4), batch_size=2)
@@ -217,17 +217,17 @@ def test_replace_dataloader_init_method():
     assert dataloader.at1 == "attribute2-2"  # But the value still gets passed when it should
     assert dataloader.at2 == "attribute2"  # But the value still gets passed when it should
 
-    dataloader = _update_dataloader(dataloader, dataloader.sampler)
+    updated_dataloader = _update_dataloader(dataloader, dataloader.sampler)
 
-    assert isinstance(dataloader, DataLoaderSubclass2)
-    assert dataloader.dataset == range(4)
-    assert dataloader.batch_size == 2
-    assert dataloader.at1 == "attribute2-2"  # But the value still gets passed when it should
-    assert dataloader.at2 == "attribute2"  # But the value still gets passed when it should
-    assert not hasattr(dataloader, "__pl_dl_kwargs")
-    assert not hasattr(dataloader, "__pl_dl_arg_names")
-    assert not hasattr(dataloader, "__pl_dl_args")
-    assert not hasattr(dataloader, "__dataset")
+    assert isinstance(updated_dataloader, DataLoaderSubclass2)
+    assert updated_dataloader.dataset == range(4)
+    assert updated_dataloader.batch_size == 2
+    assert updated_dataloader.at1 == "attribute2-2"  # But the value still gets passed when it should
+    assert updated_dataloader.at2 == "attribute2"  # But the value still gets passed when it should
+    assert not hasattr(updated_dataloader, "__pl_dl_kwargs")
+    assert not hasattr(updated_dataloader, "__pl_dl_arg_names")
+    assert not hasattr(updated_dataloader, "__pl_dl_args")
+    assert not hasattr(updated_dataloader, "__dataset")
 
     # Failing test case from issue 12564
     class MyBaseDataLoader(DataLoader):
@@ -250,15 +250,15 @@ def test_replace_dataloader_init_method():
     assert dataloader.__pl_dl_args == (data,)
     assert dataloader.__dataset == range(10)
 
-    dataloader = _update_dataloader(dataloader, dataloader.sampler)
+    updated_dataloader = _update_dataloader(dataloader, dataloader.sampler)
 
-    assert isinstance(dataloader, MyDataLoader)
-    assert dataloader.data is data
-    assert dataloader.dataset == range(10)
-    assert not hasattr(dataloader, "__pl_dl_kwargs")
-    assert not hasattr(dataloader, "__pl_dl_arg_names")
-    assert not hasattr(dataloader, "__pl_dl_args")
-    assert not hasattr(dataloader, "__dataset")
+    assert isinstance(updated_dataloader, MyDataLoader)
+    assert updated_dataloader.data is data
+    assert updated_dataloader.dataset == range(10)
+    assert not hasattr(updated_dataloader, "__pl_dl_kwargs")
+    assert not hasattr(updated_dataloader, "__pl_dl_arg_names")
+    assert not hasattr(updated_dataloader, "__pl_dl_args")
+    assert not hasattr(updated_dataloader, "__dataset")
 
     # `poptorch.DataLoader` uses this pattern, simulate it
     class PoptorchDataLoader(DataLoader):
@@ -285,15 +285,15 @@ def test_replace_dataloader_init_method():
     assert dataloader.__pl_dl_args == (123, [1])
     assert dataloader.__dataset == [1]
 
-    dataloader = _update_dataloader(dataloader, dataloader.sampler)
+    updated_dataloader = _update_dataloader(dataloader, dataloader.sampler)
 
-    assert isinstance(dataloader, PoptorchDataLoader)
-    assert dataloader.options == 123
-    assert dataloader.dataset == [1]
-    assert not hasattr(dataloader, "__pl_dl_kwargs")
-    assert not hasattr(dataloader, "__pl_dl_arg_names")
-    assert not hasattr(dataloader, "__pl_dl_args")
-    assert not hasattr(dataloader, "__dataset")
+    assert isinstance(updated_dataloader, PoptorchDataLoader)
+    assert updated_dataloader.options == 123
+    assert updated_dataloader.dataset == [1]
+    assert not hasattr(updated_dataloader, "__pl_dl_kwargs")
+    assert not hasattr(updated_dataloader, "__pl_dl_arg_names")
+    assert not hasattr(updated_dataloader, "__pl_dl_args")
+    assert not hasattr(updated_dataloader, "__dataset")
 
     # Test we don't overwrite any value, that is set by the actual class
     class IncompleteDataLoader(DataLoader):
@@ -311,15 +311,15 @@ def test_replace_dataloader_init_method():
     assert dataloader.__pl_dl_args == (range(10),)
     assert dataloader.__dataset == range(10)
 
-    dataloader = _update_dataloader(dataloader, dataloader.sampler)
+    updated_dataloader = _update_dataloader(dataloader, dataloader.sampler)
 
-    assert isinstance(dataloader, IncompleteDataLoader)
-    assert dataloader.batch_size == 5
-    assert dataloader.dataset == range(10)
-    assert not hasattr(dataloader, "__pl_dl_kwargs")
-    assert not hasattr(dataloader, "__pl_dl_arg_names")
-    assert not hasattr(dataloader, "__pl_dl_args")
-    assert not hasattr(dataloader, "__dataset")
+    assert isinstance(updated_dataloader, IncompleteDataLoader)
+    assert updated_dataloader.batch_size == 5
+    assert updated_dataloader.dataset == range(10)
+    assert not hasattr(updated_dataloader, "__pl_dl_kwargs")
+    assert not hasattr(updated_dataloader, "__pl_dl_arg_names")
+    assert not hasattr(updated_dataloader, "__pl_dl_args")
+    assert not hasattr(updated_dataloader, "__dataset")
 
     # Test everything works, even if custom dataloader does not specify `dataset` argname
     # and passes second argument as dataset
@@ -339,16 +339,16 @@ def test_replace_dataloader_init_method():
     assert dataloader.__pl_dl_args == (10, range(10))
     assert dataloader.__dataset == range(10)
 
-    dataloader = _update_dataloader(dataloader, dataloader.sampler)
+    updated_dataloader = _update_dataloader(dataloader, dataloader.sampler)
 
-    assert isinstance(dataloader, WeirdDataLoader1)
-    assert dataloader.dataset == range(10)
-    assert dataloader.arg1 == 10
-    assert dataloader.batch_size == 10
-    assert not hasattr(dataloader, "__pl_dl_kwargs")
-    assert not hasattr(dataloader, "__pl_dl_arg_names")
-    assert not hasattr(dataloader, "__pl_dl_args")
-    assert not hasattr(dataloader, "__dataset")
+    assert isinstance(updated_dataloader, WeirdDataLoader1)
+    assert updated_dataloader.dataset == range(10)
+    assert updated_dataloader.arg1 == 10
+    assert updated_dataloader.batch_size == 10
+    assert not hasattr(updated_dataloader, "__pl_dl_kwargs")
+    assert not hasattr(updated_dataloader, "__pl_dl_arg_names")
+    assert not hasattr(updated_dataloader, "__pl_dl_args")
+    assert not hasattr(updated_dataloader, "__dataset")
 
     # Test everything works, even if custom dataloader makes changes to the args, that make up final dataset
     class WeirdDataLoader2(DataLoader):
@@ -366,15 +366,15 @@ def test_replace_dataloader_init_method():
     assert dataloader.__pl_dl_args == (range(10), range(10, 20))
     assert dataloader.__dataset == list(range(20))
 
-    dataloader = _update_dataloader(dataloader, dataloader.sampler)
+    updated_dataloader = _update_dataloader(dataloader, dataloader.sampler)
 
-    assert isinstance(dataloader, WeirdDataLoader2)
-    assert dataloader.dataset == list(range(20))
-    assert dataloader.batch_size == 10
-    assert not hasattr(dataloader, "__pl_dl_kwargs")
-    assert not hasattr(dataloader, "__pl_dl_arg_names")
-    assert not hasattr(dataloader, "__pl_dl_args")
-    assert not hasattr(dataloader, "__dataset")
+    assert isinstance(updated_dataloader, WeirdDataLoader2)
+    assert updated_dataloader.dataset == list(range(20))
+    assert updated_dataloader.batch_size == 10
+    assert not hasattr(updated_dataloader, "__pl_dl_kwargs")
+    assert not hasattr(updated_dataloader, "__pl_dl_arg_names")
+    assert not hasattr(updated_dataloader, "__pl_dl_args")
+    assert not hasattr(updated_dataloader, "__dataset")
 
     class NoneDataLoader(DataLoader):
         def __init__(self, *args, **kwargs):
@@ -389,14 +389,14 @@ def test_replace_dataloader_init_method():
     assert dataloader.__pl_dl_args == (None,)
     assert dataloader.__dataset is None
 
-    dataloader = _update_dataloader(dataloader, dataloader.sampler)
+    updated_dataloader = _update_dataloader(dataloader, dataloader.sampler)
 
-    assert isinstance(dataloader, NoneDataLoader)
-    assert dataloader.dataset is None
-    assert not hasattr(dataloader, "__pl_dl_kwargs")
-    assert not hasattr(dataloader, "__pl_dl_arg_names")
-    assert not hasattr(dataloader, "__pl_dl_args")
-    assert not hasattr(dataloader, "__dataset")
+    assert isinstance(updated_dataloader, NoneDataLoader)
+    assert updated_dataloader.dataset is None
+    assert not hasattr(updated_dataloader, "__pl_dl_kwargs")
+    assert not hasattr(updated_dataloader, "__pl_dl_arg_names")
+    assert not hasattr(updated_dataloader, "__pl_dl_args")
+    assert not hasattr(updated_dataloader, "__dataset")
 
     class ChangingDataLoader(DataLoader):
         def __init__(self, dataset, **kwargs):
@@ -411,14 +411,14 @@ def test_replace_dataloader_init_method():
     assert dataloader.__pl_dl_args == (range(5),)
     assert dataloader.__dataset == list(range(10))
 
-    dataloader = _update_dataloader(dataloader, dataloader.sampler)
+    updated_dataloader = _update_dataloader(dataloader, dataloader.sampler)
 
-    assert isinstance(dataloader, ChangingDataLoader)
-    assert dataloader.dataset == list(range(10))
-    assert not hasattr(dataloader, "__pl_dl_kwargs")
-    assert not hasattr(dataloader, "__pl_dl_arg_names")
-    assert not hasattr(dataloader, "__pl_dl_args")
-    assert not hasattr(dataloader, "__dataset")
+    assert isinstance(updated_dataloader, ChangingDataLoader)
+    assert updated_dataloader.dataset == list(range(10))
+    assert not hasattr(updated_dataloader, "__pl_dl_kwargs")
+    assert not hasattr(updated_dataloader, "__pl_dl_arg_names")
+    assert not hasattr(updated_dataloader, "__pl_dl_args")
+    assert not hasattr(updated_dataloader, "__dataset")
 
 
 @pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])
