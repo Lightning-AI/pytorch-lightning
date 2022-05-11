@@ -85,23 +85,43 @@ def _compare_version(package: str, op: Callable, version: str, use_base_version:
     return op(pkg_version, Version(version))
 
 
-class _RequirementAvaliable:
-    """Boolean-like class for check of requirement with extras and version specifiers."""
+class _RequirementAvailable:
+    """Boolean-like class for check of requirement with extras and version specifiers.
 
-    def __init__(self, requirement: str):
-        self.available = True
-        self.message = ""
-        try:
-            pkg_resources.require([requirement])
-        except Exception as ex:
-            self.available = False
-            self.message = f"Requirement '{requirement}' not met, {ex.__class__.__name__}: {ex}"
+    >>> _RequirementAvailable("jsonargparse[signatures]>=4.7.3")
+    Requirement 'jsonargparse[signatures]>=4.7.3' not met, VersionConflict: (jsonargparse 4.7.2 ..., Requirement.parse('jsonargparse[signatures]>=4.7.3'))
+    >>> bool(_RequirementAvailable("jsonargparse[signatures]>=4.7.3"))
+    False
+    >>> bool(_RequirementAvailable("jsonargparse[signatures]>=4.7.2"))
+    True
+    """
+
+    def __init__(self, requirement: str) -> None:
+        self.available = None
+        self.requirement = requirement
+        self.__repr__ = self.__str__
+
+    def _check_requirement(self) -> None:
+        if self.available is None:
+            try:
+                pkg_resources.require([self.requirement])
+            except Exception as ex:
+                self.available = False
+                self.message = f"Requirement {self.requirement!r} not met, {ex.__class__.__name__}: {ex}"
+            else:
+                self.available = True
+                self.message = f"Requirement {self.requirement!r} met"
 
     def __bool__(self) -> bool:
+        self._check_requirement()
         return self.available
 
     def __str__(self) -> str:
+        self._check_requirement()
         return self.message
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 _IS_WINDOWS = platform.system() == "Windows"

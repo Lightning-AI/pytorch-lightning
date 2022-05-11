@@ -29,13 +29,13 @@ import pytorch_lightning as pl
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _RequirementAvaliable
+from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.meta import get_all_subclasses
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.seed import _select_seed_randomly
 
-_JSONARGPARSE_SIGNATURES_AVAILABLE = _RequirementAvaliable("jsonargparse[signatures]>=4.7.1")
+_JSONARGPARSE_SIGNATURES_AVAILABLE = _RequirementAvailable("jsonargparse[signatures]>=4.7.1")
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     import docstring_parser

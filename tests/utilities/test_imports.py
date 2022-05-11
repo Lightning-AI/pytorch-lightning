@@ -23,7 +23,7 @@ from pytorch_lightning.utilities import (
     _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
 )
-from pytorch_lightning.utilities.imports import _compare_version, _RequirementAvaliable, torch
+from pytorch_lightning.utilities.imports import _compare_version, _RequirementAvailable, torch
 
 
 def test_module_exists():
@@ -55,9 +55,9 @@ def test_compare_version(monkeypatch):
 
 
 def test_requirement_avaliable():
-    assert _RequirementAvaliable(f"torch>={torch.__version__}")
-    assert not _RequirementAvaliable(f"torch<{torch.__version__}")
-    assert "Requirement '-' not met" in str(_RequirementAvaliable("-"))
+    assert _RequirementAvailable(f"torch>={torch.__version__}")
+    assert not _RequirementAvailable(f"torch<{torch.__version__}")
+    assert "Requirement '-' not met" in str(_RequirementAvailable("-"))
 
 
 def test_imports():
