@@ -169,286 +169,165 @@ def test_update_dataloader_typerror_custom_exception():
     assert isinstance(new_dataloader, GoodImpl)
 
 
-def test_replace_dataloader_init_method1():
-    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
-    sets them as private attributes."""
+class DataLoaderSubclass1(DataLoader):
+    def __init__(self, attribute1, *args, **kwargs):
+        self.at1 = attribute1
+        super().__init__(*args, **kwargs)
 
-    class DataLoaderSubclass1(DataLoader):
-        def __init__(self, attribute1, *args, **kwargs):
-            self.at1 = attribute1
-            super().__init__(*args, **kwargs)
 
-    class DataLoaderSubclass2(DataLoaderSubclass1):
-        def __init__(self, attribute2, *args, **kwargs):
-            self.at2 = attribute2
-            super().__init__(attribute2 + "-2", *args, **kwargs)
+class DataLoaderSubclass2(DataLoaderSubclass1):
+    def __init__(self, attribute2, *args, **kwargs):
+        self.at2 = attribute2
+        super().__init__(attribute2 + "-2", *args, **kwargs)
 
+
+class MyBaseDataLoader(DataLoader):
+    pass
+
+
+class MyDataLoader(MyBaseDataLoader):
+    def __init__(self, data: torch.Tensor, *args, **kwargs):
+        self.data = data
+        super().__init__(range(data.size(0)), *args, **kwargs)
+
+
+test3_data = torch.randn((10, 20))
+
+
+class PoptorchDataLoader(DataLoader):
+    def __init__(self, options, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._options = options
+
+    @property
+    def options(self):
+        return self._options
+
+
+class IncompleteDataLoader(DataLoader):
+    def __init__(self, dataset, batch_size, **kwargs):
+        batch_size = max(batch_size - 5, 0)
+        super().__init__(dataset, batch_size=batch_size, **kwargs)
+
+
+class WeirdDataLoader1(DataLoader):
+    def __init__(self, arg1, arg2, **kwargs):
+        self.arg1 = arg1
+        super().__init__(arg2, **kwargs)
+
+
+class WeirdDataLoader2(DataLoader):
+    def __init__(self, data_part1, data_part2, **kwargs):
+        data = list(data_part1) + list(data_part2)
+        super().__init__(data, **kwargs)
+
+
+class NoneDataLoader(DataLoader):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class ChangingDataLoader(DataLoader):
+    def __init__(self, dataset, **kwargs):
+        super().__init__(list(dataset) + list(range(5, 10)), **kwargs)
+
+
+@pytest.mark.parametrize(
+    ["cls", "args", "kwargs", "arg_names", "dataset", "checked_values"],
+    [
+        pytest.param(
+            DataLoaderSubclass1,
+            ("attribute1",),
+            dict(dataset=range(4), batch_size=2),
+            ("attribute1",),
+            range(4),
+            dict(batch_size=2, at1="attribute1"),
+            id="test1",
+        ),
+        pytest.param(
+            DataLoaderSubclass2,
+            ("attribute2",),
+            dict(dataset=range(4), batch_size=2),
+            ("attribute2",),
+            range(4),
+            dict(batch_size=2, at1="attribute2-2", at2="attribute2"),
+            id="test2",
+        ),
+        pytest.param(
+            MyDataLoader,
+            (test3_data,),
+            dict(batch_size=2),
+            ("data",),
+            range(10),
+            dict(batch_size=2, data=test3_data),
+            id="test3",
+        ),
+        pytest.param(PoptorchDataLoader, (123, [1]), dict(), ("options",), [1], dict(options=123), id="test4"),
+        pytest.param(
+            IncompleteDataLoader,
+            (range(10),),
+            dict(batch_size=10),
+            ("dataset",),
+            range(10),
+            dict(batch_size=5),
+            id="test5",
+        ),
+        pytest.param(
+            WeirdDataLoader1,
+            (10, range(10)),
+            dict(batch_size=10),
+            ("arg1", "arg2"),
+            range(10),
+            dict(arg1=10, batch_size=10),
+            id="test6",
+        ),
+        pytest.param(
+            WeirdDataLoader2,
+            (range(10), range(10, 20)),
+            dict(batch_size=10),
+            ("data_part1", "data_part2"),
+            list(range(20)),
+            dict(batch_size=10),
+            id="test7",
+        ),
+        pytest.param(NoneDataLoader, (None,), dict(), (), None, dict(), id="test8"),
+        pytest.param(ChangingDataLoader, (range(5),), dict(), ("dataset",), list(range(10)), dict(), id="test9"),
+    ],
+)
+def test_replace_dataloader_init_method(cls, args, kwargs, arg_names, dataset, checked_values):
     with _replace_dataloader_init_method():
-        dataloader = DataLoaderSubclass1("attribute1", dataset=range(4), batch_size=2)
+        dataloader = cls(*args, **kwargs)
 
-    assert dataloader.__pl_dl_kwargs == dict(dataset=range(4), batch_size=2)
-    assert dataloader.__pl_dl_arg_names == ("attribute1",)
-    assert dataloader.__pl_dl_args == ("attribute1",)
-    assert dataloader.__dataset == range(4)
-    assert dataloader.dataset == range(4)
-    assert dataloader.batch_size == 2
-    assert dataloader.at1 == "attribute1"  # But the value still gets passed when it should
+    assert dataloader.__pl_dl_args == args
+    assert dataloader.__pl_dl_kwargs == kwargs
+    assert dataloader.__pl_dl_arg_names == arg_names
+    assert dataloader.__dataset == dataset
 
-    updated_dataloader = _update_dataloader(dataloader, dataloader.sampler)
+    assert dataloader.dataset == dataset
 
-    assert isinstance(updated_dataloader, DataLoaderSubclass1)
-    assert updated_dataloader.dataset == range(4)
-    assert updated_dataloader.batch_size == 2
-    assert updated_dataloader.at1 == "attribute1"  # But the value still gets passed when it should
-    assert not hasattr(updated_dataloader, "__pl_dl_kwargs")
-    assert not hasattr(updated_dataloader, "__pl_dl_arg_names")
-    assert not hasattr(updated_dataloader, "__pl_dl_args")
-    assert not hasattr(updated_dataloader, "__dataset")
+    for key, value in checked_values.items():
+        dataloader_value = getattr(dataloader, key)
+        if isinstance(dataloader_value, torch.Tensor):
+            assert dataloader_value is value
+        else:
+            assert getattr(dataloader, key) == value
 
-    with _replace_dataloader_init_method():
-        dataloader = DataLoaderSubclass2("attribute2", dataset=range(4), batch_size=2)
+    dataloader = _update_dataloader(dataloader, dataloader.sampler)
 
-    assert dataloader.__pl_dl_kwargs == dict(dataset=range(4), batch_size=2)
-    assert dataloader.__pl_dl_arg_names == ("attribute2",)
-    assert dataloader.__pl_dl_args == ("attribute2",)
-    assert dataloader.__dataset == range(4)
-    assert dataloader.dataset == range(4)
-    assert dataloader.batch_size == 2
-    assert dataloader.at1 == "attribute2-2"  # But the value still gets passed when it should
-    assert dataloader.at2 == "attribute2"  # But the value still gets passed when it should
+    assert isinstance(dataloader, cls)
+    assert not hasattr(dataloader, "__pl_dl_kwargs")
+    assert not hasattr(dataloader, "__pl_dl_arg_names")
+    assert not hasattr(dataloader, "__pl_dl_args")
+    assert not hasattr(dataloader, "__dataset")
 
-    updated_dataloader = _update_dataloader(dataloader, dataloader.sampler)
+    assert dataloader.dataset == dataset
 
-    assert isinstance(updated_dataloader, DataLoaderSubclass2)
-    assert updated_dataloader.dataset == range(4)
-    assert updated_dataloader.batch_size == 2
-    assert updated_dataloader.at1 == "attribute2-2"  # But the value still gets passed when it should
-    assert updated_dataloader.at2 == "attribute2"  # But the value still gets passed when it should
-    assert not hasattr(updated_dataloader, "__pl_dl_kwargs")
-    assert not hasattr(updated_dataloader, "__pl_dl_arg_names")
-    assert not hasattr(updated_dataloader, "__pl_dl_args")
-    assert not hasattr(updated_dataloader, "__dataset")
-
-
-def test_replace_dataloader_init_method2():
-    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
-    sets them as private attributes."""  # Failing test case from issue 12564
-
-    class MyBaseDataLoader(DataLoader):
-        pass
-
-    class MyDataLoader(MyBaseDataLoader):
-        def __init__(self, data: torch.Tensor, *args, **kwargs):
-            self.data = data
-            super().__init__(range(data.size(0)), *args, **kwargs)
-
-    data = torch.randn((10, 20))
-
-    with _replace_dataloader_init_method():
-        dataloader = MyDataLoader(data, batch_size=2)
-
-    assert dataloader.data is data
-    assert dataloader.dataset == range(10)
-    assert dataloader.__pl_dl_kwargs == dict(batch_size=2)
-    assert dataloader.__pl_dl_arg_names == ("data",)
-    assert dataloader.__pl_dl_args == (data,)
-    assert dataloader.__dataset == range(10)
-
-    updated_dataloader = _update_dataloader(dataloader, dataloader.sampler)
-
-    assert isinstance(updated_dataloader, MyDataLoader)
-    assert updated_dataloader.data is data
-    assert updated_dataloader.dataset == range(10)
-    assert not hasattr(updated_dataloader, "__pl_dl_kwargs")
-    assert not hasattr(updated_dataloader, "__pl_dl_arg_names")
-    assert not hasattr(updated_dataloader, "__pl_dl_args")
-    assert not hasattr(updated_dataloader, "__dataset")
-
-
-def test_replace_dataloader_init_method3():
-    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
-    sets them as private attributes."""
-    # `poptorch.DataLoader` uses this pattern, simulate it
-    class PoptorchDataLoader(DataLoader):
-        def __init__(self, options, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self._options = options
-
-        @property
-        def options(self):
-            return self._options
-
-    # †his read-only property pattern is fine
-    dataloader = PoptorchDataLoader(123, [1])
-    assert dataloader.options == 123
-
-    # still works with the init replacement
-    with _replace_dataloader_init_method():
-        dataloader = PoptorchDataLoader(123, [1])
-
-    assert dataloader.options == 123
-    assert dataloader.dataset == [1]
-    assert dataloader.__pl_dl_kwargs == dict()
-    assert dataloader.__pl_dl_arg_names == ("options",)
-    assert dataloader.__pl_dl_args == (123, [1])
-    assert dataloader.__dataset == [1]
-
-    updated_dataloader = _update_dataloader(dataloader, dataloader.sampler)
-
-    assert isinstance(updated_dataloader, PoptorchDataLoader)
-    assert updated_dataloader.options == 123
-    assert updated_dataloader.dataset == [1]
-    assert not hasattr(updated_dataloader, "__pl_dl_kwargs")
-    assert not hasattr(updated_dataloader, "__pl_dl_arg_names")
-    assert not hasattr(updated_dataloader, "__pl_dl_args")
-    assert not hasattr(updated_dataloader, "__dataset")
-
-
-def test_replace_dataloader_init_method4():
-    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
-    sets them as private attributes."""
-    # Test we don't overwrite any value, that is set by the actual class
-    class IncompleteDataLoader(DataLoader):
-        def __init__(self, dataset, batch_size, **kwargs):
-            batch_size = max(batch_size - 5, 0)
-            super().__init__(dataset, batch_size=batch_size, **kwargs)
-
-    with _replace_dataloader_init_method():
-        dataloader = IncompleteDataLoader(range(10), batch_size=10)
-
-    assert dataloader.batch_size == 5
-    assert dataloader.dataset == range(10)
-    assert dataloader.__pl_dl_kwargs == dict(batch_size=10)
-    assert dataloader.__pl_dl_arg_names == ("dataset",)
-    assert dataloader.__pl_dl_args == (range(10),)
-    assert dataloader.__dataset == range(10)
-
-    updated_dataloader = _update_dataloader(dataloader, dataloader.sampler)
-
-    assert isinstance(updated_dataloader, IncompleteDataLoader)
-    assert updated_dataloader.batch_size == 5
-    assert updated_dataloader.dataset == range(10)
-    assert not hasattr(updated_dataloader, "__pl_dl_kwargs")
-    assert not hasattr(updated_dataloader, "__pl_dl_arg_names")
-    assert not hasattr(updated_dataloader, "__pl_dl_args")
-    assert not hasattr(updated_dataloader, "__dataset")
-
-
-def test_replace_dataloader_init_method5():
-    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
-    sets them as private attributes."""
-    # Test everything works, even if custom dataloader does not specify `dataset` argname
-    # and passes second argument as dataset
-    class WeirdDataLoader1(DataLoader):
-        def __init__(self, arg1, arg2, **kwargs):
-            self.arg1 = arg1
-            super().__init__(arg2, **kwargs)
-
-    with _replace_dataloader_init_method():
-        dataloader = WeirdDataLoader1(10, range(10), batch_size=10)
-
-    assert dataloader.dataset == range(10)
-    assert dataloader.arg1 == 10
-    assert dataloader.batch_size == 10
-    assert dataloader.__pl_dl_kwargs == dict(batch_size=10)
-    assert dataloader.__pl_dl_arg_names == ("arg1", "arg2")
-    assert dataloader.__pl_dl_args == (10, range(10))
-    assert dataloader.__dataset == range(10)
-
-    updated_dataloader = _update_dataloader(dataloader, dataloader.sampler)
-
-    assert isinstance(updated_dataloader, WeirdDataLoader1)
-    assert updated_dataloader.dataset == range(10)
-    assert updated_dataloader.arg1 == 10
-    assert updated_dataloader.batch_size == 10
-    assert not hasattr(updated_dataloader, "__pl_dl_kwargs")
-    assert not hasattr(updated_dataloader, "__pl_dl_arg_names")
-    assert not hasattr(updated_dataloader, "__pl_dl_args")
-    assert not hasattr(updated_dataloader, "__dataset")
-
-
-def test_replace_dataloader_init_method6():
-    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
-    sets them as private attributes."""
-    # Test everything works, even if custom dataloader makes changes to the args, that make up final dataset
-    class WeirdDataLoader2(DataLoader):
-        def __init__(self, data_part1, data_part2, **kwargs):
-            data = list(data_part1) + list(data_part2)
-            super().__init__(data, **kwargs)
-
-    with _replace_dataloader_init_method():
-        dataloader = WeirdDataLoader2(range(10), range(10, 20), batch_size=10)
-
-    assert dataloader.dataset == list(range(20))
-    assert dataloader.batch_size == 10
-    assert dataloader.__pl_dl_kwargs == dict(batch_size=10)
-    assert dataloader.__pl_dl_arg_names == ("data_part1", "data_part2")
-    assert dataloader.__pl_dl_args == (range(10), range(10, 20))
-    assert dataloader.__dataset == list(range(20))
-
-    updated_dataloader = _update_dataloader(dataloader, dataloader.sampler)
-
-    assert isinstance(updated_dataloader, WeirdDataLoader2)
-    assert updated_dataloader.dataset == list(range(20))
-    assert updated_dataloader.batch_size == 10
-    assert not hasattr(updated_dataloader, "__pl_dl_kwargs")
-    assert not hasattr(updated_dataloader, "__pl_dl_arg_names")
-    assert not hasattr(updated_dataloader, "__pl_dl_args")
-    assert not hasattr(updated_dataloader, "__dataset")
-
-
-def test_replace_dataloader_init_method7():
-    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
-    sets them as private attributes."""
-
-    class NoneDataLoader(DataLoader):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-
-    with _replace_dataloader_init_method():
-        dataloader = NoneDataLoader(None)
-
-    assert dataloader.dataset is None
-    assert dataloader.__pl_dl_kwargs == dict()
-    assert dataloader.__pl_dl_arg_names == ()
-    assert dataloader.__pl_dl_args == (None,)
-    assert dataloader.__dataset is None
-
-    updated_dataloader = _update_dataloader(dataloader, dataloader.sampler)
-
-    assert isinstance(updated_dataloader, NoneDataLoader)
-    assert updated_dataloader.dataset is None
-    assert not hasattr(updated_dataloader, "__pl_dl_kwargs")
-    assert not hasattr(updated_dataloader, "__pl_dl_arg_names")
-    assert not hasattr(updated_dataloader, "__pl_dl_args")
-    assert not hasattr(updated_dataloader, "__dataset")
-
-
-def test_replace_dataloader_init_method8():
-    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
-    sets them as private attributes."""
-
-    class ChangingDataLoader(DataLoader):
-        def __init__(self, dataset, **kwargs):
-            super().__init__(list(dataset) + list(range(5, 10)), **kwargs)
-
-    with _replace_dataloader_init_method():
-        dataloader = ChangingDataLoader(range(5))
-
-    assert dataloader.dataset == list(range(10))
-    assert dataloader.__pl_dl_kwargs == dict()
-    assert dataloader.__pl_dl_arg_names == ("dataset",)
-    assert dataloader.__pl_dl_args == (range(5),)
-    assert dataloader.__dataset == list(range(10))
-
-    updated_dataloader = _update_dataloader(dataloader, dataloader.sampler)
-
-    assert isinstance(updated_dataloader, ChangingDataLoader)
-    assert updated_dataloader.dataset == list(range(10))
-    assert not hasattr(updated_dataloader, "__pl_dl_kwargs")
-    assert not hasattr(updated_dataloader, "__pl_dl_arg_names")
-    assert not hasattr(updated_dataloader, "__pl_dl_args")
-    assert not hasattr(updated_dataloader, "__dataset")
+    for key, value in checked_values.items():
+        dataloader_value = getattr(dataloader, key)
+        if isinstance(dataloader_value, torch.Tensor):
+            assert dataloader_value is value
+        else:
+            assert getattr(dataloader, key) == value
 
 
 @pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])
