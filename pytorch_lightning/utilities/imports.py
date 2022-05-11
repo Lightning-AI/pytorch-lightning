@@ -85,6 +85,25 @@ def _compare_version(package: str, op: Callable, version: str, use_base_version:
     return op(pkg_version, Version(version))
 
 
+class _RequirementAvaliable:
+    """Boolean-like class for check of requirement with extras and version specifiers."""
+
+    def __init__(self, requirement: str):
+        self.available = True
+        self.message = ""
+        try:
+            pkg_resources.require([requirement])
+        except Exception as ex:
+            self.available = False
+            self.message = f"Requirement '{requirement}' not met, {ex.__class__.__name__}: {ex}"
+
+    def __bool__(self):
+        return self.available
+
+    def __str__(self):
+        return self.message
+
+
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
 _PYTHON_GREATER_EQUAL_3_8_0 = Version(platform.python_version()) >= Version("3.8.0")
@@ -100,7 +119,6 @@ _BAGUA_AVAILABLE = _package_available("bagua")
 _DEEPSPEED_AVAILABLE = _package_available("deepspeed")
 _DEEPSPEED_GREATER_EQUAL_0_5_9 = _DEEPSPEED_AVAILABLE and _compare_version("deepspeed", operator.ge, "0.5.9")
 _DEEPSPEED_GREATER_EQUAL_0_6 = _DEEPSPEED_AVAILABLE and _compare_version("deepspeed", operator.ge, "0.6.0")
-_DOCSTRING_PARSER_AVAILABLE = _package_available("docstring_parser")
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
 _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
 _FAIRSCALE_FULLY_SHARDED_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.4")
@@ -109,7 +127,6 @@ _HIVEMIND_AVAILABLE = _package_available("hivemind")
 _HOROVOD_AVAILABLE = _module_available("horovod.torch")
 _HYDRA_AVAILABLE = _package_available("hydra")
 _HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
-_JSONARGPARSE_AVAILABLE = _package_available("jsonargparse") and _compare_version("jsonargparse", operator.ge, "4.7.1")
 _KINETO_AVAILABLE = _TORCH_GREATER_EQUAL_1_8_1 and torch.profiler.kineto_available()
 _NEPTUNE_AVAILABLE = _package_available("neptune")
 _NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", operator.ge, "0.9.0")
