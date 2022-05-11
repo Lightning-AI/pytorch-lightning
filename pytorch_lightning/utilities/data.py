@@ -300,7 +300,7 @@ def _get_dataloader_init_args_and_kwargs(
             )
 
     if _FaultTolerantMode.detect_current_mode().is_automatic:
-        dl_args, dl_kwargs = _apply_fault_tolerant_automatic_capture_dataset_wrapper_args_kwargs(
+        dl_args, dl_kwargs = _apply_fault_tolerant_automatic_capture_dataset_wrapper(
             was_wrapped, arg_names, dl_args, dl_kwargs
         )
 
@@ -407,16 +407,20 @@ def _replace_dataloader_init_method() -> Generator[None, None, None]:
     """This context manager is used to add support for re-instantiation of custom (subclasses) of
     :class:`~torch.utils.data.DataLoader`. It patches the ``__init__`` method."""
     subclasses = _get_all_subclasses(DataLoader) | {DataLoader}
+    _wrapped = set()
     for subclass in subclasses:
-        subclass._old_init = subclass.__init__
-        subclass.__init__ = _wrap_dataloader_init(subclass.__init__)
+        if subclass.__init__ not in _wrapped:
+            subclass._old_init = subclass.__init__
+            subclass.__init__ = _wrap_dataloader_init(subclass.__init__)
+            _wrapped.add(subclass.__init__)
     yield
     for subclass in subclasses:
-        subclass.__init__ = subclass._old_init
-        del subclass._old_init
+        if hasattr(subclass, "_old_init"):
+            subclass.__init__ = subclass._old_init
+            del subclass._old_init
 
 
-def _apply_fault_tolerant_automatic_capture_dataset_wrapper(dataset: Dataset) -> Dataset:
+def _wrap_with_capture_dataset(dataset: Dataset) -> Dataset:
     if isinstance(dataset, IterableDataset):
         # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
         return CaptureIterableDataset(dataset=dataset)
@@ -426,23 +430,24 @@ def _apply_fault_tolerant_automatic_capture_dataset_wrapper(dataset: Dataset) ->
         raise MisconfigurationException("This shouldn't happen, please open an issue on Lightning Github repository.")
 
 
-def _apply_fault_tolerant_automatic_capture_dataset_wrapper_args_kwargs(
+def _apply_fault_tolerant_automatic_capture_dataset_wrapper(
     was_wrapped: bool, arg_names: Tuple[str, ...], dl_args: Tuple[Any, ...], dl_kwargs: Dict[str, Any]
 ) -> Dict[str, Any]:
     if "dataset" in dl_kwargs:
-        dl_kwargs["dataset"] = _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs["dataset"])
+        dl_kwargs["dataset"] = _wrap_with_capture_dataset(dl_kwargs["dataset"])
     elif "dataset" in arg_names:
         dataset_idx = arg_names.index("dataset")
-        dataset = _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_args[dataset_idx])
+        dataset = _wrap_with_capture_dataset(dl_args[dataset_idx])
         dl_args = dl_args[:dataset_idx] + (dataset,) + dl_args[dataset_idx + 1 :]
     else:
         if was_wrapped:
             avoid_message = (
                 " To avoid this, either pass your dataset in kwargs or use argument name `dataset`"
-                " in signature of `__init__` method of your DataLoader."
+                " in signature of `__init__` method of your DataLoader. An example is "
+                "`DataLoader(dataset=your_dataset)` or `def __init__(self, dataset, ...)`"
             )
         else:
-            avoid_message = " To avoid this, define self.dataset in `__init__` method of your DataLoader."
+            avoid_message = " To avoid this, define `self.dataset = dataset` in `__init__` method of your DataLoader."
 
         raise MisconfigurationException(
             "You enabled automatic Fault Tolerant mode, but we were not able to replace your dataset"
@@ -453,10 +458,14 @@ def _apply_fault_tolerant_automatic_capture_dataset_wrapper_args_kwargs(
 
 
 def _is_dataloader_shuffled(dataloader: object) -> bool:
-    if hasattr(dataloader, "shuffle"):
+    if hasattr(dataloader, "__pl_dl_kwargs"):
         # this attribute is not part of PyTorch's DataLoader, but could have been set by
         # our `_replace_dataloader_init_method` context manager
-        return dataloader.shuffle
+
+        if "shuffle" in dataloader.__pl_dl_kwargs:
+            return dataloader.__pl_dl_kwargs
+        if "shuffle" in dataloader.__pl_dl_arg_names:
+            return dataloader.__pl_dl_args[dataloader.__pl_dl_arg_names.index("shuffle")]
     if isinstance(dataloader.dataset, IterableDataset):
         # shuffling is useless with iterable datasets
         return False

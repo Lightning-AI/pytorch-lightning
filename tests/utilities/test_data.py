@@ -169,7 +169,7 @@ def test_update_dataloader_typerror_custom_exception():
     assert isinstance(new_dataloader, GoodImpl)
 
 
-def test_replace_dataloader_init_method():
+def test_replace_dataloader_init_method1():
     """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
     sets them as private attributes."""
 
@@ -229,7 +229,11 @@ def test_replace_dataloader_init_method():
     assert not hasattr(updated_dataloader, "__pl_dl_args")
     assert not hasattr(updated_dataloader, "__dataset")
 
-    # Failing test case from issue 12564
+
+def test_replace_dataloader_init_method2():
+    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
+    sets them as private attributes."""  # Failing test case from issue 12564
+
     class MyBaseDataLoader(DataLoader):
         pass
 
@@ -260,6 +264,10 @@ def test_replace_dataloader_init_method():
     assert not hasattr(updated_dataloader, "__pl_dl_args")
     assert not hasattr(updated_dataloader, "__dataset")
 
+
+def test_replace_dataloader_init_method3():
+    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
+    sets them as private attributes."""
     # `poptorch.DataLoader` uses this pattern, simulate it
     class PoptorchDataLoader(DataLoader):
         def __init__(self, options, *args, **kwargs):
@@ -295,6 +303,10 @@ def test_replace_dataloader_init_method():
     assert not hasattr(updated_dataloader, "__pl_dl_args")
     assert not hasattr(updated_dataloader, "__dataset")
 
+
+def test_replace_dataloader_init_method4():
+    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
+    sets them as private attributes."""
     # Test we don't overwrite any value, that is set by the actual class
     class IncompleteDataLoader(DataLoader):
         def __init__(self, dataset, batch_size, **kwargs):
@@ -321,6 +333,10 @@ def test_replace_dataloader_init_method():
     assert not hasattr(updated_dataloader, "__pl_dl_args")
     assert not hasattr(updated_dataloader, "__dataset")
 
+
+def test_replace_dataloader_init_method5():
+    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
+    sets them as private attributes."""
     # Test everything works, even if custom dataloader does not specify `dataset` argname
     # and passes second argument as dataset
     class WeirdDataLoader1(DataLoader):
@@ -350,6 +366,10 @@ def test_replace_dataloader_init_method():
     assert not hasattr(updated_dataloader, "__pl_dl_args")
     assert not hasattr(updated_dataloader, "__dataset")
 
+
+def test_replace_dataloader_init_method6():
+    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
+    sets them as private attributes."""
     # Test everything works, even if custom dataloader makes changes to the args, that make up final dataset
     class WeirdDataLoader2(DataLoader):
         def __init__(self, data_part1, data_part2, **kwargs):
@@ -376,6 +396,11 @@ def test_replace_dataloader_init_method():
     assert not hasattr(updated_dataloader, "__pl_dl_args")
     assert not hasattr(updated_dataloader, "__dataset")
 
+
+def test_replace_dataloader_init_method7():
+    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
+    sets them as private attributes."""
+
     class NoneDataLoader(DataLoader):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
@@ -397,6 +422,11 @@ def test_replace_dataloader_init_method():
     assert not hasattr(updated_dataloader, "__pl_dl_arg_names")
     assert not hasattr(updated_dataloader, "__pl_dl_args")
     assert not hasattr(updated_dataloader, "__dataset")
+
+
+def test_replace_dataloader_init_method8():
+    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
+    sets them as private attributes."""
 
     class ChangingDataLoader(DataLoader):
         def __init__(self, dataset, **kwargs):
