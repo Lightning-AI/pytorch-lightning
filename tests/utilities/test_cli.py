@@ -1009,7 +1009,9 @@ def test_lightning_cli_datamodule_short_arguments():
         assert isinstance(cli.datamodule, BoringDataModule)
         run.assert_called_once_with(ANY, ANY, ANY, cli.datamodule, ANY)
 
-    with mock.patch("sys.argv", ["any.py", "--data=MyDataModule", "--data.foo", "123"]):
+    with mock.patch("sys.argv", ["any.py", "--data=MyDataModule", "--data.foo", "123"]), mock_subclasses(
+        LightningDataModule, MyDataModule
+    ):
         cli = LightningCLI(BoringModel, run=False)
         assert isinstance(cli.datamodule, MyDataModule)
         assert cli.datamodule.foo == 123
@@ -1026,7 +1028,7 @@ def test_lightning_cli_datamodule_short_arguments():
 
     with mock.patch("sys.argv", ["any.py", "--model", "BoringModel", "--data=MyDataModule"]), mock_subclasses(
         LightningModule, BoringModel
-    ):
+    ), mock_subclasses(LightningDataModule, MyDataModule):
         cli = LightningCLI(run=False)
         assert isinstance(cli.model, BoringModel)
         assert isinstance(cli.datamodule, MyDataModule)
