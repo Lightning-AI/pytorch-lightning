@@ -97,12 +97,11 @@ class _RequirementAvailable:
     """
 
     def __init__(self, requirement: str) -> None:
-        self.available = None
         self.requirement = requirement
         self.__repr__ = self.__str__
 
     def _check_requirement(self) -> None:
-        if self.available is None:
+        if not hasattr(self, "available"):
             try:
                 pkg_resources.require([self.requirement])
             except Exception as ex:
