@@ -40,9 +40,8 @@ def _load_requirements(
         if not req or req.startswith("http") or "@http" in req:
             continue
         # remove version restrictions unless they are strict
-        if unfreeze and "<" in req and "strict" not in comment:
+        if unfreeze and "<=" in req and "strict" not in comment:
             req = re.sub(r",? *<= *[\d\.\*]+", "", req).strip()
-            req = req[:-1] if req[-1] == "," else req
         reqs.append(req)
     return reqs
 
