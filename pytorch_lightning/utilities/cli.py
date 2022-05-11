@@ -35,7 +35,6 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.seed import _select_seed_randomly
 
-
 _JSONARGPARSE_SIGNATURES_AVAILABLE = _RequirementAvaliable("jsonargparse[signatures]>=4.7.1")
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
