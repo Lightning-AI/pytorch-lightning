@@ -280,7 +280,7 @@ def _get_dataloader_init_args_and_kwargs(
 
     if not has_variadic_kwargs:
         # the dataloader signature does not allow keyword arguments that need to be passed
-        missing_kwargs = (set(dl_kwargs.keys()) | set(arg_names)) - set(params.keys())
+        missing_kwargs = (set(dl_kwargs) | set(arg_names)) - params.keys()
         if missing_kwargs:
             missing_kwargs = sorted(missing_kwargs)
             dataloader_cls_name = dataloader.__class__.__name__
