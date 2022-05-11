@@ -75,6 +75,9 @@ The below table lists all relevant strategies available in Lightning with their 
    * - bagua
      - :class:`~pytorch_lightning.strategies.BaguaStrategy`
      - Strategy for training using the Bagua library, with advanced distributed training algorithms and system optimizations. :ref:`Learn more. <accelerators/gpu_intermediate:Bagua>`
+   * - collaborative
+     - :class:`~pytorch_lightning.strategies.CollaborativeStrategy`
+     - Strategy for training collaboratively on local machines or unreliable GPUs across the internet. :ref:`Learn more. <strategies/collaborative_training:Training on unreliable mixed GPUs across the internet>`
    * - fsdp
      - :class:`~pytorch_lightning.strategies.DDPFullyShardedStrategy`
      - Strategy for Fully Sharded Data Parallel provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Fully Sharded Training>`
