@@ -199,7 +199,7 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
             if self.trainer.state.fn == TrainerFn.TUNING:
                 self._test_on_val_test_predict_tune_start()
             else:
-                assert self.trainer.current_epoch == state_dict["epoch"]
+                assert self.trainer.current_epoch == state_dict["epoch"] + 1
                 assert self.trainer.global_step == state_dict["global_step"]
                 assert self._check_model_state_dict()
                 assert self._check_optimizers()

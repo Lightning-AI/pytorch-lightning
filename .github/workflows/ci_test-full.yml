@@ -98,10 +98,6 @@ jobs:
       shell: bash
 
     - name: Install extra dependencies
-      env:
-        HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
-        HOROVOD_WITHOUT_MXNET: 1
-        HOROVOD_WITHOUT_TENSORFLOW: 1
       run: |
         # adjust versions according installed Torch version
         python ./requirements/adjust-versions.py requirements/extra.txt
@@ -119,7 +115,7 @@ jobs:
         HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
         if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
           pip uninstall -y horovod
-          echo $(grep "horovod" requirements/extra.txt) > requirements/horovod.txt
+          grep "horovod" requirements/strategies.txt > requirements/horovod.txt
           pip install --no-cache-dir -r requirements/horovod.txt
         fi
         horovodrun --check-build

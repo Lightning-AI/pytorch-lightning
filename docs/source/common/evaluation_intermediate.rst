@@ -44,10 +44,13 @@ To run the test set after training completes, use this method.
     # (1) load the best checkpoint automatically (lightning tracks this for you)
     trainer.test(ckpt_path="best")
 
-    # (2) test using a specific checkpoint
+    # (2) load the last available checkpoint
+    trainer.test(ckpt_path="last")
+
+    # (3) test using a specific checkpoint
     trainer.test(ckpt_path="/path/to/my_checkpoint.ckpt")
 
-    # (3) test with an explicit model (will use this model and not load a checkpoint)
+    # (4) test with an explicit model (will use this model and not load a checkpoint)
     trainer.test(model)
 
 .. warning::
@@ -82,7 +85,7 @@ To run the test set on a pre-trained model, use this method.
 
     model = MyLightningModule.load_from_checkpoint(
         checkpoint_path="/path/to/pytorch_checkpoint.ckpt",
-        hparams_file="/path/to/test_tube/experiment/version/hparams.yaml",
+        hparams_file="/path/to/experiment/version/hparams.yaml",
         map_location=None,
     )
 

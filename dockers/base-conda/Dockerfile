@@ -29,7 +29,11 @@ ENV \
     # CUDA_TOOLKIT_ROOT_DIR="/usr/local/cuda" \
     MKL_THREADING_LAYER=GNU
 
-RUN apt-get update -qq --fix-missing && \
+RUN \
+    # TODO: Remove the manual key installation once the base image is updated.
+    # https://github.com/NVIDIA/nvidia-docker/issues/1631
+    apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub && \
+    apt-get update -qq --fix-missing && \
     apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
@@ -87,6 +91,7 @@ ENV \
 COPY ./requirements.txt requirements.txt
 COPY ./requirements/extra.txt requirements-extra.txt
 COPY ./requirements/examples.txt requirements-examples.txt
+COPY ./requirements/strategies.txt requirements-strategies.txt
 COPY ./requirements/adjust-versions.py requirements_adjust_versions.py
 COPY ./.actions/assistant.py assistant.py
 
@@ -104,16 +109,6 @@ RUN \
     pip install -r requirements-examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
     rm assistant.py
 
-RUN \
-   apt-get purge -y cmake && \
-   wget -q https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2.tar.gz && \
-   tar -zxvf cmake-3.20.2.tar.gz && \
-   cd cmake-3.20.2 && \
-   ./bootstrap -- -DCMAKE_USE_OPENSSL=OFF && \
-   make && \
-   make install && \
-   cmake  --version
-
 ENV \
     # if you want this environment to be the default o \ne, uncomment the following line:
     CONDA_DEFAULT_ENV=${CONDA_ENV} \
@@ -129,7 +124,7 @@ RUN \
    HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
    export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
    cat requirements_horovod.txt && \
-   pip install --no-cache-dir -r requirements_horovod.txt && \
+   pip install --no-cache-dir -r requirements-strategies.txt && \
    rm requirements*
 
 RUN \
@@ -146,16 +141,6 @@ RUN \
     # install NVIDIA apex
     pip install --no-cache-dir --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip && \
     python -c "from apex import amp"
-
-RUN \
-    # install FairScale
-    pip install fairscale==0.4.5 && \
-    python -c "import fairscale; print(fairscale.__version__)"
-
-RUN \
-    # install DeepSpeed
-    pip install deepspeed==0.6.0 && \
-    python -c "import deepspeed; print(deepspeed.__version__)"
 
 RUN \
     # install Bagua

@@ -7,9 +7,6 @@ pip-wheel-metadata/
 lightning_logs/
 .vscode/
 
-# Test-tube
-test_tube_*/
-
 # Documentations
 docs/source/api
 docs/source/*.md

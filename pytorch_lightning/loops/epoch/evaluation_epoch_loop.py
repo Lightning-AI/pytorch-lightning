@@ -88,6 +88,21 @@ class EvaluationEpochLoop(Loop):
         # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
         data_fetcher.fetched += self.batch_progress.current.ready
 
+        stage = self.trainer.state.stage
+        assert stage is not None
+        stage = stage.dataloader_prefix
+        self._profiler_fetch_action = (
+            f"[{self.__class__.__name__}].{stage}_dataloader_idx_{kwargs.get('dataloader_idx', 0)}_next"
+        )
+        data_fetcher._start_profiler = self._on_before_fetch
+        data_fetcher._stop_profiler = self._on_after_fetch
+
+    def _on_before_fetch(self) -> None:
+        self.trainer.profiler.start(self._profiler_fetch_action)
+
+    def _on_after_fetch(self) -> None:
+        self.trainer.profiler.stop(self._profiler_fetch_action)
+
     def advance(  # type: ignore[override]
         self,
         data_fetcher: AbstractDataFetcher,
@@ -216,10 +231,8 @@ class EvaluationEpochLoop(Loop):
         Returns:
             the outputs of the step
         """
-        if self.trainer.testing:
-            output = self.trainer._call_strategy_hook("test_step", *kwargs.values())
-        else:
-            output = self.trainer._call_strategy_hook("validation_step", *kwargs.values())
+        hook_name = "test_step" if self.trainer.testing else "validation_step"
+        output = self.trainer._call_strategy_hook(hook_name, *kwargs.values())
 
         return output
 
@@ -266,7 +279,7 @@ class EvaluationEpochLoop(Loop):
         self.trainer._logger_connector.on_batch_end()
 
     def _build_kwargs(self, kwargs: OrderedDict, batch: Any, batch_idx: int) -> OrderedDict:
-        """Helper function to build the arguments for the current step.
+        """Helper method to build the arguments for the current step.
 
         Args:
             kwargs: The kwargs passed down to the hooks.
@@ -275,7 +288,8 @@ class EvaluationEpochLoop(Loop):
         Returns:
             The kwargs passed down to the hooks.
         """
-        kwargs.update({"batch": batch, "batch_idx": batch_idx})
+        kwargs.update(batch=batch, batch_idx=batch_idx)
+        # `dataloader_idx` should be last so we need to push these to the front
         kwargs.move_to_end("batch_idx", last=False)
         kwargs.move_to_end("batch", last=False)
         return kwargs
