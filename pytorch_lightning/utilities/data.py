@@ -441,12 +441,11 @@ def _apply_fault_tolerant_automatic_capture_dataset_wrapper(
     else:
         if was_wrapped:
             avoid_message = (
-                " To avoid this, either pass your dataset in kwargs or use argument name `dataset`"
-                " in signature of `__init__` method of your DataLoader. An example is "
-                "`DataLoader(dataset=your_dataset)` or `def __init__(self, dataset, ...)`"
+                " To avoid this, either pass `DataLoader(dataset=your_dataset)` or the positional dataset argument"
+                " `DataLoader(your_dataset, ...)`."
             )
         else:
-            avoid_message = " To avoid this, define `self.dataset = dataset` in `__init__` method of your DataLoader."
+            avoid_message = " To avoid this, define `self.dataset = dataset` inside your DataLoader's `__init__`."
 
         raise MisconfigurationException(
             "You enabled automatic Fault Tolerant mode, but we were not able to replace your dataset"
@@ -460,9 +459,8 @@ def _is_dataloader_shuffled(dataloader: object) -> bool:
     if hasattr(dataloader, "__pl_dl_kwargs"):
         # this attribute is not part of PyTorch's DataLoader, but could have been set by
         # our `_replace_dataloader_init_method` context manager
-
         if "shuffle" in dataloader.__pl_dl_kwargs:
-            return dataloader.__pl_dl_kwargs
+            return dataloader.__pl_dl_kwargs["shuffle"]
         if "shuffle" in dataloader.__pl_dl_arg_names:
             return dataloader.__pl_dl_args[dataloader.__pl_dl_arg_names.index("shuffle")]
     if isinstance(dataloader.dataset, IterableDataset):
