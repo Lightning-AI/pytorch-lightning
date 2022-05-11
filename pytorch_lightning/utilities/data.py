@@ -424,15 +424,14 @@ def _wrap_with_capture_dataset(dataset: Dataset) -> Dataset:
     if isinstance(dataset, IterableDataset):
         # wrap the `IterableDataset` into a `CaptureIterableDataset` to record sampler states.
         return CaptureIterableDataset(dataset=dataset)
-    elif get_len(dataset) != float("inf"):
+    if get_len(dataset) != float("inf"):
         return CaptureMapDataset(dataset=dataset)
-    else:
-        raise MisconfigurationException("This shouldn't happen, please open an issue on Lightning Github repository.")
+    raise RuntimeError("This shouldn't happen, please open an issue on Lightning Github repository.")
 
 
 def _apply_fault_tolerant_automatic_capture_dataset_wrapper(
     was_wrapped: bool, arg_names: Tuple[str, ...], dl_args: Tuple[Any, ...], dl_kwargs: Dict[str, Any]
-) -> Dict[str, Any]:
+) -> Tuple[Tuple[str, ...], Dict[str, Any]]:
     if "dataset" in dl_kwargs:
         dl_kwargs["dataset"] = _wrap_with_capture_dataset(dl_kwargs["dataset"])
     elif "dataset" in arg_names:
