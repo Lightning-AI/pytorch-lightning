@@ -191,7 +191,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed mismatching default values for the types of some arguments in the DeepSpeed and Fully-Sharded strategies which made the CLI unable to use them ([#12989](https://github.com/PyTorchLightning/pytorch-lightning/pull/12989))
 
 
--
+- Fixed an issue with unsupported torch.inference_mode() on hpu backends by making it use no_grad ([#13014](https://github.com/PyTorchLightning/pytorch-lightning/pull/13014))
 
 
 -
