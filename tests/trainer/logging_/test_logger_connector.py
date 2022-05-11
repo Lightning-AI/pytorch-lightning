@@ -30,7 +30,7 @@ from tests.helpers.runif import RunIf
 from tests.models.test_hooks import get_members
 
 
-def test_fx_validator(tmpdir):
+def test_fx_validator():
     funcs_name = get_members(Callback)
 
     callbacks_func = {
@@ -259,7 +259,8 @@ def test_fx_validator_integration(tmpdir):
         limit_predict_batches=1,
         callbacks=callback,
     )
-    trainer.fit(model)
+    with pytest.deprecated_call(match="is deprecated in"):
+        trainer.fit(model)
 
     not_supported.update(
         {
@@ -271,7 +272,8 @@ def test_fx_validator_integration(tmpdir):
             "on_test_end": "You can't",
         }
     )
-    trainer.test(model, verbose=False)
+    with pytest.deprecated_call(match="is deprecated in"):
+        trainer.test(model, verbose=False)
 
     not_supported.update({k: "result collection is not registered yet" for k in not_supported})
     not_supported.update(
@@ -287,7 +289,8 @@ def test_fx_validator_integration(tmpdir):
             "on_predict_end": "result collection is not registered yet",
         }
     )
-    trainer.predict(model)
+    with pytest.deprecated_call(match="is deprecated in"):
+        trainer.predict(model)
 
 
 @RunIf(min_gpus=2)
