@@ -129,16 +129,6 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
     if has_val_step and not has_val_loader:
         rank_zero_warn("You defined a `validation_step` but have no `val_dataloader`. Skipping val loop.")
 
-    # ----------------------------------------------
-    # verify model does not have on_val_dataloader
-    # ----------------------------------------------
-    has_on_val_dataloader = is_overridden("on_val_dataloader", model)
-    if has_on_val_dataloader:
-        rank_zero_deprecation(
-            "Method `on_val_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
-            " Please use `val_dataloader()` directly."
-        )
-
 
 def _check_on_post_move_to_device(model: "pl.LightningModule") -> None:
     r"""

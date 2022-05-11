@@ -521,7 +521,6 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         dict(name="Callback.on_pretrain_routine_end", args=(trainer, model)),
         dict(name="on_pretrain_routine_end"),
         dict(name="Callback.on_sanity_check_start", args=(trainer, model)),
-        dict(name="on_val_dataloader"),
         dict(name="val_dataloader"),
         dict(name="train", args=(False,)),
         dict(name="on_validation_model_eval"),

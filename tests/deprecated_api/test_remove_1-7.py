@@ -43,9 +43,6 @@ def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
         def on_train_dataloader(self):
             print("on_train_dataloader")
 
-        def on_val_dataloader(self):
-            print("on_val_dataloader")
-
         def on_test_dataloader(self):
             print("on_test_dataloader")
 
@@ -62,16 +59,6 @@ def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
         match="Method `on_train_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
     ):
         _run(model, "fit")
-
-    with pytest.deprecated_call(
-        match="Method `on_val_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
-    ):
-        _run(model, "fit")
-
-    with pytest.deprecated_call(
-        match="Method `on_val_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
-    ):
-        _run(model, "validate")
 
     with pytest.deprecated_call(
         match="Method `on_test_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."

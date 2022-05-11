@@ -164,7 +164,6 @@ class _FxValidator:
         "configure_optimizers": None,
         "on_train_dataloader": None,
         "train_dataloader": None,
-        "on_val_dataloader": None,
         "val_dataloader": None,
         "on_test_dataloader": None,
         "test_dataloader": None,

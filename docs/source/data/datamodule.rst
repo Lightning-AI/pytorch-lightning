@@ -366,12 +366,6 @@ on_train_dataloader
 .. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.on_train_dataloader
     :noindex:
 
-on_val_dataloader
-=================
-
-.. automethod:: pytorch_lightning.core.datamodule.LightningDataModule.on_val_dataloader
-    :noindex:
-
 on_test_dataloader
 ==================
 

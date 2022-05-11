@@ -636,14 +636,6 @@ class DataHooks:
             Please use :meth:`train_dataloader()` directly.
         """
 
-    def on_val_dataloader(self) -> None:
-        """Called before requesting the val dataloader.
-
-        .. deprecated:: v1.5
-            :meth:`on_val_dataloader` is deprecated and will be removed in v1.7.0.
-            Please use :meth:`val_dataloader()` directly.
-        """
-
     def on_test_dataloader(self) -> None:
         """Called before requesting the test dataloader.
 

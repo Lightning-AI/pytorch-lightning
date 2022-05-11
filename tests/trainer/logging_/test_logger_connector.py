@@ -229,7 +229,6 @@ def test_fx_validator_integration(tmpdir):
         "on_pretrain_routine_end": "You can't",
         "on_train_dataloader": "You can't",
         "train_dataloader": "You can't",
-        "on_val_dataloader": "You can't",
         "val_dataloader": "You can't",
         "on_validation_end": "You can't",
         "on_train_end": "You can't",

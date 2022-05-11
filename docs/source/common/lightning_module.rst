@@ -1615,12 +1615,6 @@ on_train_dataloader
 .. automethod:: pytorch_lightning.core.lightning.LightningModule.on_train_dataloader
     :noindex:
 
-on_val_dataloader
-~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_val_dataloader
-    :noindex:
-
 on_test_dataloader
 ~~~~~~~~~~~~~~~~~~
 
