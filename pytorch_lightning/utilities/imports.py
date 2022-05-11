@@ -88,12 +88,12 @@ def _compare_version(package: str, op: Callable, version: str, use_base_version:
 class _RequirementAvailable:
     """Boolean-like class for check of requirement with extras and version specifiers.
 
-    >>> _RequirementAvailable("jsonargparse[signatures]>=4.7.3")
-    Requirement 'jsonargparse[signatures]>=4.7.3' not met, VersionConflict: (jsonargparse 4.7.2 ..., Requirement.parse('jsonargparse[signatures]>=4.7.3'))
-    >>> bool(_RequirementAvailable("jsonargparse[signatures]>=4.7.3"))
-    False
-    >>> bool(_RequirementAvailable("jsonargparse[signatures]>=4.7.2"))
+    >>> _RequirementAvailable("torch>=0.1")
+    Requirement 'torch>=0.1' met
+    >>> bool(_RequirementAvailable("torch>=0.1"))
     True
+    >>> bool(_RequirementAvailable("torch>100.0"))
+    False
     """
 
     def __init__(self, requirement: str) -> None:
