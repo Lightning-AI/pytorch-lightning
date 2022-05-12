@@ -16,7 +16,7 @@ To track other artifacts, such as histograms or model topology graphs first sele
 
     from pytorch_lightning import loggers as pl_loggers
 
-    tensorboard = pl_loggers.TensorBoardLogger()
+    tensorboard = pl_loggers.TensorBoardLogger(save_dir="")
     trainer = Trainer(logger=tensorboard)
 
 then access the logger's API directly
