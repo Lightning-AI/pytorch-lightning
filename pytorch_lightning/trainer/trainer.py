@@ -1805,13 +1805,13 @@ class Trainer(
             model: The ``LightningModule`` if calling this outside of the trainer scope.
         """
         source = self._data_connector._train_dataloader_source
-        pl_module = self.lightning_module or model
+        pl_module = model or self.lightning_module
         has_step = is_overridden("training_step", pl_module)
         enable_training = self.limit_train_batches > 0
         if not (source.is_defined() and has_step and enable_training):
             return
 
-        self.train_dataloader = self._data_connector._request_dataloader(RunningStage.TRAINING, model=model)
+        self.train_dataloader = self._data_connector._request_dataloader(RunningStage.TRAINING)
 
         if self.overfit_batches > 0:
             self.train_dataloader = self._data_connector._resolve_overfit_batches(

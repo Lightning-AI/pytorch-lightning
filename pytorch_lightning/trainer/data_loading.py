@@ -59,4 +59,4 @@ class TrainerDataLoadingMixin(ABC):
         rank_zero_deprecation(
             "`TrainerDataLoadingMixin.request_dataloader` was deprecated in v1.6 and will be removed in v1.8."
         )
-        return self._data_connector._request_dataloader(stage, model)
+        return self._data_connector._request_dataloader(stage)
