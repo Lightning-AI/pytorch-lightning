@@ -30,6 +30,7 @@ from pytorch_lightning.profiler.profiler import Profiler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE, _TORCH_GREATER_EQUAL_1_9
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.types import _PATH
 from pytorch_lightning.utilities.warnings import WarningCache
 
 if TYPE_CHECKING:
@@ -417,7 +418,8 @@ class BasePyTorchProfiler(Profiler):
 
         super().teardown(stage=stage)
 
-    def _get_profiler_class(self) -> Type:
+    @staticmethod
+    def _get_profiler_class() -> Type:
         """Get the profiler class for created profiler instance."""
         raise NotImplementedError
 
@@ -557,7 +559,8 @@ class PyTorchProfilerLegacy(BasePyTorchProfiler):
             # Those schedule defaults allow the profiling overhead to be negligible over training time.
             return torch.profiler.schedule(wait=1, warmup=1, active=3)
 
-    def _get_profiler_class(self) -> Type:
+    @staticmethod
+    def _get_profiler_class() -> Type:
         return torch.profiler.profile if _KINETO_AVAILABLE else torch.autograd.profiler.profile
 
     def _init_profiler(self, action_name: str) -> None:
@@ -623,7 +626,7 @@ class PyTorchProfilerLegacy(BasePyTorchProfiler):
             self._schedule.reset()
 
 
-class KinetoProfilerState(IntEnum):
+class _KinetoProfilerState(IntEnum):
 
     NONE = 0
     """PyTorch profiler is not created or is stopped."""
@@ -639,7 +642,7 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
 
     def __init__(
         self,
-        dirpath: Optional[Union[str, Path]] = None,
+        dirpath: Optional[_PATH] = None,
         filename: Optional[str] = None,
         group_by_input_shapes: bool = False,
         emit_nvtx: bool = False,
@@ -717,13 +720,13 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
         self._override_steps = False
 
         self._start_action_name: Optional[str] = None
-        self._profiler_state = KinetoProfilerState.NONE
+        self._profiler_state = _KinetoProfilerState.NONE
         self._action_map = {
-            (KinetoProfilerState.NONE, KinetoProfilerState.WARMUP): [torch.profiler._KinetoProfile.prepare_trace],
-            (KinetoProfilerState.NONE, KinetoProfilerState.START): [torch.profiler._KinetoProfile.start],
-            (KinetoProfilerState.WARMUP, KinetoProfilerState.START): [torch.profiler._KinetoProfile.start_trace],
-            (KinetoProfilerState.START, KinetoProfilerState.NONE): [torch.profiler._KinetoProfile.stop],
-            (KinetoProfilerState.START, KinetoProfilerState.WARMUP): [
+            (_KinetoProfilerState.NONE, _KinetoProfilerState.WARMUP): [torch.profiler._KinetoProfile.prepare_trace],
+            (_KinetoProfilerState.NONE, _KinetoProfilerState.START): [torch.profiler._KinetoProfile.start],
+            (_KinetoProfilerState.WARMUP, _KinetoProfilerState.START): [torch.profiler._KinetoProfile.start_trace],
+            (_KinetoProfilerState.START, _KinetoProfilerState.NONE): [torch.profiler._KinetoProfile.stop],
+            (_KinetoProfilerState.START, _KinetoProfilerState.WARMUP): [
                 torch.profiler._KinetoProfile.stop,
                 torch.profiler._KinetoProfile.prepare_trace,
             ],
@@ -732,7 +735,8 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
         if _KINETO_AVAILABLE:
             self._init_kineto_params(profiler_kwargs)
 
-    def _get_profiler_class(self) -> Type:
+    @staticmethod
+    def _get_profiler_class() -> Type:
         return torch.profiler._KinetoProfile if _KINETO_AVAILABLE else torch.autograd.profiler.profile
 
     def _init_profiler(self, action_name: str) -> None:
@@ -751,7 +755,7 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
             if _TORCH_GREATER_EQUAL_1_9:
                 self.profiler.add_metadata("Framework", "pytorch-lightning")
 
-            self._transit_profiler(KinetoProfilerState.START)
+            self._transit_profiler(_KinetoProfilerState.START)
 
     def _start_action(self, action_name: str) -> None:
         self._action_step_num[action_name] += 1
@@ -779,10 +783,10 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
         step_num = self._action_step_num[action_name]
         if step_num == self._wait_step:
             # warm up
-            self._transit_profiler(KinetoProfilerState.WARMUP)
+            self._transit_profiler(_KinetoProfilerState.WARMUP)
         elif step_num >= self._wait_step + self._warmup_step and step_num < self.profile_steps:
             # begin profile
-            self._transit_profiler(KinetoProfilerState.START)
+            self._transit_profiler(_KinetoProfilerState.START)
 
     def _stop_action(self, action_name: str) -> None:
         if self.profiler is not None and any(action_name.endswith(func) for func in self.STEP_FUNCTIONS):
@@ -792,7 +796,7 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
                 self._start_action_name = action_name
 
             if self._action_step_num[action_name] == self.profile_steps:
-                self._transit_profiler(KinetoProfilerState.NONE)
+                self._transit_profiler(_KinetoProfilerState.NONE)
                 if self.dirpath is not None:
                     self._save_result(action_name)
                 else:
@@ -805,7 +809,7 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
             else:
                 # At the moment, the profiler should already be stoped.
                 if torch.autograd._profiler_enabled():
-                    self._transit_profiler(KinetoProfilerState.NONE)
+                    self._transit_profiler(_KinetoProfilerState.NONE)
                     self._save_result(self._start_action_name)
             self._cache_functions_events()
             self.profiler = None
@@ -840,7 +844,7 @@ class PyTorchProfilerKineto(BasePyTorchProfiler):
         if action_name.endswith("predict_step"):
             return sum(trainer.num_predict_batches)
 
-    def _transit_profiler(self, new_state: KinetoProfilerState):
+    def _transit_profiler(self, new_state: _KinetoProfilerState) -> None:
         action_list = self._action_map.get((self._profiler_state, new_state))
         if action_list:
             for action in action_list:

@@ -634,7 +634,7 @@ def test_profile_callbacks(tmpdir):
 
 
 @pytest.mark.skipif(
-    not (_TORCH_GREATER_EQUAL_1_11 and hasattr(torch.profiler, "_KinetoProfile")),
+    not (_TORCH_GREATER_EQUAL_1_11),
     reason="Requires PyTorch lower level profiler API",
 )
 def test_kineto_profile(tmpdir):
