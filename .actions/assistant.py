@@ -7,7 +7,7 @@ from typing import Sequence
 import fire
 
 REQUIREMENT_FILES = (
-    "requirements.txt",
+    "requirements/base.txt",
     "requirements/extra.txt",
     "requirements/loggers.txt",
     "requirements/strategies.txt",
