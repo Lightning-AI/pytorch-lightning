@@ -105,7 +105,7 @@ class DeviceStatsMonitor(Callback):
         pl_module: "pl.LightningModule",
         batch: Any,
         batch_idx: int,
-        unused: Optional[int] = 0,
+        unused: int = 0,
     ) -> None:
         self._get_and_log_device_stats(trainer, "on_train_batch_start")
 
