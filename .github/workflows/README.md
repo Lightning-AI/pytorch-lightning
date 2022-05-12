@@ -19,7 +19,7 @@
   - GPU: 2 x NVIDIA P100
   - TPU: Google GKE TPUv2/3
   - IPU: [Colossus MK1 IPU](https://www.graphcore.ai/products/ipu)
-  - HPU: [AWS EC2 dl1.24xlarge](https://aws.amazon.com/ec2/instance-types/dl1/) which has 8 Gaudi accelerators
+  - HPU: [Intel Habana Gaudi SYS-420GH-TNGR](https://www.supermicro.com/en/products/system/AI/4U/SYS-420GH-TNGR) which has 8 Gaudi accelerators
 
 ## Documentation
 
@@ -34,15 +34,15 @@
 
 | workflow file                     | action                                 |
 | --------------------------------- | -------------------------------------- |
-| .codecov.yml                      | Measure test coverage with codecov.io. |
-| .github/workflows/code-checks.yml | Check typing with mypy.                |
+| .codecov.yml                      | Measure test coverage with [codecov.io](https://app.codecov.io/gh/PyTorchLightning/pytorch-lightning) |
+| .github/workflows/code-checks.yml | Check Python typing with [MyPy](https://mypy.readthedocs.io/en/stable/).                |
 | .github/workflows/ci_schema.yml   | Validate the syntax of workflow files. |
 
 ## Others
 
 | workflow file                          | action                                                                                                                                                                                                               |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| .github/workflows/ci_dockers.yml       | Build docker images used for testing in CI without pushing to the Docker Hub (pytorchlightning/pytorch_lightning). Publishing these built images takes place in .github/release-docker.yml which only runs in mater. |
+| .github/workflows/ci_dockers.yml       | Build docker images used for testing in CI without pushing to the [Docker Hub](https://hub.docker.com/r/pytorchlightning/pytorch_lightning). Publishing these built images takes place in `.github/release-docker.yml` which only runs in mater. |
 | .github/workflows/ci_pkg-install.yml   | Test if pytorch-lightning is successfully installed using pip.                                                                                                                                                       |
 | .github/workflows/events-recurrent.yml | Terminate TPU jobs that live more than one hour to avoid possible resource exhaustion due to hangs.                                                                                                                  |
 
