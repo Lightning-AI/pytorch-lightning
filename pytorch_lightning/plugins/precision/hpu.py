@@ -16,6 +16,7 @@ from typing import Optional, Union
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _HPU_AVAILABLE
+from pytorch_lightning.utilities.enums import PrecisionType
 
 if _HPU_AVAILABLE:
     from habana_frameworks.torch.hpex import hmp
@@ -50,7 +51,7 @@ class HPUPrecisionPlugin(PrecisionPlugin):
             )
         super().__init__()
         self.precision = precision
-        if precision in (16, "bf16"):
+        if precision in (PrecisionType.HALF, PrecisionType.BFLOAT):
             hmp.convert(
                 opt_level=opt_level, bf16_file_path=bf16_file_path, fp32_file_path=fp32_file_path, isVerbose=verbose
             )
