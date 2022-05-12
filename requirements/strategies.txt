@@ -1,5 +1,5 @@
 fairscale>=0.4.5, <=0.4.6
-deepspeed<0.6.0
+deepspeed<0.7.0
 # no need to install with [pytorch] as pytorch is already installed
 horovod>=0.21.2,!=0.24.0, <=0.24.3
 hivemind>=1.0.1, <=1.0.1; sys_platform == 'linux'
