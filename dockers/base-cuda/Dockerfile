@@ -90,7 +90,6 @@ RUN \
     python ./requirements/adjust-versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     # Install all requirements \
     pip install -r requirements/devel.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
-    rm -rf requirements.* && \
     rm assistant.py
 
 RUN \
@@ -120,8 +119,7 @@ RUN \
     echo $HOROVOD_BUILD_CUDA_CC_LIST && \
     cmake --version && \
     pip install --no-cache-dir -r ./requirements/strategies.txt && \
-    horovodrun --check-build && \
-    rm -rf requirements/
+    horovodrun --check-build
 
 RUN \
     CUDA_VERSION_MAJOR=$(python -c "import torch; print(torch.version.cuda.split('.')[0])") && \
@@ -156,6 +154,6 @@ RUN \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
-    python check-avail-extras.py && \
-    python check-avail-strategies.py && \
-    rm check-avail-*.py
+    python requirements/check-avail-extras.py && \
+    python requirements/check-avail-strategies.py && \
+    rm -rf requirements/
