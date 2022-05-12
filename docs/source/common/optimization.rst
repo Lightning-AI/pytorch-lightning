@@ -127,7 +127,7 @@ Under the hood, Lightning will call each optimizer sequentially:
             lr_scheduler.step()
 
 
-Step Optimizeres at Arbitrary Intervals
+Step Optimizers at Arbitrary Intervals
 =======================================
 
 To do more interesting things with your optimizers such as learning rate warm-up or odd scheduling,
