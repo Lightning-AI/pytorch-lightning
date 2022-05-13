@@ -19,7 +19,7 @@ pr:
 jobs:
   - job: pytest
     # how long to run the job before automatically cancelling
-    timeoutInMinutes: "55"
+    timeoutInMinutes: "65"
     # how much time to give 'run always even if cancelled tasks' before stopping them
     cancelTimeoutInMinutes: "2"
 
