@@ -45,7 +45,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements.txt') }}
+        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ hashFiles('requirements/base.txt') }}
         restore-keys: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.requires }}-
 
     - name: Install dependencies
@@ -53,8 +53,8 @@ jobs:
         python --version
         python -m pip install --upgrade --user pip
         pip --version
-        pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
-        pip install --requirement requirements/test.txt
+        pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+        pip install -r requirements/test.txt
         pip list
       shell: bash
 

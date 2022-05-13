@@ -94,16 +94,6 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
             " `training_step()`, `train_dataloader()` and `configure_optimizers()` to be defined."
         )
 
-    # ----------------------------------------------
-    # verify model does not have on_train_dataloader
-    # ----------------------------------------------
-    has_on_train_dataloader = is_overridden("on_train_dataloader", model)
-    if has_on_train_dataloader:
-        rank_zero_deprecation(
-            "Method `on_train_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
-            " Please use `train_dataloader()` directly."
-        )
-
     trainer.overridden_optimizer_step = is_overridden("optimizer_step", model)
     trainer.overridden_optimizer_zero_grad = is_overridden("optimizer_zero_grad", model)
     automatic_optimization = model.automatic_optimization
@@ -129,16 +119,6 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
     if has_val_step and not has_val_loader:
         rank_zero_warn("You defined a `validation_step` but have no `val_dataloader`. Skipping val loop.")
 
-    # ----------------------------------------------
-    # verify model does not have on_val_dataloader
-    # ----------------------------------------------
-    has_on_val_dataloader = is_overridden("on_val_dataloader", model)
-    if has_on_val_dataloader:
-        rank_zero_deprecation(
-            "Method `on_val_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
-            " Please use `val_dataloader()` directly."
-        )
-
 
 def _check_on_post_move_to_device(model: "pl.LightningModule") -> None:
     r"""
@@ -158,20 +138,9 @@ def __verify_eval_loop_configuration(trainer: "pl.Trainer", model: "pl.Lightning
     loader_name = f"{stage}_dataloader"
     step_name = "validation_step" if stage == "val" else f"{stage}_step"
     trainer_method = "validate" if stage == "val" else stage
-    on_eval_hook = f"on_{loader_name}"
 
     has_loader = getattr(trainer._data_connector, f"_{stage}_dataloader_source").is_defined()
     has_step = is_overridden(step_name, model)
-    has_on_eval_dataloader = is_overridden(on_eval_hook, model)
-
-    # ----------------------------------------------
-    # verify model does not have on_eval_dataloader
-    # ----------------------------------------------
-    if has_on_eval_dataloader:
-        rank_zero_deprecation(
-            f"Method `{on_eval_hook}` is deprecated in v1.5.0 and will"
-            f" be removed in v1.7.0. Please use `{loader_name}()` directly."
-        )
 
     # -----------------------------------
     # verify model has an eval_dataloader
