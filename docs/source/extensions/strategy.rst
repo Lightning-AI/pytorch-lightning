@@ -84,7 +84,7 @@ The below table lists all relevant strategies available in Lightning with their 
    * - ddp_sharded
      - :class:`~pytorch_lightning.strategies.DDPShardedStrategy`
      - Optimizer and gradient sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Sharded Training>`
-   * - ddp_spawn_sharded
+   * - ddp_sharded_spawn
      - :class:`~pytorch_lightning.strategies.DDPSpawnShardedStrategy`
      - Optimizer sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Sharded Training>`
    * - ddp_spawn
