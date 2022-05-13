@@ -19,6 +19,7 @@ import logging
 import numbers
 import os
 import tempfile
+import weakref
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, overload, Sequence, Tuple, Union
@@ -45,6 +46,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.utilities.memory import get_model_size_mb
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.parsing import collect_init_args
@@ -2065,4 +2067,9 @@ class LightningModule(
         from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook
 
         self._register_state_dict_hook(state_dict_hook)
-        self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
+
+        if _TORCH_GREATER_EQUAL_1_12:
+            self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
+        else:
+            # We need to make sure the self inside the method is a weakref proxy
+            self.__class__._register_load_state_dict_pre_hook(weakref.proxy(self), pre_load_state_dict_hook, True)
