@@ -186,7 +186,7 @@ def materialize_module(root_module: nn.Module) -> nn.Module:
         if not materialize_fn or isinstance(child, (Sequential, ModuleList, ModuleDict)):
             materialize_module(child)
         else:
-            setattr(child, name, materialize_fn())
+            setattr(root_module, name, materialize_fn())
     return root_module
 
 
