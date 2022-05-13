@@ -162,11 +162,8 @@ class _FxValidator:
             allowed_on_step=(False,), allowed_on_epoch=(True,), default_on_step=False, default_on_epoch=True
         ),
         "configure_optimizers": None,
-        "on_train_dataloader": None,
         "train_dataloader": None,
-        "on_val_dataloader": None,
         "val_dataloader": None,
-        "on_test_dataloader": None,
         "test_dataloader": None,
         "prepare_data": None,
         "configure_callbacks": None,

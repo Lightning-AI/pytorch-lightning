@@ -521,7 +521,6 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         dict(name="Callback.on_pretrain_routine_end", args=(trainer, model)),
         dict(name="on_pretrain_routine_end"),
         dict(name="Callback.on_sanity_check_start", args=(trainer, model)),
-        dict(name="on_val_dataloader"),
         dict(name="val_dataloader"),
         dict(name="train", args=(False,)),
         dict(name="on_validation_model_eval"),
@@ -536,7 +535,6 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         dict(name="Callback.on_sanity_check_end", args=(trainer, model)),
         # duplicate `train` because `_run_train` calls it again in case validation wasn't run
         dict(name="train", args=(True,)),
-        dict(name="on_train_dataloader"),
         dict(name="train_dataloader"),
         dict(name="Callback.on_train_start", args=(trainer, model)),
         dict(name="on_train_start"),
@@ -642,7 +640,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         dict(name="Callback.on_pretrain_routine_end", args=(trainer, model)),
         dict(name="on_pretrain_routine_end"),
         dict(name="train", args=(True,)),
-        dict(name="on_train_dataloader"),
         dict(name="train_dataloader"),
         dict(name="Callback.on_train_start", args=(trainer, model)),
         dict(name="on_train_start"),
@@ -738,7 +735,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
         dict(name="Callback.on_pretrain_routine_end", args=(trainer, model)),
         dict(name="on_pretrain_routine_end"),
         dict(name="train", args=(True,)),
-        dict(name="on_train_dataloader"),
         dict(name="train_dataloader"),
         dict(name="Callback.on_train_start", args=(trainer, model)),
         dict(name="on_train_start"),
@@ -789,7 +785,6 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
     fn = getattr(trainer, verb)
     fn(model, verbose=False)
     hooks = [
-        dict(name=f"on_{dataloader}_dataloader"),
         dict(name=f"{dataloader}_dataloader"),
         dict(name="train", args=(False,)),
         dict(name=f"on_{noun}_model_eval"),
@@ -842,7 +837,6 @@ def test_trainer_model_hook_system_predict(tmpdir):
         dict(name="setup", kwargs=dict(stage="predict")),
         dict(name="configure_sharded_model"),
         dict(name="Callback.on_configure_sharded_model", args=(trainer, model)),
-        dict(name="on_predict_dataloader"),
         dict(name="predict_dataloader"),
         dict(name="train", args=(False,)),
         dict(name="on_predict_model_eval"),
