@@ -94,6 +94,7 @@ _TORCH_GREATER_EQUAL_1_9_1 = _compare_version("torch", operator.ge, "1.9.1")
 _TORCH_GREATER_EQUAL_1_10 = _compare_version("torch", operator.ge, "1.10.0")
 _TORCH_LESSER_EQUAL_1_10_2 = _compare_version("torch", operator.le, "1.10.2")
 _TORCH_GREATER_EQUAL_1_11 = _compare_version("torch", operator.ge, "1.11.0")
+_TORCH_GREATER_EQUAL_1_12 = _compare_version("torch", operator.ge, "1.12.0", use_base_version=True)
 
 _APEX_AVAILABLE = _module_available("apex.amp")
 _BAGUA_AVAILABLE = _package_available("bagua")
