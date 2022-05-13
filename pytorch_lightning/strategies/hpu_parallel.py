@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 import os
-from typing import Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 import torch.distributed
@@ -21,6 +21,7 @@ import torch.distributed
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.torch_distributed import broadcast_object_list
+from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -47,9 +48,15 @@ class HPUParallelStrategy(DDPStrategy):
         self,
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
+        cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
+        ddp_comm_state: Optional[object] = None,
+        ddp_comm_hook: Optional[callable] = None,
+        ddp_comm_wrapper: Optional[callable] = None,
+        model_averaging_period: Optional[int] = None,
         process_group_backend: Optional[str] = "hccl",
+        **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
 
         if not _HPU_AVAILABLE:
@@ -58,9 +65,15 @@ class HPUParallelStrategy(DDPStrategy):
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
+            cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io or HPUCheckpointIO(),
             precision_plugin=precision_plugin,
+            ddp_comm_state=ddp_comm_state,
+            ddp_comm_hook=ddp_comm_hook,
+            ddp_comm_wrapper=ddp_comm_wrapper,
+            model_averaging_period=model_averaging_period,
             process_group_backend=process_group_backend,
+            **kwargs,
         )
 
     def setup_environment(self) -> None:
@@ -77,7 +90,7 @@ class HPUParallelStrategy(DDPStrategy):
     def determine_ddp_device_ids(self) -> None:
         return None
 
-    def pre_configure_ddp(self):  # type: ignore
+    def _pre_configure_ddp(self):  # type: ignore
         # if unset, default `find_unused_parameters` `True`
         # Many models require setting this parameter to True, as there are corner cases
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
@@ -99,7 +112,7 @@ class HPUParallelStrategy(DDPStrategy):
         # DDP does not accept static graph as param with torch < 1.11
         if _TORCH_LESSER_EQUAL_1_10_2:
             log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
-            self.pre_configure_ddp()
+            self._pre_configure_ddp()
             self.model = self._setup_model(LightningDistributedModule(self.model))  # type: ignore
             if self.root_device.type == "hpu" and self._static_graph:
                 self._model._set_static_graph()  # type: ignore
