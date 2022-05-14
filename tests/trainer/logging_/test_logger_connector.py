@@ -30,7 +30,7 @@ from tests.helpers.runif import RunIf
 from tests.models.test_hooks import get_members
 
 
-def test_fx_validator(tmpdir):
+def test_fx_validator():
     funcs_name = get_members(Callback)
 
     callbacks_func = {
@@ -194,7 +194,6 @@ class HookedModel(BoringModel):
                 "on_before_batch_transfer",
                 "transfer_batch_to_device",
                 "on_after_batch_transfer",
-                "get_progress_bar_dict",
             }
         )
         # remove `nn.Module` hooks
@@ -228,9 +227,7 @@ def test_fx_validator_integration(tmpdir):
         "on_fit_start": "You can't",
         "on_pretrain_routine_start": "You can't",
         "on_pretrain_routine_end": "You can't",
-        "on_train_dataloader": "You can't",
         "train_dataloader": "You can't",
-        "on_val_dataloader": "You can't",
         "val_dataloader": "You can't",
         "on_validation_end": "You can't",
         "on_train_end": "You can't",
@@ -262,27 +259,25 @@ def test_fx_validator_integration(tmpdir):
         limit_predict_batches=1,
         callbacks=callback,
     )
-    with pytest.deprecated_call(match="on_train_dataloader` is deprecated in v1.5"):
+    with pytest.deprecated_call(match="is deprecated in"):
         trainer.fit(model)
 
     not_supported.update(
         {
             # `lightning_module` ref is now present from the `fit` call
             "on_before_accelerator_backend_setup": "You can't",
-            "on_test_dataloader": "You can't",
             "test_dataloader": "You can't",
             "on_test_model_eval": "You can't",
             "on_test_model_train": "You can't",
             "on_test_end": "You can't",
         }
     )
-    with pytest.deprecated_call(match="on_test_dataloader` is deprecated in v1.5"):
+    with pytest.deprecated_call(match="is deprecated in"):
         trainer.test(model, verbose=False)
 
     not_supported.update({k: "result collection is not registered yet" for k in not_supported})
     not_supported.update(
         {
-            "on_predict_dataloader": "result collection is not registered yet",
             "predict_dataloader": "result collection is not registered yet",
             "on_predict_model_eval": "result collection is not registered yet",
             "on_predict_start": "result collection is not registered yet",
@@ -294,7 +289,7 @@ def test_fx_validator_integration(tmpdir):
             "on_predict_end": "result collection is not registered yet",
         }
     )
-    with pytest.deprecated_call(match="on_predict_dataloader` is deprecated in v1.5"):
+    with pytest.deprecated_call(match="is deprecated in"):
         trainer.predict(model)
 
 

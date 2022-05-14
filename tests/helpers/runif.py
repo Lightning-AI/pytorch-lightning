@@ -20,17 +20,20 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
-from pytorch_lightning.utilities import (
+from pytorch_lightning.utilities.imports import (
     _APEX_AVAILABLE,
     _BAGUA_AVAILABLE,
     _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
+    _HIVEMIND_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _OMEGACONF_AVAILABLE,
+    _PSUTIL_AVAILABLE,
     _RICH_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_10,
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
 )
@@ -67,6 +70,7 @@ class RunIf:
         min_python: Optional[str] = None,
         quantization: bool = False,
         amp_apex: bool = False,
+        bf16_cuda: bool = False,
         tpu: bool = False,
         ipu: bool = False,
         hpu: bool = False,
@@ -82,6 +86,8 @@ class RunIf:
         omegaconf: bool = False,
         slow: bool = False,
         bagua: bool = False,
+        psutil: bool = False,
+        hivemind: bool = False,
         **kwargs,
     ):
         """
@@ -93,6 +99,7 @@ class RunIf:
             min_python: Require that Python is greater or equal than this version.
             quantization: Require that `torch.quantization` is available.
             amp_apex: Require that NVIDIA/apex is installed.
+            bf16_cuda: Require that CUDA device supports bf16.
             tpu: Require that TPU is available.
             ipu: Require that IPU is available.
             hpu: Require that HPU is available.
@@ -108,6 +115,8 @@ class RunIf:
             omegaconf: Require that omry/omegaconf is installed.
             slow: Mark the test as slow, our CI will run it in a separate job.
             bagua: Require that BaguaSys/bagua is installed.
+            psutil: Require that psutil is installed.
+            hivemind: Require that Hivemind is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
@@ -140,6 +149,20 @@ class RunIf:
         if amp_apex:
             conditions.append(not _APEX_AVAILABLE)
             reasons.append("NVIDIA Apex")
+
+        if bf16_cuda:
+            try:
+                cond = not (torch.cuda.is_available() and _TORCH_GREATER_EQUAL_1_10 and torch.cuda.is_bf16_supported())
+            except (AssertionError, RuntimeError) as e:
+                # AssertionError: Torch not compiled with CUDA enabled
+                # RuntimeError: Found no NVIDIA driver on your system.
+                is_unrelated = "Found no NVIDIA driver" not in str(e) or "Torch not compiled with CUDA" not in str(e)
+                if is_unrelated:
+                    raise e
+                cond = True
+
+            conditions.append(cond)
+            reasons.append("CUDA device bf16")
 
         if skip_windows:
             conditions.append(sys.platform == "win32")
@@ -213,6 +236,14 @@ class RunIf:
         if bagua:
             conditions.append(not _BAGUA_AVAILABLE or sys.platform in ("win32", "darwin"))
             reasons.append("Bagua")
+
+        if psutil:
+            conditions.append(not _PSUTIL_AVAILABLE)
+            reasons.append("psutil")
+
+        if hivemind:
+            conditions.append(not _HIVEMIND_AVAILABLE or sys.platform in ("win32", "darwin"))
+            reasons.append("Hivemind")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(

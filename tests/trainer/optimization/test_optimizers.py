@@ -579,7 +579,15 @@ def test_optimizer_state_on_device(tmpdir):
             assert state["sum"].device == torch.device("cuda", self.local_rank) == self.device
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, accelerator="gpu", devices=2, strategy="ddp", fast_dev_run=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        devices=2,
+        strategy="ddp",
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
     trainer.fit(model)
 
 

@@ -88,7 +88,7 @@ class ModelHooks:
             Use ``on_fit_start`` instead.
         """
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, unused: int = 0) -> Optional[int]:
+    def on_train_batch_start(self, batch: Any, batch_idx: int) -> Optional[int]:
         """Called in the training loop before anything happens for that batch.
 
         If you return -1 here, you will skip training for the rest of the current epoch.
@@ -96,17 +96,15 @@ class ModelHooks:
         Args:
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
-            unused: Deprecated argument. Will be removed in v1.7.
         """
 
-    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, unused: int = 0) -> None:
+    def on_train_batch_end(self, outputs: STEP_OUTPUT, batch: Any, batch_idx: int) -> None:
         """Called in the training loop after the batch.
 
         Args:
             outputs: The outputs of training_step_end(training_step(x))
             batch: The batched data as it is returned by the training DataLoader.
             batch_idx: the index of the batch
-            unused: Deprecated argument. Will be removed in v1.7.
         """
 
     def on_validation_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int) -> None:
@@ -629,38 +627,6 @@ class DataHooks:
         raise MisconfigurationException(
             "`predict_dataloader` must be implemented to be used with the Lightning Trainer"
         )
-
-    def on_train_dataloader(self) -> None:
-        """Called before requesting the train dataloader.
-
-        .. deprecated:: v1.5
-            :meth:`on_train_dataloader` is deprecated and will be removed in v1.7.0.
-            Please use :meth:`train_dataloader()` directly.
-        """
-
-    def on_val_dataloader(self) -> None:
-        """Called before requesting the val dataloader.
-
-        .. deprecated:: v1.5
-            :meth:`on_val_dataloader` is deprecated and will be removed in v1.7.0.
-            Please use :meth:`val_dataloader()` directly.
-        """
-
-    def on_test_dataloader(self) -> None:
-        """Called before requesting the test dataloader.
-
-        .. deprecated:: v1.5
-            :meth:`on_test_dataloader` is deprecated and will be removed in v1.7.0.
-            Please use :meth:`test_dataloader()` directly.
-        """
-
-    def on_predict_dataloader(self) -> None:
-        """Called before requesting the predict dataloader.
-
-        .. deprecated:: v1.5
-            :meth:`on_predict_dataloader` is deprecated and will be removed in v1.7.0.
-            Please use :meth:`predict_dataloader()` directly.
-        """
 
     def transfer_batch_to_device(self, batch: Any, device: torch.device, dataloader_idx: int) -> Any:
         """Override this hook if your :class:`~torch.utils.data.DataLoader` returns tensors wrapped in a custom

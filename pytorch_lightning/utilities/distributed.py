@@ -25,6 +25,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_debug as new_rank_ze
 from pytorch_lightning.utilities.rank_zero import rank_zero_only  # noqa: F401
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 from pytorch_lightning.utilities.rank_zero import rank_zero_info as new_rank_zero_info
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn as new_rank_zero_warn
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -281,8 +282,6 @@ def register_ddp_comm_hook(
         ...     ddp_comm_wrapper=default.fp16_compress_wrapper,
         ... )
     """
-    from pytorch_lightning.utilities import rank_zero_warn
-
     if ddp_comm_hook is None:
         return
     # inform mypy that ddp_comm_hook is callable
@@ -290,14 +289,16 @@ def register_ddp_comm_hook(
 
     if ddp_comm_wrapper is not None:
         if not _TORCH_GREATER_EQUAL_1_9:
-            rank_zero_warn("Not applying DDP comm wrapper. To use communication wrapper, please use pytorch>=1.9.0.")
+            new_rank_zero_warn(
+                "Not applying DDP comm wrapper. To use communication wrapper, please use pytorch>=1.9.0."
+            )
         else:
             new_rank_zero_info(
                 f"DDP comm wrapper is provided, apply {ddp_comm_wrapper.__qualname__}({ddp_comm_hook.__qualname__})."
             )
             ddp_comm_hook = ddp_comm_wrapper(ddp_comm_hook)
 
-    rank_zero_debug(f"Registering DDP comm hook: {ddp_comm_hook.__qualname__}.")
+    new_rank_zero_debug(f"Registering DDP comm hook: {ddp_comm_hook.__qualname__}.")
     model.register_comm_hook(state=ddp_comm_state, hook=ddp_comm_hook)
 
 

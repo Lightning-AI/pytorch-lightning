@@ -22,7 +22,8 @@ from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 
 Task, Style = None, None
 if _RICH_AVAILABLE:
-    from rich.console import Console, RenderableType
+    from rich import get_console, reconfigure
+    from rich.console import RenderableType
     from rich.progress import BarColumn, Progress, ProgressColumn, Task, TaskID, TextColumn
     from rich.progress_bar import ProgressBar
     from rich.style import Style
@@ -193,7 +194,7 @@ class RichProgressBarTheme:
 
 
 class RichProgressBar(ProgressBarBase):
-    """Create a progress bar with `rich text formatting <https://github.com/willmcgugan/rich>`_.
+    """Create a progress bar with `rich text formatting <https://github.com/Textualize/rich>`_.
 
     Install it with pip:
 
@@ -278,7 +279,8 @@ class RichProgressBar(ProgressBarBase):
     def _init_progress(self, trainer):
         if self.is_enabled and (self.progress is None or self._progress_stopped):
             self._reset_progress_bar_ids()
-            self._console = Console(**self._console_kwargs)
+            reconfigure(**self._console_kwargs)
+            self._console = get_console()
             self._console.clear_live()
             self._metric_component = MetricsTextColumn(trainer, self.theme.metrics)
             self.progress = CustomProgress(
@@ -368,15 +370,19 @@ class RichProgressBar(ProgressBarBase):
                 f"[{self.theme.description}]{description}", total=total_batches, visible=visible
             )
 
-    def _update(self, progress_bar_id: int, current: int, total: Union[int, float], visible: bool = True) -> None:
-        if self.progress is not None and self._should_update(current, total):
+    def _update(self, progress_bar_id: int, current: int, visible: bool = True) -> None:
+        if self.progress is not None and self.is_enabled:
+            total = self.progress.tasks[progress_bar_id].total
+            if not self._should_update(current, total):
+                return
+
             leftover = current % self.refresh_rate
             advance = leftover if (current == total and leftover != 0) else self.refresh_rate
             self.progress.update(progress_bar_id, advance=advance, visible=visible)
             self.refresh()
 
     def _should_update(self, current: int, total: Union[int, float]) -> bool:
-        return self.is_enabled and (current % self.refresh_rate == 0 or current == total)
+        return current % self.refresh_rate == 0 or current == total
 
     def on_validation_epoch_end(self, trainer, pl_module):
         if self.val_progress_bar_id is not None and trainer.state.fn == "fit":
@@ -419,7 +425,7 @@ class RichProgressBar(ProgressBarBase):
         self.refresh()
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        self._update(self.main_progress_bar_id, self.train_batch_idx, self.total_train_batches)
+        self._update(self.main_progress_bar_id, self.train_batch_idx + self._val_processed)
         self._update_metrics(trainer, pl_module)
         self.refresh()
 
@@ -428,23 +434,20 @@ class RichProgressBar(ProgressBarBase):
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         if trainer.sanity_checking:
-            self._update(self.val_sanity_progress_bar_id, self.val_batch_idx, self.total_val_batches_current_dataloader)
+            self._update(self.val_sanity_progress_bar_id, self.val_batch_idx)
         elif self.val_progress_bar_id is not None:
             # check to see if we should update the main training progress bar
             if self.main_progress_bar_id is not None:
-                # TODO: Use total val_processed here just like TQDM in a follow-up
-                self._update(self.main_progress_bar_id, self.val_batch_idx, self.total_val_batches_current_dataloader)
-            self._update(self.val_progress_bar_id, self.val_batch_idx, self.total_val_batches_current_dataloader)
+                self._update(self.main_progress_bar_id, self.train_batch_idx + self._val_processed)
+            self._update(self.val_progress_bar_id, self.val_batch_idx)
         self.refresh()
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        self._update(self.test_progress_bar_id, self.test_batch_idx, self.total_test_batches_current_dataloader)
+        self._update(self.test_progress_bar_id, self.test_batch_idx)
         self.refresh()
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        self._update(
-            self.predict_progress_bar_id, self.predict_batch_idx, self.total_predict_batches_current_dataloader
-        )
+        self._update(self.predict_progress_bar_id, self.predict_batch_idx)
         self.refresh()
 
     def _get_train_description(self, current_epoch: int) -> str:

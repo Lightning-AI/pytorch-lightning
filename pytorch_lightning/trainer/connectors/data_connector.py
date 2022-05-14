@@ -71,14 +71,21 @@ class DataConnector:
 
     def on_trainer_init(
         self,
-        check_val_every_n_epoch: int,
+        val_check_interval: Union[int, float],
         reload_dataloaders_every_n_epochs: int,
+        check_val_every_n_epoch: Optional[int],
     ) -> None:
         self.trainer.datamodule = None
 
-        if not isinstance(check_val_every_n_epoch, int):
+        if check_val_every_n_epoch is not None and not isinstance(check_val_every_n_epoch, int):
             raise MisconfigurationException(
-                f"check_val_every_n_epoch should be an integer. Found {check_val_every_n_epoch}"
+                f"`check_val_every_n_epoch` should be an integer, found {check_val_every_n_epoch!r}."
+            )
+
+        if check_val_every_n_epoch is None and isinstance(val_check_interval, float):
+            raise MisconfigurationException(
+                "`val_check_interval` should be an integer when `check_val_every_n_epoch=None`,"
+                f" found {val_check_interval!r}."
             )
 
         self.trainer.check_val_every_n_epoch = check_val_every_n_epoch
@@ -104,7 +111,7 @@ class DataConnector:
         if datamodule is not None:
             dm_prepare_data_per_node = datamodule.prepare_data_per_node
             if (dm_prepare_data_per_node and local_rank_zero) or (not dm_prepare_data_per_node and global_rank_zero):
-                self.trainer.datamodule.prepare_data()
+                self.trainer._call_lightning_datamodule_hook("prepare_data")
         # handle lightning module prepare data:
         # check for prepare_data_per_node before calling lightning_module.prepare_data
         if lightning_module is not None:
@@ -134,14 +141,11 @@ class DataConnector:
         # set local properties on the model
         self._copy_trainer_model_properties(model)
 
-    def _copy_trainer_model_properties(self, model):
-        ref_model = self.trainer.lightning_module or model
-
-        for m in [model, ref_model]:
-            m.trainer = proxy(self.trainer)
-            # Remove setting use_amp in v1.8
-            m._use_amp = self.trainer.amp_backend is not None
-            m.precision = self.trainer.precision
+    def _copy_trainer_model_properties(self, model: "pl.LightningModule") -> None:
+        model.trainer = proxy(self.trainer)
+        # Remove setting use_amp in v1.8
+        model._use_amp = self.trainer.amp_backend is not None
+        model.precision = self.trainer.precision
 
     def attach_dataloaders(
         self,
@@ -344,7 +348,7 @@ class DataConnector:
         assert mode.evaluating or mode == RunningStage.PREDICTING
 
         # always get the loaders first so we can count how many there are
-        dataloaders = self._request_dataloader(mode, model=model)
+        dataloaders = self._request_dataloader(mode)
 
         if self.trainer.overfit_batches > 0:
             dataloaders = self._resolve_overfit_batches(dataloaders, mode)
@@ -374,13 +378,17 @@ class DataConnector:
         loader_num_batches = []
 
         # determine number of batches
-        # datasets could be none, 1 or 2+
         module = model or self.trainer.lightning_module or self.datamodule
         if len(dataloaders) != 0:
             for i, dataloader in enumerate(dataloaders):
                 orig_num_batches = num_batches = (
                     len(dataloader) if has_len_all_ranks(dataloader, self.trainer.strategy, module) else float("inf")
                 )
+
+                if orig_num_batches == 0:
+                    loader_num_batches.append(orig_num_batches)
+                    continue
+
                 self._worker_check(dataloader, f"{mode.dataloader_prefix}_dataloader {i}")
 
                 # percent or num_steps
@@ -388,32 +396,34 @@ class DataConnector:
 
                 # limit num batches either as a percent or num steps
                 if isinstance(limit_eval_batches, int):
-                    num_batches = min(num_batches, int(limit_eval_batches))
-                elif num_batches != float("inf"):
-                    num_batches = int(num_batches * limit_eval_batches)
+                    num_batches = min(orig_num_batches, limit_eval_batches)
+                elif isinstance(limit_eval_batches, float) and orig_num_batches != float("inf"):
+                    num_batches = int(orig_num_batches * limit_eval_batches)
                 elif limit_eval_batches != 1.0:
                     raise MisconfigurationException(
-                        f"When using an IterableDataset for `limit_{mode}_batches`,"
-                        f" `Trainer(limit_{mode.dataloader_prefix}_batches)` must be `1.0` or an int. An int k"
-                        f" specifies `num_{mode.dataloader_prefix}_batches` to use."
+                        f"When using an `IterableDataset`, `Trainer(limit_{mode.dataloader_prefix}_batches)` must be"
+                        f" `1.0` or an int. An int specifies `num_{mode.dataloader_prefix}_batches` to use."
                     )
 
-                if num_batches == 0 and limit_eval_batches > 0.0 and isinstance(limit_eval_batches, float):
-                    min_pct = 1.0 / len(dataloader)
+                if (
+                    num_batches == 0
+                    and limit_eval_batches > 0.0
+                    and isinstance(limit_eval_batches, float)
+                    and orig_num_batches != float("inf")
+                ):
+                    min_percentage = 1.0 / orig_num_batches
                     raise MisconfigurationException(
                         f"You requested to check {limit_eval_batches} of the `{mode.dataloader_prefix}_dataloader` but"
                         f" {limit_eval_batches} * {orig_num_batches} < 1. Please increase the"
-                        f" `limit_{mode.dataloader_prefix}_batches` flag. Try at least"
-                        f" `limit_{mode.dataloader_prefix}_batches={min_pct}`"
+                        f" `limit_{mode.dataloader_prefix}_batches` argument. Try at least"
+                        f" `limit_{mode.dataloader_prefix}_batches={min_percentage}`"
                     )
 
                 loader_num_batches.append(num_batches)
 
         return loader_num_batches, dataloaders
 
-    def _request_dataloader(
-        self, stage: RunningStage, model: Optional["pl.LightningModule"] = None
-    ) -> Union[DataLoader, List[DataLoader]]:
+    def _request_dataloader(self, stage: RunningStage) -> Union[DataLoader, List[DataLoader]]:
         """Requests a dataloader from the given model by calling dataloader hooks corresponding to the given stage.
 
         Returns:
@@ -421,11 +431,9 @@ class DataConnector:
         """
         source = getattr(self, f"_{stage.dataloader_prefix}_dataloader_source")
 
-        hook = f"{stage.dataloader_prefix}_dataloader"
-        self.trainer._call_lightning_module_hook("on_" + hook, pl_module=model)
         with _replace_dataloader_init_method():
             # under this context manager, the arguments passed to `DataLoader.__init__` will be captured and saved as
-            # attributes on the instance in case the dataloader needs to be re-instantiated later by Ligtning
+            # attributes on the instance in case the dataloader needs to be re-instantiated later by Lightning
             dataloader = source.dataloader()
         if isinstance(dataloader, tuple):
             dataloader = list(dataloader)
@@ -460,6 +468,7 @@ class DataConnector:
 
     @staticmethod
     def _check_eval_shuffling(dataloader, mode):
+        # limit this warning only for samplers assigned automatically when shuffle is set
         if _is_dataloader_shuffled(dataloader):
             rank_zero_warn(
                 f"Your `{mode.dataloader_prefix}_dataloader`'s sampler has shuffling enabled,"

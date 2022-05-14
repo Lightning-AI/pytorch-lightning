@@ -158,7 +158,7 @@ So you can run it like so:
 Validation
 ----------
 You can perform an evaluation epoch over the validation set, outside of the training loop,
-using :meth:`pytorch_lightning.trainer.trainer.Trainer.validate`. This might be
+using :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`. This might be
 useful if you want to collect new metrics from a model right at its initialization
 or after it has already been trained.
 
@@ -438,7 +438,7 @@ benchmark
 |
 
 Defaults to ``True`` if :paramref:`~pytorch_lightning.trainer.Trainer.deterministic` is not set.
-This flag sets the ``torch.backends.cudnn.deterministic`` flag. You can read more about its impact
+This flag sets the ``torch.backends.cudnn.benchmark`` flag. You can read more about its impact
 `here <https://pytorch.org/docs/stable/notes/randomness.html#cuda-convolution-benchmarking>`__
 
 This is likely to increase the speed of your system if your input sizes don't change. However, if they do, then it
@@ -464,12 +464,11 @@ deterministic
 
 |
 
-If true enables cudnn.deterministic.
+This flag sets the ``torch.backends.cudnn.deterministic`` flag.
 Might make your system slower, but ensures reproducibility.
 Also sets ``$HOROVOD_FUSION_THRESHOLD=0``.
 
-For more info check `[pytorch docs]
-<https://pytorch.org/docs/stable/notes/randomness.html>`_.
+For more info check `PyTorch docs <https://pytorch.org/docs/stable/notes/randomness.html>`_.
 
 Example::
 
@@ -535,12 +534,6 @@ Example::
 
     # run val loop every 10 training epochs
     trainer = Trainer(check_val_every_n_epoch=10)
-
-checkpoint_callback
-^^^^^^^^^^^^^^^^^^^
-
-.. warning:: `checkpoint_callback` has been deprecated in v1.5 and will be removed in v1.7.
-    To disable checkpointing, pass ``enable_checkpointing = False`` to the Trainer instead.
 
 
 default_root_dir
@@ -669,43 +662,38 @@ fast_dev_run
 
 |
 
-Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es) of train, val and test
-to find any bugs (ie: a sort of unit test).
-
-Under the hood the pseudocode looks like this when running *fast_dev_run* with a single batch:
+Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es) to ensure your code will execute without errors. This
+applies to fitting, validating, testing, and predicting. This flag is **only** recommended for debugging purposes and
+should not be used to limit the number of batches to run.
 
 .. code-block:: python
-
-    # loading
-    __init__()
-    prepare_data
-
-    # test training step
-    training_batch = next(train_dataloader)
-    training_step(training_batch)
-
-    # test val step
-    val_batch = next(val_dataloader)
-    out = validation_step(val_batch)
-    validation_epoch_end([out])
-
-.. testcode::
 
     # default used by the Trainer
     trainer = Trainer(fast_dev_run=False)
 
-    # runs 1 train, val, test batch and program ends
+    # runs only 1 training and 1 validation batch and the program ends
     trainer = Trainer(fast_dev_run=True)
+    trainer.fit(...)
 
-    # runs 7 train, val, test batches and program ends
+    # runs 7 predict batches and program ends
     trainer = Trainer(fast_dev_run=7)
+    trainer.predict(...)
 
-.. note::
+This argument is different from ``limit_{train,val,test,predict}_batches`` because side effects are avoided to reduce the
+impact to subsequent runs. These are the changes enabled:
 
-    This argument is a bit different from ``limit_train/val/test_batches``. Setting this argument will
-    disable tuner, checkpoint callbacks, early stopping callbacks, loggers and logger callbacks like
-    ``LearningRateLogger`` and runs for only 1 epoch. This must be used only for debugging purposes.
-    ``limit_train/val/test_batches`` only limits the number of batches and won't disable anything.
+- Sets ``Trainer(max_epochs=1)``.
+- Sets ``Trainer(max_steps=...)`` to 1 or the number passed.
+- Sets ``Trainer(num_sanity_val_steps=0)``.
+- Sets ``Trainer(val_check_interval=1.0)``.
+- Sets ``Trainer(check_every_n_epoch=1)``.
+- Disables all loggers.
+- Disables passing logged metrics to loggers.
+- The :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks will not trigger.
+- The :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callbacks will not trigger.
+- Sets ``limit_{train,val,test,predict}_batches`` to 1 or the number passed.
+- Disables the Tuner.
+- If using the CLI, the configuration file is not saved.
 
 flush_logs_every_n_steps
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -735,6 +723,9 @@ See Also:
 
 gpus
 ^^^^
+
+.. warning:: ``gpus=x`` has been deprecated in v1.7 and will be removed in v2.0.
+    Please use ``accelerator='gpu'`` and ``devices=x`` instead.
 
 .. raw:: html
 
@@ -777,7 +768,7 @@ Example::
     trainer = Trainer(gpus=[1, 4], num_nodes=4)
 
 See Also:
-    - :ref:`accelerators/gpu:Multi GPU Training`
+    - :ref:`Multi GPU Training <multi_gpu>`
 
 gradient_clip_val
 ^^^^^^^^^^^^^^^^^
@@ -915,7 +906,7 @@ logger
 
 |
 
-:doc:`Logger <../common/loggers>` (or iterable collection of loggers) for experiment tracking. A ``True`` value uses the default ``TensorBoardLogger`` shown below. ``False`` will disable logging.
+:doc:`Logger <../visualize/loggers>` (or iterable collection of loggers) for experiment tracking. A ``True`` value uses the default ``TensorBoardLogger`` shown below. ``False`` will disable logging.
 
 .. testcode::
 
@@ -1055,6 +1046,9 @@ Number of GPU nodes for distributed training.
 num_processes
 ^^^^^^^^^^^^^
 
+.. warning:: ``num_processes=x`` has been deprecated in v1.7 and will be removed in v2.0.
+    Please use ``accelerator='cpu'`` and ``devices=x`` instead.
+
 .. raw:: html
 
     <video width="50%" max-width="400px" controls
@@ -1146,9 +1140,9 @@ plugins
 
 :ref:`Plugins` allow you to connect arbitrary backends, precision libraries, clusters etc. For example:
 
-- :ref:`DDP <gpu>`
+- :ref:`Checkpoint IO <checkpointing_expert>`
 - `TorchElastic <https://pytorch.org/elastic/0.2.2/index.html>`_
-- :ref:`Apex <amp>`
+- :ref:`Precision Plugins <precision_expert>`
 
 To define your own behavior, subclass the relevant class and pass it in. Here's an example linking up your own
 :class:`~pytorch_lightning.plugins.environments.ClusterEnvironment`.
@@ -1258,7 +1252,7 @@ profiler
 
 To profile individual steps during training and assist in identifying bottlenecks.
 
-See the :doc:`profiler documentation <../advanced/profiler>`. for more details.
+See the :doc:`profiler documentation <../tuning/profiler>`. for more details.
 
 .. testcode::
 
@@ -1409,7 +1403,7 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
     trainer = Trainer(strategy=CustomDDPStrategy(), accelerator="gpu", devices=2)
 
 See Also:
-    - :ref:`accelerators/gpu:Multi GPU Training`.
+    - :ref:`Multi GPU Training <multi_gpu>`.
     - :doc:`Model Parallel GPU training guide <../advanced/model_parallel>`.
     - :doc:`TPU training guide <../accelerators/tpu>`.
 
@@ -1456,6 +1450,9 @@ track_grad_norm
 
 tpu_cores
 ^^^^^^^^^
+
+.. warning:: ``tpu_cores=x`` has been deprecated in v1.7 and will be removed in v2.0.
+    Please use ``accelerator='tpu'`` and ``devices=x`` instead.
 
 .. raw:: html
 
@@ -1745,7 +1742,7 @@ The list of loggers currently being used by the Trainer.
 
 .. code-block:: python
 
-    # List of LightningLoggerBase objects
+    # List of Logger objects
     loggers = trainer.loggers
     for logger in loggers:
         logger.log_metrics({"foo": 1.0})
@@ -1807,3 +1804,18 @@ estimated_stepping_batches
 **************************
 
 Check out :meth:`~pytorch_lightning.trainer.trainer.Trainer.estimated_stepping_batches`.
+
+state
+*****
+
+The current state of the Trainer, including the current function that is running, the stage of
+execution within that function, and the status of the Trainer.
+
+.. code-block:: python
+
+    # fn in ("fit", "validate", "test", "predict", "tune")
+    trainer.state.fn
+    # status in ("initializing", "running", "finished", "interrupted")
+    trainer.state.status
+    # stage in ("train", "sanity_check", "validate", "test", "predict", "tune")
+    trainer.state.stage

@@ -1,7 +1,7 @@
+:orphan:
+
 .. testsetup:: *
 
-    from pytorch_lightning.core.lightning import LightningModule
-    from pytorch_lightning.trainer.trainer import Trainer
     from pytorch_lightning import loggers as pl_loggers
 
 .. role:: hidden
@@ -170,6 +170,24 @@ The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method has a f
      - False
      - True
 
+
+.. note::
+
+    While logging tensor metrics with ``on_epoch=True`` inside step-level hooks and using mean-reduction (default) to accumulate the metrics across the current epoch, Lightning tries to extract the
+    batch size from the current batch. If multiple possible batch sizes are found, a warning is logged and if it fails to extract the batch size from the current batch, which is possible if
+    the batch is a custom structure/collection, then an error is raised. To avoid this, you can specify the ``batch_size`` inside the ``self.log(... batch_size=batch_size)`` call.
+
+    .. code-block:: python
+
+        def training_step(self, batch, batch_idx):
+            # extracts the batch size from `batch`
+            self.log("train_loss", loss, on_epoch=True)
+
+
+        def validation_step(self, batch, batch_idx):
+            # uses `batch_size=10`
+            self.log("val_loss", loss, batch_size=10)
+
 .. note::
 
     - The above config for ``validation`` applies for ``test`` hooks as well.
@@ -207,16 +225,16 @@ If you want to log anything that is not a scalar, like histograms, text, images,
 Make a Custom Logger
 ********************
 
-You can implement your own logger by writing a class that inherits from :class:`~pytorch_lightning.loggers.base.LightningLoggerBase`.
-Use the :func:`~pytorch_lightning.loggers.base.rank_zero_experiment` and :func:`~pytorch_lightning.utilities.rank_zero.rank_zero_only` decorators to make sure that only the first process in DDP training creates the experiment and logs the data respectively.
+You can implement your own logger by writing a class that inherits from :class:`~pytorch_lightning.loggers.logger.Logger`.
+Use the :func:`~pytorch_lightning.loggers.logger.rank_zero_experiment` and :func:`~pytorch_lightning.utilities.rank_zero.rank_zero_only` decorators to make sure that only the first process in DDP training creates the experiment and logs the data respectively.
 
 .. testcode::
 
-    from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
+    from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
     from pytorch_lightning.utilities.distributed import rank_zero_only
 
 
-    class MyLogger(LightningLoggerBase):
+    class MyLogger(Logger):
         @property
         def name(self):
             return "MyLogger"
@@ -389,4 +407,4 @@ Managing Remote Filesystems
 
 Lightning supports saving logs to a variety of filesystems, including local filesystems and several cloud storage providers.
 
-Check out the :ref:`Remote Filesystems <remote_fs>` doc for more info.
+Check out the :doc:`Remote Filesystems <../common/remote_fs>` doc for more info.

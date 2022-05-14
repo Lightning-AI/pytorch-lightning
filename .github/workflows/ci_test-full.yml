@@ -72,7 +72,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements.txt') }}-${{ hashFiles('requirements/extra.txt') }}
+        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/*.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
 
@@ -89,19 +89,15 @@ jobs:
       run: |
         flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
         url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
-        pip install --requirement requirements.txt --upgrade $flag --find-links "https://download.pytorch.org/whl/${url}"
+        pip install -r requirements.txt --upgrade $flag --find-links "https://download.pytorch.org/whl/${url}"
         # adjust versions according installed Torch version
         python ./requirements/adjust-versions.py requirements/examples.txt
-        pip install --requirement requirements/examples.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
-        pip install --requirement requirements/test.txt --upgrade
+        pip install -r requirements/examples.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+        pip install -r requirements/test.txt --upgrade
         pip list
       shell: bash
 
     - name: Install extra dependencies
-      env:
-        HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
-        HOROVOD_WITHOUT_MXNET: 1
-        HOROVOD_WITHOUT_TENSORFLOW: 1
       run: |
         # adjust versions according installed Torch version
         python ./requirements/adjust-versions.py requirements/extra.txt
@@ -119,7 +115,7 @@ jobs:
         HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
         if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
           pip uninstall -y horovod
-          echo $(grep "horovod" requirements/extra.txt) > requirements/horovod.txt
+          grep "horovod" requirements/strategies.txt > requirements/horovod.txt
           pip install --no-cache-dir -r requirements/horovod.txt
         fi
         horovodrun --check-build
