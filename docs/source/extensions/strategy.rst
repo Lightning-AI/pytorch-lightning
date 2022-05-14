@@ -1,11 +1,9 @@
-.. _strategy:
+###################
+What is a Strategy?
+###################
 
-########
-Strategy
-########
-
-A Strategy controls the model distribution across training, evaluation, and prediction to be used by the :doc:`Trainer <../common/trainer>`.
-It can be controlled by passing different strategy with aliases (``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"`` and so on) as well as a custom strategy object to the ``strategy`` parameter for Trainer.
+Strategy controls the model distribution across training, evaluation, and prediction to be used by the :doc:`Trainer <../common/trainer>`. It can be controlled by passing different
+strategy with aliases (``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"`` and so on) as well as a custom strategy to the ``strategy`` parameter for Trainer.
 
 The Strategy in PyTorch Lightning handles the following responsibilities:
 
@@ -16,7 +14,8 @@ The Strategy in PyTorch Lightning handles the following responsibilities:
 * Handles/owns optimizers and schedulers.
 
 
-A Strategy is a composition of one :doc:`Accelerator <../extensions/accelerator>`, one :ref:`Precision Plugin <extensions/plugins:Precision Plugins>`, a :ref:`CheckpointIO <extensions/plugins:CheckpointIO Plugins>` plugin and other optional plugins such as the :ref:`ClusterEnvironment <extensions/plugins:Cluster Environments>`.
+Strategy is a composition of one :doc:`Accelerator <../extensions/accelerator>`, one :ref:`Precision Plugin <extensions/plugins:Precision Plugins>`, a :ref:`CheckpointIO <extensions/plugins:CheckpointIO Plugins>`
+plugin and other optional plugins such as the :ref:`ClusterEnvironment <extensions/plugins:Cluster Environments>`.
 
 .. image:: https://pl-public-data.s3.amazonaws.com/docs/static/images/strategies/overview.jpeg
     :alt: Illustration of the Strategy as a composition of the Accelerator and several plugins
@@ -75,31 +74,34 @@ The below table lists all relevant strategies available in Lightning with their 
      - Description
    * - bagua
      - :class:`~pytorch_lightning.strategies.BaguaStrategy`
-     - Strategy for training using the Bagua library, with advanced distributed training algorithms and system optimizations. :ref:`Learn more. <accelerators/gpu:Bagua>`
+     - Strategy for training using the Bagua library, with advanced distributed training algorithms and system optimizations. :ref:`Learn more. <accelerators/gpu_intermediate:Bagua>`
+   * - collaborative
+     - :class:`~pytorch_lightning.strategies.CollaborativeStrategy`
+     - Strategy for training collaboratively on local machines or unreliable GPUs across the internet. :ref:`Learn more. <strategies/collaborative_training:Training on unreliable mixed GPUs across the internet>`
    * - fsdp
      - :class:`~pytorch_lightning.strategies.DDPFullyShardedStrategy`
      - Strategy for Fully Sharded Data Parallel provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Fully Sharded Training>`
    * - ddp_sharded
      - :class:`~pytorch_lightning.strategies.DDPShardedStrategy`
      - Optimizer and gradient sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Sharded Training>`
-   * - ddp_spawn_sharded
+   * - ddp_sharded_spawn
      - :class:`~pytorch_lightning.strategies.DDPSpawnShardedStrategy`
      - Optimizer sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Sharded Training>`
    * - ddp_spawn
      - :class:`~pytorch_lightning.strategies.DDPSpawnStrategy`
-     - Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training finishes. :ref:`Learn more. <accelerators/gpu:Distributed Data Parallel Spawn>`
+     - Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training finishes. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel Spawn>`
    * - ddp
      - :class:`~pytorch_lightning.strategies.DDPStrategy`
-     - Strategy for multi-process single-device training on one or multiple nodes. :ref:`Learn more. <accelerators/gpu:Distributed Data Parallel>`
+     - Strategy for multi-process single-device training on one or multiple nodes. :ref:`Learn more. <accelerators/gpu_intermediate:Distributed Data Parallel>`
    * - dp
      - :class:`~pytorch_lightning.strategies.DataParallelStrategy`
-     - Implements data-parallel training in a single process, i.e., the model gets replicated to each device and each gets a split of the data. :ref:`Learn more. <accelerators/gpu:Data Parallel>`
+     - Implements data-parallel training in a single process, i.e., the model gets replicated to each device and each gets a split of the data. :ref:`Learn more. <accelerators/gpu_intermediate:Data Parallel>`
    * - deepspeed
      - :class:`~pytorch_lightning.strategies.DeepSpeedStrategy`
      - Provides capabilities to run training using the DeepSpeed library, with training optimizations for large billion parameter models. :ref:`Learn more. <advanced/model_parallel:deepspeed>`
    * - horovod
      - :class:`~pytorch_lightning.strategies.HorovodStrategy`
-     - Strategy for Horovod distributed training integration. :ref:`Learn more. <accelerators/gpu:Horovod>`
+     - Strategy for Horovod distributed training integration. :ref:`Learn more. <accelerators/gpu_intermediate:Horovod>`
    * - hpu_parallel
      - :class:`~pytorch_lightning.strategies.HPUParallelStrategy`
      - Strategy for distributed training on multiple HPU devices. :doc:`Learn more. <../accelerators/hpu>`
@@ -115,9 +117,6 @@ The below table lists all relevant strategies available in Lightning with their 
    * - single_tpu
      - :class:`~pytorch_lightning.strategies.SingleTPUStrategy`
      - Strategy for training on a single TPU device. :doc:`Learn more. <../accelerators/tpu>`
-
-
-----------
 
 
 ************************

@@ -121,7 +121,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_paramlinks",
     "sphinx_togglebutton",
-    "pt_lightning_sphinx_theme.extensions.lightning_tutorials",
+    "pt_lightning_sphinx_theme.extensions.lightning",
 ]
 
 # Suppress warnings about duplicate labels (needed for PL tutorials)
@@ -345,10 +345,12 @@ PACKAGE_MAPPING = {
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
     MOCK_PACKAGES += ["fairscale"]
+    _path_require = lambda fname: os.path.join(PATH_ROOT, "requirements", fname)
     # mock also base packages when we are on RTD since we don't install them there
-    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, "requirements.txt"))
-    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, "requirements", "extra.txt"))
-    MOCK_PACKAGES += package_list_from_file(os.path.join(PATH_ROOT, "requirements", "loggers.txt"))
+    MOCK_PACKAGES += package_list_from_file(_path_require("base.txt"))
+    MOCK_PACKAGES += package_list_from_file(_path_require("extra.txt"))
+    MOCK_PACKAGES += package_list_from_file(_path_require("loggers.txt"))
+    MOCK_PACKAGES += package_list_from_file(_path_require("strategies.txt"))
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
 autodoc_mock_imports = MOCK_PACKAGES
@@ -386,11 +388,15 @@ doctest_test_doctest_blocks = ""
 doctest_global_setup = """
 import importlib
 import os
+import sys
 from typing import Optional
+
 import torch
-from torch import nn
 import pytorch_lightning as pl
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer
+from torch import nn
+from torch.utils.data import IterableDataset, DataLoader, Dataset
+from pytorch_lightning import LightningDataModule, LightningModule, Trainer, seed_everything
+from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _XLA_AVAILABLE,

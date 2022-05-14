@@ -38,7 +38,6 @@ from pytorch_lightning.utilities.data import (
     _update_dataloader,
     has_iterable_dataset,
 )
-from pytorch_lightning.utilities.device_parser import _parse_devices
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 
@@ -80,7 +79,6 @@ class LightningLite(ABC):
     ) -> None:
         self._check_accelerator_support(accelerator)
         self._check_strategy_support(strategy)
-        gpu_ids, tpu_cores = _parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
         self._accelerator_connector = AcceleratorConnector(
             num_processes=None,
             devices=devices,
@@ -89,7 +87,6 @@ class LightningLite(ABC):
             accelerator=accelerator,
             strategy=strategy,
             gpus=gpus,
-            gpu_ids=gpu_ids,
             num_nodes=num_nodes,
             sync_batchnorm=False,  # TODO: add support?
             benchmark=False,
@@ -99,6 +96,7 @@ class LightningLite(ABC):
             amp_type="native",
             amp_level=None,
             plugins=plugins,
+            auto_select_gpus=False,
         )
         self._strategy = self._accelerator_connector.strategy
         self._accelerator = self._strategy.accelerator
@@ -154,11 +152,11 @@ class LightningLite(ABC):
         *optimizers: Optimizer,
         move_to_device: bool = True,
     ) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
-        """Setup a model and its optimizers for accelerated training.
+        """Set up a model and its optimizers for accelerated training.
 
         Args:
-            model: A model to setup
-            *optimizers: The optimizer(s) to setup (no optimizers is also possible)
+            model: A model to set up
+            *optimizers: The optimizer(s) to set up (no optimizers is also possible)
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
 
@@ -166,13 +164,14 @@ class LightningLite(ABC):
             The tuple of the wrapped model and list of optimizers, in the same order they were passed in.
         """
         self._validate_setup(model, optimizers)
+        original_model = model
 
         if move_to_device:
             model = self._move_model_to_device(model=model, optimizers=list(optimizers))
 
         # Let accelerator/plugin wrap and connect the models and optimizers
         model, optimizers = self._strategy._setup_model_and_optimizers(model, list(optimizers))
-        model = _LiteModule(model, self._precision_plugin)
+        model = _LiteModule(model, self._precision_plugin, original_module=original_model)
         optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
         self._models_setup += 1
         if optimizers:
@@ -183,7 +182,7 @@ class LightningLite(ABC):
     def setup_dataloaders(
         self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
     ) -> Union[DataLoader, List[DataLoader]]:
-        """Setup one or multiple dataloaders for accelerated training. If you need different settings for each
+        """Set up one or multiple dataloaders for accelerated training. If you need different settings for each
         dataloader, call this method individually for each one.
 
         Args:
@@ -208,7 +207,7 @@ class LightningLite(ABC):
     def _setup_dataloader(
         self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
     ) -> DataLoader:
-        """Setup a single dataloader for accelerated training.
+        """Set up a single dataloader for accelerated training.
 
         Args:
             dataloader: The dataloader to accelerate.
@@ -254,10 +253,10 @@ class LightningLite(ABC):
             **kwargs: Optional named keyword arguments passed to the underlying backward function.
 
         Note:
-            When using ``strategy="deepspeed"`` and multiple models were setup, it is required to pass in the
+            When using ``strategy="deepspeed"`` and multiple models were set up, it is required to pass in the
             model as argument here.
         """
-        module = model.module if model is not None else model
+        module = model._forward_module if model is not None else model
         if isinstance(self._strategy, DeepSpeedStrategy):
             if model is None:
                 if self._models_setup == 0:

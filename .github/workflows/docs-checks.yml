@@ -31,7 +31,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-${{ hashFiles('requirements/base.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-
 
@@ -41,13 +41,10 @@ jobs:
           sudo apt-get install -y cmake pandoc
           pip --version
           pip install -q fire
-          # remove Horovod from requirements
-          python .actions/assistant.py requirements_prune_pkgs horovod
           # python -m pip install --upgrade --user pip
-          pip install --requirement requirements.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
-          pip install --requirement requirements/extra.txt
-          pip install --requirement requirements/loggers.txt
-          pip install --requirement requirements/docs.txt
+          pip install -r requirements.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
+          pip install -r requirements/devel.txt
+          pip install -r requirements/docs.txt
           pip list
         shell: bash
 
@@ -77,7 +74,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 

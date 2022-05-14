@@ -30,11 +30,26 @@ if torch.distributed.is_available():
         import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
 
+class TestDDPStrategy(DDPStrategy):
+    def __init__(self, expected_ddp_comm_hook_name, *args, **kwargs):
+        self.expected_ddp_comm_hook_name = expected_ddp_comm_hook_name
+        super().__init__(*args, **kwargs)
+
+    def teardown(self):
+        # check here before unwrapping DistributedDataParallel in self.teardown
+        attached_ddp_comm_hook_name = self.model._get_ddp_logging_data()["comm_hook"]
+        assert attached_ddp_comm_hook_name == self.expected_ddp_comm_hook_name
+        return super().teardown()
+
+
 @RunIf(min_gpus=2, min_torch="1.9.0", skip_windows=True, standalone=True)
 def test_ddp_fp16_compress_comm_hook(tmpdir):
     """Test for DDP FP16 compress hook."""
     model = BoringModel()
-    strategy = DDPStrategy(ddp_comm_hook=default.fp16_compress_hook)
+    strategy = TestDDPStrategy(
+        expected_ddp_comm_hook_name=default.fp16_compress_hook.__qualname__,
+        ddp_comm_hook=default.fp16_compress_hook,
+    )
     trainer = Trainer(
         max_epochs=1,
         accelerator="gpu",
@@ -43,11 +58,10 @@ def test_ddp_fp16_compress_comm_hook(tmpdir):
         default_root_dir=tmpdir,
         sync_batchnorm=True,
         fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
-    trainer_comm_hook = trainer.strategy.model.get_ddp_logging_data().comm_hook
-    expected_comm_hook = default.fp16_compress_hook.__qualname__
-    assert trainer_comm_hook == expected_comm_hook
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
@@ -55,7 +69,8 @@ def test_ddp_fp16_compress_comm_hook(tmpdir):
 def test_ddp_sgd_comm_hook(tmpdir):
     """Test for DDP FP16 compress hook."""
     model = BoringModel()
-    strategy = DDPStrategy(
+    strategy = TestDDPStrategy(
+        expected_ddp_comm_hook_name=powerSGD.powerSGD_hook.__qualname__,
         ddp_comm_state=powerSGD.PowerSGDState(process_group=None),
         ddp_comm_hook=powerSGD.powerSGD_hook,
     )
@@ -67,11 +82,10 @@ def test_ddp_sgd_comm_hook(tmpdir):
         default_root_dir=tmpdir,
         sync_batchnorm=True,
         fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
-    trainer_comm_hook = trainer.strategy.model.get_ddp_logging_data().comm_hook
-    expected_comm_hook = powerSGD.powerSGD_hook.__qualname__
-    assert trainer_comm_hook == expected_comm_hook
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
@@ -79,7 +93,8 @@ def test_ddp_sgd_comm_hook(tmpdir):
 def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
     """Test for DDP FP16 compress wrapper for SGD hook."""
     model = BoringModel()
-    strategy = DDPStrategy(
+    strategy = TestDDPStrategy(
+        expected_ddp_comm_hook_name=default.fp16_compress_wrapper(powerSGD.powerSGD_hook).__qualname__,
         ddp_comm_state=powerSGD.PowerSGDState(process_group=None),
         ddp_comm_hook=powerSGD.powerSGD_hook,
         ddp_comm_wrapper=default.fp16_compress_wrapper,
@@ -92,11 +107,10 @@ def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
         default_root_dir=tmpdir,
         sync_batchnorm=True,
         fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
-    trainer_comm_hook = trainer.strategy.model.get_ddp_logging_data().comm_hook
-    expected_comm_hook = default.fp16_compress_wrapper(powerSGD.powerSGD_hook).__qualname__
-    assert trainer_comm_hook == expected_comm_hook
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
@@ -113,6 +127,8 @@ def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
         default_root_dir=tmpdir,
         sync_batchnorm=True,
         fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -122,8 +138,8 @@ def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
 def test_ddp_post_local_sgd_comm_hook(tmpdir):
     """Test for DDP post-localSGD hook."""
     model = BoringModel()
-
-    strategy = DDPStrategy(
+    strategy = TestDDPStrategy(
+        expected_ddp_comm_hook_name=post_localSGD.post_localSGD_hook.__qualname__,
         ddp_comm_state=post_localSGD.PostLocalSGDState(
             process_group=None,
             subgroup=None,
@@ -139,11 +155,10 @@ def test_ddp_post_local_sgd_comm_hook(tmpdir):
         strategy=strategy,
         default_root_dir=tmpdir,
         sync_batchnorm=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
-    trainer_comm_hook = trainer.strategy.model.get_ddp_logging_data().comm_hook
-    expected_comm_hook = post_localSGD.post_localSGD_hook.__qualname__
-    assert trainer_comm_hook == expected_comm_hook
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
@@ -161,6 +176,8 @@ def test_post_local_sgd_model_averaging(average_parameters_mock, tmpdir):
         strategy="ddp",
         default_root_dir=tmpdir,
         sync_batchnorm=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
 
     trainer.fit(model)
@@ -219,6 +236,8 @@ def test_post_local_sgd_model_averaging_value_error(average_parameters_mock, tmp
         strategy=strategy,
         default_root_dir=tmpdir,
         sync_batchnorm=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
 
     with pytest.raises(ValueError, match="Currently model averaging cannot work with a distributed optimizer"):

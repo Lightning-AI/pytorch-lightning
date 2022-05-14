@@ -23,6 +23,7 @@ import torch
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.profiler.simple import SimpleProfiler
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -377,9 +378,9 @@ def test_dm_init_from_datasets_dataloaders(iterable):
     with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
         dm.train_dataloader()
         dl_mock.assert_called_once_with(train_ds, batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True)
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException, match="`val_dataloader` must be implemented"):
         _ = dm.val_dataloader()
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException, match="`test_dataloader` must be implemented"):
         _ = dm.test_dataloader()
 
     train_ds_sequence = [ds(), ds()]
@@ -392,9 +393,9 @@ def test_dm_init_from_datasets_dataloaders(iterable):
                 call(train_ds_sequence[1], batch_size=4, shuffle=not iterable, num_workers=0, pin_memory=True),
             ]
         )
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException, match="`val_dataloader` must be implemented"):
         _ = dm.val_dataloader()
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException, match="`test_dataloader` must be implemented"):
         _ = dm.test_dataloader()
 
     valid_ds = ds()
@@ -405,21 +406,25 @@ def test_dm_init_from_datasets_dataloaders(iterable):
         dl_mock.assert_called_with(valid_ds, batch_size=2, shuffle=False, num_workers=0, pin_memory=True)
         dm.test_dataloader()
         dl_mock.assert_called_with(test_ds, batch_size=2, shuffle=False, num_workers=0, pin_memory=True)
-    with pytest.raises(MisconfigurationException):
+    with pytest.raises(MisconfigurationException, match="`train_dataloader` must be implemented"):
         _ = dm.train_dataloader()
 
     valid_dss = [ds(), ds()]
     test_dss = [ds(), ds()]
-    dm = LightningDataModule.from_datasets(train_ds, valid_dss, test_dss, batch_size=4, num_workers=0)
+    predict_dss = [ds(), ds()]
+    dm = LightningDataModule.from_datasets(train_ds, valid_dss, test_dss, predict_dss, batch_size=4, num_workers=0)
     with mock.patch("pytorch_lightning.core.datamodule.DataLoader") as dl_mock:
         dm.val_dataloader()
         dm.test_dataloader()
+        dm.predict_dataloader()
         dl_mock.assert_has_calls(
             [
                 call(valid_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
                 call(valid_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
                 call(test_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
                 call(test_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+                call(predict_dss[0], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
+                call(predict_dss[1], batch_size=4, shuffle=False, num_workers=0, pin_memory=True),
             ]
         )
 
@@ -487,3 +492,62 @@ def test_define_as_dataclass():
     assert hasattr(BoringDataModule2, "__repr__")
     assert BoringDataModule2(batch_size=32).prepare_data() is None
     assert BoringDataModule2(batch_size=32) == BoringDataModule2(batch_size=32)
+
+
+@RunIf(skip_windows=True)  # TODO: all durations are 0 on Windows
+def test_datamodule_hooks_are_profiled():
+    """Test that `LightningDataModule` hooks are profiled."""
+
+    def get_trainer():
+        trainer = Trainer(
+            max_steps=1,
+            limit_val_batches=0,
+            profiler="simple",
+            enable_model_summary=False,
+            enable_progress_bar=False,
+            logger=False,
+        )
+        return trainer
+
+    class CustomBoringDataModule(BoringDataModule):
+        def state_dict(self):
+            return {"temp": 1}
+
+    model = BoringModel()
+    dm = CustomBoringDataModule()
+    trainer = get_trainer()
+    trainer.fit(model, datamodule=dm)
+
+    profiler = trainer.profiler
+    assert isinstance(profiler, SimpleProfiler)
+
+    keys = [
+        "[LightningDataModule]CustomBoringDataModule.prepare_data",
+        "[LightningDataModule]CustomBoringDataModule.setup",
+        "[LightningDataModule]CustomBoringDataModule.state_dict",
+        "[LightningDataModule]CustomBoringDataModule.on_save_checkpoint",
+        "[LightningDataModule]CustomBoringDataModule.teardown",
+    ]
+    for key in keys:
+        assert key in profiler.recorded_durations
+        durations = profiler.recorded_durations[key]
+        assert len(durations) == 1
+        assert durations[0] > 0
+
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+    trainer = get_trainer()
+    trainer.fit(model, datamodule=dm, ckpt_path=ckpt_path)
+    profiler = trainer.profiler
+
+    keys = [
+        "[LightningDataModule]CustomBoringDataModule.prepare_data",
+        "[LightningDataModule]CustomBoringDataModule.setup",
+        "[LightningDataModule]CustomBoringDataModule.on_load_checkpoint",
+        "[LightningDataModule]CustomBoringDataModule.load_state_dict",
+        "[LightningDataModule]CustomBoringDataModule.teardown",
+    ]
+    for key in keys:
+        assert key in profiler.recorded_durations
+        durations = profiler.recorded_durations[key]
+        assert len(durations) == 1
+        assert durations[0] > 0

@@ -16,8 +16,10 @@ variables:
   value: "poplar_sdk-ubuntu_20_04-2.3.1+793-89796d462d"
 
 jobs:
-  - job: ipu
+  - job: tests
 
+    # how long to run the job before automatically cancelling
+    timeoutInMinutes: "15"
     pool: graphcore-ipus
 
     workspace:
@@ -51,11 +53,9 @@ jobs:
 
     - bash: |
         export GIT_TERMINAL_PROMPT=1
-        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'fairscale' not in line] ; open(fname, 'w').writelines(lines)"
-        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
         python ./requirements/adjust-versions.py requirements/extra.txt
         python ./requirements/adjust-versions.py requirements/examples.txt
-        pip install . --requirement requirements/devel.txt
+        pip install . --requirement ./requirements/devel.txt
         pip list
       displayName: 'Install dependencies'
 

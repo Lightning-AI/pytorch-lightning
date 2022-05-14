@@ -22,6 +22,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
+from tests.helpers.utils import no_warning_call
 
 
 def test_error_on_more_than_1_optimizer(tmpdir):
@@ -87,9 +88,11 @@ def test_trainer_reset_correctly(tmpdir):
         "max_steps",
     ]
     expected = {ca: getattr(trainer, ca) for ca in changed_attributes}
-    trainer.tuner.lr_find(model, num_training=5)
-    actual = {ca: getattr(trainer, ca) for ca in changed_attributes}
 
+    with no_warning_call(UserWarning, match="Please add the following callbacks"):
+        trainer.tuner.lr_find(model, num_training=5)
+
+    actual = {ca: getattr(trainer, ca) for ca in changed_attributes}
     assert actual == expected
     assert model.trainer == trainer
 

@@ -68,6 +68,8 @@ def test_sync_batchnorm_parity(tmpdir):
         replace_sampler_ddp=False,
         deterministic=True,
         benchmark=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 

@@ -213,6 +213,8 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
         devices=2,
         strategy="ddp",
         plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
     model = CustomBoringModel()
