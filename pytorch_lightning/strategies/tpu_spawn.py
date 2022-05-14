@@ -65,7 +65,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         **_: Any,
     ) -> None:
         checkpoint_io = checkpoint_io or XLACheckpointIO()
-        # cluster_environment = cluster_environment or XLAEnvironment()
+        cluster_environment = cluster_environment or XLAEnvironment()
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,

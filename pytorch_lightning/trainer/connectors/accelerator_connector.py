@@ -202,7 +202,6 @@ class AcceleratorConnector:
 
         # 3. Instantiate ClusterEnvironment
         self.cluster_environment: ClusterEnvironment = self._choose_and_init_cluster_environment()
-        # assert isinstance(self.cluster_environment, XLAEnvironment)
 
         # 4. Instantiate Strategy - Part 1
         if self._strategy_flag is None:
@@ -540,7 +539,7 @@ class AcceleratorConnector:
             TorchElasticEnvironment,
             KubeflowEnvironment,
             LSFEnvironment,
-            # XLAEnvironment,
+            XLAEnvironment,
         ):
             if env_type.detect():
                 return env_type()
