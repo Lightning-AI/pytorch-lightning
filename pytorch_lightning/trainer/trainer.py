@@ -137,7 +137,6 @@ class Trainer(
         default_root_dir: Optional[str] = None,
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
-        process_position: int = 0,
         num_nodes: int = 1,
         num_processes: Optional[int] = None,  # TODO: Remove in 2.0
         devices: Optional[Union[List[int], str, int]] = None,
@@ -304,13 +303,6 @@ class Trainer(
 
             log_every_n_steps: How often to log within steps.
                 Default: ``50``.
-
-            process_position: Orders the progress bar when running multiple models on same machine.
-
-                .. deprecated:: v1.5
-                    ``process_position`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``process_position``
-                    directly to the Trainer's ``callbacks`` argument instead.
 
             enable_progress_bar: Whether to enable to progress bar by default.
                 Default: ``False``.
@@ -508,7 +500,6 @@ class Trainer(
             callbacks,
             enable_checkpointing,
             enable_progress_bar,
-            process_position,
             default_root_dir,
             weights_save_path,
             enable_model_summary,
