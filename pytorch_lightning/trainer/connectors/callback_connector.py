@@ -50,7 +50,6 @@ class CallbackConnector:
         default_root_dir: Optional[str],
         weights_save_path: Optional[str],
         enable_model_summary: bool,
-        weights_summary: Optional[str],
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
         accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
     ):
@@ -88,7 +87,7 @@ class CallbackConnector:
         self._configure_progress_bar(process_position, enable_progress_bar)
 
         # configure the ModelSummary callback
-        self._configure_model_summary_callback(enable_model_summary, weights_summary)
+        self._configure_model_summary_callback(enable_model_summary)
 
         # accumulated grads
         self._configure_accumulated_gradients(accumulate_grad_batches)
@@ -151,15 +150,7 @@ class CallbackConnector:
         elif enable_checkpointing:
             self.trainer.callbacks.append(ModelCheckpoint())
 
-    def _configure_model_summary_callback(
-        self, enable_model_summary: bool, weights_summary: Optional[str] = None
-    ) -> None:
-        if weights_summary is None:
-            rank_zero_deprecation(
-                "Setting `Trainer(weights_summary=None)` is deprecated in v1.5 and will be removed"
-                " in v1.7. Please set `Trainer(enable_model_summary=False)` instead."
-            )
-            return
+    def _configure_model_summary_callback(self, enable_model_summary: bool) -> None:
         if not enable_model_summary:
             return
 
@@ -171,21 +162,11 @@ class CallbackConnector:
             )
             return
 
-        if weights_summary == "top":
-            # special case the default value for weights_summary to preserve backward compatibility
-            max_depth = 1
-        else:
-            rank_zero_deprecation(
-                f"Setting `Trainer(weights_summary={weights_summary})` is deprecated in v1.5 and will be removed"
-                " in v1.7. Please pass `pytorch_lightning.callbacks.model_summary.ModelSummary` with"
-                " `max_depth` directly to the Trainer's `callbacks` argument instead."
-            )
-            if weights_summary not in ModelSummaryMode.supported_types():
-                raise MisconfigurationException(
-                    f"`weights_summary` can be None, {', '.join(ModelSummaryMode.supported_types())}",
-                    f" but got {weights_summary}",
-                )
-            max_depth = ModelSummaryMode.get_max_depth(weights_summary)
+        # If the user wants to configure a model summary callback, without explicitly passing it,
+        # to the callbacks list, we will create it with max depth of 1
+        # This corresponds to weights_summary == "top"
+        weights_summary = "top"
+        max_depth = ModelSummaryMode.get_max_depth(weights_summary)
 
         progress_bar_callback = self.trainer.progress_bar_callback
         is_progress_bar_rich = isinstance(progress_bar_callback, RichProgressBar)
@@ -195,7 +176,6 @@ class CallbackConnector:
         else:
             model_summary = ModelSummary(max_depth=max_depth)
         self.trainer.callbacks.append(model_summary)
-        self.trainer._weights_summary = weights_summary
 
     def _configure_progress_bar(self, process_position: int = 0, enable_progress_bar: bool = True) -> None:
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
