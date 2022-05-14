@@ -36,6 +36,8 @@ def test_model_summary_callback_with_enable_model_summary_true():
     trainer = Trainer(enable_model_summary=True)
     assert any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
 
+    # Default value of max_depth is set as 1, when enable_model_summary is True
+    # and ModelSummary is not passed in callbacks list
     model_summary_callback = list(filter(lambda cb: isinstance(cb, ModelSummary), trainer.callbacks))[0]
     assert model_summary_callback._max_depth == 1
 
