@@ -19,7 +19,6 @@ import torch.nn as nn
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_9
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize, UNKNOWN_SIZE
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import ParityModuleRNN

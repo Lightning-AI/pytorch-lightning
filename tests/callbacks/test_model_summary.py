@@ -13,8 +13,6 @@
 # limitations under the License.
 from typing import List, Union
 
-import pytest
-
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelSummary
 from tests.helpers.boring_model import BoringModel
