@@ -46,26 +46,6 @@ To change this behaviour, set the *log_every_n_steps* :class:`~pytorch_lightning
 
 ----
 
-Modify flushing frequency
-=========================
-
-Metrics are kept in memory for N steps to improve training efficiency. Every N steps, metrics flush to disk. To change the frequency of this flushing, use the *flush_logs_every_n_steps* Trainer argument.
-
-.. code-block:: python
-
-    # faster training, high memory
-    Trainer(flush_logs_every_n_steps=500)
-
-    # slower training, low memory
-    Trainer(flush_logs_every_n_steps=500)
-
-The higher *flush_logs_every_n_steps* is, the faster the model will train but the memory will build up until the next flush.
-The smaller *flush_logs_every_n_steps* is, the slower the model will train but memory will be kept to a minimum.
-
-TODO: chart
-
-----
-
 ******************
 Customize self.log
 ******************

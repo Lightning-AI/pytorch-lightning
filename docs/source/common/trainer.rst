@@ -695,30 +695,6 @@ impact to subsequent runs. These are the changes enabled:
 - Disables the Tuner.
 - If using the CLI, the configuration file is not saved.
 
-flush_logs_every_n_steps
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. warning:: ``flush_logs_every_n_steps`` has been deprecated in v1.5 and will be removed in v1.7.
-    Please configure flushing directly in the logger instead.
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/flush_logs%E2%80%A8_every_n_steps.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/flush_logs_every_n_steps.mp4"></video>
-
-|
-
-Writes logs to disk this often.
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(flush_logs_every_n_steps=100)
-
-See Also:
-    - :doc:`logging <../extensions/logging>`
-
 .. _gpus:
 
 gpus
