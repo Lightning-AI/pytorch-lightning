@@ -138,6 +138,14 @@ class DeepNestedModel(LightningModule):
         return self.head(self.branch1(inp), self.branch2(inp))
 
 
+def test_invalid_weights_summary():
+    """Test that invalid value for weights_summary raises an error."""
+    model = LightningModule()
+
+    with pytest.raises(ValueError, match="max_depth` can be .* got temp"):
+        ModelSummary(model, max_depth="temp")
+
+
 @pytest.mark.parametrize("max_depth", [-1, 1])
 def test_empty_model_summary_shapes(max_depth):
     """Test that the summary works for models that have no submodules."""
