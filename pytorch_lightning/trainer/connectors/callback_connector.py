@@ -28,7 +28,6 @@ from pytorch_lightning.callbacks import (
 )
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
-from pytorch_lightning.utilities.enums import ModelSummaryMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
