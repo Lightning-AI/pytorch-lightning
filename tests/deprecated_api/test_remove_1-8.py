@@ -329,7 +329,6 @@ def test_v_1_8_0_deprecated_device_stats_monitor_prefix_metric_keys():
     "cls",
     [
         DDPPlugin,
-        DDP2Plugin,
         DDPSpawnPlugin,
         pytest.param(DeepSpeedPlugin, marks=RunIf(deepspeed=True)),
         DataParallelPlugin,
@@ -1144,12 +1143,15 @@ def test_trainer_tpu_cores(monkeypatch):
         match="`Trainer.tpu_cores` is deprecated in v1.6 and will be removed in v1.8. "
         "Please use `Trainer.num_devices` instead."
     ):
-        trainer.tpu_cores == 8
+        assert trainer.tpu_cores == 8
 
 
 def test_unsupported_ddp2_strategy():
-    with pytest.deprecated_call(match="The `DDP2Strategy` is deprecated in v1.7 and will be removed in v1.8."):
+    with pytest.raises(TypeError, match="The `DDP2Strategy`/`DDP2Plugin` is no longer supported in v1.7 and will be"):
         DDP2Strategy()
+
+    with pytest.raises(TypeError, match="The `DDP2Strategy`/`DDP2Plugin` is no longer supported in v1.7 and will be"):
+        DDP2Plugin()
 
     with pytest.raises(ValueError, match="The DDP2 strategy is no longer supported."):
         Trainer(strategy="ddp2")

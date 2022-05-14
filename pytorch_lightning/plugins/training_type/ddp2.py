@@ -12,13 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.strategies import DDP2Strategy
-from pytorch_lightning.utilities import rank_zero_deprecation
 
 
 class DDP2Plugin(DDP2Strategy):
-    def __init__(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
-        rank_zero_deprecation(
-            "The `pl.plugins.training_type.ddp2.DDP2Plugin` is deprecated in v1.6 and will be removed in v1.8."
-            " Use the `pl.strategies.dp.DataParallelStrategy` or `pl.strategies.dpp.DDPtrategy` instead."
-        )
-        super().__init__(*args, **kwargs)
+    pass

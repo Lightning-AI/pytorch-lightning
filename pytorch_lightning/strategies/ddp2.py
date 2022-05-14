@@ -19,9 +19,9 @@ class DDP2Strategy(DDPStrategy):
     """DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP.
 
     .. deprecated:: v1.7
-        This strategy is deprecated in v1.7 and will be removed in v1.8. For single-node execution, we
+        This strategy is no longer supported in v1.7 will be removed completely in v1.8. For single-node execution, we
         recommend the :class:`~pytorch_lightning.strategies.ddp.DDPStrategy` or the
-        :class:`~pytorch_lightning.strategies.dp.DataParallelStrategy` as a replacement. If you need DDP2, you will
+        :class:`~pytorch_lightning.strategies.dp.DataParallelStrategy` as a replacement. If you rely on DDP2, you will
         need ``torch < 1.9`` and ``pytorch-lightning < 1.5``.
     """
 
@@ -29,7 +29,7 @@ class DDP2Strategy(DDPStrategy):
 
     def __new__(cls, *args, **kwargs) -> None:
         raise TypeError(
-            "The `DDP2Strategy` is no longer supported in v1.7 and will be removed completely in v1.8. For single-node"
-            " execution, we recommend the `DDPStrategy` or the `DPStrategy`. If you need DDP2, you will need"
-            " `torch < 1.9` and `pytorch-lightning < 1.5`."
+            "The `DDP2Strategy`/`DDP2Plugin` is no longer supported in v1.7 and will be removed completely in v1.8."
+            " For single-node execution, we recommend the `DDPStrategy` or the `DPStrategy`. If you rely on DDP2, you"
+            " will need `torch < 1.9` and `pytorch-lightning < 1.5`."
         )
