@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning.strategies.ddp import DDPStrategy
 
-
-class DDP2Strategy(DDPStrategy):
+class DDP2Strategy:
     """DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP.
 
     .. deprecated:: v1.7
