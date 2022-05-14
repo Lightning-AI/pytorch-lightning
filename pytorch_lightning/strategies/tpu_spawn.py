@@ -68,7 +68,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
-            cluster_environment=cluster_environment,
+            cluster_environment=XLAEnvironment(),
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )

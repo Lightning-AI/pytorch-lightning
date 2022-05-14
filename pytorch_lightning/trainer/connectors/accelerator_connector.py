@@ -539,7 +539,7 @@ class AcceleratorConnector:
             TorchElasticEnvironment,
             KubeflowEnvironment,
             LSFEnvironment,
-            XLAEnvironment,
+            # XLAEnvironment,
         ):
             if env_type.detect():
                 return env_type()
