@@ -58,7 +58,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self,
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[int]] = None,
-        cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[XLACheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
@@ -152,7 +151,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
+        return dict(num_replicas=self.world_size, rank=self.global_rank)
 
     @property
     def is_distributed(self) -> bool:
