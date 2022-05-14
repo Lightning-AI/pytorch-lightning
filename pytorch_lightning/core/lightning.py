@@ -1007,8 +1007,8 @@ class LightningModule(
         """
 
     def test_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        """Use this when testing with DP because :meth:`test_step` will operate on only part of the batch.
-        However, this is still optional and only needed for things like softmax or NCE loss.
+        """Use this when testing with DP because :meth:`test_step` will operate on only part of the batch. However,
+        this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
             If you later switch to ddp or some other mode, this will still be called
