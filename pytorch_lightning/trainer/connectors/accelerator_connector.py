@@ -50,7 +50,6 @@ from pytorch_lightning.plugins.environments import (
     LSFEnvironment,
     SLURMEnvironment,
     TorchElasticEnvironment,
-    XLAEnvironment,
 )
 from pytorch_lightning.plugins.layer_sync import LayerSync, NativeSyncBatchNorm
 from pytorch_lightning.strategies import (
@@ -539,7 +538,6 @@ class AcceleratorConnector:
             TorchElasticEnvironment,
             KubeflowEnvironment,
             LSFEnvironment,
-            # XLAEnvironment,
         ):
             if env_type.detect():
                 return env_type()
