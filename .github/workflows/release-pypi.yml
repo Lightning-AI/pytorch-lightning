@@ -102,7 +102,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-${{ hashFiles('requirements.txt') }}
+        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-${{ hashFiles('requirements/base.txt') }}
         restore-keys: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-
 
     - name: Install dependencies

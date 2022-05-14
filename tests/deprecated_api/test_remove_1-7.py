@@ -38,52 +38,6 @@ from tests.loggers.test_logger import CustomLogger
 from tests.plugins.environments.test_lsf_environment import _make_rankfile
 
 
-def test_v1_7_0_deprecated_on_task_dataloader(tmpdir):
-    class CustomBoringModel(BoringModel):
-        def on_train_dataloader(self):
-            print("on_train_dataloader")
-
-        def on_val_dataloader(self):
-            print("on_val_dataloader")
-
-        def on_test_dataloader(self):
-            print("on_test_dataloader")
-
-        def on_predict_dataloader(self):
-            print("on_predict_dataloader")
-
-    def _run(model, task="fit"):
-        trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
-        getattr(trainer, task)(model)
-
-    model = CustomBoringModel()
-
-    with pytest.deprecated_call(
-        match="Method `on_train_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
-    ):
-        _run(model, "fit")
-
-    with pytest.deprecated_call(
-        match="Method `on_val_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
-    ):
-        _run(model, "fit")
-
-    with pytest.deprecated_call(
-        match="Method `on_val_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
-    ):
-        _run(model, "validate")
-
-    with pytest.deprecated_call(
-        match="Method `on_test_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
-    ):
-        _run(model, "test")
-
-    with pytest.deprecated_call(
-        match="Method `on_predict_dataloader` is deprecated in v1.5.0 and will be removed in v1.7.0."
-    ):
-        _run(model, "predict")
-
-
 def test_v1_7_0_on_interrupt(tmpdir):
     class HandleInterruptCallback(Callback):
         def on_keyboard_interrupt(self, trainer, pl_module):
@@ -152,11 +106,6 @@ def test_v1_7_0_deprecate_lightning_distributed(tmpdir):
         from pytorch_lightning.distributed.dist import LightningDistributed
 
         _ = LightningDistributed()
-
-
-def test_v1_7_0_checkpoint_callback_trainer_constructor(tmpdir):
-    with pytest.deprecated_call(match=r"Setting `Trainer\(checkpoint_callback=True\)` is deprecated in v1.5"):
-        _ = Trainer(checkpoint_callback=True)
 
 
 def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
