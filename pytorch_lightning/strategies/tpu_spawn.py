@@ -65,7 +65,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         **_: Any,
     ) -> None:
         checkpoint_io = checkpoint_io or XLACheckpointIO()
-        cluster_environment = cluster_environment or XLAEnvironment()
+        # cluster_environment = cluster_environment or XLAEnvironment()
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
@@ -77,6 +77,18 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
         self.start_method = "fork"
+
+    @property
+    def global_rank(self) -> int:
+        return self.tpu_global_core_rank
+
+    @property
+    def local_rank(self) -> int:
+        return self.tpu_local_core_rank
+
+    @property
+    def world_size(self) -> int:
+        return xm.xrt_world_size()
 
     @property
     def root_device(self) -> torch.device:
@@ -141,16 +153,12 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        return dict(num_replicas=self.world_size, rank=self.global_rank)
+        return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
 
     @property
     def is_distributed(self) -> bool:
         # HOST_WORLD_SIZE is None outside the xmp.spawn process
         return os.getenv(xenv.HOST_WORLD_SIZE, None) and self.world_size != 1
-
-    @property
-    def local_rank(self) -> int:
-        return self.cluster_environment.local_rank()
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
         TPUSpawnStrategy._validate_dataloader(dataloader)
