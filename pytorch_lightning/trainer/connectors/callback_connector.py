@@ -152,17 +152,13 @@ class CallbackConnector:
             )
             return
 
-        # If the user wants to configure a model summary callback, without explicitly passing it,
-        # to the callbacks list, we will create it with max depth of 1
-        max_depth = 1
-
         progress_bar_callback = self.trainer.progress_bar_callback
         is_progress_bar_rich = isinstance(progress_bar_callback, RichProgressBar)
 
         if progress_bar_callback is not None and is_progress_bar_rich:
-            model_summary = RichModelSummary(max_depth=max_depth)
+            model_summary = RichModelSummary()
         else:
-            model_summary = ModelSummary(max_depth=max_depth)
+            model_summary = ModelSummary()
         self.trainer.callbacks.append(model_summary)
 
     def _configure_progress_bar(self, process_position: int = 0, enable_progress_bar: bool = True) -> None:
