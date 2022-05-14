@@ -339,7 +339,7 @@ def test_set_devices_if_none_cpu():
 @pytest.mark.parametrize("strategy", ["dp"])
 def test_unsupported_strategy_types_on_cpu(strategy):
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
-        trainer = Trainer(accelerator=strategy, num_processes=2)
+        trainer = Trainer(strategy=strategy, num_processes=2)
     assert isinstance(trainer.strategy, DDPStrategy)
 
 
