@@ -155,9 +155,7 @@ class CallbackConnector:
 
         # If the user wants to configure a model summary callback, without explicitly passing it,
         # to the callbacks list, we will create it with max depth of 1
-        # This corresponds to weights_summary == "top"
-        weights_summary = "top"
-        max_depth = ModelSummaryMode.get_max_depth(weights_summary)
+        max_depth = 1
 
         progress_bar_callback = self.trainer.progress_bar_callback
         is_progress_bar_rich = isinstance(progress_bar_callback, RichProgressBar)
