@@ -419,7 +419,7 @@ override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation
 Validating with DataParallel
 ============================
 
-When training using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
+When validating using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
 need to aggregate them on the main GPU for processing (DP).
 
 In this case, implement the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step_end`
