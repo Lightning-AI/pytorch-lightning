@@ -27,7 +27,7 @@ from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sequ
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import PLUGIN_INPUT
-from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy, TPUSpawnStrategy
+from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy, TPUSpawnStrategy, BaguaStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_data_to_device
@@ -410,7 +410,13 @@ class LightningLite(ABC):
     def _run_with_strategy_setup(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
         with self._strategy.model_sharded_context(), _replace_dataloader_init_method():
-            return run_method(*args, **kwargs)
+            result = run_method(*args, **kwargs)
+
+        # TODO: Capture this inside a teardown
+        if isinstance(self._strategy, BaguaStrategy) and self._strategy._bagua_algorithm == "async":
+            self._strategy.model.module.bagua_algorithm.abort(self._strategy.model.module)
+
+        return result
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:
         if isinstance(self._strategy, TPUSpawnStrategy):
