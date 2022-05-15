@@ -21,7 +21,6 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.plugins import ClusterEnvironment
 from pytorch_lightning.plugins.environments import XLAEnvironment
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
