@@ -138,8 +138,8 @@ class DeepNestedModel(LightningModule):
         return self.head(self.branch1(inp), self.branch2(inp))
 
 
-def test_invalid_weights_summary():
-    """Test that invalid value for weights_summary raises an error."""
+def test_invalid_max_depth():
+    """Test that invalid value for max_depth raises an error."""
     model = LightningModule()
 
     with pytest.raises(ValueError, match="max_depth` can be .* got temp"):
