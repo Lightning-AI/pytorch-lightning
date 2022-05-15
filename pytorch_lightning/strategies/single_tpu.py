@@ -45,7 +45,6 @@ class SingleTPUStrategy(SingleDeviceStrategy):
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
-
         self.debug = debug
 
     @property
