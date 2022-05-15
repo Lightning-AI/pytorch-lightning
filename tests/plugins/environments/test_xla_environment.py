@@ -51,7 +51,7 @@ def test_default_attributes():
         "XRT_SHARD_LOCAL_ORDINAL": "2",
         "XRT_HOST_ORDINAL": "3",
     },
-    clear=True
+    clear=True,
 )
 def test_attributes_from_environment_variables():
     """Test that the default cluster environment takes the attributes from the environment variables."""
