@@ -22,7 +22,7 @@ from tests.helpers.runif import RunIf
 
 
 @RunIf(tpu=True)
-@mock.patch.dict(os.environ, {})
+@mock.patch.dict(os.environ, {}, clear=True)
 def test_default_attributes():
     """Test the default attributes when no environment variables are set."""
     env = XLAEnvironment()
@@ -51,6 +51,7 @@ def test_default_attributes():
         "XRT_SHARD_LOCAL_ORDINAL": "2",
         "XRT_HOST_ORDINAL": "3",
     },
+    clear=True
 )
 def test_attributes_from_environment_variables():
     """Test that the default cluster environment takes the attributes from the environment variables."""
