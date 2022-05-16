@@ -52,8 +52,8 @@ class HPUParallelStrategy(DDPStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         ddp_comm_state: Optional[object] = None,
-        ddp_comm_hook: Optional[callable] = None, # type: ignore
-        ddp_comm_wrapper: Optional[callable] = None, # type: ignore
+        ddp_comm_hook: Optional[callable] = None,  # type: ignore
+        ddp_comm_wrapper: Optional[callable] = None,  # type: ignore
         model_averaging_period: Optional[int] = None,
         process_group_backend: Optional[str] = "hccl",
         **kwargs: Union[Any, Dict[str, Any]],
