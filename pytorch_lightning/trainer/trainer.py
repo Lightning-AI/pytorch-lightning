@@ -56,7 +56,6 @@ from pytorch_lightning.plugins import (
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
-    BaseProfiler,
     PassThroughProfiler,
     Profiler,
     PyTorchProfiler,
