@@ -25,6 +25,7 @@ from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
+from tests.helpers.utils import no_warning_call
 
 
 class BatchSizeDataModule(BoringDataModule):
@@ -114,9 +115,11 @@ def test_trainer_reset_correctly(tmpdir):
         "global_step",
     ]
     expected = {ca: getattr(trainer, ca) for ca in changed_attributes}
-    trainer.tuner.scale_batch_size(model, max_trials=5)
-    actual = {ca: getattr(trainer, ca) for ca in changed_attributes}
 
+    with no_warning_call(UserWarning, match="Please add the following callbacks"):
+        trainer.tuner.scale_batch_size(model, max_trials=5)
+
+    actual = {ca: getattr(trainer, ca) for ca in changed_attributes}
     assert actual == expected
 
 

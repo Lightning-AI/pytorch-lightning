@@ -133,7 +133,6 @@ class Trainer(
     def __init__(
         self,
         logger: Union[Logger, Iterable[Logger], bool] = True,
-        checkpoint_callback: Optional[bool] = None,
         enable_checkpointing: bool = True,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[str] = None,
@@ -234,13 +233,6 @@ class Trainer(
 
             callbacks: Add a callback or list of callbacks.
                 Default: ``None``.
-
-            checkpoint_callback: If ``True``, enable checkpointing.
-                Default: ``None``.
-
-                .. deprecated:: v1.5
-                    ``checkpoint_callback`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please consider using ``enable_checkpointing`` instead.
 
             enable_checkpointing: If ``True``, enable checkpointing.
                 It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
@@ -515,7 +507,6 @@ class Trainer(
         # Declare attributes to be set in _callback_connector on_trainer_init
         self._callback_connector.on_trainer_init(
             callbacks,
-            checkpoint_callback,
             enable_checkpointing,
             enable_progress_bar,
             process_position,
@@ -1815,13 +1806,13 @@ class Trainer(
             model: The ``LightningModule`` if calling this outside of the trainer scope.
         """
         source = self._data_connector._train_dataloader_source
-        pl_module = self.lightning_module or model
+        pl_module = model or self.lightning_module
         has_step = is_overridden("training_step", pl_module)
         enable_training = self.limit_train_batches > 0
         if not (source.is_defined() and has_step and enable_training):
             return
 
-        self.train_dataloader = self._data_connector._request_dataloader(RunningStage.TRAINING, model=model)
+        self.train_dataloader = self._data_connector._request_dataloader(RunningStage.TRAINING)
 
         if self.overfit_batches > 0:
             self.train_dataloader = self._data_connector._resolve_overfit_batches(

@@ -348,7 +348,7 @@ class DataConnector:
         assert mode.evaluating or mode == RunningStage.PREDICTING
 
         # always get the loaders first so we can count how many there are
-        dataloaders = self._request_dataloader(mode, model=model)
+        dataloaders = self._request_dataloader(mode)
 
         if self.trainer.overfit_batches > 0:
             dataloaders = self._resolve_overfit_batches(dataloaders, mode)
@@ -423,9 +423,7 @@ class DataConnector:
 
         return loader_num_batches, dataloaders
 
-    def _request_dataloader(
-        self, stage: RunningStage, model: Optional["pl.LightningModule"] = None
-    ) -> Union[DataLoader, List[DataLoader]]:
+    def _request_dataloader(self, stage: RunningStage) -> Union[DataLoader, List[DataLoader]]:
         """Requests a dataloader from the given model by calling dataloader hooks corresponding to the given stage.
 
         Returns:
@@ -433,8 +431,6 @@ class DataConnector:
         """
         source = getattr(self, f"_{stage.dataloader_prefix}_dataloader_source")
 
-        hook = f"{stage.dataloader_prefix}_dataloader"
-        self.trainer._call_lightning_module_hook("on_" + hook, pl_module=model)
         with _replace_dataloader_init_method():
             # under this context manager, the arguments passed to `DataLoader.__init__` will be captured and saved as
             # attributes on the instance in case the dataloader needs to be re-instantiated later by Lightning
