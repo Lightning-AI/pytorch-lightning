@@ -15,6 +15,7 @@
 import inspect
 import logging
 import math
+import operator
 import os
 import traceback
 import warnings
@@ -22,6 +23,7 @@ from argparse import ArgumentParser, Namespace
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
+from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Type, Union
 from weakref import proxy
@@ -130,13 +132,11 @@ class Trainer(
     def __init__(
         self,
         logger: Union[Logger, Iterable[Logger], bool] = True,
-        checkpoint_callback: Optional[bool] = None,
         enable_checkpointing: bool = True,
         callbacks: Optional[Union[List[Callback], Callback]] = None,
         default_root_dir: Optional[str] = None,
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
-        process_position: int = 0,
         num_nodes: int = 1,
         num_processes: Optional[int] = None,  # TODO: Remove in 2.0
         devices: Optional[Union[List[int], str, int]] = None,
@@ -232,13 +232,6 @@ class Trainer(
             callbacks: Add a callback or list of callbacks.
                 Default: ``None``.
 
-            checkpoint_callback: If ``True``, enable checkpointing.
-                Default: ``None``.
-
-                .. deprecated:: v1.5
-                    ``checkpoint_callback`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please consider using ``enable_checkpointing`` instead.
-
             enable_checkpointing: If ``True``, enable checkpointing.
                 It will configure a default ModelCheckpoint callback if there is no user-defined ModelCheckpoint in
                 :paramref:`~pytorch_lightning.trainer.trainer.Trainer.callbacks`.
@@ -310,13 +303,6 @@ class Trainer(
 
             log_every_n_steps: How often to log within steps.
                 Default: ``50``.
-
-            process_position: Orders the progress bar when running multiple models on same machine.
-
-                .. deprecated:: v1.5
-                    ``process_position`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``process_position``
-                    directly to the Trainer's ``callbacks`` argument instead.
 
             enable_progress_bar: Whether to enable to progress bar by default.
                 Default: ``False``.
@@ -512,10 +498,8 @@ class Trainer(
         # Declare attributes to be set in _callback_connector on_trainer_init
         self._callback_connector.on_trainer_init(
             callbacks,
-            checkpoint_callback,
             enable_checkpointing,
             enable_progress_bar,
-            process_position,
             default_root_dir,
             weights_save_path,
             enable_model_summary,
@@ -1317,7 +1301,7 @@ class Trainer(
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self._evaluation_loop.trainer = self
 
-        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context():
+        with self.profiler.profile(f"run_{self.state.stage}_evaluation"), _evaluation_context(self.accelerator):
             eval_loop_results = self._evaluation_loop.run()
 
         # remove the tensors from the eval results
@@ -1333,7 +1317,7 @@ class Trainer(
         self.reset_predict_dataloader(self.lightning_module)
         # reset trainer on this loop and all child loops in case user connected a custom loop
         self.predict_loop.trainer = self
-        with _evaluation_context():
+        with _evaluation_context(self.accelerator):
             return self.predict_loop.run()
 
     def _run_sanity_check(self) -> None:
@@ -1386,27 +1370,37 @@ class Trainer(
         from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 
         ft_checkpoints = [cb for cb in self.callbacks if isinstance(cb, _FaultToleranceCheckpoint)]
-        if ft_checkpoints:
-            ft_ckpt_path = ft_checkpoints[0].ckpt_path
-            fs = get_filesystem(ft_ckpt_path)
-            if fs.exists(ft_ckpt_path):
-                return ft_ckpt_path
+        fn = self.state.fn.value
+
+        if ckpt_path is None and ft_checkpoints and self.state.fn == TrainerFn.FITTING:
+            ckpt_path = "last"
+            rank_zero_warn(
+                f"`.{fn}(ckpt_path=None)` was called without a model."
+                " Because fault tolerance is enabled, the last model of the previous `fit` call will be used."
+                f" You can pass `{fn}(ckpt_path='best')` to use the best model or"
+                f" `{fn}(ckpt_path='last')` to use the last model."
+                " If you pass a value, this warning will be silenced."
+            )
 
         if model_provided and ckpt_path is None:
             # use passed model to function without loading weights
             return
 
-        fn = self.state.fn.value
-
         if model_connected and ckpt_path is None:
+            ckpt_path = "best"
+            ft_tip = (
+                " There is also a fault-tolerant checkpoint available, however it is used by default only when fitting."
+                if ft_checkpoints
+                else ""
+            )
             rank_zero_warn(
                 f"`.{fn}(ckpt_path=None)` was called without a model."
                 " The best model of the previous `fit` call will be used."
-                f" You can pass `{fn}(ckpt_path='best')` to use and best model"
-                " checkpoint and avoid this warning or"
-                " `ckpt_path=trainer.checkpoint_callback.last_model_path` to use the last model."
+                + ft_tip
+                + f" You can pass `.{fn}(ckpt_path='best')` to use the best model or"
+                f" `.{fn}(ckpt_path='last')` to use the last model."
+                " If you pass a value, this warning will be silenced."
             )
-            ckpt_path = "best"
 
         if ckpt_path == "best":
             if len(self.checkpoint_callbacks) > 1:
@@ -1432,6 +1426,21 @@ class Trainer(
             # load best weights
             ckpt_path = self.checkpoint_callback.best_model_path
 
+        if ckpt_path == "last":
+            candidates = [ft.ckpt_path for ft in ft_checkpoints] + [
+                cb.last_model_path for cb in self.checkpoint_callbacks
+            ]
+            candidates_fs = {path: get_filesystem(path) for path in candidates if path}
+            candidates_ts = {path: fs.modified(path) for path, fs in candidates_fs.items() if fs.exists(path)}
+            if not candidates_ts:
+                # not an error so it can be set and forget before the first `fit` run
+                rank_zero_warn(
+                    f'.{fn}(ckpt_path="last") is set, but there is no fault tolerant'
+                    " or last checkpoint available. No checkpoint will be loaded."
+                )
+                return
+            ckpt_path = max(candidates_ts.keys(), key=partial(operator.getitem, candidates_ts))
+
         if not ckpt_path:
             raise MisconfigurationException(
                 f"`.{fn}()` found no path for the best weights: {ckpt_path!r}. Please"
@@ -1445,7 +1454,7 @@ class Trainer(
         self.strategy.barrier("pre_setup")
 
         if self.datamodule is not None:
-            self.datamodule.setup(stage=fn)
+            self._call_lightning_datamodule_hook("setup", stage=fn)
         self._call_callback_hooks("setup", stage=fn)
         self._call_lightning_module_hook("setup", stage=fn)
 
@@ -1472,7 +1481,7 @@ class Trainer(
         fn = self.state.fn._setup_fn
 
         if self.datamodule is not None:
-            self.datamodule.teardown(stage=fn)
+            self._call_lightning_datamodule_hook("teardown", stage=fn)
 
         self._call_callback_hooks("teardown", stage=fn)
         self._call_lightning_module_hook("teardown", stage=fn)
@@ -1538,7 +1547,7 @@ class Trainer(
         pl_module = pl_module or self.lightning_module
 
         if pl_module is None:
-            raise TypeError("No Lightning Module is available to call hooks on")
+            raise TypeError("No `LightningModule` is available to call hooks on.")
 
         fn = getattr(pl_module, hook_name)
         if not callable(fn):
@@ -1554,6 +1563,20 @@ class Trainer(
         pl_module._current_fx_name = prev_fx_name
 
         return output
+
+    def _call_lightning_datamodule_hook(
+        self,
+        hook_name: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
+        if self.datamodule is None:
+            raise TypeError("No `LightningDataModule` is available to call hooks on.")
+
+        fn = getattr(self.datamodule, hook_name)
+        if callable(fn):
+            with self.profiler.profile(f"[LightningDataModule]{self.datamodule.__class__.__name__}.{hook_name}"):
+                return fn(*args, **kwargs)
 
     def _call_callback_hooks(
         self,
@@ -1773,13 +1796,13 @@ class Trainer(
             model: The ``LightningModule`` if calling this outside of the trainer scope.
         """
         source = self._data_connector._train_dataloader_source
-        pl_module = self.lightning_module or model
+        pl_module = model or self.lightning_module
         has_step = is_overridden("training_step", pl_module)
         enable_training = self.limit_train_batches > 0
         if not (source.is_defined() and has_step and enable_training):
             return
 
-        self.train_dataloader = self._data_connector._request_dataloader(RunningStage.TRAINING, model=model)
+        self.train_dataloader = self._data_connector._request_dataloader(RunningStage.TRAINING)
 
         if self.overfit_batches > 0:
             self.train_dataloader = self._data_connector._resolve_overfit_batches(
@@ -2760,11 +2783,15 @@ class Trainer(
 
 
 @contextmanager
-def _evaluation_context() -> Generator:
-    # inference mode is not supported with gloo backend (#9431)
+def _evaluation_context(accelerator: Accelerator) -> Generator:
+    # inference mode is not supported with gloo backend (#9431),
+    # and HPU & TPU accelerators.
     context_manager_class = (
         torch.inference_mode
-        if _TORCH_GREATER_EQUAL_1_9 and not (dist.is_initialized() and dist.get_backend() == "gloo")
+        if _TORCH_GREATER_EQUAL_1_9
+        and not (dist.is_initialized() and dist.get_backend() == "gloo")
+        and not isinstance(accelerator, HPUAccelerator)
+        and not isinstance(accelerator, TPUAccelerator)
         else torch.no_grad
     )
     with context_manager_class():

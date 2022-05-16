@@ -535,12 +535,6 @@ Example::
     # run val loop every 10 training epochs
     trainer = Trainer(check_val_every_n_epoch=10)
 
-checkpoint_callback
-^^^^^^^^^^^^^^^^^^^
-
-.. warning:: `checkpoint_callback` has been deprecated in v1.5 and will be removed in v1.7.
-    To disable checkpointing, pass ``enable_checkpointing = False`` to the Trainer instead.
-
 
 default_root_dir
 ^^^^^^^^^^^^^^^^
@@ -1219,31 +1213,6 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
 
         # turn on 16-bit
         trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16, accelerator="gpu", devices=1)
-
-
-process_position
-^^^^^^^^^^^^^^^^
-
-.. warning:: ``process_position`` has been deprecated in v1.5 and will be removed in v1.7.
-    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``process_position``
-    directly to the Trainer's ``callbacks`` argument instead.
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/process_position.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/process_position.mp4"></video>
-
-|
-
-Orders the progress bar. Useful when running multiple trainers on the same node.
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(process_position=0)
-
-.. note:: This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
 profiler
 ^^^^^^^^
