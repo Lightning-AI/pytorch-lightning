@@ -19,10 +19,12 @@ from typing import List
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 
 
-def _load_requirements(path_dir: str, file_name: str = "requirements.txt", comment_char: str = "#") -> List[str]:
+def _load_requirements(
+    path_dir: str, file_name: str = "base.txt", comment_char: str = "#", unfreeze: bool = True
+) -> List[str]:
     """Load requirements from a file.
 
-    >>> _load_requirements(_PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> _load_requirements(os.path.join(_PROJECT_ROOT, "requirements"))  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     ['numpy...', 'torch...', ...]
     """
     with open(os.path.join(path_dir, file_name)) as file:
@@ -31,12 +33,16 @@ def _load_requirements(path_dir: str, file_name: str = "requirements.txt", comme
     for ln in lines:
         # filer all comments
         if comment_char in ln:
-            ln = ln[: ln.index(comment_char)].strip()
+            ln = ln[: ln.index(comment_char)]
+        comment = ln[ln.index(comment_char) :] if comment_char in ln else ""
+        req = ln.strip()
         # skip directly installed dependencies
-        if ln.startswith("http") or "@http" in ln:
+        if not req or req.startswith("http") or "@http" in req:
             continue
-        if ln:  # if requirement is not empty
-            reqs.append(ln)
+        # remove version restrictions unless they are strict
+        if unfreeze and "<" in req and "strict" not in comment:
+            req = re.sub(r",? *<=? *[\d\.\*]+", "", req).strip()
+        reqs.append(req)
     return reqs
 
 
