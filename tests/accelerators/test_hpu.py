@@ -240,3 +240,28 @@ def test_hpu_auto_device_count():
 def test_hpu_unsupported_device_type():
     with pytest.raises(MisconfigurationException, match="`devices` for `HPUAccelerator` must be int, string or None."):
         Trainer(accelerator="hpu", devices=[1])
+
+
+@RunIf(hpu=True)
+def test_strategy_params_with_hpu_parallel_plugin():
+    _bucket_cap_mb=100
+    _gradient_as_bucket_view=True
+    _static_graph=True
+    _find_unused_parameters=True
+    trainer = Trainer(
+        strategy=HPUParallelStrategy(bucket_cap_mb=_bucket_cap_mb,
+                                     gradient_as_bucket_view=_gradient_as_bucket_view,
+                                     static_graph=_static_graph,
+                                     find_unused_parameters=_find_unused_parameters),
+        accelerator="hpu", devices=8
+    )
+    assert isinstance(trainer.strategy, HPUParallelStrategy)
+
+    if(trainer.strategy._ddp_kwargs["bucket_cap_mb"] != _bucket_cap_mb):
+        assert False, "bucket_cap_mb not matching !"
+    if(trainer.strategy._ddp_kwargs["gradient_as_bucket_view"] != _gradient_as_bucket_view):
+        assert False, "gradient_as_bucket_view not matching !"
+    if(trainer.strategy._ddp_kwargs["static_graph"] != _static_graph):
+        assert False, "static_graph not matching !"
+    if(trainer.strategy._ddp_kwargs["find_unused_parameters"] != _find_unused_parameters):
+        assert False, "find_unused_parameters not matching !"
