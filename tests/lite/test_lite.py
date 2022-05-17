@@ -14,7 +14,7 @@
 import os
 from copy import deepcopy
 from unittest import mock
-from unittest.mock import MagicMock, Mock, PropertyMock
+from unittest.mock import ANY, MagicMock, Mock, PropertyMock
 
 import pytest
 import torch
@@ -78,6 +78,18 @@ def test_run_input_output():
     assert result == "result"
     assert lite.run_args == (1, 2)
     assert lite.run_kwargs == {"three": 3}
+
+
+@mock.patch("pytorch_lightning.strategies.ddp.DistributedDataParallel")
+def test_setup_model(ddp_mock):
+    """Test that the setup method lets the strategy wrap the model, but keeps a reference to the original model."""
+    lite = EmptyLite(accelerator="cpu", strategy="ddp", devices=2)
+    model = nn.Linear(1, 2)
+    lite_model = lite.setup(model)
+    ddp_mock.assert_called_with(module=model, device_ids=ANY)
+    assert lite_model.module == model
+    assert lite_model.weight is model.weight
+    assert lite_model.forward != model.forward
 
 
 def test_setup_optimizers():

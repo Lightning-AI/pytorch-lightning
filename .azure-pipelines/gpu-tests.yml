@@ -18,19 +18,21 @@ pr:
 
 jobs:
   - job: pytest
+    strategy:
+      matrix:
+        'PyTorch - LTS':
+          image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8"
+        'PyTorch - stable':
+          image: "pytorchlightning/pytorch_lightning:base-cuda-py3.9-torch1.11"
     # how long to run the job before automatically cancelling
-    timeoutInMinutes: "45"
+    timeoutInMinutes: "65"
     # how much time to give 'run always even if cancelled tasks' before stopping them
     cancelTimeoutInMinutes: "2"
 
     pool: azure-gpus-spot
 
-    # ToDo: this need to have installed docker in the base image...
     container:
-      # base ML image: mcr.microsoft.com/azureml/openmpi3.1.2-cuda10.2-cudnn8-ubuntu18.04
-      # run on torch 1.8 as it's the LTS version
-      # TODO: Unpin sha256
-      image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8@sha256:b75de74d4c7c820f442f246be8500c93f8b5797b84aa8531847e5fb317ed3dda"
+      image: $(image)
       # default shm size is 64m. Increase it to avoid:
       # 'Error while creating shared memory: unhandled system error, NCCL version 2.7.8'
       options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=512m"
@@ -51,12 +53,11 @@ jobs:
       displayName: 'Image info & NVIDIA'
 
     - bash: |
-        python -c "fname = 'requirements/extra.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
-        pip install fairscale>=0.4.5
-        pip install deepspeed>=0.6.0
+        python -c "fname = 'requirements/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
         CUDA_VERSION_MM=$(python -c "import torch ; print(''.join(map(str, torch.version.cuda.split('.')[:2])))")
         pip install "bagua-cuda$CUDA_VERSION_MM>=0.9.0"
         pip install . --requirement requirements/devel.txt
+        pip install . --requirement requirements/strategies.txt
         pip list
       displayName: 'Install dependencies'
 

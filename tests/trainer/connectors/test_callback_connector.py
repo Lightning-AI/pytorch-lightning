@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import logging
+from unittest import mock
+from unittest.mock import Mock
 
 import torch
 
@@ -26,6 +29,7 @@ from pytorch_lightning.callbacks import (
     TQDMProgressBar,
 )
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
+from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
 from tests.helpers import BoringModel
 
 
@@ -214,3 +218,58 @@ def test_attach_model_callbacks_override_info(caplog):
         cb_connector._attach_model_callbacks()
 
     assert "existing callbacks passed to Trainer: EarlyStopping, LearningRateMonitor" in caplog.text
+
+
+class ExternalCallback(Callback):
+    """A callback in another library that gets registered through entry points."""
+
+    pass
+
+
+def test_configure_external_callbacks():
+    """Test that the connector collects Callback instances from factories registered through entry points."""
+
+    def factory_no_callback():
+        return []
+
+    def factory_one_callback():
+        return ExternalCallback()
+
+    def factory_one_callback_list():
+        return [ExternalCallback()]
+
+    def factory_multiple_callbacks_list():
+        return [ExternalCallback(), ExternalCallback()]
+
+    with _make_entry_point_query_mock(factory_no_callback):
+        trainer = Trainer(enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
+    assert trainer.callbacks == [trainer.accumulation_scheduler]  # this scheduler callback gets added by default
+
+    with _make_entry_point_query_mock(factory_one_callback):
+        trainer = Trainer(enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
+    assert isinstance(trainer.callbacks[1], ExternalCallback)
+
+    with _make_entry_point_query_mock(factory_one_callback_list):
+        trainer = Trainer(enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
+    assert isinstance(trainer.callbacks[1], ExternalCallback)
+
+    with _make_entry_point_query_mock(factory_multiple_callbacks_list):
+        trainer = Trainer(enable_checkpointing=False, enable_progress_bar=False, enable_model_summary=False)
+    assert isinstance(trainer.callbacks[1], ExternalCallback)
+    assert isinstance(trainer.callbacks[2], ExternalCallback)
+
+
+@contextlib.contextmanager
+def _make_entry_point_query_mock(callback_factory):
+    query_mock = Mock()
+    entry_point = Mock()
+    entry_point.name = "mocked"
+    entry_point.load.return_value = callback_factory
+    if _PYTHON_GREATER_EQUAL_3_8_0:
+        query_mock().get.return_value = [entry_point]
+        import_path = "importlib.metadata.entry_points"
+    else:
+        query_mock.return_value = [entry_point]
+        import_path = "pkg_resources.iter_entry_points"
+    with mock.patch(import_path, query_mock):
+        yield

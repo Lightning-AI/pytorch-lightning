@@ -21,6 +21,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
+from pytorch_lightning.profiler import SimpleProfiler
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher, InterBatchParallelDataFetcher
@@ -375,9 +376,10 @@ def test_stop_iteration(trigger_stop_iteration, tmpdir):
             super().__init__()
             self.trigger_stop_iteration = trigger_stop_iteration
 
-        def training_step(self, dataloader_iter: Iterator, *args) -> STEP_OUTPUT:
+        def training_step(self, dataloader_iter: Iterator) -> STEP_OUTPUT:
             output = super().training_step(dataloader_iter)
-            if self.trigger_stop_iteration and args[0] == EXPECT_NUM_BATCHES_PROCESSED:
+            batch_idx = self.trainer.fit_loop.epoch_loop.batch_idx
+            if self.trigger_stop_iteration and batch_idx == EXPECT_NUM_BATCHES_PROCESSED:
                 raise StopIteration
             return output
 
@@ -485,3 +487,88 @@ def test_transfer_hooks_with_unpacking(tmpdir):
     assert dm.count_called_on_before_batch_transfer == 4
     assert dm.count_called_transfer_batch_to_device == 4
     assert dm.count_called_on_after_batch_transfer == 4
+
+
+@RunIf(skip_windows=True)  # TODO: all durations are 0 on Windows
+def test_fetching_is_profiled():
+    """Test that fetching is profiled."""
+
+    class MyModel(BoringModel):
+        def validation_step(self, batch, batch_idx, dataloader_idx=0):
+            return super().validation_step(batch, batch_idx)
+
+        def val_dataloader(self):
+            return [super().val_dataloader(), super().val_dataloader()]
+
+        validation_epoch_end = None
+
+    model = MyModel()
+    fast_dev_run = 2
+    trainer = Trainer(
+        fast_dev_run=fast_dev_run,
+        profiler="simple",
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        logger=False,
+    )
+    trainer.fit(model)
+    trainer.test(model)
+    trainer.predict(model)
+
+    profiler = trainer.profiler
+    assert isinstance(profiler, SimpleProfiler)
+
+    # validation
+    for i in range(2):
+        key = f"[EvaluationEpochLoop].val_dataloader_idx_{i}_next"
+        assert key in profiler.recorded_durations
+        durations = profiler.recorded_durations[key]
+        assert len(durations) == fast_dev_run
+        assert all(d > 0 for d in durations)
+    # training
+    key = "[TrainingEpochLoop].train_dataloader_next"
+    assert key in profiler.recorded_durations
+    durations = profiler.recorded_durations[key]
+    assert len(durations) == fast_dev_run
+    assert all(d > 0 for d in durations)
+    # test
+    key = "[EvaluationEpochLoop].val_dataloader_idx_0_next"
+    assert key in profiler.recorded_durations
+    durations = profiler.recorded_durations[key]
+    assert len(durations) == fast_dev_run
+    assert all(d > 0 for d in durations)
+    # predict
+    key = "[PredictionEpochLoop].predict_dataloader_idx_0_next"
+    assert key in profiler.recorded_durations
+    durations = profiler.recorded_durations[key]
+    assert len(durations) == fast_dev_run
+    assert all(d > 0 for d in durations)
+
+    # now test profiling when the dataloader_iter is polled manually
+    class MyModel(BoringModel):
+        def training_step(self, dataloader_iter):
+            _ = next(dataloader_iter)
+            batch = next(dataloader_iter)
+            return super().training_step(batch, 0)
+
+    model = MyModel()
+    trainer = Trainer(
+        fast_dev_run=1,
+        profiler="simple",
+        limit_val_batches=0,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        logger=False,
+    )
+    trainer.fit(model)
+
+    profiler = trainer.profiler
+    assert isinstance(profiler, SimpleProfiler)
+
+    key = "[TrainingEpochLoop].train_dataloader_next"
+    assert key in profiler.recorded_durations
+    durations = profiler.recorded_durations[key]
+    assert len(durations) == 2  # 2 polls in training_step
+    assert all(d > 0 for d in durations)

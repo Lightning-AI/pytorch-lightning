@@ -68,6 +68,9 @@ class _LRScheduler(_Stateful, Protocol):
     def __init__(self, optimizer: Optimizer, *args: Any, **kwargs: Any) -> None:
         ...
 
+    def step(self, epoch: Optional[int] = None) -> None:
+        ...
+
 
 # Inferred from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing
@@ -89,6 +92,9 @@ class ReduceLROnPlateau(_Stateful, Protocol):
         min_lr: float = ...,
         eps: float = ...,
     ) -> None:
+        ...
+
+    def step(self, metrics: Union[float, int, torch.Tensor], epoch: Optional[int] = None) -> None:
         ...
 
 

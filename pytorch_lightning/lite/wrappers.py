@@ -65,23 +65,29 @@ class _LiteOptimizer:
 
 
 class _LiteModule(DeviceDtypeModuleMixin):
-    def __init__(self, module: nn.Module, precision_plugin: PrecisionPlugin) -> None:
+    def __init__(
+        self, forward_module: nn.Module, precision_plugin: PrecisionPlugin, original_module: Optional[nn.Module] = None
+    ) -> None:
         """The LiteModule is a thin wrapper around the :class:`torch.nn.Module` and handles precision / autocast
         automatically for the forward pass.
 
         The underlying wrapped module can be accessed via the property :attr:`module`.
 
         Args:
-            module: The module to wrap
+            forward_module: The module to wrap the ``forward`` method on.
             precision_plugin: Reference to the precision plugin for handling precision context
+            original_module: The original, unmodified module as passed into the
+                :meth:`pytorch_lightning.lite.lite.LightningLite.setup` method. This is needed when attribute lookup
+                on this wrapper should pass through to the original module.
         """
         super().__init__()
-        self._module = module
+        self._forward_module = forward_module
+        self._original_module = original_module or forward_module
         self._precision_plugin = precision_plugin
 
     @property
     def module(self) -> nn.Module:
-        return self._module
+        return self._original_module or self._forward_module
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         """Casts all inputs to the right precision and handles autocast for operations in the module forward
@@ -102,11 +108,21 @@ class _LiteModule(DeviceDtypeModuleMixin):
         args, kwargs = apply_to_collection([args, kwargs], function=_convert_float_tensor, dtype=Tensor)
 
         with self._precision_plugin.forward_context():
-            output = self.module(*args, **kwargs)
+            output = self._forward_module(*args, **kwargs)
 
         to_type = torch.get_default_dtype()
         output = apply_to_collection(output, function=_convert_float_tensor, dtype=Tensor)
         return output
+
+    def __getattr__(self, item: Any) -> Any:
+        try:
+            # __getattr__ gets called as a last resort if the attribute does not exist
+            # call nn.Module's implementation first
+            return super().__getattr__(item)
+        except AttributeError:
+            # If the attribute is not available on the _LiteModule wrapper, redirect to the wrapped nn.Module
+            original_module = super().__getattr__("_original_module")
+            return getattr(original_module, item)
 
 
 class _LiteDataLoader:

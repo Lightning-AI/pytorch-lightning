@@ -11,8 +11,8 @@ on: # Trigger the workflow on push or pull request, but only for the master bran
       - "dockers/**"
       - "!dockers/README.md"
       - "requirements/*"
-      - "environment.yml"
       - "requirements.txt"
+      - "environment.yml"
       - ".github/workflows/*docker*.yml"
       - ".github/workflows/events-nightly.yml"
       - "setup.py"
@@ -75,12 +75,14 @@ jobs:
       matrix:
         include:
           # the config used in '.azure-pipelines/gpu-tests.yml'
-          - {python_version: "3.7", pytorch_version: "1.10", cuda_version: "11.1"}
-          - {python_version: "3.7", pytorch_version: "1.11", cuda_version: "11.3.1"}
+          - {python_version: "3.7", pytorch_version: "1.8", cuda_version: "10.2", ubuntu_version: "18.04"}
+          - {python_version: "3.7", pytorch_version: "1.10", cuda_version: "11.1", ubuntu_version: "20.04"}
+          - {python_version: "3.7", pytorch_version: "1.11", cuda_version: "11.3.1", ubuntu_version: "20.04"}
           # latest (used in Tutorials)
-          - {python_version: "3.8", pytorch_version: "1.8", cuda_version: "11.1"}
-          - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.1"}
-          - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
+          - {python_version: "3.8", pytorch_version: "1.8", cuda_version: "11.1", ubuntu_version: "20.04"}
+          - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1", ubuntu_version: "20.04"}
+          - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.1", ubuntu_version: "20.04"}
+          - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1", ubuntu_version: "20.04"}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -92,6 +94,7 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             CUDA_VERSION=${{ matrix.cuda_version }}
+            UBUNTU_VERSION=${{ matrix.ubuntu_version }}
           file: dockers/base-cuda/Dockerfile
           push: false
         timeout-minutes: 75

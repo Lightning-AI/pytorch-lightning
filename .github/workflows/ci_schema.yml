@@ -16,9 +16,9 @@ jobs:
           pip install "check-jsonschema>=0.10"
 
       - name: GH Workflows
-        run: |
-          check-jsonschema .github/workflows/*.yml --builtin-schema "github-workflows"
+        run: check-jsonschema .github/workflows/*.yml --builtin-schema "github-workflows"
 
       - name: Azure Pipelines
-        run: |
-          check-jsonschema .azure-pipelines/*.yml --schemafile "https://raw.githubusercontent.com/microsoft/azure-pipelines-vscode/v1.188.1/service-schema.json"
+        env:
+          SCHEMA_FILE: https://raw.githubusercontent.com/microsoft/azure-pipelines-vscode/v1.204.0/service-schema.json
+        run: check-jsonschema .azure-pipelines/*.yml --schemafile "$SCHEMA_FILE"

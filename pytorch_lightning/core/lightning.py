@@ -19,6 +19,7 @@ import logging
 import numbers
 import os
 import tempfile
+import weakref
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, overload, Sequence, Tuple, Union
@@ -36,14 +37,15 @@ from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks, ModelHooks
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin, HyperparametersMixin
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.core.saving import ModelIO
-from pytorch_lightning.loggers import Logger
+from pytorch_lightning.loggers import Logger, LoggerCollection
 from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
-from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType
+from pytorch_lightning.utilities import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, GradClipAlgorithmType, warnings
 from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_to_tensors
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -245,7 +247,26 @@ class LightningModule(
     @property
     def logger(self) -> Optional[Logger]:
         """Reference to the logger object in the Trainer."""
-        return self.trainer.logger if self.trainer else None
+        # this should match the implementation of `trainer.logger`
+        # we don't reuse it so we can properly set the deprecation stacklevel
+        if self.trainer is None:
+            return
+        loggers = self.trainer.loggers
+        if len(loggers) == 0:
+            return None
+        if len(loggers) == 1:
+            return loggers[0]
+        else:
+            if not self._running_torchscript:
+                rank_zero_deprecation(
+                    "Using `lightning_module.logger` when multiple loggers are configured."
+                    " This behavior will change in v1.8 when `LoggerCollection` is removed, and"
+                    " `lightning_module.logger` will return the first logger available.",
+                    stacklevel=5,
+                )
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                return LoggerCollection(loggers)
 
     @property
     def loggers(self) -> List[Logger]:
@@ -1108,7 +1129,7 @@ class LightningModule(
 
             class MyModel(LightningModule):
 
-                def predicts_step(self, batch, batch_idx, dataloader_idx=0):
+                def predict_step(self, batch, batch_idx, dataloader_idx=0):
                     return self(batch)
 
             dm = ...
@@ -1976,4 +1997,9 @@ class LightningModule(
         from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook
 
         self._register_state_dict_hook(state_dict_hook)
-        self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
+
+        if _TORCH_GREATER_EQUAL_1_12:
+            self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
+        else:
+            # We need to make sure the self inside the method is a weakref proxy
+            self.__class__._register_load_state_dict_pre_hook(weakref.proxy(self), pre_load_state_dict_hook, True)

@@ -35,7 +35,7 @@ class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):
                 "You have asked for sharded AMP but you have not installed it."
                 " Install `fairscale` using this guide: https://https://github.com/facebookresearch/fairscale"
             )
-        super().__init__(precision, device, scaler=scaler or ShardedGradScaler())
+        super().__init__(precision, device, scaler=ShardedGradScaler() if scaler is None and precision == 16 else None)
 
     def clip_grad_by_norm(self, optimizer: "OSS", clip_val: Union[int, float]) -> None:
         optimizer.clip_grad_norm(clip_val)

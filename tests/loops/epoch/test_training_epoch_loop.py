@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from unittest import mock
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 
+from pytorch_lightning import LightningModule
 from pytorch_lightning.loops import TrainingEpochLoop
 from pytorch_lightning.trainer.trainer import Trainer
 from tests.deprecated_api import no_deprecated_call
@@ -33,7 +34,8 @@ _out13 = {"loss": 1.3}
 
 class TestPrepareOutputs:
     def prepare_outputs(self, fn, tbptt_splits, new_format, batch_outputs, num_optimizers, automatic_optimization):
-        lightning_module = Mock()
+        lightning_module = LightningModule()
+        lightning_module.on_train_batch_end = lambda *_: None  # override to trigger the deprecation message
         lightning_module.automatic_optimization = automatic_optimization
         lightning_module.truncated_bptt_steps = tbptt_splits
         match = "will change in version v1.8.*new_format=True"
