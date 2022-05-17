@@ -5,7 +5,7 @@
 -r ./extra.txt
 
 # install all loggers for full package testing
--r ./loggers.txt
+#-r ./loggers.txt
 
 # extended list of dependencies for development and run lint and tests
 -r ./test.txt
