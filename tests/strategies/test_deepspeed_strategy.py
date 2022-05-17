@@ -817,9 +817,7 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
     initial_trainer.fit(initial_model, datamodule=dm)
 
     class TestCallback(Callback):
-        def on_train_epoch_start(
-            self, trainer: Trainer, pl_module: LightningModule
-        ) -> None:
+        def on_train_epoch_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
             original_deepspeed_strategy = initial_trainer.strategy
             current_deepspeed_strategy = trainer.strategy
 
