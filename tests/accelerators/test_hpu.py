@@ -249,7 +249,7 @@ def test_strategy_params_with_hpu_parallel_strategy():
     static_graph = True
     find_unused_parameters = True
 
-    strategy=HPUParallelStrategy(
+    strategy = HPUParallelStrategy(
         bucket_cap_mb=bucket_cap_mb,
         gradient_as_bucket_view=gradient_as_bucket_view,
         static_graph=static_graph,
