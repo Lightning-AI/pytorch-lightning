@@ -196,7 +196,7 @@ def test_accelerator_auto_with_devices_hpu():
 
 
 @RunIf(hpu=True)
-def test_strategy_choice_hpu_plugin():
+def test_strategy_choice_hpu_strategy():
     trainer = Trainer(strategy=SingleHPUStrategy(device=torch.device("hpu")), accelerator="hpu", devices=1)
     assert isinstance(trainer.strategy, SingleHPUStrategy)
 
@@ -205,7 +205,7 @@ def test_strategy_choice_hpu_plugin():
 
 
 @RunIf(hpu=True)
-def test_strategy_choice_hpu_parallel_plugin():
+def test_strategy_choice_hpu_parallel_strategy():
     trainer = Trainer(
         strategy=HPUParallelStrategy(parallel_devices=[torch.device("hpu")] * 8), accelerator="hpu", devices=8
     )
@@ -243,7 +243,7 @@ def test_hpu_unsupported_device_type():
 
 
 @RunIf(hpu=True)
-def test_strategy_params_with_hpu_parallel_plugin():
+def test_strategy_params_with_hpu_parallel_strategy():
     _bucket_cap_mb = 100
     _gradient_as_bucket_view = True
     _static_graph = True
@@ -260,11 +260,7 @@ def test_strategy_params_with_hpu_parallel_plugin():
     )
     assert isinstance(trainer.strategy, HPUParallelStrategy)
 
-    if trainer.strategy._ddp_kwargs["bucket_cap_mb"] != _bucket_cap_mb:
-        assert False, "bucket_cap_mb not matching !"
-    if trainer.strategy._ddp_kwargs["gradient_as_bucket_view"] != _gradient_as_bucket_view:
-        assert False, "gradient_as_bucket_view not matching !"
-    if trainer.strategy._ddp_kwargs["static_graph"] != _static_graph:
-        assert False, "static_graph not matching !"
-    if trainer.strategy._ddp_kwargs["find_unused_parameters"] != _find_unused_parameters:
-        assert False, "find_unused_parameters not matching !"
+    assert (trainer.strategy._ddp_kwargs["bucket_cap_mb"] == _bucket_cap_mb), "bucket_cap_mb not matching !"
+    assert (trainer.strategy._ddp_kwargs["gradient_as_bucket_view"] == _gradient_as_bucket_view), "gradient_as_bucket_view not matching !"
+    assert (trainer.strategy._ddp_kwargs["static_graph"] == _static_graph), "static_graph not matching !"
+    assert (trainer.strategy._ddp_kwargs["find_unused_parameters"] == _find_unused_parameters), "find_unused_parameters not matching !"
