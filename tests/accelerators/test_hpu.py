@@ -248,21 +248,13 @@ def test_strategy_params_with_hpu_parallel_strategy():
     gradient_as_bucket_view = True
     static_graph = True
     find_unused_parameters = True
-
     strategy = HPUParallelStrategy(
         bucket_cap_mb=bucket_cap_mb,
         gradient_as_bucket_view=gradient_as_bucket_view,
         static_graph=static_graph,
         find_unused_parameters=find_unused_parameters,
     )
-
-    assert isinstance(strategy, HPUParallelStrategy)
-
-    assert strategy._ddp_kwargs["bucket_cap_mb"] == bucket_cap_mb, "bucket_cap_mb not matching !"
-    assert (
-        strategy._ddp_kwargs["gradient_as_bucket_view"] == gradient_as_bucket_view
-    ), "gradient_as_bucket_view not matching !"
-    assert strategy._ddp_kwargs["static_graph"] == static_graph, "static_graph not matching !"
-    assert (
-        strategy._ddp_kwargs["find_unused_parameters"] == find_unused_parameters
-    ), "find_unused_parameters not matching !"
+    assert strategy._ddp_kwargs["bucket_cap_mb"] == bucket_cap_mb
+    assert strategy._ddp_kwargs["gradient_as_bucket_view"] == gradient_as_bucket_view
+    assert strategy._ddp_kwargs["static_graph"] == static_graph
+    assert strategy._ddp_kwargs["find_unused_parameters"] == find_unused_parameters
