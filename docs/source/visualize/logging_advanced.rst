@@ -211,7 +211,7 @@ reduce_fx
 =========
 **Default:** :meth:`torch.mean`
 
-Reduction function over step values for end of epoch. Uses :meth:`torch.mean` by default and is not applied when :class:`torchmetrics.Metric`s are logged.
+Reduction function over step values for end of epoch. Uses :meth:`torch.mean` by default and is not applied when a :class:`torchmetrics.Metric` is logged.
 
 .. code-block:: python
 
