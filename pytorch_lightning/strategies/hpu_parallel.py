@@ -13,9 +13,8 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
-import torch
 import torch.distributed
 
 import pytorch_lightning as pl
@@ -90,7 +89,7 @@ class HPUParallelStrategy(DDPStrategy):
     def determine_ddp_device_ids(self) -> None:
         return None
 
-    def _pre_configure_ddp(self):  # type: ignore
+    def _pre_configure_ddp(self) -> None:
         # if unset, default `find_unused_parameters` `True`
         # Many models require setting this parameter to True, as there are corner cases
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
