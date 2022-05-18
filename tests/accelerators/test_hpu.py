@@ -244,27 +244,25 @@ def test_hpu_unsupported_device_type():
 
 @RunIf(hpu=True)
 def test_strategy_params_with_hpu_parallel_strategy():
-    _bucket_cap_mb = 100
-    _gradient_as_bucket_view = True
-    _static_graph = True
-    _find_unused_parameters = True
-    trainer = Trainer(
-        strategy=HPUParallelStrategy(
-            bucket_cap_mb=_bucket_cap_mb,
-            gradient_as_bucket_view=_gradient_as_bucket_view,
-            static_graph=_static_graph,
-            find_unused_parameters=_find_unused_parameters,
-        ),
-        accelerator="hpu",
-        devices=8,
-    )
-    assert isinstance(trainer.strategy, HPUParallelStrategy)
+    bucket_cap_mb = 100
+    gradient_as_bucket_view = True
+    static_graph = True
+    find_unused_parameters = True
 
-    assert trainer.strategy._ddp_kwargs["bucket_cap_mb"] == _bucket_cap_mb, "bucket_cap_mb not matching !"
+    strategy=HPUParallelStrategy(
+        bucket_cap_mb=bucket_cap_mb,
+        gradient_as_bucket_view=gradient_as_bucket_view,
+        static_graph=static_graph,
+        find_unused_parameters=find_unused_parameters,
+    )
+
+    assert isinstance(strategy, HPUParallelStrategy)
+
+    assert strategy._ddp_kwargs["bucket_cap_mb"] == bucket_cap_mb, "bucket_cap_mb not matching !"
     assert (
-        trainer.strategy._ddp_kwargs["gradient_as_bucket_view"] == _gradient_as_bucket_view
+        strategy._ddp_kwargs["gradient_as_bucket_view"] == gradient_as_bucket_view
     ), "gradient_as_bucket_view not matching !"
-    assert trainer.strategy._ddp_kwargs["static_graph"] == _static_graph, "static_graph not matching !"
+    assert strategy._ddp_kwargs["static_graph"] == static_graph, "static_graph not matching !"
     assert (
-        trainer.strategy._ddp_kwargs["find_unused_parameters"] == _find_unused_parameters
+        strategy._ddp_kwargs["find_unused_parameters"] == find_unused_parameters
     ), "find_unused_parameters not matching !"
