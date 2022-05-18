@@ -848,6 +848,8 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
         accelerator="gpu",
         devices=1,
         max_epochs=2,
+        limit_train_batches=1,
+        limit_val_batches=0,
         precision=16,
         callbacks=TestCallback(),
         enable_progress_bar=False,
