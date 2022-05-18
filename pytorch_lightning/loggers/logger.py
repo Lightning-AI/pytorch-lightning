@@ -86,6 +86,25 @@ class Logger(ABC):
         else:
             self._agg_default_func = np.mean
 
+    @property
+    def state_key(self) -> str:
+        """Identifier for the state of the logger.
+
+        Used to store and retrieve a logger's state from the checkpoint dictionary by
+        ``checkpoint["loggers"][state_key]``. Implementations of a logger need to provide a unique state key if 1) the
+        logger has state and 2) it is desired to maintain the state of multiple instances of that logger.
+        """
+        return self.__class__.__qualname__
+
+    def _generate_state_key(self, **kwargs: Any) -> str:
+        """Formats a set of key-value pairs into a state key string with the logger class name prefixed. Useful for
+        defining a :attr:`state_key`.
+
+        Args:
+            **kwargs: A set of key-value pairs. Must be serializable to :class:`str`.
+        """
+        return f"{self.__class__.__qualname__}{repr(kwargs)}"
+
     def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
         """Called after model checkpoint callback saves a new checkpoint.
 
@@ -191,6 +210,22 @@ class Logger(ABC):
             " Please use `Logger.finalize` instead."
         )
         self.save()
+
+    def state_dict(self) -> Dict[str, Any]:
+        """Called when saving a checkpoint, implement to generate logger's ``state_dict``.
+
+        Returns:
+            A dictionary containing logger state.
+        """
+        return {}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        """Called when loading a checkpoint, implement to reload logger state given logger's ``state_dict``.
+
+        Args:
+            state_dict: the logger state returned by ``state_dict``.
+        """
+        pass
 
     @property
     def save_dir(self) -> Optional[str]:

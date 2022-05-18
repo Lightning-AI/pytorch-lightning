@@ -334,3 +334,38 @@ def test_tensorboard_missing_folder_warning(tmpdir, caplog):
         assert logger.version == 0
 
     assert "Missing logger folder:" in caplog.text
+
+
+def test_tensorboard_state_dict(tmpdir):
+    logger = TensorBoardLogger(save_dir=tmpdir, version="version_0")
+    state = logger.state_dict()
+    assert state["version"] == "version_0"
+
+
+def test_tensorboard_dump_state(tmpdir):
+    logger = TensorBoardLogger(save_dir=tmpdir)
+    model = BoringModel()
+    trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=logger)
+    trainer.fit(model)
+
+    filepath = os.path.join(tmpdir, "checkpoints", "last.ckpt")
+    trainer.save_checkpoint(filepath=filepath)
+
+    ckpt = torch.load(filepath)
+    assert "loggers" in ckpt
+    assert "TensorBoardLogger" in ckpt["loggers"]
+    assert "version" in ckpt["loggers"]["TensorBoardLogger"]
+    assert ckpt["loggers"]["TensorBoardLogger"]["version"] == logger.version
+
+
+def test_tensorboard_resume_state(tmpdir):
+    logger = TensorBoardLogger(save_dir=tmpdir)
+    model = BoringModel()
+    trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=logger)
+    trainer.fit(model)
+
+    filepath = os.path.join(tmpdir, "checkpoints", "last.ckpt")
+    trainer.save_checkpoint(filepath=filepath)
+
+    trainer._checkpoint_connector.restore(filepath)
+    assert trainer.logger.state_dict() == {"version": logger.version}

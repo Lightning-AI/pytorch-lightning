@@ -138,6 +138,9 @@ class CheckpointConnector:
         self.restore_datamodule()
         self.restore_model()
 
+        # restore logger states
+        self.restore_loggers()
+
         # restore callback states
         self.restore_callbacks()
 
@@ -246,6 +249,13 @@ class CheckpointConnector:
                 # of the model
                 callback._load_before_model(self.trainer.model, deepcopy(state))
 
+    def restore_loggers(self) -> None:
+        """Restores all loggers from the pre-loaded checkpoint."""
+        if not self._loaded_checkpoint:
+            return
+
+        self.trainer._call_loggers_load_state_dict(self._loaded_checkpoint)
+
     def restore_callbacks(self) -> None:
         """Restores all callbacks from the pre-loaded checkpoint."""
         if not self._loaded_checkpoint:
@@ -350,6 +360,7 @@ class CheckpointConnector:
                 'global_step':               training global step
                 'pytorch-lightning_version': The version of PyTorch Lightning that produced this checkpoint
                 'callbacks':                 "callback specific state"[] # if not weights_only
+                'loggers':                   "logger specific state"[]   # if not weights_only
                 'optimizer_states':          "PT optim's state_dict"[]   # if not weights_only
                 'lr_schedulers':             "PT sched's state_dict"[]   # if not weights_only
                 'state_dict':                Model's state_dict (e.g. network weights)
@@ -376,6 +387,9 @@ class CheckpointConnector:
         if not weights_only:
             # dump callbacks
             checkpoint["callbacks"] = self.trainer._call_callbacks_state_dict()
+
+            # dump loggers
+            checkpoint["loggers"] = self.trainer._call_loggers_state_dict()
 
             optimizer_states = []
             for i, optimizer in enumerate(self.trainer.optimizers):

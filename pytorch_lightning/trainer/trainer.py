@@ -1696,6 +1696,30 @@ class Trainer(
                 state = deepcopy(state)
                 callback.load_state_dict(state)
 
+    def _call_loggers_state_dict(self) -> Dict[str, dict]:
+        """Called when saving a model checkpoint, calls and returns every logger's `state_dict`, keyed by
+        `Logger.state_key`."""
+        logger_state_dicts = {}
+        for logger in self.loggers:
+            state_dict = logger.state_dict()
+            if state_dict:
+                logger_state_dicts[logger.state_key] = state_dict
+
+        return logger_state_dicts
+
+    def _call_loggers_load_state_dict(self, checkpoint: Dict[str, Any]) -> None:
+        """Called when loading a model checkpoint, calls every callback's `load_state_dict`."""
+        logger_states: Dict[Union[Type, str], Dict] = checkpoint.get("loggers")
+
+        if logger_states is None:
+            return
+
+        for logger in self.loggers:
+            state = logger_states.get(logger.state_key, type(logger))
+            if state:
+                state = deepcopy(state)
+                logger.load_state_dict(state)
+
     def _call_strategy_hook(
         self,
         hook_name: str,

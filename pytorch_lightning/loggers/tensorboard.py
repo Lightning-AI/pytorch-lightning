@@ -265,6 +265,13 @@ class TensorBoardLogger(Logger):
         if self._fs.isdir(dir_path) and not self._fs.isfile(hparams_file):
             save_hparams_to_yaml(hparams_file, self.hparams)
 
+    def state_dict(self) -> Dict[str, Any]:
+        return {"version": self._version}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        if "version" in state_dict:
+            self._version = state_dict["version"]
+
     @rank_zero_only
     def finalize(self, status: str) -> None:
         self.experiment.flush()
