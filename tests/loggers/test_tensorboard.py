@@ -16,6 +16,7 @@ import operator
 import os
 from argparse import Namespace
 from unittest import mock
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -348,10 +349,10 @@ def test_tensorboard_dump_state(tmpdir):
     trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=logger)
     trainer.fit(model)
 
-    filepath = os.path.join(tmpdir, "checkpoints", "last.ckpt")
-    trainer.save_checkpoint(filepath=filepath)
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+    assert Path(ckpt_path).exists()
 
-    ckpt = torch.load(filepath)
+    ckpt = torch.load(ckpt_path)
     assert "loggers" in ckpt
     assert "TensorBoardLogger" in ckpt["loggers"]
     assert "version" in ckpt["loggers"]["TensorBoardLogger"]
@@ -359,13 +360,19 @@ def test_tensorboard_dump_state(tmpdir):
 
 
 def test_tensorboard_resume_state(tmpdir):
-    logger = TensorBoardLogger(save_dir=tmpdir)
+    version = "version_0"
+
     model = BoringModel()
+    logger = TensorBoardLogger(save_dir=tmpdir, version=version)
     trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=logger)
     trainer.fit(model)
 
-    filepath = os.path.join(tmpdir, "checkpoints", "last.ckpt")
-    trainer.save_checkpoint(filepath=filepath)
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+    assert Path(ckpt_path).exists()
 
-    trainer._checkpoint_connector.restore(filepath)
-    assert trainer.logger.state_dict() == {"version": logger.version}
+    logger = TensorBoardLogger(save_dir=tmpdir)
+    trainer = Trainer(max_steps=2, default_root_dir=tmpdir, logger=logger)
+    trainer.fit(model, ckpt_path=ckpt_path)
+
+    assert logger.version == version
+    assert logger.state_dict() == {"version": version}
