@@ -15,8 +15,8 @@ import logging
 import operator
 import os
 from argparse import Namespace
-from unittest import mock
 from pathlib import Path
+from unittest import mock
 
 import numpy as np
 import pytest
