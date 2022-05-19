@@ -1556,9 +1556,8 @@ def test_cli_auto_seeding():
     assert cli.seed_everything_default is False
     assert isinstance(cli.config["seed_everything"], int)
 
-    with mock.patch.dict(os.environ, {}, clear=True):
-        seed_everything(123)
-        with mock.patch("sys.argv", ["any.py"]):
-            cli = LightningCLI(TestModel, run=False)
+    seed_everything(123)
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(TestModel, run=False)
     assert cli.seed_everything_default is True
     assert cli.config["seed_everything"] == 123  # the original seed is kept
