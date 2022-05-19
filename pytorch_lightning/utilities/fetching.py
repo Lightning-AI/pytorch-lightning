@@ -32,7 +32,7 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.imports import _fault_tolerant_training, _NVIDIA_DALI_AVAILABLE
 
 
 def _profile_nothing() -> None:
@@ -144,23 +144,18 @@ class AbstractDataFetcher(ABC):
                 dataloader_iter.state.update(iter_name, state)
 
     @property
-    def loaders(self) -> List[DataLoader]:
+    def loaders(self) -> Any:
         if isinstance(self.dataloader, CombinedLoader):
-            loaders = self.dataloader.loaders
-        else:
-            loaders = [self.dataloader]
-        return loaders
+            return self.dataloader.loaders
+        return self.dataloader
 
     @property
-    def loader_iters(self) -> List[Iterator]:
+    def loader_iters(self) -> Any:
         if self.dataloader_iter is None:
             raise MisconfigurationException("The `dataloader_iter` isn't available outside the __iter__ context.")
-
         if isinstance(self.dataloader, CombinedLoader):
-            loader_iters = self.dataloader_iter.loader_iters
-        else:
-            loader_iters = [self.dataloader_iter]
-        return loader_iters
+            return self.dataloader_iter.loader_iters
+        return self.dataloader_iter
 
     @property
     def state(self) -> List[MergedIteratorState]:
@@ -286,7 +281,12 @@ class DataFetcher(AbstractDataFetcher):
             # when we don't prefetch but the dataloader is sized, we use the length for `done`
             dataloader = self.dataloader
             assert isinstance(dataloader, Sized)  # `_has_len` is True
-            self.done = self.fetched >= len(dataloader)
+            if self.fetched >= len(dataloader):
+                self.done = True
+                if _NVIDIA_DALI_AVAILABLE:
+                    from nvidia.dali.plugin.pytorch import DALIGenericIterator
+
+                    apply_to_collection(self.loaders, DALIGenericIterator, DALIGenericIterator.reset)
         self.on_fetch_end(batch, start_output)
 
     def move_to_device(self, batch: Any) -> Any:

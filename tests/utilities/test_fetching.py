@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import sys
 from time import time
 from typing import Any, Iterator
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 import torch
@@ -572,3 +574,54 @@ def test_fetching_is_profiled():
     durations = profiler.recorded_durations[key]
     assert len(durations) == 2  # 2 polls in training_step
     assert all(d > 0 for d in durations)
+
+
+@pytest.mark.parametrize("prefetch_batches", (0, 1))
+def test_dali_like_iterator(monkeypatch, prefetch_batches):
+    class MockDALIGenericIterator(Iterator):
+        def __init__(self, size: int):
+            self.counter = 0
+            self.size = size
+
+        def __next__(self):
+            if self.counter >= self.size:
+                # the DALI iterator needs one extra fetch call to reset the state and stop
+                self.reset()
+                raise StopIteration
+            self.counter += 1
+            return self.counter  # can be anything really
+
+        def reset(self):
+            self.counter = 0
+
+        def __len__(self):
+            return self.size
+
+    import pytorch_lightning.utilities.fetching as fetching
+
+    # the batches without any of our fetching logic
+    expected = [(e, b) for e in range(3) for b in MockDALIGenericIterator(3)]
+
+    nvidia_dali_module = "nvidia.dali.plugin.pytorch"
+    # need different mocking logic based on whether the library is installed
+    if fetching._NVIDIA_DALI_AVAILABLE:
+        patch = mock.patch(f"{nvidia_dali_module}.DALIGenericIterator", new=MockDALIGenericIterator)
+        patch.__enter__()
+        cleanup_modules = False
+    else:
+        monkeypatch.setattr(fetching, "_NVIDIA_DALI_AVAILABLE", True)
+        nvidia_mock = Mock()
+        nvidia_mock.DALIGenericIterator = MockDALIGenericIterator
+        sys.modules[nvidia_dali_module] = nvidia_mock
+        cleanup_modules = True
+
+    fetcher = DataFetcher(prefetch_batches)
+    fetcher.setup(MockDALIGenericIterator(3))
+    actual = [(e, b) for e in range(3) for b in fetcher]
+
+    assert actual == expected
+
+    if cleanup_modules:
+        del sys.modules[nvidia_dali_module]
+    else:
+        patch.__exit__(None, None, None)
