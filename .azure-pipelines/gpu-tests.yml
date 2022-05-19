@@ -79,26 +79,26 @@ jobs:
         python -m pytest tests --ignore tests/benchmarks -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=0
       displayName: 'Testing: standard'
 
-    - bash: |
-        bash tests/standalone_tests.sh
-      env:
-        PL_USE_MOCKED_MNIST: "1"
-      displayName: 'Testing: standalone'
+    # - bash: |
+    #     bash tests/standalone_tests.sh
+    #   env:
+    #     PL_USE_MOCKED_MNIST: "1"
+    #   displayName: 'Testing: standalone'
 
-    - bash: |
-        python -m coverage report
-        python -m coverage xml
-        python -m coverage html
-        python -m codecov --token=$(CODECOV_TOKEN) --commit=$(Build.SourceVersion) --flags=gpu,pytest --name="GPU-coverage" --env=linux,azure
-        ls -l
-      displayName: 'Statistics'
+    # - bash: |
+    #     python -m coverage report
+    #     python -m coverage xml
+    #     python -m coverage html
+    #     python -m codecov --token=$(CODECOV_TOKEN) --commit=$(Build.SourceVersion) --flags=gpu,pytest --name="GPU-coverage" --env=linux,azure
+    #     ls -l
+    #   displayName: 'Statistics'
 
-    - task: PublishTestResults@2
-      displayName: 'Publish test results'
-      inputs:
-        testResultsFiles: '$(Build.StagingDirectory)/test-results.xml'
-        testRunTitle: '$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)'
-      condition: succeededOrFailed()
+    # - task: PublishTestResults@2
+    #   displayName: 'Publish test results'
+    #   inputs:
+    #     testResultsFiles: '$(Build.StagingDirectory)/test-results.xml'
+    #     testRunTitle: '$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)'
+    #   condition: succeededOrFailed()
 
     # todo: re-enable after schema check pass, also atm it seems does not have any effect
     #- task: PublishCodeCoverageResults@2
@@ -110,16 +110,16 @@ jobs:
     #    testRunTitle: '$(Agent.OS) - $(Build.BuildNumber)[$(Agent.JobName)] - Python $(python.version)'
     #  condition: succeededOrFailed()
 
-    - script: |
-        set -e
-        python -m pytest pl_examples -v --maxfail=2 --durations=0
-        bash pl_examples/run_examples.sh --trainer.accelerator=gpu --trainer.devices=1
-        bash pl_examples/run_examples.sh --trainer.accelerator=gpu --trainer.devices=2 --trainer.strategy=ddp
-        bash pl_examples/run_examples.sh --trainer.accelerator=gpu --trainer.devices=2 --trainer.strategy=ddp --trainer.precision=16
-      env:
-        PL_USE_MOCKED_MNIST: "1"
-      displayName: 'Testing: examples'
+    # - script: |
+    #     set -e
+    #     python -m pytest pl_examples -v --maxfail=2 --durations=0
+    #     bash pl_examples/run_examples.sh --trainer.accelerator=gpu --trainer.devices=1
+    #     bash pl_examples/run_examples.sh --trainer.accelerator=gpu --trainer.devices=2 --trainer.strategy=ddp
+    #     bash pl_examples/run_examples.sh --trainer.accelerator=gpu --trainer.devices=2 --trainer.strategy=ddp --trainer.precision=16
+    #   env:
+    #     PL_USE_MOCKED_MNIST: "1"
+    #   displayName: 'Testing: examples'
 
-    - bash: |
-        python -m pytest tests/benchmarks -v --maxfail=2 --durations=0
-      displayName: 'Testing: benchmarks'
+    # - bash: |
+    #     python -m pytest tests/benchmarks -v --maxfail=2 --durations=0
+    #   displayName: 'Testing: benchmarks'
