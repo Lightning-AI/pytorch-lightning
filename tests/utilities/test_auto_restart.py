@@ -751,16 +751,8 @@ class RandomGetItemDataset(Dataset):
         return self.len
 
 
-# TODO: test with `RandomGeneratorGetItemDataset`
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-@pytest.mark.parametrize(
-    "dataset_class",
-    [
-        SequentialGetItemDataset,
-        RandomGetItemDataset,
-        # RandomGeneratorGetItemDataset,
-    ],
-)
+@pytest.mark.parametrize("dataset_class", [SequentialGetItemDataset, RandomGetItemDataset])
 @pytest.mark.parametrize("num_workers", [0, pytest.param(2, marks=RunIf(slow=True))])
 @pytest.mark.parametrize("batch_size", [1, 2, 3])
 def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
@@ -783,12 +775,11 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
         _ = next(prefetch_iter)
 
         state: List[MergedIteratorState] = fetcher.state
-        assert len(state) == 1
-        assert isinstance(state[0], MergedIteratorState)
+        assert isinstance(state, MergedIteratorState)
 
         assert len(fetcher.dataloader_iter.cache_states) == 1
         if num_workers == 0:
-            assert state[0].state[0].num_batches_fetched == num_batches_fetched
+            assert state.state[0].num_batches_fetched == num_batches_fetched
         return state
 
     dataset, random_sampler = create_dataset_sampler()
@@ -805,7 +796,7 @@ def test_dataset_rng_states_restart(dataset_class, num_workers, batch_size):
 
     # (A) capture the state after fetching 4 batches
     state = fetch(fetcher, prefetch_iter, 4)
-    state = deepcopy(state[0])
+    state = deepcopy(state)
 
     # (B) simulate 2 additional batches
     batch05 = next(prefetch_iter)
