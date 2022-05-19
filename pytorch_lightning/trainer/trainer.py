@@ -1116,7 +1116,9 @@ class Trainer(
 
         # check if we should delay restoring checkpoint till later
         if not self.strategy.restore_checkpoint_after_setup:
-            log.detail(f"{self.__class__.__name__}: restoring module, loggers and callbacks from checkpoint path: {ckpt_path}")
+            log.detail(
+                f"{self.__class__.__name__}: restoring module, loggers and callbacks from checkpoint path: {ckpt_path}"
+            )
             self._restore_modules_and_loggers_and_callbacks(ckpt_path)
 
         log.detail(f"{self.__class__.__name__}: configuring sharded model")
@@ -1165,7 +1167,9 @@ class Trainer(
         self._log_hyperparams()
 
         if self.strategy.restore_checkpoint_after_setup:
-            log.detail(f"{self.__class__.__name__}: restoring module, loggers and callbacks from checkpoint path: {ckpt_path}")
+            log.detail(
+                f"{self.__class__.__name__}: restoring module, loggers and callbacks from checkpoint path: {ckpt_path}"
+            )
             self._restore_modules_and_loggers_and_callbacks(ckpt_path)
 
         # restore optimizers, etc.
