@@ -1720,7 +1720,7 @@ class Trainer(
             return
 
         for logger in self.loggers:
-            state = logger_states.get(logger.state_key, type(logger))
+            state = logger_states.get(logger.state_key)
             if state:
                 state = deepcopy(state)
                 logger.load_state_dict(state)
