@@ -223,6 +223,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Avoid redundant callback restore warning while tuning ([#13026](https://github.com/PyTorchLightning/pytorch-lightning/pull/13026))
 
 
+- Fixed nvidia-DALI iterators skipping every second epoch entirely ([#13111](https://github.com/PyTorchLightning/pytorch-lightning/pull/13111))
+
+
 - Fixed an issue wrt unnecessary usage of habana mixed precision package for fp32 types ([#13028](https://github.com/PyTorchLightning/pytorch-lightning/pull/13028))
 
 
