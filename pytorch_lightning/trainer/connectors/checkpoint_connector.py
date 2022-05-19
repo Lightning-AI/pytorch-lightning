@@ -139,7 +139,7 @@ class CheckpointConnector:
         self.restore_model()
 
         # restore logger states
-        self.restore_loggers()
+        # self.restore_loggers()
 
         # restore callback states
         self.restore_callbacks()
