@@ -25,7 +25,7 @@ jobs:
         'PyTorch - stable':
           image: "pytorchlightning/pytorch_lightning:base-cuda-py3.9-torch1.11"
     # how long to run the job before automatically cancelling
-    timeoutInMinutes: "65"
+    timeoutInMinutes: "100"
     # how much time to give 'run always even if cancelled tasks' before stopping them
     cancelTimeoutInMinutes: "2"
 
