@@ -336,10 +336,9 @@ def test_set_devices_if_none_cpu():
     assert trainer.num_devices == 3
 
 
-@pytest.mark.parametrize("strategy", ["dp"])
-def test_unsupported_strategy_types_on_cpu(strategy):
+def test_unsupported_strategy_types_on_cpu_and_fallback():
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
-        trainer = Trainer(strategy=strategy, num_processes=2)
+        trainer = Trainer(strategy="dp", num_processes=2)
     assert isinstance(trainer.strategy, DDPStrategy)
 
 
