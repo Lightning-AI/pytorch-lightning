@@ -45,7 +45,6 @@ class CallbackConnector:
         callbacks: Optional[Union[List[Callback], Callback]],
         enable_checkpointing: bool,
         enable_progress_bar: bool,
-        process_position: int,
         default_root_dir: Optional[str],
         weights_save_path: Optional[str],
         enable_model_summary: bool,
@@ -77,14 +76,7 @@ class CallbackConnector:
         self._configure_timer_callback(max_time)
 
         # init progress bar
-        if process_position != 0:
-            rank_zero_deprecation(
-                f"Setting `Trainer(process_position={process_position})` is deprecated in v1.5 and will be removed"
-                " in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with"
-                " `process_position` directly to the Trainer's `callbacks` argument instead."
-            )
-
-        self._configure_progress_bar(process_position, enable_progress_bar)
+        self._configure_progress_bar(enable_progress_bar)
 
         # configure the ModelSummary callback
         self._configure_model_summary_callback(enable_model_summary, weights_summary)
@@ -188,7 +180,7 @@ class CallbackConnector:
         self.trainer.callbacks.append(model_summary)
         self.trainer._weights_summary = weights_summary
 
-    def _configure_progress_bar(self, process_position: int = 0, enable_progress_bar: bool = True) -> None:
+    def _configure_progress_bar(self, enable_progress_bar: bool = True) -> None:
         progress_bars = [c for c in self.trainer.callbacks if isinstance(c, ProgressBarBase)]
         if len(progress_bars) > 1:
             raise MisconfigurationException(
@@ -210,7 +202,7 @@ class CallbackConnector:
             )
 
         if enable_progress_bar:
-            progress_bar_callback = TQDMProgressBar(process_position=process_position)
+            progress_bar_callback = TQDMProgressBar()
             self.trainer.callbacks.append(progress_bar_callback)
 
     def _configure_timer_callback(self, max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None) -> None:

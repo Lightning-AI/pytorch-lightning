@@ -25,7 +25,7 @@ from torchmetrics import Accuracy
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomDictDataset
 from tests.helpers.runif import RunIf
@@ -662,7 +662,7 @@ def test_logging_raises(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
-    with pytest.raises(MisconfigurationException, match=r"reduce_fx={min,max,mean,sum}\)` are currently supported"):
+    with pytest.raises(MisconfigurationException, match=r"reduce_fx={min,max,mean,sum}\)` are supported"):
         trainer.fit(model)
 
 
