@@ -648,8 +648,8 @@ class LightningModule(
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
     def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        """Use this when training with dp or ddp2 because :meth:`training_step` will operate on only part of the
-        batch. However, this is still optional and only needed for things like softmax or NCE loss.
+        """Use this when training with dp because :meth:`training_step` will operate on only part of the batch.
+        However, this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
             If you later switch to ddp or some other mode, this will still be called
@@ -668,7 +668,7 @@ class LightningModule(
         Return:
             Anything
 
-        When using dp/ddp2 distributed backends, only a portion of the batch is inside the training_step:
+        When using the DP strategy, only a portion of the batch is inside the training_step:
 
         .. code-block:: python
 
@@ -830,8 +830,8 @@ class LightningModule(
         """
 
     def validation_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        """Use this when validating with dp or ddp2 because :meth:`validation_step` will operate on only part of
-        the batch. However, this is still optional and only needed for things like softmax or NCE loss.
+        """Use this when validating with dp because :meth:`validation_step` will operate on only part of the batch.
+        However, this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
             If you later switch to ddp or some other mode, this will still be called
@@ -853,7 +853,7 @@ class LightningModule(
         .. code-block:: python
 
             # WITHOUT validation_step_end
-            # if used in DP or DDP2, this batch is 1/num_gpus large
+            # if used in DP, this batch is 1/num_gpus large
             def validation_step(self, batch, batch_idx):
                 # batch is 1/num_gpus big
                 x, y = batch
@@ -1007,8 +1007,8 @@ class LightningModule(
         """
 
     def test_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        """Use this when testing with DP or DDP2 because :meth:`test_step` will operate on only part of the batch.
-        However, this is still optional and only needed for things like softmax or NCE loss.
+        """Use this when testing with DP because :meth:`test_step` will operate on only part of the batch. However,
+        this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
             If you later switch to ddp or some other mode, this will still be called
@@ -1030,7 +1030,7 @@ class LightningModule(
         .. code-block:: python
 
             # WITHOUT test_step_end
-            # if used in DP or DDP2, this batch is 1/num_gpus large
+            # if used in DP, this batch is 1/num_gpus large
             def test_step(self, batch, batch_idx):
                 # batch is 1/num_gpus big
                 x, y = batch
