@@ -109,9 +109,9 @@ def precision_context(precision, accelerator) -> Generator[None, None, None]:
     "precision, strategy, devices, accelerator",
     [
         pytest.param(32, None, 1, "cpu"),
-        pytest.param(32, None, 1, "gpu", marks=RunIf(min_gpus=1)),
-        pytest.param(16, None, 1, "gpu", marks=RunIf(min_gpus=1)),
-        pytest.param("bf16", None, 1, "gpu", marks=RunIf(min_gpus=1, min_torch="1.10", bf16_cuda=True)),
+        pytest.param(32, None, 1, "gpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(16, None, 1, "gpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("bf16", None, 1, "gpu", marks=RunIf(min_cuda_gpus=1, min_torch="1.10", bf16_cuda=True)),
     ],
 )
 def test_boring_lite_model_single_device(precision, strategy, devices, accelerator, tmpdir):
@@ -159,7 +159,7 @@ def run(rank, model, train_dataloader, num_epochs, precision, accelerator, tmpdi
 
 
 @pytest.mark.skipif(True, reason="Skipping as it takes 80 seconds.")
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
     "precision, strategy, devices, accelerator",
     [
@@ -190,7 +190,7 @@ def test_boring_lite_model_ddp_spawn(precision, strategy, devices, accelerator, 
         assert torch.equal(w_pure.cpu(), w_lite.cpu())
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True)
 @pytest.mark.parametrize(
     "precision, strategy, devices, accelerator",
     [
