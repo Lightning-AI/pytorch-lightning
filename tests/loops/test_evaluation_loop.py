@@ -91,7 +91,7 @@ def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mo
     assert order == ["log_epoch_metrics", "on_validation_end"]
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_memory_consumption_validation(tmpdir):
     """Test that the training batch is no longer in GPU memory when running validation."""
 

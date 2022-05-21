@@ -337,7 +337,7 @@ def test_multiple_peers(num_processes, wait_seconds):
             assert any(global_step > 0 for global_step in process_steps)
 
 
-@RunIf(hivemind=True, min_gpus=1)
+@RunIf(hivemind=True, min_cuda_gpus=1)
 @mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
 def test_scaler_updated_precision_16():
     class TestModel(BoringModel):

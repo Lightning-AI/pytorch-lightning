@@ -54,7 +54,7 @@ class CustomClassificationModelDP(ClassificationModel):
         self.log("test_acc", self.test_acc(outputs["logits"], outputs["y"]))
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_multi_gpu_early_stop_dp(tmpdir):
     """Make sure DDP works.
 
@@ -79,7 +79,7 @@ def test_multi_gpu_early_stop_dp(tmpdir):
     tpipes.run_model_test(trainer_options, model, dm)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_multi_gpu_model_dp(tmpdir):
     tutils.set_random_main_port()
 
@@ -195,7 +195,7 @@ def test_dp_raise_exception_with_batch_transfer_hooks(mock_is_available, mock_de
         trainer.fit(model)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_dp_training_step_dict(tmpdir):
     """This test verifies that dp properly reduces dictionaries."""
     model = ReductionTestModel()
@@ -214,7 +214,7 @@ def test_dp_training_step_dict(tmpdir):
     trainer.test(model)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_dp_batch_not_moved_to_device_explicitly(tmpdir):
     """Test that with DP, batch is not moved to the device explicitly."""
 

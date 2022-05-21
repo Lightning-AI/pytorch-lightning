@@ -38,7 +38,7 @@ PL_VERSION_LT_1_5 = _compare_version("pytorch_lightning", operator.lt, "1.5")
 PRETEND_N_OF_GPUS = 16
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_multi_gpu_none_backend(tmpdir):
     """Make sure when using multiple GPUs the user can't use `accelerator = None`."""
     tutils.set_random_main_port()
@@ -57,7 +57,7 @@ def test_multi_gpu_none_backend(tmpdir):
     tpipes.run_model_test(trainer_options, model, dm)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize("devices", [1, [0], [1]])
 def test_single_gpu_model(tmpdir, devices):
     """Make sure single GPU works (DP mode)."""
@@ -206,7 +206,7 @@ def test_torchelastic_gpu_parsing(mocked_device_count, mocked_is_available, gpus
         assert trainer.device_ids == [0]
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_single_gpu_batch_parse():
     trainer = Trainer(accelerator="gpu", devices=1)
 
@@ -298,7 +298,7 @@ def test_single_gpu_batch_parse():
     assert batch.label.type() == "torch.cuda.LongTensor"
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_non_blocking():
     """Tests that non_blocking=True only gets passed on torch.Tensor.to, but not on other objects."""
     trainer = Trainer()
