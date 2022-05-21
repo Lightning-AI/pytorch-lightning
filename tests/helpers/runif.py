@@ -30,6 +30,7 @@ from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
+    _MPS_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _PSUTIL_AVAILABLE,
     _RICH_AVAILABLE,
@@ -185,7 +186,7 @@ class RunIf:
             reasons.append("HPU")
 
         if mps:
-            conditions.append(not (_TORCH_GREATER_EQUAL_1_12 and torch.backends.mps.is_available()))
+            conditions.append(not _MPS_AVAILABLE)
             reasons.append("MPS")
 
         if horovod:
