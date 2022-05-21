@@ -18,7 +18,7 @@ import torch
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from pytorch_lightning.utilities.imports import _MPS_AVAILABLE
 from pytorch_lightning.utilities.types import _DEVICE
 
 
@@ -200,7 +200,7 @@ def _sanitize_gpu_ids(gpus: List[int], include_cuda: bool = False, include_mps: 
     """
     if not sum([int(include_cuda), int(include_mps)]) > 0:
         raise ValueError("At least one gpu type should be specified!")
-    all_available_gpus = _get_all_available_gpus()
+    all_available_gpus = _get_all_available_gpus(include_cuda=include_cuda, include_mps=include_mps)
     for gpu in gpus:
         if gpu not in all_available_gpus:
             raise MisconfigurationException(
@@ -239,7 +239,7 @@ def _get_all_available_mps_gpus() -> List[int]:
     Returns:
         a list of all available MPS gpus
     """
-    if _TORCH_GREATER_EQUAL_1_12 and torch.backends.mps.is_available():
+    if _MPS_AVAILABLE:
         return [0]
     else:
         return []
