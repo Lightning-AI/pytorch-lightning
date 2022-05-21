@@ -35,7 +35,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, HPUAccelerator, IPUAccelerator, TPUAccelerator
+from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, HPUAccelerator, IPUAccelerator, TPUAccelerator, MPSAccelerator
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -84,7 +84,9 @@ from pytorch_lightning.utilities import (
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _TPU_AVAILABLE,
+    _MPS_AVAILABLE,
     AMPType,
+    device_parser,
     GradClipAlgorithmType,
     parsing,
 )
@@ -190,7 +192,7 @@ class Trainer(
 
         Args:
 
-            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "auto")
+            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "mps, "auto")
                 as well as custom accelerator instances.
 
                 .. deprecated:: v1.5
@@ -1746,6 +1748,7 @@ class Trainer(
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
 
     def _log_device_info(self) -> None:
+        # TODO(justusschock): should this include the nvidia gpus only or mps as well?
         rank_zero_info(
             f"GPU available: {torch.cuda.is_available()}, used: {isinstance(self.accelerator, GPUAccelerator)}"
         )
@@ -1758,6 +1761,9 @@ class Trainer(
 
         num_hpus = self.num_devices if isinstance(self.accelerator, HPUAccelerator) else 0
         rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
+
+        num_mps = self.num_devices if isinstance(self.accelerator, MPSAccelerator) else 0
+        rank_zero_info(f"MPS available: {_MPS_AVAILABLE}, using {num_mps} MPS")
 
         if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
             rank_zero_warn(
@@ -1783,6 +1789,12 @@ class Trainer(
                 "HPU available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='hpu', devices={HPUAccelerator.auto_device_count()})`."
             )
+
+        if _MPS_AVAILABLE and not isinstance(self.accelerator, MPSAccelerator):
+            rank_zero_warn(
+                "MPS available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='mps', devices={MPSAccelerator.auto_device_count()})`."
+                )
 
     """
     Data loading methods
