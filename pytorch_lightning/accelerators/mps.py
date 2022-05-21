@@ -18,7 +18,7 @@ import torch
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE, _TORCH_GREATER_EQUAL_1_12
+from pytorch_lightning.utilities.imports import _MPS_AVAILABLE, _PSUTIL_AVAILABLE
 from pytorch_lightning.utilities.types import _DEVICE
 
 
@@ -48,8 +48,8 @@ class MPSAccelerator(Accelerator):
     @staticmethod
     def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
-        devices = device_parser.parse_cpu_cores(devices)
-        return [torch.device("mps")] * devices
+        devices = device_parser.parse_gpu_ids(devices, include_mps=True)
+        return [torch.device("mps")] * len(devices)
 
     @staticmethod
     def auto_device_count() -> int:
@@ -59,7 +59,7 @@ class MPSAccelerator(Accelerator):
     @staticmethod
     def is_available() -> bool:
         """MPS is only available for certain torch builds starting at torch>=1.12."""
-        return _TORCH_GREATER_EQUAL_1_12 and torch.backends.mps.is_available()
+        return _MPS_AVAILABLE
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:
