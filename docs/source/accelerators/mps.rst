@@ -30,4 +30,3 @@ Accelerator: MPS training
 
         </div>
     </div>
-

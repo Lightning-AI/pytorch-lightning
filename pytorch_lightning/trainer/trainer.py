@@ -35,7 +35,14 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, HPUAccelerator, IPUAccelerator, TPUAccelerator, MPSAccelerator
+from pytorch_lightning.accelerators import (
+    Accelerator,
+    GPUAccelerator,
+    HPUAccelerator,
+    IPUAccelerator,
+    MPSAccelerator,
+    TPUAccelerator,
+)
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -83,8 +90,8 @@ from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
-    _TPU_AVAILABLE,
     _MPS_AVAILABLE,
+    _TPU_AVAILABLE,
     AMPType,
     device_parser,
     GradClipAlgorithmType,
@@ -1794,7 +1801,7 @@ class Trainer(
             rank_zero_warn(
                 "MPS available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='mps', devices={MPSAccelerator.auto_device_count()})`."
-                )
+            )
 
     """
     Data loading methods
