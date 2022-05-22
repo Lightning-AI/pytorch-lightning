@@ -284,7 +284,6 @@ def test_single_gpu_batch_parse():
 
     examples = [Example.fromdict(sample, fields) for sample in samples]
     dataset = Dataset(examples=examples, fields=fields.values())
-
     # Batch runs field.process() that numericalizes tokens, but it requires to build dictionary first
     text_field.build_vocab(dataset)
     label_field.build_vocab(dataset)
