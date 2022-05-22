@@ -46,6 +46,25 @@ To change this behaviour, set the *log_every_n_steps* :class:`~pytorch_lightning
 
 ----
 
+Modify flushing frequency
+=========================
+
+Some loggers keep logged metrics in memory for N steps and only periodically flush them to disk to improve training efficiency.
+Every logger handles this a bit differently. For example, here is how to fine-tune flushing for the TensorBoard logger:
+
+.. code-block:: python
+
+    # Default used by TensorBoard: Write to disk after 10 logging events or every two minutes
+    logger = TensorBoardLogger(..., max_queue=10, flush_secs=120)
+
+    # Faster training, more memory used
+    logger = TensorBoardLogger(..., max_queue=100)
+
+    # Slower training, less memory used
+    logger = TensorBoardLogger(..., max_queue=1)
+
+----
+
 ******************
 Customize self.log
 ******************
