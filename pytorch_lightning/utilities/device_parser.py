@@ -218,7 +218,7 @@ def _normalize_parse_gpu_input_to_list(gpus: Union[int, List[int], Tuple[int, ..
     if not gpus:  # gpus==0
         return None
     if gpus == -1:
-        return _get_all_available_gpus()
+        return _get_all_available_gpus(include_cuda=True)
 
     return list(range(gpus))
 
