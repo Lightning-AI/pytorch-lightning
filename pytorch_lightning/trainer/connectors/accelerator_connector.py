@@ -87,6 +87,7 @@ from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
+    _MPS_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_11,
     _TPU_AVAILABLE,
 )
