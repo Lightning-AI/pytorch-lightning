@@ -528,7 +528,6 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def _save_loggers_on_train_batch_end(self) -> None:
         """Flushes loggers to disk."""
-        # this assumes that `batches_that_stepped` was increased before
         if self.trainer.should_stop:
             for logger in self.trainer.loggers:
                 logger.save()
