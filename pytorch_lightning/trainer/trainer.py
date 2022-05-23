@@ -52,7 +52,6 @@ from pytorch_lightning.plugins import (
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
-    BaseProfiler,
     PassThroughProfiler,
     Profiler,
     PyTorchProfiler,
@@ -173,7 +172,7 @@ class Trainer(
         weights_save_path: Optional[str] = None,  # TODO: Remove in 1.8
         num_sanity_val_steps: int = 2,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
-        profiler: Optional[Union[BaseProfiler, str]] = None,
+        profiler: Optional[Union[Profiler, str]] = None,
         benchmark: Optional[bool] = None,
         deterministic: bool = False,
         reload_dataloaders_every_n_epochs: int = 0,
