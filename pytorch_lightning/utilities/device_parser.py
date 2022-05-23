@@ -105,7 +105,7 @@ def parse_gpu_ids(
     # We know user requested GPUs therefore if some of the
     # requested GPUs are not available an exception is thrown.
     gpus = _normalize_parse_gpu_string_input(gpus)
-    gpus = _normalize_parse_gpu_input_to_list(gpus)
+    gpus = _normalize_parse_gpu_input_to_list(gpus, include_cuda=include_cuda, include_mps=include_mps)
     if not gpus:
         raise MisconfigurationException("GPUs requested but none are available.")
     if (
@@ -209,7 +209,9 @@ def _sanitize_gpu_ids(gpus: List[int], include_cuda: bool = False, include_mps: 
     return gpus
 
 
-def _normalize_parse_gpu_input_to_list(gpus: Union[int, List[int], Tuple[int, ...]]) -> Optional[List[int]]:
+def _normalize_parse_gpu_input_to_list(
+    gpus: Union[int, List[int], Tuple[int, ...]], include_cuda: bool, include_mps: bool
+) -> Optional[List[int]]:
     assert gpus is not None
     if isinstance(gpus, (MutableSequence, tuple)):
         return list(gpus)
@@ -218,7 +220,7 @@ def _normalize_parse_gpu_input_to_list(gpus: Union[int, List[int], Tuple[int, ..
     if not gpus:  # gpus==0
         return None
     if gpus == -1:
-        return _get_all_available_gpus(include_cuda=True)
+        return _get_all_available_gpus(include_cuda=include_cuda, include_mps=include_mps)
 
     return list(range(gpus))
 
