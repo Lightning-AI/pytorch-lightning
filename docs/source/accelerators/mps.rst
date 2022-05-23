@@ -1,7 +1,7 @@
 .. _mps:
 
-Accelerator: MPS training
-=========================
+Accelerator: Apple Silicon training
+===================================
 
 .. raw:: html
 
@@ -20,7 +20,7 @@ Accelerator: MPS training
 
 .. displayitem::
    :header: Basic
-   :description: Learn the basics of M1 gpu training.
+   :description: Learn the basics of Apple silicon gpu training.
    :col_css: col-md-4
    :button_link: mps_basic.html
    :height: 150

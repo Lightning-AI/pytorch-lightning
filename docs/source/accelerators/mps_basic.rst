@@ -23,9 +23,9 @@ To use them, Lightning supports the ``MPSAccelerator``.
 
 ----
 
-Run on MPS
-----------
-Enable the following Trainer arguments to run on MPS devices.
+Run on Apple silicon gpus
+-------------------------
+Enable the following Trainer arguments to run on Apple silicon gpus (MPS devices).
 
 .. code::
 
