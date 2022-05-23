@@ -3,7 +3,7 @@
 .. _mps_basic:
 
 MPS training (basic)
-=======================
+====================
 **Audience:** Users looking to train on their Apple silicon GPUs.
 
 ----
