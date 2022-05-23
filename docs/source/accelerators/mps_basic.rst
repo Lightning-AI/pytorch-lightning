@@ -30,4 +30,3 @@ Enable the following Trainer arguments to run on MPS devices.
 .. code::
 
    trainer = Trainer(accelerator="mps", devices=1)
-
