@@ -31,10 +31,3 @@ Enable the following Trainer arguments to run on MPS devices.
 
    trainer = Trainer(accelerator="mps", devices=1)
 
-Run on multiple MPS
--------------------
-From a deep learning perspective, every Apple Machine only has 1 MPS device (no matter the actual amount of cores). To enable multiple MPS devices, you therefore need multiple Macs.
-Multi-Node :ref:`_gpu_intermediate` training with MPS devices should work just as multi-node training with gpus does (except setting the ``accelerator="mps"`` in the trainer).
-
-.. note::
-   This has not been tested so far!
