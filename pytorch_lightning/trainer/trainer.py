@@ -93,7 +93,6 @@ from pytorch_lightning.utilities import (
     _MPS_AVAILABLE,
     _TPU_AVAILABLE,
     AMPType,
-    device_parser,
     GradClipAlgorithmType,
     parsing,
 )
