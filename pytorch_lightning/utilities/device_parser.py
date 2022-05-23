@@ -241,10 +241,7 @@ def _get_all_available_mps_gpus() -> List[int]:
     Returns:
         a list of all available MPS gpus
     """
-    if _MPS_AVAILABLE:
-        return [0]
-    else:
-        return []
+    return [0] if _MPS_AVAILABLE else []
 
 
 def _get_all_available_cuda_gpus() -> List[int]:
