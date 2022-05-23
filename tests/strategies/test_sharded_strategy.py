@@ -165,7 +165,10 @@ def test_ddp_sharded_strategy_fit_ckpt_path_gpu_to_cpu(tmpdir):
 @RunIf(skip_windows=True, standalone=True, fairscale=True)
 @pytest.mark.parametrize(
     "trainer_kwargs",
-    (dict(accelerator="cpu", devices=2), pytest.param(dict(accelerator="gpu", devices=2), marks=RunIf(min_cuda_gpus=2))),
+    (
+        dict(accelerator="cpu", devices=2),
+        pytest.param(dict(accelerator="gpu", devices=2), marks=RunIf(min_cuda_gpus=2)),
+    ),
 )
 def test_ddp_sharded_strategy_test_multigpu(tmpdir, trainer_kwargs):
     """Test to ensure we can use validate and test without fit."""

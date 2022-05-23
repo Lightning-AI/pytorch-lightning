@@ -439,9 +439,12 @@ class HookedModel(BoringModel):
     [
         {},
         # these precision plugins modify the optimization flow, so testing them explicitly
-        pytest.param(dict(accelerator="gpu", devices=1, precision=16, amp_backend="native"), marks=RunIf(min_cuda_gpus=1)),
         pytest.param(
-            dict(accelerator="gpu", devices=1, precision=16, amp_backend="apex"), marks=RunIf(min_cuda_gpus=1, amp_apex=True)
+            dict(accelerator="gpu", devices=1, precision=16, amp_backend="native"), marks=RunIf(min_cuda_gpus=1)
+        ),
+        pytest.param(
+            dict(accelerator="gpu", devices=1, precision=16, amp_backend="apex"),
+            marks=RunIf(min_cuda_gpus=1, amp_apex=True),
         ),
         pytest.param(
             dict(accelerator="gpu", devices=1, precision=16, strategy="deepspeed"),
