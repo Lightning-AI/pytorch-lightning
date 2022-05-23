@@ -1040,7 +1040,7 @@ def test_on_exception_hook(tmpdir):
     assert isinstance(handle_interrupt_callback.exception, MisconfigurationException)
 
 
-@pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_gpus=1))])
+@pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_cuda_gpus=1))])
 def test_gradient_clipping_by_norm(tmpdir, precision):
     """Test gradient clipping by norm."""
     tutils.reset_seed()
@@ -1070,7 +1070,7 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
     assert model.assertion_called
 
 
-@pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_gpus=1))])
+@pytest.mark.parametrize("precision", [32, pytest.param(16, marks=RunIf(min_cuda_gpus=1))])
 def test_gradient_clipping_by_value(tmpdir, precision):
     """Test gradient clipping by value."""
     tutils.reset_seed()
@@ -1111,7 +1111,7 @@ def test_invalid_gradient_clip_algo(tmpdir):
         Trainer(default_root_dir=tmpdir, gradient_clip_algorithm="norm2")
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_gpu_choice():
     num_gpus = torch.cuda.device_count()
     Trainer(accelerator="gpu", devices=num_gpus, auto_select_gpus=True)
@@ -1422,7 +1422,7 @@ def test_trainer_predict_cpu(tmpdir, datamodule, enable_progress_bar):
     predict(tmpdir, datamodule=datamodule, enable_progress_bar=enable_progress_bar)
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True)
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -1435,13 +1435,13 @@ def test_trainer_predict_standalone(tmpdir, kwargs):
     predict(tmpdir, accelerator="gpu", **kwargs)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_trainer_predict_1_gpu(tmpdir):
     predict(tmpdir, accelerator="gpu", devices=1)
 
 
 @RunIf(skip_windows=True)
-@pytest.mark.parametrize("accelerator", ["cpu", pytest.param("gpu", marks=RunIf(min_gpus=2))])
+@pytest.mark.parametrize("accelerator", ["cpu", pytest.param("gpu", marks=RunIf(min_cuda_gpus=2))])
 def test_trainer_predict_ddp_spawn(tmpdir, accelerator):
     predict(tmpdir, strategy="ddp_spawn", accelerator=accelerator, devices=2)
 
@@ -1524,7 +1524,7 @@ def test_trainer_access_in_configure_optimizers(tmpdir):
     trainer.fit(model, train_data)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_setup_hook_move_to_device_correctly(tmpdir):
     """Verify that if a user defines a layer in the setup hook function, this is moved to the correct device."""
 
@@ -1747,7 +1747,7 @@ class CustomException(Exception):
     pass
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
     """Test that DDP kills the remaining processes when only one rank is throwing an exception."""
 
@@ -1778,7 +1778,7 @@ def test_ddp_terminate_when_deadlock_is_detected(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_multiple_trainer_constant_memory_allocated(tmpdir):
     """This tests ensures calling the trainer several times reset the memory back to 0."""
 

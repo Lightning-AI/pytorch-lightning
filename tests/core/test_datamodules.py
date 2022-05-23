@@ -265,7 +265,7 @@ def test_full_loop(tmpdir):
     assert result[0]["test_acc"] > 0.6
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 @mock.patch(
     "pytorch_lightning.strategies.Strategy.lightning_module",
     new_callable=PropertyMock,
