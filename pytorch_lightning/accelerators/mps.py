@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 
@@ -40,16 +40,18 @@ class MPSAccelerator(Accelerator):
         return get_device_stats()
 
     @staticmethod
-    def parse_devices(devices: Union[int, str, List[int]]) -> int:
+    def parse_devices(devices: Union[int, str, List[int]]) -> Optional[List[int]]:
         """Accelerator device parsing logic."""
-        devices = device_parser.parse_gpu_ids(devices, include_mps=True)
-        return devices
+        parsed_devices = device_parser.parse_gpu_ids(devices, include_mps=True)
+        return parsed_devices
 
     @staticmethod
     def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
-        devices = device_parser.parse_gpu_ids(devices, include_mps=True)
-        return [torch.device("mps")] * len(devices)
+        parsed_devices = device_parser.parse_gpu_ids(devices, include_mps=True)
+        assert parsed_devices is not None
+
+        return [torch.device("mps")] * len(parsed_devices)
 
     @staticmethod
     def auto_device_count() -> int:

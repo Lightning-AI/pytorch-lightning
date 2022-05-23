@@ -175,7 +175,7 @@ class AcceleratorConnector:
         self._precision_flag: Optional[Union[int, str]] = None
         self._precision_plugin_flag: Optional[PrecisionPlugin] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
-        self._parallel_devices: List[Union[int, torch.device]] = []
+        self._parallel_devices: List[Union[int, torch.device, str]] = []
         self._layer_sync: Optional[LayerSync] = NativeSyncBatchNorm() if sync_batchnorm else None
         self.checkpoint_io: Optional[CheckpointIO] = None
         self._amp_type_flag: Optional[LightningEnum] = None
