@@ -4,14 +4,14 @@
 
 MPS training (basic)
 =======================
-**Audience:** Users looking to train on their M-SoC GPUs.
+**Audience:** Users looking to train on their Apple silicon GPUs.
 
 ----
 
-What is a M-SoC?
-----------------
-M-SoCs are a unified system of a cirquit (SoC) developed by Apple based on the ARM design.
-Among other things, they feature a CPU-cores, GPU-cores a neural engine and shared memory between all of those.
+What is Apple silicon?
+----------------------
+Apple silicon chips are a unified system on a chip (SoC) developed by Apple based on the ARM design.
+Among other things, they feature a CPU-cores, GPU-cores, a neural engine and shared memory between all of those.
 
 ----
 
@@ -30,3 +30,12 @@ Enable the following Trainer arguments to run on MPS devices.
 .. code::
 
    trainer = Trainer(accelerator="mps", devices=1)
+
+.. note::
+   The ``MPSAccelerator`` only supports 1 device at a time. Currently there are no machines with multiple MPS-capable GPUs.
+
+----
+
+What does MPS stand for?
+------------------------
+MPS is short for Metal Performance Shaders which is the technology used in the back for gpu communication and computing.
