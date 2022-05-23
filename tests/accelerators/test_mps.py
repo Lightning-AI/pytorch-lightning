@@ -59,7 +59,7 @@ def test_trainer_mps_accelerator(accelerator_value):
 @RunIf(mps=True)
 @pytest.mark.parametrize("devices", [1, [0], "-1"])
 def test_single_gpu_model(tmpdir, devices):
-    """Make sure single GPU works"""
+    """Make sure single GPU works."""
     trainer_options = dict(
         default_root_dir=tmpdir,
         enable_progress_bar=False,
