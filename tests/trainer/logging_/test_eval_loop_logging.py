@@ -707,7 +707,7 @@ def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir, accelerator):
 
         def validation_epoch_end(self, outputs):
             # the step outputs were not moved
-            assert all(o.device == self.device for o in outputs), outputs
+            assert all(o.device == self.device for o in outputs)
             # but the logging results were
             assert self.trainer.callback_metrics["foo"].device.type == "cpu"
 

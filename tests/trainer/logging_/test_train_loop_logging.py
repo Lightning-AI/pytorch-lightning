@@ -395,8 +395,10 @@ class LoggingSyncDistModel(BoringModel):
         return super().validation_step(batch, batch_idx)
 
 
-@pytest.mark.parametrize("devices", [1, pytest.param(2, marks=RunIf(min_cuda_gpus=2, skip_windows=True))])
-def test_logging_sync_dist_true(tmpdir, devices):
+@pytest.mark.parametrize(
+    "devices, accelerator", [(1, "cpu"), (2, "cpu"), pytest.param(2, "gpu", marks=RunIf(min_cuda_gpus=2))]
+)
+def test_logging_sync_dist_true(tmpdir, devices, accelerator):
     """Tests to ensure that the sync_dist flag works (should just return the original value)"""
     fake_result = 1
     model = LoggingSyncDistModel(fake_result)
@@ -409,7 +411,7 @@ def test_logging_sync_dist_true(tmpdir, devices):
         limit_val_batches=3,
         enable_model_summary=False,
         strategy="ddp_spawn" if use_multiple_devices else None,
-        accelerator="auto",
+        accelerator=accelerator,
         devices=devices,
     )
     trainer.fit(model)
@@ -553,9 +555,8 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
     assert trainer.callback_metrics == expected
 
 
-@pytest.mark.parametrize(
-    "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
-)
+# mps not yet supported by torchmetrics
+@pytest.mark.parametrize("accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1))])
 def test_metric_are_properly_reduced(tmpdir, accelerator):
     class TestingModel(BoringModel):
         def __init__(self, *args, **kwargs) -> None:
@@ -575,6 +576,10 @@ def test_metric_are_properly_reduced(tmpdir, accelerator):
             self.val_acc(preds, targets)
             self.log("val_acc", self.val_acc, on_step=True, on_epoch=True)
             return super().validation_step(batch, batch_idx)
+
+        def on_validation_epoch_end(self, *args, **kwargs):
+            if self.val_acc.tn + self.val_acc.tp + self.val_acc.fn + self.val_acc.fp > 2:
+                raise RuntimeError
 
     early_stop = EarlyStopping(monitor="val_acc", mode="max")
 
