@@ -184,7 +184,7 @@ def test_lite_dataloader_iterator():
 def test_lite_dataloader_device_placement(src_device_str, dest_device_str):
     """Test that the LiteDataLoader moves data to the device in its iterator."""
     src_device = torch.device(src_device_str)
-    dest_device_str = torch.device(dest_device_str)
+    dest_device = torch.device(dest_device_str)
 
     sample0 = torch.tensor(0, device=src_device)
     sample1 = torch.tensor(1, device=src_device)
