@@ -66,7 +66,7 @@ class LightningBaguaModule(_LightningModuleWrapperBase):
                 # `require_backward_grad_sync` will be reset in the
                 # ddp_strategy `post_training_step` hook
                 if not pl_module.automatic_optimization:
-                    # Using bagua strategy, the model is redefined in model.inner 
+                    # Using bagua strategy, the model is redefined in model.inner
                     # and cannot be accessed directly. We need this to make manual
                     # backward work.
                     trainer.model.inner.require_backward_grad_sync = False  # type: ignore[assignment]
@@ -74,6 +74,7 @@ class LightningBaguaModule(_LightningModuleWrapperBase):
             else:
                 return super().forward(*inputs, **kwargs)
         return self.module(*inputs, **kwargs)
+
 
 class BaguaStrategy(DDPStrategy):
     strategy_name = "bagua"
@@ -232,8 +233,8 @@ class BaguaStrategy(DDPStrategy):
         return broadcast_object(obj, src)
 
     def post_training_step(self):
-        # Using bagua strategy, the model is redefined in model.inner 
-        # and cannot be accessed directly. We need to redefine the 
+        # Using bagua strategy, the model is redefined in model.inner
+        # and cannot be accessed directly. We need to redefine the
         # post_training_step function to make manual backward work.
         if not self.lightning_module.automatic_optimization:
             self.model.inner.require_backward_grad_sync = True
