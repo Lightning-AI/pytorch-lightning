@@ -149,3 +149,9 @@ class HPUParallelStrategy(DDPStrategy):
             cls,
             description=f"{cls.__class__.__name__}",
         )
+
+    def teardown(self) -> None:
+        super().teardown()
+        # Was set to local rank
+        os.environ.pop("ID", None)
+        os.environ.pop("HCCL_DISTRIBUTED_BACKEND", None)
