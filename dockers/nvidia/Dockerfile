@@ -32,7 +32,7 @@ RUN \
         rm -rf pytorch-lightning ; \
         git clone https://github.com/PyTorchLightning/pytorch-lightning.git ; \
         cd pytorch-lightning ; \
-        git checkout tags/${LIGHTNING_VERSION} ; \
+        git checkout ${LIGHTNING_VERSION} ; \
         git submodule update --init --recursive ; \
         cd .. ; \
     fi && \
