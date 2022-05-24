@@ -265,10 +265,13 @@ def test_full_loop(tmpdir):
     assert result[0]["test_acc"] > 0.6
 
 
-@pytest.marks.parametrize("accelerator,device", [
-    pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
-    pytest.param("mps", "mps", marks=RunIf(mps=True)),
-])
+@pytest.marks.parametrize(
+    "accelerator,device",
+    [
+        pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", "mps", marks=RunIf(mps=True)),
+    ],
+)
 @mock.patch(
     "pytorch_lightning.strategies.Strategy.lightning_module",
     new_callable=PropertyMock,

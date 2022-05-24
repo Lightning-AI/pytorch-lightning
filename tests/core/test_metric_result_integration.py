@@ -298,7 +298,14 @@ def test_result_collection_restoration(tmpdir):
         batch_idx = None
 
 
-@pytest.mark.parametrize("accelerator,device", (("cpu", "cpu"), pytest.param("gpu", "cuda", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", "mps", marks=RunIf(mps=True))))
+@pytest.mark.parametrize(
+    "accelerator,device",
+    (
+        ("cpu", "cpu"),
+        pytest.param("gpu", "cuda", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", "mps", marks=RunIf(mps=True)),
+    ),
+)
 def test_lightning_module_logging_result_collection(tmpdir, accelerator, device):
     class LoggingModel(BoringModel):
         def __init__(self):
@@ -475,10 +482,13 @@ def test_result_collection_reload(tmpdir):
 
 
 @RunIf(min_cuda_gpus=1)
-@pytest.marks.parametrize("accelerator", [
-    pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
-    pytest.param("mps", marks=RunIf(mps=True)),
-])
+@pytest.marks.parametrize(
+    "accelerator",
+    [
+        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", marks=RunIf(mps=True)),
+    ],
+)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload_1_gpu_ddp(tmpdir, accelerator):
     result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator=accelerator)
