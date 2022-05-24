@@ -1193,8 +1193,6 @@ class LightningModule(
                         for predict_step_out in dataloader_outputs:
                             # do something
                             final_value += predict_step_out
-
-                    self.log("final_metric", final_value)
         """
 
     def configure_callbacks(self) -> Union[Sequence[Callback], Callback]:
