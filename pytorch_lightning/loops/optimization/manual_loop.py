@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
@@ -29,7 +30,7 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 class ManualResult(OutputResult):
     """A container to hold the result returned by the ``ManualLoop``.
 
-    It is created from the output of :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`.
+    It is created from the output of :meth:`~pytorch_lightning.core.module.LightningModule.training_step`.
 
     Attributes:
         extra: Anything returned by the ``training_step``.
@@ -65,11 +66,11 @@ _OUTPUTS_TYPE = Dict[str, Any]
 
 class ManualOptimization(Loop[_OUTPUTS_TYPE]):
     """A special loop implementing what is known in Lightning as Manual Optimization where the optimization happens
-    entirely in the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` and therefore the user
-    is responsible for back-propagating gradients and making calls to the optimizers.
+    entirely in the :meth:`~pytorch_lightning.core.module.LightningModule.training_step` and therefore the user is
+    responsible for back-propagating gradients and making calls to the optimizers.
 
     This loop is a trivial case because it performs only a single iteration (calling directly into the module's
-    :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`) and passing through the output(s).
+    :meth:`~pytorch_lightning.core.module.LightningModule.training_step`) and passing through the output(s).
     """
 
     output_result_cls = ManualResult
@@ -97,30 +98,25 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
             lightning_optimizer._on_before_step = self._on_before_step
             lightning_optimizer._on_after_step = self._on_after_step
 
-    def advance(self, batch: Any, batch_idx: int) -> None:  # type: ignore[override]
+    def advance(self, kwargs: OrderedDict) -> None:  # type: ignore[override]
         """Performs the training step for manual optimization.
 
         Args:
-            batch: the current tbptt split of the current batch
-            batch_idx: the index of the current batch
+            kwargs: The kwargs passed down to the hooks.
         """
         assert self.trainer is not None
-        lightning_module = self.trainer.lightning_module
 
-        step_kwargs = _build_training_step_kwargs(
-            lightning_module, self.trainer.optimizers, batch, batch_idx, opt_idx=None, hiddens=self._hiddens
-        )
+        kwargs = self._build_kwargs(kwargs, self._hiddens)
 
         # manually capture logged metrics
-        training_step_output = self.trainer._call_strategy_hook("training_step", *step_kwargs.values())
+        training_step_output = self.trainer._call_strategy_hook("training_step", *kwargs.values())
+        del kwargs  # release the batch from memory
         self.trainer.strategy.post_training_step()
-
-        del step_kwargs
 
         model_output = self.trainer._call_lightning_module_hook("training_step_end", training_step_output)
         strategy_output = self.trainer._call_strategy_hook("training_step_end", training_step_output)
         training_step_output = strategy_output if model_output is None else model_output
-        self._hiddens = _extract_hiddens(training_step_output, lightning_module.truncated_bptt_steps)
+        self._hiddens = _extract_hiddens(training_step_output, self.trainer.lightning_module.truncated_bptt_steps)
 
         result = self.output_result_cls.from_training_step_output(training_step_output)
 
@@ -149,3 +145,17 @@ class ManualOptimization(Loop[_OUTPUTS_TYPE]):
     def _on_after_step(self) -> None:
         self.trainer.profiler.stop("optimizer_step")
         self.optim_step_progress.increment_completed()
+
+    def _build_kwargs(self, kwargs: OrderedDict, hiddens: Optional[Any]) -> OrderedDict:
+        """Helper method to build the arguments for the current step.
+
+        Args:
+            kwargs: The kwargs passed down to the hooks.
+            hiddens: the hidden state of the previous RNN iteration.
+
+        Returns:
+            The kwargs passed down to the hooks.
+        """
+        return _build_training_step_kwargs(
+            kwargs, self.trainer.lightning_module, self.trainer.optimizers, None, hiddens
+        )

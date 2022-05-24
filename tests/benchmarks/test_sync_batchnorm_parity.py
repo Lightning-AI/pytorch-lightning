@@ -50,7 +50,7 @@ class SyncBNModule(LightningModule):
         return DataLoader(dataset, sampler=sampler, batch_size=self.batch_size)
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_sync_batchnorm_parity(tmpdir):
     """Test parity between 1) Training a synced batch-norm layer on 2 GPUs with batch size B per device 2) Training
     a batch-norm layer on CPU with twice the batch size."""
@@ -68,6 +68,8 @@ def test_sync_batchnorm_parity(tmpdir):
         replace_sampler_ddp=False,
         deterministic=True,
         benchmark=False,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 

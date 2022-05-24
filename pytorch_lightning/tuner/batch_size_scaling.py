@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional, Tuple
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.loggers.base import DummyLogger
+from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.utilities.data import has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
@@ -81,13 +81,14 @@ def scale_batch_size(
     garbage_collection_cuda()
     log.info(f"Finished batch size finder, will continue with full run using batch size {new_size}")
 
-    # Restore initial state of model
-    trainer._checkpoint_connector.restore(ckpt_path)
-    trainer.strategy.remove_checkpoint(ckpt_path)
     __scale_batch_restore_params(trainer, params)
 
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.enable()
+
+    # Restore initial state of model
+    trainer._checkpoint_connector.restore(ckpt_path)
+    trainer.strategy.remove_checkpoint(ckpt_path)
 
     return new_size
 

@@ -40,7 +40,8 @@ DEFAULT_CMD_LINE = (
     "--trainer.limit_train_batches=15",
     "--trainer.limit_val_batches=15",
     "--trainer.profiler=pytorch",
-    f"--trainer.gpus={int(torch.cuda.is_available())}",
+    "--trainer.accelerator=gpu",
+    f"--trainer.devices={int(torch.cuda.is_available())}",
 )
 
 

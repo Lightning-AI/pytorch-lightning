@@ -19,18 +19,19 @@ import torch
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE
+from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import _get_dataloader_init_kwargs
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _POPTORCH_AVAILABLE:
@@ -40,7 +41,9 @@ else:
 
 
 class LightningIPUModule(_LightningModuleWrapperBase):
-    def __init__(self, pl_module: "pl.LightningModule", precision: Union[str, int]):
+    def __init__(
+        self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: Union[str, int]
+    ) -> None:
         super().__init__(pl_module)
         self.precision = precision
 
@@ -119,6 +122,7 @@ class IPUStrategy(ParallelStrategy):
             os.environ["POPLAR_ENGINE_OPTIONS"] = json.dumps(options)
 
         self._update_dataloader_original: Optional[Callable] = None
+        self._optimizer_zero_grad_original: Optional[Callable] = None
 
     def setup(self, trainer: "pl.Trainer") -> None:
         # set the `accumulate_grad_batches` property as early as possible
@@ -131,6 +135,11 @@ class IPUStrategy(ParallelStrategy):
         pl.trainer.connectors.data_connector._update_dataloader = self._convert_to_poptorch_loader
 
         super().setup(trainer)
+
+        # disable the `optimizer_zero_grad` function by setting it to `None`.
+        # this is because the IPU zeros the gradients internally
+        self._optimizer_zero_grad_original = self.lightning_module.optimizer_zero_grad
+        self._disable_zero_grad()
 
         model = LightningIPUModule(self.lightning_module, self.precision_plugin.precision)
         self.model = model
@@ -258,6 +267,16 @@ class IPUStrategy(ParallelStrategy):
         args = apply_to_collection(args, dtype=(int, float), function=to_tensor)
         return args
 
+    def _disable_zero_grad(self) -> None:
+        lightning_module = self.lightning_module
+        if is_overridden("optimizer_zero_grad", lightning_module):
+            assert lightning_module is not None  # `is_overridden` returns False otherwise
+            rank_zero_warn(
+                "You have overridden the `LightningModule.optimizer_zero_grad` hook but it will be ignored since"
+                " IPUs handle the zeroing of gradients internally."
+            )
+        lightning_module.optimizer_zero_grad = None  # type: ignore[assignment]
+
     def _step(self, stage: RunningStage, *args: Any, **kwargs: Any):
         args = self._prepare_input(args)
         poptorch_model = self.poptorch_models[stage]
@@ -287,6 +306,10 @@ class IPUStrategy(ParallelStrategy):
         if self._update_dataloader_original is not None:
             # undo dataloader patching
             pl.trainer.connectors.data_connector._update_dataloader = self._update_dataloader_original
+
+        if self._optimizer_zero_grad_original is not None:
+            # re-enable `optimizer_zero_grad`
+            self.lightning_module.optimizer_zero_grad = self._optimizer_zero_grad_original
 
         for model in self.poptorch_models.values():
             model.destroy()
@@ -336,7 +359,7 @@ class IPUStrategy(ParallelStrategy):
     def on_predict_end(self):
         self._detach_models()
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
         # Updates optimizer stats if LR scheduler modified the optimizer state
         optimizer = self.optimizers[0]
         self.poptorch_models[RunningStage.TRAINING].setOptimizer(optimizer)

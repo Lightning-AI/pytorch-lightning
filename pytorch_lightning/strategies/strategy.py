@@ -40,8 +40,7 @@ TBroadcast = TypeVar("TBroadcast")
 
 
 class Strategy(ABC):
-    """Base class for all training type plugins that change the behaviour of the training, validation and test-
-    loop."""
+    """Base class for all strategies that change the behaviour of the training, validation and test- loop."""
 
     def __init__(
         self,
@@ -181,7 +180,7 @@ class Strategy(ABC):
         model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any,
     ) -> Any:
-        """performs the actual optimizer step.
+        """Performs the actual optimizer step.
 
         Args:
             optimizer: the optimizer performing the step
@@ -328,7 +327,7 @@ class Strategy(ABC):
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         """The actual training step.
 
-        See :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` for more details
+        See :meth:`~pytorch_lightning.core.module.LightningModule.training_step` for more details
         """
         with self.precision_plugin.train_step_context():
             return self.model.training_step(*args, **kwargs)
@@ -339,7 +338,7 @@ class Strategy(ABC):
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         """The actual validation step.
 
-        See :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` for more details
+        See :meth:`~pytorch_lightning.core.module.LightningModule.validation_step` for more details
         """
         with self.precision_plugin.val_step_context():
             return self.model.validation_step(*args, **kwargs)
@@ -347,7 +346,7 @@ class Strategy(ABC):
     def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         """The actual test step.
 
-        See :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` for more details
+        See :meth:`~pytorch_lightning.core.module.LightningModule.test_step` for more details
         """
         with self.precision_plugin.test_step_context():
             return self.model.test_step(*args, **kwargs)
@@ -355,7 +354,7 @@ class Strategy(ABC):
     def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
         """The actual predict step.
 
-        See :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` for more details
+        See :meth:`~pytorch_lightning.core.module.LightningModule.predict_step` for more details
         """
         with self.precision_plugin.predict_step_context():
             return self.model.predict_step(*args, **kwargs)
@@ -405,15 +404,18 @@ class Strategy(ABC):
         model = self.lightning_module
         return model.state_dict()
 
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
+    def save_checkpoint(
+        self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
+    ) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
+            storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
         """
         if self.is_global_zero:
-            self.checkpoint_io.save_checkpoint(checkpoint, filepath)
+            self.checkpoint_io.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
@@ -478,7 +480,7 @@ class Strategy(ABC):
         """Called when predict ends."""
         pass
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
         """Called in the training loop before anything happens for that batch."""
         pass
 

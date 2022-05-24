@@ -15,7 +15,7 @@
 Model Summary
 =============
 
-Generates a summary of all layers in a :class:`~pytorch_lightning.core.lightning.LightningModule`.
+Generates a summary of all layers in a :class:`~pytorch_lightning.core.module.LightningModule`.
 
 The string representation of this summary prints a table with columns containing
 the name, type and number of parameters for each layer.
@@ -25,7 +25,7 @@ import logging
 from typing import List, Tuple
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.utilities.model_summary import _format_summary_table, summarize
 
 log = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ log = logging.getLogger(__name__)
 
 class ModelSummary(Callback):
     r"""
-    Generates a summary of all layers in a :class:`~pytorch_lightning.core.lightning.LightningModule`.
+    Generates a summary of all layers in a :class:`~pytorch_lightning.core.module.LightningModule`.
 
     Args:
         max_depth: The maximum depth of layer nesting that the summary will include. A value of 0 turns the

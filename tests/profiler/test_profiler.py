@@ -148,7 +148,7 @@ def test_simple_profiler_with_nonexisting_dirpath(tmpdir):
     assert nonexisting_tmpdir.join("fit-profiler.txt").exists()
 
 
-@RunIf(skip_windows=True, skip_49370=True)
+@RunIf(skip_windows=True)
 def test_simple_profiler_distributed_files(tmpdir):
     """Ensure the proper files are saved in distributed."""
     profiler = SimpleProfiler(dirpath=tmpdir, filename="profiler")
@@ -338,18 +338,20 @@ def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     """Checks for pickle issue reported in #6522."""
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, fast_dev_run=True, profiler="advanced", callbacks=StochasticWeightAveraging()
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        profiler="advanced",
+        callbacks=StochasticWeightAveraging(swa_lrs=1e-2),
     )
     trainer.fit(model)
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the training and default step are properly recorded."""
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        enable_progress_bar=False,
         max_epochs=1,
         limit_train_batches=5,
         limit_val_batches=5,
@@ -357,6 +359,8 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         strategy="ddp",
         accelerator="gpu",
         devices=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
     expected = {"[pl][profile][Strategy]DDPStrategy.validation_step"}
@@ -472,13 +476,20 @@ def test_pytorch_profiler_multiple_loggers(tmpdir):
     assert look_for_trace(tmpdir)
 
 
-@RunIf(min_gpus=1, standalone=True)
+@RunIf(min_cuda_gpus=1, standalone=True)
 def test_pytorch_profiler_nested_emit_nvtx(tmpdir):
     """This test check emit_nvtx is correctly supported."""
     profiler = PyTorchProfiler(use_cuda=True, emit_nvtx=True)
 
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True, profiler=profiler, accelerator="gpu", devices=1)
+    trainer = Trainer(
+        fast_dev_run=True,
+        profiler=profiler,
+        accelerator="gpu",
+        devices=1,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
     trainer.fit(model)
 
 

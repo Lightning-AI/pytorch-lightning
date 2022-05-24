@@ -1,5 +1,5 @@
 ###########################################
-LightningLite - Stepping Stone to Lightning
+LightningLite (Stepping Stone to Lightning)
 ###########################################
 
 
@@ -69,7 +69,6 @@ The ``run`` function contains custom training loop used to train ``MyModel`` on 
 
     run(args)
 
-
 ----------
 
 
@@ -124,7 +123,7 @@ Here are five required steps to convert to :class:`~pytorch_lightning.lite.Light
     Lite(...).run(args)
 
 
-That's all. You can now train on any kind of device and scale your training.
+That's all. You can now train on any kind of device and scale your training. Check out `this <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/basic_examples/mnist_examples/image_classifier_2_lite.py>`_ full MNIST training example with LightningLite.
 
 :class:`~pytorch_lightning.lite.LightningLite` takes care of device management, so you don't have to.
 You should remove any device-specific logic within your code.
@@ -182,7 +181,7 @@ Here is an example while running on 256 GPUs (eight GPUs times 32 nodes).
             self.barrier()
 
 
-    Lite(strategy="ddp", gpus=8, num_nodes=32, accelerator="gpu").run()
+    Lite(strategy="ddp", devices=8, num_nodes=32, accelerator="gpu").run()
 
 
 If you require custom data or model device placement, you can deactivate
@@ -200,10 +199,10 @@ utility to move an object to the current device.
 
     If you have hundreds or thousands of lines within your :meth:`~pytorch_lightning.lite.LightningLite.run` function
     and you are feeling unsure about them, then that is the correct feeling.
-    In 2019, our :class:`~pytorch_lightning.core.lightning.LightningModule` was getting larger
+    In 2019, our :class:`~pytorch_lightning.core.module.LightningModule` was getting larger
     and we got the same feeling, so we started to organize our code for simplicity, interoperability and standardization.
     This is definitely a good sign that you should consider refactoring your code and / or switching to
-    :class:`~pytorch_lightning.core.lightning.LightningModule` ultimately.
+    :class:`~pytorch_lightning.core.module.LightningModule` ultimately.
 
 
 ----------
@@ -246,9 +245,9 @@ Convert to Lightning
 from its hundreds of features.
 
 You can see our :class:`~pytorch_lightning.lite.LightningLite` class as a
-future :class:`~pytorch_lightning.core.lightning.LightningModule`, and slowly refactor your code into its API.
-Below, the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`, :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`,
-:meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers`, :meth:`~pytorch_lightning.core.lightning.LightningModule.train_dataloader` methods
+future :class:`~pytorch_lightning.core.module.LightningModule`, and slowly refactor your code into its API.
+Below, the :meth:`~pytorch_lightning.core.module.LightningModule.training_step`, :meth:`~pytorch_lightning.core.module.LightningModule.forward`,
+:meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers`, :meth:`~pytorch_lightning.core.module.LightningModule.train_dataloader` methods
 are implemented.
 
 
@@ -300,7 +299,7 @@ are implemented.
 
 
 Finally, change the :meth:`~pytorch_lightning.lite.LightningLite.run` into a
-:meth:`~pytorch_lightning.core.lightning.LightningModule.__init__` and drop the ``fit`` call from inside.
+:meth:`~pytorch_lightning.core.module.LightningModule.__init__` and drop the ``fit`` call from inside.
 
 .. code-block:: python
 
@@ -387,7 +386,7 @@ Choose a training strategy: ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"tpu_spawn"`
     lite = Lite(strategy="ddp_spawn", accelerator="cpu", devices=4)
 
 
-Additionally, you can pass in your custom training type strategy by configuring additional parameters.
+Additionally, you can pass in your custom strategy by configuring additional parameters.
 
 .. code-block:: python
 
@@ -432,12 +431,15 @@ Configure the devices to run on. Can be of type:
 gpus
 ====
 
+.. warning:: ``gpus=x`` has been deprecated in v1.7 and will be removed in v2.0.
+    Please use ``accelerator='gpu'`` and ``devices=x`` instead.
+
 Shorthand for setting ``devices=X`` and ``accelerator="gpu"``.
 
 .. code-block:: python
 
     # Run on two GPUs
-    lite = Lite(gpus=2)
+    lite = Lite(accelerator="gpu", devices=2)
 
     # Equivalent
     lite = Lite(devices=2, accelerator="gpu")
@@ -446,12 +448,15 @@ Shorthand for setting ``devices=X`` and ``accelerator="gpu"``.
 tpu_cores
 =========
 
+.. warning:: ``tpu_cores=x`` has been deprecated in v1.7 and will be removed in v2.0.
+    Please use ``accelerator='tpu'`` and ``devices=x`` instead.
+
 Shorthand for ``devices=X`` and ``accelerator="tpu"``.
 
 .. code-block:: python
 
     # Run on eight TPUs
-    lite = Lite(tpu_cores=8)
+    lite = Lite(accelerator="tpu", devices=8)
 
     # Equivalent
     lite = Lite(devices=8, accelerator="tpu")

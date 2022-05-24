@@ -26,6 +26,7 @@ from warnings import warn
 import torch
 import yaml
 
+import pytorch_lightning as pl
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
@@ -33,6 +34,7 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.migration import pl_legacy_patch
 from pytorch_lightning.utilities.parsing import parse_class_init_keys
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.types import _PATH
 
 log = logging.getLogger(__name__)
 PRIMITIVE_TYPES = (bool, int, float, str)
@@ -73,7 +75,7 @@ class ModelIO:
                 If your checkpoint saved a GPU model and you now load on CPUs
                 or a different number of GPUs, use this to map to the new setup.
                 The behaviour is the same as in :func:`torch.load`.
-            hparams_file: Optional path to a .yaml file with hierarchical structure
+            hparams_file: Optional path to a ``.yaml`` or ``.csv`` file with hierarchical structure
                 as in this example::
 
                     drop_prob: 0.2
@@ -83,16 +85,16 @@ class ModelIO:
                 You most likely won't need this since Lightning will always save the hyperparameters
                 to the checkpoint.
                 However, if your checkpoint weights don't have the hyperparameters saved,
-                use this method to pass in a .yaml file with the hparams you'd like to use.
+                use this method to pass in a ``.yaml`` file with the hparams you'd like to use.
                 These will be converted into a :class:`~dict` and passed into your
                 :class:`LightningModule` for use.
 
                 If your model's ``hparams`` argument is :class:`~argparse.Namespace`
-                and .yaml file has hierarchical structure, you need to refactor your model to treat
+                and ``.yaml`` file has hierarchical structure, you need to refactor your model to treat
                 ``hparams`` as :class:`~dict`.
             strict: Whether to strictly enforce that the keys in :attr:`checkpoint_path` match the keys
                 returned by this module's state dict.
-            kwargs: Any extra keyword args needed to init the model. Can also be used to override saved
+            \**kwargs: Any extra keyword args needed to init the model. Can also be used to override saved
                 hyperparameter values.
 
         Return:
@@ -132,93 +134,14 @@ class ModelIO:
             pretrained_model.freeze()
             y_hat = pretrained_model(x)
         """
-        with pl_legacy_patch():
-            if map_location is not None:
-                checkpoint = pl_load(checkpoint_path, map_location=map_location)
-            else:
-                checkpoint = pl_load(checkpoint_path, map_location=lambda storage, loc: storage)
-
-        if hparams_file is not None:
-            extension = hparams_file.split(".")[-1]
-            if extension.lower() == "csv":
-                hparams = load_hparams_from_tags_csv(hparams_file)
-            elif extension.lower() in ("yml", "yaml"):
-                hparams = load_hparams_from_yaml(hparams_file)
-            else:
-                raise ValueError(".csv, .yml or .yaml is required for `hparams_file`")
-
-            hparams["on_gpu"] = False
-
-            # overwrite hparams by the given file
-            checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = hparams
-
-        # for past checkpoint need to add the new key
-        if cls.CHECKPOINT_HYPER_PARAMS_KEY not in checkpoint:
-            checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = {}
-        # override the hparams with values that were passed in
-        checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(kwargs)
-
-        model = cls._load_model_state(checkpoint, strict=strict, **kwargs)
-        return model
-
-    @classmethod
-    def _load_model_state(cls, checkpoint: Dict[str, Any], strict: bool = True, **cls_kwargs_new):
-        cls_spec = inspect.getfullargspec(cls.__init__)
-        cls_init_args_name = inspect.signature(cls.__init__).parameters.keys()
-
-        self_var, args_var, kwargs_var = parse_class_init_keys(cls)
-        drop_names = [n for n in (self_var, args_var, kwargs_var) if n]
-        cls_init_args_name = list(filter(lambda n: n not in drop_names, cls_init_args_name))
-
-        cls_kwargs_loaded = {}
-        # pass in the values we saved automatically
-        if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
-
-            # 1. (backward compatibility) Try to restore model hparams from checkpoint using old/past keys
-            for _old_hparam_key in CHECKPOINT_PAST_HPARAMS_KEYS:
-                cls_kwargs_loaded.update(checkpoint.get(_old_hparam_key, {}))
-
-            # 2. Try to restore model hparams from checkpoint using the new key
-            _new_hparam_key = cls.CHECKPOINT_HYPER_PARAMS_KEY
-            cls_kwargs_loaded.update(checkpoint.get(_new_hparam_key))
-
-            # 3. Ensure that `cls_kwargs_old` has the right type, back compatibility between dict and Namespace
-            cls_kwargs_loaded = _convert_loaded_hparams(
-                cls_kwargs_loaded, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE)
-            )
-
-            # 4. Update cls_kwargs_new with cls_kwargs_old, such that new has higher priority
-            args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
-            if args_name and args_name in cls_init_args_name:
-                cls_kwargs_loaded = {args_name: cls_kwargs_loaded}
-
-        _cls_kwargs = {}
-        _cls_kwargs.update(cls_kwargs_loaded)
-        _cls_kwargs.update(cls_kwargs_new)
-
-        if not cls_spec.varkw:
-            # filter kwargs according to class init unless it allows any argument via kwargs
-            _cls_kwargs = {k: v for k, v in _cls_kwargs.items() if k in cls_init_args_name}
-
-        model = cls(**_cls_kwargs)
-
-        # give model a chance to load something
-        model.on_load_checkpoint(checkpoint)
-
-        # load the state_dict on the model automatically
-        keys = model.load_state_dict(checkpoint["state_dict"], strict=strict)
-
-        if not strict:
-            if keys.missing_keys:
-                rank_zero_warn(
-                    f"Found keys that are in the model state dict but not in the checkpoint: {keys.missing_keys}"
-                )
-            if keys.unexpected_keys:
-                rank_zero_warn(
-                    f"Found keys that are not in the model state dict but in the checkpoint: {keys.unexpected_keys}"
-                )
-
-        return model
+        return _load_from_checkpoint(
+            cls,
+            checkpoint_path,
+            map_location,
+            hparams_file,
+            strict,
+            **kwargs,
+        )
 
     # -------------------------
     # OPTIONAL HOOKS
@@ -245,6 +168,107 @@ class ModelIO:
             This method is deprecated in v1.6 and will be removed in v1.8.
             Please use ``LightningModule.on_load_checkpoint`` instead.
         """
+
+
+def _load_from_checkpoint(
+    cls: Union["pl.LightningModule", "pl.LightningDataModule"],
+    checkpoint_path: Union[str, IO],
+    map_location: Optional[Union[Dict[str, str], str, torch.device, int, Callable]] = None,
+    hparams_file: Optional[str] = None,
+    strict: Optional[bool] = None,
+    **kwargs: Any,
+) -> Any:
+    if map_location is None:
+        map_location = lambda storage, loc: storage
+    with pl_legacy_patch():
+        checkpoint = pl_load(checkpoint_path, map_location=map_location)
+
+    if hparams_file is not None:
+        extension = hparams_file.split(".")[-1]
+        if extension.lower() == "csv":
+            hparams = load_hparams_from_tags_csv(hparams_file)
+        elif extension.lower() in ("yml", "yaml"):
+            hparams = load_hparams_from_yaml(hparams_file)
+        else:
+            raise ValueError(".csv, .yml or .yaml is required for `hparams_file`")
+
+        # overwrite hparams by the given file
+        checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY] = hparams
+
+    # for past checkpoint need to add the new key
+    checkpoint.setdefault(cls.CHECKPOINT_HYPER_PARAMS_KEY, {})
+    # override the hparams with values that were passed in
+    checkpoint[cls.CHECKPOINT_HYPER_PARAMS_KEY].update(kwargs)
+
+    if issubclass(cls, pl.LightningDataModule):
+        return _load_state(cls, checkpoint, **kwargs)
+    return _load_state(cls, checkpoint, strict=strict, **kwargs)
+
+
+def _load_state(
+    cls: Union["pl.LightningModule", "pl.LightningDataModule"],
+    checkpoint: Dict[str, Any],
+    strict: Optional[bool] = None,
+    **cls_kwargs_new: Any,
+) -> Any:
+    cls_spec = inspect.getfullargspec(cls.__init__)
+    cls_init_args_name = inspect.signature(cls.__init__).parameters.keys()
+
+    self_var, args_var, kwargs_var = parse_class_init_keys(cls)
+    drop_names = [n for n in (self_var, args_var, kwargs_var) if n]
+    cls_init_args_name = list(filter(lambda n: n not in drop_names, cls_init_args_name))
+
+    cls_kwargs_loaded = {}
+    # pass in the values we saved automatically
+    if cls.CHECKPOINT_HYPER_PARAMS_KEY in checkpoint:
+
+        if issubclass(cls, pl.LightningModule):
+            # 1. (backward compatibility) Try to restore model hparams from checkpoint using old/past keys
+            for _old_hparam_key in CHECKPOINT_PAST_HPARAMS_KEYS:
+                cls_kwargs_loaded.update(checkpoint.get(_old_hparam_key, {}))
+
+        # 2. Try to restore model hparams from checkpoint using the new key
+        _new_hparam_key = cls.CHECKPOINT_HYPER_PARAMS_KEY
+        cls_kwargs_loaded.update(checkpoint.get(_new_hparam_key))
+
+        # 3. Ensure that `cls_kwargs_old` has the right type, back compatibility between dict and Namespace
+        cls_kwargs_loaded = _convert_loaded_hparams(cls_kwargs_loaded, checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_TYPE))
+
+        # 4. Update cls_kwargs_new with cls_kwargs_old, such that new has higher priority
+        args_name = checkpoint.get(cls.CHECKPOINT_HYPER_PARAMS_NAME)
+        if args_name and args_name in cls_init_args_name:
+            cls_kwargs_loaded = {args_name: cls_kwargs_loaded}
+
+    _cls_kwargs = {}
+    _cls_kwargs.update(cls_kwargs_loaded)
+    _cls_kwargs.update(cls_kwargs_new)
+
+    if not cls_spec.varkw:
+        # filter kwargs according to class init unless it allows any argument via kwargs
+        _cls_kwargs = {k: v for k, v in _cls_kwargs.items() if k in cls_init_args_name}
+
+    obj = cls(**_cls_kwargs)
+
+    # give model a chance to load something
+    obj.on_load_checkpoint(checkpoint)
+
+    if isinstance(obj, pl.LightningDataModule):
+        return obj
+
+    # load the state_dict on the model automatically
+    keys = obj.load_state_dict(checkpoint["state_dict"], strict=strict)
+
+    if not strict:
+        if keys.missing_keys:
+            rank_zero_warn(
+                f"Found keys that are in the model state dict but not in the checkpoint: {keys.missing_keys}"
+            )
+        if keys.unexpected_keys:
+            rank_zero_warn(
+                f"Found keys that are not in the model state dict but in the checkpoint: {keys.unexpected_keys}"
+            )
+
+    return obj
 
 
 def _convert_loaded_hparams(model_args: dict, hparams_type: Optional[Union[Callable, str]] = None) -> object:
@@ -288,7 +312,7 @@ def update_hparams(hparams: dict, updates: dict) -> None:
             hparams.update({k: v})
 
 
-def load_hparams_from_tags_csv(tags_csv: str) -> Dict[str, Any]:
+def load_hparams_from_tags_csv(tags_csv: _PATH) -> Dict[str, Any]:
     """Load hparams from a file.
 
     >>> hparams = Namespace(batch_size=32, learning_rate=0.001, data_root='./any/path/here')
@@ -311,7 +335,7 @@ def load_hparams_from_tags_csv(tags_csv: str) -> Dict[str, Any]:
     return tags
 
 
-def save_hparams_to_tags_csv(tags_csv: str, hparams: Union[dict, Namespace]) -> None:
+def save_hparams_to_tags_csv(tags_csv: _PATH, hparams: Union[dict, Namespace]) -> None:
     fs = get_filesystem(tags_csv)
     if not fs.isdir(os.path.dirname(tags_csv)):
         raise RuntimeError(f"Missing folder: {os.path.dirname(tags_csv)}.")
@@ -327,7 +351,7 @@ def save_hparams_to_tags_csv(tags_csv: str, hparams: Union[dict, Namespace]) -> 
             writer.writerow({"key": k, "value": v})
 
 
-def load_hparams_from_yaml(config_yaml: str, use_omegaconf: bool = True) -> Dict[str, Any]:
+def load_hparams_from_yaml(config_yaml: _PATH, use_omegaconf: bool = True) -> Dict[str, Any]:
     """Load hparams from a file.
 
         Args:
@@ -360,7 +384,7 @@ def load_hparams_from_yaml(config_yaml: str, use_omegaconf: bool = True) -> Dict
     return hparams
 
 
-def save_hparams_to_yaml(config_yaml, hparams: Union[dict, Namespace], use_omegaconf: bool = True) -> None:
+def save_hparams_to_yaml(config_yaml: _PATH, hparams: Union[dict, Namespace], use_omegaconf: bool = True) -> None:
     """
     Args:
         config_yaml: path to new YAML file

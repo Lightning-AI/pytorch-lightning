@@ -13,12 +13,12 @@
 # limitations under the License.
 import numbers
 import warnings
-from typing import Any, Union
+from typing import Any, cast, Union
 
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
@@ -36,10 +36,11 @@ def _ignore_scalar_return_in_dp() -> None:
 
 class LightningParallelModule(_LightningModuleWrapperBase):
     """Wraps the user's LightningModule and redirects the forward call to the appropriate method, either
-    ``training_step``, ``validation_step``, ``test_step`` or ``predict``. This class is used in combination with
-    :class:`~torch.nn.parallel.DataParallel` as shown in the example. It also takes care of converting Python
-    scalars to Tensors and un-squeezes 0-dimensional Tensors as it is required by
-    :class:`~torch.nn.parallel.DataParallel`.
+    ``training_step``, ``validation_step``, ``test_step``, or ``predict_step``.
+
+    This class is used in combination with :class:`~torch.nn.parallel.DataParallel` as shown in the example.
+    It also takes care of converting Python scalars to Tensors and un-squeezes 0-dimensional Tensors as it is required
+    by :class:`~torch.nn.parallel.DataParallel`.
 
     Example:
 
@@ -53,7 +54,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         pl_module: the model to wrap
     """
 
-    def __init__(self, pl_module: "pl.LightningModule") -> None:
+    def __init__(self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]) -> None:
         super().__init__(pl_module)
         _ignore_scalar_return_in_dp()
 
@@ -63,7 +64,8 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         output = super().forward(*inputs, **kwargs)
 
         def output_transform(data: Any) -> Any:
-            data = python_scalar_to_tensor(data, self.module.device)
+            device = cast(torch.device, self.module.device)
+            data = python_scalar_to_tensor(data, device)
             data = unsqueeze_scalar_tensor(data)
             return data
 

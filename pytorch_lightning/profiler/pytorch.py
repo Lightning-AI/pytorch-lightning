@@ -23,7 +23,7 @@ import torch
 from torch import nn, Tensor
 from torch.autograd.profiler import record_function
 
-from pytorch_lightning.profiler.base import BaseProfiler
+from pytorch_lightning.profiler.profiler import Profiler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE, _TORCH_GREATER_EQUAL_1_9
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from torch.autograd.profiler import EventList
     from torch.utils.hooks import RemovableHandle
 
-    from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.core.module import LightningModule
 
 if _KINETO_AVAILABLE:
     from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler
@@ -210,7 +210,7 @@ class ScheduleWrapper:
         return action
 
 
-class PyTorchProfiler(BaseProfiler):
+class PyTorchProfiler(Profiler):
 
     STEP_FUNCTIONS = {"training_step", "validation_step", "test_step", "predict_step"}
     AVAILABLE_SORT_KEYS = {

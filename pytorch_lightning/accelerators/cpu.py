@@ -16,8 +16,9 @@ from typing import Any, Dict, List, Union
 import torch
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
+from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE
 from pytorch_lightning.utilities.types import _DEVICE
 
 
@@ -35,23 +36,20 @@ class CPUAccelerator(Accelerator):
             raise MisconfigurationException(f"Device should be CPU, got {root_device} instead.")
 
     def get_device_stats(self, device: _DEVICE) -> Dict[str, Any]:
-        """CPU device stats aren't supported yet."""
-        return {}
+        """Get CPU stats from ``psutil`` package."""
+        return get_cpu_stats()
 
     @staticmethod
-    def parse_devices(devices: Union[int, str, List[int]]) -> Union[int, str, List[int]]:
+    def parse_devices(devices: Union[int, str, List[int]]) -> int:
         """Accelerator device parsing logic."""
+        devices = device_parser.parse_cpu_cores(devices)
         return devices
 
     @staticmethod
     def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
-        if isinstance(devices, int):
-            return [torch.device("cpu")] * devices
-        rank_zero_warn(
-            f"The flag `devices` must be an int with `accelerator='cpu'`, got `devices={devices!r}` instead."
-        )
-        return []
+        devices = device_parser.parse_cpu_cores(devices)
+        return [torch.device("cpu")] * devices
 
     @staticmethod
     def auto_device_count() -> int:
@@ -63,7 +61,31 @@ class CPUAccelerator(Accelerator):
         """CPU is always available for execution."""
         return True
 
-    @staticmethod
-    def name() -> str:
-        """Name of the Accelerator."""
-        return "cpu"
+    @classmethod
+    def register_accelerators(cls, accelerator_registry: Dict) -> None:
+        accelerator_registry.register(
+            "cpu",
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )
+
+
+# CPU device metrics
+_CPU_VM_PERCENT = "cpu_vm_percent"
+_CPU_PERCENT = "cpu_percent"
+_CPU_SWAP_PERCENT = "cpu_swap_percent"
+
+
+def get_cpu_stats() -> Dict[str, float]:
+    if not _PSUTIL_AVAILABLE:
+        raise ModuleNotFoundError(
+            "Fetching CPU device stats requires `psutil` to be installed."
+            " Install it by running `pip install -U psutil`."
+        )
+    import psutil
+
+    return {
+        _CPU_VM_PERCENT: psutil.virtual_memory().percent,
+        _CPU_PERCENT: psutil.cpu_percent(),
+        _CPU_SWAP_PERCENT: psutil.swap_memory().percent,
+    }

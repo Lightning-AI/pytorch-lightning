@@ -25,7 +25,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, _set_scheduler_opt_idx
-from pytorch_lightning.loggers.base import DummyLogger
+from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
@@ -231,9 +231,6 @@ def lr_find(
     lr_finder.results.update({"lr": trainer.callbacks[0].lrs, "loss": trainer.callbacks[0].losses})
     lr_finder._total_batch_idx = trainer.fit_loop.total_batch_idx  # for debug purpose
 
-    # Restore initial state of model
-    trainer._checkpoint_connector.restore(ckpt_path)
-    trainer.strategy.remove_checkpoint(ckpt_path)
     __lr_finder_restore_params(trainer, params)
 
     if trainer.progress_bar_callback:
@@ -246,6 +243,10 @@ def lr_find(
         # TODO: log lr.results to self.logger
         lightning_setattr(model, lr_attr_name, lr)
         log.info(f"Learning rate set to {lr}")
+
+    # Restore initial state of model
+    trainer._checkpoint_connector.restore(ckpt_path)
+    trainer.strategy.remove_checkpoint(ckpt_path)
 
     return lr_finder
 

@@ -20,16 +20,20 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
-from pytorch_lightning.utilities import (
+from pytorch_lightning.utilities.imports import (
     _APEX_AVAILABLE,
     _BAGUA_AVAILABLE,
     _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
+    _HIVEMIND_AVAILABLE,
     _HOROVOD_AVAILABLE,
+    _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _OMEGACONF_AVAILABLE,
+    _PSUTIL_AVAILABLE,
     _RICH_AVAILABLE,
+    _TORCH_GREATER_EQUAL_1_10,
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
 )
@@ -60,14 +64,16 @@ class RunIf:
     def __new__(
         self,
         *args,
-        min_gpus: int = 0,
+        min_cuda_gpus: int = 0,
         min_torch: Optional[str] = None,
         max_torch: Optional[str] = None,
         min_python: Optional[str] = None,
         quantization: bool = False,
         amp_apex: bool = False,
+        bf16_cuda: bool = False,
         tpu: bool = False,
         ipu: bool = False,
+        hpu: bool = False,
         horovod: bool = False,
         horovod_nccl: bool = False,
         skip_windows: bool = False,
@@ -76,24 +82,27 @@ class RunIf:
         fairscale_fully_sharded: bool = False,
         deepspeed: bool = False,
         rich: bool = False,
-        skip_49370: bool = False,
         skip_hanging_spawn: bool = False,
         omegaconf: bool = False,
         slow: bool = False,
         bagua: bool = False,
+        psutil: bool = False,
+        hivemind: bool = False,
         **kwargs,
     ):
         """
         Args:
             *args: Any :class:`pytest.mark.skipif` arguments.
-            min_gpus: Require this number of gpus.
+            min_cuda_gpus: Require this number of gpus.
             min_torch: Require that PyTorch is greater or equal than this version.
             max_torch: Require that PyTorch is less than this version.
             min_python: Require that Python is greater or equal than this version.
             quantization: Require that `torch.quantization` is available.
             amp_apex: Require that NVIDIA/apex is installed.
+            bf16_cuda: Require that CUDA device supports bf16.
             tpu: Require that TPU is available.
             ipu: Require that IPU is available.
+            hpu: Require that HPU is available.
             horovod: Require that Horovod is installed.
             horovod_nccl: Require that Horovod is installed with NCCL support.
             skip_windows: Skip for Windows platform.
@@ -102,19 +111,20 @@ class RunIf:
             fairscale_fully_sharded: Require that `fairscale` fully sharded support is available.
             deepspeed: Require that microsoft/DeepSpeed is installed.
             rich: Require that willmcgugan/rich is installed.
-            skip_49370: Skip the test as it's impacted by https://github.com/pytorch/pytorch/issues/49370.
             skip_hanging_spawn: Skip the test as it's impacted by hanging loggers on spawn.
             omegaconf: Require that omry/omegaconf is installed.
             slow: Mark the test as slow, our CI will run it in a separate job.
             bagua: Require that BaguaSys/bagua is installed.
+            psutil: Require that psutil is installed.
+            hivemind: Require that Hivemind is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
         reasons = []
 
-        if min_gpus:
-            conditions.append(torch.cuda.device_count() < min_gpus)
-            reasons.append(f"GPUs>={min_gpus}")
+        if min_cuda_gpus:
+            conditions.append(torch.cuda.device_count() < min_cuda_gpus)
+            reasons.append(f"GPUs>={min_cuda_gpus}")
 
         if min_torch:
             torch_version = get_distribution("torch").version
@@ -140,6 +150,20 @@ class RunIf:
             conditions.append(not _APEX_AVAILABLE)
             reasons.append("NVIDIA Apex")
 
+        if bf16_cuda:
+            try:
+                cond = not (torch.cuda.is_available() and _TORCH_GREATER_EQUAL_1_10 and torch.cuda.is_bf16_supported())
+            except (AssertionError, RuntimeError) as e:
+                # AssertionError: Torch not compiled with CUDA enabled
+                # RuntimeError: Found no NVIDIA driver on your system.
+                is_unrelated = "Found no NVIDIA driver" not in str(e) or "Torch not compiled with CUDA" not in str(e)
+                if is_unrelated:
+                    raise e
+                cond = True
+
+            conditions.append(cond)
+            reasons.append("CUDA device bf16")
+
         if skip_windows:
             conditions.append(sys.platform == "win32")
             reasons.append("unimplemented on Windows")
@@ -149,8 +173,14 @@ class RunIf:
             reasons.append("TPU")
 
         if ipu:
-            conditions.append(not _IPU_AVAILABLE)
+            env_flag = os.getenv("PL_RUN_IPU_TESTS", "0")
+            conditions.append(env_flag != "1" or not _IPU_AVAILABLE)
             reasons.append("IPU")
+            kwargs["ipu"] = True
+
+        if hpu:
+            conditions.append(not _HPU_AVAILABLE)
+            reasons.append("HPU")
 
         if horovod:
             conditions.append(not _HOROVOD_AVAILABLE)
@@ -183,15 +213,6 @@ class RunIf:
             conditions.append(not _RICH_AVAILABLE)
             reasons.append("Rich")
 
-        if skip_49370:
-            # strategy=ddp_spawn, accelerator=cpu, python>=3.9, torch<1.8 does not work
-            py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-            ge_3_9 = Version(py_version) >= Version("3.9")
-            torch_version = get_distribution("torch").version
-            old_torch = Version(torch_version) < Version("1.8")
-            conditions.append(ge_3_9 and old_torch)
-            reasons.append("Impacted by https://github.com/pytorch/pytorch/issues/49370")
-
         if skip_hanging_spawn:
             # strategy=ddp_spawn, accelerator=cpu, python>=3.8, torch<1.9 does not work
             py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
@@ -215,6 +236,14 @@ class RunIf:
         if bagua:
             conditions.append(not _BAGUA_AVAILABLE or sys.platform in ("win32", "darwin"))
             reasons.append("Bagua")
+
+        if psutil:
+            conditions.append(not _PSUTIL_AVAILABLE)
+            reasons.append("psutil")
+
+        if hivemind:
+            conditions.append(not _HIVEMIND_AVAILABLE or sys.platform in ("win32", "darwin"))
+            reasons.append("Hivemind")
 
         reasons = [rs for cond, rs in zip(conditions, reasons) if cond]
         return pytest.mark.skipif(

@@ -37,7 +37,7 @@ def test_get_model(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(skip_windows=True, skip_49370=True)
+@RunIf(skip_windows=True)
 def test_get_model_ddp_cpu(tmpdir):
     """Tests that `trainer.lightning_module` extracts the model correctly when using ddp on cpu."""
 
@@ -56,7 +56,7 @@ def test_get_model_ddp_cpu(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_get_model_gpu(tmpdir):
     """Tests that `trainer.lightning_module` extracts the model correctly when using GPU."""
 

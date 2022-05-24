@@ -27,7 +27,7 @@ from typing import Any, Dict, Optional, Union
 import torch
 
 from pytorch_lightning.core.saving import save_hparams_to_yaml
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
+from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
@@ -100,7 +100,7 @@ class ExperimentWriter:
             writer.writerows(self.metrics)
 
 
-class CSVLogger(LightningLoggerBase):
+class CSVLogger(Logger):
     r"""
     Log to local file system in yaml and CSV format.
 
@@ -175,7 +175,7 @@ class CSVLogger(LightningLoggerBase):
         r"""
 
         Actual ExperimentWriter object. To use ExperimentWriter features in your
-        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
+        :class:`~pytorch_lightning.core.module.LightningModule` do the following.
 
         Example::
 
