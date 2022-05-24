@@ -39,9 +39,10 @@ class PredictionEpochLoop(Loop):
     def should_store_predictions(self) -> bool:
         """Whether the predictions should be stored for later usage (e.g. aggregation or returning)
 
-        .. deprecated:: v.1.5
-            :meth:`should_store_predictions` has been deprecated in v1.5 and will be removed in v.1.7.
-            This method will be taken the place by :meth:`_should_track_batch_outputs_for_epoch_end`.
+        .. deprecated:: v1.5.
+
+            This property was deprecated in v1.5 and will be removed in v1.7.
+            This will be taken the place by :meth:`_should_track_batch_outputs_for_epoch_end`.
         """
         any_pred = any(cb.interval.on_epoch for cb in self.trainer.prediction_writer_callbacks)
         return self.return_predictions or any_pred
