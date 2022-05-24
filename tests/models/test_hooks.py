@@ -124,7 +124,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
 )
 def test_apply_batch_transfer_handler(model_getter_mock, accelerator, expected_device_str):
     expected_device = torch.device(expected_device_str)
-    
+
     class CustomBatch:
         def __init__(self, data):
             self.samples = data[0]
