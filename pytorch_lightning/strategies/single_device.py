@@ -88,4 +88,3 @@ class SingleDeviceStrategy(Strategy):
             cls,
             description=f"{cls.__class__.__name__}",
         )
-

@@ -155,4 +155,3 @@ class DataParallelStrategy(ParallelStrategy):
             cls,
             description=f"{cls.__class__.__name__}",
         )
-

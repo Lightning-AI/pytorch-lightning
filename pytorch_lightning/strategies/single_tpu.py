@@ -80,4 +80,3 @@ class SingleTPUStrategy(SingleDeviceStrategy):
             cls,
             description=f"{cls.__class__.__name__}",
         )
-        
