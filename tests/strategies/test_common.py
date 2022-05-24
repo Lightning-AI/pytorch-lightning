@@ -30,6 +30,7 @@ from tests.strategies.test_dp import CustomClassificationModelDP
         pytest.param(dict(accelerator="gpu", devices=1), marks=RunIf(min_cuda_gpus=1)),
         pytest.param(dict(strategy="dp", accelerator="gpu", devices=2), marks=RunIf(min_cuda_gpus=2)),
         pytest.param(dict(strategy="ddp_spawn", accelerator="gpu", devices=2), marks=RunIf(min_cuda_gpus=2)),
+        pytest.param(dict(accelerator='mps', devices=1), marks=RunIf(mps=True))
     ),
 )
 def test_evaluate(tmpdir, trainer_kwargs):
