@@ -58,9 +58,14 @@ from pytorch_lightning.utilities.auto_restart import (
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
+from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TORCH_GREATER_EQUAL_1_12
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
+
+if _TORCH_GREATER_EQUAL_1_12:
+    torch_test_assert_close = torch.testing.assert_close
+else:
+    torch_test_assert_close = torch.testing.assert_allclose
 
 
 # Credit to PyTorch Team.
@@ -1023,9 +1028,9 @@ def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_c
     pre_fail_train_batches, pre_fail_val_batches = run(should_fail=True, resume=False)
     post_fail_train_batches, post_fail_val_batches = run(should_fail=False, resume=True)
 
-    torch.testing.assert_close(total_train_batches, pre_fail_train_batches + post_fail_train_batches)
+    torch_test_assert_close(total_train_batches, pre_fail_train_batches + post_fail_train_batches)
     for k in total_val_batches:
-        torch.testing.assert_close(total_val_batches[k], pre_fail_val_batches[k] + post_fail_val_batches[k])
+        torch_test_assert_close(total_val_batches[k], pre_fail_val_batches[k] + post_fail_val_batches[k])
 
 
 class TestAutoRestartModelUnderSignal(BoringModel):
@@ -1568,6 +1573,6 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
     trainer.train_dataloader = None
     restart_batches = model.batches
 
-    torch.testing.assert_close(total_batches, failed_batches + restart_batches)
+    torch_test_assert_close(total_batches, failed_batches + restart_batches)
     assert not torch.equal(total_weight, failed_weight)
     assert torch.equal(total_weight, model.layer.weight)

@@ -23,8 +23,14 @@ import torch.nn.functional as F
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.strategies import Strategy
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
+
+if _TORCH_GREATER_EQUAL_1_12:
+    torch_test_assert_close = torch.testing.assert_close
+else:
+    torch_test_assert_close = torch.testing.assert_allclose
 
 
 class ManualOptModel(BoringModel):
