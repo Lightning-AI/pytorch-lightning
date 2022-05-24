@@ -52,7 +52,7 @@ def test_evaluate(tmpdir, trainer_kwargs):
 
     # make sure weights didn't change
     new_weights = model.layer_0.weight.clone().detach().cpu()
-    torch.testing.assert_allclose(old_weights, new_weights)
+    torch.testing.assert_close(old_weights, new_weights)
 
 
 def test_model_parallel_setup_called(tmpdir):
