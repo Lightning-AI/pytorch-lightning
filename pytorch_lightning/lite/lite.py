@@ -465,6 +465,7 @@ class LightningLite(ABC):
             _AcceleratorType.CPU,
             _AcceleratorType.GPU,
             _AcceleratorType.TPU,
+            _AcceleratorType.MPS,
         )
 
     @staticmethod
