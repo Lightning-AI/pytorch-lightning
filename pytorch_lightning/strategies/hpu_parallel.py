@@ -142,16 +142,6 @@ class HPUParallelStrategy(DDPStrategy):
         htcore.mark_step()
         return step_output
 
-    def teardown(self) -> None:
-        log.detail(f"{self.__class__.__name__}: tearing down strategy.")
-        super().teardown()
-
-        log.detail(f"{self.__class__.__name__}: moving model to CPU")
-        self.lightning_module.cpu()  # type: ignore
-        # Was set to local rank
-        os.environ.pop("ID", None)
-        os.environ.pop("HCCL_DISTRIBUTED_BACKEND", None)
-
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(

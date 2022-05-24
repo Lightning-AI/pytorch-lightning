@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, Dict, List, Optional, Union
+import os
 
 import torch
 
@@ -72,3 +73,6 @@ class TPUAccelerator(Accelerator):
             cls,
             description=f"{cls.__class__.__name__}",
         )
+
+    def teardown(self) -> None:
+        os.environ.pop("PT_XLA_DEBUG", None)

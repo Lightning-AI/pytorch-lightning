@@ -89,10 +89,3 @@ class SingleDeviceStrategy(Strategy):
             description=f"{cls.__class__.__name__}",
         )
 
-    def teardown(self) -> None:
-        super().teardown()
-        if self.root_device.type == "cuda":
-            # GPU teardown
-            self.lightning_module.cpu()
-            # clean up memory
-            torch.cuda.empty_cache()

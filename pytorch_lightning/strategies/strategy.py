@@ -442,7 +442,11 @@ class Strategy(ABC):
         It is the right place to release memory and free other resources.
         """
         optimizers_to_device(self.optimizers, torch.device("cpu"))
+
+        log.detail(f"{self.__class__.__name__}: moving model to CPU")
+        self.lightning_module.cpu()
         self.precision_plugin.teardown()
+        self.accelerator.teardown()
 
     @classmethod
     def register_strategies(cls, strategy_registry) -> None:
