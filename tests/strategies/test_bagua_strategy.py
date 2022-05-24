@@ -47,7 +47,6 @@ def test_bagua_default(tmpdir):
 
 @RunIf(min_gpus=2, bagua=True)
 def test_bagua_manual(tmpdir):
-
     class ManualBackwardModel(BoringModel):
         def __init__(self):
             super().__init__()
