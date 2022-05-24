@@ -51,7 +51,7 @@ class MPSAccelerator(Accelerator):
         parsed_devices = device_parser.parse_gpu_ids(devices, include_mps=True)
         assert parsed_devices is not None
 
-        return [torch.device("mps")] * len(parsed_devices)
+        return [torch.device("mps", i) for i in range(len(parsed_devices))]
 
     @staticmethod
     def auto_device_count() -> int:
