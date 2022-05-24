@@ -553,7 +553,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
     assert trainer.callback_metrics == expected
 
 
-@pytest.marks.parametrize(
+@pytest.mark.parametrize(
     "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
 )
 def test_metric_are_properly_reduced(tmpdir, accelerator):

@@ -301,7 +301,7 @@ def test_empty_model_size(max_depth):
     assert 0.0 == summary.model_size
 
 
-@pytest.marks.parametrize(
+@pytest.mark.parametrize(
     "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
 )
 def test_model_size_precision(tmpdir, accelerator):

@@ -1435,7 +1435,7 @@ def test_trainer_predict_standalone(tmpdir, kwargs):
     predict(tmpdir, accelerator="gpu", **kwargs)
 
 
-@pytest.marks.parametrize(
+@pytest.mark.parametrize(
     "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
 )
 def test_trainer_predict_1_gpu(tmpdir, accelerator):
@@ -1526,7 +1526,7 @@ def test_trainer_access_in_configure_optimizers(tmpdir):
     trainer.fit(model, train_data)
 
 
-@pytest.marks.parametrize(
+@pytest.mark.parametrize(
     "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
 )
 def test_setup_hook_move_to_device_correctly(tmpdir, accelerator):

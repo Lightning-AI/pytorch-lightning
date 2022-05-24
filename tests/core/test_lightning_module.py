@@ -276,7 +276,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
     trainer.fit(model)
 
 
-@pytest.marks.parametrize(
+@pytest.mark.parametrize(
     "accelerator,device",
     [
         pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),

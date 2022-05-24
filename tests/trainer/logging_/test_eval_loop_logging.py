@@ -691,7 +691,7 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
     trainer.fit(model)
 
 
-@pytest.marks.parametrize(
+@pytest.mark.parametrize(
     "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
 )
 def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir, accelerator):

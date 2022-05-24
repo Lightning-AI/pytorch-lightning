@@ -58,7 +58,7 @@ def test_get_model_ddp_cpu(tmpdir):
     trainer.fit(model)
 
 
-@pytest.marks.parametrize(
+@pytest.mark.parametrize(
     "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
 )
 def test_get_model_gpu(tmpdir, accelerator):

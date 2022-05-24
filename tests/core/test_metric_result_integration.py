@@ -482,7 +482,7 @@ def test_result_collection_reload(tmpdir):
 
 
 @RunIf(min_cuda_gpus=1)
-@pytest.marks.parametrize(
+@pytest.mark.parametrize(
     "accelerator",
     [
         pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),

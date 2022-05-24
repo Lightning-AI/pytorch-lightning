@@ -265,7 +265,7 @@ def test_full_loop(tmpdir):
     assert result[0]["test_acc"] > 0.6
 
 
-@pytest.marks.parametrize(
+@pytest.mark.parametrize(
     "accelerator,device",
     [
         pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
