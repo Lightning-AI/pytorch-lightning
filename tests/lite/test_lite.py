@@ -313,16 +313,16 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
     "accelerator, expected",
     [
         ("cpu", "cpu"),
-        pytest.param("gpu", "cuda", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("tpu", "xla", marks=RunIf(tpu=True)),
-        pytest.param("mps", "mps", marks=RunIf(mps=True)),
+        pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("tpu", "xla:0", marks=RunIf(tpu=True)),
+        pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
     ],
 )
 def test_to_device(accelerator, expected):
     """Test that the to_device method can move various objects to the device determined by the accelerator."""
     lite = EmptyLite(accelerator=accelerator, devices=1)
 
-    expected_device = torch.device(expected, 0)
+    expected_device = torch.device(expected)
 
     # module
     module = torch.nn.Linear(2, 3)
