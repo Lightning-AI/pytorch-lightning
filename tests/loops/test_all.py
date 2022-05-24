@@ -18,56 +18,66 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
+def _device_check_helper(batch_device, module_device):
+    assert batch_device.type == module_device.type
+    if batch_device.index is not None and module_device.index is not None:
+        assert batch_device.index == module_device.index
+    else:
+        # devices with index None are the same as with index 0
+        assert batch_device.index in (0, None)
+        assert module_device.index in (0, None)
+
+
 class BatchHookObserverCallback(Callback):
     def on_train_batch_start(self, trainer, pl_module, batch, *args):
-        assert batch.device == pl_module.device
+        _device_check_helper(batch.device, pl_module.device)
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, *args):
-        assert batch.device == pl_module.device
+        _device_check_helper(batch.device, pl_module.device)
 
     def on_validation_batch_start(self, trainer, pl_module, batch, *args):
-        assert batch.device == pl_module.device
+        _device_check_helper(batch.device, pl_module.device)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, *args):
-        assert batch.device == pl_module.device
+        _device_check_helper(batch.device, pl_module.device)
 
     def on_test_batch_start(self, trainer, pl_module, batch, *args):
-        assert batch.device == pl_module.device
+        _device_check_helper(batch.device, pl_module.device)
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, *args):
-        assert batch.device == pl_module.device
+        _device_check_helper(batch.device, pl_module.device)
 
     def on_predict_batch_start(self, trainer, pl_module, batch, *args):
-        assert batch.device == pl_module.device
+        _device_check_helper(batch.device, pl_module.device)
 
     def on_predict_batch_end(self, trainer, pl_module, outputs, batch, *args):
-        assert batch.device == pl_module.device
+        _device_check_helper(batch.device, pl_module.device)
 
 
 class BatchHookObserverModel(BoringModel):
     def on_train_batch_start(self, batch, *args):
-        assert batch.device == self.device
+        _device_check_helper(batch.device, self.device)
 
     def on_train_batch_end(self, outputs, batch, *args):
-        assert batch.device == self.device
+        _device_check_helper(batch.device, self.device)
 
     def on_validation_batch_start(self, batch, *args):
-        assert batch.device == self.device
+        _device_check_helper(batch.device, self.device)
 
     def on_validation_batch_end(self, outputs, batch, *args):
-        assert batch.device == self.device
+        _device_check_helper(batch.device, self.device)
 
     def on_test_batch_start(self, batch, *args):
-        assert batch.device == self.device
+        _device_check_helper(batch.device, self.device)
 
     def on_test_batch_end(self, outputs, batch, *args):
-        assert batch.device == self.device
+        _device_check_helper(batch.device, self.device)
 
     def on_predict_batch_start(self, batch, *args):
-        assert batch.device == self.device
+        _device_check_helper(batch.device, self.device)
 
     def on_predict_batch_end(self, outputs, batch, *args):
-        assert batch.device == self.device
+        _device_check_helper(batch.device, self.device)
 
 
 @pytest.mark.parametrize(
