@@ -112,17 +112,19 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "accelerator,expected_device",
+    "accelerator,expected_device_str",
     [
-        pytest.param("gpu", torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", torch.device("mps", 0), marks=RunIf(mps=True)),
+        pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
     ],
 )
 @mock.patch(
     "pytorch_lightning.strategies.Strategy.lightning_module",
     new_callable=PropertyMock,
 )
-def test_apply_batch_transfer_handler(model_getter_mock, accelerator, expected_device):
+def test_apply_batch_transfer_handler(model_getter_mock, accelerator, expected_device_str):
+    expected_device = torch.device(expected_device_str)
+    
     class CustomBatch:
         def __init__(self, data):
             self.samples = data[0]

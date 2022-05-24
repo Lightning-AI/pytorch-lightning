@@ -312,30 +312,32 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
 @pytest.mark.parametrize(
     "accelerator, expected",
     [
-        ("cpu", torch.device("cpu")),
-        pytest.param("gpu", torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("tpu", torch.device("xla", 0), marks=RunIf(tpu=True)),
-        pytest.param("mps", torch.device("mps", 0), marks=RunIf(mps=True)),
+        ("cpu", "cpu"),
+        pytest.param("gpu", "cuda", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("tpu", "xla", marks=RunIf(tpu=True)),
+        pytest.param("mps", "mps", marks=RunIf(mps=True)),
     ],
 )
 def test_to_device(accelerator, expected):
     """Test that the to_device method can move various objects to the device determined by the accelerator."""
     lite = EmptyLite(accelerator=accelerator, devices=1)
 
+    expected_device = torch.device(expected, 0)
+
     # module
     module = torch.nn.Linear(2, 3)
     module = lite.to_device(module)
-    assert all(param.device == expected for param in module.parameters())
+    assert all(param.device == expected_device for param in module.parameters())
 
     # tensor
     tensor = torch.rand(2, 2)
     tensor = lite.to_device(tensor)
-    assert tensor.device == expected
+    assert tensor.device == expected_device
 
     # collection
     collection = {"data": torch.rand(2, 2), "int": 1}
     collection = lite.to_device(collection)
-    assert collection["data"].device == expected
+    assert collection["data"].device == expected_device
 
 
 def test_rank_properties():

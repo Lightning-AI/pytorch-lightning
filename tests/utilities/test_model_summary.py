@@ -164,15 +164,16 @@ def test_empty_model_summary_shapes(max_depth):
 
 @pytest.mark.parametrize("max_depth", [-1, 1])
 @pytest.mark.parametrize(
-    "device",
+    "device_str",
     [
-        torch.device("cpu"),
-        pytest.param(torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1)),
-        pytest.param(torch.device("mps"), marks=RunIf(mps=True)),
+        "cpu",
+        pytest.param("cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps:0", marks=RunIf(mps=True)),
     ],
 )
-def test_linear_model_summary_shapes(device, max_depth):
+def test_linear_model_summary_shapes(device_str, max_depth):
     """Test that the model summary correctly computes the input- and output shapes."""
+    device = torch.device(device_str)
     model = UnorderedModel().to(device)
     model.train()
     summary = summarize(model, max_depth=max_depth)
