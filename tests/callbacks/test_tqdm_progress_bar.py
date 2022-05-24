@@ -28,8 +28,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBarBase, TQDMProgressBar
 from pytorch_lightning.callbacks.progress.tqdm_progress import Tqdm
 from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_12
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
@@ -37,7 +37,6 @@ if _TORCH_GREATER_EQUAL_1_12:
     torch_test_assert_close = torch.testing.assert_close
 else:
     torch_test_assert_close = torch.testing.assert_allclose
-
 
 
 class MockTqdm(Tqdm):

@@ -14,9 +14,9 @@
 """Tests to ensure that the behaviours related to multiple optimizers works."""
 import pytest
 import torch
+from pytorhc_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
 import pytorch_lightning as pl
-from pytorhc_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests.helpers.boring_model import BoringModel
 
 if _TORCH_GREATER_EQUAL_1_12:

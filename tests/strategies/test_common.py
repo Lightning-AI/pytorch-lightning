@@ -17,8 +17,8 @@ import torch
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.strategies import DDPStrategy
-from pytorch_lightning.utilities.seed import seed_everything
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from pytorch_lightning.utilities.seed import seed_everything
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.runif import RunIf

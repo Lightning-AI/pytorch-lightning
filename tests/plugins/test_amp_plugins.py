@@ -21,9 +21,9 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel
-from tests.helpers.runif import RunIf   
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from tests.helpers import BoringModel
+from tests.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
     torch_test_assert_close = torch.testing.assert_close
