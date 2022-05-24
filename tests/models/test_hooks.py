@@ -115,7 +115,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
     "accelerator,expected_device",
     [
         pytest.param("gpu", torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", torch.device("mps"), marks=RunIf(mps=True)),
+        pytest.param("mps", torch.device("mps", 0), marks=RunIf(mps=True)),
     ],
 )
 @mock.patch(

@@ -83,7 +83,7 @@ def test_torchscript_input_output_trace():
     [
         torch.device("cpu"),
         pytest.param(torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1)),
-        pytest.param(torch.device("mps"), marks=RunIf(mps=True)),
+        pytest.param(torch.device("mps", 0), marks=RunIf(mps=True)),
     ],
 )
 def test_torchscript_device(device):
