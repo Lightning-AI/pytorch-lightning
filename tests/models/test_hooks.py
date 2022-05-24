@@ -111,13 +111,15 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
     assert overridden_model.len_outputs == overridden_model.num_train_batches
 
 
-@RunIf(min_cuda_gpus=1)
+@pytest.mark.parametrize("accelerator,expected_device",[
+    pytest.param('gpu', torch.device('cuda', 0), marks=RunIf(min_cuda_gpus=1)),
+    pytest.param('mps', torch.device('mps'), marks=RunIf(mps=True))
+])
 @mock.patch(
     "pytorch_lightning.strategies.Strategy.lightning_module",
     new_callable=PropertyMock,
 )
-def test_apply_batch_transfer_handler(model_getter_mock):
-    expected_device = torch.device("cuda", 0)
+def test_apply_batch_transfer_handler(model_getter_mock, accelerator, expected_device):
 
     class CustomBatch:
         def __init__(self, data):
@@ -156,7 +158,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
     model = CurrentTestModel()
     batch = CustomBatch((torch.zeros(5, 32), torch.ones(5, 1, dtype=torch.long)))
 
-    trainer = Trainer(accelerator="gpu", devices=1)
+    trainer = Trainer(accelerator=accelerator, devices=1)
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
 
     model_getter_mock.return_value = model

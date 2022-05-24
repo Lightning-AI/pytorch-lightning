@@ -38,12 +38,14 @@ def test_model_saves_with_input_sample(tmpdir):
     assert os.path.isfile(file_path)
     assert os.path.getsize(file_path) > 4e2
 
-
-@RunIf(min_cuda_gpus=1)
-def test_model_saves_on_gpu(tmpdir):
+@pytest.mark.parametrize('accelerator', [
+    pytest.param('mps', marks=RunIf(mps=True)),
+    pytest.param("gpu", marks=RunIf(min_cuda_gpus=True))
+])
+def test_model_saves_on_gpu(tmpdir, accelerator):
     """Test that model saves on gpu."""
     model = BoringModel()
-    trainer = Trainer(accelerator="gpu", devices=1, fast_dev_run=True)
+    trainer = Trainer(accelerator=accelerator, devices=1, fast_dev_run=True)
     trainer.fit(model)
 
     file_path = os.path.join(tmpdir, "model.onnx")
