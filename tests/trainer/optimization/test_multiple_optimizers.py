@@ -52,7 +52,7 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
     for k, v in model.actual.items():
         assert torch.equal(trainer.callback_metrics[f"loss_{k}_step"], v[-1])
         # test loss is properly reduced
-        torch.testing.assert_allclose(trainer.callback_metrics[f"loss_{k}_epoch"], torch.tensor(v).mean())
+        torch.testing.assert_close(trainer.callback_metrics[f"loss_{k}_epoch"], torch.tensor(v).mean())
 
 
 def test_multiple_optimizers(tmpdir):
