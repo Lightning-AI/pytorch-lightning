@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from functools import lru_cache
 from typing import Any, Dict, Iterator, List, Tuple
 
 import torch
@@ -8,6 +9,7 @@ from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.utilities.apply_func import move_data_to_device
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
@@ -35,7 +37,12 @@ class PredictionEpochLoop(Loop):
 
     @property
     def should_store_predictions(self) -> bool:
-        """Whether the predictions should be stored for later usage (e.g. aggregation or returning)"""
+        """Whether the predictions should be stored for later usage (e.g. aggregation or returning)
+
+        .. deprecated:: v.1.5
+            :meth:`should_store_predictions` has been deprecated in v1.5 and will be removed in v.1.7.
+            This method will be taken the place by :meth:`_should_track_batch_outputs_for_epoch_end`.
+        """
         any_pred = any(cb.interval.on_epoch for cb in self.trainer.prediction_writer_callbacks)
         return self.return_predictions or any_pred
 
@@ -144,6 +151,9 @@ class PredictionEpochLoop(Loop):
         self.batch_progress.increment_completed()
 
         if self.should_store_predictions:
+            #
+            # This condition will be taken the place by below.
+            # if self._should_track_batch_outputs_for_epoch_end() and predictions is not None:
             self.predictions.append(move_data_to_device(predictions, torch.device("cpu")))
 
     def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Dict[str, Any]:
@@ -176,3 +186,9 @@ class PredictionEpochLoop(Loop):
 
         warning_cache.warn("Lightning couldn't infer the indices fetched for your dataloader.")
         return []
+
+    @lru_cache(1)
+    def _should_track_batch_outputs_for_epoch_end(self) -> bool:
+        """Whether the batch outputs should be stored for later usage."""
+        model = self.trainer.lightning_module
+        return is_overridden("predict_epoch_end", model)

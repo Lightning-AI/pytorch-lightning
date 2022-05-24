@@ -1147,6 +1147,56 @@ class LightningModule(
         """
         return self(batch)
 
+    def predict_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
+        """Called at the end of a predict epoch with the output of all predict steps.
+
+        .. code-block:: python
+
+            # the pseudocode for these calls
+            predict_outs = []
+            for predict_batch in predict_data:
+                out = predict_step(predict_batch)
+                predict_outs.append(out)
+            predict_epoch_end(predict_outs)
+
+        Args:
+            outputs: List of outputs you defined in :meth:`predict_step_end`, or if there
+                are multiple dataloaders, a list containing a list of outputs for each dataloader
+
+        Return:
+            None
+
+        Note:
+            If you didn't define a :meth:`predict_step`, this won't be called.
+
+        Examples:
+            With a single dataloader:
+
+            .. code-block:: python
+
+                def predict_epoch_end(self, outputs):
+                    # do something with the outputs of all predict batches
+                    all_predict_preds = predict_step_outputs.predictions
+
+                    some_result = calc_all_results(all_predict_preds)
+                    self.log(some_result)
+
+            With multiple dataloaders, `outputs` will be a list of lists. The outer list contains
+            one entry per dataloader, while the inner list contains the individual outputs of
+            each predict step for that dataloader.
+
+            .. code-block:: python
+
+                def predict_epoch_end(self, outputs):
+                    final_value = 0
+                    for dataloader_outputs in outputs:
+                        for predict_step_out in dataloader_outputs:
+                            # do something
+                            final_value += predict_step_out
+
+                    self.log("final_metric", final_value)
+        """
+
     def configure_callbacks(self) -> Union[Sequence[Callback], Callback]:
         """Configure model-specific callbacks. When the model gets attached, e.g., when ``.fit()`` or ``.test()``
         gets called, the list or a callback returned here will be merged with the list of callbacks passed to the

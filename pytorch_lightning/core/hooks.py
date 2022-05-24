@@ -232,7 +232,11 @@ class ModelHooks:
         """Called at the beginning of predicting."""
 
     def on_predict_epoch_end(self, results: List[Any]) -> None:
-        """Called at the end of predicting."""
+        """Called at the end of predicting.
+
+        .. deprecated:: v.1.5
+            :param:`results` has been deprecated in v1.5 and will be removed in v.1.7.
+        """
 
     def on_before_zero_grad(self, optimizer: Optimizer) -> None:
         """Called after ``training_step()`` and before ``optimizer.zero_grad()``.
