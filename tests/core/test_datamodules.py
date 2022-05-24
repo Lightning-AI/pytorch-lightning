@@ -265,13 +265,16 @@ def test_full_loop(tmpdir):
     assert result[0]["test_acc"] > 0.6
 
 
-@RunIf(min_cuda_gpus=1)
+@pytest.marks.parametrize("accelerator,device", [
+    pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+    pytest.param("mps", "mps", marks=RunIf(mps=True)),
+])
 @mock.patch(
     "pytorch_lightning.strategies.Strategy.lightning_module",
     new_callable=PropertyMock,
 )
-def test_dm_apply_batch_transfer_handler(get_module_mock):
-    expected_device = torch.device("cuda", 0)
+def test_dm_apply_batch_transfer_handler(get_module_mock, accelerator, device):
+    expected_device = torch.device(device)
 
     class CustomBatch:
         def __init__(self, data):
@@ -312,7 +315,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
 
     batch = CustomBatch((torch.zeros(5, 32), torch.ones(5, 1, dtype=torch.long)))
 
-    trainer = Trainer(accelerator="gpu", devices=1)
+    trainer = Trainer(accelerator=accelerator, devices=1)
     model.trainer = trainer
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     get_module_mock.return_value = model

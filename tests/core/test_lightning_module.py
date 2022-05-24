@@ -275,12 +275,14 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
 
     trainer.fit(model)
 
-
-@RunIf(min_cuda_gpus=1)
-def test_device_placement(tmpdir):
+@pytest.marks.parametrize("accelerator,device", [
+    pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+    pytest.param("mps", "mps", marks=RunIf(mps=True)),
+])
+def test_device_placement(tmpdir, accelerator, device):
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="gpu", devices=1)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator=accelerator, devices=1)
     trainer.fit(model)
 
     def assert_device(device: torch.device) -> None:
@@ -289,8 +291,8 @@ def test_device_placement(tmpdir):
             assert p.device == device
 
     assert_device(torch.device("cpu"))
-    model.to(torch.device("cuda:0"))
-    assert_device(torch.device("cuda:0"))
+    model.to(torch.device(device))
+    assert_device(torch.device(device))
     trainer.test(model)
     assert_device(torch.device("cpu"))
     trainer.predict(model, dataloaders=model.train_dataloader())

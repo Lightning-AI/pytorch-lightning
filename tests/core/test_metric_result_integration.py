@@ -298,8 +298,8 @@ def test_result_collection_restoration(tmpdir):
         batch_idx = None
 
 
-@pytest.mark.parametrize("device", ("cpu", pytest.param("cuda", marks=RunIf(min_cuda_gpus=1))))
-def test_lightning_module_logging_result_collection(tmpdir, device):
+@pytest.mark.parametrize("accelerator,device", (("cpu", "cpu"), pytest.param("gpu", "cuda", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", "mps", marks=RunIf(mps=True))))
+def test_lightning_module_logging_result_collection(tmpdir, accelerator, device):
     class LoggingModel(BoringModel):
         def __init__(self):
             super().__init__()
@@ -348,7 +348,7 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
         limit_train_batches=2,
         limit_val_batches=2,
         callbacks=[ckpt],
-        accelerator="gpu" if device == "cuda" else "cpu",
+        accelerator=accelerator,
         devices=1,
     )
     trainer.fit(model)
@@ -475,9 +475,13 @@ def test_result_collection_reload(tmpdir):
 
 
 @RunIf(min_cuda_gpus=1)
+@pytest.marks.parametrize("accelerator", [
+    pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
+    pytest.param("mps", marks=RunIf(mps=True)),
+])
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-def test_result_collection_reload_1_gpu_ddp(tmpdir):
-    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator="gpu")
+def test_result_collection_reload_1_gpu_ddp(tmpdir, accelerator):
+    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator=accelerator)
 
 
 @RunIf(min_cuda_gpus=2, standalone=True)
