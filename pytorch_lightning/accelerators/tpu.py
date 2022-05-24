@@ -73,6 +73,4 @@ class TPUAccelerator(Accelerator):
             cls,
             description=f"{cls.__class__.__name__}",
         )
-
-    def teardown(self) -> None:
-        os.environ.pop("PT_XLA_DEBUG", None)
+        
