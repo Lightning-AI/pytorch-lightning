@@ -5,7 +5,7 @@
 
     import os
     from pytorch_lightning.trainer.trainer import Trainer
-    from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.core.module import LightningModule
     from pytorch_lightning.utilities.seed import seed_everything
 
 .. _trainer:
@@ -508,7 +508,7 @@ Example::
 
 
 Model-specific callbacks can also be added inside the ``LightningModule`` through
-:meth:`~pytorch_lightning.core.lightning.LightningModule.configure_callbacks`.
+:meth:`~pytorch_lightning.core.module.LightningModule.configure_callbacks`.
 Callbacks returned in this hook will extend the list initially given to the ``Trainer`` argument, and replace
 the trainer callbacks should there be two or more of the same type.
 :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks always run last.

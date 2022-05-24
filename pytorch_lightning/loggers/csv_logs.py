@@ -175,7 +175,7 @@ class CSVLogger(Logger):
         r"""
 
         Actual ExperimentWriter object. To use ExperimentWriter features in your
-        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
+        :class:`~pytorch_lightning.core.module.LightningModule` do the following.
 
         Example::
 
