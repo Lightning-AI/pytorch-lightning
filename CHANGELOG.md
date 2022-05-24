@@ -229,8 +229,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed issue where the CLI could not pass a `Profiler` to the `Trainer` ([#13084](https://github.com/PyTorchLightning/pytorch-lightning/pull/13084))
 
 
--
+- Fixed manual backward not working with Bagua Strategy ([[#12534](https://github.com/PyTorchLightning/pytorch-lightning/issues/12534)])
 
+
+-
 
 ## [1.6.3] - 2022-05-03
 

@@ -54,6 +54,26 @@ class LightningBaguaModule(_LightningModuleWrapperBase):
         # Bagua use `bagua_module_name` to distinguish different modules
         self._bagua_module_name = f"{pl_module.__class__.__name__}{id(pl_module)}"
 
+    def forward(self, *inputs: Any, **kwargs: Any) -> Any:
+        pl_module = unwrap_lightning_module(self.module)
+        trainer = pl_module.trainer
+
+        if trainer is not None:
+            if trainer.training:
+                output = self.module.training_step(*inputs, **kwargs)
+                # In manual_optimization, we need to prevent DDP reducer as
+                # it is done manually in `LightningModule.manual_backward`
+                # `require_backward_grad_sync` will be reset in the
+                # ddp_strategy `post_training_step` hook
+                if not pl_module.automatic_optimization:
+                    # Using bagua strategy, the model is redefined in model.inner 
+                    # and cannot be accessed directly. We need this to make manual
+                    # backward work.
+                    trainer.model.inner.require_backward_grad_sync = False  # type: ignore[assignment]
+                return output
+            else:
+                return super().forward(*inputs, **kwargs)
+        return self.module(*inputs, **kwargs)
 
 class BaguaStrategy(DDPStrategy):
     strategy_name = "bagua"
@@ -210,6 +230,13 @@ class BaguaStrategy(DDPStrategy):
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return broadcast_object(obj, src)
+
+    def post_training_step(self):
+        # Using bagua strategy, the model is redefined in model.inner 
+        # and cannot be accessed directly. We need to redefine the 
+        # post_training_step function to make manual backward work.
+        if not self.lightning_module.automatic_optimization:
+            self.model.inner.require_backward_grad_sync = True
 
     def reduce(
         self, tensor: torch.Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
