@@ -415,7 +415,7 @@ def test_tensor_to_float_conversion(tmpdir):
     )
     trainer.fit(TestModel())
 
-    torch.testing.assert_allclose(trainer.progress_bar_metrics["a"], 0.123)
+    torch.testing.assert_close(trainer.progress_bar_metrics["a"], 0.123)
     assert trainer.progress_bar_metrics["b"] == {"b1": 1.0}
     assert trainer.progress_bar_metrics["c"] == {"c1": 2.0}
     pbar = trainer.progress_bar_callback.main_progress_bar

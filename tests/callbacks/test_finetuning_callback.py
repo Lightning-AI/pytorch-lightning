@@ -365,9 +365,14 @@ def test_callbacks_restore(tmpdir):
         "weight_decay": 0,
         "nesterov": False,
         "params": ["layer.3.weight", "layer.3.bias"],
+        "foreach": None,
     }
     if _TORCH_GREATER_EQUAL_1_11:
         expected["maximize"] = False
+    metadata = callback._internal_optimizer_metadata[0][0]
+    breakpoint()
+    print(metadata)
+    print(expected)
     assert callback._internal_optimizer_metadata[0][0] == expected
 
     # new param group
@@ -378,6 +383,7 @@ def test_callbacks_restore(tmpdir):
         "weight_decay": 0,
         "nesterov": False,
         "params": ["layer.0.weight", "layer.0.bias"],
+        "foreach": None,
     }
     if _TORCH_GREATER_EQUAL_1_11:
         expected["maximize"] = False
