@@ -82,5 +82,5 @@ class SingleTPUStrategy(SingleDeviceStrategy):
         )
 
     def teardown(self) -> None:
-        os.environ.pop("PT_XLA_DEBUG", None)
         super().teardown()
+        os.environ.pop("PT_XLA_DEBUG", None)
