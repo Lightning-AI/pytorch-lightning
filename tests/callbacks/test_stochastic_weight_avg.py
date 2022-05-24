@@ -160,10 +160,10 @@ def test_swa_callback_ddp_spawn(tmpdir):
 def test_swa_callback_ddp_cpu(tmpdir):
     train_with_swa(tmpdir, strategy="ddp_spawn", accelerator="cpu", devices=2)
 
-@pytest.mark.parametrize('accelerator', [
-    pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
-    pytest.param("mps", marks=RunIf(mps=True))
-])
+
+@pytest.mark.parametrize(
+    "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
+)
 def test_swa_callback_1_gpu(tmpdir, accelerator):
     train_with_swa(tmpdir, accelerator=accelerator, devices=1)
 
