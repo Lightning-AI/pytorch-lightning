@@ -199,6 +199,7 @@ class RecommenderModel(BoringModel):
 )
 def test_trainer_num_prefetch_batches(tmpdir, accelerator):
 
+
     model = RecommenderModel()
 
     class AssertFetcher(Callback):

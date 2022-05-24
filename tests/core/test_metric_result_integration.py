@@ -307,6 +307,7 @@ def test_result_collection_restoration(tmpdir):
     ),
 )
 def test_lightning_module_logging_result_collection(tmpdir, accelerator, device):
+
     class LoggingModel(BoringModel):
         def __init__(self):
             super().__init__()

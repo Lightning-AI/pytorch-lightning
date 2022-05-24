@@ -396,9 +396,10 @@ class LoggingSyncDistModel(BoringModel):
 
 
 @pytest.mark.parametrize(
-    "devices, accelerator", [(1, "cpu"), (2, "cpu"), pytest.param(2, "gpu", marks=RunIf(min_cuda_gpus=2))]
+    "devices, accelerator", [(1, "cpu"), (2, "cpu"), pytest.param(2, "gpu", marks=RunIf(min_cuda_gpus=2)),]
 )
 def test_logging_sync_dist_true(tmpdir, devices, accelerator):
+
     """Tests to ensure that the sync_dist flag works (should just return the original value)"""
     fake_result = 1
     model = LoggingSyncDistModel(fake_result)
@@ -555,8 +556,8 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
     assert trainer.callback_metrics == expected
 
 
-# mps not yet supported by torchmetrics
-@pytest.mark.parametrize("accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1))])
+# mps not yet supported by torchmetrics, see https://github.com/PyTorchLightning/metrics/issues/1044
+@pytest.mark.parametrize("accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),])
 def test_metric_are_properly_reduced(tmpdir, accelerator):
     class TestingModel(BoringModel):
         def __init__(self, *args, **kwargs) -> None:

@@ -275,7 +275,6 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
 
     trainer.fit(model)
 
-
 @pytest.mark.parametrize(
     "accelerator,device",
     [
