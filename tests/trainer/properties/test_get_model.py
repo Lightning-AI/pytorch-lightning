@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+
 from pytorch_lightning import Trainer
 from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf

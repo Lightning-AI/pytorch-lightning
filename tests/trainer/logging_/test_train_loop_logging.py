@@ -556,7 +556,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
 @pytest.marks.parametrize(
     "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
 )
-def test_metric_are_properly_reduced(tmpdir):
+def test_metric_are_properly_reduced(tmpdir, accelerator):
     class TestingModel(BoringModel):
         def __init__(self, *args, **kwargs) -> None:
             super().__init__()
