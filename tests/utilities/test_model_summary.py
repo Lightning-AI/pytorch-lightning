@@ -163,7 +163,14 @@ def test_empty_model_summary_shapes(max_depth):
 
 
 @pytest.mark.parametrize("max_depth", [-1, 1])
-@pytest.mark.parametrize("device", [torch.device("cpu"), pytest.param(torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1)), pytest.param(torch.device("mps"), marks=RunIf(mps=True))])
+@pytest.mark.parametrize(
+    "device",
+    [
+        torch.device("cpu"),
+        pytest.param(torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(torch.device("mps"), marks=RunIf(mps=True)),
+    ],
+)
 def test_linear_model_summary_shapes(device, max_depth):
     """Test that the model summary correctly computes the input- and output shapes."""
     model = UnorderedModel().to(device)
@@ -294,16 +301,17 @@ def test_empty_model_size(max_depth):
     assert 0.0 == summary.model_size
 
 
-@pytest.marks.parametrize("accelerator", [
-    pytest.param('gpu', marks=RunIf(min_cuda_gpus=1)),
-    pytest.param("mps", marks=RunIf(mps=True))
-])
+@pytest.marks.parametrize(
+    "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
+)
 def test_model_size_precision(tmpdir, accelerator):
     """Test model size for half and full precision."""
     model = PreCalculatedModel()
 
     # fit model
-    trainer = Trainer(default_root_dir=tmpdir, accelerator=accelerator, devices=1, max_steps=1, max_epochs=1, precision=32)
+    trainer = Trainer(
+        default_root_dir=tmpdir, accelerator=accelerator, devices=1, max_steps=1, max_epochs=1, precision=32
+    )
     trainer.fit(model)
     summary = summarize(model)
     assert model.pre_calculated_model_size == summary.model_size

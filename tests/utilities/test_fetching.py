@@ -194,10 +194,9 @@ class RecommenderModel(BoringModel):
 
 
 @pytest.mark.flaky(reruns=3)
-@pytest.marks.parametrize("accelerator", [
-    pytest.param('gpu', marks=RunIf(min_cuda_gpus=1)),
-    pytest.param("mps", marks=RunIf(mps=True))
-])
+@pytest.marks.parametrize(
+    "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
+)
 def test_trainer_num_prefetch_batches(tmpdir, accelerator):
 
     model = RecommenderModel()
