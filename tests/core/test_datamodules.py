@@ -269,7 +269,7 @@ def test_full_loop(tmpdir):
     "accelerator,device",
     [
         pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", "mps", marks=RunIf(mps=True)),
+        pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
     ],
 )
 @mock.patch(

@@ -481,12 +481,10 @@ def test_result_collection_reload(tmpdir):
     result_collection_reload(default_root_dir=tmpdir)
 
 
-@RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize(
     "accelerator",
     [
         pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("mps", marks=RunIf(mps=True)),
     ],
 )
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
