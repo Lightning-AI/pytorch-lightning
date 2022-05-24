@@ -111,7 +111,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
     assert overridden_model.len_outputs == overridden_model.num_train_batches
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 @mock.patch(
     "pytorch_lightning.strategies.Strategy.lightning_module",
     new_callable=PropertyMock,
@@ -170,7 +170,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
     assert torch.allclose(batch_gpu.targets.cpu(), torch.ones(5, 1, dtype=torch.long) * 2)
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_transfer_batch_hook_ddp(tmpdir):
     """Test custom data are properly moved to the right device using ddp."""
 
@@ -439,13 +439,16 @@ class HookedModel(BoringModel):
     [
         {},
         # these precision plugins modify the optimization flow, so testing them explicitly
-        pytest.param(dict(accelerator="gpu", devices=1, precision=16, amp_backend="native"), marks=RunIf(min_gpus=1)),
         pytest.param(
-            dict(accelerator="gpu", devices=1, precision=16, amp_backend="apex"), marks=RunIf(min_gpus=1, amp_apex=True)
+            dict(accelerator="gpu", devices=1, precision=16, amp_backend="native"), marks=RunIf(min_cuda_gpus=1)
+        ),
+        pytest.param(
+            dict(accelerator="gpu", devices=1, precision=16, amp_backend="apex"),
+            marks=RunIf(min_cuda_gpus=1, amp_apex=True),
         ),
         pytest.param(
             dict(accelerator="gpu", devices=1, precision=16, strategy="deepspeed"),
-            marks=RunIf(min_gpus=1, standalone=True, deepspeed=True),
+            marks=RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True),
         ),
     ],
 )

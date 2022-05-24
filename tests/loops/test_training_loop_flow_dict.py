@@ -16,7 +16,7 @@
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.module import LightningModule
 from tests.helpers.deterministic_model import DeterministicModel
 
 
