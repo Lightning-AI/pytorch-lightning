@@ -198,8 +198,11 @@ def test_multiple_optimizers_manual_log(tmpdir):
     assert set(trainer.logged_metrics) == {"a_step", "a_epoch"}
 
 
-@RunIf(min_cuda_gpus=1)
-def test_multiple_optimizers_manual_native_amp(tmpdir):
+@pytest.marks.parametrize("accelerator", [
+    pytest.param('gpu', marks=RunIf(min_cuda_gpus=1)),
+    pytest.param("mps", marks=RunIf(mps=True))
+])
+def test_multiple_optimizers_manual_native_amp(tmpdir, accelerator):
     model = ManualOptModel()
     model.val_dataloader = None
 
@@ -212,7 +215,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
         log_every_n_steps=1,
         enable_model_summary=False,
         precision=16,
-        accelerator="gpu",
+        accelerator=accelerator,
         devices=1,
     )
 

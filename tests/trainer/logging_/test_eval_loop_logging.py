@@ -690,9 +690,11 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
     )
     trainer.fit(model)
 
-
-@RunIf(min_cuda_gpus=1)
-def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir):
+@pytest.marks.parametrize("accelerator", [
+    pytest.param('gpu', marks=RunIf(min_cuda_gpus=1)),
+    pytest.param("mps", marks=RunIf(mps=True))
+])
+def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir, accelerator):
     class TestModel(BoringModel):
         def validation_step(self, *args):
             x = torch.tensor(2.0, requires_grad=True, device=self.device)
@@ -711,7 +713,7 @@ def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_val_batches=2, move_metrics_to_cpu=True, accelerator="gpu", devices=1
+        default_root_dir=tmpdir, limit_val_batches=2, move_metrics_to_cpu=True, accelerator=accelerator, devices=1
     )
     trainer.validate(model, verbose=False)
 

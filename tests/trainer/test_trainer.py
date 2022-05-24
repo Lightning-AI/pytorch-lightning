@@ -1435,9 +1435,12 @@ def test_trainer_predict_standalone(tmpdir, kwargs):
     predict(tmpdir, accelerator="gpu", **kwargs)
 
 
-@RunIf(min_cuda_gpus=1)
-def test_trainer_predict_1_gpu(tmpdir):
-    predict(tmpdir, accelerator="gpu", devices=1)
+@pytest.marks.parametrize("accelerator", [
+    pytest.param('gpu', marks=RunIf(min_cuda_gpus=1)),
+    pytest.param("mps", marks=RunIf(mps=True))
+])
+def test_trainer_predict_1_gpu(tmpdir, accelerator):
+    predict(tmpdir, accelerator=accelerator, devices=1)
 
 
 @RunIf(skip_windows=True)
@@ -1524,8 +1527,11 @@ def test_trainer_access_in_configure_optimizers(tmpdir):
     trainer.fit(model, train_data)
 
 
-@RunIf(min_cuda_gpus=1)
-def test_setup_hook_move_to_device_correctly(tmpdir):
+@pytest.marks.parametrize("accelerator", [
+    pytest.param('gpu', marks=RunIf(min_cuda_gpus=1)),
+    pytest.param("mps", marks=RunIf(mps=True))
+])
+def test_setup_hook_move_to_device_correctly(tmpdir, accelerator):
     """Verify that if a user defines a layer in the setup hook function, this is moved to the correct device."""
 
     class TestModel(BoringModel):
@@ -1544,7 +1550,7 @@ def test_setup_hook_move_to_device_correctly(tmpdir):
 
     # model
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="gpu", devices=1)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator=accelerator, devices=1)
     trainer.fit(model, train_data)
 
 
