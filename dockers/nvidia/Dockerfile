@@ -42,9 +42,9 @@ RUN \
 
 # Installations \
     pip install -q fire && \
-    pip install "Pillow>=8.2, !=8.3.0" "cryptography>=3.4" "py>=1.10" --no-cache-dir --upgrade-strategy only-if-needed && \
-    pip install ./pytorch-lightning["extra","loggers","strategies"] --no-cache-dir --upgrade-strategy only-if-needed && \
-    pip install -r ./pytorch-lightning/requirements/examples.txt --no-cache-dir --upgrade-strategy only-if-needed && \
+    pip install "Pillow>=8.2, !=8.3.0" "cryptography>=3.4" "py>=1.10" --no-cache-dir && \
+    pip install ./pytorch-lightning["extra","loggers","strategies"] --no-cache-dir && \
+    pip install -r ./pytorch-lightning/requirements/examples.txt --no-cache-dir && \
     rm -rf pytorch-lightning && \
     pip list
 
