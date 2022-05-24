@@ -73,16 +73,37 @@ def test_lite_module_attribute_lookup():
     "precision, input_type, expected_type",
     [
         pytest.param(32, torch.float16, torch.float32, "gpu", torch.device("cuda:0"), marks=RunIf(min_cuda_gpus=1)),
-        pytest.param(32, torch.float32, torch.float32,"gpu", torch.device("cuda:0"), marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(32, torch.float32, torch.float32, "gpu", torch.device("cuda:0"), marks=RunIf(min_cuda_gpus=1)),
         pytest.param(32, torch.float64, torch.float32, "gpu", torch.device("cuda:0"), marks=RunIf(min_cuda_gpus=1)),
         pytest.param(32, torch.int, torch.int, "gpu", torch.device("cuda:0"), marks=RunIf(min_cuda_gpus=1)),
         pytest.param(16, torch.float32, torch.float16, "gpu", torch.device("cuda:0"), marks=RunIf(min_cuda_gpus=1)),
         pytest.param(16, torch.float64, torch.float16, "gpu", torch.device("cuda:0"), marks=RunIf(min_cuda_gpus=1)),
         pytest.param(16, torch.long, torch.long, "gpu", torch.device("cuda:0"), marks=RunIf(min_cuda_gpus=1)),
-        pytest.param("bf16", torch.float32, torch.bfloat16, "gpu", torch.device("cuda:0"), marks=RunIf(min_cuda_gpus=1, min_torch="1.10", bf16_cuda=True)),
-        pytest.param("bf16", torch.float64, torch.bfloat16, "gpu", torch.device("cuda:0"), marks=RunIf(min_cuda_gpus=1, min_torch="1.10", bf16_cuda=True)),
-        pytest.param("bf16", torch.bool, torch.bool, "gpu", torch.device("cuda:0"), marks=RunIf(min_cuda_gpus=1, min_torch="1.10", bf16_cuda=True)),
-        pytest.param(32, torch.float32, torch.float32, "mps", torch.device("mps"), marks=RunIf(mps=True))
+        pytest.param(
+            "bf16",
+            torch.float32,
+            torch.bfloat16,
+            "gpu",
+            torch.device("cuda:0"),
+            marks=RunIf(min_cuda_gpus=1, min_torch="1.10", bf16_cuda=True),
+        ),
+        pytest.param(
+            "bf16",
+            torch.float64,
+            torch.bfloat16,
+            "gpu",
+            torch.device("cuda:0"),
+            marks=RunIf(min_cuda_gpus=1, min_torch="1.10", bf16_cuda=True),
+        ),
+        pytest.param(
+            "bf16",
+            torch.bool,
+            torch.bool,
+            "gpu",
+            torch.device("cuda:0"),
+            marks=RunIf(min_cuda_gpus=1, min_torch="1.10", bf16_cuda=True),
+        ),
+        pytest.param(32, torch.float32, torch.float32, "mps", torch.device("mps"), marks=RunIf(mps=True)),
     ],
 )
 def test_lite_module_forward_conversion(precision, input_type, expected_type, accelerator, device):
@@ -101,7 +122,12 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type, ac
 
 
 @pytest.mark.parametrize(
-    "device", [torch.device("cpu"), pytest.param(torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1)), pytest.param(torch.device("mps"), marks=RunIf(mps=True))]
+    "device",
+    [
+        torch.device("cpu"),
+        pytest.param(torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(torch.device("mps"), marks=RunIf(mps=True)),
+    ],
 )
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float16])
 def test_lite_module_device_dtype_propagation(device, dtype):
