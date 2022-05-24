@@ -315,7 +315,7 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
         ("cpu", torch.device("cpu")),
         pytest.param("gpu", torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1)),
         pytest.param("tpu", torch.device("xla", 0), marks=RunIf(tpu=True)),
-        pytest.param("mps", torch.device("mps"), marks=RunIf(mps=True)),
+        pytest.param("mps", torch.device("mps", 0), marks=RunIf(mps=True)),
     ],
 )
 def test_to_device(accelerator, expected):
@@ -411,7 +411,7 @@ def test_deepspeed_multiple_models():
                 optimizer.step()
 
             for mw_b, mw_a in zip(state_dict.values(), model.state_dict().values()):
-                assert not torch.equal(mw_b, mw_a)
+                assert not torch.allclose(mw_b, mw_a)
 
             self.seed_everything(42)
             model_1 = BoringModel()
@@ -422,7 +422,7 @@ def test_deepspeed_multiple_models():
             optimizer_2 = torch.optim.SGD(model_2.parameters(), lr=0.0001)
 
             for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
-                assert torch.equal(mw_1, mw_2)
+                assert torch.allclose(mw_1, mw_2)
 
             model_1, optimizer_1 = self.setup(model_1, optimizer_1)
             model_2, optimizer_2 = self.setup(model_2, optimizer_2)
@@ -439,7 +439,7 @@ def test_deepspeed_multiple_models():
                 optimizer_1.step()
 
             for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
-                assert not torch.equal(mw_1, mw_2)
+                assert not torch.allclose(mw_1, mw_2)
 
             for data in data_list:
                 optimizer_2.zero_grad()
@@ -449,11 +449,11 @@ def test_deepspeed_multiple_models():
                 optimizer_2.step()
 
             for mw_1, mw_2 in zip(model_1.state_dict().values(), model_2.state_dict().values()):
-                assert torch.equal(mw_1, mw_2)
+                assert torch.allclose(mw_1, mw_2)
 
             # Verify collectives works as expected
             ranks = self.all_gather(torch.tensor([self.local_rank]).to(self.device))
-            assert torch.equal(ranks.cpu(), torch.tensor([[0], [1]]))
+            assert torch.allclose(ranks.cpu(), torch.tensor([[0], [1]]))
             assert self.broadcast(True)
             assert self.is_global_zero == (self.local_rank == 0)
 

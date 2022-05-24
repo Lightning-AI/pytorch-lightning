@@ -70,7 +70,7 @@ def test_lite_module_attribute_lookup():
 
 
 @pytest.mark.parametrize(
-    "precision, input_type, expected_type",
+    "precision, input_type, expected_type, accelerator, device",
     [
         pytest.param(32, torch.float16, torch.float32, "gpu", torch.device("cuda:0"), marks=RunIf(min_cuda_gpus=1)),
         pytest.param(32, torch.float32, torch.float32, "gpu", torch.device("cuda:0"), marks=RunIf(min_cuda_gpus=1)),
