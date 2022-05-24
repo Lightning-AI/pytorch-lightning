@@ -68,8 +68,11 @@ class BatchHookObserverModel(BoringModel):
         assert batch.device == self.device
 
 
-@RunIf(min_cuda_gpus=1)
-def test_callback_batch_on_device(tmpdir):
+@pytest.mark.parametrize("accelerator",[
+    pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
+    pytest.param("mps", marks=RunIf(mps=True))
+])
+def test_callback_batch_on_device(tmpdir, accelerator):
     """Test that the batch object sent to the on_*_batch_start/end hooks is on the right device."""
 
     batch_callback = BatchHookObserverCallback()
@@ -82,7 +85,7 @@ def test_callback_batch_on_device(tmpdir):
         limit_val_batches=1,
         limit_test_batches=1,
         limit_predict_batches=1,
-        accelerator="gpu",
+        accelerator=accelerator,
         devices=1,
         callbacks=[batch_callback],
     )
