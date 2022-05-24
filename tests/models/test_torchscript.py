@@ -78,11 +78,14 @@ def test_torchscript_input_output_trace():
     assert torch.allclose(script_output, model_output)
 
 
-@pytest.mark.parametrize("device", [
-    torch.device("cpu"), 
-    pytest.param(torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1)),
-    pytest.param(torch.device('mps'), marks=RunIf(mps=True)),
-])
+@pytest.mark.parametrize(
+    "device",
+    [
+        torch.device("cpu"),
+        pytest.param(torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(torch.device("mps"), marks=RunIf(mps=True)),
+    ],
+)
 def test_torchscript_device(device):
     """Test that scripted module is on the correct device."""
     model = BoringModel().to(device)

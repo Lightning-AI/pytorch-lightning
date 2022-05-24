@@ -38,10 +38,10 @@ def test_model_saves_with_input_sample(tmpdir):
     assert os.path.isfile(file_path)
     assert os.path.getsize(file_path) > 4e2
 
-@pytest.mark.parametrize('accelerator', [
-    pytest.param('mps', marks=RunIf(mps=True)),
-    pytest.param("gpu", marks=RunIf(min_cuda_gpus=True))
-])
+
+@pytest.mark.parametrize(
+    "accelerator", [pytest.param("mps", marks=RunIf(mps=True)), pytest.param("gpu", marks=RunIf(min_cuda_gpus=True))]
+)
 def test_model_saves_on_gpu(tmpdir, accelerator):
     """Test that model saves on gpu."""
     model = BoringModel()
