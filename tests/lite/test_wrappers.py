@@ -69,7 +69,7 @@ def test_lite_module_attribute_lookup():
         _ = lite_module.not_exists
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize(
     "precision, input_type, expected_type",
     [
@@ -102,7 +102,7 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type):
 
 
 @pytest.mark.parametrize(
-    "device", [torch.device("cpu"), pytest.param(torch.device("cuda", 0), marks=RunIf(min_gpus=1))]
+    "device", [torch.device("cpu"), pytest.param(torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1))]
 )
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float16])
 def test_lite_module_device_dtype_propagation(device, dtype):
@@ -147,8 +147,8 @@ def test_lite_dataloader_iterator():
     "src_device, dest_device",
     [
         (torch.device("cpu"), torch.device("cpu")),
-        pytest.param(torch.device("cpu"), torch.device("cuda", 0), marks=RunIf(min_gpus=1)),
-        pytest.param(torch.device("cuda", 0), torch.device("cpu"), marks=RunIf(min_gpus=1)),
+        pytest.param(torch.device("cpu"), torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(torch.device("cuda", 0), torch.device("cpu"), marks=RunIf(min_cuda_gpus=1)),
     ],
 )
 def test_lite_dataloader_device_placement(src_device, dest_device):

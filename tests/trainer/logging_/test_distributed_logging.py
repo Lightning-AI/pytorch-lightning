@@ -79,7 +79,7 @@ def test_all_rank_logging_ddp_cpu(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_all_rank_logging_ddp_spawn(tmpdir):
     """Check that all ranks can be logged from."""
     model = TestModel()
