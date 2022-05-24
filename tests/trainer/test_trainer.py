@@ -1436,11 +1436,14 @@ def test_trainer_predict_standalone(tmpdir, kwargs):
 
 
 @pytest.mark.parametrize(
-    "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True)),]
+    "accelerator",
+    [
+        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", marks=RunIf(mps=True)),
+    ],
 )
 def test_trainer_predict_1_gpu(tmpdir, accelerator):
     predict(tmpdir, accelerator=accelerator, devices=1)
-
 
 
 @RunIf(skip_windows=True)
@@ -1528,7 +1531,11 @@ def test_trainer_access_in_configure_optimizers(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True)),]
+    "accelerator",
+    [
+        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", marks=RunIf(mps=True)),
+    ],
 )
 def test_setup_hook_move_to_device_correctly(tmpdir, accelerator):
 

@@ -302,7 +302,11 @@ def test_empty_model_size(max_depth):
 
 
 @pytest.mark.parametrize(
-    "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True)),]
+    "accelerator",
+    [
+        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", marks=RunIf(mps=True)),
+    ],
 )
 def test_model_size_precision(tmpdir, accelerator):
     """Test model size for half and full precision."""

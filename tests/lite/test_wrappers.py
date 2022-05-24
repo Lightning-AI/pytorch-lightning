@@ -128,7 +128,6 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type, ac
         pytest.param(torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1)),
         pytest.param(torch.device("mps"), marks=RunIf(mps=True)),
     ],
-
 )
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float16])
 def test_lite_module_device_dtype_propagation(device, dtype):
