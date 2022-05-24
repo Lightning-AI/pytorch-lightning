@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+import logging
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
 
@@ -37,6 +38,8 @@ from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizer
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, STEP_OUTPUT
 
 TBroadcast = TypeVar("TBroadcast")
+
+log = logging.getLogger(__name__)
 
 
 class Strategy(ABC):
