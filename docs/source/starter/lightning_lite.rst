@@ -199,10 +199,10 @@ utility to move an object to the current device.
 
     If you have hundreds or thousands of lines within your :meth:`~pytorch_lightning.lite.LightningLite.run` function
     and you are feeling unsure about them, then that is the correct feeling.
-    In 2019, our :class:`~pytorch_lightning.core.lightning.LightningModule` was getting larger
+    In 2019, our :class:`~pytorch_lightning.core.module.LightningModule` was getting larger
     and we got the same feeling, so we started to organize our code for simplicity, interoperability and standardization.
     This is definitely a good sign that you should consider refactoring your code and / or switching to
-    :class:`~pytorch_lightning.core.lightning.LightningModule` ultimately.
+    :class:`~pytorch_lightning.core.module.LightningModule` ultimately.
 
 
 ----------
@@ -245,9 +245,9 @@ Convert to Lightning
 from its hundreds of features.
 
 You can see our :class:`~pytorch_lightning.lite.LightningLite` class as a
-future :class:`~pytorch_lightning.core.lightning.LightningModule`, and slowly refactor your code into its API.
-Below, the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`, :meth:`~pytorch_lightning.core.lightning.LightningModule.forward`,
-:meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers`, :meth:`~pytorch_lightning.core.lightning.LightningModule.train_dataloader` methods
+future :class:`~pytorch_lightning.core.module.LightningModule`, and slowly refactor your code into its API.
+Below, the :meth:`~pytorch_lightning.core.module.LightningModule.training_step`, :meth:`~pytorch_lightning.core.module.LightningModule.forward`,
+:meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers`, :meth:`~pytorch_lightning.core.module.LightningModule.train_dataloader` methods
 are implemented.
 
 
@@ -299,7 +299,7 @@ are implemented.
 
 
 Finally, change the :meth:`~pytorch_lightning.lite.LightningLite.run` into a
-:meth:`~pytorch_lightning.core.lightning.LightningModule.__init__` and drop the ``fit`` call from inside.
+:meth:`~pytorch_lightning.core.module.LightningModule.__init__` and drop the ``fit`` call from inside.
 
 .. code-block:: python
 

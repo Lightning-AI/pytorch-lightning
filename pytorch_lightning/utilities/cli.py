@@ -29,13 +29,16 @@ import pytorch_lightning as pl
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _DOCSTRING_PARSER_AVAILABLE, _JSONARGPARSE_AVAILABLE
+from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.meta import get_all_subclasses
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.seed import _select_seed_randomly
 
-if _JSONARGPARSE_AVAILABLE:
+_JSONARGPARSE_SIGNATURES_AVAILABLE = _RequirementAvailable("jsonargparse[signatures]>=4.7.1")
+
+if _JSONARGPARSE_SIGNATURES_AVAILABLE:
+    import docstring_parser
     from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, Namespace, set_config_read_mode
     from jsonargparse.typehints import get_all_subclass_paths
     from jsonargparse.util import import_object
@@ -44,9 +47,6 @@ if _JSONARGPARSE_AVAILABLE:
 else:
     locals()["ArgumentParser"] = object
     locals()["Namespace"] = object
-
-if _DOCSTRING_PARSER_AVAILABLE:
-    import docstring_parser
 
 
 class _Registry(dict):
@@ -148,10 +148,9 @@ class LightningArgumentParser(ArgumentParser):
         For full details of accepted arguments see `ArgumentParser.__init__
         <https://jsonargparse.readthedocs.io/en/stable/index.html#jsonargparse.ArgumentParser.__init__>`_.
         """
-        if not _JSONARGPARSE_AVAILABLE:
+        if not _JSONARGPARSE_SIGNATURES_AVAILABLE:
             raise ModuleNotFoundError(
-                "`jsonargparse` is not installed but it is required for the CLI."
-                " Install it with `pip install -U jsonargparse[signatures]`."
+                f"{_JSONARGPARSE_SIGNATURES_AVAILABLE}. Try `pip install -U 'jsonargparse[signatures]'`."
             )
         super().__init__(*args, **kwargs)
         self.add_argument(
@@ -417,8 +416,8 @@ class LightningCLI:
         .. warning:: ``LightningCLI`` is in beta and subject to change.
 
         Args:
-            model_class: An optional :class:`~pytorch_lightning.core.lightning.LightningModule` class to train on or a
-                callable which returns a :class:`~pytorch_lightning.core.lightning.LightningModule` instance when
+            model_class: An optional :class:`~pytorch_lightning.core.module.LightningModule` class to train on or a
+                callable which returns a :class:`~pytorch_lightning.core.module.LightningModule` instance when
                 called. If ``None``, you can pass a registered model with ``--model=MyModel``.
             datamodule_class: An optional :class:`~pytorch_lightning.core.datamodule.LightningDataModule` class or a
                 callable which returns a :class:`~pytorch_lightning.core.datamodule.LightningDataModule` instance when
@@ -671,7 +670,7 @@ class LightningCLI:
     def configure_optimizers(
         lightning_module: LightningModule, optimizer: Optimizer, lr_scheduler: Optional[LRSchedulerTypeUnion] = None
     ) -> Any:
-        """Override to customize the :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers`
+        """Override to customize the :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers`
         method.
 
         Args:
@@ -689,9 +688,8 @@ class LightningCLI:
         return [optimizer], [lr_scheduler]
 
     def _add_configure_optimizers_method_to_model(self, subcommand: Optional[str]) -> None:
-        """Overrides the model's :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers`
-        method if a single optimizer and optionally a scheduler argument groups are added to the parser as
-        'AUTOMATIC'."""
+        """Overrides the model's :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers` method
+        if a single optimizer and optionally a scheduler argument groups are added to the parser as 'AUTOMATIC'."""
         parser = self._parser(subcommand)
 
         def get_automatic(
@@ -830,11 +828,8 @@ def instantiate_class(args: Union[Any, Tuple[Any, ...]], init: Dict[str, Any]) -
 def _get_short_description(component: object) -> Optional[str]:
     if component.__doc__ is None:
         return None
-    if not _DOCSTRING_PARSER_AVAILABLE:
-        rank_zero_warn(f"Failed parsing docstring for {component}: docstring-parser package is required")
-    else:
-        try:
-            docstring = docstring_parser.parse(component.__doc__)
-            return docstring.short_description
-        except (ValueError, docstring_parser.ParseError) as ex:
-            rank_zero_warn(f"Failed parsing docstring for {component}: {ex}")
+    try:
+        docstring = docstring_parser.parse(component.__doc__)
+        return docstring.short_description
+    except (ValueError, docstring_parser.ParseError) as ex:
+        rank_zero_warn(f"Failed parsing docstring for {component}: {ex}")

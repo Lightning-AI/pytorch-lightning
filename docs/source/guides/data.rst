@@ -31,7 +31,7 @@ There are a few different data containers used in Lightning:
 Why Use LightningDataModule?
 ============================
 
-The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` was designed as a way of decoupling data-related hooks from the :class:`~pytorch_lightning.core.lightning.LightningModule` so you can develop dataset agnostic models. The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` makes it easy to hot swap different Datasets with your model, so you can test it and benchmark it across domains. It also makes sharing and reusing the exact data splits and transforms across projects possible.
+The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` was designed as a way of decoupling data-related hooks from the :class:`~pytorch_lightning.core.module.LightningModule` so you can develop dataset agnostic models. The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` makes it easy to hot swap different Datasets with your model, so you can test it and benchmark it across domains. It also makes sharing and reusing the exact data splits and transforms across projects possible.
 
 Read :ref:`this <datamodules>` for more details on LightningDataModule.
 
@@ -114,7 +114,7 @@ also works for testing, validation, and prediction Datasets.
 Return Multiple DataLoaders
 ---------------------------
 
-You can set multiple DataLoaders in your :class:`~pytorch_lightning.core.lightning.LightningModule`, and Lightning will take care of batch combination.
+You can set multiple DataLoaders in your :class:`~pytorch_lightning.core.module.LightningModule`, and Lightning will take care of batch combination.
 
 For more details, refer to :paramref:`~pytorch_lightning.trainer.trainer.Trainer.multiple_trainloader_mode`
 
@@ -252,7 +252,7 @@ Evaluate with Additional DataLoaders
 ====================================
 
 You can evaluate your models using additional DataLoaders even if the DataLoader specific hooks haven't been defined within your
-:class:`~pytorch_lightning.core.lightning.LightningModule`. For example, this would be the case if your test data
+:class:`~pytorch_lightning.core.module.LightningModule`. For example, this would be the case if your test data
 set is not available at the time your model was declared. Simply pass the test set to the :meth:`~pytorch_lightning.trainer.trainer.Trainer.test` method:
 
 .. code-block:: python
@@ -372,7 +372,7 @@ Lightning can handle TBPTT automatically via this flag.
             return {"loss": ..., "hiddens": hiddens}
 
 .. note:: If you need to modify how the batch is split,
-    override :func:`~pytorch_lightning.core.lightning.LightningModule.tbptt_split_batch`.
+    override :func:`~pytorch_lightning.core.module.LightningModule.tbptt_split_batch`.
 
 
 Iterable Datasets

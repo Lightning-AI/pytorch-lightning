@@ -30,7 +30,7 @@ from pl_examples import _DATASETS_PATH
 from pl_examples.basic_examples.mnist_datamodule import MNIST
 from pl_examples.basic_examples.mnist_examples.image_classifier_4_lightning_module import ImageClassifier
 from pytorch_lightning import LightningDataModule, seed_everything, Trainer
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.trainer.states import TrainerFn

@@ -22,7 +22,7 @@ from torch.utils.data import DistributedSampler
 
 from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.accelerators import IPUAccelerator
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.plugins import IPUPrecisionPlugin
 from pytorch_lightning.strategies.ipu import IPUStrategy
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn

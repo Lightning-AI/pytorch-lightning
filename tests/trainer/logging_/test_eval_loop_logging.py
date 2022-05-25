@@ -691,7 +691,7 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir):
     class TestModel(BoringModel):
         def validation_step(self, *args):

@@ -289,10 +289,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             tensor = tensor.unsqueeze(0)
         return xm.all_gather(tensor)
 
-    def teardown(self) -> None:
-        super().teardown()
-        os.environ.pop("PT_XLA_DEBUG", None)
-
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
@@ -304,3 +300,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             cls,
             description=f"{cls.__class__.__name__}",
         )
+
+    def teardown(self) -> None:
+        super().teardown()
+        os.environ.pop("PT_XLA_DEBUG", None)

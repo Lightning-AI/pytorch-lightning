@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data._utils.collate import default_collate
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.loops.optimization.optimizer_loop import Closure
 from pytorch_lightning.trainer.states import RunningStage
 from tests.helpers.boring_model import BoringModel, RandomDataset

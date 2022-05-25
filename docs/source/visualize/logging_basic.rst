@@ -100,12 +100,14 @@ When you call self.log inside the *validation_step* and *test_step*, Lightning a
 
 TODO: show single point plotted
 
-If you don't want to average, add your own function in the *reduce_fx* argument.
+If you don't want to average you can also choose from ``{min,max,sum}`` by passing the *reduce_fx* argument.
 
 .. code-block:: python
 
     # default function
-    self.log(reduce_fx=torch.mean)
+    self.log(..., reduce_fx=torch.mean)
+
+For other reductions, we recommend logging a :class:`torchmetrics.Metric` instance instead.
 
 ----
 

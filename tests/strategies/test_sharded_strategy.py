@@ -17,7 +17,7 @@ if _FAIRSCALE_AVAILABLE:
 
 
 @pytest.mark.parametrize("clip_val", [0, 10])
-@RunIf(min_gpus=1, skip_windows=True, fairscale=True)
+@RunIf(min_cuda_gpus=1, skip_windows=True, fairscale=True)
 @mock.patch("fairscale.optim.oss.OSS.clip_grad_norm")
 def test_ddp_sharded_precision_16_clip_gradients(mock_oss_clip_grad_norm, clip_val, tmpdir):
     """Ensure that clip gradients is only called if the value is greater than 0."""
@@ -47,7 +47,7 @@ def test_sharded_ddp_choice(tmpdir, strategy, expected):
     assert isinstance(trainer.strategy, expected)
 
 
-@RunIf(min_gpus=1, fairscale=True)
+@RunIf(min_cuda_gpus=1, fairscale=True)
 @pytest.mark.parametrize(
     "strategy,expected", [("ddp_sharded", DDPShardedStrategy), ("ddp_sharded_spawn", DDPSpawnShardedStrategy)]
 )
@@ -74,7 +74,7 @@ def test_ddp_sharded_strategy_checkpoint_cpu(tmpdir):
         assert torch.equal(ddp_param.to("cpu"), shard_param)
 
 
-@RunIf(min_gpus=2, skip_windows=True, fairscale=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, fairscale=True)
 def test_ddp_sharded_strategy_checkpoint_multi_gpu(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs."""
     model = BoringModel()
@@ -91,7 +91,7 @@ def test_ddp_sharded_strategy_checkpoint_multi_gpu(tmpdir):
         assert torch.equal(ddp_param.to("cpu"), shard_param)
 
 
-@RunIf(min_gpus=2, skip_windows=True, fairscale=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, fairscale=True)
 def test_ddp_sharded_strategy_finetune(tmpdir):
     """Test to ensure that we can save and restart training (simulate fine-tuning)"""
     model = BoringModel()
@@ -126,7 +126,7 @@ def test_ddp_sharded_strategy_fit_ckpt_path(tmpdir):
 
 @pytest.mark.skip(reason="Not a critical test, skip till drone CI performance improves.")  # todo
 @pytest.mark.skip(reason="Currently unsupported restarting training on different number of devices.")
-@RunIf(min_gpus=2, skip_windows=True, fairscale=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, fairscale=True)
 def test_ddp_sharded_strategy_fit_ckpt_path_downsize_gpus(tmpdir):
     """Test to ensure that resuming from checkpoint works when downsizing number of GPUS."""
     model = BoringModel()
@@ -144,7 +144,7 @@ def test_ddp_sharded_strategy_fit_ckpt_path_downsize_gpus(tmpdir):
     trainer.fit(model, ckpt_path=checkpoint_path)
 
 
-@RunIf(min_gpus=1, skip_windows=True, fairscale=True)
+@RunIf(min_cuda_gpus=1, skip_windows=True, fairscale=True)
 def test_ddp_sharded_strategy_fit_ckpt_path_gpu_to_cpu(tmpdir):
     """Test to ensure that resuming from checkpoint works when going from GPUs- > CPU."""
     model = BoringModel()
@@ -165,7 +165,10 @@ def test_ddp_sharded_strategy_fit_ckpt_path_gpu_to_cpu(tmpdir):
 @RunIf(skip_windows=True, standalone=True, fairscale=True)
 @pytest.mark.parametrize(
     "trainer_kwargs",
-    (dict(accelerator="cpu", devices=2), pytest.param(dict(accelerator="gpu", devices=2), marks=RunIf(min_gpus=2))),
+    (
+        dict(accelerator="cpu", devices=2),
+        pytest.param(dict(accelerator="gpu", devices=2), marks=RunIf(min_cuda_gpus=2)),
+    ),
 )
 def test_ddp_sharded_strategy_test_multigpu(tmpdir, trainer_kwargs):
     """Test to ensure we can use validate and test without fit."""
@@ -197,7 +200,7 @@ class ManualBoringModel(BoringModel):
         return {"loss": loss}
 
 
-@RunIf(min_gpus=2, skip_windows=True, standalone=True, fairscale=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, fairscale=True)
 def test_ddp_sharded_strategy_manual_optimization_spawn(tmpdir):
     # todo (sean): this test has been split out as running both tests using parametrize causes "Address in use"
     model = ManualBoringModel()
@@ -213,7 +216,7 @@ def test_ddp_sharded_strategy_manual_optimization_spawn(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=2, skip_windows=True, standalone=True, fairscale=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, fairscale=True)
 def test_ddp_sharded_strategy_manual_optimization(tmpdir):
     model = ManualBoringModel()
     trainer = Trainer(

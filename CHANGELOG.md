@@ -62,6 +62,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added CPU metric tracking to `DeviceStatsMonitor` ([#11795](https://github.com/PyTorchLightning/pytorch-lightning/pull/11795))
 
+
+- Added all DDP params to be exposed through hpu parallel strategy ([#13067](https://github.com/PyTorchLightning/pytorch-lightning/pull/13067))
+
+
+- Added `teardown()` method to `Accelerator` ([#11935](https://github.com/PyTorchLightning/pytorch-lightning/pull/11935))
+
+
 ### Changed
 
 - Enable validation during overfitting ([#12527](https://github.com/PyTorchLightning/pytorch-lightning/pull/12527))
@@ -91,12 +98,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Raise an error if there are insufficient training batches when using a float value of `limit_train_batches` ([#12885](https://github.com/PyTorchLightning/pytorch-lightning/pull/12885))
 
 
+- Changed `pytorch_lightning.core.lightning` to `pytorch_lightning.core.module` ([#12740](https://github.com/PyTorchLightning/pytorch-lightning/pull/12740))
+
+
 -
 
 ### Deprecated
 
 - Deprecated `pytorch_lightning.loggers.base.LightningLoggerBase` in favor of `pytorch_lightning.loggers.logger.Logger`, and deprecated `pytorch_lightning.loggers.base` in favor of `pytorch_lightning.loggers.logger` ([#120148](https://github.com/PyTorchLightning/pytorch-lightning/pull/12014))
 
+
+- Deprecated `pytorch_lightning.callbacks.base.Callback` in favor of `pytorch_lightning.callbacks.callback.Callback` ([#13031](https://github.com/PyTorchLightning/pytorch-lightning/pull/13031))
 
 
 - Deprecated `num_processes`, `gpus`, `tpu_cores,` and `ipus` from the `Trainer` constructor in favor of using the `accelerator` and `devices` arguments ([#11040](https://github.com/PyTorchLightning/pytorch-lightning/pull/11040))
@@ -105,12 +117,24 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated setting `LightningCLI(seed_everything_default=None)` in favor of `False` ([#12804](https://github.com/PyTorchLightning/pytorch-lightning/issues/12804)).
 
 
--
+- Deprecated `pytorch_lightning.core.lightning.LightningModule` in favor of `pytorch_lightning.core.module.LightningModule` ([#12740](https://github.com/PyTorchLightning/pytorch-lightning/pull/12740))
 
 
 -
 
 ### Removed
+
+- Removed the deprecated `flush_logs_every_n_steps` argument from the `Trainer` constructor ([#13074](https://github.com/PyTorchLightning/pytorch-lightning/pull/13074))
+
+
+- Removed the deprecated `process_position` argument from the `Trainer` constructor ([13071](https://github.com/PyTorchLightning/pytorch-lightning/pull/13071))
+
+
+- Removed the deprecated `checkpoint_callback` argument from the `Trainer` constructor ([#13027](https://github.com/PyTorchLightning/pytorch-lightning/pull/13027))
+
+
+- Removed the deprecated `on_{train,val,test,predict}_dataloader` hooks from the `LightningModule` and `LightningDataModule` ([#13033](https://github.com/PyTorchLightning/pytorch-lightning/pull/13033))
+
 
 - Removed the deprecated `TestTubeLogger` ([#12859](https://github.com/PyTorchLightning/pytorch-lightning/pull/12859))
 
@@ -182,6 +206,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed an issue causing zero-division error for empty dataloaders ([#12885](https://github.com/PyTorchLightning/pytorch-lightning/pull/12885))
 
 
+- Fixed `Trainer(precision=64)` during evaluation which now uses the wrapped precision module ([#12983](https://github.com/PyTorchLightning/pytorch-lightning/pull/12983))
+
+
+- Fixed an issue to use wrapped `LightningModule` for evaluation during `trainer.fit` for `BaguaStrategy` ([#12983](https://github.com/PyTorchLightning/pytorch-lightning/pull/12983))
+
+
 - Fixed mismatching default values for the types of some arguments in the DeepSpeed and Fully-Sharded strategies which made the CLI unable to use them ([#12989](https://github.com/PyTorchLightning/pytorch-lightning/pull/12989))
 
 
@@ -189,6 +219,27 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed `DDPStrategy` and `DDPSpawnStrategy` to initialize optimizers only after moving the module to the device ([#11952](https://github.com/PyTorchLightning/pytorch-lightning/pull/11952))
+
+
+- Fixed `materialize_module` setting a module's child recursively ([#12870](https://github.com/PyTorchLightning/pytorch-lightning/pull/12870))
+
+
+- Fixed the number of references of `LightningModule` so it can be deleted ([#12897](https://github.com/PyTorchLightning/pytorch-lightning/pull/12897))
+
+
+- The model wrapper returned by `LightningLite.setup()` now properly supports pass-through when looking up attributes ([#12597](https://github.com/PyTorchLightning/pytorch-lightning/pull/12597))
+
+
+- Avoid redundant callback restore warning while tuning ([#13026](https://github.com/PyTorchLightning/pytorch-lightning/pull/13026))
+
+
+- Fixed torchelastic detection with non-distributed installations ([#13142](https://github.com/PyTorchLightning/pytorch-lightning/pull/13142))
+
+
+- Fixed an issue wrt unnecessary usage of habana mixed precision package for fp32 types ([#13028](https://github.com/PyTorchLightning/pytorch-lightning/pull/13028))
+
+
+- Fixed issue where the CLI could not pass a `Profiler` to the `Trainer` ([#13084](https://github.com/PyTorchLightning/pytorch-lightning/pull/13084))
 
 
 -

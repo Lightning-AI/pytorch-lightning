@@ -100,8 +100,8 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
 
 
 def unwrap_lightning_module(wrapped_model: nn.Module) -> "pl.LightningModule":
-    """Recursively unwraps a :class:`~pytorch_lightning.core.lightning.LightningModule` by following the
-    ``.module`` attributes on the wrapper.
+    """Recursively unwraps a :class:`~pytorch_lightning.core.module.LightningModule` by following the ``.module``
+    attributes on the wrapper.
 
     Raises:
         TypeError: If the unwrapping leads to a module that is not a LightningModule and that cannot be unwrapped

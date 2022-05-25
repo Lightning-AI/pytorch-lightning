@@ -248,20 +248,20 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
-            if isinstance(self.model, DistributedDataParallel):
+            if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
                 # used when calling `trainer.fit`
                 return self.model(*args, **kwargs)
             else:
                 # used when calling `trainer.validate`
-                return self.lightning_module.validation_step(*args, **kwargs)
+                return self.model.validation_step(*args, **kwargs)
 
     def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.test_step_context():
-            return self.lightning_module.test_step(*args, **kwargs)
+            return self.model.test_step(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
         with self.precision_plugin.predict_step_context():
-            return self.lightning_module.predict_step(*args, **kwargs)
+            return self.model.predict_step(*args, **kwargs)
 
     def post_training_step(self):
         if not self.lightning_module.automatic_optimization:
@@ -283,7 +283,6 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     def teardown(self) -> None:
         log.detail(f"{self.__class__.__name__}: tearing down strategy")
-        super().teardown()
 
         if isinstance(self.model, DistributedDataParallel):
             if (
@@ -306,10 +305,4 @@ class DDPSpawnStrategy(ParallelStrategy):
             # `self.lightning_module.trainer` can be None if teardown gets called on an exception before
             # the trainer gets set on the LightningModule
             self.model = self._layer_sync.revert(self.model)
-
-        if self.root_device.type == "cuda":
-            # GPU teardown
-            log.detail(f"{self.__class__.__name__}: moving model to CPU")
-            self.lightning_module.cpu()
-            # clean up memory
-            torch.cuda.empty_cache()
+        super().teardown()
