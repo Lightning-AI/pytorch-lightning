@@ -20,6 +20,7 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
+from pytorch_lightning.accelerators.mps import _MPS_AVAILABLE
 from pytorch_lightning.utilities.imports import (
     _APEX_AVAILABLE,
     _BAGUA_AVAILABLE,
@@ -30,7 +31,6 @@ from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
-    _MPS_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _PSUTIL_AVAILABLE,
     _RICH_AVAILABLE,

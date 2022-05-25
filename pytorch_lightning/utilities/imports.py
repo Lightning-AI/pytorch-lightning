@@ -181,11 +181,6 @@ if _HABANA_FRAMEWORK_AVAILABLE:
 else:
     _HPU_AVAILABLE = False
 
-if _TORCH_GREATER_EQUAL_1_12:
-    _MPS_AVAILABLE = torch.backends.mps.is_available()
-else:
-    _MPS_AVAILABLE = False
-
 
 # experimental feature within PyTorch Lightning.
 def _fault_tolerant_training() -> bool:

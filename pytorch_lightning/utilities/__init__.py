@@ -44,7 +44,6 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _IS_INTERACTIVE,
     _IS_WINDOWS,
     _module_available,
-    _MPS_AVAILABLE,
     _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
     _RICH_AVAILABLE,

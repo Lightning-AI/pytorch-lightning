@@ -18,8 +18,13 @@ import torch
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _MPS_AVAILABLE, _PSUTIL_AVAILABLE
+from pytorch_lightning.utilities.imports import _PSUTIL_AVAILABLE, _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.utilities.types import _DEVICE
+
+if _TORCH_GREATER_EQUAL_1_12:
+    _MPS_AVAILABLE = torch.backends.mps.is_available()
+else:
+    _MPS_AVAILABLE = False
 
 
 class MPSAccelerator(Accelerator):

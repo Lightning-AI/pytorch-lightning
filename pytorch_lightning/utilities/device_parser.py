@@ -18,7 +18,6 @@ import torch
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _MPS_AVAILABLE
 from pytorch_lightning.utilities.types import _DEVICE
 
 
@@ -241,6 +240,9 @@ def _get_all_available_mps_gpus() -> List[int]:
     Returns:
         a list of all available MPS gpus
     """
+    # lazy import to avoid circular dependencies
+    from pytorch_lightning.accelerators.mps import _MPS_AVAILABLE
+
     return [0] if _MPS_AVAILABLE else []
 
 

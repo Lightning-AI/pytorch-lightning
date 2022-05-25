@@ -87,7 +87,6 @@ from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
-    _MPS_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_11,
     _TPU_AVAILABLE,
 )
@@ -481,7 +480,7 @@ class AcceleratorConnector:
                 return "ipu"
             if _HPU_AVAILABLE:
                 return "hpu"
-            if _MPS_AVAILABLE:
+            if MPSAccelerator.is_available():
                 return "mps"
             if torch.cuda.is_available() and torch.cuda.device_count() > 0:
                 return "gpu"
