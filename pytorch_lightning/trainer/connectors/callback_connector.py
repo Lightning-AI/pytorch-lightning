@@ -267,7 +267,7 @@ class CallbackConnector:
             callbacks: A list of callbacks.
 
         Return:
-            A new list in which the last elements are BaseModelCheckpoints if there were any present in the
+            A new list in which the last elements are Checkpoint if there were any present in the
             input.
         """
         checkpoints = [c for c in callbacks if isinstance(c, Checkpoint)]
