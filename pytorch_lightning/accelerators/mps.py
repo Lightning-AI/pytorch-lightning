@@ -28,7 +28,7 @@ else:
 
 
 class MPSAccelerator(Accelerator):
-    """Accelerator for Metal Apple M1 GPU devices."""
+    """Accelerator for Metal Apple Silicon GPU devices."""
 
     def setup_environment(self, root_device: torch.device) -> None:
         """
