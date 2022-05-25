@@ -1558,7 +1558,6 @@ def test_cli_auto_seeding():
 
 
 def test_unresolvable_import_paths():
-
     class TestModel(BoringModel):
         def __init__(self, a_func: Callable = torch.softmax):
             super().__init__()
