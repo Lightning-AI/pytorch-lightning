@@ -1563,13 +1563,8 @@ def test_unresolvable_import_paths():
             super().__init__()
             self.a_func = a_func
 
-    cli_args = [
-        "any.py",
-        "fit",
-        "--print_config",
-    ]
     out = StringIO()
-    with mock.patch("sys.argv", cli_args), redirect_stdout(out), pytest.raises(SystemExit):
-        LightningCLI(TestModel)
+    with mock.patch("sys.argv", ["any.py", "--print_config"]), redirect_stdout(out), pytest.raises(SystemExit):
+        LightningCLI(TestModel, run=False)
 
     assert "a_func: torch.softmax" in out.getvalue()
