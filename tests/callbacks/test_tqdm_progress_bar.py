@@ -27,7 +27,7 @@ from torch.utils.data.dataloader import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBarBase, TQDMProgressBar
 from pytorch_lightning.callbacks.progress.tqdm_progress import Tqdm
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
@@ -592,7 +592,7 @@ def test_progress_bar_max_val_check_interval(
     assert pbar_callback.is_enabled
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True)
 @pytest.mark.parametrize("val_check_interval", [0.2, 0.5])
 def test_progress_bar_max_val_check_interval_ddp(tmpdir, val_check_interval):
     world_size = 2

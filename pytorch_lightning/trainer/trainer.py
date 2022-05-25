@@ -56,7 +56,6 @@ from pytorch_lightning.plugins import (
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
-    BaseProfiler,
     PassThroughProfiler,
     Profiler,
     PyTorchProfiler,
@@ -137,7 +136,6 @@ class Trainer(
         default_root_dir: Optional[str] = None,
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
-        process_position: int = 0,
         num_nodes: int = 1,
         num_processes: Optional[int] = None,  # TODO: Remove in 2.0
         devices: Optional[Union[List[int], str, int]] = None,
@@ -161,7 +159,6 @@ class Trainer(
         limit_test_batches: Optional[Union[int, float]] = None,
         limit_predict_batches: Optional[Union[int, float]] = None,
         val_check_interval: Optional[Union[int, float]] = None,
-        flush_logs_every_n_steps: Optional[int] = None,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
@@ -172,7 +169,7 @@ class Trainer(
         weights_save_path: Optional[str] = None,  # TODO: Remove in 1.8
         num_sanity_val_steps: int = 2,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
-        profiler: Optional[Union[BaseProfiler, str]] = None,
+        profiler: Optional[Union[Profiler, str]] = None,
         benchmark: Optional[bool] = None,
         deterministic: Union[bool, _LITERAL_WARN] = False,
         reload_dataloaders_every_n_epochs: int = 0,
@@ -262,12 +259,6 @@ class Trainer(
                 of train, val and test to find any bugs (ie: a sort of unit test).
                 Default: ``False``.
 
-            flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
-
-                .. deprecated:: v1.5
-                    ``flush_logs_every_n_steps`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please configure flushing directly in the logger instead.
-
             gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
                 Default: ``None``.
 
@@ -304,13 +295,6 @@ class Trainer(
 
             log_every_n_steps: How often to log within steps.
                 Default: ``50``.
-
-            process_position: Orders the progress bar when running multiple models on same machine.
-
-                .. deprecated:: v1.5
-                    ``process_position`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``process_position``
-                    directly to the Trainer's ``callbacks`` argument instead.
 
             enable_progress_bar: Whether to enable to progress bar by default.
                 Default: ``False``.
@@ -508,7 +492,6 @@ class Trainer(
             callbacks,
             enable_checkpointing,
             enable_progress_bar,
-            process_position,
             default_root_dir,
             weights_save_path,
             enable_model_summary,
@@ -565,7 +548,7 @@ class Trainer(
 
         # init logger flags
         self._loggers: List[Logger]
-        self._logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
+        self._logger_connector.on_trainer_init(logger, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
         self.val_check_interval: Union[int, float]
@@ -791,8 +774,8 @@ class Trainer(
 
         Returns:
             List of dictionaries with metrics logged during the validation phase, e.g., in model- or callback hooks
-            like :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
-            :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end`, etc.
+            like :meth:`~pytorch_lightning.core.module.LightningModule.validation_step`,
+            :meth:`~pytorch_lightning.core.module.LightningModule.validation_epoch_end`, etc.
             The length of the list corresponds to the number of validation dataloaders used.
         """
         self.strategy.model = model or self.lightning_module
@@ -879,8 +862,8 @@ class Trainer(
 
         Returns:
             List of dictionaries with metrics logged during the test phase, e.g., in model- or callback hooks
-            like :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step`,
-            :meth:`~pytorch_lightning.core.lightning.LightningModule.test_epoch_end`, etc.
+            like :meth:`~pytorch_lightning.core.module.LightningModule.test_step`,
+            :meth:`~pytorch_lightning.core.module.LightningModule.test_epoch_end`, etc.
             The length of the list corresponds to the number of test dataloaders used.
         """
         self.strategy.model = model or self.lightning_module

@@ -2,7 +2,7 @@
 Style Guide
 ###########
 The main goal of PyTorch Lightning is to improve readability and reproducibility. Imagine looking into any GitHub repo or a research project,
-finding a :class:`~pytorch_lightning.core.lightning.LightningModule`, and knowing exactly where to look to find the things you care about.
+finding a :class:`~pytorch_lightning.core.module.LightningModule`, and knowing exactly where to look to find the things you care about.
 
 The goal of this style guide is to encourage Lightning code to be structured similarly.
 
@@ -12,7 +12,7 @@ The goal of this style guide is to encourage Lightning code to be structured sim
 LightningModule
 ***************
 
-These are best practices for structuring your :class:`~pytorch_lightning.core.lightning.LightningModule` class:
+These are best practices for structuring your :class:`~pytorch_lightning.core.module.LightningModule` class:
 
 Systems vs Models
 =================
@@ -171,8 +171,8 @@ In practice, the code looks like this:
 Forward vs training_step
 ========================
 
-We recommend using :meth:`~pytorch_lightning.core.lightning.LightningModule.forward` for inference/predictions and keeping
-:meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` independent.
+We recommend using :meth:`~pytorch_lightning.core.module.LightningModule.forward` for inference/predictions and keeping
+:meth:`~pytorch_lightning.core.module.LightningModule.training_step` independent.
 
 .. code-block:: python
 
@@ -208,7 +208,7 @@ DataModules
 ===========
 
 The :class:`~pytorch_lightning.core.datamodule.LightningDataModule` is designed as a way of decoupling data-related
-hooks from the :class:`~pytorch_lightning.core.lightning.LightningModule` so you can develop dataset agnostic models. It makes it easy to hot swap different
+hooks from the :class:`~pytorch_lightning.core.module.LightningModule` so you can develop dataset agnostic models. It makes it easy to hot swap different
 datasets with your model, so you can test it and benchmark it across domains. It also makes sharing and reusing the exact data splits and transforms across projects possible.
 
 Check out :ref:`data` document to understand data management within Lightning and its best practices.

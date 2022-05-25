@@ -62,7 +62,7 @@ In the training_step of the LightningModule configure how your training routine 
 ****************************************
 3. Move Optimizer(s) and LR Scheduler(s)
 ****************************************
-Move your optimizers to the :meth:`~pytorch_lightning.core.lightning.LightningModule.configure_optimizers` hook.
+Move your optimizers to the :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers` hook.
 
 .. testcode::
 

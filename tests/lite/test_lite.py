@@ -313,7 +313,7 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
     "accelerator, expected",
     [
         ("cpu", torch.device("cpu")),
-        pytest.param("gpu", torch.device("cuda", 0), marks=RunIf(min_gpus=1)),
+        pytest.param("gpu", torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1)),
         pytest.param("tpu", torch.device("xla", 0), marks=RunIf(tpu=True)),
     ],
 )
@@ -393,7 +393,7 @@ def test_autocast():
     lite._precision_plugin.forward_context().__exit__.assert_called()
 
 
-@RunIf(min_gpus=2, standalone=True, deepspeed=True)
+@RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multiple_models():
     class Lite(LightningLite):
         def run(self):

@@ -42,7 +42,7 @@ class TestDDPStrategy(DDPStrategy):
         return super().teardown()
 
 
-@RunIf(min_gpus=2, min_torch="1.9.0", skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, min_torch="1.9.0", skip_windows=True, standalone=True)
 def test_ddp_fp16_compress_comm_hook(tmpdir):
     """Test for DDP FP16 compress hook."""
     model = BoringModel()
@@ -65,7 +65,7 @@ def test_ddp_fp16_compress_comm_hook(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@RunIf(min_gpus=2, min_torch="1.9.0", skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, min_torch="1.9.0", skip_windows=True, standalone=True)
 def test_ddp_sgd_comm_hook(tmpdir):
     """Test for DDP FP16 compress hook."""
     model = BoringModel()
@@ -89,7 +89,7 @@ def test_ddp_sgd_comm_hook(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@RunIf(min_gpus=2, min_torch="1.9.0", skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, min_torch="1.9.0", skip_windows=True, standalone=True)
 def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
     """Test for DDP FP16 compress wrapper for SGD hook."""
     model = BoringModel()
@@ -114,7 +114,7 @@ def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@RunIf(min_gpus=2, min_torch="1.9.0", skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, min_torch="1.9.0", skip_windows=True, standalone=True)
 def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
     """Test for DDP Spawn FP16 compress hook."""
     model = BoringModel()
@@ -134,7 +134,7 @@ def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@RunIf(min_gpus=2, min_torch="1.10.0", skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, min_torch="1.10.0", skip_windows=True, standalone=True)
 def test_ddp_post_local_sgd_comm_hook(tmpdir):
     """Test for DDP post-localSGD hook."""
     model = BoringModel()
@@ -162,7 +162,7 @@ def test_ddp_post_local_sgd_comm_hook(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@RunIf(skip_windows=True, min_torch="1.10.0", min_gpus=2, standalone=True)
+@RunIf(skip_windows=True, min_torch="1.10.0", min_cuda_gpus=2, standalone=True)
 @mock.patch("torch.distributed.algorithms.model_averaging.averagers.PeriodicModelAverager.average_parameters")
 def test_post_local_sgd_model_averaging(average_parameters_mock, tmpdir):
     """Test that when using DDP with post-localSGD, model averaging is called."""
@@ -207,7 +207,7 @@ def test_post_local_sgd_model_averaging(average_parameters_mock, tmpdir):
     average_parameters_mock.assert_called()
 
 
-@RunIf(skip_windows=True, min_torch="1.10.0", min_gpus=2, standalone=True)
+@RunIf(skip_windows=True, min_torch="1.10.0", min_cuda_gpus=2, standalone=True)
 @mock.patch("torch.distributed.algorithms.model_averaging.averagers.PeriodicModelAverager.average_parameters")
 def test_post_local_sgd_model_averaging_value_error(average_parameters_mock, tmpdir):
     """Test that when using DDP with post-localSGD a ValueError is thrown when the optmizer is

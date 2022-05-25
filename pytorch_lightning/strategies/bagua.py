@@ -197,12 +197,7 @@ class BaguaStrategy(DDPStrategy):
         if isinstance(self.model, BaguaDistributedDataParallel):
             self.model = self.lightning_module
 
-        if self.root_device.type == "cuda":
-            # GPU teardown
-            log.detail(f"{self.__class__.__name__}: moving model to CPU")
-            self.lightning_module.cpu()
-            # clean up memory
-            torch.cuda.empty_cache()
+        super().teardown()
 
     def barrier(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
         if is_initialized():

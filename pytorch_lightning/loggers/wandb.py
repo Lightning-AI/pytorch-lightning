@@ -68,7 +68,7 @@ class WandbLogger(Logger):
 
     **Log metrics**
 
-    Log from :class:`~pytorch_lightning.core.lightning.LightningModule`:
+    Log from :class:`~pytorch_lightning.core.module.LightningModule`:
 
     .. code-block:: python
 
@@ -84,7 +84,7 @@ class WandbLogger(Logger):
 
     **Log hyper-parameters**
 
-    Save :class:`~pytorch_lightning.core.lightning.LightningModule` parameters:
+    Save :class:`~pytorch_lightning.core.module.LightningModule` parameters:
 
     .. code-block:: python
 
@@ -328,7 +328,7 @@ class WandbLogger(Logger):
         r"""
 
         Actual wandb object. To use wandb features in your
-        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
+        :class:`~pytorch_lightning.core.module.LightningModule` do the following.
 
         Example::
 
