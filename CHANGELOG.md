@@ -120,7 +120,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
-- Removed the deprecated `close` method from the `LoggerCollection` class
+- Removed the deprecated `close` method from the `LoggerCollection` class ([#131479](https://github.com/PyTorchLightning/pytorch-lightning/pull/13149))
 
 - Removed the deprecated `flush_logs_every_n_steps` argument from the `Trainer` constructor ([#13074](https://github.com/PyTorchLightning/pytorch-lightning/pull/13074))
 
