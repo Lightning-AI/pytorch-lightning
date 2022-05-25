@@ -285,19 +285,6 @@ class LoggerCollection(Logger):
         for logger in self._logger_iterable:
             logger.finalize(status)
 
-    def close(self) -> None:
-        """
-        .. deprecated:: v1.5
-            This method is deprecated in v1.5 and will be removed in v1.7.
-            Please use `LoggerCollection.finalize` instead.
-        """
-        rank_zero_deprecation(
-            "`LoggerCollection.close` method is deprecated in v1.5 and will be removed in v1.7."
-            " Please use `LoggerCollection.finalize` instead."
-        )
-        for logger in self._logger_iterable:
-            logger.close()
-
     @property
     def save_dir(self) -> Optional[str]:
         """Returns ``None`` as checkpoints should be saved to default / chosen location when using multiple
