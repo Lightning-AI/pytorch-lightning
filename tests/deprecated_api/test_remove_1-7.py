@@ -33,7 +33,6 @@ from pytorch_lightning.plugins.environments import (
 from pytorch_lightning.strategies import SingleDeviceStrategy
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
-from tests.loggers.test_logger import CustomLogger
 from tests.plugins.environments.test_lsf_environment import _make_rankfile
 
 
@@ -77,12 +76,6 @@ def test_v1_7_0_deprecate_add_get_queue(tmpdir):
 
     with pytest.deprecated_call(match=r"`LightningModule.get_from_queue` method was deprecated in v1.5"):
         trainer.fit(model)
-
-
-def test_v1_7_0_lightning_logger_base_close(tmpdir):
-    logger = CustomLogger()
-    with pytest.deprecated_call(match="`Logger.close` method is deprecated in v1.5 and will be removed in v1.7."):
-        logger.close()
 
 
 def test_v1_7_0_deprecate_lightning_distributed(tmpdir):

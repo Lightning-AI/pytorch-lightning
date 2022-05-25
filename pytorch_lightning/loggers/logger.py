@@ -177,21 +177,6 @@ class Logger(ABC):
         """
         self.save()
 
-    def close(self) -> None:
-        """Do any cleanup that is necessary to close an experiment.
-
-        See deprecation warning below.
-
-        .. deprecated:: v1.5
-            This method is deprecated in v1.5 and will be removed in v1.7.
-            Please use `Logger.finalize` instead.
-        """
-        rank_zero_deprecation(
-            "`Logger.close` method is deprecated in v1.5 and will be removed in v1.7."
-            " Please use `Logger.finalize` instead."
-        )
-        self.save()
-
     @property
     def save_dir(self) -> Optional[str]:
         """Return the root directory where experiment logs get saved, or `None` if the logger does not save data
