@@ -52,7 +52,6 @@ from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
 from pytorch_lightning.utilities.imports import (
     _FAIRSCALE_AVAILABLE,
     _IS_WINDOWS,
-    _TORCH_GREATER_EQUAL_1_9,
     _TORCH_GREATER_EQUAL_1_10,
     _TORCH_GREATER_EQUAL_1_11,
 )
@@ -213,9 +212,7 @@ class DDPStrategy(ParallelStrategy):
 
     def _register_ddp_hooks(self) -> None:
         log.detail(f"{self.__class__.__name__}: registering ddp hooks")
-        # In 1.8, DDP communication hooks only work with NCCL backend and SPSD (single process single device) mode
-        # Since 1.9, DDP communication hooks can work on all backends.
-        if _TORCH_GREATER_EQUAL_1_9 or (self.root_device.type == "cuda" and self._is_single_process_single_device):
+        if self.root_device.type == "cuda" and self._is_single_process_single_device:
             register_ddp_comm_hook(
                 model=self.model,
                 ddp_comm_state=self._ddp_comm_state,

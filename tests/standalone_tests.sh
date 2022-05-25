@@ -64,13 +64,12 @@ if [ $? -eq 0 ]; then
     report+="Ran\ttests/utilities/test_warnings.py\n"
 fi
 
-# TODO: enable when CI uses torch>=1.9
 # test deadlock is properly handled with TorchElastic.
-# LOGS=$(PL_RUN_STANDALONE_TESTS=1 PL_RECONCILE_PROCESS=1 python -m torch.distributed.run --nproc_per_node=2 --max_restarts 0 -m coverage run --source pytorch_lightning -a tests/plugins/environments/torch_elastic_deadlock.py | grep "SUCCEEDED")
-# if  [ -z "$LOGS" ]; then
-#    exit 1
-# fi
-# report+="Ran\ttests/plugins/environments/torch_elastic_deadlock.py\n"
+LOGS=$(PL_RUN_STANDALONE_TESTS=1 PL_RECONCILE_PROCESS=1 python -m torch.distributed.run --nproc_per_node=2 --max_restarts 0 -m coverage run --source pytorch_lightning -a tests/plugins/environments/torch_elastic_deadlock.py | grep "SUCCEEDED")
+if [ -z "$LOGS" ]; then
+    exit 1
+fi
+report+="Ran\ttests/plugins/environments/torch_elastic_deadlock.py\n"
 
 # test that a user can manually launch individual processes
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"

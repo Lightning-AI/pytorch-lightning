@@ -20,12 +20,11 @@ import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.imports import _HPU_AVAILABLE, _TORCH_GREATER_EQUAL_1_9, _TPU_AVAILABLE
+from pytorch_lightning.utilities.imports import _HPU_AVAILABLE, _TPU_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug as new_rank_zero_debug
 from pytorch_lightning.utilities.rank_zero import rank_zero_only  # noqa: F401
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 from pytorch_lightning.utilities.rank_zero import rank_zero_info as new_rank_zero_info
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn as new_rank_zero_warn
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -222,13 +221,6 @@ def register_ddp_comm_hook(
             as FP16 compression as wrapper, which could be combined with
             ddp_comm_hook
 
-    .. warning ::
-        DDP communication hook needs pytorch version at least 1.8.0
-
-    .. warning ::
-        DDP communication wrapper needs pytorch version at least 1.9.0
-        Post-localSGD hook needs pytorch version at least 1.9.0
-
     Examples:
 
         >>> from torch.distributed.algorithms.ddp_comm_hooks import ( # doctest: +SKIP
@@ -288,15 +280,10 @@ def register_ddp_comm_hook(
     ddp_comm_hook: Callable = ddp_comm_hook
 
     if ddp_comm_wrapper is not None:
-        if not _TORCH_GREATER_EQUAL_1_9:
-            new_rank_zero_warn(
-                "Not applying DDP comm wrapper. To use communication wrapper, please use pytorch>=1.9.0."
-            )
-        else:
-            new_rank_zero_info(
-                f"DDP comm wrapper is provided, apply {ddp_comm_wrapper.__qualname__}({ddp_comm_hook.__qualname__})."
-            )
-            ddp_comm_hook = ddp_comm_wrapper(ddp_comm_hook)
+        new_rank_zero_info(
+            f"DDP comm wrapper is provided, apply {ddp_comm_wrapper.__qualname__}({ddp_comm_hook.__qualname__})."
+        )
+        ddp_comm_hook = ddp_comm_wrapper(ddp_comm_hook)
 
     new_rank_zero_debug(f"Registering DDP comm hook: {ddp_comm_hook.__qualname__}.")
     model.register_comm_hook(state=ddp_comm_state, hook=ddp_comm_hook)
