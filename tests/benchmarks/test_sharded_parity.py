@@ -184,25 +184,25 @@ def plugin_parity_test(
 @pytest.mark.parametrize(
     "kwargs",
     [
-        pytest.param(dict(gpus=1, model_cls=SeedTrainLoaderModel), marks=RunIf(min_gpus=1)),
+        pytest.param(dict(gpus=1, model_cls=SeedTrainLoaderModel), marks=RunIf(min_cuda_gpus=1)),
         pytest.param(
-            dict(gpus=1, precision=16, model_cls=SeedTrainLoaderModel), marks=RunIf(min_gpus=1, amp_native=True)
+            dict(gpus=1, precision=16, model_cls=SeedTrainLoaderModel), marks=RunIf(min_cuda_gpus=1, amp_native=True)
         ),
-        pytest.param(dict(gpus=2, model_cls=SeedTrainLoaderModel), marks=RunIf(min_gpus=2)),
+        pytest.param(dict(gpus=2, model_cls=SeedTrainLoaderModel), marks=RunIf(min_cuda_gpus=2)),
         pytest.param(
-            dict(gpus=2, precision=16, model_cls=SeedTrainLoaderModel), marks=RunIf(min_gpus=2, amp_native=True)
+            dict(gpus=2, precision=16, model_cls=SeedTrainLoaderModel), marks=RunIf(min_cuda_gpus=2, amp_native=True)
         ),
         pytest.param(
             dict(gpus=2, model_cls=SeedTrainLoaderMultipleOptimizersModel),
             marks=[
-                RunIf(min_gpus=2),
+                RunIf(min_cuda_gpus=2),
                 pytest.mark.skip(reason="TODO: Current issue with multiple optimizers and FairScale."),
             ],
         ),
         pytest.param(
             dict(gpus=2, model_cls=SeedTrainLoaderManualModel),
             marks=[
-                RunIf(min_gpus=2),
+                RunIf(min_cuda_gpus=2),
                 pytest.mark.skip(reason="TODO: Current issue with multiple optimizers and FairScale."),
             ],
         ),

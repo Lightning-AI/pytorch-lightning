@@ -33,7 +33,7 @@ import torch
 import yaml
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.logger import _name, _version
@@ -56,7 +56,7 @@ class Checkpoint(Callback):
 class ModelCheckpoint(Checkpoint):
     r"""
     Save the model periodically by monitoring a quantity. Every metric logged with
-    :meth:`~pytorch_lightning.core.lightning.log` or :meth:`~pytorch_lightning.core.lightning.log_dict` in
+    :meth:`~pytorch_lightning.core.module.log` or :meth:`~pytorch_lightning.core.module.log_dict` in
     LightningModule is a candidate for the monitor key. For more information, see
     :ref:`checkpointing`.
 

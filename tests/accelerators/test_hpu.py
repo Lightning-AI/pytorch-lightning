@@ -196,7 +196,7 @@ def test_accelerator_auto_with_devices_hpu():
 
 
 @RunIf(hpu=True)
-def test_strategy_choice_hpu_plugin():
+def test_strategy_choice_hpu_strategy():
     trainer = Trainer(strategy=SingleHPUStrategy(device=torch.device("hpu")), accelerator="hpu", devices=1)
     assert isinstance(trainer.strategy, SingleHPUStrategy)
 
@@ -205,7 +205,7 @@ def test_strategy_choice_hpu_plugin():
 
 
 @RunIf(hpu=True)
-def test_strategy_choice_hpu_parallel_plugin():
+def test_strategy_choice_hpu_parallel_strategy():
     trainer = Trainer(
         strategy=HPUParallelStrategy(parallel_devices=[torch.device("hpu")] * 8), accelerator="hpu", devices=8
     )
@@ -240,3 +240,21 @@ def test_hpu_auto_device_count():
 def test_hpu_unsupported_device_type():
     with pytest.raises(MisconfigurationException, match="`devices` for `HPUAccelerator` must be int, string or None."):
         Trainer(accelerator="hpu", devices=[1])
+
+
+@RunIf(hpu=True)
+def test_strategy_params_with_hpu_parallel_strategy():
+    bucket_cap_mb = 100
+    gradient_as_bucket_view = True
+    static_graph = True
+    find_unused_parameters = True
+    strategy = HPUParallelStrategy(
+        bucket_cap_mb=bucket_cap_mb,
+        gradient_as_bucket_view=gradient_as_bucket_view,
+        static_graph=static_graph,
+        find_unused_parameters=find_unused_parameters,
+    )
+    assert strategy._ddp_kwargs["bucket_cap_mb"] == bucket_cap_mb
+    assert strategy._ddp_kwargs["gradient_as_bucket_view"] == gradient_as_bucket_view
+    assert strategy._ddp_kwargs["static_graph"] == static_graph
+    assert strategy._ddp_kwargs["find_unused_parameters"] == find_unused_parameters

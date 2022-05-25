@@ -23,7 +23,7 @@ Testing
 
 Lightning allows the user to test their models with any compatible test dataloaders. This can be done before/after training
 and is completely agnostic to :meth:`~pytorch_lightning.trainer.trainer.Trainer.fit` call. The logic used here is defined under
-:meth:`~pytorch_lightning.core.lightning.LightningModule.test_step`.
+:meth:`~pytorch_lightning.core.module.LightningModule.test_step`.
 
 Testing is performed using the ``Trainer`` object's ``.test()`` method.
 
@@ -141,9 +141,9 @@ Validation
 **********
 
 Lightning allows the user to validate their models with any compatible ``val dataloaders``. This can be done before/after training.
-The logic associated to the validation is defined within the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`.
+The logic associated to the validation is defined within the :meth:`~pytorch_lightning.core.module.LightningModule.validation_step`.
 
-Apart from this ``.validate`` has same API as ``.test``, but would rely respectively on :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` and :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step`.
+Apart from this ``.validate`` has same API as ``.test``, but would rely respectively on :meth:`~pytorch_lightning.core.module.LightningModule.validation_step` and :meth:`~pytorch_lightning.core.module.LightningModule.test_step`.
 
 .. note::
     ``.validate`` method uses the same validation logic being used under validation happening within

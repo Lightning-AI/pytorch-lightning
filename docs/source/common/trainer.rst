@@ -5,7 +5,7 @@
 
     import os
     from pytorch_lightning.trainer.trainer import Trainer
-    from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.core.module import LightningModule
     from pytorch_lightning.utilities.seed import seed_everything
 
 .. _trainer:
@@ -508,7 +508,7 @@ Example::
 
 
 Model-specific callbacks can also be added inside the ``LightningModule`` through
-:meth:`~pytorch_lightning.core.lightning.LightningModule.configure_callbacks`.
+:meth:`~pytorch_lightning.core.module.LightningModule.configure_callbacks`.
 Callbacks returned in this hook will extend the list initially given to the ``Trainer`` argument, and replace
 the trainer callbacks should there be two or more of the same type.
 :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callbacks always run last.
@@ -1213,31 +1213,6 @@ Half precision, or mixed precision, is the combined use of 32 and 16 bit floatin
 
         # turn on 16-bit
         trainer = Trainer(amp_backend="apex", amp_level="O2", precision=16, accelerator="gpu", devices=1)
-
-
-process_position
-^^^^^^^^^^^^^^^^
-
-.. warning:: ``process_position`` has been deprecated in v1.5 and will be removed in v1.7.
-    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``process_position``
-    directly to the Trainer's ``callbacks`` argument instead.
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/process_position.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/process_position.mp4"></video>
-
-|
-
-Orders the progress bar. Useful when running multiple trainers on the same node.
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(process_position=0)
-
-.. note:: This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
 
 profiler
 ^^^^^^^^
