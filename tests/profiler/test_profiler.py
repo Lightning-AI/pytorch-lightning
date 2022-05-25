@@ -26,9 +26,8 @@ from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, StochasticWeightAveraging
 from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, PyTorchProfiler, SimpleProfiler
-from pytorch_lightning.profiler.pytorch import RegisterRecordFunction, warning_cache
+from pytorch_lightning.profiler.pytorch import _KINETO_AVAILABLE, RegisterRecordFunction, warning_cache
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE, _TORCH_GREATER_EQUAL_1_11
 from tests.helpers import BoringModel, ManualOptimBoringModel
 from tests.helpers.runif import RunIf
 
@@ -604,10 +603,6 @@ def test_pytorch_profiler_raises_warning_for_limited_steps(tmpdir, trainer_confi
     warning_cache.clear()
     with pytest.warns(UserWarning, match="not enough steps to properly record traces"):
         getattr(trainer, trainer_fn)(model)
-        if hasattr(trainer.profiler, "_schedule"):
-            assert trainer.profiler._schedule is None
-        elif hasattr(trainer.profiler, "_override_steps"):
-            assert trainer.profiler._override_steps
         warning_cache.clear()
 
 
@@ -631,14 +626,3 @@ def test_profile_callbacks(tmpdir):
         e.name == "[pl][profile][Callback]EarlyStopping{'monitor': 'train_loss', 'mode': 'min'}.on_validation_start"
         for e in pytorch_profiler.function_events
     )
-
-
-@pytest.mark.skipif(
-    not (_TORCH_GREATER_EQUAL_1_11),
-    reason="Requires PyTorch lower level profiler API",
-)
-def test_kineto_profile(tmpdir):
-    from pytorch_lightning.profiler.pytorch import PyTorchProfilerKineto
-
-    pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profiler", record_functions=set("on_train_end"))
-    assert isinstance(pytorch_profiler, PyTorchProfilerKineto)
