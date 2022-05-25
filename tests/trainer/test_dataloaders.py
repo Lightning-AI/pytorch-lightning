@@ -685,7 +685,7 @@ class MultiProcessModel(BoringModel):
         assert len(torch.unique(all_batches, dim=0)) == num_samples
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_auto_add_worker_init_fn_distributed(tmpdir, monkeypatch):
     """Test that the lightning worker_init_fn takes care of dataloaders in multi-gpu/multi-node training."""
     dataset = NumpyRandomDataset()
@@ -810,7 +810,7 @@ class DistribSamplerCallback(Callback):
         assert test_sampler.seed == self.expected_seed[2]
 
 
-@RunIf(min_gpus=2, skip_windows=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True)
 def test_dataloader_distributed_sampler(tmpdir):
     """Test DistributedSampler and it's arguments for DDP backend."""
     seed_everything(123)
@@ -835,7 +835,7 @@ class ModelWithDataLoaderDistributedSampler(BoringModel):
         return DataLoader(dataloader.dataset, batch_size=32, drop_last=False, sampler=dist_sampler, shuffle=False)
 
 
-@RunIf(min_gpus=2, skip_windows=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True)
 def test_dataloader_distributed_sampler_already_attached(tmpdir):
     """Test DistributedSampler and it's arguments for DDP backend when DistSampler already included on
     dataloader."""
@@ -855,7 +855,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
     assert trainer.state.finished, "DDP Training failed"
 
 
-@RunIf(min_gpus=3)
+@RunIf(min_cuda_gpus=3)
 def test_batch_size_smaller_than_num_gpus(tmpdir):
     # we need at least 3 gpus for this test
     num_gpus = 3

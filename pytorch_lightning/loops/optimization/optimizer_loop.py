@@ -39,7 +39,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 class ClosureResult(OutputResult):
     """A container to hold the result of a :class:`Closure` call.
 
-    It is created from the output of :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`.
+    It is created from the output of :meth:`~pytorch_lightning.core.module.LightningModule.training_step`.
 
     Attributes:
         closure_loss: The loss with a graph attached.
@@ -101,7 +101,7 @@ class Closure(AbstractClosure[ClosureResult]):
     do something with the output.
 
     Args:
-        step_fn: This is typically the :meth:`pytorch_lightning.core.lightning.LightningModule.training_step
+        step_fn: This is typically the :meth:`pytorch_lightning.core.module.LightningModule.training_step
             wrapped with processing for its outputs
         backward_fn: A function that takes a loss value as input, performs back-propagation and returns the loss value.
             Can be set to ``None`` to skip the backward operation.

@@ -34,7 +34,7 @@ The :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback 
 To enable it:
 
 - Import :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback.
-- Log the metric you want to monitor using :meth:`~pytorch_lightning.core.lightning.LightningModule.log` method.
+- Log the metric you want to monitor using :meth:`~pytorch_lightning.core.module.LightningModule.log` method.
 - Init the callback, and set ``monitor`` to the logged metric of your choice.
 - Set the ``mode`` based on the metric needs to be monitored.
 - Pass the :class:`~pytorch_lightning.callbacks.early_stopping.EarlyStopping` callback to the :class:`~pytorch_lightning.trainer.trainer.Trainer` callbacks flag.

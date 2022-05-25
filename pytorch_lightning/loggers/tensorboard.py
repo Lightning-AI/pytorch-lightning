@@ -160,7 +160,7 @@ class TensorBoardLogger(Logger):
     def experiment(self) -> SummaryWriter:
         r"""
         Actual tensorboard object. To use TensorBoard features in your
-        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
+        :class:`~pytorch_lightning.core.module.LightningModule` do the following.
 
         Example::
 

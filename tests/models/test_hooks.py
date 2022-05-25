@@ -111,7 +111,7 @@ def test_training_epoch_end_metrics_collection_on_override(tmpdir):
     assert overridden_model.len_outputs == overridden_model.num_train_batches
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 @mock.patch(
     "pytorch_lightning.strategies.Strategy.lightning_module",
     new_callable=PropertyMock,
@@ -170,7 +170,7 @@ def test_apply_batch_transfer_handler(model_getter_mock):
     assert torch.allclose(batch_gpu.targets.cpu(), torch.ones(5, 1, dtype=torch.long) * 2)
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_transfer_batch_hook_ddp(tmpdir):
     """Test custom data are properly moved to the right device using ddp."""
 
@@ -439,13 +439,16 @@ class HookedModel(BoringModel):
     [
         {},
         # these precision plugins modify the optimization flow, so testing them explicitly
-        pytest.param(dict(accelerator="gpu", devices=1, precision=16, amp_backend="native"), marks=RunIf(min_gpus=1)),
         pytest.param(
-            dict(accelerator="gpu", devices=1, precision=16, amp_backend="apex"), marks=RunIf(min_gpus=1, amp_apex=True)
+            dict(accelerator="gpu", devices=1, precision=16, amp_backend="native"), marks=RunIf(min_cuda_gpus=1)
+        ),
+        pytest.param(
+            dict(accelerator="gpu", devices=1, precision=16, amp_backend="apex"),
+            marks=RunIf(min_cuda_gpus=1, amp_apex=True),
         ),
         pytest.param(
             dict(accelerator="gpu", devices=1, precision=16, strategy="deepspeed"),
-            marks=RunIf(min_gpus=1, standalone=True, deepspeed=True),
+            marks=RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True),
         ),
     ],
 )
@@ -521,7 +524,6 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         dict(name="Callback.on_pretrain_routine_end", args=(trainer, model)),
         dict(name="on_pretrain_routine_end"),
         dict(name="Callback.on_sanity_check_start", args=(trainer, model)),
-        dict(name="on_val_dataloader"),
         dict(name="val_dataloader"),
         dict(name="train", args=(False,)),
         dict(name="on_validation_model_eval"),
@@ -536,7 +538,6 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
         dict(name="Callback.on_sanity_check_end", args=(trainer, model)),
         # duplicate `train` because `_run_train` calls it again in case validation wasn't run
         dict(name="train", args=(True,)),
-        dict(name="on_train_dataloader"),
         dict(name="train_dataloader"),
         dict(name="Callback.on_train_start", args=(trainer, model)),
         dict(name="on_train_start"),
@@ -642,7 +643,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_epochs(tmpdir):
         dict(name="Callback.on_pretrain_routine_end", args=(trainer, model)),
         dict(name="on_pretrain_routine_end"),
         dict(name="train", args=(True,)),
-        dict(name="on_train_dataloader"),
         dict(name="train_dataloader"),
         dict(name="Callback.on_train_start", args=(trainer, model)),
         dict(name="on_train_start"),
@@ -738,7 +738,6 @@ def test_trainer_model_hook_system_fit_no_val_and_resume_max_steps(tmpdir):
         dict(name="Callback.on_pretrain_routine_end", args=(trainer, model)),
         dict(name="on_pretrain_routine_end"),
         dict(name="train", args=(True,)),
-        dict(name="on_train_dataloader"),
         dict(name="train_dataloader"),
         dict(name="Callback.on_train_start", args=(trainer, model)),
         dict(name="on_train_start"),
@@ -789,7 +788,6 @@ def test_trainer_model_hook_system_eval(tmpdir, batches, verb, noun, dataloader,
     fn = getattr(trainer, verb)
     fn(model, verbose=False)
     hooks = [
-        dict(name=f"on_{dataloader}_dataloader"),
         dict(name=f"{dataloader}_dataloader"),
         dict(name="train", args=(False,)),
         dict(name=f"on_{noun}_model_eval"),
@@ -842,7 +840,6 @@ def test_trainer_model_hook_system_predict(tmpdir):
         dict(name="setup", kwargs=dict(stage="predict")),
         dict(name="configure_sharded_model"),
         dict(name="Callback.on_configure_sharded_model", args=(trainer, model)),
-        dict(name="on_predict_dataloader"),
         dict(name="predict_dataloader"),
         dict(name="train", args=(False,)),
         dict(name="on_predict_model_eval"),

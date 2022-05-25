@@ -23,7 +23,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.runif import RunIf
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
     ["nb", "expected_gpu_idxs", "expected_error"],
     [(0, [], MisconfigurationException), (-1, list(range(torch.cuda.device_count())), None), (1, [0], None)],
