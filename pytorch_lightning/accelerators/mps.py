@@ -53,8 +53,7 @@ class MPSAccelerator(Accelerator):
     @staticmethod
     def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
-        parsed_devices = device_parser.parse_gpu_ids(devices, include_mps=True)
-        assert parsed_devices is not None
+        parsed_devices = MPSAccelerator.parse_devices(devices)
 
         return [torch.device("mps", i) for i in range(len(parsed_devices))]
 
