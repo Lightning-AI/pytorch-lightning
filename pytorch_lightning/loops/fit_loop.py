@@ -204,8 +204,8 @@ class FitLoop(Loop[None]):
         if not self._iteration_based_training():
             self.epoch_progress.current.completed = self.epoch_progress.current.processed
 
-        # reset train dataloader and val dataloader
         self.trainer.reset_train_dataloader(self.trainer.lightning_module)
+        # reload the evaluation dataloaders too for proper display in the progress bar
         self.epoch_loop.val_loop._reload_evaluation_dataloaders()
 
         data_fetcher_cls = _select_data_fetcher(self.trainer)

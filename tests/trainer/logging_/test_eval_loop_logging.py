@@ -976,7 +976,7 @@ def test_rich_print_results(inputs, expected):
 
 
 @mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
-@pytest.mark.parametrize("num_dataloaders", [1, 2])
+@pytest.mark.parametrize("num_dataloaders", (1, 2))
 def test_eval_step_logging(mock_log_metrics, tmpdir, num_dataloaders):
     """Test that eval step during fit/validate/test is updated correctly."""
 
@@ -993,6 +993,9 @@ def test_eval_step_logging(mock_log_metrics, tmpdir, num_dataloaders):
         def test_dataloader(self):
             return [super().test_dataloader()] * num_dataloaders
 
+        validation_epoch_end = None
+        test_epoch_end = None
+
     limit_batches = 4
     max_epochs = 3
     trainer = Trainer(
@@ -1003,8 +1006,6 @@ def test_eval_step_logging(mock_log_metrics, tmpdir, num_dataloaders):
         limit_test_batches=limit_batches,
     )
     model = CustomBoringModel()
-    model.validation_epoch_end = None
-    model.test_epoch_end = None
 
     trainer.fit(model)
     trainer.validate(model)
