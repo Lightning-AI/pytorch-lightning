@@ -54,6 +54,7 @@ class MPSAccelerator(Accelerator):
     def get_parallel_devices(devices: Union[int, str, List[int]]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
         parsed_devices = MPSAccelerator.parse_devices(devices)
+        assert parsed_devices is not None
 
         return [torch.device("mps", i) for i in range(len(parsed_devices))]
 
