@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added `LightningModule.prediction_epoch_end` to make `ModelHooks.on_predict_epoch_end` consitent with the other model hooks of the same type: `ModelHooks.on_train_epoch_end`, `ModelHooks.on_validation_epoch_end`, `ModelHooks.on_test_epoch_end` ([#13143](https://github.com/PyTorchLightning/pytorch-lightning/pull/13143))
+
 - Added support for reloading the last checkpoint saved by passing `ckpt_path="last"` ([#12816](https://github.com/PyTorchLightning/pytorch-lightning/pull/12816))
 
 
@@ -100,6 +102,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 -
 
 ### Deprecated
+
+- Deprecated `outputs` from the `ModelHooks.on_predict_epoch_end` method ([#13143](https://github.com/PyTorchLightning/pytorch-lightning/pull/13143))
+
+- Deprecated `should_store_predictions` property from the PredictionEpochLoop class ([#13143](https://github.com/PyTorchLightning/pytorch-lightning/pull/13143))
 
 - Deprecated `pytorch_lightning.loggers.base.LightningLoggerBase` in favor of `pytorch_lightning.loggers.logger.Logger`, and deprecated `pytorch_lightning.loggers.base` in favor of `pytorch_lightning.loggers.logger` ([#120148](https://github.com/PyTorchLightning/pytorch-lightning/pull/12014))
 
