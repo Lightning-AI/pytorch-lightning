@@ -1764,9 +1764,8 @@ class Trainer(
             gpu_available = False
             gpu_type = ""
 
-        rank_zero_info(
-            f"GPU available: {gpu_available}{gpu_type}, used: {isinstance(self.accelerator, (GPUAccelerator, MPSAccelerator))}"
-        )
+        gpu_used = isinstance(self.accelerator, (GPUAccelerator, MPSAccelerator))
+        rank_zero_info(f"GPU available: {gpu_available}{gpu_type}, used: {gpu_used}")
 
         num_tpu_cores = self.num_devices if isinstance(self.accelerator, TPUAccelerator) else 0
         rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
