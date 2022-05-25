@@ -45,7 +45,7 @@ log = logging.getLogger(__name__)
 warning_cache = WarningCache()
 
 
-class BaseModelCheckpoint(Callback):
+class Checkpoint(Callback):
     r"""
     This is the base class for Model checkpointing. Expert users may want to subclass it in case of writing
     custom :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callback, so that
@@ -53,7 +53,7 @@ class BaseModelCheckpoint(Callback):
     """
 
 
-class ModelCheckpoint(BaseModelCheckpoint):
+class ModelCheckpoint(Checkpoint):
     r"""
     Save the model periodically by monitoring a quantity. Every metric logged with
     :meth:`~pytorch_lightning.core.lightning.log` or :meth:`~pytorch_lightning.core.lightning.log_dict` in

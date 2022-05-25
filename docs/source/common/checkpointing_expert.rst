@@ -12,7 +12,7 @@ TODO: I don't understand this...
 Writing your own Checkpoint class
 *********************************
 
-We provide ``BaseModelCheckpoint`` class, for easier subclassing. Users may want to subclass it in case of writing custom ``ModelCheckpoint`` callback, so that the ``Trainer`` recognizes the custom class as a checkpointing callback.
+We provide ``Checkpoint`` class, for easier subclassing. Users may want to subclass this class in case of writing custom ``ModelCheckpoint`` callback, so that the ``Trainer`` recognizes the custom class as a checkpointing callback.
 
 
 ***********************

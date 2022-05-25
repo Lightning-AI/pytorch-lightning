@@ -23,7 +23,7 @@ from weakref import ReferenceType
 
 import torch.nn as nn
 
-from pytorch_lightning.callbacks.model_checkpoint import BaseModelCheckpoint
+from pytorch_lightning.callbacks.model_checkpoint import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _WANDB_GREATER_EQUAL_0_10_22, _WANDB_GREATER_EQUAL_0_12_10
@@ -461,7 +461,7 @@ class WandbLogger(Logger):
         # don't create an experiment if we don't have one
         return self._experiment.id if self._experiment else self._id
 
-    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[BaseModelCheckpoint]") -> None:
+    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
         # log checkpoints as artifacts
         if self._log_model == "all" or self._log_model is True and checkpoint_callback.save_top_k == -1:
             self._scan_and_log_checkpoints(checkpoint_callback)
@@ -474,7 +474,7 @@ class WandbLogger(Logger):
         if self._checkpoint_callback:
             self._scan_and_log_checkpoints(self._checkpoint_callback)
 
-    def _scan_and_log_checkpoints(self, checkpoint_callback: "ReferenceType[BaseModelCheckpoint]") -> None:
+    def _scan_and_log_checkpoints(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
         # get checkpoints to be saved with associated score
         checkpoints = {
             checkpoint_callback.last_model_path: checkpoint_callback.current_score,

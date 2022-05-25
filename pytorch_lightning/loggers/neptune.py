@@ -30,7 +30,7 @@ from weakref import ReferenceType
 import torch
 
 from pytorch_lightning import __version__
-from pytorch_lightning.callbacks.model_checkpoint import BaseModelCheckpoint
+from pytorch_lightning.callbacks.model_checkpoint import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.imports import _NEPTUNE_AVAILABLE, _NEPTUNE_GREATER_EQUAL_0_9
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _sanitize_callable_params
@@ -533,7 +533,7 @@ class NeptuneLogger(Logger):
         )
 
     @rank_zero_only
-    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[BaseModelCheckpoint]") -> None:
+    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
         """Automatically log checkpointed model. Called after model checkpoint callback saves a new checkpoint.
 
         Args:
@@ -580,7 +580,7 @@ class NeptuneLogger(Logger):
             )
 
     @staticmethod
-    def _get_full_model_name(model_path: str, checkpoint_callback: "ReferenceType[BaseModelCheckpoint]") -> str:
+    def _get_full_model_name(model_path: str, checkpoint_callback: "ReferenceType[Checkpoint]") -> str:
         """Returns model name which is string `model_path` appended to `checkpoint_callback.dirpath`."""
         expected_model_path = f"{checkpoint_callback.dirpath}{os.path.sep}"
         if not model_path.startswith(expected_model_path):
