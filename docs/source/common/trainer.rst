@@ -872,7 +872,7 @@ Useful when debugging or testing something that happens at the end of an epoch.
     trainer = Trainer(limit_val_batches=10)
 
     # disable validation
-    trainer = Trainer(limit_val_batches=0.0)
+    trainer = Trainer(limit_val_batches=0)
 
 In the case of multiple validation dataloaders, the limit applies to each dataloader individually.
 
