@@ -588,10 +588,6 @@ def test_metric_are_properly_reduced(tmpdir, accelerator):
             self.log("val_acc", self.val_acc, on_step=True, on_epoch=True)
             return super().validation_step(batch, batch_idx)
 
-        def on_validation_epoch_end(self, *args, **kwargs):
-            if self.val_acc.tn + self.val_acc.tp + self.val_acc.fn + self.val_acc.fp > 2:
-                raise RuntimeError
-
     early_stop = EarlyStopping(monitor="val_acc", mode="max")
 
     checkpoint = ModelCheckpoint(monitor="val_acc", save_last=True, save_top_k=2, mode="max")
