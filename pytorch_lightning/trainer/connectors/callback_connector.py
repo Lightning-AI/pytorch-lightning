@@ -260,7 +260,7 @@ class CallbackConnector:
 
     @staticmethod
     def _reorder_callbacks(callbacks: List[Callback]) -> List[Callback]:
-        """Moves all BaseModelCheckpoint callbacks to the end of the list. The sequential order within the group of
+        """Moves all Checkpoint callbacks to the end of the list. The sequential order within the group of
         checkpoint callbacks is preserved, as well as the order of all other callbacks.
 
         Args:
