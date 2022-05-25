@@ -1759,7 +1759,6 @@ class Trainer(
         elif MPSAccelerator.is_available():
             gpu_available = True
             gpu_type = " (mps)"
-
         else:
             gpu_available = False
             gpu_type = ""
