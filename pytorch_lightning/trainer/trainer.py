@@ -89,7 +89,6 @@ from pytorch_lightning.tuner.tuning import Tuner
 from pytorch_lightning.utilities import (
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
-    _MPS_AVAILABLE,
     _TPU_AVAILABLE,
     AMPType,
     GradClipAlgorithmType,
@@ -1753,9 +1752,20 @@ class Trainer(
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
 
     def _log_device_info(self) -> None:
-        # TODO(justusschock): should this include the nvidia gpus only or mps as well?
+
+        if GPUAccelerator.is_available():
+            gpu_available = True
+            gpu_type = " (cuda)"
+        elif MPSAccelerator.is_available():
+            gpu_available = True
+            gpu_type = " (mps)"
+
+        else:
+            gpu_available = False
+            gpu_type = ""
+
         rank_zero_info(
-            f"GPU available: {torch.cuda.is_available()}, used: {isinstance(self.accelerator, GPUAccelerator)}"
+            f"GPU available: {gpu_available}{gpu_type}, used: {isinstance(self.accelerator, (GPUAccelerator, MPSAccelerator))}"
         )
 
         num_tpu_cores = self.num_devices if isinstance(self.accelerator, TPUAccelerator) else 0
@@ -1767,9 +1777,7 @@ class Trainer(
         num_hpus = self.num_devices if isinstance(self.accelerator, HPUAccelerator) else 0
         rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
 
-        num_mps = self.num_devices if isinstance(self.accelerator, MPSAccelerator) else 0
-        rank_zero_info(f"MPS available: {_MPS_AVAILABLE}, using {num_mps} MPS")
-
+        # TODO: Integrate MPS Accelerator here, once gpu maps to both
         if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
             rank_zero_warn(
                 "GPU available but not used. Set `accelerator` and `devices` using"
@@ -1795,7 +1803,7 @@ class Trainer(
                 f" `Trainer(accelerator='hpu', devices={HPUAccelerator.auto_device_count()})`."
             )
 
-        if _MPS_AVAILABLE and not isinstance(self.accelerator, MPSAccelerator):
+        if MPSAccelerator.is_available() and not isinstance(self.accelerator, MPSAccelerator):
             rank_zero_warn(
                 "MPS available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='mps', devices={MPSAccelerator.auto_device_count()})`."
