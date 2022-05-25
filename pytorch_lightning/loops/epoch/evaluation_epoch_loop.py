@@ -49,7 +49,7 @@ class EvaluationEpochLoop(Loop):
         self._dl_max_batches = 0
         self._data_fetcher: Optional[AbstractDataFetcher] = None
         self._dataloader_state_dict: Dict[str, Any] = {}
-        self._seen_batches = [0]
+        self._dl_batch_idx = [0]
 
     @property
     def done(self) -> bool:
@@ -153,8 +153,8 @@ class EvaluationEpochLoop(Loop):
         # log batch metrics
         if not self.trainer.sanity_checking:
             dataloader_idx = kwargs.get("dataloader_idx", 0)
-            self.trainer._logger_connector.update_eval_step_metrics(self._seen_batches[dataloader_idx])
-            self._seen_batches[dataloader_idx] += 1
+            self.trainer._logger_connector.update_eval_step_metrics(self._dl_batch_idx[dataloader_idx])
+            self._dl_batch_idx[dataloader_idx] += 1
 
         # track epoch level outputs
         if self._should_track_batch_outputs_for_epoch_end() and output is not None:
@@ -306,5 +306,5 @@ class EvaluationEpochLoop(Loop):
             return is_overridden("test_epoch_end", model)
         return is_overridden("validation_epoch_end", model)
 
-    def _initialize_batch_idx_tracker(self, num_dataloaders: int) -> None:
-        self._seen_batches = [0] * num_dataloaders
+    def _reset_dl_batch_idx(self, num_dataloaders: int) -> None:
+        self._dl_batch_idx = [0] * num_dataloaders
