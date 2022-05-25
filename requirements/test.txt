@@ -1,4 +1,4 @@
-coverage>5.2.0,<6.3
+coverage>=6.4
 codecov>=2.1
 pytest>=6.0
 pytest-rerunfailures>=10.2
