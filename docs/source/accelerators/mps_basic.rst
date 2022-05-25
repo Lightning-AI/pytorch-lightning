@@ -6,6 +6,14 @@ MPS training (basic)
 ====================
 **Audience:** Users looking to train on their Apple silicon GPUs.
 
+.. warning::
+
+   The MPS accelerator as well as the PyTorch backend are still very experimental. 
+   So far not all operations are supported, but more ops are coming every day due to development from the PyTorch Team.
+   You can use ``PYTORCH_ENABLE_MPS_FALLBACK=1 python your_script.py`` to fall back to cpu for unsupported operations.
+   We will do our very best to keep this accelerator up and running, but so far were unable to find a suitable CI provider making this a lot of manual work.
+
+
 ----
 
 What is Apple silicon?
