@@ -45,4 +45,4 @@ Enable the following Trainer arguments to run on Apple silicon gpus (MPS devices
 
 What does MPS stand for?
 ------------------------
-MPS is short for Metal Performance Shaders which is the technology used in the back for gpu communication and computing.
+MPS is short for `Metal Performance Shaders <https://developer.apple.com/metal/>`_  which is the technology used in the back for gpu communication and computing.
