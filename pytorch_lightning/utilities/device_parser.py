@@ -197,7 +197,7 @@ def _sanitize_gpu_ids(gpus: List[int], include_cuda: bool = False, include_mps: 
         MisconfigurationException:
             If machine has fewer available GPUs than requested.
     """
-    if not sum([int(include_cuda), int(include_mps)]) > 0:
+    if sum((include_cuda, include_mps)) == 0:
         raise ValueError("At least one gpu type should be specified!")
     all_available_gpus = _get_all_available_gpus(include_cuda=include_cuda, include_mps=include_mps)
     for gpu in gpus:
