@@ -116,7 +116,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `pytorch_lightning.core.lightning.LightningModule` in favor of `pytorch_lightning.core.module.LightningModule` ([#12740](https://github.com/PyTorchLightning/pytorch-lightning/pull/12740))
 
 
--
+- Deprecated `Trainer.reset_train_val_dataloaderrs()` in favor of `Trainer.reset_{train,val}_dataloader` ([#12184](https://github.com/PyTorchLightning/pytorch-lightning/pull/12184))
 
 ### Removed
 

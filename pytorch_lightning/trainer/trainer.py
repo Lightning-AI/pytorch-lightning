@@ -1950,7 +1950,15 @@ class Trainer(
 
         Args:
             model: The ``LightningModule`` if called outside of the trainer scope.
+
+        .. deprecated:: v1.7
+            This method is deprecated in v1.7 and will be removed in v1.9.
+            Please use ``Trainer.reset_{train,val}_dataloader`` instead.
         """
+        rank_zero_deprecation(
+            "`Trainer.reset_train_val_dataloaders` has been deprecated in v1.7 and will be removed in v1.9."
+            " Use `Trainer.reset_{train,val}_dataloader` instead"
+        )
         if self.train_dataloader is None:
             self.reset_train_dataloader(model=model)
         if self.val_dataloaders is None:
