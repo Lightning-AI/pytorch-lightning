@@ -151,10 +151,7 @@ class PredictionEpochLoop(Loop):
 
         self.batch_progress.increment_completed()
 
-        if self.should_store_predictions:
-            #
-            # This condition will be taken the place by below.
-            # if self._should_track_batch_outputs_for_epoch_end() and predictions is not None:
+        if self._should_track_batch_outputs_for_epoch_end() and self.should_store_predictions:
             self.predictions.append(move_data_to_device(predictions, torch.device("cpu")))
 
     def _build_kwargs(self, batch: Any, batch_idx: int, dataloader_idx: int) -> Dict[str, Any]:
