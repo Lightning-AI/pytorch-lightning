@@ -143,6 +143,12 @@ search for batch sizes larger than the size of the training dataset.
         datamodule = LitDataModule(batch_size=32)
         trainer.tune(model, datamodule=datamodule)
 
+    Note that the ``train_dataloader`` can be either part of 
+    the ``LightningModule`` or ``LightningDataModule`` 
+    as shown above. If both the ``LightningModule`` 
+    and the ``LightningDataModule`` contain a ``train_dataloader``, 
+    the ``LightningDataModule`` takes precedence.
+
 .. warning::
 
     Due to the constraints listed above, this features does *NOT* work when passing dataloaders directly
