@@ -48,7 +48,7 @@ class DeviceAssertCallback(Callback):
 
 @pytest.mark.parametrize("dst_dtype", [torch.float, torch.double, torch.half])
 @pytest.mark.parametrize("dst_device", [torch.device("cpu"), torch.device("cuda", 0)])
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_submodules_device_and_dtype(dst_device, dst_dtype):
     """Test that the device and dtype property updates propagate through mixed nesting of regular nn.Modules and
     the special modules of type DeviceDtypeModuleMixin (e.g. Metric or LightningModule)."""
@@ -64,7 +64,7 @@ def test_submodules_device_and_dtype(dst_device, dst_dtype):
     assert model.dtype == model.module.module.dtype == dst_dtype
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_submodules_multi_gpu_dp(tmpdir):
     model = TopModule()
     trainer = Trainer(
@@ -78,7 +78,7 @@ def test_submodules_multi_gpu_dp(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_submodules_multi_gpu_ddp_spawn(tmpdir):
     model = TopModule()
     trainer = Trainer(
@@ -100,7 +100,7 @@ def test_submodules_multi_gpu_ddp_spawn(tmpdir):
         torch.device("cuda", 0),
     ],
 )
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_gpu_cuda_device(device):
     model = TopModule()
 

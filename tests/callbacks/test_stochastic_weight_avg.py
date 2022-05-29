@@ -146,12 +146,12 @@ def train_with_swa(
     assert trainer.lightning_module == model
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_swa_callback_ddp(tmpdir):
     train_with_swa(tmpdir, strategy="ddp", accelerator="gpu", devices=2)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_swa_callback_ddp_spawn(tmpdir):
     train_with_swa(tmpdir, strategy="ddp_spawn", accelerator="gpu", devices=2)
 
@@ -161,7 +161,7 @@ def test_swa_callback_ddp_cpu(tmpdir):
     train_with_swa(tmpdir, strategy="ddp_spawn", accelerator="cpu", devices=2)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_swa_callback_1_gpu(tmpdir):
     train_with_swa(tmpdir, accelerator="gpu", devices=1)
 

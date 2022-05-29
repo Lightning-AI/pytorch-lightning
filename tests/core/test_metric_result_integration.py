@@ -99,7 +99,7 @@ def _ddp_test_fn(rank, worldsize):
         assert epoch_log == {"b": cumulative_sum * worldsize, "a_epoch": cumulative_sum * worldsize}
 
 
-@RunIf(min_gpus=2, skip_windows=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True)
 def test_result_reduce_ddp():
     """Make sure result logging works with DDP."""
     tutils.set_random_main_port()
@@ -298,7 +298,7 @@ def test_result_collection_restoration(tmpdir):
         batch_idx = None
 
 
-@pytest.mark.parametrize("device", ("cpu", pytest.param("cuda", marks=RunIf(min_gpus=1))))
+@pytest.mark.parametrize("device", ("cpu", pytest.param("cuda", marks=RunIf(min_cuda_gpus=1))))
 def test_lightning_module_logging_result_collection(tmpdir, device):
     class LoggingModel(BoringModel):
         def __init__(self):
@@ -474,13 +474,13 @@ def test_result_collection_reload(tmpdir):
     result_collection_reload(default_root_dir=tmpdir)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload_1_gpu_ddp(tmpdir):
     result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator="gpu")
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload_2_gpus(tmpdir):
     result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator="gpu", devices=2)

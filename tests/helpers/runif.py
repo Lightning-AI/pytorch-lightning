@@ -64,7 +64,7 @@ class RunIf:
     def __new__(
         self,
         *args,
-        min_gpus: int = 0,
+        min_cuda_gpus: int = 0,
         min_torch: Optional[str] = None,
         max_torch: Optional[str] = None,
         min_python: Optional[str] = None,
@@ -93,7 +93,7 @@ class RunIf:
         """
         Args:
             *args: Any :class:`pytest.mark.skipif` arguments.
-            min_gpus: Require this number of gpus.
+            min_cuda_gpus: Require this number of gpus.
             min_torch: Require that PyTorch is greater or equal than this version.
             max_torch: Require that PyTorch is less than this version.
             min_python: Require that Python is greater or equal than this version.
@@ -122,9 +122,9 @@ class RunIf:
         conditions = []
         reasons = []
 
-        if min_gpus:
-            conditions.append(torch.cuda.device_count() < min_gpus)
-            reasons.append(f"GPUs>={min_gpus}")
+        if min_cuda_gpus:
+            conditions.append(torch.cuda.device_count() < min_cuda_gpus)
+            reasons.append(f"GPUs>={min_cuda_gpus}")
 
         if min_torch:
             torch_version = get_distribution("torch").version

@@ -33,7 +33,7 @@ class BoringModel4QAdam(BoringModel):
         return [optimizer], [lr_scheduler]
 
 
-@RunIf(min_gpus=1, bagua=True)
+@RunIf(min_cuda_gpus=1, bagua=True)
 def test_bagua_default(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -45,7 +45,7 @@ def test_bagua_default(tmpdir):
     assert isinstance(trainer.strategy, BaguaStrategy)
 
 
-@RunIf(min_gpus=2, bagua=True)
+@RunIf(min_cuda_gpus=2, bagua=True)
 def test_bagua_manual(tmpdir):
     class ManualBackwardModel(BoringModel):
         def __init__(self):
@@ -75,7 +75,7 @@ def test_bagua_manual(tmpdir):
         assert torch.norm(param) < 3
 
 
-@RunIf(min_gpus=2, standalone=True, bagua=True)
+@RunIf(min_cuda_gpus=2, standalone=True, bagua=True)
 def test_async_algorithm(tmpdir):
     model = BoringModel()
     bagua_strategy = BaguaStrategy(algorithm="async")
@@ -94,7 +94,7 @@ def test_async_algorithm(tmpdir):
         assert torch.norm(param) < 3
 
 
-@RunIf(min_gpus=1, bagua=True)
+@RunIf(min_cuda_gpus=1, bagua=True)
 @pytest.mark.parametrize(
     "algorithm", ["gradient_allreduce", "bytegrad", "qadam", "decentralized", "low_precision_decentralized"]
 )
@@ -122,7 +122,7 @@ def test_configuration(algorithm, tmpdir):
             trainer.strategy.configure_ddp()
 
 
-@RunIf(min_gpus=1, bagua=True)
+@RunIf(min_cuda_gpus=1, bagua=True)
 def test_qadam_configuration(tmpdir):
     model = BoringModel4QAdam()
     bagua_strategy = BaguaStrategy(algorithm="qadam")

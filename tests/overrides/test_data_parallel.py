@@ -72,7 +72,7 @@ def test_unsqueeze_scalar_tensor(inp, expected):
     assert torch.all(unsqueeze_scalar_tensor(inp).eq(expected))
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_lightning_parallel_module_unsqueeze_scalar():
     """Test that LightningParallelModule takes care of un-squeezeing 0-dim tensors."""
 
@@ -114,7 +114,7 @@ def test_python_scalar_to_tensor(inp, expected):
     assert torch.all(python_scalar_to_tensor(inp).eq(expected))
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
 def test_lightning_parallel_module_python_scalar_conversion(device):
     """Test that LightningParallelModule can convert Python scalars to tensors."""
@@ -139,7 +139,7 @@ def test_lightning_parallel_module_python_scalar_conversion(device):
     assert output["python scalar"] == torch.tensor([12.3], device=device)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
     "nest, unnest",
     [
@@ -181,7 +181,7 @@ def test_lightning_parallel_module_device_access(nest, unnest):
     assert torch.all(output.cpu().eq(torch.tensor([1, 1])))
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_lightning_parallel_module_device_access_warning():
     """Test that we show a warning when the device can't be inferred from the input."""
 
