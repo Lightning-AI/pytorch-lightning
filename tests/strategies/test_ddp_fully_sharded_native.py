@@ -102,7 +102,7 @@ class TestFSDPModel(BoringModel):
         assert self.layer.module[2].reshard_after_forward is True
 
 
-@RunIf(min_gpus=2, skip_windows=True, standalone=True, min_torch="1.12dev")
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12dev")
 def test_fully_sharded_native_strategy_sync_batchnorm(tmpdir):
     """Test to ensure that sync_batchnorm works when using fsdp_native and GPU, and all stages can be run."""
 
@@ -119,7 +119,7 @@ def test_fully_sharded_native_strategy_sync_batchnorm(tmpdir):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
-@RunIf(min_gpus=1, skip_windows=True, standalone=True, min_torch="1.12dev")
+@RunIf(min_cuda_gpus=1, skip_windows=True, standalone=True, min_torch="1.12dev")
 def test_fully_sharded_native_strategy_checkpoint(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
 
@@ -130,7 +130,7 @@ def test_fully_sharded_native_strategy_checkpoint(tmpdir):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
-@RunIf(min_gpus=2, skip_windows=True, standalone=True, min_torch="1.12dev")
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12dev")
 def test_fully_sharded_native_strategy_checkpoint_multi_gpus(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
 

@@ -29,7 +29,7 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_device_stats_gpu_from_torch(tmpdir):
     """Test GPU stats are logged using a logger."""
     model = BoringModel()

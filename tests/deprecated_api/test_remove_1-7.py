@@ -61,11 +61,6 @@ def test_v1_7_0_on_interrupt(tmpdir):
         trainer.fit(model)
 
 
-def test_v1_7_0_flush_logs_every_n_steps_trainer_constructor(tmpdir):
-    with pytest.deprecated_call(match=r"Setting `Trainer\(flush_logs_every_n_steps=10\)` is deprecated in v1.5"):
-        _ = Trainer(flush_logs_every_n_steps=10)
-
-
 class BoringCallbackDDPSpawnModel(BoringModel):
     def add_to_queue(self, queue):
         ...

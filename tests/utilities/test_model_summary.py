@@ -162,7 +162,7 @@ def test_empty_model_summary_shapes(max_depth):
     assert summary.param_nums == []
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize("max_depth", [-1, 1])
 @pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
 def test_linear_model_summary_shapes(device, max_depth):
@@ -295,7 +295,7 @@ def test_empty_model_size(max_depth):
     assert 0.0 == summary.model_size
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_model_size_precision(tmpdir):
     """Test model size for half and full precision."""
     model = PreCalculatedModel()
