@@ -639,6 +639,7 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
     assert trainer.global_step == trainer.max_steps, "Model did not stop at max_steps"
 
 
+@pytest.mark.parametrize("cudnn_benchmark", (False, True))
 @pytest.mark.parametrize(
     ["benchmark_", "deterministic", "expected"],
     [
@@ -653,17 +654,17 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
         (False, None, False),
     ],
 )
-def test_benchmark_option(benchmark_, deterministic, expected):
+def test_benchmark_option(cudnn_benchmark, benchmark_, deterministic, expected):
     """Verify benchmark option."""
-
     original_val = torch.backends.cudnn.benchmark
 
+    torch.backends.cudnn.benchmark = cudnn_benchmark
     if benchmark_ and deterministic:
         with pytest.warns(UserWarning, match="You passed `deterministic=True` and `benchmark=True`"):
             trainer = Trainer(benchmark=benchmark_, deterministic=deterministic)
     else:
         trainer = Trainer(benchmark=benchmark_, deterministic=deterministic)
-    expected = original_val if expected is None else expected
+    expected = cudnn_benchmark if expected is None else expected
     assert torch.backends.cudnn.benchmark == expected
     assert trainer._accelerator_connector.benchmark == expected
 
