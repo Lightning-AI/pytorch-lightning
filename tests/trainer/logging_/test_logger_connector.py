@@ -293,7 +293,7 @@ def test_fx_validator_integration(tmpdir):
         trainer.predict(model)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_epoch_results_cache_dp(tmpdir):
 
     root_device = torch.device("cuda", 0)

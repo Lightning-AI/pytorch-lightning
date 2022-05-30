@@ -65,7 +65,7 @@ def test_ddp_cpu():
     trainer.fit(model)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_ddp_spawn_extra_parameters(tmpdir):
     """Tests if device is set correctly when training for DDPSpawnStrategy and tests add_to_queue/get_from_queue
     with Lightning Module (deprecated way)."""

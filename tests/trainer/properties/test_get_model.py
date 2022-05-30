@@ -56,7 +56,7 @@ def test_get_model_ddp_cpu(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_get_model_gpu(tmpdir):
     """Tests that `trainer.lightning_module` extracts the model correctly when using GPU."""
 

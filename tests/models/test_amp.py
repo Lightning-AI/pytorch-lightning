@@ -99,7 +99,7 @@ def test_amp_cpus(tmpdir, strategy, precision, devices):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@RunIf(min_gpus=2, min_torch="1.10")
+@RunIf(min_cuda_gpus=2, min_torch="1.10")
 @pytest.mark.parametrize("strategy", [None, "dp", "ddp_spawn"])
 @pytest.mark.parametrize("precision", [16, pytest.param("bf16", marks=RunIf(bf16_cuda=True))])
 @pytest.mark.parametrize("devices", [1, 2])
@@ -124,7 +124,7 @@ def test_amp_gpus(tmpdir, strategy, precision, devices):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 @mock.patch.dict(
     os.environ,
     {
@@ -189,7 +189,7 @@ def test_amp_without_apex(bwd_mock, tmpdir):
     assert not bwd_mock.called
 
 
-@RunIf(min_gpus=1, amp_apex=True)
+@RunIf(min_cuda_gpus=1, amp_apex=True)
 @mock.patch("pytorch_lightning.plugins.precision.apex_amp.ApexMixedPrecisionPlugin.backward")
 def test_amp_with_apex(bwd_mock, tmpdir):
     """Check calling apex scaling in training."""

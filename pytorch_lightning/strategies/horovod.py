@@ -222,15 +222,10 @@ class HorovodStrategy(ParallelStrategy):
         )
 
     def teardown(self) -> None:
-        super().teardown()
         # teardown may be called before `_exit_stack` is set
         if self._exit_stack:
             self._exit_stack.__exit__(None, None, None)
             self._exit_stack = None
         # Make sure all workers have finished training before returning to the user
         self.join()
-        if self.root_device.type == "cuda":
-            # GPU teardown
-            self.lightning_module.cpu()
-            # clean up memory
-            torch.cuda.empty_cache()
+        super().teardown()
