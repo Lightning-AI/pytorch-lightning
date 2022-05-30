@@ -159,7 +159,6 @@ class Trainer(
         limit_test_batches: Optional[Union[int, float]] = None,
         limit_predict_batches: Optional[Union[int, float]] = None,
         val_check_interval: Optional[Union[int, float]] = None,
-        flush_logs_every_n_steps: Optional[int] = None,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
@@ -261,12 +260,6 @@ class Trainer(
             fast_dev_run: Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
                 of train, val and test to find any bugs (ie: a sort of unit test).
                 Default: ``False``.
-
-            flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
-
-                .. deprecated:: v1.5
-                    ``flush_logs_every_n_steps`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please configure flushing directly in the logger instead.
 
             gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
                 Default: ``None``.
@@ -557,7 +550,7 @@ class Trainer(
 
         # init logger flags
         self._loggers: List[Logger]
-        self._logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
+        self._logger_connector.on_trainer_init(logger, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
         self.val_check_interval: Union[int, float]
