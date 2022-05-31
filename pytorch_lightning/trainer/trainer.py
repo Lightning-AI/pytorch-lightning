@@ -174,7 +174,7 @@ class Trainer(
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
         profiler: Optional[Union[Profiler, str]] = None,
         benchmark: Optional[bool] = None,
-        deterministic: bool = False,
+        deterministic: Optional[bool] = None,
         reload_dataloaders_every_n_epochs: int = 0,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
@@ -229,9 +229,11 @@ class Trainer(
                 that only one process at a time can access them.
                 Default: ``False``.
 
-            benchmark: Sets ``torch.backends.cudnn.benchmark``.
-                Defaults to ``True`` if :paramref:`~pytorch_lightning.trainer.trainer.Trainer.deterministic`
-                is ``False``. Overwrite to manually set a different value. Default: ``None``.
+            benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
+                The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
+                (``False`` if not manually set). If :paramref:`~pytorch_lightning.trainer.Trainer.deterministic` is set
+                to ``True``, this will default to ``False``. Override to manually set a different value.
+                Default: ``None``.
 
             callbacks: Add a callback or list of callbacks.
                 Default: ``None``.
@@ -260,7 +262,8 @@ class Trainer(
                 Default: ``False``.
 
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
-                Default: ``False``.
+                If not set, defaults to ``False``.
+                Default: ``None``.
 
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
                 based on the accelerator type.
