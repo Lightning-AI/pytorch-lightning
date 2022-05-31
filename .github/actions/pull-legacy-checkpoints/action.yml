@@ -1,0 +1,8 @@
+name: 'Pull Legacy Checkpoints'
+description: 'Pull legacy checkpoints to test checkpointing for backward compatibility.'
+
+runs:
+  using: 'composite'
+  steps:
+  - name: Download and unarchive checkpoints
+    run: bash .github/scripts/pull_legacy_checkpoints.sh
