@@ -289,7 +289,7 @@ and the last true master commit is `ccc111` and your first commit is `mmm222`.
   ```bash
   git checkout my-branch
   # create a local backup of your branch
-  git checkout -b my-branch-backup
+  git branch my-branch-backup
   # reset your branch to the correct base
   git reset release/1.2-dev --hard
   # ACTION: this step is much easier to do with IDE
