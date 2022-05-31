@@ -32,7 +32,7 @@ from tests.utilities.distributed import call_training_script
 CLI_ARGS = "--max_epochs 1 --accelerator gpu --devices 2 --strategy ddp"
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize("as_module", [True, False])
 def test_multi_gpu_model_ddp_fit_only(tmpdir, as_module):
     # call the script
@@ -46,7 +46,7 @@ def test_multi_gpu_model_ddp_fit_only(tmpdir, as_module):
     assert result["status"] == "complete"
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize("as_module", [True, False])
 def test_multi_gpu_model_ddp_test_only(tmpdir, as_module):
     # call the script
@@ -60,7 +60,7 @@ def test_multi_gpu_model_ddp_test_only(tmpdir, as_module):
     assert result["status"] == "complete"
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize("as_module", [True, False])
 def test_multi_gpu_model_ddp_fit_test(tmpdir, as_module):
     # call the script
@@ -122,7 +122,7 @@ def test_ddp_torch_dist_is_available_in_setup(
             trainer.fit(model)
 
 
-@RunIf(min_gpus=2, min_torch="1.8.1", standalone=True)
+@RunIf(min_cuda_gpus=2, min_torch="1.8.1", standalone=True)
 @pytest.mark.parametrize("precision", (16, 32))
 def test_ddp_wrapper(tmpdir, precision):
     """Test parameters to ignore are carried over for DDP."""
