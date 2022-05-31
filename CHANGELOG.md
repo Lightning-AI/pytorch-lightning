@@ -63,7 +63,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added all DDP params to be exposed through hpu parallel strategy ([#13067](https://github.com/PyTorchLightning/pytorch-lightning/pull/13067))
 
 
--
+- Added `teardown()` method to `Accelerator` ([#11935](https://github.com/PyTorchLightning/pytorch-lightning/pull/11935))
 
 ### Changed
 
@@ -85,7 +85,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `LightningCLI`'s shorthand notation changed to use jsonargparse native feature ([#12614](https://github.com/PyTorchLightning/pytorch-lightning/pull/12614))
 
 
-- Changed `seed_everything_default` argument in the `LightningCLI` to type `Union[bool, int]`. If set to `True` a seed is automatically generated for the parser argument `--seed_everything`. ([#12822](https://github.com/PyTorchLightning/pytorch-lightning/pull/12822))
+- `LightningCLI` changed to use jsonargparse native support for list append ([#13129](https://github.com/PyTorchLightning/pytorch-lightning/pull/13129))
+
+
+- Changed `seed_everything_default` argument in the `LightningCLI` to type `Union[bool, int]`. If set to `True` a seed is automatically generated for the parser argument `--seed_everything`. ([#12822](https://github.com/PyTorchLightning/pytorch-lightning/pull/12822), [#13110](https://github.com/PyTorchLightning/pytorch-lightning/pull/13110))
 
 
 - Make positional arguments required for classes passed into the `add_argparse_args` function. ([#12504](https://github.com/PyTorchLightning/pytorch-lightning/pull/12504))
@@ -97,10 +100,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Changed `pytorch_lightning.core.lightning` to `pytorch_lightning.core.module` ([#12740](https://github.com/PyTorchLightning/pytorch-lightning/pull/12740))
 
 
-- `LightningCLI` changed to use jsonargparse native support for list append ([#13129](https://github.com/PyTorchLightning/pytorch-lightning/pull/13129))
+- Keep `torch.backends.cudnn.benchmark=False` by default (unlike in v1.6.{0-4}) after speed and memory problems depending on the data used. Please consider tuning `Trainer(benchmark)` manually. ([#13154](https://github.com/PyTorchLightning/pytorch-lightning/pull/13154))
 
 
--
+- Prevent modification of `torch.backends.cudnn.benchmark` when `Trainer(benchmark=...)` is not set ([#13154](https://github.com/PyTorchLightning/pytorch-lightning/pull/13154))
 
 ### Deprecated
 
@@ -119,9 +122,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `pytorch_lightning.core.lightning.LightningModule` in favor of `pytorch_lightning.core.module.LightningModule` ([#12740](https://github.com/PyTorchLightning/pytorch-lightning/pull/12740))
 
 
--
+- Deprecated `Trainer.reset_train_val_dataloaderrs()` in favor of `Trainer.reset_{train,val}_dataloader` ([#12184](https://github.com/PyTorchLightning/pytorch-lightning/pull/12184))
 
 ### Removed
+
+- Removed the deprecated `weights_summary` argument from the `Trainer` constructor ([#13070](https://github.com/PyTorchLightning/pytorch-lightning/pull/13070))
+
+
+- Removed the deprecated `flush_logs_every_n_steps` argument from the `Trainer` constructor ([#13074](https://github.com/PyTorchLightning/pytorch-lightning/pull/13074))
+
 
 - Removed the deprecated `process_position` argument from the `Trainer` constructor ([13071](https://github.com/PyTorchLightning/pytorch-lightning/pull/13071))
 
@@ -226,7 +235,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Avoid redundant callback restore warning while tuning ([#13026](https://github.com/PyTorchLightning/pytorch-lightning/pull/13026))
 
 
+- Fixed torchelastic detection with non-distributed installations ([#13142](https://github.com/PyTorchLightning/pytorch-lightning/pull/13142))
+
+
 - Fixed an issue wrt unnecessary usage of habana mixed precision package for fp32 types ([#13028](https://github.com/PyTorchLightning/pytorch-lightning/pull/13028))
+
+
+- Fixed issue where the CLI could not pass a `Profiler` to the `Trainer` ([#13084](https://github.com/PyTorchLightning/pytorch-lightning/pull/13084))
+
+
+- Fixed logging on step level for eval mode ([#12184](https://github.com/PyTorchLightning/pytorch-lightning/pull/12184))
 
 
 -

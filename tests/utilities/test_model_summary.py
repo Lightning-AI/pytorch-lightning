@@ -19,7 +19,6 @@ import torch.nn as nn
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_9
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize, UNKNOWN_SIZE
 from tests.helpers import BoringModel
 from tests.helpers.advanced_models import ParityModuleRNN
@@ -139,14 +138,9 @@ class DeepNestedModel(LightningModule):
         return self.head(self.branch1(inp), self.branch2(inp))
 
 
-def test_invalid_weights_summary():
-    """Test that invalid value for weights_summary raises an error."""
+def test_invalid_max_depth():
+    """Test that invalid value for max_depth raises an error."""
     model = LightningModule()
-
-    with pytest.raises(
-        MisconfigurationException, match="`weights_summary` can be None, .* got temp"
-    ), pytest.deprecated_call(match="weights_summary=temp)` is deprecated"):
-        Trainer(weights_summary="temp")
 
     with pytest.raises(ValueError, match="max_depth` can be .* got temp"):
         ModelSummary(model, max_depth="temp")
@@ -162,7 +156,7 @@ def test_empty_model_summary_shapes(max_depth):
     assert summary.param_nums == []
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize("max_depth", [-1, 1])
 @pytest.mark.parametrize("device", [torch.device("cpu"), torch.device("cuda", 0)])
 def test_linear_model_summary_shapes(device, max_depth):
@@ -295,7 +289,7 @@ def test_empty_model_size(max_depth):
     assert 0.0 == summary.model_size
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_model_size_precision(tmpdir):
     """Test model size for half and full precision."""
     model = PreCalculatedModel()

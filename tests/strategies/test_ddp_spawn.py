@@ -21,7 +21,7 @@ from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     tutils.set_random_main_port()
 
@@ -41,7 +41,7 @@ def test_multi_gpu_early_stop_ddp_spawn(tmpdir):
     tpipes.run_model_test(trainer_options, model, dm)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_multi_gpu_model_ddp_spawn(tmpdir):
     tutils.set_random_main_port()
 
@@ -61,7 +61,7 @@ def test_multi_gpu_model_ddp_spawn(tmpdir):
     tpipes.run_model_test(trainer_options, model)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_ddp_all_dataloaders_passed_to_fit(tmpdir):
     """Make sure DDP works with dataloaders passed to fit()"""
     tutils.set_random_main_port()

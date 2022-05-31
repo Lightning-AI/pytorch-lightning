@@ -61,11 +61,6 @@ def test_v1_7_0_on_interrupt(tmpdir):
         trainer.fit(model)
 
 
-def test_v1_7_0_flush_logs_every_n_steps_trainer_constructor(tmpdir):
-    with pytest.deprecated_call(match=r"Setting `Trainer\(flush_logs_every_n_steps=10\)` is deprecated in v1.5"):
-        _ = Trainer(flush_logs_every_n_steps=10)
-
-
 class BoringCallbackDDPSpawnModel(BoringModel):
     def add_to_queue(self, queue):
         ...
@@ -125,21 +120,6 @@ def test_v1_7_0_deprecate_parameter_validation():
         match="Using `pytorch_lightning.core.decorators.parameter_validation` is deprecated in v1.5"
     ):
         from pytorch_lightning.core.decorators import parameter_validation  # noqa: F401
-
-
-def test_v1_7_0_weights_summary_trainer(tmpdir):
-    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_summary=full\)` is deprecated in v1.5"):
-        t = Trainer(weights_summary="full")
-
-    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_summary=None\)` is deprecated in v1.5"):
-        t = Trainer(weights_summary=None)
-
-    t = Trainer(weights_summary="top")
-    with pytest.deprecated_call(match=r"`Trainer.weights_summary` is deprecated in v1.5"):
-        _ = t.weights_summary
-
-    with pytest.deprecated_call(match=r"Setting `Trainer.weights_summary` is deprecated in v1.5"):
-        t.weights_summary = "blah"
 
 
 def test_v1_7_0_deprecated_slurm_job_id():
