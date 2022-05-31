@@ -69,7 +69,7 @@ jobs:
         python requirements/check-avail-extras.py
       displayName: 'Env details'
 
-    - bash: bash ./.github/scripts/pull_legacy_checkpoints.sh
+    - bash: bash .actions/pull_legacy_checkpoints.sh
       displayName: 'Get legacy checkpoints'
 
     - bash: |

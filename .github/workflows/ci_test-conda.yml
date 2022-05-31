@@ -56,7 +56,7 @@ jobs:
         python requirements/check-avail-extras.py
 
     - name: Pull legacy checkpoints
-      run: bash .github/scripts/pull_legacy_checkpoints.sh
+      run: bash .actions/pull_legacy_checkpoints.sh
 
     - name: Tests
       run: |

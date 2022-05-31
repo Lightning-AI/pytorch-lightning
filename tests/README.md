@@ -22,7 +22,7 @@ pre-commit install
 Additionally, for testing backward compatibility with older versions of PyTorch Lightning, you also need to download all saved version-checkpoints from the public AWS storage. Run the following script to get all saved version-checkpoints:
 
 ```bash
-bash .github/scripts/pull_legacy_checkpoints.sh
+bash .actions/pull_legacy_checkpoints.sh
 ```
 
 Note: These checkpoints are generated to set baselines for maintaining backward compatibility with legacy versions of PyTorch Lightning. Details of checkpoints for back-compatibility can be found [here](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/legacy/README.md).
