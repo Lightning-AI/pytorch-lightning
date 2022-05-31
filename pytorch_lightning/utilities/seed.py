@@ -28,6 +28,9 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
+max_seed_value = np.iinfo(np.uint32).max
+min_seed_value = np.iinfo(np.uint32).min
+
 
 def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
     """Function that sets seed for pseudo-random number generators in: pytorch, numpy, python.random In addition,
@@ -45,9 +48,6 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
             for their dataloaders, setting this argument will have no influence. See also:
             :func:`~pytorch_lightning.utilities.seed.pl_worker_init_function`.
     """
-    max_seed_value = np.iinfo(np.uint32).max
-    min_seed_value = np.iinfo(np.uint32).min
-
     if seed is None:
         env_seed = os.environ.get("PL_GLOBAL_SEED")
         if env_seed is None:
@@ -80,9 +80,7 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
     return seed
 
 
-def _select_seed_randomly(
-    min_seed_value: int = np.iinfo(np.uint32).min, max_seed_value: int = np.iinfo(np.uint32).max
-) -> int:
+def _select_seed_randomly(min_seed_value: int = min_seed_value, max_seed_value: int = max_seed_value) -> int:
     return random.randint(min_seed_value, max_seed_value)
 
 
