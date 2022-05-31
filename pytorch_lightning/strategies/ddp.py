@@ -183,7 +183,7 @@ class DDPStrategy(ParallelStrategy):
             import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
 
             if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
-                self._enable_model_averaging(self._ddp_comm_state.start_localSGD_iter)
+                self._enable_model_averaging()
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
