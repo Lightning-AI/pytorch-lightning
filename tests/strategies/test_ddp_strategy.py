@@ -171,7 +171,7 @@ class CheckOptimizerDeviceModel(BoringModel):
         super().configure_optimizers()
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize("strategy", ("ddp", "ddp_spawn"))
 def test_model_parameters_on_device_for_optimizer(strategy):
     """Test that the strategy has moved the parameters to the device by the time the optimizer gets created."""
