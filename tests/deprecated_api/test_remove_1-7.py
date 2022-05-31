@@ -122,21 +122,6 @@ def test_v1_7_0_deprecate_parameter_validation():
         from pytorch_lightning.core.decorators import parameter_validation  # noqa: F401
 
 
-def test_v1_7_0_weights_summary_trainer(tmpdir):
-    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_summary=full\)` is deprecated in v1.5"):
-        t = Trainer(weights_summary="full")
-
-    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_summary=None\)` is deprecated in v1.5"):
-        t = Trainer(weights_summary=None)
-
-    t = Trainer(weights_summary="top")
-    with pytest.deprecated_call(match=r"`Trainer.weights_summary` is deprecated in v1.5"):
-        _ = t.weights_summary
-
-    with pytest.deprecated_call(match=r"Setting `Trainer.weights_summary` is deprecated in v1.5"):
-        t.weights_summary = "blah"
-
-
 def test_v1_7_0_deprecated_slurm_job_id():
     trainer = Trainer()
     with pytest.deprecated_call(match="Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0."):

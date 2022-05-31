@@ -234,10 +234,15 @@ class EvaluationLoop(DataLoaderLoop):
 
     def _reload_evaluation_dataloaders(self) -> None:
         """Reloads dataloaders if necessary."""
+        dataloaders = None
         if self.trainer.testing:
             self.trainer.reset_test_dataloader()
+            dataloaders = self.trainer.test_dataloaders
         elif self.trainer.val_dataloaders is None or self.trainer._data_connector._should_reload_val_dl:
             self.trainer.reset_val_dataloader()
+            dataloaders = self.trainer.val_dataloaders
+        if dataloaders is not None:
+            self.epoch_loop._reset_dl_batch_idx(len(dataloaders))
 
     def _on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
         """Runs ``on_{validation/test}_start`` hooks."""
