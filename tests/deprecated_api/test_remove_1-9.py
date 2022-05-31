@@ -17,6 +17,7 @@ from unittest import mock
 import pytest
 
 import pytorch_lightning.loggers.base as logger_base
+from pytorch_lightning import Trainer
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.utilities.cli import LightningCLI
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
@@ -106,6 +107,12 @@ def test_old_callback_path():
     from pytorch_lightning.callbacks.base import Callback
 
     with pytest.deprecated_call(
-        match="pytorch_lightning.callbacks.base.Callback has been deprecated in v1.7" " and will be removed in v1.9."
+        match="pytorch_lightning.callbacks.base.Callback has been deprecated in v1.7 and will be removed in v1.9."
     ):
         Callback()
+
+
+def test_deprecated_dataloader_reset():
+    trainer = Trainer()
+    with pytest.deprecated_call(match="reset_train_val_dataloaders` has been deprecated in v1.7"):
+        trainer.reset_train_val_dataloaders()
