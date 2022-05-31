@@ -44,7 +44,6 @@ def test_mps_availability():
 @RunIf(mps=True)
 def test_warning_if_mps_not_used():
     with pytest.warns(UserWarning, match="MPS available but not used. Set `accelerator` and `devices`"):
-
         Trainer()
 
 
