@@ -32,9 +32,10 @@ def _load_requirements(
     reqs = []
     for ln in lines:
         # filer all comments
+        comment = ""
         if comment_char in ln:
+            comment = ln[ln.index(comment_char) :]
             ln = ln[: ln.index(comment_char)]
-        comment = ln[ln.index(comment_char) :] if comment_char in ln else ""
         req = ln.strip()
         # skip directly installed dependencies
         if not req or req.startswith("http") or "@http" in req:
