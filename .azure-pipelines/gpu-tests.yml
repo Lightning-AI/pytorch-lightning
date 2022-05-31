@@ -69,10 +69,7 @@ jobs:
         python requirements/check-avail-extras.py
       displayName: 'Env details'
 
-    - bash: |
-        wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/
-        unzip -o legacy/checkpoints.zip -d legacy/
-        ls -l legacy/checkpoints/
+    - bash: bash ./.github/scripts/pull_legacy_checkpoints.sh
       displayName: 'Get legacy checkpoints'
 
     - bash: |
