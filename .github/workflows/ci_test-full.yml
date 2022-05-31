@@ -139,8 +139,9 @@ jobs:
       run: coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Examples
-      run: |
-        python -m pytest pl_examples -v --durations=10
+      env:
+        PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: "python"
+      run: python -m pytest pl_examples -v --durations=10
 
     - name: Upload pytest results
       uses: actions/upload-artifact@v2
