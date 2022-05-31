@@ -1546,36 +1546,6 @@ Example::
         weights_save_path='my/path'
     )
 
-weights_summary
-^^^^^^^^^^^^^^^
-
-.. warning:: `weights_summary` is deprecated in v1.5 and will be removed in v1.7. Please pass :class:`~pytorch_lightning.callbacks.model_summary.ModelSummary`
-    directly to the Trainer's ``callbacks`` argument instead. To disable the model summary,
-    pass ``enable_model_summary = False`` to the Trainer.
-
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/weights_summary.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/weights_summary.mp4"></video>
-
-|
-
-Prints a summary of the weights when training begins.
-Options: 'full', 'top', None.
-
-.. testcode::
-
-    # default used by the Trainer (ie: print summary of top level modules)
-    trainer = Trainer(weights_summary="top")
-
-    # print full summary of all modules and submodules
-    trainer = Trainer(weights_summary="full")
-
-    # don't print a summary
-    trainer = Trainer(weights_summary=None)
-
 
 enable_model_summary
 ^^^^^^^^^^^^^^^^^^^^
