@@ -49,20 +49,19 @@ To change this behaviour, set the *log_every_n_steps* :class:`~pytorch_lightning
 Modify flushing frequency
 =========================
 
-Metrics are kept in memory for N steps to improve training efficiency. Every N steps, metrics flush to disk. To change the frequency of this flushing, use the *flush_logs_every_n_steps* Trainer argument.
+Some loggers keep logged metrics in memory for N steps and only periodically flush them to disk to improve training efficiency.
+Every logger handles this a bit differently. For example, here is how to fine-tune flushing for the TensorBoard logger:
 
 .. code-block:: python
 
-    # faster training, high memory
-    Trainer(flush_logs_every_n_steps=500)
+    # Default used by TensorBoard: Write to disk after 10 logging events or every two minutes
+    logger = TensorBoardLogger(..., max_queue=10, flush_secs=120)
 
-    # slower training, low memory
-    Trainer(flush_logs_every_n_steps=500)
+    # Faster training, more memory used
+    logger = TensorBoardLogger(..., max_queue=100)
 
-The higher *flush_logs_every_n_steps* is, the faster the model will train but the memory will build up until the next flush.
-The smaller *flush_logs_every_n_steps* is, the slower the model will train but memory will be kept to a minimum.
-
-TODO: chart
+    # Slower training, less memory used
+    logger = TensorBoardLogger(..., max_queue=1)
 
 ----
 
@@ -211,11 +210,11 @@ reduce_fx
 =========
 **Default:** :meth:`torch.mean`
 
-Reduction function over step values for end of epoch. Uses :meth:`torch.mean` by default.
+Reduction function over step values for end of epoch. Uses :meth:`torch.mean` by default and is not applied when a :class:`torchmetrics.Metric` is logged.
 
 .. code-block:: python
 
-  self.log(reduce_fx=torch.mean)
+  self.log(..., reduce_fx=torch.mean)
 
 ----
 

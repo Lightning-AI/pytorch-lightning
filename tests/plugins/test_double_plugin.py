@@ -148,7 +148,7 @@ def test_double_precision(tmpdir, boring_model):
     trainer.predict(model)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_double_precision_ddp(tmpdir):
     model = DoublePrecisionBoringModel()
 

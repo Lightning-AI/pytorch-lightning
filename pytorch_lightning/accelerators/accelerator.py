@@ -56,6 +56,9 @@ class Accelerator(ABC):
         """
         raise NotImplementedError
 
+    def teardown(self) -> None:
+        """Clean up any state created by the accelerator."""
+
     @staticmethod
     @abstractmethod
     def parse_devices(devices: Any) -> Any:

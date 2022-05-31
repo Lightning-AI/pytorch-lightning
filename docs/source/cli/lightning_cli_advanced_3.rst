@@ -73,7 +73,7 @@ To use shorthand notation, the options need to be registered beforehand. This ca
     LightningCLI(auto_registry=True)  # False by default
 
 which will register all subclasses of :class:`torch.optim.Optimizer`, :class:`torch.optim.lr_scheduler._LRScheduler`,
-:class:`~pytorch_lightning.core.lightning.LightningModule`,
+:class:`~pytorch_lightning.core.module.LightningModule`,
 :class:`~pytorch_lightning.core.datamodule.LightningDataModule`, :class:`~pytorch_lightning.callbacks.Callback`, and
 :class:`~pytorch_lightning.loggers.LightningLoggerBase` across all imported modules. This includes those in your own
 code.
@@ -108,7 +108,7 @@ file example that defines a couple of callbacks is the following:
             ...
 
 Similar to the callbacks, any arguments in :class:`~pytorch_lightning.trainer.trainer.Trainer` and user extended
-:class:`~pytorch_lightning.core.lightning.LightningModule` and
+:class:`~pytorch_lightning.core.module.LightningModule` and
 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` classes that have as type hint a class can be configured
 the same way using :code:`class_path` and :code:`init_args`.
 
@@ -209,7 +209,7 @@ A possible config file could be as follows:
         ...
 
 Only model classes that are a subclass of :code:`MyModelBaseClass` would be allowed, and similarly only subclasses of
-:code:`MyDataModuleBaseClass`. If as base classes :class:`~pytorch_lightning.core.lightning.LightningModule` and
+:code:`MyDataModuleBaseClass`. If as base classes :class:`~pytorch_lightning.core.module.LightningModule` and
 :class:`~pytorch_lightning.core.datamodule.LightningDataModule` are given, then the tool would allow any lightning
 module and data module.
 

@@ -23,7 +23,7 @@ from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_deprecation, 
 from pytorch_lightning.utilities.warnings import WarningCache
 
 standalone = os.getenv("PL_RUN_STANDALONE_TESTS", "0") == "1"
-if standalone:
+if standalone and __name__ == "__main__":
 
     stderr = StringIO()
     # recording
