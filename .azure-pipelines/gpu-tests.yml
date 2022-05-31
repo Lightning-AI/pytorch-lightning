@@ -77,6 +77,8 @@ jobs:
 
     - bash: |
         python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests --ignore tests/benchmarks -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
+      env:
+        PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: "python"
       displayName: 'Testing: standard'
 
     - bash: |

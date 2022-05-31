@@ -59,8 +59,7 @@ jobs:
       shell: bash
 
     - name: Test Package [only]
-      run: |
-        coverage run --source pytorch_lightning -m pytest pytorch_lightning -v
+      run: coverage run --source pytorch_lightning -m pytest pytorch_lightning -v
 
     - name: Statistics
       if: success()

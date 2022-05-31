@@ -64,8 +64,9 @@ jobs:
         ls -l checkpoints/
 
     - name: Tests
-      run: |
-        coverage run --source pytorch_lightning -m pytest --timeout 150 pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
+      env:
+        PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: "python"
+      run: coverage run --source pytorch_lightning -m pytest --timeout 150 pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
 
     - name: Upload pytest results
       uses: actions/upload-artifact@v2
