@@ -77,7 +77,7 @@ jobs:
           ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
 
     - name: Pull legacy checkpoints
-      uses: ./.github/actions/pull-legacy-checkpoints.yml
+      run: bash .github/scripts/pull_legacy_checkpoints.sh
 
     - name: Install dependencies
       run: |
