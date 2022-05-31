@@ -49,6 +49,8 @@ jobs:
           pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
 
       - name: Install | Uninstall package - archive
+        env:
+          PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: "python"
         run: |
           # install as archive
           pip install dist/*.tar.gz
@@ -57,6 +59,8 @@ jobs:
           pip uninstall -y pytorch-lightning
 
       - name: Install | Uninstall package - wheel
+        env:
+          PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: "python"
         run: |
           # install as wheel
           pip install dist/*.whl

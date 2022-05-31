@@ -59,6 +59,8 @@ jobs:
       shell: bash
 
     - name: Test Package [only]
+      env:
+        PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: "python"
       run: coverage run --source pytorch_lightning -m pytest pytorch_lightning -v
 
     - name: Statistics
