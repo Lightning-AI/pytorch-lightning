@@ -14,16 +14,14 @@ If you prefer to use PyTorch directly, feel free to use any Lightning checkpoint
 
     import torch
 
-    model = torch.load("path/to/lightning/checkpoint.ckpt")
+    class MyModel(nn.Module):
+        ...
+
+
+    model = MyModel()
+    checkpoint = torch.load("path/to/lightning/checkpoint.ckpt")
+    model.load_state_dict(checkpoint["state_dict"])
     model.eval()
-
-You can also pull out the specific modules you want out of the checkpoint:
-
-.. code-block:: python
-
-    model = torch.load("path/to/lightning/checkpoint.ckpt")
-    encoder = model["encoder"]
-    encoder.eval()
 
 ----
 
@@ -85,7 +83,7 @@ from your LightningModule ``init`` and ``forward`` method.
     # if you want to restore any hyperparameters, you can pass them too
     model = AutoEncoderProd(**hyper_parameters)
 
-    state_dict = checkpoint["state_dict"]
+    model_weights = checkpoint["state_dict"]
 
     # update keys by dropping `auto_encoder.`
     for key in list(model_weights):
