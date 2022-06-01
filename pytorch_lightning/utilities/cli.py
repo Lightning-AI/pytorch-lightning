@@ -33,7 +33,6 @@ from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.meta import get_all_subclasses
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_deprecation, rank_zero_warn
-from pytorch_lightning.utilities.seed import _select_seed_randomly
 
 _JSONARGPARSE_SIGNATURES_AVAILABLE = _RequirementAvailable("jsonargparse[signatures]>=4.8.0")
 
@@ -786,13 +785,14 @@ class LightningCLI:
     def _set_seed(self) -> None:
         """Sets the seed."""
         config_seed = self._get(self.config, "seed_everything")
-
-        if isinstance(config_seed, bool) and config_seed:
-            config_seed = _select_seed_randomly()
-
-        if config_seed is not None and config_seed is not False:
-            seed_everything(config_seed, workers=True)
-            self.config["seed_everything"] = config_seed
+        if config_seed is False:
+            return
+        if config_seed is True:
+            # user requested seeding, choose randomly
+            config_seed = seed_everything(workers=True)
+        else:
+            config_seed = seed_everything(config_seed, workers=True)
+        self.config["seed_everything"] = config_seed
 
 
 def _class_path_from_class(class_type: Type) -> str:

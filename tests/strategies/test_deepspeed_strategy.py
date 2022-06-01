@@ -817,9 +817,7 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
     initial_trainer.fit(initial_model, datamodule=dm)
 
     class TestCallback(Callback):
-        def on_train_batch_start(
-            self, trainer: Trainer, pl_module: LightningModule, batch: Any, batch_idx: int
-        ) -> None:
+        def on_train_epoch_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
             original_deepspeed_strategy = initial_trainer.strategy
             current_deepspeed_strategy = trainer.strategy
 
@@ -846,10 +844,12 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
     model = ModelParallelClassificationModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        fast_dev_run=True,
         strategy=DeepSpeedStrategy(stage=3),
         accelerator="gpu",
         devices=1,
+        max_epochs=2,
+        limit_train_batches=1,
+        limit_val_batches=0,
         precision=16,
         callbacks=TestCallback(),
         enable_progress_bar=False,
