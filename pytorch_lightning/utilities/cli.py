@@ -574,6 +574,7 @@ class LightningCLI:
             config["callbacks"] = [config["callbacks"]]
         config["callbacks"].extend(callbacks)
         if "callbacks" in self.trainer_defaults:
+            assert isinstance(config["callbacks"], list)  # to handle mypy false positive
             if isinstance(self.trainer_defaults["callbacks"], list):
                 config["callbacks"].extend(self.trainer_defaults["callbacks"])
             else:
