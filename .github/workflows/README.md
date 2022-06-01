@@ -42,7 +42,7 @@
 
 | workflow file                          | action                                                                                                                                                                                                                                           |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| .github/workflows/ci_dockers.yml       | Build docker images used for testing in CI without pushing to the [Docker Hub](https://hub.docker.com/r/pytorchlightning/pytorch_lightning). Publishing these built images takes place in `.github/release-docker.yml` which only runs in mater. |
+| .github/workflows/ci_dockers.yml       | Build docker images used for testing in CI without pushing to the [Docker Hub](https://hub.docker.com/r/pytorchlightning/pytorch_lightning). Publishing these built images takes place in `.github/release-docker.yml` which only runs in master. |
 | .github/workflows/ci_pkg-install.yml   | Test if pytorch-lightning is successfully installed using pip.                                                                                                                                                                                   |
 | .github/workflows/events-recurrent.yml | Terminate TPU jobs that live more than one hour to avoid possible resource exhaustion due to hangs.                                                                                                                                              |
 
