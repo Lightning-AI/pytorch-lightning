@@ -148,14 +148,19 @@ class AcceleratorConnector:
             A. Class > str
             B. Strategy > Accelerator/precision/plugins
         """
-        if benchmark and deterministic:
-            rank_zero_warn(
-                "You passed `deterministic=True` and `benchmark=True`. Note that PyTorch ignores"
-                " torch.backends.cudnn.deterministic=True when torch.backends.cudnn.benchmark=True.",
-            )
-        self.benchmark = not deterministic if benchmark is None else benchmark
+        if deterministic:
+            if benchmark is None:
+                # Set benchmark to False to ensure determinism
+                benchmark = False
+            elif benchmark:
+                rank_zero_warn(
+                    "You passed `deterministic=True` and `benchmark=True`. Note that PyTorch ignores"
+                    " torch.backends.cudnn.deterministic=True when torch.backends.cudnn.benchmark=True.",
+                )
         # TODO: move to gpu accelerator
-        torch.backends.cudnn.benchmark = self.benchmark
+        if benchmark is not None:
+            torch.backends.cudnn.benchmark = benchmark
+        self.benchmark = torch.backends.cudnn.benchmark
         self.replace_sampler_ddp = replace_sampler_ddp
         self._init_deterministic(deterministic)
 
@@ -215,13 +220,13 @@ class AcceleratorConnector:
         # 6. Instantiate Strategy - Part 2
         self._lazy_init_strategy()
 
-    def _init_deterministic(self, deterministic: Union[bool, _LITERAL_WARN]) -> None:
-        self.deterministic = deterministic
+    def _init_deterministic(self, deterministic: Optional[Union[bool, _LITERAL_WARN]]) -> None:
+        self.deterministic = deterministic or False  # default to False if not set
         if _TORCH_GREATER_EQUAL_1_11 and deterministic == "warn":
             torch.use_deterministic_algorithms(True, warn_only=True)
         else:
-            torch.use_deterministic_algorithms(deterministic)
-        if deterministic:
+            torch.use_deterministic_algorithms(self.deterministic)
+        if self.deterministic:
             # fixing non-deterministic part of horovod
             # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
             os.environ["HOROVOD_FUSION_THRESHOLD"] = "0"

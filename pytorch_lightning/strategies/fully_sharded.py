@@ -139,14 +139,16 @@ class DDPFullyShardedStrategy(DDPStrategy):
     def setup(self, trainer: "pl.Trainer") -> None:
         self.accelerator.setup(trainer)
 
-        if trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
-            self.model = self._layer_sync.apply(self.model)
+        if trainer.state.fn == TrainerFn.FITTING:
+            self.setup_optimizers(trainer)
+            optimizers_to_device(self.optimizers, self.root_device)
 
+            if self._layer_sync:
+                self.model = self._layer_sync.apply(self.model)
+
+        self.setup_precision_plugin()
         self.configure_ddp()
         self.barrier()
-        self.setup_optimizers(trainer)
-        optimizers_to_device(self.optimizers, self.root_device)
-        self.setup_precision_plugin()
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
@@ -182,6 +184,9 @@ class DDPFullyShardedStrategy(DDPStrategy):
             # as FSDP module.to(device) would first summon all parameters
             # (TODO: need to figure out solution)
             self.model_to_device()
+
+        # setup optimizers after fully sharded has wrapped the lightning module
+        self.setup_optimizers(self.lightning_module.trainer)
 
     def model_to_device(self) -> None:
         log.detail(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")

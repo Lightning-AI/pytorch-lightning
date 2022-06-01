@@ -28,14 +28,14 @@ files=$(echo "$grep_output" | cut -f1 -d: | sort | uniq)
 # get the list of parametrizations. we need to call them separately. the last two lines are removed.
 # note: if there's a syntax error, this will fail with some garbled output
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  parametrizations=$(pytest $files --collect-only --quiet "$@" | tail -r | sed -e '1,3d' | tail -r)
+  parametrizations=$(python -m pytest $files --collect-only --quiet "$@" | tail -r | sed -e '1,3d' | tail -r)
 else
-  parametrizations=$(pytest $files --collect-only --quiet "$@" | head -n -2)
+  parametrizations=$(python -m pytest $files --collect-only --quiet "$@" | head -n -2)
 fi
 parametrizations_arr=($parametrizations)
 
 # tests to skip - space separated
-blocklist='tests/profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx'
+blocklist='tests/profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx tests/utilities/test_warnings.py'
 report=''
 
 for i in "${!parametrizations_arr[@]}"; do
