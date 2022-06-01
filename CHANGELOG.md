@@ -119,9 +119,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `pytorch_lightning.core.lightning.LightningModule` in favor of `pytorch_lightning.core.module.LightningModule` ([#12740](https://github.com/PyTorchLightning/pytorch-lightning/pull/12740))
 
 
-- Deprecated `Trainer.reset_train_val_dataloaderrs()` in favor of `Trainer.reset_{train,val}_dataloader` ([#12184](https://github.com/PyTorchLightning/pytorch-lightning/pull/12184))
+- Deprecated `Trainer.reset_train_val_dataloaders()` in favor of `Trainer.reset_{train,val}_dataloader` ([#12184](https://github.com/PyTorchLightning/pytorch-lightning/pull/12184))
 
 ### Removed
+
+- Removed the deprecated `Logger.close` method ([#13149](https://github.com/PyTorchLightning/pytorch-lightning/pull/13149))
+
 
 - Removed the deprecated `weights_summary` argument from the `Trainer` constructor ([#13070](https://github.com/PyTorchLightning/pytorch-lightning/pull/13070))
 
@@ -244,7 +247,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed issue where the CLI fails with certain torch objects ([#13153](https://github.com/PyTorchLightning/pytorch-lightning/pull/13153))
 
 
-- Fixed logging on step level for eval mode ([#12184](https://github.com/PyTorchLightning/pytorch-lightning/pull/12184))
+- Fixed logging's step values when multiple dataloaders are used during evaluation ([#12184](https://github.com/PyTorchLightning/pytorch-lightning/pull/12184))
 
 
 -
