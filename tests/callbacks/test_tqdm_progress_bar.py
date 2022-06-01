@@ -592,7 +592,7 @@ def test_progress_bar_max_val_check_interval(
     assert pbar_callback.is_enabled
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True)
 @pytest.mark.parametrize("val_check_interval", [0.2, 0.5])
 def test_progress_bar_max_val_check_interval_ddp(tmpdir, val_check_interval):
     world_size = 2

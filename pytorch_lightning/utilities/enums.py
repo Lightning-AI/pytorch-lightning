@@ -199,38 +199,6 @@ class AutoRestartBatchKeys(LightningEnum):
     PL_RESTART_META = "__pl_restart_meta"
 
 
-class ModelSummaryMode(LightningEnum):
-    # TODO: remove in v1.6 (as `mode` would be deprecated for `max_depth`)
-    """Define the Model Summary mode to be used.
-
-    Can be one of
-        - `top`: only the top-level modules will be recorded (the children of the root module)
-        - `full`: summarizes all layers and their submodules in the root module
-
-    >>> # you can match the type with string
-    >>> ModelSummaryMode.TOP == 'TOP'
-    True
-    >>> # which is case invariant
-    >>> ModelSummaryMode.TOP in ('top', 'FULL')
-    True
-    """
-
-    TOP = "top"
-    FULL = "full"
-
-    @staticmethod
-    def get_max_depth(mode: str) -> int:
-        if mode == ModelSummaryMode.TOP:
-            return 1
-        if mode == ModelSummaryMode.FULL:
-            return -1
-        raise ValueError(f"`mode` can be {', '.join(list(ModelSummaryMode))}, got {mode}.")
-
-    @staticmethod
-    def supported_types() -> list[str]:
-        return [x.value for x in ModelSummaryMode]
-
-
 class _StrategyType(LightningEnum):
     """Define type of training strategy.
 

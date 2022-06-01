@@ -115,7 +115,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
 
     import os
     from torch import optim, nn, utils, Tensor
-    from tests.helpers.datasets import MNIST
+    from torchvision.datasets import MNIST
     import pytorch_lightning as pl
 
     # define any number of nn.Modules (or use your current ones)

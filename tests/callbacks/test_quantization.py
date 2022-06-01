@@ -20,6 +20,7 @@ from torch.quantization import FakeQuantizeBase
 from torchmetrics.functional import mean_absolute_percentage_error as mape
 
 from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import get_model_size_mb
@@ -35,9 +36,14 @@ from tests.helpers.simple_models import RegressionModel
 @RunIf(quantization=True)
 def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     """Parity test for quant model."""
+    cuda_available = GPUAccelerator.is_available()
+
+    if observe == "average" and not fuse and GPUAccelerator.is_available():
+        pytest.xfail("TODO: flakiness in GPU CI")
+
     seed_everything(42)
     dm = RegressDataModule()
-    accelerator = "gpu" if torch.cuda.is_available() else "cpu"
+    accelerator = "gpu" if cuda_available else "cpu"
     trainer_args = dict(default_root_dir=tmpdir, max_epochs=7, accelerator=accelerator, devices=1)
     model = RegressionModel()
     qmodel = copy.deepcopy(model)

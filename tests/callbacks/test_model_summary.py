@@ -13,8 +13,6 @@
 # limitations under the License.
 from typing import List, Union
 
-import pytest
-
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelSummary
 from tests.helpers.boring_model import BoringModel
@@ -29,37 +27,19 @@ def test_model_summary_callback_present_trainer():
     assert any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
 
 
-def test_model_summary_callback_with_weights_summary_none():
-    with pytest.deprecated_call(match=r"weights_summary=None\)` is deprecated"):
-        trainer = Trainer(weights_summary=None)
-    assert not any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
-
+def test_model_summary_callback_with_enable_model_summary_false():
     trainer = Trainer(enable_model_summary=False)
     assert not any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
 
-    trainer = Trainer(enable_model_summary=False, weights_summary="full")
-    assert not any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
 
-    with pytest.deprecated_call(match=r"weights_summary=None\)` is deprecated"):
-        trainer = Trainer(enable_model_summary=True, weights_summary=None)
-    assert not any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
+def test_model_summary_callback_with_enable_model_summary_true():
+    trainer = Trainer(enable_model_summary=True)
+    assert any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
 
-
-def test_model_summary_callback_with_weights_summary():
-    trainer = Trainer(weights_summary="top")
+    # Default value of max_depth is set as 1, when enable_model_summary is True
+    # and ModelSummary is not passed in callbacks list
     model_summary_callback = list(filter(lambda cb: isinstance(cb, ModelSummary), trainer.callbacks))[0]
     assert model_summary_callback._max_depth == 1
-
-    with pytest.deprecated_call(match=r"weights_summary=full\)` is deprecated"):
-        trainer = Trainer(weights_summary="full")
-    model_summary_callback = list(filter(lambda cb: isinstance(cb, ModelSummary), trainer.callbacks))[0]
-    assert model_summary_callback._max_depth == -1
-
-
-def test_model_summary_callback_override_weights_summary_flag():
-    with pytest.deprecated_call(match=r"weights_summary=None\)` is deprecated"):
-        trainer = Trainer(callbacks=ModelSummary(), weights_summary=None)
-    assert any(isinstance(cb, ModelSummary) for cb in trainer.callbacks)
 
 
 def test_custom_model_summary_callback_summarize(tmpdir):

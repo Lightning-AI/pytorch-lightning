@@ -218,8 +218,6 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
     def teardown(self) -> None:
         log.info(f"{self.__class__.__name__}: tearing down strategy...")
-        super().teardown()
-
         if (
             self.lightning_module is not None
             and self.lightning_module.trainer is not None
@@ -228,6 +226,8 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         ):
             assert self.model is not None
             self.model = self._layer_sync.revert(self.model)
+
+        super().teardown()
 
     @classmethod
     def get_registered_strategies(cls) -> List[str]:

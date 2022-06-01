@@ -23,6 +23,7 @@ from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE
+from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 if _FAIRSCALE_AVAILABLE:
@@ -38,9 +39,12 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
     strategy_name = "ddp_sharded_spawn"
 
     def configure_ddp(self) -> None:
+        # set up optimizers after the wrapped module has been moved to the device
+        self.setup_optimizers(self.lightning_module.trainer)
         self.model, self.optimizers = self._setup_model_and_optimizers(
             model=LightningShardedDataParallel(self.model), optimizers=self.optimizers
         )
+        optimizers_to_device(self.optimizers, self.root_device)
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Wraps the model and optimizers with fairscale components.

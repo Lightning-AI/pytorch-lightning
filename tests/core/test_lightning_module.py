@@ -276,7 +276,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_device_placement(tmpdir):
 
     model = BoringModel()

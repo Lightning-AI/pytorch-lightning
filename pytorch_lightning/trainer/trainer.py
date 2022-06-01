@@ -56,7 +56,6 @@ from pytorch_lightning.plugins import (
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profiler import (
     AdvancedProfiler,
-    BaseProfiler,
     PassThroughProfiler,
     Profiler,
     PyTorchProfiler,
@@ -160,20 +159,18 @@ class Trainer(
         limit_test_batches: Optional[Union[int, float]] = None,
         limit_predict_batches: Optional[Union[int, float]] = None,
         val_check_interval: Optional[Union[int, float]] = None,
-        flush_logs_every_n_steps: Optional[int] = None,
         log_every_n_steps: int = 50,
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
         sync_batchnorm: bool = False,
         precision: Union[int, str] = 32,
         enable_model_summary: bool = True,
-        weights_summary: Optional[str] = "top",
         weights_save_path: Optional[str] = None,  # TODO: Remove in 1.8
         num_sanity_val_steps: int = 2,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
-        profiler: Optional[Union[BaseProfiler, str]] = None,
+        profiler: Optional[Union[Profiler, str]] = None,
         benchmark: Optional[bool] = None,
-        deterministic: Union[bool, _LITERAL_WARN] = False,
+        deterministic: Optional[Union[bool, _LITERAL_WARN]] = None,
         reload_dataloaders_every_n_epochs: int = 0,
         auto_lr_find: Union[bool, str] = False,
         replace_sampler_ddp: bool = True,
@@ -225,9 +222,11 @@ class Trainer(
                 that only one process at a time can access them.
                 Default: ``False``.
 
-            benchmark: Sets ``torch.backends.cudnn.benchmark``.
-                Defaults to ``True`` if :paramref:`~pytorch_lightning.trainer.trainer.Trainer.deterministic`
-                is ``False``. Overwrite to manually set a different value. Default: ``None``.
+            benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
+                The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
+                (``False`` if not manually set). If :paramref:`~pytorch_lightning.trainer.Trainer.deterministic` is set
+                to ``True``, this will default to ``False``. Override to manually set a different value.
+                Default: ``None``.
 
             callbacks: Add a callback or list of callbacks.
                 Default: ``None``.
@@ -251,8 +250,8 @@ class Trainer(
 
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
                 Set to ``"warn"`` to use deterministic algorithms whenever possible, throwing warnings on operations
-                that don't support deterministic mode (requires Pytorch 1.11+).
-                Default: ``False``.
+                that don't support deterministic mode (requires Pytorch 1.11+). If not set, defaults to ``False``.
+                Default: ``None``.
 
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
                 based on the accelerator type.
@@ -260,12 +259,6 @@ class Trainer(
             fast_dev_run: Runs n if set to ``n`` (int) else 1 if set to ``True`` batch(es)
                 of train, val and test to find any bugs (ie: a sort of unit test).
                 Default: ``False``.
-
-            flush_logs_every_n_steps: How often to flush logs to disk (defaults to every 100 steps).
-
-                .. deprecated:: v1.5
-                    ``flush_logs_every_n_steps`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please configure flushing directly in the logger instead.
 
             gpus: Number of GPUs to train on (int) or which GPUs to train on (list or str) applied per node
                 Default: ``None``.
@@ -401,14 +394,6 @@ class Trainer(
             enable_model_summary: Whether to enable model summarization by default.
                 Default: ``True``.
 
-            weights_summary: Prints a summary of the weights when training begins.
-
-                .. deprecated:: v1.5
-                    ``weights_summary`` has been deprecated in v1.5 and will be removed in v1.7.
-                    To disable the summary, pass ``enable_model_summary = False`` to the Trainer.
-                    To customize the summary, pass :class:`~pytorch_lightning.callbacks.model_summary.ModelSummary`
-                    directly to the Trainer's ``callbacks`` argument.
-
             weights_save_path: Where to save weights if specified. Will override default_root_dir
                 for checkpoints only. Use this if for whatever reason you need the checkpoints
                 stored in a different place than the logs written in `default_root_dir`.
@@ -491,9 +476,6 @@ class Trainer(
         self._tested_ckpt_path: Optional[str] = None  # TODO: remove in v1.8
         self._predicted_ckpt_path: Optional[str] = None  # TODO: remove in v1.8
 
-        # todo: remove in v1.7
-        self._weights_summary: Optional[str] = None
-
         # init callbacks
         # Declare attributes to be set in _callback_connector on_trainer_init
         self._callback_connector.on_trainer_init(
@@ -503,7 +485,6 @@ class Trainer(
             default_root_dir,
             weights_save_path,
             enable_model_summary,
-            weights_summary,
             max_time,
             accumulate_grad_batches,
         )
@@ -556,7 +537,7 @@ class Trainer(
 
         # init logger flags
         self._loggers: List[Logger]
-        self._logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
+        self._logger_connector.on_trainer_init(logger, log_every_n_steps, move_metrics_to_cpu)
 
         # init debugging flags
         self.val_check_interval: Union[int, float]
@@ -1958,7 +1939,15 @@ class Trainer(
 
         Args:
             model: The ``LightningModule`` if called outside of the trainer scope.
+
+        .. deprecated:: v1.7
+            This method is deprecated in v1.7 and will be removed in v1.9.
+            Please use ``Trainer.reset_{train,val}_dataloader`` instead.
         """
+        rank_zero_deprecation(
+            "`Trainer.reset_train_val_dataloaders` has been deprecated in v1.7 and will be removed in v1.9."
+            " Use `Trainer.reset_{train,val}_dataloader` instead"
+        )
         if self.train_dataloader is None:
             self.reset_train_dataloader(model=model)
         if self.val_dataloaders is None:
@@ -2721,16 +2710,6 @@ class Trainer(
     def _should_terminate_gracefully(self) -> bool:
         value = torch.tensor(int(self._terminate_gracefully), device=self.strategy.root_device)
         return self.strategy.reduce(value, reduce_op="sum") > 0
-
-    @property
-    def weights_summary(self) -> Optional[str]:
-        rank_zero_deprecation("`Trainer.weights_summary` is deprecated in v1.5 and will be removed in v1.7.")
-        return self._weights_summary
-
-    @weights_summary.setter
-    def weights_summary(self, val: Optional[str]) -> None:
-        rank_zero_deprecation("Setting `Trainer.weights_summary` is deprecated in v1.5 and will be removed in v1.7.")
-        self._weights_summary = val
 
     """
     Other
