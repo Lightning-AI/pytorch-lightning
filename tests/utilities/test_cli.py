@@ -20,7 +20,7 @@ import sys
 from argparse import Namespace
 from contextlib import contextmanager, ExitStack, redirect_stdout
 from io import StringIO
-from typing import List, Optional, Union
+from typing import Callable, List, Optional, Union
 from unittest import mock
 from unittest.mock import ANY
 
@@ -1497,3 +1497,16 @@ def test_cli_auto_seeding():
         cli = LightningCLI(TestModel, run=False)
     assert cli.seed_everything_default is True
     assert cli.config["seed_everything"] == 123  # the original seed is kept
+
+
+def test_unresolvable_import_paths():
+    class TestModel(BoringModel):
+        def __init__(self, a_func: Callable = torch.softmax):
+            super().__init__()
+            self.a_func = a_func
+
+    out = StringIO()
+    with mock.patch("sys.argv", ["any.py", "--print_config"]), redirect_stdout(out), pytest.raises(SystemExit):
+        LightningCLI(TestModel, run=False)
+
+    assert "a_func: torch.softmax" in out.getvalue()

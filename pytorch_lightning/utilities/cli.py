@@ -35,8 +35,16 @@ _JSONARGPARSE_SIGNATURES_AVAILABLE = _RequirementAvailable("jsonargparse[signatu
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     import docstring_parser
-    from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, Namespace, set_config_read_mode
+    from jsonargparse import (
+        ActionConfigFile,
+        ArgumentParser,
+        class_from_function,
+        Namespace,
+        register_unresolvable_import_paths,
+        set_config_read_mode,
+    )
 
+    register_unresolvable_import_paths(torch)  # Required until fix https://github.com/pytorch/pytorch/issues/74483
     set_config_read_mode(fsspec_enabled=True)
 else:
     locals()["ArgumentParser"] = object
