@@ -136,7 +136,7 @@ Callback API
 ************
 Here is the full API of methods available in the Callback base class.
 
-The :class:`~pytorch_lightning.callbacks.Callback` class is the base for all the callbacks in Lightning just like the :class:`~pytorch_lightning.core.lightning.LightningModule` is the base for all models.
+The :class:`~pytorch_lightning.callbacks.Callback` class is the base for all the callbacks in Lightning just like the :class:`~pytorch_lightning.core.module.LightningModule` is the base for all models.
 It defines a public interface that each callback implementation must follow, the key ones are:
 
 Properties

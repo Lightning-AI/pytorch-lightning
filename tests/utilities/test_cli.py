@@ -31,7 +31,7 @@ from packaging import version
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
-from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, Trainer
+from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import Logger, TensorBoardLogger
 from pytorch_lightning.plugins.environments import SLURMEnvironment
@@ -1009,7 +1009,9 @@ def test_lightning_cli_datamodule_short_arguments():
         assert isinstance(cli.datamodule, BoringDataModule)
         run.assert_called_once_with(ANY, ANY, ANY, cli.datamodule, ANY)
 
-    with mock.patch("sys.argv", ["any.py", "--data=MyDataModule", "--data.foo", "123"]):
+    with mock.patch("sys.argv", ["any.py", "--data=MyDataModule", "--data.foo", "123"]), mock_subclasses(
+        LightningDataModule, MyDataModule
+    ):
         cli = LightningCLI(BoringModel, run=False)
         assert isinstance(cli.datamodule, MyDataModule)
         assert cli.datamodule.foo == 123
@@ -1026,7 +1028,7 @@ def test_lightning_cli_datamodule_short_arguments():
 
     with mock.patch("sys.argv", ["any.py", "--model", "BoringModel", "--data=MyDataModule"]), mock_subclasses(
         LightningModule, BoringModel
-    ):
+    ), mock_subclasses(LightningDataModule, MyDataModule):
         cli = LightningCLI(run=False)
         assert isinstance(cli.model, BoringModel)
         assert isinstance(cli.datamodule, MyDataModule)
@@ -1516,40 +1518,46 @@ def test_cli_logger_shorthand():
 def test_cli_auto_seeding():
     with mock.patch("sys.argv", ["any.py"]):
         cli = LightningCLI(TestModel, run=False, seed_everything_default=False)
-        assert cli.seed_everything_default is False
-        assert cli.config["seed_everything"] is False
+    assert cli.seed_everything_default is False
+    assert cli.config["seed_everything"] is False
 
     with mock.patch("sys.argv", ["any.py"]):
         cli = LightningCLI(TestModel, run=False, seed_everything_default=True)
-        assert cli.seed_everything_default is True
-        assert isinstance(cli.config["seed_everything"], int)
+    assert cli.seed_everything_default is True
+    assert isinstance(cli.config["seed_everything"], int)
 
     with mock.patch("sys.argv", ["any.py", "--seed_everything", "3"]):
         cli = LightningCLI(TestModel, run=False, seed_everything_default=False)
-        assert cli.seed_everything_default is False
-        assert cli.config["seed_everything"] == 3
+    assert cli.seed_everything_default is False
+    assert cli.config["seed_everything"] == 3
 
     with mock.patch("sys.argv", ["any.py", "--seed_everything", "3"]):
         cli = LightningCLI(TestModel, run=False, seed_everything_default=True)
-        assert cli.seed_everything_default is True
-        assert cli.config["seed_everything"] == 3
+    assert cli.seed_everything_default is True
+    assert cli.config["seed_everything"] == 3
 
     with mock.patch("sys.argv", ["any.py", "--seed_everything", "3"]):
         cli = LightningCLI(TestModel, run=False, seed_everything_default=10)
-        assert cli.seed_everything_default == 10
-        assert cli.config["seed_everything"] == 3
+    assert cli.seed_everything_default == 10
+    assert cli.config["seed_everything"] == 3
 
     with mock.patch("sys.argv", ["any.py", "--seed_everything", "false"]):
         cli = LightningCLI(TestModel, run=False, seed_everything_default=10)
-        assert cli.seed_everything_default == 10
-        assert cli.config["seed_everything"] is False
+    assert cli.seed_everything_default == 10
+    assert cli.config["seed_everything"] is False
 
     with mock.patch("sys.argv", ["any.py", "--seed_everything", "false"]):
         cli = LightningCLI(TestModel, run=False, seed_everything_default=True)
-        assert cli.seed_everything_default is True
-        assert cli.config["seed_everything"] is False
+    assert cli.seed_everything_default is True
+    assert cli.config["seed_everything"] is False
 
     with mock.patch("sys.argv", ["any.py", "--seed_everything", "true"]):
         cli = LightningCLI(TestModel, run=False, seed_everything_default=False)
-        assert cli.seed_everything_default is False
-        assert isinstance(cli.config["seed_everything"], int)
+    assert cli.seed_everything_default is False
+    assert isinstance(cli.config["seed_everything"], int)
+
+    seed_everything(123)
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(TestModel, run=False)
+    assert cli.seed_everything_default is True
+    assert cli.config["seed_everything"] == 123  # the original seed is kept

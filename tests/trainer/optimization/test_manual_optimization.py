@@ -68,11 +68,11 @@ class ManualOptModel(BoringModel):
     [
         {},
         pytest.param(
-            {"accelerator": "gpu", "devices": 1, "precision": 16, "amp_backend": "native"}, marks=RunIf(min_gpus=1)
+            {"accelerator": "gpu", "devices": 1, "precision": 16, "amp_backend": "native"}, marks=RunIf(min_cuda_gpus=1)
         ),
         pytest.param(
             {"accelerator": "gpu", "devices": 1, "precision": 16, "amp_backend": "apex", "amp_level": "O2"},
-            marks=RunIf(min_gpus=1, amp_apex=True),
+            marks=RunIf(min_cuda_gpus=1, amp_apex=True),
         ),
     ],
 )
@@ -198,7 +198,7 @@ def test_multiple_optimizers_manual_log(tmpdir):
     assert set(trainer.logged_metrics) == {"a_step", "a_epoch"}
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_multiple_optimizers_manual_native_amp(tmpdir):
     model = ManualOptModel()
     model.val_dataloader = None
@@ -282,7 +282,7 @@ class ManualOptimizationExtendedModel(BoringModel):
         assert self.called["on_train_batch_end"] == 10
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_manual_optimization_and_return_tensor(tmpdir):
     """This test verify that in `manual_optimization` we don't add gradient when the user return loss in
     `training_step`"""
@@ -306,7 +306,7 @@ def test_manual_optimization_and_return_tensor(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_manual_optimization_and_accumulated_gradient(tmpdir):
     """This test verify that in `automatic_optimization=False`, step is being called only when we shouldn't
     accumulate."""
@@ -394,7 +394,7 @@ def test_manual_optimization_and_accumulated_gradient(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_multiple_optimizers_step(tmpdir):
     """Tests that `step` works with several optimizers."""
 
@@ -783,14 +783,14 @@ def train_manual_optimization(tmpdir, strategy, model_cls=TesManualOptimizationD
         assert not torch.equal(param.cpu().data, param_copy.data)
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp(tmpdir):
     """Tests that `step` works with optimizer_closure and different accumulated_gradient frequency."""
 
     train_manual_optimization(tmpdir, "ddp")
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp_spawn(tmpdir):
     """Tests that `step` works with optimizer_closure and different accumulated_gradient frequency."""
 
@@ -853,7 +853,7 @@ class TestManualOptimizationDDPModelToggleModel(TesManualOptimizationDDPModel):
                 opt_dis.zero_grad()
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_step_with_optimizer_closure_with_different_frequencies_ddp_with_toggle_model(tmpdir):
     train_manual_optimization(
         tmpdir, "ddp_find_unused_parameters_false", model_cls=TestManualOptimizationDDPModelToggleModel
@@ -966,7 +966,7 @@ def test_lr_scheduler_step_not_called(tmpdir):
     assert lr_step.call_count == 1
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize("precision", [16, 32])
 def test_multiple_optimizers_logging(precision, tmpdir):
     """Tests that metrics are properly being logged."""

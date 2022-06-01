@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+import logging
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
 
@@ -37,6 +38,8 @@ from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizer
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, STEP_OUTPUT
 
 TBroadcast = TypeVar("TBroadcast")
+
+log = logging.getLogger(__name__)
 
 
 class Strategy(ABC):
@@ -327,7 +330,7 @@ class Strategy(ABC):
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         """The actual training step.
 
-        See :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` for more details
+        See :meth:`~pytorch_lightning.core.module.LightningModule.training_step` for more details
         """
         with self.precision_plugin.train_step_context():
             return self.model.training_step(*args, **kwargs)
@@ -338,7 +341,7 @@ class Strategy(ABC):
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         """The actual validation step.
 
-        See :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` for more details
+        See :meth:`~pytorch_lightning.core.module.LightningModule.validation_step` for more details
         """
         with self.precision_plugin.val_step_context():
             return self.model.validation_step(*args, **kwargs)
@@ -346,7 +349,7 @@ class Strategy(ABC):
     def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         """The actual test step.
 
-        See :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` for more details
+        See :meth:`~pytorch_lightning.core.module.LightningModule.test_step` for more details
         """
         with self.precision_plugin.test_step_context():
             return self.model.test_step(*args, **kwargs)
@@ -354,7 +357,7 @@ class Strategy(ABC):
     def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
         """The actual predict step.
 
-        See :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` for more details
+        See :meth:`~pytorch_lightning.core.module.LightningModule.predict_step` for more details
         """
         with self.precision_plugin.predict_step_context():
             return self.model.predict_step(*args, **kwargs)
@@ -442,7 +445,12 @@ class Strategy(ABC):
         It is the right place to release memory and free other resources.
         """
         optimizers_to_device(self.optimizers, torch.device("cpu"))
+
+        if self.lightning_module is not None:
+            log.detail(f"{self.__class__.__name__}: moving model to CPU")
+            self.lightning_module.cpu()
         self.precision_plugin.teardown()
+        self.accelerator.teardown()
 
     @classmethod
     def register_strategies(cls, strategy_registry) -> None:

@@ -40,7 +40,7 @@ if _HOROVOD_AVAILABLE:
     import horovod.torch as hvd
 
 
-@RunIf(min_gpus=1, horovod=True)
+@RunIf(min_cuda_gpus=1, horovod=True)
 def test_nccl_is_available_on_gpu_environment():
     from tests.helpers.runif import _HOROVOD_NCCL_AVAILABLE
 
@@ -135,7 +135,7 @@ def test_horovod_cpu_implicit(tmpdir):
     _run_horovod(trainer_options)
 
 
-@RunIf(min_gpus=2, horovod_nccl=True, skip_windows=True)
+@RunIf(min_cuda_gpus=2, horovod_nccl=True, skip_windows=True)
 def test_horovod_multi_gpu(tmpdir):
     """Test Horovod with multi-GPU support."""
     trainer_options = dict(
@@ -152,7 +152,7 @@ def test_horovod_multi_gpu(tmpdir):
     _run_horovod(trainer_options)
 
 
-@RunIf(min_gpus=2, horovod_nccl=True, skip_windows=True)
+@RunIf(min_cuda_gpus=2, horovod_nccl=True, skip_windows=True)
 def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
     trainer_options = dict(
         default_root_dir=str(tmpdir),
@@ -168,7 +168,7 @@ def test_horovod_multi_gpu_accumulate_grad_batches(tmpdir):
     _run_horovod(trainer_options)
 
 
-@RunIf(horovod=True, skip_windows=True, min_gpus=2)
+@RunIf(horovod=True, skip_windows=True, min_cuda_gpus=2)
 def test_horovod_raises_unsupported_accumulate_grad_batches(tmpdir):
     """Ensure MisConfigurationException for different `accumulate_grad_batches` at different epochs for Horovod
     Strategy on multi-gpus."""
@@ -185,7 +185,7 @@ def test_horovod_raises_unsupported_accumulate_grad_batches(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=2, horovod_nccl=True, skip_windows=True)
+@RunIf(min_cuda_gpus=2, horovod_nccl=True, skip_windows=True)
 def test_horovod_multi_gpu_grad_by_value(tmpdir):
     """Test Horovod with multi-GPU support."""
     trainer_options = dict(
@@ -207,7 +207,7 @@ def test_horovod_multi_gpu_grad_by_value(tmpdir):
 # https://discuss.pytorch.org/t/torch-cuda-amp-vs-nvidia-apex/74994
 # Check with (tgaddair) on Horovod issues if this feature is needed
 @pytest.mark.skip(reason="TODO: Horovod currently doesn't work with Apex")
-@RunIf(min_gpus=2, amp_apex=True, horovod_nccl=True, skip_windows=True)
+@RunIf(min_cuda_gpus=2, amp_apex=True, horovod_nccl=True, skip_windows=True)
 def test_horovod_apex(tmpdir):
     """Test Horovod with multi-GPU support using apex amp."""
     trainer_options = dict(
@@ -226,7 +226,7 @@ def test_horovod_apex(tmpdir):
     _run_horovod(trainer_options)
 
 
-@RunIf(min_gpus=2, horovod_nccl=True, skip_windows=True)
+@RunIf(min_cuda_gpus=2, horovod_nccl=True, skip_windows=True)
 def test_horovod_amp(tmpdir):
     """Test Horovod with multi-GPU support using native amp."""
     trainer_options = dict(
@@ -245,7 +245,7 @@ def test_horovod_amp(tmpdir):
     _run_horovod(trainer_options)
 
 
-@RunIf(min_gpus=2, horovod_nccl=True, skip_windows=True)
+@RunIf(min_cuda_gpus=2, horovod_nccl=True, skip_windows=True)
 def test_horovod_gather(tmpdir):
     """Test Horovod with multi-GPU support using native amp."""
     trainer_options = dict(
@@ -262,7 +262,7 @@ def test_horovod_gather(tmpdir):
     _run_horovod(trainer_options)
 
 
-@RunIf(min_gpus=2, skip_windows=True, horovod=True, horovod_nccl=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, horovod=True, horovod_nccl=True)
 def test_horovod_transfer_batch_to_gpu(tmpdir):
     class TestTrainingStepModel(BoringModel):
         def training_step(self, batch, *args, **kwargs):

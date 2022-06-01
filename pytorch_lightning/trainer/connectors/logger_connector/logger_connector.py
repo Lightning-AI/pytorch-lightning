@@ -19,7 +19,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import Logger, TensorBoardLogger
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
-from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -29,8 +28,6 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 class LoggerConnector:
     def __init__(self, trainer: "pl.Trainer") -> None:
         self.trainer = trainer
-        self._val_log_step: int = 0
-        self._test_log_step: int = 0
         self._progress_bar_metrics: _PBAR_DICT = {}
         self._logged_metrics: _OUT_DICT = {}
         self._callback_metrics: _OUT_DICT = {}
@@ -43,19 +40,10 @@ class LoggerConnector:
     def on_trainer_init(
         self,
         logger: Union[bool, Logger, Iterable[Logger]],
-        flush_logs_every_n_steps: Optional[int],
         log_every_n_steps: int,
         move_metrics_to_cpu: bool,
     ) -> None:
         self.configure_logger(logger)
-        if flush_logs_every_n_steps is not None:
-            rank_zero_deprecation(
-                f"Setting `Trainer(flush_logs_every_n_steps={flush_logs_every_n_steps})` is deprecated in v1.5 "
-                "and will be removed in v1.7. Please configure flushing in the logger instead."
-            )
-        else:
-            flush_logs_every_n_steps = 100  # original default parameter
-        self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
         self.trainer.log_every_n_steps = log_every_n_steps
         self.trainer.move_metrics_to_cpu = move_metrics_to_cpu
         for logger in self.trainer.loggers:
@@ -125,35 +113,15 @@ class LoggerConnector:
     Evaluation metric updates
     """
 
-    @property
-    def _eval_log_step(self) -> Optional[int]:
-        if self.trainer.state.stage is RunningStage.VALIDATING:
-            return self._val_log_step
-        if self.trainer.state.stage is RunningStage.TESTING:
-            return self._test_log_step
-        return None
-
-    def _increment_eval_log_step(self) -> None:
-        if self.trainer.state.stage is RunningStage.VALIDATING:
-            self._val_log_step += 1
-        elif self.trainer.state.stage is RunningStage.TESTING:
-            self._test_log_step += 1
-
     def _evaluation_epoch_end(self) -> None:
         results = self.trainer._results
         assert results is not None
         results.dataloader_idx = None
 
-    def update_eval_step_metrics(self) -> None:
+    def update_eval_step_metrics(self, step: int) -> None:
         assert not self._epoch_end_reached
-        if self.trainer.sanity_checking:
-            return
-
         # logs user requested information to logger
-        self.log_metrics(self.metrics["log"], step=self._eval_log_step)
-
-        # increment the step even if nothing was logged
-        self._increment_eval_log_step()
+        self.log_metrics(self.metrics["log"], step=step)
 
     def update_eval_epoch_metrics(self) -> _OUT_DICT:
         assert self._epoch_end_reached

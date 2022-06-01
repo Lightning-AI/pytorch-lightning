@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from torch.autograd.profiler import EventList
     from torch.utils.hooks import RemovableHandle
 
-    from pytorch_lightning.core.lightning import LightningModule
+    from pytorch_lightning.core.module import LightningModule
 
 if _KINETO_AVAILABLE:
     from torch.profiler import ProfilerAction, ProfilerActivity, tensorboard_trace_handler

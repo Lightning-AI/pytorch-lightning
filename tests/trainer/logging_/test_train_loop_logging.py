@@ -27,7 +27,7 @@ from torchmetrics import Accuracy
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomDictDataset
 from tests.helpers.runif import RunIf
@@ -397,7 +397,7 @@ class LoggingSyncDistModel(BoringModel):
         return super().validation_step(batch, batch_idx)
 
 
-@pytest.mark.parametrize("devices", [1, pytest.param(2, marks=RunIf(min_gpus=2, skip_windows=True))])
+@pytest.mark.parametrize("devices", [1, pytest.param(2, marks=RunIf(min_cuda_gpus=2, skip_windows=True))])
 def test_logging_sync_dist_true(tmpdir, devices):
     """Tests to ensure that the sync_dist flag works (should just return the original value)"""
     fake_result = 1
@@ -435,7 +435,7 @@ def test_logging_sync_dist_true(tmpdir, devices):
     assert metrics["bar_3"] == 2 + int(use_multiple_devices)
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_logging_sync_dist_true_ddp(tmpdir):
     """Tests to ensure that the sync_dist flag works with ddp."""
 
@@ -555,7 +555,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
     assert trainer.callback_metrics == expected
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_metric_are_properly_reduced(tmpdir):
     class TestingModel(BoringModel):
         def __init__(self, *args, **kwargs) -> None:
@@ -664,7 +664,7 @@ def test_logging_raises(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
-    with pytest.raises(MisconfigurationException, match=r"reduce_fx={min,max,mean,sum}\)` are currently supported"):
+    with pytest.raises(MisconfigurationException, match=r"reduce_fx={min,max,mean,sum}\)` are supported"):
         trainer.fit(model)
 
 
@@ -693,7 +693,7 @@ def test_sanity_metrics_are_reset(tmpdir):
     assert "val_loss" not in trainer.progress_bar_metrics
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_move_metrics_to_cpu(tmpdir):
     class TestModel(BoringModel):
         def on_before_backward(self, loss: torch.Tensor) -> None:
