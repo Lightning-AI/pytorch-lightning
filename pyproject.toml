@@ -7,10 +7,10 @@ requires = [
 
 [tool.isort]
 known_first_party = [
-    "docs",
     "pl_examples",
     "pytorch_lightning",
-    "tests",
+    "legacy",
+    "unittests",
 ]
 profile = "black"
 line_length = 120
