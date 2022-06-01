@@ -29,8 +29,14 @@ from pytorch_lightning.callbacks import ModelCheckpoint, ProgressBarBase, TQDMPr
 from pytorch_lightning.callbacks.progress.tqdm_progress import Tqdm
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
+
+if _TORCH_GREATER_EQUAL_1_12:
+    torch_test_assert_close = torch.testing.assert_close
+else:
+    torch_test_assert_close = torch.testing.assert_allclose
 
 
 class MockTqdm(Tqdm):
@@ -415,7 +421,7 @@ def test_tensor_to_float_conversion(tmpdir):
     )
     trainer.fit(TestModel())
 
-    torch.testing.assert_allclose(trainer.progress_bar_metrics["a"], 0.123)
+    torch_test_assert_close(trainer.progress_bar_metrics["a"], 0.123)
     assert trainer.progress_bar_metrics["b"] == {"b1": 1.0}
     assert trainer.progress_bar_metrics["c"] == {"c1": 2.0}
     pbar = trainer.progress_bar_callback.main_progress_bar

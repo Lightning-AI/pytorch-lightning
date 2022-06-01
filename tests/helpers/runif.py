@@ -20,6 +20,7 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
+from pytorch_lightning.accelerators.mps import _MPS_AVAILABLE
 from pytorch_lightning.utilities.imports import (
     _APEX_AVAILABLE,
     _BAGUA_AVAILABLE,
@@ -74,6 +75,7 @@ class RunIf:
         tpu: bool = False,
         ipu: bool = False,
         hpu: bool = False,
+        mps: Optional[bool] = None,
         horovod: bool = False,
         horovod_nccl: bool = False,
         skip_windows: bool = False,
@@ -103,6 +105,7 @@ class RunIf:
             tpu: Require that TPU is available.
             ipu: Require that IPU is available.
             hpu: Require that HPU is available.
+            mps: Require that MPS (Apple Sillicon) is available.
             horovod: Require that Horovod is installed.
             horovod_nccl: Require that Horovod is installed with NCCL support.
             skip_windows: Skip for Windows platform.
@@ -181,6 +184,14 @@ class RunIf:
         if hpu:
             conditions.append(not _HPU_AVAILABLE)
             reasons.append("HPU")
+
+        if mps is not None:
+            if mps:
+                conditions.append(not _MPS_AVAILABLE)
+                reasons.append("MPS")
+            else:
+                conditions.append(_MPS_AVAILABLE)
+                reasons.append("not MPS")
 
         if horovod:
             conditions.append(not _HOROVOD_AVAILABLE)
