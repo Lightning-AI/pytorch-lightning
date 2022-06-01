@@ -14,6 +14,7 @@ If you prefer to use PyTorch directly, feel free to use any Lightning checkpoint
 
     import torch
 
+
     class MyModel(nn.Module):
         ...
 
