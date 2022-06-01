@@ -204,7 +204,7 @@ class DDPStrategy(ParallelStrategy):
         self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
-    def pre_configure_ddp(self):
+    def pre_configure_ddp(self) -> None:
         # if unset, default `find_unused_parameters` `True`
         # Many models require setting this parameter to True, as there are corner cases
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
@@ -444,7 +444,6 @@ class DDPStrategy(ParallelStrategy):
 
     def teardown(self) -> None:
         log.detail(f"{self.__class__.__name__}: tearing down strategy")
-        super().teardown()
 
         if isinstance(self.model, DistributedDataParallel):
             if (
@@ -468,9 +467,4 @@ class DDPStrategy(ParallelStrategy):
             # the trainer gets set on the LightningModule
             self.model = self._layer_sync.revert(self.model)
 
-        if self.root_device.type == "cuda":
-            # GPU teardown
-            log.detail(f"{self.__class__.__name__}: moving model to CPU")
-            self.lightning_module.cpu()
-            # clean up memory
-            torch.cuda.empty_cache()
+        super().teardown()

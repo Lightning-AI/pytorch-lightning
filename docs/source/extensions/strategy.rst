@@ -10,7 +10,7 @@ The Strategy in PyTorch Lightning handles the following responsibilities:
 * Launch and teardown of training processes (if applicable).
 * Setup communication between processes (NCCL, GLOO, MPI, and so on).
 * Provide a unified communication interface for reduction, broadcast, and so on.
-* Owns the :class:`~pytorch_lightning.core.lightning.LightningModule`
+* Owns the :class:`~pytorch_lightning.core.module.LightningModule`
 * Handles/owns optimizers and schedulers.
 
 
@@ -84,7 +84,7 @@ The below table lists all relevant strategies available in Lightning with their 
    * - ddp_sharded
      - :class:`~pytorch_lightning.strategies.DDPShardedStrategy`
      - Optimizer and gradient sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Sharded Training>`
-   * - ddp_spawn_sharded
+   * - ddp_sharded_spawn
      - :class:`~pytorch_lightning.strategies.DDPSpawnShardedStrategy`
      - Optimizer sharded training provided by FairScale. :ref:`Learn more. <advanced/model_parallel:Sharded Training>`
    * - ddp_spawn

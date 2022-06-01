@@ -194,7 +194,7 @@ class RecommenderModel(BoringModel):
 
 
 @pytest.mark.flaky(reruns=3)
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_trainer_num_prefetch_batches(tmpdir):
 
     model = RecommenderModel()

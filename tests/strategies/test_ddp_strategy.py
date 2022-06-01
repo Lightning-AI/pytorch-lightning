@@ -33,7 +33,7 @@ class BoringModelGPU(BoringModel):
         self.start_cuda_memory = torch.cuda.memory_allocated()
 
 
-@RunIf(min_gpus=2, skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_ddp_with_2_gpus():
     """Tests if device is set correctly when training and after teardown for DDPStrategy."""
     trainer = Trainer(
@@ -69,7 +69,7 @@ class BarrierModel(BoringModel):
         self.trainer.strategy.barrier("barrier after model is wrapped")
 
 
-@RunIf(min_gpus=4, standalone=True)
+@RunIf(min_cuda_gpus=4, standalone=True)
 @mock.patch("torch.distributed.barrier")
 def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir):
     """Test correct usage of barriers when device ids do not start at 0 or are not consecutive."""
@@ -146,7 +146,7 @@ def test_ddp_configure_ddp():
     assert isinstance(trainer.model, LightningModule)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize(
     "trainer_fn", (TrainerFn.VALIDATING, TrainerFn.TUNING, TrainerFn.TESTING, TrainerFn.PREDICTING)
 )

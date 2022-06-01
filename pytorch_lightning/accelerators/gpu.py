@@ -98,6 +98,10 @@ class GPUAccelerator(Accelerator):
             description=f"{cls.__class__.__name__}",
         )
 
+    def teardown(self) -> None:
+        # clean up memory
+        torch.cuda.empty_cache()
+
 
 def get_nvidia_gpu_stats(device: _DEVICE) -> Dict[str, float]:  # pragma: no-cover
     """Get GPU stats including memory, fan speed, and temperature from nvidia-smi.

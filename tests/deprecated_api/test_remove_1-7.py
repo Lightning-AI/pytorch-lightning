@@ -22,7 +22,6 @@ import torch
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
-from pytorch_lightning.loggers import LoggerCollection
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
@@ -34,7 +33,6 @@ from pytorch_lightning.plugins.environments import (
 from pytorch_lightning.strategies import SingleDeviceStrategy
 from tests.deprecated_api import _soft_unimport_module
 from tests.helpers import BoringModel
-from tests.loggers.test_logger import CustomLogger
 from tests.plugins.environments.test_lsf_environment import _make_rankfile
 
 
@@ -61,16 +59,6 @@ def test_v1_7_0_on_interrupt(tmpdir):
         trainer.fit(model)
 
 
-def test_v1_7_0_process_position_trainer_constructor(tmpdir):
-    with pytest.deprecated_call(match=r"Setting `Trainer\(process_position=5\)` is deprecated in v1.5"):
-        _ = Trainer(process_position=5)
-
-
-def test_v1_7_0_flush_logs_every_n_steps_trainer_constructor(tmpdir):
-    with pytest.deprecated_call(match=r"Setting `Trainer\(flush_logs_every_n_steps=10\)` is deprecated in v1.5"):
-        _ = Trainer(flush_logs_every_n_steps=10)
-
-
 class BoringCallbackDDPSpawnModel(BoringModel):
     def add_to_queue(self, queue):
         ...
@@ -88,17 +76,6 @@ def test_v1_7_0_deprecate_add_get_queue(tmpdir):
 
     with pytest.deprecated_call(match=r"`LightningModule.get_from_queue` method was deprecated in v1.5"):
         trainer.fit(model)
-
-
-def test_v1_7_0_lightning_logger_base_close(tmpdir):
-    logger = CustomLogger()
-    with pytest.deprecated_call(match="`Logger.close` method is deprecated in v1.5 and will be removed in v1.7."):
-        logger.close()
-    with pytest.deprecated_call(
-        match="`LoggerCollection.close` method is deprecated in v1.5 and will be removed in v1.7."
-    ):
-        logger = LoggerCollection([logger])
-        logger.close()
 
 
 def test_v1_7_0_deprecate_lightning_distributed(tmpdir):
@@ -130,21 +107,6 @@ def test_v1_7_0_deprecate_parameter_validation():
         match="Using `pytorch_lightning.core.decorators.parameter_validation` is deprecated in v1.5"
     ):
         from pytorch_lightning.core.decorators import parameter_validation  # noqa: F401
-
-
-def test_v1_7_0_weights_summary_trainer(tmpdir):
-    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_summary=full\)` is deprecated in v1.5"):
-        t = Trainer(weights_summary="full")
-
-    with pytest.deprecated_call(match=r"Setting `Trainer\(weights_summary=None\)` is deprecated in v1.5"):
-        t = Trainer(weights_summary=None)
-
-    t = Trainer(weights_summary="top")
-    with pytest.deprecated_call(match=r"`Trainer.weights_summary` is deprecated in v1.5"):
-        _ = t.weights_summary
-
-    with pytest.deprecated_call(match=r"Setting `Trainer.weights_summary` is deprecated in v1.5"):
-        t.weights_summary = "blah"
 
 
 def test_v1_7_0_deprecated_slurm_job_id():
