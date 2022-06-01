@@ -34,14 +34,22 @@ from pytorch_lightning.utilities.meta import get_all_subclasses
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_deprecation, rank_zero_warn
 
-_JSONARGPARSE_SIGNATURES_AVAILABLE = _RequirementAvailable("jsonargparse[signatures]>=4.7.1")
+_JSONARGPARSE_SIGNATURES_AVAILABLE = _RequirementAvailable("jsonargparse[signatures]>=4.8.0")
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     import docstring_parser
-    from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, Namespace, set_config_read_mode
+    from jsonargparse import (
+        ActionConfigFile,
+        ArgumentParser,
+        class_from_function,
+        Namespace,
+        register_unresolvable_import_paths,
+        set_config_read_mode,
+    )
     from jsonargparse.typehints import get_all_subclass_paths
     from jsonargparse.util import import_object
 
+    register_unresolvable_import_paths(torch)  # Required until fix https://github.com/pytorch/pytorch/issues/74483
     set_config_read_mode(fsspec_enabled=True)
 else:
     locals()["ArgumentParser"] = object
