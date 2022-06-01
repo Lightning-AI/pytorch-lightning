@@ -265,8 +265,8 @@ def test_collect_init_args():
             super().__init__(anyarg, anykw=anykw, **kwargs)
 
     my_class = AutomaticArgsChild("test1", "test2", anykw=32, childkw=22, otherkw=123)
-    assert my_class.result[0] == {"anyarg": "test1", "anykw": 32, "otherkw": 123}
-    assert my_class.result[1] == {"anyarg": "test1", "childarg": "test2", "anykw": 32, "childkw": 22, "otherkw": 123}
+    assert my_class.result[0] == {"anyarg": "test1", "childarg": "test2", "anykw": 32, "childkw": 22, "otherkw": 123}
+    assert my_class.result[1] == {"anyarg": "test1", "anykw": 32, "otherkw": 123}
 
 
 def test_attribute_dict(tmpdir):
