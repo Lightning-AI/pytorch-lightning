@@ -182,7 +182,7 @@ def collect_init_args(
     if "__class__" in local_vars:
         local_args = get_init_args(frame)
         # recursive update
-        path_args.append(local_args)
+        path_args.insert(0, local_args)
         return collect_init_args(frame.f_back, path_args, inside=True)
     if not inside:
         return collect_init_args(frame.f_back, path_args, inside)
