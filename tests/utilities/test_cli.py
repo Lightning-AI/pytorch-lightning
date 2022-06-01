@@ -322,7 +322,7 @@ def test_lightning_cli_single_arg_callback():
     with mock.patch("sys.argv", ["any.py", f"--trainer.callbacks=DeviceStatsMonitor"]):
         cli = LightningCLI(BoringModel, run=False)
 
-    assert cli.config.trainer.callbacks.class_path == 'pytorch_lightning.callbacks.DeviceStatsMonitor'
+    assert cli.config.trainer.callbacks.class_path == "pytorch_lightning.callbacks.DeviceStatsMonitor"
     assert not isinstance(cli.config_init.trainer, list)
 
 
