@@ -318,6 +318,14 @@ def test_lightning_cli_args_callbacks(tmpdir):
     assert cli.trainer.ran_asserts
 
 
+def test_lightning_cli_single_arg_callback():
+    with mock.patch("sys.argv", ["any.py", f"--trainer.callbacks=DeviceStatsMonitor"]):
+        cli = LightningCLI(BoringModel, run=False)
+
+    assert cli.config.trainer.callbacks.class_path == 'pytorch_lightning.callbacks.DeviceStatsMonitor'
+    assert not isinstance(cli.config_init.trainer, list)
+
+
 @pytest.mark.parametrize("run", (False, True))
 def test_lightning_cli_configurable_callbacks(tmpdir, run):
     class MyLightningCLI(LightningCLI):
