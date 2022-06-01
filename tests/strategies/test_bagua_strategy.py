@@ -85,9 +85,9 @@ def test_configuration(algorithm, tmpdir):
     ), mock.patch("bagua.torch_api.communication.is_initialized", return_value=True):
         if algorithm == "qadam":
             with pytest.raises(MisconfigurationException, match="Bagua QAdam can only accept one QAdamOptimizer"):
-                trainer.strategy.configure_ddp()
+                trainer.strategy._configure_bagua_model(trainer)
         else:
-            trainer.strategy.configure_ddp()
+            trainer.strategy._configure_bagua_model(trainer)
 
 
 @RunIf(min_gpus=1, bagua=True)
@@ -109,7 +109,7 @@ def test_qadam_configuration(tmpdir):
     with mock.patch(
         "bagua.torch_api.data_parallel.bagua_distributed.BaguaDistributedDataParallel.__init__", return_value=None
     ), mock.patch("bagua.torch_api.communication.is_initialized", return_value=True):
-        trainer.strategy.configure_ddp()
+        trainer.strategy._configure_bagua_model(trainer)
 
 
 def test_bagua_not_available(monkeypatch):

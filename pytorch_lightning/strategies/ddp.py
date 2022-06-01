@@ -56,6 +56,7 @@ from pytorch_lightning.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_10,
     _TORCH_GREATER_EQUAL_1_11,
 )
+from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -152,24 +153,37 @@ class DDPStrategy(ParallelStrategy):
         super().setup_environment()
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        super().setup(trainer)
         # share ddp pids to all processes
         self._rank_0_will_call_children_scripts = self.broadcast(self._rank_0_will_call_children_scripts)
         if self._should_run_deadlock_detection():
             self._share_information_to_prevent_deadlock()
+
+        self.accelerator.setup(trainer)
 
         # move the model to the correct device
         self.model_to_device()
 
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = trainer.state.fn
-        if trainer_fn != TrainerFn.FITTING:
-            return
 
-        if self._layer_sync:
-            self.model = self._layer_sync.apply(self.model)
+        if trainer_fn == TrainerFn.FITTING:
+            if self._layer_sync:
+                self.model = self._layer_sync.apply(self.model)
 
-        self.configure_ddp()
+        self.setup_precision_plugin()
+
+        if trainer_fn == TrainerFn.FITTING:
+            self.configure_ddp()
+
+            # set up optimizers after the wrapped module has been moved to the device
+            self.setup_optimizers(trainer)
+            optimizers_to_device(self.optimizers, self.root_device)
+
+        if _TORCH_GREATER_EQUAL_1_10 and trainer_fn == TrainerFn.FITTING:
+            import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
+
+            if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
+                self._enable_model_averaging()
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
@@ -222,12 +236,6 @@ class DDPStrategy(ParallelStrategy):
                 ddp_comm_hook=self._ddp_comm_hook,
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
-
-            if _TORCH_GREATER_EQUAL_1_10 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
-                import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
-
-                if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
-                    self._enable_model_averaging()
 
     def _enable_model_averaging(self) -> None:
         # Only called when PyTorch version >= 1.10
