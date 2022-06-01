@@ -150,6 +150,27 @@ def test_ddp_dont_configure_sync_batchnorm(trainer_fn):
     assert not isinstance(trainer.strategy.model.layer, torch.nn.modules.batchnorm.SyncBatchNorm)
 
 
+class CheckOptimizerDeviceModel(BoringModel):
+    def configure_optimizers(self):
+        assert all(param.device.type == "cuda" for param in self.parameters())
+        super().configure_optimizers()
+
+
+@RunIf(min_gpus=1)
+@pytest.mark.parametrize("strategy", ("ddp", "ddp_spawn"))
+def test_model_parameters_on_device_for_optimizer(strategy):
+    """Test that the strategy has moved the parameters to the device by the time the optimizer gets created."""
+    model = CheckOptimizerDeviceModel()
+    trainer = Trainer(
+        default_root_dir=os.getcwd(),
+        fast_dev_run=1,
+        accelerator="gpu",
+        devices=1,
+        strategy=strategy,
+    )
+    trainer.fit(model)
+
+
 def test_configure_launcher_create_processes_externally():
     class MyClusterEnvironment(ClusterEnvironment):
         @property

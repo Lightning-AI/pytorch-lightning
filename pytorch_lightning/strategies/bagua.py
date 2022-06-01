@@ -16,9 +16,11 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _BAGUA_AVAILABLE
+from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.seed import reset_seed
 
 if _BAGUA_AVAILABLE:
@@ -152,6 +154,33 @@ class BaguaStrategy(DDPStrategy):
         os.environ["WORLD_SIZE"] = str(self.world_size)
         os.environ["LOCAL_RANK"] = str(self.local_rank)
 
+    def setup(self, trainer: "pl.Trainer") -> None:
+        self._rank_0_will_call_children_scripts = self.broadcast(self._rank_0_will_call_children_scripts)
+        if self._should_run_deadlock_detection():
+            self._share_information_to_prevent_deadlock()
+
+        self.accelerator.setup(trainer)
+
+        # move the model to the correct device
+        self.model_to_device()
+
+        trainer_fn = trainer.state.fn
+
+        if trainer_fn == TrainerFn.FITTING:
+            if self._layer_sync and self.model:
+                self.model = self._layer_sync.apply(self.model)
+
+        self.setup_precision_plugin()
+
+        if trainer_fn == TrainerFn.FITTING:
+            # set up optimizers after the module has been moved to the device
+            # but before the module has been wrapped
+            self.setup_optimizers(trainer)
+            optimizers_to_device(self.optimizers, self.root_device)
+
+            # skip wrapping the model if we are not fitting as no gradients need to be exchanged
+            self._configure_bagua_model(trainer)
+
     def _check_qadam_optimizer(self) -> None:
         has_qadam_optimizer = any([isinstance(opt, QAdamOptimizer) for opt in self.optimizers])
 
@@ -160,13 +189,12 @@ class BaguaStrategy(DDPStrategy):
 
         self._bagua_kwargs["q_adam_optimizer"] = self.optimizers[0]
 
-    def configure_ddp(self) -> None:
+    def _configure_bagua_model(self, trainer: "pl.Trainer") -> None:
         model = LightningBaguaModule(self.model)  # type: ignore[arg-type]
         self._model = self._setup_model(model)
 
         # start the background communication for async algorithm
-        assert self.lightning_module.trainer is not None
-        if self.lightning_module.trainer.training and self._bagua_algorithm == "async":
+        if trainer.training and self._bagua_algorithm == "async":
             self.model.bagua_algorithm.resume(self.model)  # type: ignore
 
     def _setup_model(self, model: Module) -> BaguaDistributedDataParallel:
