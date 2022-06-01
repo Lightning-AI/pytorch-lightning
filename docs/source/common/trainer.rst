@@ -437,21 +437,24 @@ benchmark
 
 |
 
-Defaults to ``True`` if :paramref:`~pytorch_lightning.trainer.Trainer.deterministic` is not set.
-This flag sets the ``torch.backends.cudnn.benchmark`` flag. You can read more about its impact
+The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to. The value for
+``torch.backends.cudnn.benchmark`` set in the current session will be used (``False`` if not manually set).
+If :paramref:`~pytorch_lightning.trainer.Trainer.deterministic` is set to ``True``, this will default to ``False``.
+You can read more about the interaction of ``torch.backends.cudnn.benchmark`` and ``torch.backends.cudnn.deterministic``
 `here <https://pytorch.org/docs/stable/notes/randomness.html#cuda-convolution-benchmarking>`__
 
-This is likely to increase the speed of your system if your input sizes don't change. However, if they do, then it
-might make your system slower. The CUDNN auto-tuner will try to find the best algorithm for the hardware when a new
-input size is encountered. Read more about it `here <https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936>`__.
+Setting this flag to ``True`` can increase the speed of your system if your input sizes don't
+change. However, if they do, then it might make your system slower. The CUDNN auto-tuner will try to find the best
+algorithm for the hardware when a new input size is encountered. This might also increase the memory usage.
+Read more about it `here <https://discuss.pytorch.org/t/what-does-torch-backends-cudnn-benchmark-do/5936>`__.
 
 Example::
 
-    # defaults to True if not deterministic (which is False by default)
-    trainer = Trainer()
+    # Will use whatever the current value for torch.backends.cudnn.benchmark, normally False
+    trainer = Trainer(benchmark=None)  # default
 
     # you can overwrite the value
-    trainer = Trainer(benchmark=False)
+    trainer = Trainer(benchmark=True)
 
 deterministic
 ^^^^^^^^^^^^^
@@ -694,30 +697,6 @@ impact to subsequent runs. These are the changes enabled:
 - Sets ``limit_{train,val,test,predict}_batches`` to 1 or the number passed.
 - Disables the Tuner.
 - If using the CLI, the configuration file is not saved.
-
-flush_logs_every_n_steps
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. warning:: ``flush_logs_every_n_steps`` has been deprecated in v1.5 and will be removed in v1.7.
-    Please configure flushing directly in the logger instead.
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/flush_logs%E2%80%A8_every_n_steps.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/flush_logs_every_n_steps.mp4"></video>
-
-|
-
-Writes logs to disk this often.
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(flush_logs_every_n_steps=100)
-
-See Also:
-    - :doc:`logging <../extensions/logging>`
 
 .. _gpus:
 
@@ -1569,36 +1548,6 @@ Example::
         callbacks=[checkpoint],
         weights_save_path='my/path'
     )
-
-weights_summary
-^^^^^^^^^^^^^^^
-
-.. warning:: `weights_summary` is deprecated in v1.5 and will be removed in v1.7. Please pass :class:`~pytorch_lightning.callbacks.model_summary.ModelSummary`
-    directly to the Trainer's ``callbacks`` argument instead. To disable the model summary,
-    pass ``enable_model_summary = False`` to the Trainer.
-
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/weights_summary.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/weights_summary.mp4"></video>
-
-|
-
-Prints a summary of the weights when training begins.
-Options: 'full', 'top', None.
-
-.. testcode::
-
-    # default used by the Trainer (ie: print summary of top level modules)
-    trainer = Trainer(weights_summary="top")
-
-    # print full summary of all modules and submodules
-    trainer = Trainer(weights_summary="full")
-
-    # don't print a summary
-    trainer = Trainer(weights_summary=None)
 
 
 enable_model_summary
