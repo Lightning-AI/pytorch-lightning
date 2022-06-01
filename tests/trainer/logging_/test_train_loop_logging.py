@@ -16,6 +16,8 @@
 import collections
 import itertools
 from re import escape
+from unittest import mock
+from unittest.mock import call
 
 import numpy as np
 import pytest
@@ -747,3 +749,37 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
     train_data = DataLoader(RandomDataset(32, 64), batch_size=2)
     val_data = DataLoader(RandomDataset(32, 64), batch_size=2)
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
+
+
+@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+def test_log_metrics_epoch_step_values(mock_log_metrics, tmpdir):
+    """Tests the default epoch and step values logged."""
+
+    class MyModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            self.log("foo", 0.0, on_step=True, on_epoch=True)
+            return super().training_step(batch, batch_idx)
+
+    model = MyModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        max_epochs=2,
+        log_every_n_steps=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(model)
+
+    mock_log_metrics.assert_has_calls(
+        [
+            call(metrics={"foo_step": 0.0, "epoch": 0}, step=0),
+            call(metrics={"foo_step": 0.0, "epoch": 0}, step=1),
+            call(metrics={"foo_epoch": 0.0, "epoch": 0}, step=1),
+            call(metrics={"foo_step": 0.0, "epoch": 1}, step=2),
+            call(metrics={"foo_step": 0.0, "epoch": 1}, step=3),
+            call(metrics={"foo_epoch": 0.0, "epoch": 1}, step=3),
+        ]
+    )
