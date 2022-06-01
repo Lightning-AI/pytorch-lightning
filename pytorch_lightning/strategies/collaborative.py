@@ -2,7 +2,6 @@ import http
 import ipaddress
 import logging
 import os
-import platform
 import re
 import threading
 import time
@@ -137,7 +136,7 @@ class CollaborativeStrategy(Strategy):
 
             **optimizer_kwargs: kwargs are passed to the :class:`hivemind.Optimizer` class.
         """
-        if not _HIVEMIND_AVAILABLE or platform.system() != "Linux":
+        if not _HIVEMIND_AVAILABLE:
             raise MisconfigurationException(
                 "To use the `CollaborativeStrategy`, you must have Hivemind installed and be running on Linux."
                 " Install it by running `pip install -U hivemind`."
@@ -440,7 +439,7 @@ class DHTManager:
         elif self._initial_peers is None:
             log.info(
                 "\nOther machines can connect running the same command:\n"
-                f"INITIAL_PEERS={','.join(visible_addresses)} python ...\n"
+                f"{self.INITIAL_PEERS_ENV}={','.join(visible_addresses)} python ...\n"
                 "or passing the peers to the strategy:\n"
                 f"CollaborativeStrategy(initial_peers='{','.join(visible_addresses)}')"
             )
@@ -457,7 +456,7 @@ class DHTManager:
         log.info(
             "\nSidecar endpoint enabled to serve peers.\n"
             "Other peers can connect via:\n"
-            f"PEER_ENDPOINT={resolved_host}:{self._port} python ...\n"
+            f"{self.PEER_ENDPOINT_ENV}={resolved_host}:{self._port} python ...\n"
             "or pass the peer endpoint address to the strategy:\n"
             f"CollaborativeStrategy(peer_endpoint='{resolved_host}:{self._port}')"
         )
