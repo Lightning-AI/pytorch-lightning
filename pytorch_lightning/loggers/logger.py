@@ -26,7 +26,7 @@ import numpy as np
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_info
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:
@@ -345,6 +345,16 @@ class DummyLogger(Logger):
     def __iter__(self):
         # if DummyLogger is substituting a logger collection, pretend it is empty
         yield from ()
+
+    def __getattr__(self, name):
+        """Allows the DummyLogger to be called with arbitrary methods, to avoid AttributeErrors"""
+        if not hasattr(self, name):
+            rank_zero_info(
+                f"The DummyLogger is being used and the method {name} was called on it but it does not exist"
+            )
+            return
+
+        return self.__getattribute__(name)
 
 
 def merge_dicts(
