@@ -973,3 +973,62 @@ def test_rich_print_results(inputs, expected):
         EvaluationLoop._print_results(*inputs)
     expected = expected[1:]  # remove the initial line break from the """ string
     assert capture.get() == expected.lstrip()
+
+
+@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@pytest.mark.parametrize("num_dataloaders", (1, 2))
+def test_eval_step_logging(mock_log_metrics, tmpdir, num_dataloaders):
+    """Test that eval step during fit/validate/test is updated correctly."""
+
+    class CustomBoringModel(BoringModel):
+        def validation_step(self, batch, batch_idx, dataloader_idx=None):
+            self.log(f"val_log_{self.trainer.state.fn}", batch_idx, on_step=True, on_epoch=False)
+
+        def test_step(self, batch, batch_idx, dataloader_idx=None):
+            self.log("test_log", batch_idx, on_step=True, on_epoch=False)
+
+        def val_dataloader(self):
+            return [super().val_dataloader()] * num_dataloaders
+
+        def test_dataloader(self):
+            return [super().test_dataloader()] * num_dataloaders
+
+        validation_epoch_end = None
+        test_epoch_end = None
+
+    limit_batches = 4
+    max_epochs = 3
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=max_epochs,
+        limit_train_batches=1,
+        limit_val_batches=limit_batches,
+        limit_test_batches=limit_batches,
+    )
+    model = CustomBoringModel()
+
+    trainer.fit(model)
+    trainer.validate(model)
+    trainer.test(model)
+
+    def get_suffix(dl_idx):
+        return f"/dataloader_idx_{dl_idx}" if num_dataloaders == 2 else ""
+
+    eval_steps = range(limit_batches)
+    fit_calls = [
+        call(metrics={f"val_log_fit{get_suffix(dl_idx)}": float(step)}, step=step + (limit_batches * epoch))
+        for epoch in range(max_epochs)
+        for dl_idx in range(num_dataloaders)
+        for step in eval_steps
+    ]
+    validate_calls = [
+        call(metrics={f"val_log_validate{get_suffix(dl_idx)}": float(val)}, step=val)
+        for dl_idx in range(num_dataloaders)
+        for val in eval_steps
+    ]
+    test_calls = [
+        call(metrics={f"test_log{get_suffix(dl_idx)}": float(val)}, step=val)
+        for dl_idx in range(num_dataloaders)
+        for val in eval_steps
+    ]
+    assert mock_log_metrics.mock_calls == fit_calls + validate_calls + test_calls

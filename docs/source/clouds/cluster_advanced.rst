@@ -7,7 +7,7 @@ Run on an on-prem cluster (advanced)
 ----
 
 ******************************
-Run on a SLRUM managed cluster
+Run on a SLURM managed cluster
 ******************************
 Lightning automates the details behind training on a SLURM-powered cluster. In contrast to the general purpose
 cluster above, the user does not start the jobs manually on each node and instead submits it to SLURM which
