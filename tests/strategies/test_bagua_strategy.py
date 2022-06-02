@@ -54,7 +54,7 @@ def test_bagua_manual(tmpdir):
 
         def training_step(self, batch, batch_idx):
             output = self(batch)
-            opt = self.optimizers()[0]
+            opt = self.optimizers()
             opt.zero_grad()
             loss = self.loss(batch, output)
             self.manual_backward(loss)
