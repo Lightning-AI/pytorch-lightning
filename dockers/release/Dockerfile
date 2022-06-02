@@ -36,7 +36,7 @@ RUN \
         mv pytorch-lightning-*/ pytorch-lightning ; \
         rm *.zip ; \
     fi && \
-    pip install ./pytorch-lightning["extra"] --no-cache-dir && \
+    pip install ./pytorch-lightning["extra","loggers","strategies"] --no-cache-dir && \
     rm -rf pytorch-lightning
 
 RUN python --version && \
