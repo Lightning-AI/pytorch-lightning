@@ -49,7 +49,7 @@ module = [
     "pytorch_lightning.callbacks.stochastic_weight_avg",
     "pytorch_lightning.core.datamodule",
     "pytorch_lightning.core.decorators",
-    "pytorch_lightning.core.lightning",
+    "pytorch_lightning.core.module",
     "pytorch_lightning.core.mixins.device_dtype_mixin",
     "pytorch_lightning.core.saving",
     "pytorch_lightning.demos.boring_classes",

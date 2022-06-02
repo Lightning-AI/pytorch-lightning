@@ -33,7 +33,7 @@ class BoringModelGPU(BoringModel):
         self.start_cuda_memory = torch.cuda.memory_allocated()
 
 
-@RunIf(min_gpus=2, skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_ddp_with_2_gpus():
     """Tests if device is set correctly when training and after teardown for DDPStrategy."""
     trainer = Trainer(
@@ -69,7 +69,7 @@ class BarrierModel(BoringModel):
         self.trainer.strategy.barrier("barrier after model is wrapped")
 
 
-@RunIf(min_gpus=4, standalone=True)
+@RunIf(min_cuda_gpus=4, standalone=True)
 @mock.patch("torch.distributed.barrier")
 def test_ddp_barrier_non_consecutive_device_ids(barrier_mock, tmpdir):
     """Test correct usage of barriers when device ids do not start at 0 or are not consecutive."""
@@ -146,7 +146,7 @@ def test_ddp_configure_ddp():
     assert isinstance(trainer.model, LightningModule)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize(
     "trainer_fn", (TrainerFn.VALIDATING, TrainerFn.TUNING, TrainerFn.TESTING, TrainerFn.PREDICTING)
 )
@@ -163,6 +163,27 @@ def test_ddp_dont_configure_sync_batchnorm(trainer_fn):
     trainer.strategy.setup(trainer)
     # because TrainerFn is not FITTING, model is not configured with sync batchnorm
     assert not isinstance(trainer.strategy.model.layer, torch.nn.modules.batchnorm.SyncBatchNorm)
+
+
+class CheckOptimizerDeviceModel(BoringModel):
+    def configure_optimizers(self):
+        assert all(param.device.type == "cuda" for param in self.parameters())
+        super().configure_optimizers()
+
+
+@RunIf(min_cuda_gpus=1)
+@pytest.mark.parametrize("strategy", ("ddp", "ddp_spawn"))
+def test_model_parameters_on_device_for_optimizer(strategy):
+    """Test that the strategy has moved the parameters to the device by the time the optimizer gets created."""
+    model = CheckOptimizerDeviceModel()
+    trainer = Trainer(
+        default_root_dir=os.getcwd(),
+        fast_dev_run=1,
+        accelerator="gpu",
+        devices=1,
+        strategy=strategy,
+    )
+    trainer.fit(model)
 
 
 def test_configure_launcher_create_processes_externally():

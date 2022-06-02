@@ -291,7 +291,7 @@ def test_accelererator_invalid_type_devices(mock_is_available, mock_device_count
         _ = Trainer(accelerator="gpu", devices=device_count)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_accelerator_gpu():
     trainer = Trainer(accelerator="gpu", devices=1)
     assert isinstance(trainer.accelerator, GPUAccelerator)
@@ -311,7 +311,7 @@ def test_accelerator_cpu_with_devices(devices, plugin):
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
     ["devices", "plugin"], [(1, SingleDeviceStrategy), ([1], SingleDeviceStrategy), (2, DDPSpawnStrategy)]
 )
@@ -322,7 +322,7 @@ def test_accelerator_gpu_with_devices(devices, plugin):
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_accelerator_auto_with_devices_gpu():
     trainer = Trainer(accelerator="auto", devices=1)
     assert isinstance(trainer.accelerator, GPUAccelerator)
@@ -374,7 +374,7 @@ def test_strategy_choice_cpu_plugin(tmpdir, plugin):
     assert isinstance(trainer.strategy, plugin)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
     ["strategy", "plugin"],
     [
@@ -394,14 +394,14 @@ def test_strategy_choice_gpu_str(tmpdir, strategy, plugin):
     assert isinstance(trainer.strategy, plugin)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize("plugin", [DDPSpawnStrategy, DDPStrategy])
 def test_strategy_choice_gpu_plugin(tmpdir, plugin):
     trainer = Trainer(strategy=plugin(), accelerator="gpu", devices=2)
     assert isinstance(trainer.strategy, plugin)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize("plugin", [DDPSpawnStrategy, DDPStrategy])
 def test_device_type_when_training_plugin_gpu_passed(tmpdir, plugin):
 
@@ -449,7 +449,7 @@ def test_strategy_choice_ddp_spawn(cuda_available_mock, device_count_mock):
     assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 @mock.patch.dict(
     os.environ,
     {

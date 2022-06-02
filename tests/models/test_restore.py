@@ -375,7 +375,7 @@ def test_callbacks_references_fit_ckpt_path(tmpdir):
     trainer.fit(model, datamodule=dm, ckpt_path=str(tmpdir / "last.ckpt"))
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_running_test_pretrained_model_distrib_dp(tmpdir):
     """Verify `test()` on pretrained model."""
 
@@ -424,7 +424,7 @@ def test_running_test_pretrained_model_distrib_dp(tmpdir):
         tpipes.run_model_prediction(pretrained_model, dataloader)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_running_test_pretrained_model_distrib_ddp_spawn(tmpdir):
     """Verify `test()` on pretrained model."""
     tutils.set_random_main_port()
@@ -558,7 +558,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     new_trainer.test(pretrained_model)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_dp_resume(tmpdir):
     """Make sure DP continues training correctly."""
     model = CustomClassificationModelDP(lr=0.1)

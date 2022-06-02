@@ -16,6 +16,8 @@
 import collections
 import itertools
 from re import escape
+from unittest import mock
+from unittest.mock import call
 
 import numpy as np
 import pytest
@@ -25,7 +27,7 @@ from torchmetrics import Accuracy
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomDictDataset
 from tests.helpers.runif import RunIf
@@ -395,7 +397,7 @@ class LoggingSyncDistModel(BoringModel):
         return super().validation_step(batch, batch_idx)
 
 
-@pytest.mark.parametrize("devices", [1, pytest.param(2, marks=RunIf(min_gpus=2, skip_windows=True))])
+@pytest.mark.parametrize("devices", [1, pytest.param(2, marks=RunIf(min_cuda_gpus=2, skip_windows=True))])
 def test_logging_sync_dist_true(tmpdir, devices):
     """Tests to ensure that the sync_dist flag works (should just return the original value)"""
     fake_result = 1
@@ -433,7 +435,7 @@ def test_logging_sync_dist_true(tmpdir, devices):
     assert metrics["bar_3"] == 2 + int(use_multiple_devices)
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_logging_sync_dist_true_ddp(tmpdir):
     """Tests to ensure that the sync_dist flag works with ddp."""
 
@@ -553,7 +555,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
     assert trainer.callback_metrics == expected
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_metric_are_properly_reduced(tmpdir):
     class TestingModel(BoringModel):
         def __init__(self, *args, **kwargs) -> None:
@@ -662,7 +664,7 @@ def test_logging_raises(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
-    with pytest.raises(MisconfigurationException, match=r"reduce_fx={min,max,mean,sum}\)` are currently supported"):
+    with pytest.raises(MisconfigurationException, match=r"reduce_fx={min,max,mean,sum}\)` are supported"):
         trainer.fit(model)
 
 
@@ -691,7 +693,7 @@ def test_sanity_metrics_are_reset(tmpdir):
     assert "val_loss" not in trainer.progress_bar_metrics
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_move_metrics_to_cpu(tmpdir):
     class TestModel(BoringModel):
         def on_before_backward(self, loss: torch.Tensor) -> None:
@@ -748,3 +750,37 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
     train_data = DataLoader(RandomDataset(32, 64), batch_size=2)
     val_data = DataLoader(RandomDataset(32, 64), batch_size=2)
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
+
+
+@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+def test_log_metrics_epoch_step_values(mock_log_metrics, tmpdir):
+    """Tests the default epoch and step values logged."""
+
+    class MyModel(BoringModel):
+        def training_step(self, batch, batch_idx):
+            self.log("foo", 0.0, on_step=True, on_epoch=True)
+            return super().training_step(batch, batch_idx)
+
+    model = MyModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        max_epochs=2,
+        log_every_n_steps=1,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(model)
+
+    mock_log_metrics.assert_has_calls(
+        [
+            call(metrics={"foo_step": 0.0, "epoch": 0}, step=0),
+            call(metrics={"foo_step": 0.0, "epoch": 0}, step=1),
+            call(metrics={"foo_epoch": 0.0, "epoch": 0}, step=1),
+            call(metrics={"foo_step": 0.0, "epoch": 1}, step=2),
+            call(metrics={"foo_step": 0.0, "epoch": 1}, step=3),
+            call(metrics={"foo_epoch": 0.0, "epoch": 1}, step=3),
+        ]
+    )

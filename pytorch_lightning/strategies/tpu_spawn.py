@@ -26,6 +26,7 @@ from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.strategies.launchers.xla_spawn import _XLASpawnLauncher
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import ReduceOp
@@ -126,9 +127,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
     def setup(self, trainer: "pl.Trainer") -> None:
         self.start_method = "fork"
         self.accelerator.setup(trainer)
-        self.setup_optimizers(trainer)
-        self.setup_precision_plugin()
-        optimizers_to_device(self.optimizers, self.root_device)
 
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
@@ -140,8 +138,11 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         else:
             set_shared_parameters(self.model.module, shared_params)
 
-        self.setup_optimizers(trainer)
-        self.precision_plugin.connect(self.model, None, None)
+        self.setup_precision_plugin()
+
+        if trainer.state.fn == TrainerFn.FITTING:
+            self.setup_optimizers(trainer)
+            optimizers_to_device(self.optimizers, self.root_device)
 
     def _setup_model(self, model: Module) -> Module:
         return model
@@ -288,10 +289,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             tensor = tensor.unsqueeze(0)
         return xm.all_gather(tensor)
 
-    def teardown(self) -> None:
-        super().teardown()
-        os.environ.pop("PT_XLA_DEBUG", None)
-
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
@@ -303,3 +300,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             cls,
             description=f"{cls.__class__.__name__}",
         )
+
+    def teardown(self) -> None:
+        super().teardown()
+        os.environ.pop("PT_XLA_DEBUG", None)

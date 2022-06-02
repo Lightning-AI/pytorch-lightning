@@ -20,7 +20,7 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
-from pytorch_lightning.utilities import (
+from pytorch_lightning.utilities.imports import (
     _APEX_AVAILABLE,
     _BAGUA_AVAILABLE,
     _DEEPSPEED_AVAILABLE,
@@ -31,6 +31,7 @@ from pytorch_lightning.utilities import (
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _OMEGACONF_AVAILABLE,
+    _PSUTIL_AVAILABLE,
     _RICH_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_10,
     _TORCH_QUANTIZE_AVAILABLE,
@@ -63,7 +64,7 @@ class RunIf:
     def __new__(
         self,
         *args,
-        min_gpus: int = 0,
+        min_cuda_gpus: int = 0,
         min_torch: Optional[str] = None,
         max_torch: Optional[str] = None,
         min_python: Optional[str] = None,
@@ -85,13 +86,14 @@ class RunIf:
         omegaconf: bool = False,
         slow: bool = False,
         bagua: bool = False,
+        psutil: bool = False,
         hivemind: bool = False,
         **kwargs,
     ):
         """
         Args:
             *args: Any :class:`pytest.mark.skipif` arguments.
-            min_gpus: Require this number of gpus.
+            min_cuda_gpus: Require this number of gpus.
             min_torch: Require that PyTorch is greater or equal than this version.
             max_torch: Require that PyTorch is less than this version.
             min_python: Require that Python is greater or equal than this version.
@@ -113,15 +115,16 @@ class RunIf:
             omegaconf: Require that omry/omegaconf is installed.
             slow: Mark the test as slow, our CI will run it in a separate job.
             bagua: Require that BaguaSys/bagua is installed.
+            psutil: Require that psutil is installed.
             hivemind: Require that Hivemind is installed.
             **kwargs: Any :class:`pytest.mark.skipif` keyword arguments.
         """
         conditions = []
         reasons = []
 
-        if min_gpus:
-            conditions.append(torch.cuda.device_count() < min_gpus)
-            reasons.append(f"GPUs>={min_gpus}")
+        if min_cuda_gpus:
+            conditions.append(torch.cuda.device_count() < min_cuda_gpus)
+            reasons.append(f"GPUs>={min_cuda_gpus}")
 
         if min_torch:
             torch_version = get_distribution("torch").version
@@ -233,6 +236,10 @@ class RunIf:
         if bagua:
             conditions.append(not _BAGUA_AVAILABLE or sys.platform in ("win32", "darwin"))
             reasons.append("Bagua")
+
+        if psutil:
+            conditions.append(not _PSUTIL_AVAILABLE)
+            reasons.append("psutil")
 
         if hivemind:
             conditions.append(not _HIVEMIND_AVAILABLE or sys.platform in ("win32", "darwin"))

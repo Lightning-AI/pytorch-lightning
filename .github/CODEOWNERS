@@ -8,9 +8,9 @@
 * @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock @kaushikb11 @rohitgr7
 
 # CI/CD and configs
-/.github/       @borda @tchaton @carmocca
-/dockers/       @borda @tchaton @carmocca
-*.yml           @borda @tchaton @carmocca
+/.github/       @borda @carmocca @akihironitta @tchaton
+/dockers/       @borda @carmocca @akihironitta @tchaton
+*.yml           @borda @carmocca @akihironitta @tchaton
 
 # Docs
 /docs/                                  @edenlightning @tchaton @borda @awaelchli @RobertLaurella
@@ -42,8 +42,8 @@
 /pytorch_lightning/utilities            @borda @tchaton @SeanNaren @carmocca
 
 # Specifics
-/pytorch_lightning/trainer/connectors/logger_connector @tchaton @carmocca
-/pytorch_lightning/trainer/progress.py  @tchaton @awaelchli @carmocca
+/pytorch_lightning/trainer/connectors/logger_connector      @tchaton @carmocca
+/pytorch_lightning/trainer/progress.py                      @tchaton @awaelchli @carmocca
 
 # API
 /pytorch_lightning/callbacks/base.py    @williamfalcon @awaelchli @ananthsub @carmocca
@@ -59,5 +59,5 @@
 /.github/approve_config.yml      @williamfalcon
 /SECURITY.md                     @williamfalcon
 /README.md                       @williamfalcon @edenlightning @borda
-/setup.py                        @williamfalcon @borda
-/pytorch_lightning/__about__.py  @williamfalcon @borda
+/setup.py                        @williamfalcon @borda @carmocca
+/pytorch_lightning/__about__.py  @williamfalcon @borda @carmocca

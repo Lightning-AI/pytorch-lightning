@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG CUDA_VERSION=11.3.1
 ARG UBUNTU_VERSION=20.04
+ARG CUDA_VERSION=11.3.1
 
-# TODO: Remove OS arg to always use ubuntu20.04 when dropping CUDA 10.2
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
 
 ARG PYTHON_VERSION=3.9
@@ -70,7 +69,6 @@ RUN \
     rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
 
-COPY ./requirements.txt requirements.txt
 COPY ./requirements/ ./requirements/
 COPY ./.actions/assistant.py assistant.py
 
@@ -86,12 +84,11 @@ RUN \
     CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
     pip config set global.cache-dir false && \
     # set particular PyTorch version
-    python ./requirements/adjust-versions.py requirements.txt ${PYTORCH_VERSION} && \
+    python ./requirements/adjust-versions.py requirements/base.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust-versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
     python ./requirements/adjust-versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
     # Install all requirements \
-    pip install -r requirements/devel-base.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
-    rm -rf requirements.* && \
+    pip install -r requirements/devel.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
     rm assistant.py
 
 RUN \
@@ -121,8 +118,7 @@ RUN \
     echo $HOROVOD_BUILD_CUDA_CC_LIST && \
     cmake --version && \
     pip install --no-cache-dir -r ./requirements/strategies.txt && \
-    horovodrun --check-build && \
-    rm -rf requirements/
+    horovodrun --check-build
 
 RUN \
     CUDA_VERSION_MAJOR=$(python -c "import torch; print(torch.version.cuda.split('.')[0])") && \
@@ -157,6 +153,6 @@ RUN \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
-    python check-avail-extras.py && \
-    python check-avail-strategies.py && \
-    rm check-avail-*.py
+    python requirements/check-avail-extras.py && \
+    python requirements/check-avail-strategies.py && \
+    rm -rf requirements/

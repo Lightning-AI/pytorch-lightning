@@ -159,7 +159,7 @@ Training
 Training Loop
 =============
 
-To activate the training loop, override the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` method.
+To activate the training loop, override the :meth:`~pytorch_lightning.core.module.LightningModule.training_step` method.
 
 .. code-block:: python
 
@@ -200,7 +200,7 @@ Under the hood, Lightning does the following (pseudocode):
 Train Epoch-level Metrics
 =========================
 
-If you want to calculate epoch-level metrics and log them, use :meth:`~pytorch_lightning.core.lightning.LightningModule.log`.
+If you want to calculate epoch-level metrics and log them, use :meth:`~pytorch_lightning.core.module.LightningModule.log`.
 
 .. code-block:: python
 
@@ -214,7 +214,7 @@ If you want to calculate epoch-level metrics and log them, use :meth:`~pytorch_l
          self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
          return loss
 
-The :meth:`~pytorch_lightning.core.lightning.LightningModule.log` object automatically reduces the
+The :meth:`~pytorch_lightning.core.module.LightningModule.log` object automatically reduces the
 requested metrics across a complete epoch and devices. Here's the pseudocode of what it does under the hood:
 
 .. code-block:: python
@@ -239,8 +239,8 @@ requested metrics across a complete epoch and devices. Here's the pseudocode of 
 Train Epoch-level Operations
 ============================
 
-If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step`,
-override the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_epoch_end` method.
+If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.module.LightningModule.training_step`,
+override the :meth:`~pytorch_lightning.core.module.LightningModule.training_epoch_end` method.
 
 .. code-block:: python
 
@@ -283,7 +283,7 @@ Training with DataParallel
 When training using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
 need to aggregate them on the main GPU for processing (DP, or DDP2).
 
-In this case, implement the :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step_end`
+In this case, implement the :meth:`~pytorch_lightning.core.module.LightningModule.training_step_end`
 method which will have outputs from all the devices and you can accumulate to get the effective results.
 
 .. code-block:: python
@@ -343,7 +343,7 @@ Validation
 Validation Loop
 ===============
 
-To activate the validation loop while training, override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` method.
+To activate the validation loop while training, override the :meth:`~pytorch_lightning.core.module.LightningModule.validation_step` method.
 
 .. code-block:: python
 
@@ -378,7 +378,7 @@ Under the hood, Lightning does the following (pseudocode):
             torch.set_grad_enabled(True)
             model.train()
 
-You can also run just the validation loop on your validation dataloaders by overriding :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`
+You can also run just the validation loop on your validation dataloaders by overriding :meth:`~pytorch_lightning.core.module.LightningModule.validation_step`
 and calling :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`.
 
 .. code-block:: python
@@ -399,8 +399,8 @@ and calling :meth:`~pytorch_lightning.trainer.trainer.Trainer.validate`.
 Validation Epoch-level Metrics
 ==============================
 
-If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step`,
-override the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_epoch_end` method. Note that this method is called before :meth:`~pytorch_lightning.core.lightning.LightningModule.training_epoch_end`.
+If you need to do something with all the outputs of each :meth:`~pytorch_lightning.core.module.LightningModule.validation_step`,
+override the :meth:`~pytorch_lightning.core.module.LightningModule.validation_epoch_end` method. Note that this method is called before :meth:`~pytorch_lightning.core.module.LightningModule.training_epoch_end`.
 
 .. code-block:: python
 
@@ -422,7 +422,7 @@ Validating with DataParallel
 When training using a ``strategy`` that splits data from each batch across GPUs, sometimes you might
 need to aggregate them on the main GPU for processing (DP, or DDP2).
 
-In this case, implement the :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step_end`
+In this case, implement the :meth:`~pytorch_lightning.core.module.LightningModule.validation_step_end`
 method which will have outputs from all the devices and you can accumulate to get the effective results.
 
 .. code-block:: python
@@ -483,7 +483,7 @@ Test Loop
 =========
 
 The process for enabling a test loop is the same as the process for enabling a validation loop. Please refer to
-the section above for details. For this you need to override the :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` method.
+the section above for details. For this you need to override the :meth:`~pytorch_lightning.core.module.LightningModule.test_step` method.
 
 The only difference is that the test loop is only called when :meth:`~pytorch_lightning.trainer.trainer.Trainer.test` is used.
 
@@ -530,9 +530,9 @@ Inference
 Prediction Loop
 ===============
 
-By default, the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` method runs the
-:meth:`~pytorch_lightning.core.lightning.LightningModule.forward` method. In order to customize this behaviour,
-simply override the :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` method.
+By default, the :meth:`~pytorch_lightning.core.module.LightningModule.predict_step` method runs the
+:meth:`~pytorch_lightning.core.module.LightningModule.forward` method. In order to customize this behaviour,
+simply override the :meth:`~pytorch_lightning.core.module.LightningModule.predict_step` method.
 
 For the example let's override ``predict_step`` and try out `Monte Carlo Dropout <https://arxiv.org/pdf/1506.02142.pdf>`_:
 
@@ -616,7 +616,7 @@ such as text generation:
             return decoded
 
 In the case where you want to scale your inference, you should be using
-:meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step`.
+:meth:`~pytorch_lightning.core.module.LightningModule.predict_step`.
 
 .. code-block:: python
 
@@ -748,31 +748,31 @@ Methods
 all_gather
 ~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.all_gather
+.. automethod:: pytorch_lightning.core.module.LightningModule.all_gather
     :noindex:
 
 configure_callbacks
 ~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.configure_callbacks
+.. automethod:: pytorch_lightning.core.module.LightningModule.configure_callbacks
     :noindex:
 
 configure_optimizers
 ~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.configure_optimizers
+.. automethod:: pytorch_lightning.core.module.LightningModule.configure_optimizers
     :noindex:
 
 forward
 ~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.forward
+.. automethod:: pytorch_lightning.core.module.LightningModule.forward
     :noindex:
 
 freeze
 ~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.freeze
+.. automethod:: pytorch_lightning.core.module.LightningModule.freeze
     :noindex:
 
 .. _lm-log:
@@ -780,132 +780,132 @@ freeze
 log
 ~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.log
+.. automethod:: pytorch_lightning.core.module.LightningModule.log
     :noindex:
 
 log_dict
 ~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.log_dict
+.. automethod:: pytorch_lightning.core.module.LightningModule.log_dict
     :noindex:
 
 lr_schedulers
 ~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.lr_schedulers
+.. automethod:: pytorch_lightning.core.module.LightningModule.lr_schedulers
     :noindex:
 
 manual_backward
 ~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.manual_backward
+.. automethod:: pytorch_lightning.core.module.LightningModule.manual_backward
     :noindex:
 
 optimizers
 ~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.optimizers
+.. automethod:: pytorch_lightning.core.module.LightningModule.optimizers
     :noindex:
 
 print
 ~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.print
+.. automethod:: pytorch_lightning.core.module.LightningModule.print
     :noindex:
 
 predict_step
 ~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.predict_step
+.. automethod:: pytorch_lightning.core.module.LightningModule.predict_step
     :noindex:
 
 save_hyperparameters
 ~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.save_hyperparameters
+.. automethod:: pytorch_lightning.core.module.LightningModule.save_hyperparameters
     :noindex:
 
 toggle_optimizer
 ~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.toggle_optimizer
+.. automethod:: pytorch_lightning.core.module.LightningModule.toggle_optimizer
     :noindex:
 
 test_step
 ~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.test_step
+.. automethod:: pytorch_lightning.core.module.LightningModule.test_step
     :noindex:
 
 test_step_end
 ~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.test_step_end
+.. automethod:: pytorch_lightning.core.module.LightningModule.test_step_end
     :noindex:
 
 test_epoch_end
 ~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.test_epoch_end
+.. automethod:: pytorch_lightning.core.module.LightningModule.test_epoch_end
     :noindex:
 
 to_onnx
 ~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.to_onnx
+.. automethod:: pytorch_lightning.core.module.LightningModule.to_onnx
     :noindex:
 
 to_torchscript
 ~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.to_torchscript
+.. automethod:: pytorch_lightning.core.module.LightningModule.to_torchscript
     :noindex:
 
 training_step
 ~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.training_step
+.. automethod:: pytorch_lightning.core.module.LightningModule.training_step
     :noindex:
 
 training_step_end
 ~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.training_step_end
+.. automethod:: pytorch_lightning.core.module.LightningModule.training_step_end
     :noindex:
 
 training_epoch_end
 ~~~~~~~~~~~~~~~~~~
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.training_epoch_end
+.. automethod:: pytorch_lightning.core.module.LightningModule.training_epoch_end
     :noindex:
 
 unfreeze
 ~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.unfreeze
+.. automethod:: pytorch_lightning.core.module.LightningModule.unfreeze
     :noindex:
 
 untoggle_optimizer
 ~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.untoggle_optimizer
+.. automethod:: pytorch_lightning.core.module.LightningModule.untoggle_optimizer
     :noindex:
 
 validation_step
 ~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.validation_step
+.. automethod:: pytorch_lightning.core.module.LightningModule.validation_step
     :noindex:
 
 validation_step_end
 ~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.validation_step_end
+.. automethod:: pytorch_lightning.core.module.LightningModule.validation_step_end
     :noindex:
 
 validation_epoch_end
 ~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.validation_epoch_end
+.. automethod:: pytorch_lightning.core.module.LightningModule.validation_epoch_end
     :noindex:
 
 -----------
@@ -1178,7 +1178,7 @@ example above, we have set ``batch_first=True``.
     sub_batch = batch[0, 0:t, ...]
 
 To modify how the batch is split,
-override the :meth:`pytorch_lightning.core.lightning.LightningModule.tbptt_split_batch` method:
+override the :meth:`pytorch_lightning.core.module.LightningModule.tbptt_split_batch` method:
 
 .. testcode:: python
 
@@ -1294,371 +1294,347 @@ for more information.
 backward
 ~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.backward
+.. automethod:: pytorch_lightning.core.module.LightningModule.backward
     :noindex:
 
 on_before_backward
 ~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_before_backward
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_before_backward
     :noindex:
 
 on_after_backward
 ~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_after_backward
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_after_backward
     :noindex:
 
 on_before_zero_grad
 ~~~~~~~~~~~~~~~~~~~
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_before_zero_grad
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_before_zero_grad
     :noindex:
 
 on_fit_start
 ~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_fit_start
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_fit_start
     :noindex:
 
 on_fit_end
 ~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_fit_end
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_fit_end
     :noindex:
 
 
 on_load_checkpoint
 ~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_load_checkpoint
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_load_checkpoint
     :noindex:
 
 on_save_checkpoint
 ~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_save_checkpoint
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_save_checkpoint
     :noindex:
 
 load_from_checkpoint
 ~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.load_from_checkpoint
+.. automethod:: pytorch_lightning.core.module.LightningModule.load_from_checkpoint
     :noindex:
 
 on_hpc_save
 ~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_hpc_save
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_hpc_save
     :noindex:
 
 on_hpc_load
 ~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_hpc_load
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_hpc_load
     :noindex:
 
 on_train_start
 ~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_train_start
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_train_start
     :noindex:
 
 on_train_end
 ~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_train_end
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_train_end
     :noindex:
 
 on_validation_start
 ~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_validation_start
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_validation_start
     :noindex:
 
 on_validation_end
 ~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_validation_end
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_validation_end
     :noindex:
 
 on_test_batch_start
 ~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_test_batch_start
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_test_batch_start
     :noindex:
 
 on_test_batch_end
 ~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_test_batch_end
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_test_batch_end
     :noindex:
 
 on_test_epoch_start
 ~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_test_epoch_start
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_test_epoch_start
     :noindex:
 
 on_test_epoch_end
 ~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_test_epoch_end
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_test_epoch_end
     :noindex:
 
 on_test_start
 ~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_test_start
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_test_start
     :noindex:
 
 on_test_end
 ~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_test_end
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_test_end
     :noindex:
 
 on_predict_batch_start
 ~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_predict_batch_start
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_predict_batch_start
     :noindex:
 
 on_predict_batch_end
 ~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_predict_batch_end
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_predict_batch_end
     :noindex:
 
 on_predict_epoch_start
 ~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_predict_epoch_start
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_predict_epoch_start
     :noindex:
 
 on_predict_epoch_end
 ~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_predict_epoch_end
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_predict_epoch_end
     :noindex:
 
 on_predict_start
 ~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_predict_start
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_predict_start
     :noindex:
 
 on_predict_end
 ~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_predict_end
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_predict_end
     :noindex:
 
 on_train_batch_start
 ~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_train_batch_start
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_train_batch_start
     :noindex:
 
 on_train_batch_end
 ~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_train_batch_end
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_train_batch_end
     :noindex:
 
 on_train_epoch_start
 ~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_train_epoch_start
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_train_epoch_start
     :noindex:
 
 on_train_epoch_end
 ~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_train_epoch_end
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_train_epoch_end
     :noindex:
 
 on_validation_batch_start
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_validation_batch_start
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_validation_batch_start
     :noindex:
 
 on_validation_batch_end
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_validation_batch_end
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_validation_batch_end
     :noindex:
 
 on_validation_epoch_start
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_validation_epoch_start
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_validation_epoch_start
     :noindex:
 
 on_validation_epoch_end
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_validation_epoch_end
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_validation_epoch_end
     :noindex:
 
 on_post_move_to_device
 ~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_post_move_to_device
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_post_move_to_device
     :noindex:
 
 configure_sharded_model
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.configure_sharded_model
+.. automethod:: pytorch_lightning.core.module.LightningModule.configure_sharded_model
     :noindex:
 
 on_validation_model_eval
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_validation_model_eval
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_validation_model_eval
     :noindex:
 
 on_validation_model_train
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_validation_model_train
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_validation_model_train
     :noindex:
 
 on_test_model_eval
 ~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_test_model_eval
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_test_model_eval
     :noindex:
 
 on_test_model_train
 ~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_test_model_train
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_test_model_train
     :noindex:
 
 on_before_optimizer_step
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_before_optimizer_step
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_before_optimizer_step
     :noindex:
 
 configure_gradient_clipping
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.configure_gradient_clipping
+.. automethod:: pytorch_lightning.core.module.LightningModule.configure_gradient_clipping
     :noindex:
 
 optimizer_step
 ~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.optimizer_step
+.. automethod:: pytorch_lightning.core.module.LightningModule.optimizer_step
     :noindex:
 
 optimizer_zero_grad
 ~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.optimizer_zero_grad
+.. automethod:: pytorch_lightning.core.module.LightningModule.optimizer_zero_grad
     :noindex:
 
 prepare_data
 ~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.prepare_data
+.. automethod:: pytorch_lightning.core.module.LightningModule.prepare_data
     :noindex:
 
 setup
 ~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.setup
+.. automethod:: pytorch_lightning.core.module.LightningModule.setup
     :noindex:
 
 tbptt_split_batch
 ~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.tbptt_split_batch
+.. automethod:: pytorch_lightning.core.module.LightningModule.tbptt_split_batch
     :noindex:
 
 teardown
 ~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.teardown
+.. automethod:: pytorch_lightning.core.module.LightningModule.teardown
     :noindex:
 
 train_dataloader
 ~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.train_dataloader
+.. automethod:: pytorch_lightning.core.module.LightningModule.train_dataloader
     :noindex:
 
 val_dataloader
 ~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.val_dataloader
+.. automethod:: pytorch_lightning.core.module.LightningModule.val_dataloader
     :noindex:
 
 test_dataloader
 ~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.test_dataloader
+.. automethod:: pytorch_lightning.core.module.LightningModule.test_dataloader
     :noindex:
 
 predict_dataloader
 ~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.predict_dataloader
-    :noindex:
-
-on_train_dataloader
-~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_train_dataloader
-    :noindex:
-
-on_val_dataloader
-~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_val_dataloader
-    :noindex:
-
-on_test_dataloader
-~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_test_dataloader
-    :noindex:
-
-on_predict_dataloader
-~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_predict_dataloader
+.. automethod:: pytorch_lightning.core.module.LightningModule.predict_dataloader
     :noindex:
 
 transfer_batch_to_device
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.transfer_batch_to_device
+.. automethod:: pytorch_lightning.core.module.LightningModule.transfer_batch_to_device
     :noindex:
 
 on_before_batch_transfer
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_before_batch_transfer
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_before_batch_transfer
     :noindex:
 
 on_after_batch_transfer
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.on_after_batch_transfer
+.. automethod:: pytorch_lightning.core.module.LightningModule.on_after_batch_transfer
     :noindex:
 
 add_to_queue
 ~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.add_to_queue
+.. automethod:: pytorch_lightning.core.module.LightningModule.add_to_queue
     :noindex:
 
 get_from_queue
 ~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.core.lightning.LightningModule.get_from_queue
+.. automethod:: pytorch_lightning.core.module.LightningModule.get_from_queue
     :noindex:

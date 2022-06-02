@@ -56,6 +56,7 @@ from pytorch_lightning.utilities.imports import (
     _TORCH_GREATER_EQUAL_1_10,
     _TORCH_GREATER_EQUAL_1_11,
 )
+from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -152,24 +153,37 @@ class DDPStrategy(ParallelStrategy):
         super().setup_environment()
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        super().setup(trainer)
         # share ddp pids to all processes
         self._rank_0_will_call_children_scripts = self.broadcast(self._rank_0_will_call_children_scripts)
         if self._should_run_deadlock_detection():
             self._share_information_to_prevent_deadlock()
+
+        self.accelerator.setup(trainer)
 
         # move the model to the correct device
         self.model_to_device()
 
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
         trainer_fn = trainer.state.fn
-        if trainer_fn != TrainerFn.FITTING:
-            return
 
-        if self._layer_sync:
-            self.model = self._layer_sync.apply(self.model)
+        if trainer_fn == TrainerFn.FITTING:
+            if self._layer_sync:
+                self.model = self._layer_sync.apply(self.model)
 
-        self.configure_ddp()
+        self.setup_precision_plugin()
+
+        if trainer_fn == TrainerFn.FITTING:
+            self.configure_ddp()
+
+            # set up optimizers after the wrapped module has been moved to the device
+            self.setup_optimizers(trainer)
+            optimizers_to_device(self.optimizers, self.root_device)
+
+        if _TORCH_GREATER_EQUAL_1_10 and trainer_fn == TrainerFn.FITTING:
+            import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
+
+            if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
+                self._enable_model_averaging()
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
@@ -204,7 +218,7 @@ class DDPStrategy(ParallelStrategy):
         self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
-    def pre_configure_ddp(self):
+    def pre_configure_ddp(self) -> None:
         # if unset, default `find_unused_parameters` `True`
         # Many models require setting this parameter to True, as there are corner cases
         # when not all parameter backward hooks are fired by the autograd engine even if require_grad is set to True.
@@ -222,12 +236,6 @@ class DDPStrategy(ParallelStrategy):
                 ddp_comm_hook=self._ddp_comm_hook,
                 ddp_comm_wrapper=self._ddp_comm_wrapper,
             )
-
-            if _TORCH_GREATER_EQUAL_1_10 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
-                import torch.distributed.algorithms.ddp_comm_hooks.post_localSGD_hook as post_localSGD
-
-                if isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState):
-                    self._enable_model_averaging()
 
     def _enable_model_averaging(self) -> None:
         # Only called when PyTorch version >= 1.10
@@ -342,20 +350,20 @@ class DDPStrategy(ParallelStrategy):
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
-            if isinstance(self.model, DistributedDataParallel):
+            if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
                 # used when calling `trainer.fit`
                 return self.model(*args, **kwargs)
             else:
                 # used when calling `trainer.validate`
-                return self.lightning_module.validation_step(*args, **kwargs)
+                return self.model.validation_step(*args, **kwargs)
 
     def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.test_step_context():
-            return self.lightning_module.test_step(*args, **kwargs)
+            return self.model.test_step(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
         with self.precision_plugin.predict_step_context():
-            return self.lightning_module.predict_step(*args, **kwargs)
+            return self.model.predict_step(*args, **kwargs)
 
     def post_training_step(self):
         if not self.lightning_module.automatic_optimization:
@@ -444,7 +452,6 @@ class DDPStrategy(ParallelStrategy):
 
     def teardown(self) -> None:
         log.detail(f"{self.__class__.__name__}: tearing down strategy")
-        super().teardown()
 
         if isinstance(self.model, DistributedDataParallel):
             if (
@@ -468,9 +475,4 @@ class DDPStrategy(ParallelStrategy):
             # the trainer gets set on the LightningModule
             self.model = self._layer_sync.revert(self.model)
 
-        if self.root_device.type == "cuda":
-            # GPU teardown
-            log.detail(f"{self.__class__.__name__}: moving model to CPU")
-            self.lightning_module.cpu()
-            # clean up memory
-            torch.cuda.empty_cache()
+        super().teardown()
