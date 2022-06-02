@@ -88,6 +88,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - `LightningCLI`'s shorthand notation changed to use jsonargparse native feature ([#12614](https://github.com/PyTorchLightning/pytorch-lightning/pull/12614))
 
 
+- `LightningCLI` changed to use jsonargparse native support for list append ([#13129](https://github.com/PyTorchLightning/pytorch-lightning/pull/13129))
+
+
 - Changed `seed_everything_default` argument in the `LightningCLI` to type `Union[bool, int]`. If set to `True` a seed is automatically generated for the parser argument `--seed_everything`. ([#12822](https://github.com/PyTorchLightning/pytorch-lightning/pull/12822), [#13110](https://github.com/PyTorchLightning/pytorch-lightning/pull/13110))
 
 
