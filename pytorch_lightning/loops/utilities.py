@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import timedelta
 from functools import lru_cache
-from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -71,7 +72,7 @@ def _parse_loop_limits(
     min_epochs: Optional[int],
     max_epochs: int,
     max_time: Optional[Union[str, timedelta, Dict[str, int]]],
-) -> Tuple[Optional[int], int, Optional[int], int, Optional[Union[str, timedelta, Dict[str, int]]]]:
+) -> Tuple[Optional[int], int, int, int, Optional[Union[str, timedelta, Dict[str, int]]]]:
     """This utility computes the default values for the minimum and maximum number of steps and epochs given the
     values the user has selected.
 
@@ -95,39 +96,35 @@ def _parse_loop_limits(
             max_epochs = 1000
         else:
             max_epochs = -1
-    min_epochs = 1 if (min_epochs is None and min_steps is None and max_time is None) else min_epochs
+    if min_epochs is None and min_steps is not None:
+        # setting this allows FitLoop.done to re-evaluate should_stop when it gets triggered `on_fit_start`
+        min_epochs = 1
+    if min_epochs is None:
+        # the default value is 0 so no training will be done when should_stop is triggered `on_fit_start`
+        min_epochs = 0
     return min_steps, max_steps, min_epochs, max_epochs, max_time
 
 
 def _build_training_step_kwargs(
+    kwargs: OrderedDict,
     lightning_module: "pl.LightningModule",
     optimizers: Sequence[Optimizer],
-    batch: Any,
-    batch_idx: int,
     opt_idx: Optional[int],
     hiddens: Optional[Any],
-) -> Dict[str, Any]:
+) -> OrderedDict:
     """Builds the keyword arguments for training_step.
 
     Args:
+        kwargs: The kwargs passed down to the hooks.
         lightning_module: the LightningModule with a `training_step` hook implementation
         optimizers: the list of optimizers from the Trainer
-        batch: the batch to train on
-        batch_idx: the index of the current batch
         opt_idx: the index of the current optimizer
         hiddens: the hidden state of the previous RNN iteration
 
     Returns:
         the keyword arguments for the training step
     """
-    # enable not needing to add opt_idx to training_step
-    step_kwargs = OrderedDict([("batch", batch)])
-
     training_step_fx = getattr(lightning_module, "training_step")
-
-    if is_param_in_hook_signature(training_step_fx, "batch_idx", min_args=2):
-        step_kwargs["batch_idx"] = batch_idx
-
     if len(optimizers) > 1:
         has_opt_idx_in_train_step = is_param_in_hook_signature(training_step_fx, "optimizer_idx")
         if has_opt_idx_in_train_step:
@@ -137,7 +134,7 @@ def _build_training_step_kwargs(
                     " in manual optimization optimizers must be handled by the user. Remove the optimizer_idx"
                     " argument or set `self.automatic_optimization = True`."
                 )
-            step_kwargs["optimizer_idx"] = opt_idx
+            kwargs["optimizer_idx"] = opt_idx
         elif not has_opt_idx_in_train_step and lightning_module.automatic_optimization:
             raise ValueError(
                 f"Your LightningModule defines {len(optimizers)} optimizers but"
@@ -146,9 +143,9 @@ def _build_training_step_kwargs(
 
     # pass hiddens if using tbptt
     if lightning_module.truncated_bptt_steps > 0:
-        step_kwargs["hiddens"] = hiddens
+        kwargs["hiddens"] = hiddens
 
-    return step_kwargs
+    return kwargs
 
 
 @contextmanager
@@ -176,7 +173,7 @@ def _cumulative_optimizer_frequencies(frequencies: Tuple[int]) -> np.ndarray:
 
 
 def _get_active_optimizers(
-    optimizers: List[Optimizer], frequencies: List[int], batch_idx: Optional[int] = None
+    optimizers: List[Optimizer], frequencies: List[int], batch_idx: int
 ) -> List[Tuple[int, Optimizer]]:
     """Returns the currently active optimizers. When multiple optimizers are used with different frequencies, only
     one of the optimizers is active at a time.
@@ -216,3 +213,9 @@ def _reset_progress(loop: Loop) -> None:
             v.reset()
         elif isinstance(v, Loop):
             _reset_progress(v)
+
+
+# TODO: remove in v1.8
+def _v1_8_output_format(fx: Callable) -> bool:
+    parameters = inspect.signature(fx).parameters
+    return "new_format" in parameters and parameters["new_format"].default is True

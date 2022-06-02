@@ -19,7 +19,7 @@ TensorBoard Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Union
+from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
 
 import numpy as np
 import torch
@@ -28,9 +28,12 @@ from torch.utils.tensorboard.summary import hparams
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.saving import save_hparams_to_yaml
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, rank_zero_only, rank_zero_warn
+from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.cloud_io import get_filesystem
+from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
+from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
+from pytorch_lightning.utilities.logger import _sanitize_params as _utils_sanitize_params
+from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -38,7 +41,7 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf
 
 
-class TensorBoardLogger(LightningLoggerBase):
+class TensorBoardLogger(Logger):
     r"""
     Log to local file system in `TensorBoard <https://www.tensorflow.org/tensorboard>`_ format.
 
@@ -71,8 +74,8 @@ class TensorBoardLogger(LightningLoggerBase):
             called without a metric (otherwise calls to log_hyperparams without a metric are ignored).
         prefix: A string to put at the beginning of metric keys.
         sub_dir: Sub-directory to group TensorBoard logs. If a sub_dir argument is passed
-            then logs are saved in ``/save_dir/version/sub_dir/``. Defaults to ``None`` in which
-            logs are saved in ``/save_dir/version/``.
+            then logs are saved in ``/save_dir/name/version/sub_dir/``. Defaults to ``None`` in which
+            logs are saved in ``/save_dir/name/version/``.
         \**kwargs: Additional arguments used by :class:`SummaryWriter` can be passed as keyword
             arguments in this logger. To automatically flush to disk, `max_queue` sets the size
             of the queue for pending logs before flushing. `flush_secs` determines how many seconds
@@ -85,15 +88,17 @@ class TensorBoardLogger(LightningLoggerBase):
     def __init__(
         self,
         save_dir: str,
-        name: Optional[str] = "default",
+        name: Optional[str] = "lightning_logs",
         version: Optional[Union[int, str]] = None,
         log_graph: bool = False,
         default_hp_metric: bool = True,
         prefix: str = "",
         sub_dir: Optional[str] = None,
+        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
         **kwargs,
     ):
-        super().__init__()
+        super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
         self._save_dir = save_dir
         self._name = name or ""
         self._version = version
@@ -111,11 +116,9 @@ class TensorBoardLogger(LightningLoggerBase):
     def root_dir(self) -> str:
         """Parent directory for all tensorboard checkpoint subdirectories.
 
-        If the experiment name parameter is ``None`` or the empty string, no experiment subdirectory is used and the
-        checkpoint will be saved in "save_dir/version_dir"
+        If the experiment name parameter is an empty string, no experiment subdirectory is used and the checkpoint will
+        be saved in "save_dir/version"
         """
-        if self.name is None or len(self.name) == 0:
-            return self.save_dir
         return os.path.join(self.save_dir, self.name)
 
     @property
@@ -157,7 +160,7 @@ class TensorBoardLogger(LightningLoggerBase):
     def experiment(self) -> SummaryWriter:
         r"""
         Actual tensorboard object. To use TensorBoard features in your
-        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
+        :class:`~pytorch_lightning.core.module.LightningModule` do the following.
 
         Example::
 
@@ -186,7 +189,7 @@ class TensorBoardLogger(LightningLoggerBase):
             metrics: Dictionary with metric names as keys and measured quantities as values
         """
 
-        params = self._convert_params(params)
+        params = _convert_params(params)
 
         # store params to output
         if _OMEGACONF_AVAILABLE and isinstance(params, Container):
@@ -195,7 +198,7 @@ class TensorBoardLogger(LightningLoggerBase):
             self.hparams.update(params)
 
         # format params into the suitable for tensorboard
-        params = self._flatten_dict(params)
+        params = _flatten_dict(params)
         params = self._sanitize_params(params)
 
         if metrics is None:
@@ -216,7 +219,7 @@ class TensorBoardLogger(LightningLoggerBase):
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
-        metrics = self._add_prefix(metrics)
+        metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
         for k, v in metrics.items():
             if isinstance(v, torch.Tensor):
@@ -229,7 +232,7 @@ class TensorBoardLogger(LightningLoggerBase):
                     self.experiment.add_scalar(k, v, step)
                 # todo: specify the possible exception
                 except Exception as ex:
-                    m = f"\n you tried to log {v} which is not currently supported. Try a dict or a scalar/tensor."
+                    m = f"\n you tried to log {v} which is currently not supported. Try a dict or a scalar/tensor."
                     raise ValueError(m) from ex
 
     @rank_zero_only
@@ -311,7 +314,7 @@ class TensorBoardLogger(LightningLoggerBase):
 
     @staticmethod
     def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
-        params = LightningLoggerBase._sanitize_params(params)
+        params = _utils_sanitize_params(params)
         # logging of arrays with dimension > 1 is not supported, sanitize as string
         return {k: str(v) if isinstance(v, (torch.Tensor, np.ndarray)) and v.ndim > 1 else v for k, v in params.items()}
 

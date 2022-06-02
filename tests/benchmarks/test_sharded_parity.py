@@ -106,7 +106,7 @@ def record_ddp_fit_model_stats(trainer, model, use_cuda):
 
     if use_cuda:
         torch.cuda.synchronize()
-        max_memory = torch.cuda.max_memory_allocated() / 2 ** 20
+        max_memory = torch.cuda.max_memory_allocated() / 2**20
 
     total_time = time.perf_counter() - time_start
 
@@ -137,7 +137,15 @@ def plugin_parity_test(
     ddp_model = model_cls()
     use_cuda = gpus > 0
 
-    trainer = Trainer(fast_dev_run=True, max_epochs=1, gpus=gpus, precision=precision, strategy="ddp_spawn")
+    trainer = Trainer(
+        fast_dev_run=True,
+        max_epochs=1,
+        accelerator="gpu",
+        devices=gpus,
+        precision=precision,
+        strategy="ddp_spawn",
+        benchmark=False,
+    )
 
     max_memory_ddp, ddp_time = record_ddp_fit_model_stats(trainer=trainer, model=ddp_model, use_cuda=use_cuda)
 
@@ -145,7 +153,15 @@ def plugin_parity_test(
     seed_everything(seed)
     custom_plugin_model = model_cls()
 
-    trainer = Trainer(fast_dev_run=True, max_epochs=1, gpus=gpus, precision=precision, strategy="ddp_sharded_spawn")
+    trainer = Trainer(
+        fast_dev_run=True,
+        max_epochs=1,
+        accelerator="gpu",
+        devices=gpus,
+        precision=precision,
+        strategy="ddp_sharded_spawn",
+        benchmark=False,
+    )
     assert isinstance(trainer.strategy, DDPSpawnShardedStrategy)
 
     max_memory_custom, custom_model_time = record_ddp_fit_model_stats(
@@ -175,25 +191,25 @@ def plugin_parity_test(
 @pytest.mark.parametrize(
     "kwargs",
     [
-        pytest.param(dict(gpus=1, model_cls=SeedTrainLoaderModel), marks=RunIf(min_gpus=1)),
+        pytest.param(dict(gpus=1, model_cls=SeedTrainLoaderModel), marks=RunIf(min_cuda_gpus=1)),
         pytest.param(
-            dict(gpus=1, precision=16, model_cls=SeedTrainLoaderModel), marks=RunIf(min_gpus=1, amp_native=True)
+            dict(gpus=1, precision=16, model_cls=SeedTrainLoaderModel), marks=RunIf(min_cuda_gpus=1, amp_native=True)
         ),
-        pytest.param(dict(gpus=2, model_cls=SeedTrainLoaderModel), marks=RunIf(min_gpus=2)),
+        pytest.param(dict(gpus=2, model_cls=SeedTrainLoaderModel), marks=RunIf(min_cuda_gpus=2)),
         pytest.param(
-            dict(gpus=2, precision=16, model_cls=SeedTrainLoaderModel), marks=RunIf(min_gpus=2, amp_native=True)
+            dict(gpus=2, precision=16, model_cls=SeedTrainLoaderModel), marks=RunIf(min_cuda_gpus=2, amp_native=True)
         ),
         pytest.param(
             dict(gpus=2, model_cls=SeedTrainLoaderMultipleOptimizersModel),
             marks=[
-                RunIf(min_gpus=2),
+                RunIf(min_cuda_gpus=2),
                 pytest.mark.skip(reason="TODO: Current issue with multiple optimizers and FairScale."),
             ],
         ),
         pytest.param(
             dict(gpus=2, model_cls=SeedTrainLoaderManualModel),
             marks=[
-                RunIf(min_gpus=2),
+                RunIf(min_cuda_gpus=2),
                 pytest.mark.skip(reason="TODO: Current issue with multiple optimizers and FairScale."),
             ],
         ),

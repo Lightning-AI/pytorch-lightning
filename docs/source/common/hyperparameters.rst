@@ -1,15 +1,12 @@
 .. testsetup:: *
 
-    import torch
     from argparse import ArgumentParser, Namespace
-    from pytorch_lightning.trainer.trainer import Trainer
-    from pytorch_lightning.core.lightning import LightningModule
-    import sys
 
     sys.argv = ["foo"]
 
-Hyperparameters
----------------
+Configure hyperparameters from the CLI
+--------------------------------------
+
 Lightning has utilities to interact seamlessly with the command line ``ArgumentParser``
 and plays well with the hyperparameter optimization framework of your choice.
 
@@ -39,7 +36,7 @@ Argparser Best Practices
 ^^^^^^^^^^^^^^^^^^^^^^^^
 It is best practice to layer your arguments in three sections.
 
-1.  Trainer args (``gpus``, ``num_nodes``, etc...)
+1.  Trainer args (``accelerator``, ``devices``, ``num_nodes``, etc...)
 2.  Model specific arguments (``layer_dim``, ``num_layers``, ``learning_rate``, etc...)
 3.  Program arguments (``data_path``, ``cluster_email``, etc...)
 
@@ -78,7 +75,7 @@ Now in your main trainer file, add the ``Trainer`` args, the program args, and a
     parser = LitModel.add_model_specific_args(parser)
 
     # add all the available trainer options to argparse
-    # ie: now --gpus --num_nodes ... --fast_dev_run all work in the cli
+    # ie: now --accelerator --devices --num_nodes ... --fast_dev_run all work in the cli
     parser = Trainer.add_argparse_args(parser)
 
     args = parser.parse_args()
@@ -87,7 +84,7 @@ Now you can call run your program like so:
 
 .. code-block:: bash
 
-    python trainer_main.py --gpus 2 --num_nodes 2 --conda_env 'my_env' --encoder_layers 12
+    python trainer_main.py --accelerator 'gpu' --devices 2 --num_nodes 2 --conda_env 'my_env' --encoder_layers 12
 
 Finally, make sure to start the training like so:
 
@@ -97,7 +94,7 @@ Finally, make sure to start the training like so:
     trainer = Trainer.from_argparse_args(args, early_stopping_callback=...)
 
     # NOT like this
-    trainer = Trainer(gpus=hparams.gpus, ...)
+    trainer = Trainer(accelerator=hparams.accelerator, devices=hparams.devices, ...)
 
     # init the model with Namespace directly
     model = LitModel(args)
@@ -119,8 +116,8 @@ improve readability and reproducibility.
 save_hyperparameters
 """"""""""""""""""""
 
-Use :meth:`~pytorch_lightning.core.lightning.LightningModule.save_hyperparameters` within your
-:class:`~pytorch_lightning.core.lightning.LightningModule`'s ``__init__`` method.
+Use :meth:`~pytorch_lightning.core.module.LightningModule.save_hyperparameters` within your
+:class:`~pytorch_lightning.core.module.LightningModule`'s ``__init__`` method.
 It will enable Lightning to store all the provided arguments under the ``self.hparams`` attribute.
 These hyperparameters will also be stored within the model checkpoint, which simplifies model re-instantiation after training.
 
@@ -167,8 +164,8 @@ In this case, exclude them explicitly:
 load_from_checkpoint
 """"""""""""""""""""
 
-LightningModules that have hyperparameters automatically saved with :meth:`~pytorch_lightning.core.lightning.LightningModule.save_hyperparameters`
-can conveniently be loaded and instantiated directly from a checkpoint with :meth:`~pytorch_lightning.core.lightning.LightningModule.load_from_checkpoint`:
+LightningModules that have hyperparameters automatically saved with :meth:`~pytorch_lightning.core.module.LightningModule.save_hyperparameters`
+can conveniently be loaded and instantiated directly from a checkpoint with :meth:`~pytorch_lightning.core.module.LightningModule.load_from_checkpoint`:
 
 .. code-block:: python
 

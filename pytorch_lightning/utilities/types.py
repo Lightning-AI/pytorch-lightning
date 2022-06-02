@@ -49,8 +49,8 @@ _DEVICE = Union[torch.device, str, int]
 
 
 @runtime_checkable
-class _SupportsStateDict(Protocol):
-    """This class is used to detect if an object is stateful using `isinstance(obj, _SupportsStateDict)`."""
+class _Stateful(Protocol):
+    """This class is used to detect if an object is stateful using `isinstance(obj, _Stateful)`."""
 
     def state_dict(self) -> Dict[str, Any]:
         ...
@@ -62,17 +62,20 @@ class _SupportsStateDict(Protocol):
 # Inferred from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing
 @runtime_checkable
-class _LRScheduler(_SupportsStateDict, Protocol):
+class _LRScheduler(_Stateful, Protocol):
     optimizer: Optimizer
 
     def __init__(self, optimizer: Optimizer, *args: Any, **kwargs: Any) -> None:
+        ...
+
+    def step(self, epoch: Optional[int] = None) -> None:
         ...
 
 
 # Inferred from `torch.optim.lr_scheduler.pyi`
 # Missing attributes were added to improve typing
 @runtime_checkable
-class ReduceLROnPlateau(_SupportsStateDict, Protocol):
+class ReduceLROnPlateau(_Stateful, Protocol):
     in_cooldown: bool
     optimizer: Optimizer
 
@@ -89,6 +92,9 @@ class ReduceLROnPlateau(_SupportsStateDict, Protocol):
         min_lr: float = ...,
         eps: float = ...,
     ) -> None:
+        ...
+
+    def step(self, metrics: Union[float, int, torch.Tensor], epoch: Optional[int] = None) -> None:
         ...
 
 

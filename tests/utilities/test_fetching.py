@@ -18,10 +18,10 @@ from unittest import mock
 
 import pytest
 import torch
-from torch import tensor
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
+from pytorch_lightning.profiler import SimpleProfiler
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher, InterBatchParallelDataFetcher
@@ -30,51 +30,74 @@ from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
+class IterDataset(IterableDataset):
+    def __iter__(self):
+        yield 1
+        yield 2
+        yield 3
+
+
+class SizedDataset(Dataset):
+    def __len__(self):
+        return 3
+
+    def __getitem__(self, idx):
+        return idx + 1
+
+
 @pytest.mark.parametrize("use_combined_loader", [False, True])
-def test_prefetch_iterator(use_combined_loader):
-    """Test the DataFetcher with PyTorch IterableDataset."""
+@pytest.mark.parametrize("dataset_cls", [IterDataset, SizedDataset])
+@pytest.mark.parametrize("prefetch_batches", list(range(5)))
+def test_prefetch_iterator(use_combined_loader, dataset_cls, prefetch_batches):
+    fetcher = DataFetcher(prefetch_batches=prefetch_batches)
+    assert fetcher.prefetch_batches == prefetch_batches
 
-    class IterDataset(IterableDataset):
-        def __iter__(self):
-            yield 1
-            yield 2
-            yield 3
+    if use_combined_loader:
+        loader = CombinedLoader([DataLoader(dataset_cls()), DataLoader(dataset_cls())])
+    else:
+        loader = DataLoader(dataset_cls())
+    fetcher.setup(loader)
 
-    for prefetch_batches in range(1, 5):
-        if use_combined_loader:
-            loader = CombinedLoader([DataLoader(IterDataset()), DataLoader(IterDataset())])
-            expected = [
-                ([tensor([1]), tensor([1])], False),
-                ([tensor([2]), tensor([2])], False),
-                ([tensor([3]), tensor([3])], True),
-            ]
-        else:
-            loader = DataLoader(IterDataset())
-            expected = [(1, False), (2, False), (3, True)]
-        iterator = DataFetcher(prefetch_batches=prefetch_batches)
-        assert iterator.prefetch_batches == prefetch_batches
-        iterator.setup(loader)
+    def generate():
+        generated = [(fetcher.fetched, data, fetcher.done) for data in fetcher]
+        assert fetcher.fetched == 3
+        assert fetcher.done
+        return generated
 
-        def generate():
-            generated = []
-            for idx, data in enumerate(iterator, prefetch_batches + 1):
-                assert iterator.fetched == 3 if iterator.done else idx
-                generated.append(data)
-            return generated
+    # we can only know the last batch with sized iterables or when we prefetch
+    is_last_batch = [False, False, prefetch_batches > 0 or dataset_cls is SizedDataset]
+    fetched = list(range(prefetch_batches + 1, 4))
+    fetched += [3] * (3 - len(fetched))
+    batches = [[1, 1], [2, 2], [3, 3]] if use_combined_loader else [1, 2, 3]
+    expected = list(zip(fetched, batches, is_last_batch))
+    assert len(expected) == 3
 
-        assert generate() == expected
-        # validate reset works properly.
-        assert generate() == expected
-        assert iterator.fetched == 3
+    assert generate() == expected
+    # validate reset works properly.
+    assert generate() == expected
+    assert fetcher.fetched == 3
 
-    class EmptyIterDataset(IterableDataset):
-        def __iter__(self):
-            return iter([])
 
-    dataloader = DataLoader(EmptyIterDataset())
-    iterator = DataFetcher()
-    iterator.setup(dataloader)
-    assert not list(iterator)
+class EmptyIterDataset(IterableDataset):
+    def __iter__(self):
+        return iter([])
+
+
+class EmptySizedDataset(Dataset):
+    def __len__(self):
+        return 0
+
+
+@pytest.mark.parametrize("dataset_cls", [EmptyIterDataset, EmptySizedDataset])
+@pytest.mark.parametrize("prefetch_batches", list(range(2)))
+def test_empty_prefetch_iterator(dataset_cls, prefetch_batches):
+    loader = DataLoader(dataset_cls())
+    fetcher = DataFetcher(prefetch_batches=prefetch_batches)
+    fetcher.setup(loader)
+
+    assert not fetcher.done
+    assert not list(fetcher)
+    assert fetcher.done
 
 
 def test_misconfiguration_error():
@@ -170,7 +193,8 @@ class RecommenderModel(BoringModel):
         return DataLoader(RandomIndicesDataset(), batch_size=4)
 
 
-@RunIf(min_gpus=1, min_torch="1.8.0")
+@pytest.mark.flaky(reruns=3)
+@RunIf(min_cuda_gpus=1)
 def test_trainer_num_prefetch_batches(tmpdir):
 
     model = RecommenderModel()
@@ -180,9 +204,9 @@ def test_trainer_num_prefetch_batches(tmpdir):
             self._check_inter_batch = check_inter_batch
 
         def on_train_epoch_end(self, trainer, lightning_module):
-            fetcher = trainer._data_connector.train_data_fetcher
+            fetcher = trainer.fit_loop._data_fetcher
             assert isinstance(fetcher, InterBatchParallelDataFetcher if self._check_inter_batch else DataFetcher)
-            assert fetcher.prefetch_batches == 1
+            assert fetcher.prefetch_batches == int(self._check_inter_batch)
 
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
@@ -217,8 +241,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
 
 
 @pytest.mark.parametrize("automatic_optimization", [False, True])
-@RunIf(min_torch="1.8.0")
-def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
+def test_fetching_dataloader_iter_opt(automatic_optimization, tmpdir):
     class TestModel(BoringModel):
         def __init__(self, *args, automatic_optimization: bool = False, **kwargs):
             super().__init__(*args, **kwargs)
@@ -228,7 +251,7 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
 
         def training_step(self, dataloader_iter, batch_idx):
             assert self.count == batch_idx
-            assert isinstance(self.trainer._data_connector.train_data_fetcher, DataLoaderIterDataFetcher)
+            assert isinstance(self.trainer.fit_loop._data_fetcher, DataLoaderIterDataFetcher)
             # fetch 2 batches
             self.batches.append(next(dataloader_iter))
             self.batches.append(next(dataloader_iter))
@@ -251,12 +274,38 @@ def test_fetching_dataloader_iter(automatic_optimization, tmpdir):
 
         def training_epoch_end(self, *_):
             assert self.trainer.fit_loop.epoch_loop.batch_progress.current.ready == 33
-            assert self.trainer._data_connector.train_data_fetcher.fetched == 64
+            assert self.trainer.fit_loop._data_fetcher.fetched == 64
             assert self.count == 64
 
     model = TestModel(automatic_optimization=automatic_optimization)
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(model)
+
+
+@pytest.mark.parametrize("fn", ("validate", "test"))
+def test_fetching_dataloader_iter_running_stages(fn, tmpdir):
+    class TestModel(BoringModel):
+        def fetch(self, data_fetcher, dataloader_iter, batch_idx):
+            assert isinstance(data_fetcher, DataLoaderIterDataFetcher)
+            assert data_fetcher.fetched == batch_idx
+            batch = next(dataloader_iter)
+            assert data_fetcher.fetched == batch_idx + 1
+            return batch
+
+        def validation_step(self, dataloader_iter, batch_idx):
+            batch = self.fetch(self.trainer.validate_loop._data_fetcher, dataloader_iter, batch_idx)
+            return super().validation_step(batch, batch_idx)
+
+        def test_step(self, dataloader_iter, batch_idx):
+            batch = self.fetch(self.trainer.test_loop._data_fetcher, dataloader_iter, batch_idx)
+            return super().test_step(batch, batch_idx)
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    if fn == "validate":
+        trainer.validate(model)
+    elif fn == "test":
+        trainer.test(model)
 
 
 class DummyWaitable:
@@ -318,7 +367,7 @@ def test_training_step_with_dataloader_access(tmpdir) -> None:
 
 @pytest.mark.parametrize("trigger_stop_iteration", [False, True])
 def test_stop_iteration(trigger_stop_iteration, tmpdir):
-    """Verify that StopIteration properly terminates the training when this is trigged from the current
+    """Verify that StopIteration properly terminates the training when this is triggered from the current
     `dataloader_iter`"""
     EXPECT_NUM_BATCHES_PROCESSED = 2
 
@@ -327,9 +376,10 @@ def test_stop_iteration(trigger_stop_iteration, tmpdir):
             super().__init__()
             self.trigger_stop_iteration = trigger_stop_iteration
 
-        def training_step(self, dataloader_iter: Iterator, *args) -> STEP_OUTPUT:
+        def training_step(self, dataloader_iter: Iterator) -> STEP_OUTPUT:
             output = super().training_step(dataloader_iter)
-            if self.trigger_stop_iteration and args[0] == EXPECT_NUM_BATCHES_PROCESSED:
+            batch_idx = self.trainer.fit_loop.epoch_loop.batch_idx
+            if self.trigger_stop_iteration and batch_idx == EXPECT_NUM_BATCHES_PROCESSED:
                 raise StopIteration
             return output
 
@@ -437,3 +487,88 @@ def test_transfer_hooks_with_unpacking(tmpdir):
     assert dm.count_called_on_before_batch_transfer == 4
     assert dm.count_called_transfer_batch_to_device == 4
     assert dm.count_called_on_after_batch_transfer == 4
+
+
+@RunIf(skip_windows=True)  # TODO: all durations are 0 on Windows
+def test_fetching_is_profiled():
+    """Test that fetching is profiled."""
+
+    class MyModel(BoringModel):
+        def validation_step(self, batch, batch_idx, dataloader_idx=0):
+            return super().validation_step(batch, batch_idx)
+
+        def val_dataloader(self):
+            return [super().val_dataloader(), super().val_dataloader()]
+
+        validation_epoch_end = None
+
+    model = MyModel()
+    fast_dev_run = 2
+    trainer = Trainer(
+        fast_dev_run=fast_dev_run,
+        profiler="simple",
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        logger=False,
+    )
+    trainer.fit(model)
+    trainer.test(model)
+    trainer.predict(model)
+
+    profiler = trainer.profiler
+    assert isinstance(profiler, SimpleProfiler)
+
+    # validation
+    for i in range(2):
+        key = f"[EvaluationEpochLoop].val_dataloader_idx_{i}_next"
+        assert key in profiler.recorded_durations
+        durations = profiler.recorded_durations[key]
+        assert len(durations) == fast_dev_run
+        assert all(d > 0 for d in durations)
+    # training
+    key = "[TrainingEpochLoop].train_dataloader_next"
+    assert key in profiler.recorded_durations
+    durations = profiler.recorded_durations[key]
+    assert len(durations) == fast_dev_run
+    assert all(d > 0 for d in durations)
+    # test
+    key = "[EvaluationEpochLoop].val_dataloader_idx_0_next"
+    assert key in profiler.recorded_durations
+    durations = profiler.recorded_durations[key]
+    assert len(durations) == fast_dev_run
+    assert all(d > 0 for d in durations)
+    # predict
+    key = "[PredictionEpochLoop].predict_dataloader_idx_0_next"
+    assert key in profiler.recorded_durations
+    durations = profiler.recorded_durations[key]
+    assert len(durations) == fast_dev_run
+    assert all(d > 0 for d in durations)
+
+    # now test profiling when the dataloader_iter is polled manually
+    class MyModel(BoringModel):
+        def training_step(self, dataloader_iter):
+            _ = next(dataloader_iter)
+            batch = next(dataloader_iter)
+            return super().training_step(batch, 0)
+
+    model = MyModel()
+    trainer = Trainer(
+        fast_dev_run=1,
+        profiler="simple",
+        limit_val_batches=0,
+        enable_model_summary=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+        logger=False,
+    )
+    trainer.fit(model)
+
+    profiler = trainer.profiler
+    assert isinstance(profiler, SimpleProfiler)
+
+    key = "[TrainingEpochLoop].train_dataloader_next"
+    assert key in profiler.recorded_durations
+    durations = profiler.recorded_durations[key]
+    assert len(durations) == 2  # 2 polls in training_step
+    assert all(d > 0 for d in durations)

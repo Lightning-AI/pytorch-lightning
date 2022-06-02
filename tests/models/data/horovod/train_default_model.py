@@ -42,14 +42,15 @@ from tests.helpers.utils import reset_seed, set_random_main_port  # noqa: E402
 parser = argparse.ArgumentParser()
 parser.add_argument("--trainer-options", required=True)
 parser.add_argument("--on-gpu", action="store_true", default=False)
+parser.add_argument("--check-size", action="store_true", default=False)
 
 
-def run_test_from_config(trainer_options, on_gpu, check_size=True):
+def run_test_from_config(trainer_options, on_gpu, check_size):
     """Trains the default model with the given config."""
     set_random_main_port()
     reset_seed()
 
-    ckpt_path = trainer_options["weights_save_path"]
+    ckpt_path = trainer_options["default_root_dir"]
     trainer_options.update(callbacks=[ModelCheckpoint(dirpath=ckpt_path)])
 
     class TestModel(BoringModel):
@@ -93,18 +94,18 @@ def run_test_from_config(trainer_options, on_gpu, check_size=True):
     # save logger to make sure we get all the metrics
     if trainer.logger:
         trainer.logger.finalize("finished")
-    hpc_save_path = trainer.checkpoint_connector.hpc_save_path(ckpt_path)
+    hpc_save_path = trainer._checkpoint_connector.hpc_save_path(ckpt_path)
     trainer.save_checkpoint(hpc_save_path)
     # test HPC loading
-    checkpoint_path = trainer.checkpoint_connector._CheckpointConnector__get_max_ckpt_path_from_folder(ckpt_path)
-    trainer.checkpoint_connector.restore(checkpoint_path)
+    checkpoint_path = trainer._checkpoint_connector._CheckpointConnector__get_max_ckpt_path_from_folder(ckpt_path)
+    trainer._checkpoint_connector.restore(checkpoint_path)
 
     if on_gpu:
-        trainer = Trainer(gpus=1, strategy="horovod", max_epochs=1)
-        # Test the root_gpu property
-        assert trainer.root_gpu == hvd.local_rank()
+        trainer = Trainer(accelerator="gpu", devices=1, strategy="horovod", max_epochs=1)
+        # test root gpu index
+        assert trainer.strategy.root_device.index == hvd.local_rank()
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    run_test_from_config(json.loads(args.trainer_options), args.on_gpu)
+    run_test_from_config(json.loads(args.trainer_options), args.on_gpu, args.check_size)

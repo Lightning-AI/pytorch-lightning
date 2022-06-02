@@ -19,15 +19,17 @@ Comet Logger
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Union
+from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
 
 import torch
 from torch import is_tensor
 
 import pytorch_lightning as pl
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import _module_available, rank_zero_only
+from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _module_available
+from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 log = logging.getLogger(__name__)
 _COMET_AVAILABLE = _module_available("comet_ml")
@@ -50,7 +52,7 @@ else:
     API = None
 
 
-class CometLogger(LightningLoggerBase):
+class CometLogger(Logger):
     r"""
     Log using `Comet.ml <https://www.comet.ml>`_.
 
@@ -78,7 +80,7 @@ class CometLogger(LightningLoggerBase):
             project_name="default_project",  # Optional
             rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
             experiment_key=os.environ.get("COMET_EXPERIMENT_KEY"),  # Optional
-            experiment_name="default",  # Optional
+            experiment_name="lightning_logs",  # Optional
         )
         trainer = Trainer(logger=comet_logger)
 
@@ -94,7 +96,7 @@ class CometLogger(LightningLoggerBase):
             workspace=os.environ.get("COMET_WORKSPACE"),  # Optional
             project_name="default_project",  # Optional
             rest_api_key=os.environ.get("COMET_REST_API_KEY"),  # Optional
-            experiment_name="default",  # Optional
+            experiment_name="lightning_logs",  # Optional
         )
         trainer = Trainer(logger=comet_logger)
 
@@ -138,13 +140,15 @@ class CometLogger(LightningLoggerBase):
         experiment_key: Optional[str] = None,
         offline: bool = False,
         prefix: str = "",
+        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
         **kwargs,
     ):
         if comet_ml is None:
             raise ModuleNotFoundError(
                 "You want to use `comet_ml` logger which is not installed yet, install it with `pip install comet-ml`."
             )
-        super().__init__()
+        super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
         self._experiment = None
 
         # Determine online or offline mode based on which arguments were passed to CometLogger
@@ -186,10 +190,10 @@ class CometLogger(LightningLoggerBase):
 
     @property
     @rank_zero_experiment
-    def experiment(self):
+    def experiment(self) -> Union[CometExperiment, CometExistingExperiment, CometOfflineExperiment]:
         r"""
         Actual Comet object. To use Comet features in your
-        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
+        :class:`~pytorch_lightning.core.module.LightningModule` do the following.
 
         Example::
 
@@ -232,8 +236,8 @@ class CometLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
-        params = self._convert_params(params)
-        params = self._flatten_dict(params)
+        params = _convert_params(params)
+        params = _flatten_dict(params)
         self.experiment.log_parameters(params)
 
     @rank_zero_only
@@ -246,7 +250,7 @@ class CometLogger(LightningLoggerBase):
                 metrics_without_epoch[key] = val.cpu().detach()
 
         epoch = metrics_without_epoch.pop("epoch", None)
-        metrics_without_epoch = self._add_prefix(metrics_without_epoch)
+        metrics_without_epoch = _add_prefix(metrics_without_epoch, self._prefix, self.LOGGER_JOIN_CHAR)
         self.experiment.log_metrics(metrics_without_epoch, step=step, epoch=epoch)
 
     def reset_experiment(self):

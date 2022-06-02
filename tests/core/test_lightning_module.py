@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import sys
 from unittest.mock import Mock
 
 import pytest
@@ -18,11 +19,17 @@ import torch
 from torch import nn
 from torch.optim import Adam, SGD
 
-from pytorch_lightning import Trainer
+from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
+
+
+def test_lightning_module_not_abstract():
+    """Test that the LightningModule can be instantiated (it is not an abstract class)."""
+    _ = LightningModule()
 
 
 def test_property_current_epoch():
@@ -71,50 +78,37 @@ def test_property_logger(tmpdir):
     assert model.logger is None
 
     logger = TensorBoardLogger(tmpdir)
-    trainer = Mock(logger=logger)
+    trainer = Mock(loggers=[logger])
     model.trainer = trainer
     assert model.logger == logger
 
 
-def test_params_groups_and_state_are_accessible(tmpdir):
-    class TestModel(BoringModel):
-        def training_step(self, batch, batch_idx, optimizer_idx):
-            output = self.layer(batch)
-            loss = self.loss(batch, output)
-            return {"loss": loss}
+def test_property_loggers(tmpdir):
+    """Test that loggers in LightningModule is accessible via the Trainer."""
+    model = BoringModel()
+    assert model.loggers == []
 
-        def configure_optimizers(self):
-            optimizer = SGD(self.layer.parameters(), lr=0.1)
-            optimizer_2 = Adam(self.layer.parameters(), lr=0.1)
-            return [optimizer, optimizer_2]
+    logger = TensorBoardLogger(tmpdir)
+    trainer = Trainer(logger=logger)
+    model.trainer = trainer
+    assert model.loggers == [logger]
 
-        def optimizer_step(
-            self,
-            epoch,
-            batch_idx,
-            optimizer,
-            optimizer_idx,
-            optimizer_closure,
-            on_tpu=False,
-            using_native_amp=False,
-            using_lbfgs=False,
-        ):
-            # warm up lr
-            if self.trainer.global_step < 500:
-                lr_scale = min(1.0, float(self.trainer.global_step + 1) / 500.0)
-                for pg in optimizer.param_groups:
-                    pg["lr"] = lr_scale * 0.01
 
-            optimizer.step(closure=optimizer_closure)
+def test_1_optimizer_toggle_model():
+    """Test toggle_model runs when only one optimizer is used."""
+    model = BoringModel()
+    trainer = Mock()
+    model.trainer = trainer
+    params = model.parameters()
+    optimizer = torch.optim.SGD(params, lr=0.1)
+    trainer.optimizers = [optimizer]
 
-    model = TestModel()
-    model.training_epoch_end = None
-
-    trainer = Trainer(
-        max_epochs=1, default_root_dir=tmpdir, limit_train_batches=8, limit_val_batches=1, accumulate_grad_batches=1
-    )
-
-    trainer.fit(model)
+    assert not model._param_requires_grad_state
+    # toggle optimizer was failing with a single optimizer
+    model.toggle_optimizer(optimizer, 0)
+    assert model._param_requires_grad_state
+    model.untoggle_optimizer(0)
+    assert not model._param_requires_grad_state
 
 
 def test_toggle_untoggle_2_optimizers_no_shared_parameters(tmpdir):
@@ -282,7 +276,7 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_device_placement(tmpdir):
 
     model = BoringModel()
@@ -304,7 +298,7 @@ def test_device_placement(tmpdir):
 
 
 @RunIf(min_torch="1.10", skip_windows=True)
-def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
+def test_sharded_tensor_state_dict(single_process_pg):
     from torch.distributed._sharded_tensor import empty as sharded_tensor_empty
     from torch.distributed._sharding_spec import ChunkShardingSpec
 
@@ -323,7 +317,8 @@ def test_sharded_tensor_state_dict(tmpdir, single_process_pg):
 
     m_0 = BoringModelWithShardedTensor(spec)
     m_0.sharded_tensor.local_shards()[0].tensor.fill_(1)
-    assert "sharded_tensor" in m_0.state_dict(), 'Expect "sharded_tensor" to appear in the state dict'
+    name_st = ".sharded_tensor" if _TORCH_GREATER_EQUAL_1_11 else "sharded_tensor"
+    assert name_st in m_0.state_dict(), 'Expect "sharded_tensor" to appear in the state dict'
 
     m_1 = BoringModelWithShardedTensor(spec)
     assert not torch.allclose(
@@ -405,3 +400,10 @@ def test_lightning_module_configure_gradient_clipping_different_argument_values(
         match=r"gradient_clip_algorithm='norm'\)` and have passed `clip_gradients\(gradient_clip_algorithm='foo'",
     ):
         trainer.fit(model)
+
+
+def test_proper_refcount():
+    torch_module = nn.Module()
+    lightning_module = LightningModule()
+
+    assert sys.getrefcount(torch_module) == sys.getrefcount(lightning_module)

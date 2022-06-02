@@ -148,7 +148,7 @@ def test_double_precision(tmpdir, boring_model):
     trainer.predict(model)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_double_precision_ddp(tmpdir):
     model = DoublePrecisionBoringModel()
 
@@ -156,12 +156,14 @@ def test_double_precision_ddp(tmpdir):
         max_epochs=1,
         default_root_dir=tmpdir,
         strategy="ddp_spawn",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         fast_dev_run=2,
         precision=64,
         log_every_n_steps=1,
     )
     trainer.fit(model)
+    trainer.validate(model)
 
 
 def test_double_precision_pickle(tmpdir):

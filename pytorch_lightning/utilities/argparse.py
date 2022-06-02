@@ -17,12 +17,15 @@ import inspect
 import os
 from abc import ABC
 from argparse import _ArgumentGroup, ArgumentParser, Namespace
+from ast import literal_eval
 from contextlib import suppress
 from functools import wraps
-from typing import Any, Callable, Dict, List, Tuple, Type, Union
+from typing import Any, Callable, cast, Dict, List, Tuple, Type, TypeVar, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_int, str_to_bool_or_str
+
+_T = TypeVar("_T", bound=Callable[..., Any])
 
 
 class ParseArgparserDataType(ABC):
@@ -37,7 +40,7 @@ class ParseArgparserDataType(ABC):
 def from_argparse_args(
     cls: Type[ParseArgparserDataType], args: Union[Namespace, ArgumentParser], **kwargs: Any
 ) -> ParseArgparserDataType:
-    """Create an instance from CLI arguments. Eventually use varibles from OS environement which are defined as
+    """Create an instance from CLI arguments. Eventually use variables from OS environment which are defined as
     ``"PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"``.
 
     Args:
@@ -119,7 +122,7 @@ def parse_env_variables(cls: Type["pl.Trainer"], template: str = "PL_%(cls_name)
             # todo: specify the possible exception
             with suppress(Exception):
                 # converting to native types like int/float/bool
-                val = eval(val)
+                val = literal_eval(val)
             env_args[arg_name] = val
     return Namespace(**env_args)
 
@@ -263,7 +266,13 @@ def add_argparse_args(
             use_type = _precision_allowed_type
 
         parser.add_argument(
-            f"--{arg}", dest=arg, default=arg_default, type=use_type, help=args_help.get(arg), **arg_kwargs
+            f"--{arg}",
+            dest=arg,
+            default=arg_default,
+            type=use_type,
+            help=args_help.get(arg),
+            required=(arg_default == inspect._empty),
+            **arg_kwargs,
         )
 
     if use_argument_group:
@@ -319,7 +328,7 @@ def _precision_allowed_type(x: Union[int, str]) -> Union[int, str]:
         return x
 
 
-def _defaults_from_env_vars(fn: Callable) -> Callable:
+def _defaults_from_env_vars(fn: _T) -> _T:
     @wraps(fn)
     def insert_env_defaults(self: Any, *args: Any, **kwargs: Any) -> Any:
         cls = self.__class__  # get the class
@@ -335,4 +344,4 @@ def _defaults_from_env_vars(fn: Callable) -> Callable:
         # all args were already moved to kwargs
         return fn(self, **kwargs)
 
-    return insert_env_defaults
+    return cast(_T, insert_env_defaults)

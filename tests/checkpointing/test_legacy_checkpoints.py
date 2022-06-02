@@ -14,6 +14,7 @@
 import glob
 import os
 import sys
+import threading
 from unittest.mock import patch
 
 import pytest
@@ -21,7 +22,6 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.callbacks import EarlyStopping
 from tests import _PATH_LEGACY, _PROJECT_ROOT
 
 LEGACY_CHECKPOINTS_PATH = os.path.join(_PATH_LEGACY, "checkpoints")
@@ -55,10 +55,32 @@ class LimitNbEpochs(Callback):
         self.limit = nb
         self._count = 0
 
-    def on_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+    def on_train_epoch_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._count += 1
         if self._count >= self.limit:
             trainer.should_stop = True
+
+
+@pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
+def test_legacy_ckpt_threading(tmpdir, pl_version: str):
+    def load_model():
+        import torch
+
+        from pytorch_lightning.utilities.migration import pl_legacy_patch
+
+        with pl_legacy_patch():
+            _ = torch.load(PATH_LEGACY)
+
+    PATH_LEGACY = os.path.join(LEGACY_CHECKPOINTS_PATH, pl_version)
+    with patch("sys.path", [PATH_LEGACY] + sys.path):
+        t1 = threading.Thread(target=load_model)
+        t2 = threading.Thread(target=load_model)
+
+        t1.start()
+        t2.start()
+
+        t1.join()
+        t2.join()
 
 
 @pytest.mark.parametrize("pl_version", LEGACY_BACK_COMPATIBLE_PL_VERSIONS)
@@ -73,7 +95,6 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
 
         dm = ClassifDataModule()
         model = ClassificationModel()
-        es = EarlyStopping(monitor="val_acc", mode="max", min_delta=0.005)
         stop = LimitNbEpochs(1)
 
         trainer = Trainer(
@@ -81,7 +102,7 @@ def test_resume_legacy_checkpoints(tmpdir, pl_version: str):
             accelerator="auto",
             devices=1,
             precision=(16 if torch.cuda.is_available() else 32),
-            callbacks=[es, stop],
+            callbacks=[stop],
             max_epochs=21,
             accumulate_grad_batches=2,
         )

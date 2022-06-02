@@ -33,7 +33,6 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import (
     _ResultMetric,
     _Sync,
 )
-from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
@@ -100,7 +99,7 @@ def _ddp_test_fn(rank, worldsize):
         assert epoch_log == {"b": cumulative_sum * worldsize, "a_epoch": cumulative_sum * worldsize}
 
 
-@RunIf(skip_windows=True, min_gpus=2)
+@RunIf(min_cuda_gpus=2, skip_windows=True)
 def test_result_reduce_ddp():
     """Make sure result logging works with DDP."""
     tutils.set_random_main_port()
@@ -299,7 +298,7 @@ def test_result_collection_restoration(tmpdir):
         batch_idx = None
 
 
-@pytest.mark.parametrize("device", ("cpu", pytest.param("cuda", marks=RunIf(min_gpus=1))))
+@pytest.mark.parametrize("device", ("cpu", pytest.param("cuda", marks=RunIf(min_cuda_gpus=1))))
 def test_lightning_module_logging_result_collection(tmpdir, device):
     class LoggingModel(BoringModel):
         def __init__(self):
@@ -373,12 +372,8 @@ class DummyMeanMetric(Metric):
 
 
 def result_collection_reload(accelerator="auto", devices=1, **kwargs):
-
     """This test is going to validate _ResultCollection is properly being reload and final accumulation with Fault
     Tolerant Training is correct."""
-
-    if not _fault_tolerant_training():
-        pytest.skip("Fault tolerant not available")
 
     class CustomException(Exception):
         pass
@@ -437,7 +432,7 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
 
             return super().training_step(batch, batch_idx)
 
-        def on_epoch_end(self) -> None:
+        def on_train_epoch_end(self) -> None:
             if self.trainer.fit_loop.restarting:
                 total = sum(range(5)) * devices
                 metrics = self.results.metrics(on_step=False)
@@ -469,7 +464,7 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
     )
     ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
 
-    trainer = Trainer(**trainer_kwargs)
+    trainer = Trainer(**trainer_kwargs, enable_progress_bar=False, enable_model_summary=False)
     trainer.fit(model, ckpt_path=ckpt_path)
     assert model.has_validated_sum
 
@@ -479,13 +474,13 @@ def test_result_collection_reload(tmpdir):
     result_collection_reload(default_root_dir=tmpdir)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload_1_gpu_ddp(tmpdir):
     result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator="gpu")
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
 def test_result_collection_reload_2_gpus(tmpdir):
     result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator="gpu", devices=2)

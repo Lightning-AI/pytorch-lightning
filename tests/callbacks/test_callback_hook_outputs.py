@@ -63,7 +63,7 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
 
 def test_free_memory_on_eval_outputs(tmpdir):
     class CB(Callback):
-        def on_epoch_end(self, trainer, pl_module):
+        def on_train_epoch_end(self, trainer, pl_module):
             assert not trainer._evaluation_loop._outputs
 
     model = BoringModel()

@@ -25,6 +25,7 @@ from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringDataModule, BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
+from tests.helpers.utils import no_warning_call
 
 
 class BatchSizeDataModule(BoringDataModule):
@@ -114,20 +115,24 @@ def test_trainer_reset_correctly(tmpdir):
         "global_step",
     ]
     expected = {ca: getattr(trainer, ca) for ca in changed_attributes}
-    trainer.tuner.scale_batch_size(model, max_trials=5)
-    actual = {ca: getattr(trainer, ca) for ca in changed_attributes}
 
+    with no_warning_call(UserWarning, match="Please add the following callbacks"):
+        trainer.tuner.scale_batch_size(model, max_trials=5)
+
+    actual = {ca: getattr(trainer, ca) for ca in changed_attributes}
     assert actual == expected
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize("scale_arg", ["power", "binsearch", True])
 def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     """Test possible values for 'batch size auto scaling' Trainer argument."""
     tutils.reset_seed()
     before_batch_size = 2
     model = BatchSizeModel(batch_size=before_batch_size)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=scale_arg, gpus=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=scale_arg, accelerator="gpu", devices=1
+    )
     trainer.tune(model)
     after_batch_size = model.batch_size
     assert before_batch_size != after_batch_size, "Batch size was not altered after running auto scaling of batch size"
@@ -135,7 +140,7 @@ def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
     assert not os.path.exists(tmpdir / "scale_batch_size_temp_model.ckpt")
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize("use_hparams", [True, False])
 def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
     """Test that new batch size gets written to the correct hyperparameter attribute."""
@@ -169,7 +174,7 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
     model_class = HparamsBatchSizeModel if use_hparams else BatchSizeModel
     model = model_class(**hparams)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True, gpus=1)
+    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True, accelerator="gpu", devices=1)
     trainer.tune(model, datamodule_fit)
     after_batch_size = model.hparams.batch_size if use_hparams else model.batch_size
     assert trainer.datamodule == datamodule_fit
@@ -235,11 +240,13 @@ def test_error_on_dataloader_passed_to_fit(tmpdir):
         trainer.tune(model, **fit_options)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_auto_scale_batch_size_with_amp(tmpdir):
     before_batch_size = 2
     model = BatchSizeModel(batch_size=before_batch_size)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, auto_scale_batch_size=True, gpus=1, precision=16)
+    trainer = Trainer(
+        default_root_dir=tmpdir, max_steps=1, auto_scale_batch_size=True, accelerator="gpu", devices=1, precision=16
+    )
     trainer.tune(model)
     after_batch_size = model.batch_size
     assert trainer.amp_backend == AMPType.NATIVE

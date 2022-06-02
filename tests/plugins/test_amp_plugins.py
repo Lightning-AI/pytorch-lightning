@@ -45,8 +45,9 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
         "SLURM_LOCALID": "0",
     },
 )
+@mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
-@pytest.mark.parametrize("strategy,gpus", [("ddp", 2), ("ddp2", 2), ("ddp_spawn", 2)])
+@pytest.mark.parametrize("strategy,devices", [("ddp", 2), ("ddp2", 2), ("ddp_spawn", 2)])
 @pytest.mark.parametrize(
     "amp,custom_plugin,plugin_cls",
     [
@@ -56,7 +57,7 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
         pytest.param("apex", True, MyApexPlugin, marks=RunIf(amp_apex=True)),
     ],
 )
-def test_amp_apex_ddp(mocked_device_count, strategy, gpus, amp, custom_plugin, plugin_cls):
+def test_amp_apex_ddp(mocked_device_count, mocked_is_available, strategy, devices, amp, custom_plugin, plugin_cls):
     plugin = None
     if custom_plugin:
         plugin = plugin_cls(16, "cpu") if amp == "native" else plugin_cls()
@@ -64,7 +65,8 @@ def test_amp_apex_ddp(mocked_device_count, strategy, gpus, amp, custom_plugin, p
         fast_dev_run=True,
         precision=16,
         amp_backend=amp,
-        gpus=gpus,
+        accelerator="gpu",
+        devices=devices,
         strategy=strategy,
         plugins=plugin,
     )
@@ -133,7 +135,7 @@ class TestPrecisionModel(BoringModel):
         return TestClippingOptimizer(self.layer.parameters(), lr=0.1)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize("accum", [1, 2])
 def test_amp_gradient_unscale(tmpdir, accum: int):
     model = TestPrecisionModel()
@@ -145,7 +147,8 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
         limit_val_batches=0,
         amp_backend="native",
         strategy="ddp_spawn",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         precision=16,
         track_grad_norm=2,
         # use a tiny value to make sure it works
@@ -158,7 +161,7 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_amp_skip_optimizer(tmpdir):
     """Test that optimizers can be skipped when using amp."""
 
@@ -185,12 +188,14 @@ def test_amp_skip_optimizer(tmpdir):
                 torch.optim.SGD(self.layer2.parameters(), lr=0.1),
             ]
 
-    trainer = Trainer(default_root_dir=tmpdir, gpus=1, fast_dev_run=1, amp_backend="native", precision=16)
+    trainer = Trainer(
+        default_root_dir=tmpdir, accelerator="gpu", devices=1, fast_dev_run=1, amp_backend="native", precision=16
+    )
     model = CustomBoringModel()
     trainer.fit(model)
 
 
-@RunIf(min_gpus=2, amp_apex=True, standalone=True)
+@RunIf(min_cuda_gpus=2, amp_apex=True, standalone=True)
 @pytest.mark.parametrize("amp_level", ["O2"])
 def test_amp_apex_ddp_fit(amp_level, tmpdir):
     class CustomBoringModel(BoringModel):
@@ -204,9 +209,12 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
         fast_dev_run=True,
         precision=16,
         amp_backend="apex",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy="ddp",
         plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     assert isinstance(trainer.precision_plugin, ApexMixedPrecisionPlugin)
     model = CustomBoringModel()
@@ -214,7 +222,7 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
     trainer.test(model)
 
 
-@RunIf(min_gpus=2, amp_apex=True)
+@RunIf(min_cuda_gpus=2, amp_apex=True)
 @pytest.mark.parametrize("amp_level", ["O2"])
 def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
     trainer = Trainer(
@@ -222,7 +230,8 @@ def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
         fast_dev_run=True,
         precision=16,
         amp_backend="apex",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         strategy="ddp_spawn",
         plugins=ApexMixedPrecisionPlugin(amp_level=amp_level),
     )
@@ -266,12 +275,13 @@ def test_precision_selection_raises(monkeypatch):
     with mock.patch("torch.cuda.device_count", return_value=1), pytest.raises(
         MisconfigurationException, match="Sharded plugins are not supported with apex"
     ):
-        Trainer(amp_backend="apex", precision=16, gpus=1, strategy="ddp_fully_sharded")
+        with mock.patch("torch.cuda.is_available", return_value=True):
+            Trainer(amp_backend="apex", precision=16, accelerator="gpu", devices=1, strategy="ddp_fully_sharded")
 
     import pytorch_lightning.plugins.precision.apex_amp as apex
 
     monkeypatch.setattr(apex, "_APEX_AVAILABLE", False)
-    with mock.patch("torch.cuda.device_count", return_value=1), pytest.raises(
-        MisconfigurationException, match="asked for Apex AMP but you have not installed it"
-    ):
-        Trainer(amp_backend="apex", precision=16, gpus=1)
+    with mock.patch("torch.cuda.device_count", return_value=1), mock.patch(
+        "torch.cuda.is_available", return_value=True
+    ), pytest.raises(MisconfigurationException, match="asked for Apex AMP but you have not installed it"):
+        Trainer(amp_backend="apex", precision=16, accelerator="gpu", devices=1)

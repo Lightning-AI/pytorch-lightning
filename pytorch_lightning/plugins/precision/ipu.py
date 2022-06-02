@@ -27,9 +27,20 @@ warning_cache = WarningCache()
 
 
 class IPUPrecisionPlugin(PrecisionPlugin):
-    """Precision plugin for IPU integration."""
+    """Precision plugin for IPU integration.
+
+    Raises:
+        ValueError:
+            If the precision is neither 16 nor 32.
+    """
 
     def __init__(self, precision: int) -> None:
+        supported_precision_values = (16, 32)
+        if precision not in supported_precision_values:
+            raise ValueError(
+                f"`Trainer(accelerator='ipu', precision={precision!r})` is not supported."
+                f" `precision` must be one of: {supported_precision_values}."
+            )
         super().__init__()
         self.precision = precision
 
@@ -47,7 +58,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
         optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> None:
+    ) -> Any:
         """IPUs handle the optimizer step internally."""
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
@@ -64,6 +75,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
                 " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`"
                 " requesting this feature."
             )
+        return closure_result
 
     def clip_gradients(
         self,

@@ -33,8 +33,43 @@ def test_lite_module_wraps():
     module = Mock()
     assert _LiteModule(module, Mock()).module is module
 
+    wrapped_module = Mock()
+    original_module = Mock()
+    assert _LiteModule(wrapped_module, Mock(), original_module=original_module).module is original_module
 
-@RunIf(min_gpus=1)
+
+def test_lite_module_attribute_lookup():
+    """Test that attribute lookup passes through to the original model when possible."""
+
+    class OriginalModule(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.layer = torch.nn.Linear(2, 3)
+            self.attribute = 1
+
+        def method(self):
+            return 2
+
+    original_module = OriginalModule()
+
+    class ModuleWrapper(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.wrapped = original_module
+
+    wrapped_module = ModuleWrapper()
+
+    lite_module = _LiteModule(wrapped_module, Mock(), original_module=original_module)
+    assert lite_module.attribute == 1
+    assert lite_module.layer is original_module.layer
+    assert lite_module.method() == 2
+    assert lite_module.forward.__self__.__class__ == _LiteModule
+
+    with pytest.raises(AttributeError):
+        _ = lite_module.not_exists
+
+
+@RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize(
     "precision, input_type, expected_type",
     [
@@ -45,9 +80,9 @@ def test_lite_module_wraps():
         (16, torch.float32, torch.float16),
         (16, torch.float64, torch.float16),
         (16, torch.long, torch.long),
-        pytest.param("bf16", torch.float32, torch.bfloat16, marks=RunIf(min_torch="1.10")),
-        pytest.param("bf16", torch.float64, torch.bfloat16, marks=RunIf(min_torch="1.10")),
-        pytest.param("bf16", torch.bool, torch.bool, marks=RunIf(min_torch="1.10")),
+        pytest.param("bf16", torch.float32, torch.bfloat16, marks=RunIf(min_torch="1.10", bf16_cuda=True)),
+        pytest.param("bf16", torch.float64, torch.bfloat16, marks=RunIf(min_torch="1.10", bf16_cuda=True)),
+        pytest.param("bf16", torch.bool, torch.bool, marks=RunIf(min_torch="1.10", bf16_cuda=True)),
     ],
 )
 def test_lite_module_forward_conversion(precision, input_type, expected_type):
@@ -67,7 +102,7 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type):
 
 
 @pytest.mark.parametrize(
-    "device", [torch.device("cpu"), pytest.param(torch.device("cuda", 0), marks=RunIf(min_gpus=1))]
+    "device", [torch.device("cpu"), pytest.param(torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1))]
 )
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float16])
 def test_lite_module_device_dtype_propagation(device, dtype):
@@ -112,8 +147,8 @@ def test_lite_dataloader_iterator():
     "src_device, dest_device",
     [
         (torch.device("cpu"), torch.device("cpu")),
-        pytest.param(torch.device("cpu"), torch.device("cuda", 0), marks=RunIf(min_gpus=1)),
-        pytest.param(torch.device("cuda", 0), torch.device("cpu"), marks=RunIf(min_gpus=1)),
+        pytest.param(torch.device("cpu"), torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(torch.device("cuda", 0), torch.device("cpu"), marks=RunIf(min_cuda_gpus=1)),
     ],
 )
 def test_lite_dataloader_device_placement(src_device, dest_device):
@@ -155,7 +190,9 @@ def test_lite_optimizer_steps():
     """Test that the LiteOptimizer forwards the step() and zero_grad() calls to the wrapped optimizer."""
     optimizer = Mock()
     strategy = Mock()
+    strategy.optimizer_step.return_value = 123
     lite_optimizer = _LiteOptimizer(optimizer=optimizer, strategy=strategy)
-    lite_optimizer.step()
+    step_output = lite_optimizer.step()
+    assert step_output == 123
     strategy.optimizer_step.assert_called_once()
     strategy.optimizer_step.assert_called_with(optimizer, opt_idx=0, closure=ANY, model=strategy.model)

@@ -1,5 +1,8 @@
+from dataclasses import dataclass
+
 import pytest
 import torch
+from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import Trainer
@@ -16,8 +19,8 @@ from pytorch_lightning.utilities.data import (
     warning_cache,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.deprecated_api import no_warning_call
 from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
+from tests.helpers.utils import no_warning_call
 
 
 def test_extract_batch_size():
@@ -36,6 +39,11 @@ def test_extract_batch_size():
         with pytest.raises(MisconfigurationException, match="We could not infer the batch_size"):
             extract_batch_size(batch)
 
+    @dataclass
+    class CustomDataclass:
+        a: Tensor
+        b: Tensor
+
     # Warning not raised
     batch = torch.zeros(11, 10, 9, 8)
     _check_warning_not_raised(batch, 11)
@@ -46,12 +54,18 @@ def test_extract_batch_size():
     batch = [torch.zeros(11, 10)]
     _check_warning_not_raised(batch, 11)
 
+    batch = CustomDataclass(torch.zeros(11, 10), torch.zeros(11, 10))
+    _check_warning_not_raised(batch, 11)
+
     batch = {"test": [{"test": [torch.zeros(11, 10)]}]}
     _check_warning_not_raised(batch, 11)
 
     # Warning raised
     batch = {"a": [torch.tensor(1), torch.tensor(2)], "b": torch.tensor([1, 2, 3, 4])}
     _check_warning_raised(batch, 1)
+
+    batch = CustomDataclass(torch.zeros(11, 10), torch.zeros(1))
+    _check_warning_raised(batch, 11)
 
     batch = {"test": [{"test": [torch.zeros(11, 10), torch.zeros(10, 10)]}]}
     _check_warning_raised(batch, 11)
@@ -93,7 +107,7 @@ def test_has_iterable_dataset():
 def test_has_len():
     assert has_len(DataLoader(RandomDataset(1, 1)))
 
-    with pytest.raises(ValueError, match="`Dataloader` returned 0 length."):
+    with pytest.warns(UserWarning, match="`DataLoader` returned 0 length."):
         assert has_len(DataLoader(RandomDataset(0, 0)))
 
     assert not has_len(DataLoader(RandomIterableDataset(1, 1)))
@@ -112,8 +126,8 @@ def test_has_len_all_rank():
     trainer = Trainer(fast_dev_run=True)
     model = BoringModel()
 
-    with pytest.raises(MisconfigurationException, match="Total length of `Dataloader` across ranks is zero."):
-        assert not has_len_all_ranks(DataLoader(RandomDataset(0, 0)), trainer.strategy, model)
+    with pytest.warns(UserWarning, match="Total length of `DataLoader` across ranks is zero."):
+        assert has_len_all_ranks(DataLoader(RandomDataset(0, 0)), trainer.strategy, model)
 
     assert has_len_all_ranks(DataLoader(RandomDataset(1, 1)), trainer.strategy, model)
 
@@ -161,19 +175,58 @@ def test_replace_dataloader_init_method():
             super().__init__(*args, **kwargs)
 
     class DataLoaderSubclass2(DataLoaderSubclass1):
-        def __init__(self, attribute1, attribute2, *args, **kwargs):
+        def __init__(self, attribute2, *args, **kwargs):
             # intentionally not setting this attribute, calling super with different args
             # self.attribute2 = attribute2
-            super().__init__(attribute1, *args, **kwargs)
+            super().__init__(attribute2 + "-2", *args, **kwargs)
 
     with _replace_dataloader_init_method():
         dataloader = DataLoaderSubclass1("attribute1", dataset=range(4), batch_size=2)
-        assert dataloader.attribute1 == "attribute1"
+
+    assert dataloader.attribute1 == "attribute1"
 
     with _replace_dataloader_init_method():
-        dataloader = DataLoaderSubclass2("attribute1", "attribute2", dataset=range(4), batch_size=2)
-        assert dataloader.attribute1 == "attribute1"
-        assert dataloader.attribute2 == "attribute2"
+        dataloader = DataLoaderSubclass2("attribute2", dataset=range(4), batch_size=2)
+
+    assert dataloader.attribute1 == "attribute2-2"
+    assert dataloader.attribute2 == "attribute2"
+
+    # Failing test case from issue 12564
+    class MyBaseDataLoader(DataLoader):
+        pass
+
+    class MyDataLoader(MyBaseDataLoader):
+        def __init__(self, data: torch.Tensor, *args, **kwargs):
+            self.data = data
+            super().__init__(range(data.size(0)), *args, **kwargs)
+
+    data = torch.randn((10, 20))
+
+    with _replace_dataloader_init_method():
+        dataloader = MyDataLoader(data, batch_size=2)
+
+    assert dataloader.data is data
+    assert dataloader.dataset == range(10)
+
+    # `poptorch.DataLoader` uses this pattern, simulate it
+    class PoptorchDataLoader(DataLoader):
+        def __init__(self, options, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self._options = options
+
+        @property
+        def options(self):
+            return self._options
+
+    # †his read-only property pattern is fine
+    dataloader = PoptorchDataLoader(123, [1])
+    assert dataloader.options == 123
+
+    # still works with the init replacement
+    with _replace_dataloader_init_method():
+        dataloader = PoptorchDataLoader(123, [1])
+
+    assert dataloader.options == 123
 
 
 @pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])

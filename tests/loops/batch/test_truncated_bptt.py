@@ -170,3 +170,36 @@ def test_tbptt_logging(tmpdir, model_class):
     )
     trainer.fit(model)
     assert set(trainer.logged_metrics) == {"loss_step", "loss_epoch"}
+
+
+def test_hiddens_multiple_optimizers(tmpdir):
+    class TBPTTModel(LSTMModel):
+        # TODO: `optimizer_idx=n` gets the hiddens from `optimizer_idx=n-1` instead of the hidden from
+        # `optimizer_idx=n`, `split_idx=m-1`. This is unexpected and should be changed
+        test_hiddens = None
+
+        def training_step(self, batch, batch_idx, optimizer_idx, hiddens):
+            if hiddens is None:
+                assert self.test_hiddens is None
+            else:
+                assert all(torch.equal(h, th) for h, th in zip(hiddens, self.test_hiddens))
+            out = super().training_step(batch, batch_idx, hiddens)
+            self.test_hiddens = out["hiddens"]
+            return out
+
+        def configure_optimizers(self):
+            return [super().configure_optimizers(), super().configure_optimizers()]
+
+    model = TBPTTModel(truncated_bptt_steps=2, input_size=1, hidden_size=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        enable_model_summary=False,
+        logger=False,
+        enable_checkpointing=False,
+        enable_progress_bar=False,
+    )
+    trainer.fit(model)
+    assert trainer.global_step == 8 / 2 * 2  # time_dim_length / tbptt_steps * num_optimizers

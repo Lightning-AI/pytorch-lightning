@@ -22,9 +22,11 @@ from pytorch_lightning.plugins.environments.cluster_environment import ClusterEn
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp import DDPStrategy
+from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
-from pytorch_lightning.utilities.enums import _StrategyType, PrecisionType
+from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
@@ -36,7 +38,7 @@ log = logging.getLogger(__name__)
 
 class DDPFullyShardedStrategy(DDPStrategy):
 
-    distributed_backend = _StrategyType.DDP_FULLY_SHARDED
+    strategy_name = "ddp_fully_sharded"
 
     def __init__(
         self,
@@ -48,12 +50,13 @@ class DDPFullyShardedStrategy(DDPStrategy):
         fp32_reduce_scatter: Optional[bool] = None,
         compute_dtype: Optional[torch.dtype] = None,
         bucket_cap_mb: int = 25,
-        min_num_params: int = 1e8,
+        min_num_params: int = 100_000_000,
         state_dict_to_cpu: bool = True,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
+        process_group_backend: Optional[str] = None,
     ):
         """Plugin for Fully Sharded Data Parallel provided by FairScale.
 
@@ -98,7 +101,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
                 (Default: 1e8)
             state_dict_to_cpu: Whether to return parameters (returned by :func:`state_dict`) on CPU device.
                 If ``False``, this will default to ``compute_device``.
-                (Defautl: True).
+                (Default: True).
         """
 
         super().__init__(
@@ -107,6 +110,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
+            process_group_backend=process_group_backend,
         )
         self.cpu_offload = cpu_offload
         self.move_grads_to_cpu = move_grads_to_cpu
@@ -134,16 +138,17 @@ class DDPFullyShardedStrategy(DDPStrategy):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.accelerator.setup(trainer)
-        self.setup_optimizers(trainer)
+
+        if trainer.state.fn == TrainerFn.FITTING:
+            self.setup_optimizers(trainer)
+            optimizers_to_device(self.optimizers, self.root_device)
+
+            if self._layer_sync:
+                self.model = self._layer_sync.apply(self.model)
+
         self.setup_precision_plugin()
-        self._move_optimizer_state()
-
-        if self.sync_batchnorm:
-            self.model = self.configure_sync_batchnorm(self.model)
-
         self.configure_ddp()
         self.barrier()
-        self.setup_optimizers(trainer)
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
@@ -160,7 +165,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
             cpu_offload=self.cpu_offload,
             move_grads_to_cpu=self.move_grads_to_cpu,
             flatten_parameters=self.flatten_parameters,
-            mixed_precision=(precision == PrecisionType.MIXED),
+            mixed_precision=(precision in (PrecisionType.MIXED, PrecisionType.HALF)),
             reshard_after_forward=self.reshard_after_forward,
             fp32_reduce_scatter=self.fp32_reduce_scatter,
             compute_dtype=self.compute_dtype,
@@ -172,7 +177,7 @@ class DDPFullyShardedStrategy(DDPStrategy):
         log.detail(f"{self.__class__.__name__}: exiting model_sharded_context.")
 
     def configure_ddp(self) -> None:
-        log.detail(f"{self.__class__.__name__}: configuring DDP... (cpu_offload: [{self.cpu_offload}])")
+        log.detail(f"{self.__class__.__name__}: configuring FSDP... (cpu_offload: [{self.cpu_offload}])")
         if not self.cpu_offload:
             # When using CPU Offload, FSDP will manage the CUDA movement for us.
             # Note: this would be problematic for large model (which could not fit in one GPU)
@@ -211,4 +216,10 @@ class DDPFullyShardedStrategy(DDPStrategy):
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
             "fsdp", cls, description="Fully sharded training with checkpointing the full state dict."
+        )
+
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
         )

@@ -16,6 +16,7 @@
 import os
 from importlib.util import module_from_spec, spec_from_file_location
 
+from pkg_resources import parse_requirements
 from setuptools import find_packages, setup
 
 # https://packaging.python.org/guides/single-sourcing-package-version/
@@ -43,18 +44,14 @@ extras = {
     "examples": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="examples.txt"),
     "loggers": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="loggers.txt"),
     "extra": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="extra.txt"),
+    "strategies": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="strategies.txt"),
     "test": setup_tools._load_requirements(path_dir=_PATH_REQUIRE, file_name="test.txt"),
 }
-extras["dev"] = extras["extra"] + extras["loggers"] + extras["test"]
-extras["all"] = extras["dev"] + extras["examples"]  # + extras['docs']
 
-# These packages shall be installed only on GPU machines
-PACKAGES_GPU_ONLY = ["horovod"]
-# create a version for CPU machines
-for ex in ("cpu", "cpu-extra"):
-    kw = ex.split("-")[1] if "-" in ex else "all"
-    # filter cpu only packages
-    extras[ex] = [pkg for pkg in extras[kw] if not any(pgpu.lower() in pkg.lower() for pgpu in PACKAGES_GPU_ONLY)]
+for req in parse_requirements(extras["strategies"]):
+    extras[req.key] = [str(req)]
+extras["dev"] = extras["extra"] + extras["loggers"] + extras["test"]
+extras["all"] = extras["dev"] + extras["examples"] + extras["strategies"]  # + extras['docs']
 
 long_description = setup_tools._load_readme_description(
     _PATH_ROOT, homepage=about.__homepage__, version=about.__version__
@@ -82,7 +79,7 @@ setup(
     keywords=["deep learning", "pytorch", "AI"],
     python_requires=">=3.7",
     setup_requires=[],
-    install_requires=setup_tools._load_requirements(_PATH_ROOT),
+    install_requires=setup_tools._load_requirements(_PATH_REQUIRE),
     extras_require=extras,
     project_urls={
         "Bug Tracker": "https://github.com/PyTorchLightning/pytorch-lightning/issues",

@@ -1,6 +1,9 @@
-Bolts
-=====
-`PyTorch Lightning Bolts <https://lightning-bolts.readthedocs.io/en/stable/>`_, is our official collection
+:orphan:
+
+Lightning Bolts
+===============
+
+`PyTorch Lightning Bolts <https://lightning-bolts.readthedocs.io/en/latest/>`_, is our official collection
 of prebuilt models across many research domains.
 
 .. code-block:: bash

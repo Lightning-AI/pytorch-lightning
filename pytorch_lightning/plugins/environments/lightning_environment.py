@@ -16,7 +16,7 @@ import os
 import socket
 
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
-from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 
 class LightningEnvironment(ClusterEnvironment):
@@ -96,7 +96,6 @@ def find_free_network_port() -> int:
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(("", 0))
-    s.listen(1)
     port = s.getsockname()[1]
     s.close()
     return port

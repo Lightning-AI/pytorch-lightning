@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import DEFAULT, patch
+from unittest.mock import DEFAULT, Mock, patch
 
 import pytest
 import torch
@@ -95,7 +95,10 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmpdi
                 opt_1.step()
 
             closure(opt_2)
-            opt_2.step()
+            step_output = opt_2.step()
+            # check that the step output is returned with manual optimization
+            # since the optimizer is mocked, the step output is a Mock
+            assert isinstance(step_output, Mock)
 
         def configure_optimizers(self):
             optimizer_1 = torch.optim.SGD(self.layer.parameters(), lr=0.1)
@@ -149,7 +152,8 @@ def test_state(tmpdir):
     lightning_dict = {
         k: v
         for k, v in lightning_optimizer.__dict__.items()
-        if k not in {"_optimizer", "_optimizer_idx", "_strategy", "_lightning_module"}
+        if k
+        not in {"_optimizer", "_optimizer_idx", "_strategy", "_lightning_module", "_on_before_step", "_on_after_step"}
     }
 
     assert lightning_dict == optimizer.__dict__
@@ -314,3 +318,31 @@ def test_lightning_optimizer_keeps_hooks(tmpdir):
     assert len(optimizer._fwd_handles) == 1
     del lightning_optimizer
     assert len(optimizer._fwd_handles) == 1
+
+
+def test_params_groups_and_state_are_accessible(tmpdir):
+    class TestModel(BoringModel):
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            output = self.layer(batch)
+            loss = self.loss(batch, output)
+            self.__loss = loss
+            return loss
+
+        def configure_optimizers(self):
+            optimizer = SGD(self.layer.parameters(), lr=0.1)
+            optimizer_2 = Adam(self.layer.parameters(), lr=0.1)
+            return [optimizer, optimizer_2]
+
+        def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, **__):
+            # check attributes are accessible
+            assert all("lr" in pg for pg in optimizer.param_groups)
+            assert optimizer.state is optimizer._optimizer.state
+            assert optimizer.defaults is optimizer._optimizer.defaults
+
+            loss = optimizer.step(closure=optimizer_closure)
+            # the optimizer step still returns the loss
+            assert loss == self.__loss
+
+    model = TestModel()
+    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=0)
+    trainer.fit(model)

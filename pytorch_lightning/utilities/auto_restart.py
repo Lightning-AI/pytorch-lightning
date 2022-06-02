@@ -14,12 +14,8 @@
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial, wraps
-from random import getstate as python_get_rng_state
-from random import setstate as python_set_rng_state
 from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, Union
 
-import numpy as np
-import torch
 from torch.utils.data import (
     BatchSampler,
     Dataset,
@@ -42,7 +38,8 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import _collect_states_on_rank_zero
 from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.types import _SupportsStateDict
+from pytorch_lightning.utilities.seed import _collect_rng_states, _set_rng_states
+from pytorch_lightning.utilities.types import _Stateful
 
 
 class FastForwardSampler(Sampler):
@@ -251,7 +248,7 @@ class CaptureMapDataset(Dataset):
     def __getitem__(self, item) -> Tuple[Any, Dict[int, Dict]]:
         if self._cached_state_dict is not None:
             if self.worker_id in self._cached_state_dict:
-                set_rng_states(self._cached_state_dict[self.worker_id]["rng_states"])
+                _set_rng_states(self._cached_state_dict[self.worker_id]["rng_states"])
             self._cached_state_dict = None
 
         return self.dataset[item]
@@ -264,20 +261,7 @@ class CaptureMapDataset(Dataset):
         self._cached_state_dict = _rotate_worker_indices(deepcopy(state_dict), latest_worker_id, num_workers)
 
     def state_dict(self) -> Dict[int, Dict[str, Any]]:
-        return {self.worker_id: {"rng_states": collect_rng_states()}}
-
-
-def collect_rng_states() -> Dict[str, Any]:
-    """Collect the global random state of :mod:`torch`, :mod:`numpy` and Python."""
-    return {"torch": torch.get_rng_state(), "numpy": np.random.get_state(), "python": python_get_rng_state()}
-
-
-def set_rng_states(rng_state_dict: Dict[str, Any]) -> None:
-    """Set the global random state of :mod:`torch`, :mod:`numpy` and Python in the current process."""
-    torch.set_rng_state(rng_state_dict.get("torch"))
-    np.random.set_state(rng_state_dict.get("numpy"))
-    version, state, gauss = rng_state_dict.get("python")
-    python_set_rng_state((version, tuple(state), gauss))
+        return {self.worker_id: {"rng_states": _collect_rng_states()}}
 
 
 class CaptureIterableDataset(IterableDataset):
@@ -487,7 +471,7 @@ def _next_data_wrapper(
 def patch_dataloader_iterator(
     dataloader: DataLoader,
     iterator: Iterator,
-    data_fetcher: "pl.utilities.fetching.DataFetcher",
+    data_fetcher: "pl.utilities.fetching.AbstractDataFetcher",
     num_batches_fetched: int = 0,
 ) -> None:
     """Patches the iterator of a PyTorch dataloader by injecting logic for fault-tolerant training when it is
@@ -520,7 +504,7 @@ def patch_dataloader_iterator(
 
 
 def _add_capture_metadata_collate(dataloader: DataLoader) -> None:
-    """Wrap default collate function to retrive captured dataset state dict when fault tolerant is enabled."""
+    """Wrap default collate function to retrieve captured dataset state dict when fault tolerant is enabled."""
     fault_tolerant_mode = _FaultTolerantMode.detect_current_mode()
     collate_fn = dataloader.collate_fn
     if not fault_tolerant_mode.is_enabled or (
@@ -581,17 +565,17 @@ def _reload_dataloader_state_dict_manual(dataloader: DataLoader, state_dict: Dic
     sampler_state = state_dict["state"][latest_worker_id].get("sampler_state", None)
     if sampler_state:
         # `sampler_state` keys contain all the DataLoader attribute names
-        # which matched `_SupportsStateDict` API interface while collecting the `state_dict`.
+        # which matched `_Stateful` API interface while collecting the `state_dict`.
         for dataloader_attr_name in sampler_state:
             obj = getattr(dataloader, dataloader_attr_name)
-            if not isinstance(obj, _SupportsStateDict):
+            if not isinstance(obj, _Stateful):
                 raise MisconfigurationException(
                     f"The DataLoader attribute {dataloader_attr_name}:{obj} should have a `load_state_dict` method."
                 )
 
             obj.load_state_dict(sampler_state[dataloader_attr_name])
 
-    if not isinstance(dataloader.dataset, _SupportsStateDict):
+    if not isinstance(dataloader.dataset, _Stateful):
         return
 
     dataset_state = {
@@ -645,9 +629,7 @@ class _StatefulDataLoaderIter:
     def _store_sampler_state(self) -> None:
         """This function is used to extract the sampler states if any."""
         sampler_state = {
-            k: v.state_dict()
-            for k, v in self._loader.__dict__.items()
-            if isinstance(v, _SupportsStateDict) and k != "dataset"
+            k: v.state_dict() for k, v in self._loader.__dict__.items() if isinstance(v, _Stateful) and k != "dataset"
         }
         self.__accumulate_state(sampler_state)
 
@@ -688,7 +670,7 @@ class _StatefulDataLoaderIter:
                 num_batches_fetched=self.num_batches_fetched,
             )
         ]
-        # ensures there is an alignement between the sampler state and currently fetched batch
+        # ensures there is an alignment between the sampler state and currently fetched batch
         assert sampler_state_idx == self.num_batches_fetched
         self._data_fetcher._store_dataloader_iter_state(self, state)
         return batch

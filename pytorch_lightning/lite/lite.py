@@ -27,7 +27,7 @@ from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sequ
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
 from pytorch_lightning.plugins import PLUGIN_INPUT
-from pytorch_lightning.strategies import DDPSpawnStrategy, DeepSpeedStrategy, Strategy, TPUSpawnStrategy
+from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy, TPUSpawnStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
 from pytorch_lightning.utilities import _AcceleratorType, _StrategyType, move_data_to_device
@@ -38,7 +38,6 @@ from pytorch_lightning.utilities.data import (
     _update_dataloader,
     has_iterable_dataset,
 )
-from pytorch_lightning.utilities.device_parser import _parse_devices
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.seed import seed_everything
 
@@ -80,16 +79,14 @@ class LightningLite(ABC):
     ) -> None:
         self._check_accelerator_support(accelerator)
         self._check_strategy_support(strategy)
-        gpu_ids, tpu_cores = _parse_devices(gpus=gpus, auto_select_gpus=False, tpu_cores=tpu_cores)
         self._accelerator_connector = AcceleratorConnector(
-            num_processes=1,
+            num_processes=None,
             devices=devices,
             tpu_cores=tpu_cores,
             ipus=None,
             accelerator=accelerator,
             strategy=strategy,
             gpus=gpus,
-            gpu_ids=gpu_ids,
             num_nodes=num_nodes,
             sync_batchnorm=False,  # TODO: add support?
             benchmark=False,
@@ -99,6 +96,7 @@ class LightningLite(ABC):
             amp_type="native",
             amp_level=None,
             plugins=plugins,
+            auto_select_gpus=False,
         )
         self._strategy = self._accelerator_connector.strategy
         self._accelerator = self._strategy.accelerator
@@ -142,7 +140,7 @@ class LightningLite(ABC):
         return self._strategy.is_global_zero
 
     @abstractmethod
-    def run(self) -> Any:
+    def run(self, *args: Any, **kwargs: Any) -> Any:
         """All the code inside this run method gets accelerated by Lite.
 
         You can pass arbitrary arguments to this function when overriding it.
@@ -154,11 +152,11 @@ class LightningLite(ABC):
         *optimizers: Optimizer,
         move_to_device: bool = True,
     ) -> Any:  # no specific return because the way we want our API to look does not play well with mypy
-        """Setup a model and its optimizers for accelerated training.
+        """Set up a model and its optimizers for accelerated training.
 
         Args:
-            model: A model to setup
-            *optimizers: The optimizer(s) to setup (no optimizers is also possible)
+            model: A model to set up
+            *optimizers: The optimizer(s) to set up (no optimizers is also possible)
             move_to_device: If set ``True`` (default), moves the model to the correct device. Set this to ``False``
                 and alternatively use :meth:`to_device` manually.
 
@@ -166,13 +164,14 @@ class LightningLite(ABC):
             The tuple of the wrapped model and list of optimizers, in the same order they were passed in.
         """
         self._validate_setup(model, optimizers)
+        original_model = model
 
         if move_to_device:
             model = self._move_model_to_device(model=model, optimizers=list(optimizers))
 
         # Let accelerator/plugin wrap and connect the models and optimizers
         model, optimizers = self._strategy._setup_model_and_optimizers(model, list(optimizers))
-        model = _LiteModule(model, self._precision_plugin)
+        model = _LiteModule(model, self._precision_plugin, original_module=original_model)
         optimizers = [_LiteOptimizer(optimizer=optimizer, strategy=self._strategy) for optimizer in optimizers]
         self._models_setup += 1
         if optimizers:
@@ -183,14 +182,14 @@ class LightningLite(ABC):
     def setup_dataloaders(
         self, *dataloaders: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
     ) -> Union[DataLoader, List[DataLoader]]:
-        """Setup one or multiple dataloaders for accelerated training. If you need different settings for each
+        """Set up one or multiple dataloaders for accelerated training. If you need different settings for each
         dataloader, call this method individually for each one.
 
         Args:
             *dataloaders: A single dataloader or a sequence of dataloaders.
             replace_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the dataloader(s)
                 for distributed training. If you have a custom sampler defined, set this to this argument to ``False``.
-            move_to_device: If set ``True`` (default), moves the data returned by the dataloader(s) automatially to
+            move_to_device: If set ``True`` (default), moves the data returned by the dataloader(s) automatically to
                 the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
                 returned data.
 
@@ -208,13 +207,13 @@ class LightningLite(ABC):
     def _setup_dataloader(
         self, dataloader: DataLoader, replace_sampler: bool = True, move_to_device: bool = True
     ) -> DataLoader:
-        """Setup a single dataloader for accelerated training.
+        """Set up a single dataloader for accelerated training.
 
         Args:
             dataloader: The dataloader to accelerate.
             replace_sampler: If set ``True`` (default), automatically wraps or replaces the sampler on the dataloader
                 for distributed training. If you have a custom sampler defined, set this to this argument to ``False``.
-            move_to_device: If set ``True`` (default), moves the data returned by the dataloader automatially to
+            move_to_device: If set ``True`` (default), moves the data returned by the dataloader automatically to
                 the correct device. Set this to ``False`` and alternatively use :meth:`to_device` manually on the
                 returned data.
 
@@ -254,10 +253,10 @@ class LightningLite(ABC):
             **kwargs: Optional named keyword arguments passed to the underlying backward function.
 
         Note:
-            When using ``strategy="deepspeed"`` and multiple models were setup, it is required to pass in the
+            When using ``strategy="deepspeed"`` and multiple models were set up, it is required to pass in the
             model as argument here.
         """
-        module = model.module if model is not None else model
+        module = model._forward_module if model is not None else model
         if isinstance(self._strategy, DeepSpeedStrategy):
             if model is None:
                 if self._models_setup == 0:
@@ -399,17 +398,16 @@ class LightningLite(ABC):
         return seed_everything(seed=seed, workers=workers)
 
     def _run_impl(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
-        self._strategy.setup_environment()
-
         # apply sharded context to prevent OOM
-        run_method = partial(self._run_with_sharded_context, run_method)
+        run_method = partial(self._run_with_strategy_setup, run_method)
 
-        if isinstance(self._strategy, DDPSpawnStrategy):
-            return self._strategy.spawn(run_method, *args, **kwargs)
+        if self._strategy.launcher is not None:
+            return self._strategy.launcher.launch(run_method, *args, **kwargs)
         else:
             return run_method(*args, **kwargs)
 
-    def _run_with_sharded_context(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
+    def _run_with_strategy_setup(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
+        self._strategy.setup_environment()
         with self._strategy.model_sharded_context(), _replace_dataloader_init_method():
             return run_method(*args, **kwargs)
 

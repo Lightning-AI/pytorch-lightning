@@ -13,11 +13,11 @@
 # limitations under the License.
 
 from collections import OrderedDict
-from dataclasses import asdict
 from functools import lru_cache
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Dict, Optional
 
 from deprecate import void
+from torch.utils.data import DataLoader
 
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.trainer.progress import BatchProgress
@@ -26,10 +26,9 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import (
     _collect_states_on_rank_zero_over_collection,
     _reload_dataloader_state_dict,
-    MergedIteratorState,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.fetching import AbstractDataFetcher
+from pytorch_lightning.utilities.fetching import AbstractDataFetcher, DataLoaderIterDataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
@@ -48,9 +47,9 @@ class EvaluationEpochLoop(Loop):
 
         self._outputs: EPOCH_OUTPUT = []
         self._dl_max_batches = 0
-        self._dataloader_iter: Optional[Iterator] = None
         self._data_fetcher: Optional[AbstractDataFetcher] = None
         self._dataloader_state_dict: Dict[str, Any] = {}
+        self._dl_batch_idx = [0]
 
     @property
     def done(self) -> bool:
@@ -84,10 +83,26 @@ class EvaluationEpochLoop(Loop):
         """
         void(kwargs)
         self._dl_max_batches = dl_max_batches
-        self._data_fetcher = data_fetcher
-
         self._reload_dataloader_state_dict(data_fetcher)
-        self._dataloader_iter = iter(data_fetcher)
+        # creates the iterator inside the fetcher but returns `self`
+        self._data_fetcher = iter(data_fetcher)
+        # add the previous `fetched` value to properly track `is_last_batch` with no prefetching
+        data_fetcher.fetched += self.batch_progress.current.ready
+
+        stage = self.trainer.state.stage
+        assert stage is not None
+        stage = stage.dataloader_prefix
+        self._profiler_fetch_action = (
+            f"[{self.__class__.__name__}].{stage}_dataloader_idx_{kwargs.get('dataloader_idx', 0)}_next"
+        )
+        data_fetcher._start_profiler = self._on_before_fetch
+        data_fetcher._stop_profiler = self._on_after_fetch
+
+    def _on_before_fetch(self) -> None:
+        self.trainer.profiler.start(self._profiler_fetch_action)
+
+    def _on_after_fetch(self) -> None:
+        self.trainer.profiler.stop(self._profiler_fetch_action)
 
     def advance(  # type: ignore[override]
         self,
@@ -107,13 +122,15 @@ class EvaluationEpochLoop(Loop):
         """
         void(dl_max_batches)
 
-        assert self._dataloader_iter is not None
-        batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
-        if batch is None:
-            raise StopIteration
+        if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
+            batch_idx = self.batch_progress.current.ready
+            batch = next(data_fetcher)
+        else:
+            batch_idx, batch = next(data_fetcher)
+        self.batch_progress.is_last_batch = data_fetcher.done
 
         # configure step_kwargs
-        kwargs = self._build_kwargs(kwargs, batch)
+        kwargs = self._build_kwargs(kwargs, batch, batch_idx)
 
         self.batch_progress.increment_ready()
 
@@ -134,7 +151,10 @@ class EvaluationEpochLoop(Loop):
         self.batch_progress.increment_completed()
 
         # log batch metrics
-        self.trainer.logger_connector.update_eval_step_metrics()
+        if not self.trainer.sanity_checking:
+            dataloader_idx = kwargs.get("dataloader_idx", 0)
+            self.trainer._logger_connector.update_eval_step_metrics(self._dl_batch_idx[dataloader_idx])
+            self._dl_batch_idx[dataloader_idx] += 1
 
         # track epoch level outputs
         if self._should_track_batch_outputs_for_epoch_end() and output is not None:
@@ -152,7 +172,6 @@ class EvaluationEpochLoop(Loop):
     def on_run_end(self) -> EPOCH_OUTPUT:
         """Returns the outputs of the whole run."""
         outputs, self._outputs = self._outputs, []  # free memory
-        self._dataloader_iter = None
         self._data_fetcher = None
         return outputs
 
@@ -164,18 +183,16 @@ class EvaluationEpochLoop(Loop):
         state_dict = super().on_save_checkpoint()
 
         if (
-            self._data_fetcher is None
-            or self._num_completed_batches_reached()  # did not finish
-            # TODO: fault-tolerance requires a minimum number of batches so probably should be > 0
-            or self.batch_progress.current.ready == 0  # did not start
+            self.trainer is not None
+            and self.trainer.state._fault_tolerant_mode.is_enabled
+            and self._data_fetcher is not None
+            and not self._num_completed_batches_reached()  # did not finish
+            and self.batch_progress.current.ready  # did start
         ):
-            return state_dict
+            state = CombinedLoader._state_dict_fn(self._data_fetcher.dataloader_iter, self._has_completed())
+            if state:
+                state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(state)
 
-        # TODO: this should use `pytorch_lightning/trainer/supporters.py::CombinedLoader._state_dict_fn`
-        state_to_save = "state" if self._has_completed() else "previous_state"
-        state: Optional[MergedIteratorState] = getattr(self._data_fetcher.dataloader_iter, state_to_save, None)
-        if state:
-            state_dict["dataloader_state_dict"] = _collect_states_on_rank_zero_over_collection(asdict(state))
         return state_dict
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
@@ -195,7 +212,7 @@ class EvaluationEpochLoop(Loop):
                 "Reloading support hasn't been implemented for `CombinedLoader`. You can request it by opening an issue"
                 " in `https://github.com/PyTorchLightning/pytorch-lightning/issues`."
             )
-        assert dataloader is not None
+        assert isinstance(dataloader, DataLoader)
         _reload_dataloader_state_dict(dataloader, self._dataloader_state_dict)
         self._dataloader_state_dict = {}
 
@@ -218,10 +235,8 @@ class EvaluationEpochLoop(Loop):
         Returns:
             the outputs of the step
         """
-        if self.trainer.testing:
-            output = self.trainer._call_strategy_hook("test_step", *kwargs.values())
-        else:
-            output = self.trainer._call_strategy_hook("validation_step", *kwargs.values())
+        hook_name = "test_step" if self.trainer.testing else "validation_step"
+        output = self.trainer._call_strategy_hook(hook_name, *kwargs.values())
 
         return output
 
@@ -244,15 +259,12 @@ class EvaluationEpochLoop(Loop):
         Raises:
             AssertionError: If the number of dataloaders is None (has not yet been set).
         """
-        self.trainer.logger_connector.on_batch_start(**kwargs)
+        self.trainer._logger_connector.on_batch_start(**kwargs)
 
         kwargs.setdefault("dataloader_idx", 0)  # TODO: the argument should be keyword for these
-        if self.trainer.testing:
-            self.trainer._call_callback_hooks("on_test_batch_start", *kwargs.values())
-            self.trainer._call_lightning_module_hook("on_test_batch_start", *kwargs.values())
-        else:
-            self.trainer._call_callback_hooks("on_validation_batch_start", *kwargs.values())
-            self.trainer._call_lightning_module_hook("on_validation_batch_start", *kwargs.values())
+        hook_name = "on_test_batch_start" if self.trainer.testing else "on_validation_batch_start"
+        self.trainer._call_callback_hooks(hook_name, *kwargs.values())
+        self.trainer._call_lightning_module_hook(hook_name, *kwargs.values())
 
     def _on_evaluation_batch_end(self, output: Optional[STEP_OUTPUT], **kwargs: Any) -> None:
         """The ``on_{validation/test}_batch_end`` hook.
@@ -268,10 +280,10 @@ class EvaluationEpochLoop(Loop):
         self.trainer._call_callback_hooks(hook_name, output, *kwargs.values())
         self.trainer._call_lightning_module_hook(hook_name, output, *kwargs.values())
 
-        self.trainer.logger_connector.on_batch_end()
+        self.trainer._logger_connector.on_batch_end()
 
-    def _build_kwargs(self, kwargs: OrderedDict, batch: Any) -> OrderedDict:
-        """Helper function to build the arguments for the current step.
+    def _build_kwargs(self, kwargs: OrderedDict, batch: Any, batch_idx: int) -> OrderedDict:
+        """Helper method to build the arguments for the current step.
 
         Args:
             kwargs: The kwargs passed down to the hooks.
@@ -280,7 +292,8 @@ class EvaluationEpochLoop(Loop):
         Returns:
             The kwargs passed down to the hooks.
         """
-        kwargs.update({"batch": batch, "batch_idx": self.batch_progress.current.ready})
+        kwargs.update(batch=batch, batch_idx=batch_idx)
+        # `dataloader_idx` should be last so we need to push these to the front
         kwargs.move_to_end("batch_idx", last=False)
         kwargs.move_to_end("batch", last=False)
         return kwargs
@@ -292,3 +305,6 @@ class EvaluationEpochLoop(Loop):
         if self.trainer.testing:
             return is_overridden("test_epoch_end", model)
         return is_overridden("validation_epoch_end", model)
+
+    def _reset_dl_batch_idx(self, num_dataloaders: int) -> None:
+        self._dl_batch_idx = [0] * num_dataloaders

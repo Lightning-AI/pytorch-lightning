@@ -11,11 +11,15 @@ on: # Trigger the workflow on push or pull request, but only for the master bran
       - "dockers/**"
       - "!dockers/README.md"
       - "requirements/*"
-      - "environment.yml"
       - "requirements.txt"
+      - "environment.yml"
       - ".github/workflows/*docker*.yml"
       - ".github/workflows/events-nightly.yml"
       - "setup.py"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 jobs:
   build-PL:
@@ -24,8 +28,8 @@ jobs:
       fail-fast: false
       matrix:
         # the config used in '.azure-pipelines/gpu-tests.yml' since the Dockerfile uses the cuda image
-        python_version: ["3.7"]
-        pytorch_version: ["1.8"]
+        python_version: ["3.9"]
+        pytorch_version: ["1.10", "1.11"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -69,9 +73,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # the config used in '.azure-pipelines/gpu-tests.yml'
-        python_version: ["3.7"]
-        pytorch_version: ["1.8"]
+        include:
+          # the config used in '.azure-pipelines/gpu-tests.yml'
+          - {python_version: "3.7", pytorch_version: "1.8", cuda_version: "10.2", ubuntu_version: "18.04"}
+          - {python_version: "3.7", pytorch_version: "1.10", cuda_version: "11.1", ubuntu_version: "20.04"}
+          - {python_version: "3.7", pytorch_version: "1.11", cuda_version: "11.3.1", ubuntu_version: "20.04"}
+          # latest (used in Tutorials)
+          - {python_version: "3.8", pytorch_version: "1.8", cuda_version: "11.1", ubuntu_version: "20.04"}
+          - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1", ubuntu_version: "20.04"}
+          - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.1", ubuntu_version: "20.04"}
+          - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1", ubuntu_version: "20.04"}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -82,6 +93,8 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
+            CUDA_VERSION=${{ matrix.cuda_version }}
+            UBUNTU_VERSION=${{ matrix.ubuntu_version }}
           file: dockers/base-cuda/Dockerfile
           push: false
         timeout-minutes: 75
@@ -91,16 +104,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # the config used in '.github/workflows/ci_test-conda.yml'
-        python_version: ["3.8"]
-        pytorch_version: ["1.7", "1.8", "1.9", "1.10"]
+        include:
+          # see: https://pytorch.org/get-started/previous-versions/
+          - {python_version: "3.8", pytorch_version: "1.8", cuda_version: "11.1"}
+          - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1"}
+          - {python_version: "3.8", pytorch_version: "1.10", cuda_version: "11.1"}
+          - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - run: |
-          cuda=$(python -c "from distutils.version import LooseVersion as LVer ; print(11.1 if LVer('${{matrix.pytorch_version}}') > LVer('1.7') else 10.2)" 2>&1)
-          echo "::set-output name=CUDA::$cuda"
-        id: extend
       - name: Build Conda Docker
         # publish master/release
         uses: docker/build-push-action@v2
@@ -108,7 +120,7 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
-            CUDA_VERSION=${{ steps.extend.outputs.CUDA }}
+            CUDA_VERSION=${{ matrix.cuda_version }}
           file: dockers/base-conda/Dockerfile
           push: false
         timeout-minutes: 75
@@ -120,9 +132,7 @@ jobs:
       matrix:
         # the config used in 'dockers/ipu-ci-runner/Dockerfile'
         python_version: ["3.9"]  # latest
-        # TODO: upgrade - PopTorch 2.2 uses torch 1.9, see:
-        # https://docs.graphcore.ai/projects/poptorch-user-guide/en/latest/installation.html#version-compatibility
-        pytorch_version: ["1.7"]
+        pytorch_version: ["1.9"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2

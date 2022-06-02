@@ -8,15 +8,18 @@
 * @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock @kaushikb11 @rohitgr7
 
 # CI/CD and configs
-/.github/       @borda @tchaton @carmocca
-/dockers/       @borda @tchaton @carmocca
-*.yml           @borda @tchaton @carmocca
+/.github/       @borda @carmocca @akihironitta @tchaton
+/dockers/       @borda @carmocca @akihironitta @tchaton
+*.yml           @borda @carmocca @akihironitta @tchaton
 
 # Docs
-/docs/                      @edenlightning @tchaton @borda @awaelchli
-/.github/*.md               @edenlightning @williamfalcon @borda
-/.github/ISSUE_TEMPLATE/    @edenlightning @borda @tchaton
-/docs/source/conf.py        @borda @awaelchli @carmocca
+/docs/                                  @edenlightning @tchaton @borda @awaelchli @RobertLaurella
+/.github/*.md                           @edenlightning @williamfalcon @borda
+/.github/ISSUE_TEMPLATE/                @edenlightning @borda @tchaton
+/docs/source/conf.py                    @borda @awaelchli @carmocca
+/docs/source/index.rst                  @williamfalcon
+/docs/source/levels                     @williamfalcon @RobertLaurella
+/docs/source/expertise_levels           @williamfalcon @RobertLaurella
 
 # Packages
 /pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
@@ -39,8 +42,8 @@
 /pytorch_lightning/utilities            @borda @tchaton @SeanNaren @carmocca
 
 # Specifics
-/pytorch_lightning/trainer/connectors/logger_connector @tchaton @carmocca
-/pytorch_lightning/trainer/progress.py  @tchaton @awaelchli @carmocca
+/pytorch_lightning/trainer/connectors/logger_connector      @tchaton @carmocca
+/pytorch_lightning/trainer/progress.py                      @tchaton @awaelchli @carmocca
 
 # API
 /pytorch_lightning/callbacks/base.py    @williamfalcon @awaelchli @ananthsub @carmocca
@@ -53,7 +56,8 @@
 /tests/helpers/boring_model.py          @williamfalcon @tchaton @borda
 
 /.github/CODEOWNERS              @williamfalcon
+/.github/approve_config.yml      @williamfalcon
 /SECURITY.md                     @williamfalcon
 /README.md                       @williamfalcon @edenlightning @borda
-/setup.py                        @williamfalcon @borda
-/pytorch_lightning/__about__.py  @williamfalcon @borda
+/setup.py                        @williamfalcon @borda @carmocca
+/pytorch_lightning/__about__.py  @williamfalcon @borda @carmocca

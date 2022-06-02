@@ -416,6 +416,7 @@ def test_lr_scheduler_strict(step_mock, tmpdir, complete_epoch):
     }
 
     if complete_epoch:
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=max_epochs, max_steps=max_steps)
         with pytest.warns(
             RuntimeWarning, match=r"ReduceLROnPlateau conditioned on metric .* which is not available but strict"
         ):
@@ -563,7 +564,7 @@ def test_warn_invalid_scheduler_key_in_manual_optimization(tmpdir):
         trainer.fit(model)
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_optimizer_state_on_device(tmpdir):
     """Test that optimizers that create state initially at instantiation still end up with the state on the GPU."""
 
@@ -578,7 +579,15 @@ def test_optimizer_state_on_device(tmpdir):
             assert state["sum"].device == torch.device("cuda", self.local_rank) == self.device
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, gpus=2, strategy="ddp", fast_dev_run=True)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="gpu",
+        devices=2,
+        strategy="ddp",
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
     trainer.fit(model)
 
 
@@ -627,10 +636,10 @@ def test_lr_scheduler_state_updated_before_saving(tmpdir, every_n_train_steps, e
         def on_save_checkpoint(self, checkpoint):
             lr_scheduler_config = checkpoint["lr_schedulers"][0]
             # 2 batches ran. since the lr_scheduler_config interval is `step`, the step count should be 2
-            assert self.trainer.global_step + 1 == batches  # the global step hasn't been increased yet
+            assert self.trainer.global_step == batches
             compare_to = max_epochs if epoch_interval else batches
             assert lr_scheduler_config["_step_count"] - 1 == compare_to  # step count starts at 1
-            assert lr_scheduler_config["_last_lr"] == [lr * gamma ** compare_to]
+            assert lr_scheduler_config["_last_lr"] == [lr * gamma**compare_to]
             self.on_save_checkpoint_called = True
 
     model = TestModel()

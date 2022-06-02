@@ -22,8 +22,10 @@ from argparse import Namespace
 from time import time
 from typing import Any, Dict, Optional, Union
 
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import _module_available, rank_zero_only, rank_zero_warn
+from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
+from pytorch_lightning.utilities.imports import _module_available
+from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
+from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
@@ -52,7 +54,7 @@ else:
         return tags
 
 
-class MLFlowLogger(LightningLoggerBase):
+class MLFlowLogger(Logger):
     """Log using `MLflow <https://mlflow.org>`_.
 
     Install it with pip:
@@ -66,10 +68,10 @@ class MLFlowLogger(LightningLoggerBase):
         from pytorch_lightning import Trainer
         from pytorch_lightning.loggers import MLFlowLogger
 
-        mlf_logger = MLFlowLogger(experiment_name="default", tracking_uri="file:./ml-runs")
+        mlf_logger = MLFlowLogger(experiment_name="lightning_logs", tracking_uri="file:./ml-runs")
         trainer = Trainer(logger=mlf_logger)
 
-    Use the logger anywhere in your :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
+    Use the logger anywhere in your :class:`~pytorch_lightning.core.module.LightningModule` as follows:
 
     .. code-block:: python
 
@@ -85,7 +87,7 @@ class MLFlowLogger(LightningLoggerBase):
                 self.logger.experiment.whatever_ml_flow_supports(...)
 
     Args:
-        experiment_name: The name of the experiment
+        experiment_name: The name of the experiment.
         run_name: Name of the new run. The `run_name` is internally stored as a ``mlflow.runName`` tag.
             If the ``mlflow.runName`` tag has already been set in `tags`, the value is overridden by the `run_name`.
         tracking_uri: Address of local or remote tracking server.
@@ -98,6 +100,7 @@ class MLFlowLogger(LightningLoggerBase):
         prefix: A string to put at the beginning of metric keys.
         artifact_location: The location to store run artifacts. If not provided, the server picks an appropriate
             default.
+        run_id: The run identifier of the experiment. If not provided, a new run is started.
 
     Raises:
         ModuleNotFoundError:
@@ -108,13 +111,14 @@ class MLFlowLogger(LightningLoggerBase):
 
     def __init__(
         self,
-        experiment_name: str = "default",
+        experiment_name: str = "lightning_logs",
         run_name: Optional[str] = None,
         tracking_uri: Optional[str] = os.getenv("MLFLOW_TRACKING_URI"),
         tags: Optional[Dict[str, Any]] = None,
         save_dir: Optional[str] = "./mlruns",
         prefix: str = "",
         artifact_location: Optional[str] = None,
+        run_id: Optional[str] = None,
     ):
         if mlflow is None:
             raise ModuleNotFoundError(
@@ -128,10 +132,12 @@ class MLFlowLogger(LightningLoggerBase):
         self._experiment_id = None
         self._tracking_uri = tracking_uri
         self._run_name = run_name
-        self._run_id = None
+        self._run_id = run_id
         self.tags = tags
         self._prefix = prefix
         self._artifact_location = artifact_location
+
+        self._initialized = False
 
         self._mlflow_client = MlflowClient(tracking_uri)
 
@@ -140,13 +146,23 @@ class MLFlowLogger(LightningLoggerBase):
     def experiment(self) -> MlflowClient:
         r"""
         Actual MLflow object. To use MLflow features in your
-        :class:`~pytorch_lightning.core.lightning.LightningModule` do the following.
+        :class:`~pytorch_lightning.core.module.LightningModule` do the following.
 
         Example::
 
             self.logger.experiment.some_mlflow_function()
 
         """
+
+        if self._initialized:
+            return self._mlflow_client
+
+        if self._run_id is not None:
+            run = self._mlflow_client.get_run(self._run_id)
+            self._experiment_id = run.info.experiment_id
+            self._initialized = True
+            return self._mlflow_client
+
         if self._experiment_id is None:
             expt = self._mlflow_client.get_experiment_by_name(self._experiment_name)
             if expt is not None:
@@ -167,6 +183,7 @@ class MLFlowLogger(LightningLoggerBase):
                 self.tags[MLFLOW_RUN_NAME] = self._run_name
             run = self._mlflow_client.create_run(experiment_id=self._experiment_id, tags=resolve_tags(self.tags))
             self._run_id = run.info.run_id
+        self._initialized = True
         return self._mlflow_client
 
     @property
@@ -191,8 +208,8 @@ class MLFlowLogger(LightningLoggerBase):
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
-        params = self._convert_params(params)
-        params = self._flatten_dict(params)
+        params = _convert_params(params)
+        params = _flatten_dict(params)
         for k, v in params.items():
             if len(str(v)) > 250:
                 rank_zero_warn(
@@ -206,7 +223,7 @@ class MLFlowLogger(LightningLoggerBase):
     def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
-        metrics = self._add_prefix(metrics)
+        metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
         timestamp_ms = int(time() * 1000)
         for k, v in metrics.items():
@@ -238,7 +255,7 @@ class MLFlowLogger(LightningLoggerBase):
 
         Return:
             Local path to the root experiment directory if the tracking uri is local.
-            Otherwhise returns `None`.
+            Otherwise returns `None`.
         """
         if self._tracking_uri.startswith(LOCAL_FILE_URI_PREFIX):
             return self._tracking_uri.lstrip(LOCAL_FILE_URI_PREFIX)

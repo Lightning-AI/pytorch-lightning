@@ -1,3 +1,5 @@
+:orphan:
+
 #################
 Conversational AI
 #################
@@ -204,7 +206,8 @@ including the PyTorch Lightning Trainer, customizable from the command line.
 .. code-block:: bash
 
     python NeMo/examples/asr/speech_to_text.py --config-name=quartznet_15x5 \
-        trainer.gpus=4 \
+        trainer.accelerator=gpu \
+        trainer.devices=4 \
         trainer.max_epochs=128 \
         +trainer.precision=16 \
         model.train_ds.manifest_filepath=<PATH_TO_DATA>/librispeech-train-all.json \
@@ -403,7 +406,7 @@ Inference from file:
 .. code-block:: python
 
     gpu = 1 if cfg.trainer.gpus != 0 else 0
-    trainer = pl.Trainer(gpus=gpu)
+    trainer = pl.Trainer(accelerator="gpu", devices=gpu)
     model.set_trainer(trainer)
     model.evaluate_from_file(
         text_file=os.path.join(cfg.model.dataset.data_dir, cfg.model.validation_ds.text_file),
@@ -433,7 +436,8 @@ Hydra makes every aspect of the NeMo model, including the PyTorch Lightning Trai
         model.head.num_fc_layers=2 \
         model.dataset.data_dir=/path/to/my/data  \
         trainer.max_epochs=5 \
-        trainer.gpus=[0,1]
+        trainer.accelerator=gpu \
+        trainer.devices=[0,1]
 
 -----------
 
@@ -535,7 +539,7 @@ since every NeMo model is a Lightning Module.
             logits = self.classifier(hidden_states=hidden_states)
             return logits
 
-        # PTL-specfic methods
+        # PTL-specific methods
         def training_step(self, batch, batch_idx):
             """
             Lightning calls this inside the training loop with the data from the training dataloader
@@ -643,7 +647,8 @@ Hydra makes every aspect of the NeMo model, including the PyTorch Lightning Trai
 .. code-block:: bash
 
     python NeMo/examples/tts/glow_tts.py \
-        trainer.gpus=4 \
+        trainer.accelerator=gpu \
+        trainer.devices=4 \
         trainer.max_epochs=400 \
         ...
         train_dataset=/path/to/train/data \
@@ -756,7 +761,7 @@ be customized with PyTorch Lightning since every NeMo model is a LightningModule
 
             return l_mle, l_length, logdet, loss, attn
 
-        # PTL-specfic methods
+        # PTL-specific methods
         def training_step(self, batch, batch_idx):
             y, y_lengths, x, x_lengths = batch
 

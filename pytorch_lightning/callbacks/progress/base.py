@@ -15,7 +15,8 @@ from typing import Any, Dict, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.logger import _version
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 
 class ProgressBarBase(Callback):
@@ -48,12 +49,38 @@ class ProgressBarBase(Callback):
 
     def __init__(self) -> None:
         self._trainer: Optional["pl.Trainer"] = None
+        self._current_eval_dataloader_idx: Optional[int] = None
 
     @property
     def trainer(self) -> "pl.Trainer":
         if self._trainer is None:
             raise TypeError(f"The `{self.__class__.__name__}._trainer` reference has not been set yet.")
         return self._trainer
+
+    @property
+    def sanity_check_description(self) -> str:
+        return "Sanity Checking"
+
+    @property
+    def train_description(self) -> str:
+        return "Training"
+
+    @property
+    def validation_description(self) -> str:
+        return "Validation"
+
+    @property
+    def test_description(self) -> str:
+        return "Testing"
+
+    @property
+    def predict_description(self) -> str:
+        return "Predicting"
+
+    @property
+    def _val_processed(self) -> int:
+        # use total in case validation runs more than once per training epoch
+        return self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.total.processed
 
     @property
     def train_batch_idx(self) -> int:
@@ -70,8 +97,12 @@ class ProgressBarBase(Callback):
         Use this to update your progress bar.
         """
         if self.trainer.state.fn == "fit":
-            return self.trainer.fit_loop.epoch_loop.val_loop.epoch_loop.batch_progress.current.processed
-        return self.trainer.validate_loop.epoch_loop.batch_progress.current.processed
+            loop = self.trainer.fit_loop.epoch_loop.val_loop
+        else:
+            loop = self.trainer.validate_loop
+
+        current_batch_idx = loop.epoch_loop.batch_progress.current.processed
+        return current_batch_idx
 
     @property
     def test_batch_idx(self) -> int:
@@ -99,43 +130,58 @@ class ProgressBarBase(Callback):
         return self.trainer.num_training_batches
 
     @property
-    def total_val_batches(self) -> Union[int, float]:
-        """The total number of validation batches, which may change from epoch to epoch.
+    def total_val_batches_current_dataloader(self) -> Union[int, float]:
+        """The total number of validation batches, which may change from epoch to epoch for current dataloader.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the validation
         dataloader is of infinite size.
         """
-        total_val_batches = 0
-        if self.trainer.enable_validation:
-            is_val_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
-            total_val_batches = sum(self.trainer.num_val_batches) if is_val_epoch else 0
+        assert self._current_eval_dataloader_idx is not None
+        if self.trainer.sanity_checking:
+            return self.trainer.num_sanity_val_batches[self._current_eval_dataloader_idx]
 
-        return total_val_batches
+        return self.trainer.num_val_batches[self._current_eval_dataloader_idx]
 
     @property
-    def total_test_batches(self) -> Union[int, float]:
-        """The total number of testing batches, which may change from epoch to epoch.
+    def total_test_batches_current_dataloader(self) -> Union[int, float]:
+        """The total number of testing batches, which may change from epoch to epoch for current dataloader.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the test dataloader is
         of infinite size.
         """
-        return sum(self.trainer.num_test_batches)
+        assert self._current_eval_dataloader_idx is not None
+        return self.trainer.num_test_batches[self._current_eval_dataloader_idx]
 
     @property
-    def total_predict_batches(self) -> Union[int, float]:
-        """The total number of prediction batches, which may change from epoch to epoch.
+    def total_predict_batches_current_dataloader(self) -> Union[int, float]:
+        """The total number of prediction batches, which may change from epoch to epoch for current dataloader.
 
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the predict dataloader
         is of infinite size.
         """
-        return sum(self.trainer.num_predict_batches)
+        assert self._current_eval_dataloader_idx is not None
+        return self.trainer.num_predict_batches[self._current_eval_dataloader_idx]
+
+    @property
+    def total_val_batches(self) -> Union[int, float]:
+        """The total number of validation batches, which may change from epoch to epoch for all val dataloaders.
+
+        Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the predict dataloader
+        is of infinite size.
+        """
+        assert self._trainer is not None
+        return sum(self.trainer.num_val_batches) if self._trainer.fit_loop.epoch_loop._should_check_val_epoch() else 0
+
+    def has_dataloader_changed(self, dataloader_idx: int) -> bool:
+        old_dataloader_idx = self._current_eval_dataloader_idx
+        self._current_eval_dataloader_idx = dataloader_idx
+        return old_dataloader_idx != dataloader_idx
+
+    def reset_dataloader_idx_tracker(self) -> None:
+        self._current_eval_dataloader_idx = None
 
     def disable(self) -> None:
-        """You should provide a way to disable the progress bar.
-
-        The :class:`~pytorch_lightning.trainer.trainer.Trainer` will call this to disable the
-        output on processes that have a rank different from 0, e.g., in multi-node training.
-        """
+        """You should provide a way to disable the progress bar."""
         raise NotImplementedError
 
     def enable(self) -> None:
@@ -153,6 +199,8 @@ class ProgressBarBase(Callback):
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         self._trainer = trainer
+        if not trainer.is_global_zero:
+            self.disable()
 
     def get_metrics(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Dict[str, Union[int, str]]:
         r"""
@@ -172,7 +220,7 @@ class ProgressBarBase(Callback):
         Return:
             Dictionary with the items to be displayed in the progress bar.
         """
-        standard_metrics = pl_module.get_progress_bar_dict()
+        standard_metrics = get_standard_metrics(trainer, pl_module)
         pbar_metrics = trainer.progress_bar_metrics
         duplicates = list(standard_metrics.keys() & pbar_metrics.keys())
         if duplicates:
@@ -212,11 +260,12 @@ def get_standard_metrics(trainer: "pl.Trainer", pl_module: "pl.LightningModule")
     if pl_module.truncated_bptt_steps > 0:
         items_dict["split_idx"] = trainer.fit_loop.split_idx
 
-    if trainer.logger is not None and trainer.logger.version is not None:
-        version = trainer.logger.version
-        if isinstance(version, str):
-            # show last 4 places of long version strings
-            version = version[-4:]
-        items_dict["v_num"] = version
+    if trainer.loggers:
+        version = _version(trainer.loggers)
+        if version is not None:
+            if isinstance(version, str):
+                # show last 4 places of long version strings
+                version = version[-4:]
+            items_dict["v_num"] = version
 
     return items_dict

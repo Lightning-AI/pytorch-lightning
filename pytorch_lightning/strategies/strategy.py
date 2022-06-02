@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import contextlib
+import logging
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Tuple, TypeVar, Union
 
@@ -27,19 +28,22 @@ from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
+from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import rank_zero_deprecation
-from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
+from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, STEP_OUTPUT
 
 TBroadcast = TypeVar("TBroadcast")
 
+log = logging.getLogger(__name__)
+
 
 class Strategy(ABC):
-    """Base class for all training type plugins that change the behaviour of the training, validation and test-
-    loop."""
+    """Base class for all strategies that change the behaviour of the training, validation and test- loop."""
 
     def __init__(
         self,
@@ -48,19 +52,23 @@ class Strategy(ABC):
         precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
         self.accelerator = accelerator
+        self._launcher: Optional[_Launcher] = None
         self._model: Optional[Module] = None
         self.checkpoint_io = checkpoint_io
         self.precision_plugin = precision_plugin
         self._optimizers: List[Optimizer] = []
         self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
-        # TODO: rename to `lr_scheduler_configs` to match the property in the `Trainer`
-        self.lr_schedulers: List[LRSchedulerConfig] = []
+        self.lr_scheduler_configs: List[LRSchedulerConfig] = []
         self.optimizer_frequencies: List[int] = []
         if is_overridden("post_dispatch", self, parent=Strategy):
             rank_zero_deprecation(
                 f"`{self.__class__.__name__}.post_dispatch()` has been deprecated in v1.6 and will be removed in v1.7."
                 f" Move your implementation to `{self.__class__.__name__}.teardown()` instead."
             )
+
+    @property
+    def launcher(self) -> Optional[_Launcher]:
+        return self._launcher
 
     @property
     def accelerator(self) -> "pl.accelerators.accelerator.Accelerator":
@@ -101,6 +109,9 @@ class Strategy(ABC):
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
         self.model = model
 
+    def _configure_launcher(self):
+        """Attach the launcher based on Strategy."""
+
     def setup_environment(self) -> None:
         """Setup any processes or distributed connections.
 
@@ -117,7 +128,7 @@ class Strategy(ABC):
         """
         if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
             return
-        self.optimizers, self.lr_schedulers, self.optimizer_frequencies = _init_optimizers_and_lr_schedulers(
+        self.optimizers, self.lr_scheduler_configs, self.optimizer_frequencies = _init_optimizers_and_lr_schedulers(
             self.lightning_module
         )
 
@@ -130,22 +141,16 @@ class Strategy(ABC):
         self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
-        self._move_optimizer_state()
+        optimizers_to_device(self.optimizers, self.root_device)
 
     def setup_precision_plugin(self) -> None:
         """Attaches the precision plugin to the accelerator."""
-        model, optimizers, schedulers = self.precision_plugin.connect(self.model, self.optimizers, self.lr_schedulers)
+        model, optimizers, lr_scheduler_configs = self.precision_plugin.connect(
+            self.model, self.optimizers, self.lr_scheduler_configs
+        )
         self.model = model
         self.optimizers = optimizers
-        self.lr_schedulers = schedulers
-
-    def _move_optimizer_state(self, device: Optional[torch.device] = None) -> None:
-        """Moves the state of the optimizers to the appropriate device if needed."""
-        for opt in self.optimizers:
-            for p, v in opt.state.items():
-                # `self.root_device` would raise error if called outside the spawn process
-                # while training on 8 and more cores.
-                opt.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, device or self.root_device)
+        self.lr_scheduler_configs = lr_scheduler_configs
 
     def optimizer_state(self, optimizer: Optimizer) -> Dict[str, Tensor]:
         """Returns state of an optimizer.
@@ -177,8 +182,8 @@ class Strategy(ABC):
         closure: Callable[[], Any],
         model: Optional[Union["pl.LightningModule", Module]] = None,
         **kwargs: Any,
-    ) -> None:
-        """performs the actual optimizer step.
+    ) -> Any:
+        """Performs the actual optimizer step.
 
         Args:
             optimizer: the optimizer performing the step
@@ -188,7 +193,7 @@ class Strategy(ABC):
             **kwargs: Any extra arguments to ``optimizer.step``
         """
         model = model or self.lightning_module
-        self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
+        return self.precision_plugin.optimizer_step(model, optimizer, opt_idx, closure, **kwargs)
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Setup a model and multiple optimizers together.
@@ -320,11 +325,12 @@ class Strategy(ABC):
         optimizer_states = checkpoint["optimizer_states"]
         for optimizer, opt_state in zip(self.optimizers, optimizer_states):
             optimizer.load_state_dict(opt_state)
+            optimizer_to_device(optimizer, self.root_device)
 
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         """The actual training step.
 
-        See :meth:`~pytorch_lightning.core.lightning.LightningModule.training_step` for more details
+        See :meth:`~pytorch_lightning.core.module.LightningModule.training_step` for more details
         """
         with self.precision_plugin.train_step_context():
             return self.model.training_step(*args, **kwargs)
@@ -335,7 +341,7 @@ class Strategy(ABC):
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         """The actual validation step.
 
-        See :meth:`~pytorch_lightning.core.lightning.LightningModule.validation_step` for more details
+        See :meth:`~pytorch_lightning.core.module.LightningModule.validation_step` for more details
         """
         with self.precision_plugin.val_step_context():
             return self.model.validation_step(*args, **kwargs)
@@ -343,7 +349,7 @@ class Strategy(ABC):
     def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         """The actual test step.
 
-        See :meth:`~pytorch_lightning.core.lightning.LightningModule.test_step` for more details
+        See :meth:`~pytorch_lightning.core.module.LightningModule.test_step` for more details
         """
         with self.precision_plugin.test_step_context():
             return self.model.test_step(*args, **kwargs)
@@ -351,7 +357,7 @@ class Strategy(ABC):
     def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
         """The actual predict step.
 
-        See :meth:`~pytorch_lightning.core.lightning.LightningModule.predict_step` for more details
+        See :meth:`~pytorch_lightning.core.module.LightningModule.predict_step` for more details
         """
         with self.precision_plugin.predict_step_context():
             return self.model.predict_step(*args, **kwargs)
@@ -401,15 +407,18 @@ class Strategy(ABC):
         model = self.lightning_module
         return model.state_dict()
 
-    def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
+    def save_checkpoint(
+        self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
+    ) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
         Args:
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
+            storage_options: parameter for how to save to storage, passed to ``CheckpointIO`` plugin
         """
         if self.is_global_zero:
-            self.checkpoint_io.save_checkpoint(checkpoint, filepath)
+            self.checkpoint_io.save_checkpoint(checkpoint, filepath, storage_options=storage_options)
 
     def remove_checkpoint(self, filepath: _PATH) -> None:
         """Remove checkpoint filepath from the filesystem.
@@ -435,11 +444,16 @@ class Strategy(ABC):
 
         It is the right place to release memory and free other resources.
         """
-        self._move_optimizer_state(torch.device("cpu"))
+        optimizers_to_device(self.optimizers, torch.device("cpu"))
+
+        if self.lightning_module is not None:
+            log.detail(f"{self.__class__.__name__}: moving model to CPU")
+            self.lightning_module.cpu()
         self.precision_plugin.teardown()
+        self.accelerator.teardown()
 
     @classmethod
-    def register_strategies(cls, strategies_registry) -> None:
+    def register_strategies(cls, strategy_registry) -> None:
         pass
 
     def on_train_start(self) -> None:
@@ -474,7 +488,7 @@ class Strategy(ABC):
         """Called when predict ends."""
         pass
 
-    def on_train_batch_start(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
+    def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
         """Called in the training loop before anything happens for that batch."""
         pass
 

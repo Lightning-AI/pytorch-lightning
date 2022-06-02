@@ -22,9 +22,11 @@ import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE, rank_zero_only
-from pytorch_lightning.utilities.enums import _StrategyType, PrecisionType
+from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE, _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE
+from pytorch_lightning.utilities.optimizer import optimizers_to_device
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
@@ -36,19 +38,44 @@ if _FAIRSCALE_AVAILABLE:
 class DDPShardedStrategy(DDPStrategy):
     """Optimizer and gradient sharded training provided by FairScale."""
 
-    distributed_backend = _StrategyType.DDP_SHARDED
-    _REDUCE_BUFFER_SIZE_DEFAULT: int = 2 ** 23  # 8M
+    strategy_name = "ddp_sharded"
+    _REDUCE_BUFFER_SIZE_DEFAULT: int = 2**23  # 8M
+
+    def setup(self, trainer: "pl.Trainer") -> None:
+        # share ddp pids to all processes
+        self._rank_0_will_call_children_scripts = self.broadcast(self._rank_0_will_call_children_scripts)
+        if self._should_run_deadlock_detection():
+            self._share_information_to_prevent_deadlock()
+
+        self.accelerator.setup(trainer)
+
+        # move the model to the correct device
+        self.model_to_device()
+
+        # skip wrapping the model if we are not fitting as no gradients need to be exchanged
+        trainer_fn = trainer.state.fn
+        if trainer_fn == TrainerFn.FITTING:
+            if self._layer_sync:
+                self.model = self._layer_sync.apply(self.model)
+
+        self.setup_precision_plugin()
+
+        if trainer_fn == TrainerFn.FITTING:
+            self.configure_ddp()
 
     def configure_ddp(self) -> None:
-        trainer = self.lightning_module.trainer
+        self._set_ddp_kwargs()
+        self.setup_optimizers(self.model.trainer)
+        self.model, self.optimizers = self._setup_model_and_optimizers(
+            model=LightningShardedDataParallel(self.model),
+            optimizers=self.optimizers,
+        )
+        optimizers_to_device(self.optimizers, self.root_device)
+
+    def _set_ddp_kwargs(self) -> None:
         if "reduce_buffer_size" not in self._ddp_kwargs:
             # For multi-node training, enabling bucketing will improve performance.
             self._ddp_kwargs["reduce_buffer_size"] = self._REDUCE_BUFFER_SIZE_DEFAULT if self.num_nodes > 1 else 0
-
-        self.model, self.optimizers = self._setup_model_and_optimizers(
-            model=LightningShardedDataParallel(self.model),
-            optimizers=trainer.optimizers,
-        )
 
     def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[Module, List[Optimizer]]:
         """Wraps the model and optimizers with fairscale components.
@@ -60,6 +87,12 @@ class DDPShardedStrategy(DDPStrategy):
         optimizers = self._wrap_optimizers(optimizers)
         model = ShardedDataParallel(model, sharded_optimizer=optimizers, **self._ddp_kwargs)
         return model, optimizers
+
+    def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["OSS"]:
+        if self.model is not None and self.model.trainer.state.fn != TrainerFn.FITTING:
+            return optimizers
+
+        return self._reinit_optimizers_with_oss(optimizers)
 
     def _reinit_optimizers_with_oss(self, optimizers: List[Union[Optimizer, LightningOptimizer]]) -> List["OSS"]:
         for x, optimizer in enumerate(optimizers):
@@ -77,12 +110,6 @@ class DDPShardedStrategy(DDPStrategy):
                 optimizers[x] = zero_optimizer
                 del optimizer
         return optimizers
-
-    def _wrap_optimizers(self, optimizers: List[Optimizer]) -> List["OSS"]:
-        if self.model is not None and self.model.trainer.state.fn != TrainerFn.FITTING:
-            return optimizers
-
-        return self._reinit_optimizers_with_oss(optimizers)
 
     def optimizer_state(self, optimizer: "OSS") -> Optional[dict]:
         if isinstance(optimizer, LightningOptimizer):
@@ -133,4 +160,9 @@ class DDPShardedStrategy(DDPStrategy):
             cls,
             description="DDP Sharded Strategy with `find_unused_parameters` as False",
             find_unused_parameters=False,
+        )
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
         )

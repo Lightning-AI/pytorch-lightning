@@ -132,7 +132,7 @@ class HyperparametersMixin:
         For the frozen set of initial hyperparameters, use :attr:`hparams_initial`.
 
         Returns:
-            Mutable hyperparameters dicionary
+            Mutable hyperparameters dictionary
         """
         if not hasattr(self, "_hparams"):
             self._hparams = AttributeDict()

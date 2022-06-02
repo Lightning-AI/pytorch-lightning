@@ -11,84 +11,70 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Iterable, Optional, Union
+from typing import Any, Iterable, Optional, Union
 
 import torch
 
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import LightningLoggerBase, LoggerCollection, TensorBoardLogger
+from pytorch_lightning.loggers import Logger, TensorBoardLogger
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.trainer.connectors.logger_connector.result import _METRICS, _OUT_DICT, _PBAR_DICT
-from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities import _AcceleratorType, memory
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+from pytorch_lightning.utilities.model_helpers import is_overridden
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 class LoggerConnector:
-    def __init__(self, trainer: "pl.Trainer", log_gpu_memory: Optional[str] = None) -> None:
+    def __init__(self, trainer: "pl.Trainer") -> None:
         self.trainer = trainer
-        if log_gpu_memory is not None:
-            rank_zero_deprecation(
-                "Setting `log_gpu_memory` with the trainer flag is deprecated in v1.5 and will be removed in v1.7. "
-                "Please monitor GPU stats with the `DeviceStatsMonitor` callback directly instead."
-            )
-        self.log_gpu_memory = log_gpu_memory
-        self._val_log_step: int = 0
-        self._test_log_step: int = 0
         self._progress_bar_metrics: _PBAR_DICT = {}
         self._logged_metrics: _OUT_DICT = {}
         self._callback_metrics: _OUT_DICT = {}
-        self._gpus_metrics: Dict[str, float] = {}
         self._epoch_end_reached = False
         self._current_fx: Optional[str] = None
         self._batch_idx: Optional[int] = None
         self._split_idx: Optional[int] = None
+        self._override_agg_and_log_metrics: bool = False
 
     def on_trainer_init(
         self,
-        logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]],
-        flush_logs_every_n_steps: Optional[int],
+        logger: Union[bool, Logger, Iterable[Logger]],
         log_every_n_steps: int,
         move_metrics_to_cpu: bool,
     ) -> None:
         self.configure_logger(logger)
-        if flush_logs_every_n_steps is not None:
-            rank_zero_deprecation(
-                f"Setting `Trainer(flush_logs_every_n_steps={flush_logs_every_n_steps})` is deprecated in v1.5 "
-                "and will be removed in v1.7. Please configure flushing in the logger instead."
-            )
-        else:
-            flush_logs_every_n_steps = 100  # original default parameter
-        self.trainer.flush_logs_every_n_steps = flush_logs_every_n_steps
         self.trainer.log_every_n_steps = log_every_n_steps
         self.trainer.move_metrics_to_cpu = move_metrics_to_cpu
-
-    @property
-    def should_flush_logs(self) -> bool:
-        should_flush = (self.trainer.global_step + 1) % self.trainer.flush_logs_every_n_steps == 0
-        return should_flush or self.trainer.should_stop
+        for logger in self.trainer.loggers:
+            if is_overridden("agg_and_log_metrics", logger, Logger):
+                self._override_agg_and_log_metrics = True
+                rank_zero_deprecation(
+                    "`Logger.agg_and_log_metrics` is deprecated in v1.6 and will be removed"
+                    " in v1.8. `Trainer` will directly call `Logger.log_metrics` so custom"
+                    " loggers should not implement `Logger.agg_and_log_metrics`."
+                )
+                break
 
     @property
     def should_update_logs(self) -> bool:
-        should_log_every_n_steps = (self.trainer.global_step + 1) % self.trainer.log_every_n_steps == 0
-        return should_log_every_n_steps or self.trainer.should_stop
+        # `+ 1` because it can be checked before a step is executed, for example, in `on_train_batch_start`
+        should_log = (self.trainer.fit_loop.epoch_loop._batches_that_stepped + 1) % self.trainer.log_every_n_steps == 0
+        return should_log or self.trainer.should_stop
 
-    def configure_logger(self, logger: Union[bool, LightningLoggerBase, Iterable[LightningLoggerBase]]) -> None:
-        if isinstance(logger, bool):
+    def configure_logger(self, logger: Union[bool, Logger, Iterable[Logger]]) -> None:
+        if not logger:
+            # logger is None or logger is False
+            self.trainer.loggers = []
+        elif logger is True:
             # default logger
-            self.trainer.logger = (
-                TensorBoardLogger(
-                    save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id(), name="lightning_logs"
-                )
-                if logger
-                else None
-            )
+            self.trainer.loggers = [
+                TensorBoardLogger(save_dir=self.trainer.default_root_dir, version=SLURMEnvironment.job_id())
+            ]
         elif isinstance(logger, Iterable):
-            self.trainer.logger = LoggerCollection(logger)
+            self.trainer.loggers = list(logger)
         else:
-            self.trainer.logger = logger
+            self.trainer.loggers = [logger]
 
     def log_metrics(self, metrics: _OUT_DICT, step: Optional[int] = None) -> None:
         """Logs the metric dict passed in. If `step` parameter is None and `step` key is presented is metrics, uses
@@ -99,7 +85,7 @@ class LoggerConnector:
             step: Step for which metrics should be logged. Default value is `self.global_step` during training or
                 the total validation / test log step count during validation and testing.
         """
-        if self.trainer.logger is None or not metrics:
+        if not self.trainer.loggers or not metrics:
             return
 
         self._logged_metrics.update(metrics)
@@ -113,45 +99,29 @@ class LoggerConnector:
         if step is None:
             # added metrics for convenience
             scalar_metrics.setdefault("epoch", self.trainer.current_epoch)
-            step = self.trainer.global_step
+            step = self.trainer.fit_loop.epoch_loop._batches_that_stepped
 
         # log actual metrics
-        self.trainer.logger.agg_and_log_metrics(scalar_metrics, step=step)
-        self.trainer.logger.save()
+        for logger in self.trainer.loggers:
+            if self._override_agg_and_log_metrics:
+                logger.agg_and_log_metrics(metrics=scalar_metrics, step=step)
+            else:
+                logger.log_metrics(metrics=scalar_metrics, step=step)
+            logger.save()
 
     """
     Evaluation metric updates
     """
-
-    @property
-    def _eval_log_step(self) -> Optional[int]:
-        if self.trainer.state.stage is RunningStage.VALIDATING:
-            return self._val_log_step
-        if self.trainer.state.stage is RunningStage.TESTING:
-            return self._test_log_step
-        return None
-
-    def _increment_eval_log_step(self) -> None:
-        if self.trainer.state.stage is RunningStage.VALIDATING:
-            self._val_log_step += 1
-        elif self.trainer.state.stage is RunningStage.TESTING:
-            self._test_log_step += 1
 
     def _evaluation_epoch_end(self) -> None:
         results = self.trainer._results
         assert results is not None
         results.dataloader_idx = None
 
-    def update_eval_step_metrics(self) -> None:
+    def update_eval_step_metrics(self, step: int) -> None:
         assert not self._epoch_end_reached
-        if self.trainer.sanity_checking:
-            return
-
         # logs user requested information to logger
-        self.log_metrics(self.metrics["log"], step=self._eval_log_step)
-
-        # increment the step even if nothing was logged
-        self._increment_eval_log_step()
+        self.log_metrics(self.metrics["log"], step=step)
 
     def update_eval_epoch_metrics(self) -> _OUT_DICT:
         assert self._epoch_end_reached
@@ -161,15 +131,15 @@ class LoggerConnector:
         self._progress_bar_metrics.update(metrics["pbar"])
         self._callback_metrics.update(metrics["callback"])
         self._logged_metrics.update(metrics["log"])
-        return metrics["callback"]
+        return metrics["log"]
 
-    def log_eval_end_metrics(self) -> None:
+    def log_eval_end_metrics(self, metrics: _OUT_DICT) -> None:
         assert self._epoch_end_reached
         if self.trainer.sanity_checking:
             return
 
         # log all the metrics as a single dict
-        self.log_metrics(self.metrics["log"])
+        self.log_metrics(metrics)
 
     """
     Train metric updates
@@ -181,9 +151,6 @@ class LoggerConnector:
     def update_train_step_metrics(self) -> None:
         if self.trainer.fit_loop._should_accumulate() and self.trainer.lightning_module.automatic_optimization:
             return
-
-        # TODO: remove this call in v1.7
-        self._log_gpus_metrics()
 
         # when metrics should be logged
         assert not self._epoch_end_reached
@@ -198,22 +165,6 @@ class LoggerConnector:
         # reset result collection for next epoch
         assert self.trainer._results is not None
         self.trainer._results.reset(metrics=True)
-
-    def _log_gpus_metrics(self) -> None:
-        """
-        .. deprecated:: v1.5
-            This function was deprecated in v1.5 in favor of
-            `pytorch_lightning.accelerators.gpu._get_nvidia_gpu_stats` and will be removed in v1.7.
-        """
-        for key, mem in self.gpus_metrics.items():
-            if self.log_gpu_memory == "min_max":
-                self.trainer.lightning_module.log(key, mem, prog_bar=False, logger=True)
-            else:
-                gpu_id = int(key.split("/")[0].split(":")[1])
-                if gpu_id in self.trainer._accelerator_connector.parallel_device_ids:
-                    self.trainer.lightning_module.log(
-                        key, mem, prog_bar=False, logger=True, on_step=True, on_epoch=False
-                    )
 
     """
     Utilities and properties
@@ -286,17 +237,6 @@ class LoggerConnector:
         on_step = not self._epoch_end_reached
         assert self.trainer._results is not None
         return self.trainer._results.metrics(on_step)
-
-    @property
-    def gpus_metrics(self) -> Dict[str, float]:
-        """
-        .. deprecated:: v1.5
-            Will be removed in v1.7.
-        """
-        if self.trainer._device_type == _AcceleratorType.GPU and self.log_gpu_memory:
-            mem_map = memory.get_memory_profile(self.log_gpu_memory)
-            self._gpus_metrics.update(mem_map)
-        return self._gpus_metrics
 
     @property
     def callback_metrics(self) -> _OUT_DICT:

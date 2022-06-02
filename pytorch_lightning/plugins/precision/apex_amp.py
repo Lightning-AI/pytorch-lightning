@@ -69,6 +69,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
             closure_loss: the loss value obtained from the closure
             optimizer: current optimizer being used. ``None`` if using manual optimization
         """
+        assert model.trainer is not None
         opt = optimizer or model.trainer.optimizers
         with amp.scale_loss(closure_loss, opt) as closure_loss:
             super().backward(model, closure_loss, optimizer, *args, **kwargs)
@@ -80,7 +81,7 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         optimizer_idx: int,
         closure: Callable[[], Any],
         **kwargs: Any,
-    ) -> None:
+    ) -> Any:
         if isinstance(optimizer, LBFGS):
             raise MisconfigurationException(
                 f"apex AMP and the LBFGS optimizer are not compatible (optimizer {optimizer_idx})."
@@ -90,11 +91,11 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
         skipped_backward = closure_result is None
         # in manual optimization, the closure does not return a value
         if not isinstance(model, pl.LightningModule) or not model.automatic_optimization or not skipped_backward:
-            optimizer.step(**kwargs)
+            return optimizer.step(**kwargs)
+        return closure_result
 
-    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        if "amp_scaling_state" in checkpoint:
-            amp.load_state_dict(checkpoint["amp_scaling_state"])
+    def state_dict(self) -> Dict[str, Any]:
+        return amp.state_dict()
 
-    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
-        checkpoint["amp_scaling_state"] = amp.state_dict()
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        amp.load_state_dict(state_dict)

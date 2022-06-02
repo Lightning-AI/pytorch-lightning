@@ -14,7 +14,6 @@
 
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
-from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
@@ -69,16 +68,13 @@ class TensorRunningAccum:
     def last(self):
         """Get the last added element."""
         if self.last_idx is not None:
-            return self.memory[self.last_idx]
+            return self.memory[self.last_idx].float()
 
     def append(self, x):
         """Add an element to the accumulator."""
         if self.memory is None:
-            self.memory = torch.zeros(self.window_length, *x.shape)
-
-        # ensure same device and type
-        if self.memory.device != x.device or self.memory.type() != x.type():
-            x = x.to(self.memory)
+            # tradeoff memory for speed by keeping the memory on device
+            self.memory = torch.zeros(self.window_length, *x.shape, device=x.device, dtype=x.dtype)
 
         # store without grads
         with torch.no_grad():
@@ -108,8 +104,8 @@ class TensorRunningAccum:
     def _agg_memory(self, how: str):
         if self.last_idx is not None:
             if self.rotated:
-                return getattr(self.memory, how)()
-            return getattr(self.memory[: self.current_idx], how)()
+                return getattr(self.memory.float(), how)()
+            return getattr(self.memory[: self.current_idx].float(), how)()
 
 
 @dataclass
@@ -357,9 +353,9 @@ class CombinedLoader:
         self._iterator = None  # assigned in __iter__
 
     @staticmethod
-    def _state_dict_fn(dataloader: DataLoader, iterator: Optional[Iterator], has_completed: int) -> Dict:
-        if isinstance(dataloader, CycleIterator):
-            iterator = dataloader._loader_iter
+    def _state_dict_fn(iterator: Optional[Iterator], has_completed: int) -> Dict:
+        if isinstance(iterator, CycleIterator):
+            iterator = iterator._loader_iter
 
         # There is currently 2 dataloader states being tracked: (batch_n - 1, state_n - 1), (batch_n, state_n)
         # where `n` is the current batch. If the batch was processed, it should be saved to reproduce the next batch.
@@ -382,11 +378,11 @@ class CombinedLoader:
         if not _fault_tolerant_training() or self._iterator is None:
             return {}
 
-        return apply_to_collections(
-            self.loaders,
+        return apply_to_collection(
             self._iterator.loader_iters,
-            (Iterator, DataLoader),
-            partial(self._state_dict_fn, has_completed=has_completed),
+            Iterator,
+            self._state_dict_fn,
+            has_completed=has_completed,
         )
 
     def load_state_dict(self, state_dict) -> None:
@@ -527,7 +523,7 @@ class CombinedLoader:
 
 
 class CombinedLoaderIterator:
-    """Custom Iterator returning data from multple loaders, and allows sampling in parallel."""
+    """Custom Iterator returning data from multiple loaders, and allows sampling in parallel."""
 
     def __init__(self, loaders: Any):
         """

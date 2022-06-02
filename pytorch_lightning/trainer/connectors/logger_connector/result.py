@@ -21,12 +21,12 @@ from torchmetrics import Metric
 from typing_extensions import TypedDict
 
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
-from pytorch_lightning.utilities import rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
 from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.warnings import WarningCache
 
 _IN_METRIC = Union[Metric, torch.Tensor]  # Do not include scalars as they were converted to tensors
@@ -124,8 +124,8 @@ class _Metadata:
 
     def _parse_reduce_fx(self) -> None:
         error = (
-            "Only `self.log(..., reduce_fx={min,max,mean,sum})` are currently supported."
-            " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`."
+            "Only `self.log(..., reduce_fx={min,max,mean,sum})` are supported."
+            " If you need a custom reduction, please log a `torchmetrics.Metric` instance instead."
             f" Found: {self.reduce_fx}"
         )
         if isinstance(self.reduce_fx, str):
@@ -199,7 +199,7 @@ class _Metadata:
 
 
 class _ResultMetric(Metric, DeviceDtypeModuleMixin):
-    """Wraps the value provided to `:meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
+    """Wraps the value provided to `:meth:`~pytorch_lightning.core.module.LightningModule.log`"""
 
     def __init__(self, metadata: _Metadata, is_tensor: bool) -> None:
         super().__init__()
@@ -449,7 +449,7 @@ class _ResultCollection(dict):
         metric_attribute: Optional[str] = None,
         rank_zero_only: bool = False,
     ) -> None:
-        """See :meth:`~pytorch_lightning.core.lightning.LightningModule.log`"""
+        """See :meth:`~pytorch_lightning.core.module.LightningModule.log`"""
         # no metrics should be logged with graphs
         if not enable_graph:
             value = recursive_detach(value)

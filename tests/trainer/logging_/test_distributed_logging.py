@@ -17,12 +17,12 @@ from unittest.mock import Mock
 
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.loggers.base import LightningLoggerBase
+from pytorch_lightning.loggers.logger import Logger
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-class AllRankLogger(LightningLoggerBase):
+class AllRankLogger(Logger):
     """Logger to test all-rank logging (i.e. not just rank 0).
 
     Logs are saved to local variable `logs`.
@@ -59,14 +59,15 @@ class TestModel(BoringModel):
         assert self.log_name.format(rank=self.local_rank) in self.logger.logs, "Expected rank to be logged"
 
 
-@RunIf(skip_windows=True, skip_49370=True)
+@RunIf(skip_windows=True)
 def test_all_rank_logging_ddp_cpu(tmpdir):
     """Check that all ranks can be logged from."""
     model = TestModel()
     all_rank_logger = AllRankLogger()
     trainer = Trainer(
+        accelerator="cpu",
+        devices=2,
         strategy="ddp_spawn",
-        num_processes=2,
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
@@ -78,7 +79,7 @@ def test_all_rank_logging_ddp_cpu(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_all_rank_logging_ddp_spawn(tmpdir):
     """Check that all ranks can be logged from."""
     model = TestModel()
@@ -86,7 +87,8 @@ def test_all_rank_logging_ddp_spawn(tmpdir):
     model.training_epoch_end = None
     trainer = Trainer(
         strategy="ddp_spawn",
-        gpus=2,
+        accelerator="gpu",
+        devices=2,
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
@@ -134,7 +136,7 @@ def test_first_logger_call_in_subprocess(tmpdir):
 def test_logger_after_fit_predict_test_calls(tmpdir):
     """Make sure logger outputs are finalized after fit, prediction, and test calls."""
 
-    class BufferLogger(LightningLoggerBase):
+    class BufferLogger(Logger):
         def __init__(self):
             super().__init__()
             self.buffer = {}

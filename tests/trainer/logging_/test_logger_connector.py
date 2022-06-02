@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 from torchmetrics import Accuracy, AveragePrecision, MeanAbsoluteError, MeanSquaredError
 
 from pytorch_lightning import LightningModule
-from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
@@ -30,7 +30,7 @@ from tests.helpers.runif import RunIf
 from tests.models.test_hooks import get_members
 
 
-def test_fx_validator(tmpdir):
+def test_fx_validator():
     funcs_name = get_members(Callback)
 
     callbacks_func = {
@@ -51,10 +51,12 @@ def test_fx_validator(tmpdir):
         "on_keyboard_interrupt",
         "on_exception",
         "on_load_checkpoint",
+        "load_state_dict",
         "on_pretrain_routine_end",
         "on_pretrain_routine_start",
         "on_sanity_check_end",
         "on_sanity_check_start",
+        "state_dict",
         "on_save_checkpoint",
         "on_test_batch_end",
         "on_test_batch_start",
@@ -94,6 +96,7 @@ def test_fx_validator(tmpdir):
         "on_keyboard_interrupt",
         "on_exception",
         "on_load_checkpoint",
+        "load_state_dict",
         "on_pretrain_routine_end",
         "on_pretrain_routine_start",
         "on_sanity_check_end",
@@ -104,6 +107,7 @@ def test_fx_validator(tmpdir):
         "on_predict_epoch_end",
         "on_predict_epoch_start",
         "on_predict_start",
+        "state_dict",
         "on_save_checkpoint",
         "on_test_end",
         "on_train_end",
@@ -155,7 +159,12 @@ def test_fx_validator(tmpdir):
 
 class HookedCallback(Callback):
     def __init__(self, not_supported):
-        def call(hook, trainer, model=None, *_, **__):
+        def call(hook, trainer=None, model=None, *_, **__):
+            if trainer is None:
+                # `state_dict`, `load_state_dict` do not have the `Trainer` available
+                assert hook in ("state_dict", "load_state_dict")
+                return
+
             lightning_module = trainer.lightning_module or model
             if lightning_module is None:
                 # `on_init_{start,end}` do not have the `LightningModule` available
@@ -185,7 +194,6 @@ class HookedModel(BoringModel):
                 "on_before_batch_transfer",
                 "transfer_batch_to_device",
                 "on_after_batch_transfer",
-                "get_progress_bar_dict",
             }
         )
         # remove `nn.Module` hooks
@@ -219,9 +227,7 @@ def test_fx_validator_integration(tmpdir):
         "on_fit_start": "You can't",
         "on_pretrain_routine_start": "You can't",
         "on_pretrain_routine_end": "You can't",
-        "on_train_dataloader": "You can't",
         "train_dataloader": "You can't",
-        "on_val_dataloader": "You can't",
         "val_dataloader": "You can't",
         "on_validation_end": "You can't",
         "on_train_end": "You can't",
@@ -234,7 +240,9 @@ def test_fx_validator_integration(tmpdir):
         "on_validation_model_eval": "You can't",
         "on_validation_model_train": "You can't",
         "lr_scheduler_step": "You can't",
-        "summarize": "not managed by the `Trainer",
+        "on_save_checkpoint": "You can't",
+        "on_load_checkpoint": "You can't",
+        "on_exception": "You can't",
     }
     model = HookedModel(not_supported)
 
@@ -251,27 +259,25 @@ def test_fx_validator_integration(tmpdir):
         limit_predict_batches=1,
         callbacks=callback,
     )
-    with pytest.warns(FutureWarning)(match="on_train_dataloader` is deprecated in v1.5"):
+    with pytest.warns(FutureWarning)(match="is deprecated in"):
         trainer.fit(model)
 
     not_supported.update(
         {
             # `lightning_module` ref is now present from the `fit` call
             "on_before_accelerator_backend_setup": "You can't",
-            "on_test_dataloader": "You can't",
             "test_dataloader": "You can't",
             "on_test_model_eval": "You can't",
             "on_test_model_train": "You can't",
             "on_test_end": "You can't",
         }
     )
-    with pytest.warns(FutureWarning)(match="on_test_dataloader` is deprecated in v1.5"):
+    with pytest.warns(FutureWarning)(match="is deprecated in"):
         trainer.test(model, verbose=False)
 
     not_supported.update({k: "result collection is not registered yet" for k in not_supported})
     not_supported.update(
         {
-            "on_predict_dataloader": "result collection is not registered yet",
             "predict_dataloader": "result collection is not registered yet",
             "on_predict_model_eval": "result collection is not registered yet",
             "on_predict_start": "result collection is not registered yet",
@@ -283,11 +289,11 @@ def test_fx_validator_integration(tmpdir):
             "on_predict_end": "result collection is not registered yet",
         }
     )
-    with pytest.warns(FutureWarning)(match="on_predict_dataloader` is deprecated in v1.5"):
+    with pytest.warns(FutureWarning)(match="is deprecated in"):
         trainer.predict(model)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_epoch_results_cache_dp(tmpdir):
 
     root_device = torch.device("cuda", 0)
@@ -335,7 +341,13 @@ def test_epoch_results_cache_dp(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, strategy="dp", gpus=2, limit_train_batches=2, limit_val_batches=2, max_epochs=1
+        default_root_dir=tmpdir,
+        strategy="dp",
+        accelerator="gpu",
+        devices=2,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
     )
     trainer.fit(model)
     trainer.test(model)

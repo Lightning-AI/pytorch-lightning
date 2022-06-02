@@ -27,10 +27,10 @@ class LightningEnum(str, Enum):
 
     @classmethod
     def from_str(cls, value: str) -> LightningEnum | None:
-        statuses = [status for status in dir(cls) if not status.startswith("_")]
+        statuses = cls.__members__.keys()
         for st in statuses:
             if st.lower() == value.lower():
-                return getattr(cls, st)
+                return cls[st]
         return None
 
     def __eq__(self, other: object) -> bool:
@@ -43,21 +43,21 @@ class LightningEnum(str, Enum):
         return hash(self.value.lower())
 
 
-class _OnAccessEnumMeta(EnumMeta):
-    """Enum with a hook to run a function whenever a member is accessed.
+class _DeprecatedEnumMeta(EnumMeta):
+    """Enum that calls `deprecate()` whenever a member is accessed.
 
-    Adapted from:
-    https://www.buzzphp.com/posts/how-do-i-detect-and-invoke-a-function-when-a-python-enum-member-is-accessed
+    Adapted from: https://stackoverflow.com/a/62309159/208880
     """
 
     def __getattribute__(cls, name: str) -> Any:
         obj = super().__getattribute__(name)
-        if isinstance(obj, Enum):
+        # ignore __dunder__ names -- prevents potential recursion errors
+        if not (name.startswith("__") and name.endswith("__")) and isinstance(obj, Enum):
             obj.deprecate()
         return obj
 
     def __getitem__(cls, name: str) -> Any:
-        member: _OnAccessEnumMeta = super().__getitem__(name)
+        member: _DeprecatedEnumMeta = super().__getitem__(name)
         member.deprecate()
         return member
 
@@ -66,6 +66,12 @@ class _OnAccessEnumMeta(EnumMeta):
         if isinstance(obj, Enum):
             obj.deprecate()
         return obj
+
+
+class _DeprecatedEnum(LightningEnum, metaclass=_DeprecatedEnumMeta):
+    """_DeprecatedEnum calls an enum's `deprecate()` method on member access."""
+
+    pass
 
 
 class AMPType(LightningEnum):
@@ -104,7 +110,7 @@ class PrecisionType(LightningEnum):
         return [x.value for x in PrecisionType]
 
 
-class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
+class DistributedType(_DeprecatedEnum):
     """Define type of training strategy.
 
     Deprecated since v1.6.0 and will be removed in v1.8.0.
@@ -115,7 +121,6 @@ class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
     DP = "dp"
     DDP = "ddp"
     DDP2 = "ddp2"
-    DDP_CPU = "ddp_cpu"
     DDP_SPAWN = "ddp_spawn"
     TPU_SPAWN = "tpu_spawn"
     DEEPSPEED = "deepspeed"
@@ -123,6 +128,7 @@ class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
     DDP_SHARDED = "ddp_sharded"
     DDP_SHARDED_SPAWN = "ddp_sharded_spawn"
     DDP_FULLY_SHARDED = "ddp_fully_sharded"
+    HPU_PARALLEL = "hpu_parallel"
 
     @staticmethod
     def interactive_compatible_types() -> list[DistributedType]:
@@ -141,11 +147,11 @@ class DistributedType(LightningEnum, metaclass=_OnAccessEnumMeta):
     def deprecate(self) -> None:
         rank_zero_deprecation(
             "`DistributedType` Enum has been deprecated in v1.6 and will be removed in v1.8."
-            " Use the string value `{self.value!r}` instead."
+            f" Use the string value `{self.value!r}` instead."
         )
 
 
-class DeviceType(LightningEnum, metaclass=_OnAccessEnumMeta):
+class DeviceType(_DeprecatedEnum):
     """Define Device type by its nature - accelerators.
 
     Deprecated since v1.6.0 and will be removed in v1.8.0.
@@ -161,7 +167,7 @@ class DeviceType(LightningEnum, metaclass=_OnAccessEnumMeta):
     def deprecate(self) -> None:
         rank_zero_deprecation(
             "`DeviceType` Enum has been deprecated in v1.6 and will be removed in v1.8."
-            " Use the string value `{self.value!r}` instead."
+            f" Use the string value `{self.value!r}` instead."
         )
 
 
@@ -193,38 +199,6 @@ class AutoRestartBatchKeys(LightningEnum):
     PL_RESTART_META = "__pl_restart_meta"
 
 
-class ModelSummaryMode(LightningEnum):
-    # TODO: remove in v1.6 (as `mode` would be deprecated for `max_depth`)
-    """Define the Model Summary mode to be used.
-
-    Can be one of
-        - `top`: only the top-level modules will be recorded (the children of the root module)
-        - `full`: summarizes all layers and their submodules in the root module
-
-    >>> # you can match the type with string
-    >>> ModelSummaryMode.TOP == 'TOP'
-    True
-    >>> # which is case invariant
-    >>> ModelSummaryMode.TOP in ('top', 'FULL')
-    True
-    """
-
-    TOP = "top"
-    FULL = "full"
-
-    @staticmethod
-    def get_max_depth(mode: str) -> int:
-        if mode == ModelSummaryMode.TOP:
-            return 1
-        if mode == ModelSummaryMode.FULL:
-            return -1
-        raise ValueError(f"`mode` can be {', '.join(list(ModelSummaryMode))}, got {mode}.")
-
-    @staticmethod
-    def supported_types() -> list[str]:
-        return [x.value for x in ModelSummaryMode]
-
-
 class _StrategyType(LightningEnum):
     """Define type of training strategy.
 
@@ -239,7 +213,6 @@ class _StrategyType(LightningEnum):
     DP = "dp"
     DDP = "ddp"
     DDP2 = "ddp2"
-    DDP_CPU = "ddp_cpu"
     DDP_SPAWN = "ddp_spawn"
     TPU_SPAWN = "tpu_spawn"
     DEEPSPEED = "deepspeed"
@@ -247,14 +220,14 @@ class _StrategyType(LightningEnum):
     DDP_SHARDED = "ddp_sharded"
     DDP_SHARDED_SPAWN = "ddp_sharded_spawn"
     DDP_FULLY_SHARDED = "ddp_fully_sharded"
+    BAGUA = "bagua"
+    HPU_PARALLEL = "hpu_parallel"
 
     @staticmethod
     def interactive_compatible_types() -> list[_StrategyType]:
         """Returns a list containing interactive compatible _StrategyTypes."""
         return [
             _StrategyType.DP,
-            _StrategyType.DDP_SPAWN,
-            _StrategyType.DDP_SHARDED_SPAWN,
             _StrategyType.TPU_SPAWN,
         ]
 
@@ -280,6 +253,7 @@ class _AcceleratorType(LightningEnum):
     GPU = "GPU"
     IPU = "IPU"
     TPU = "TPU"
+    HPU = "HPU"
 
 
 class _FaultTolerantMode(LightningEnum):

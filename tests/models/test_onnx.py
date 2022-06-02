@@ -39,11 +39,11 @@ def test_model_saves_with_input_sample(tmpdir):
     assert os.path.getsize(file_path) > 4e2
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_model_saves_on_gpu(tmpdir):
     """Test that model saves on gpu."""
     model = BoringModel()
-    trainer = Trainer(gpus=1, fast_dev_run=True)
+    trainer = Trainer(accelerator="gpu", devices=1, fast_dev_run=True)
     trainer.fit(model)
 
     file_path = os.path.join(tmpdir, "model.onnx")
@@ -86,7 +86,7 @@ def test_model_saves_with_example_input_array(tmpdir, modelclass, input_sample):
     assert os.path.getsize(file_path) > 4e2
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_model_saves_on_multi_gpu(tmpdir):
     """Test that ONNX model saves on a distributed backend."""
     tutils.set_random_main_port()
@@ -96,7 +96,8 @@ def test_model_saves_on_multi_gpu(tmpdir):
         max_epochs=1,
         limit_train_batches=10,
         limit_val_batches=10,
-        gpus=[0, 1],
+        accelerator="gpu",
+        devices=[0, 1],
         strategy="ddp_spawn",
         enable_progress_bar=False,
     )

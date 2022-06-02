@@ -23,9 +23,9 @@ from torch import nn
 from torch.optim.swa_utils import SWALR
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities import rank_zero_info, rank_zero_warn
+from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerConfig
 
 _AVG_FN = Callable[[torch.Tensor, torch.Tensor, torch.LongTensor], torch.FloatTensor]
@@ -34,8 +34,8 @@ _AVG_FN = Callable[[torch.Tensor, torch.Tensor, torch.LongTensor], torch.FloatTe
 class StochasticWeightAveraging(Callback):
     def __init__(
         self,
+        swa_lrs: Union[float, List[float]],
         swa_epoch_start: Union[int, float] = 0.8,
-        swa_lrs: Optional[Union[float, List[float]]] = None,
         annealing_epochs: int = 10,
         annealing_strategy: str = "cos",
         avg_fn: Optional[_AVG_FN] = None,
@@ -66,15 +66,14 @@ class StochasticWeightAveraging(Callback):
 
         Arguments:
 
+            swa_lrs: The SWA learning rate to use:
+
+                - ``float``. Use this value for all parameter groups of the optimizer.
+                - ``List[float]``. A list values for each parameter group of the optimizer.
+
             swa_epoch_start: If provided as int, the procedure will start from
                 the ``swa_epoch_start``-th epoch. If provided as float between 0 and 1,
                 the procedure will start from ``int(swa_epoch_start * max_epochs)`` epoch
-
-            swa_lrs: The SWA learning rate to use:
-
-                - ``None``. Use the current learning rate of the optimizer at the time the SWA procedure starts.
-                - ``float``. Use this value for all parameter groups of the optimizer.
-                - ``List[float]``. A list values for each parameter group of the optimizer.
 
             annealing_epochs: number of epochs in the annealing phase (default: 10)
 
@@ -104,10 +103,8 @@ class StochasticWeightAveraging(Callback):
         wrong_type = not isinstance(swa_lrs, (float, list))
         wrong_float = isinstance(swa_lrs, float) and swa_lrs <= 0
         wrong_list = isinstance(swa_lrs, list) and not all(lr > 0 and isinstance(lr, float) for lr in swa_lrs)
-        if swa_lrs is not None and (wrong_type or wrong_float or wrong_list):
-            raise MisconfigurationException(
-                "The `swa_lrs` should be `None`, a positive float, or a list of positive floats"
-            )
+        if wrong_type or wrong_float or wrong_list:
+            raise MisconfigurationException("The `swa_lrs` should a positive float, or a list of positive floats")
 
         if avg_fn is not None and not isinstance(avg_fn, Callable):
             raise MisconfigurationException("The `avg_fn` should be callable.")
@@ -136,7 +133,7 @@ class StochasticWeightAveraging(Callback):
     def pl_module_contains_batch_norm(pl_module: "pl.LightningModule"):
         return any(isinstance(module, nn.modules.batchnorm._BatchNorm) for module in pl_module.modules())
 
-    def on_before_accelerator_backend_setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         # copy the model before moving it to accelerator device.
         with pl_module._prevent_trainer_and_dataloaders_deepcopy():
             self._average_model = deepcopy(pl_module)
@@ -164,8 +161,6 @@ class StochasticWeightAveraging(Callback):
             self._average_model = self._average_model.to(self._device or pl_module.device)
 
             optimizer = trainer.optimizers[0]
-            if self._swa_lrs is None:
-                self._swa_lrs = [param_group["lr"] for param_group in optimizer.param_groups]
             if isinstance(self._swa_lrs, float):
                 self._swa_lrs = [self._swa_lrs] * len(optimizer.param_groups)
 
@@ -179,7 +174,8 @@ class StochasticWeightAveraging(Callback):
                 anneal_strategy=self._annealing_strategy,
                 last_epoch=trainer.max_epochs if self._annealing_strategy == "cos" else -1,
             )
-            default_scheduler_cfg = LRSchedulerConfig(self._swa_scheduler)
+            # We assert that there is only one optimizer on fit start, so know opt_idx is always 0
+            default_scheduler_cfg = LRSchedulerConfig(self._swa_scheduler, opt_idx=0)
             assert default_scheduler_cfg.interval == "epoch" and default_scheduler_cfg.frequency == 1
 
             if trainer.lr_scheduler_configs:
@@ -197,7 +193,7 @@ class StochasticWeightAveraging(Callback):
             self.n_averaged = torch.tensor(0, dtype=torch.long, device=pl_module.device)
 
         if self.swa_start <= trainer.current_epoch <= self.swa_end:
-            self.update_parameters(self._average_model, pl_module, self.n_averaged, self.avg_fn)
+            self.update_parameters(self._average_model, pl_module, self.n_averaged, self._avg_fn)
 
         # Note: No > here in case the callback is saved with the model and training continues
         if trainer.current_epoch == self.swa_end + 1:
@@ -221,13 +217,14 @@ class StochasticWeightAveraging(Callback):
         trainer.fit_loop._skip_backward = False
 
     def on_train_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
-        if self._model_contains_batch_norm and trainer.current_epoch == self.swa_end + 1:
+        # the trainer increases the current epoch before this hook is called
+        if self._model_contains_batch_norm and trainer.current_epoch - 1 == self.swa_end + 1:
             # BatchNorm epoch update. Reset state
             trainer.accumulate_grad_batches = self._accumulate_grad_batches
             trainer.num_training_batches -= 1
             trainer.fit_loop.max_epochs -= 1
             self.reset_momenta()
-        elif trainer.current_epoch == self.swa_end:
+        elif trainer.current_epoch - 1 == self.swa_end:
             # Last SWA epoch. Transfer weights from average model to pl_module
             self.transfer_weights(self._average_model, pl_module)
 

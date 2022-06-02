@@ -27,11 +27,11 @@ from torch import nn
 from typing_extensions import TypedDict
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.callbacks.callback import Callback
+from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-from pytorch_lightning.utilities.distributed import rank_zero_debug, rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_only
 
 log = logging.getLogger(__name__)
 
@@ -362,7 +362,7 @@ class ModelPruning(Callback):
                     f" {curr_mask_zeros} ({curr_mask_zeros / curr_mask_size:.2%})"
                 )
 
-    def on_before_accelerator_backend_setup(self, trainer: "pl.Trainer", pl_module: LightningModule) -> None:
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         parameters_to_prune = self.sanitize_parameters_to_prune(
             pl_module, self._parameters_to_prune, parameter_names=self._parameter_names
         )
@@ -425,13 +425,12 @@ class ModelPruning(Callback):
         return apply_to_collection(state_dict, torch.Tensor, move_to_cpu)
 
     def on_save_checkpoint(
-        self, trainer: "pl.Trainer", pl_module: LightningModule, checkpoint: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]
+    ) -> Optional[dict]:
         if self._make_pruning_permanent:
             rank_zero_debug("`ModelPruning.on_save_checkpoint`. Pruning is made permanent for this checkpoint")
             # manually prune the weights so training can keep going with the same buffers
             checkpoint["state_dict"] = self._make_pruning_permanent_on_state_dict(pl_module)
-        return checkpoint
 
     @staticmethod
     def sanitize_parameters_to_prune(

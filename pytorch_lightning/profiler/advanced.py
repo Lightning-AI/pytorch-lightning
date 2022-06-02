@@ -19,12 +19,12 @@ import pstats
 from pathlib import Path
 from typing import Dict, Optional, Union
 
-from pytorch_lightning.profiler.base import BaseProfiler
+from pytorch_lightning.profiler.profiler import Profiler
 
 log = logging.getLogger(__name__)
 
 
-class AdvancedProfiler(BaseProfiler):
+class AdvancedProfiler(Profiler):
     """This profiler uses Python's cProfiler to record more detailed information about time spent in each function
     call recorded during a given action.
 

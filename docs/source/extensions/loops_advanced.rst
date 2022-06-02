@@ -12,10 +12,10 @@ Persisting the State of Loops
 
     This is an experimental feature and is not activated by default.
     Set the environment variable `PL_FAULT_TOLERANT_TRAINING = 1` to enable saving the progress of loops.
-    Read more about :doc:`fault-tolerant training <../advanced/fault_tolerant_training>`.
+    Read more about :doc:`fault-tolerant training <../clouds/fault_tolerant_training>`.
 
 A powerful property of the class-based loop interface is that it can own an internal state.
-Loop instances can save their state to the checkpoint through corresponding hooks and if implemented accordingly, resume the state of exectuion at the appropriate place.
+Loop instances can save their state to the checkpoint through corresponding hooks and if implemented accordingly, resume the state of execution at the appropriate place.
 This design is particularly interesting for fault-tolerant training which is an experimental feature released in Lightning v1.5.
 
 The two hooks :meth:`~pytorch_lightning.loops.base.Loop.on_save_checkpoint` and :meth:`~pytorch_lightning.loops.base.Loop.on_load_checkpoint` function very similarly to how LightningModules and Callbacks save and load state.

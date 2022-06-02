@@ -14,6 +14,9 @@
 """Test logging in the evaluation loop."""
 import collections
 import itertools
+import os
+from contextlib import redirect_stdout
+from io import StringIO
 from unittest import mock
 from unittest.mock import call
 
@@ -23,9 +26,15 @@ import torch
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loops.dataloader import EvaluationLoop
+from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _RICH_AVAILABLE
 from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
+
+if _RICH_AVAILABLE:
+    from rich import get_console
 
 
 def test__validation_step__log(tmpdir):
@@ -260,7 +269,7 @@ def test_multi_dataloaders_add_suffix_properly(tmpdir, suffix):
     results = trainer.test(model)
 
     for i, r in enumerate(results):
-        expected = {"test_loss", "test_loss_epoch"}
+        expected = {"test_loss_epoch"}
         if suffix:
             expected = {e + f"/dataloader_idx_{i}" for e in expected}
         assert set(r) == expected
@@ -343,7 +352,9 @@ def test_log_works_in_val_callback(tmpdir):
         max_epochs=1,
         callbacks=[cb],
     )
-    trainer.fit(model)
+    # TODO: Update this test in v1.8 (#11578)
+    with pytest.deprecated_call(match="`Callback.on_epoch_start` hook was deprecated in v1.6"):
+        trainer.fit(model)
 
     assert cb.call_counter == {
         "on_validation_batch_end": 4,
@@ -432,12 +443,6 @@ def test_log_works_in_test_callback(tmpdir):
 
         def on_test_start(self, _, pl_module):
             self.make_logging(pl_module, "on_test_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices)
-
-        def on_epoch_start(self, trainer, pl_module):
-            if trainer.testing:
-                self.make_logging(
-                    pl_module, "on_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
-                )
 
         def on_test_epoch_start(self, _, pl_module):
             self.make_logging(
@@ -573,10 +578,8 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
     assert mock_log_metrics.mock_calls[0] == call({"hp_metric": -1}, 0)
 
     def get_metrics_at_idx(idx):
-        mock_calls = list(mock_log_metrics.mock_calls)
-        if isinstance(mock_calls[idx].kwargs, dict):
-            return mock_calls[idx].kwargs["metrics"]
-        return mock_calls[idx][2]["metrics"]
+        mock_call = mock_log_metrics.mock_calls[idx]
+        return mock_call.kwargs["metrics"] if _PYTHON_GREATER_EQUAL_3_8_0 else mock_call[2]["metrics"]
 
     expected = {"valid_loss_0_step", "valid_loss_2"}
     assert set(get_metrics_at_idx(1)) == expected
@@ -688,7 +691,7 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir):
     class TestModel(BoringModel):
         def validation_step(self, *args):
@@ -707,7 +710,9 @@ def test_evaluation_move_metrics_to_cpu_and_outputs(tmpdir):
             assert self.trainer.callback_metrics["foo"].device.type == "cpu"
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=2, move_metrics_to_cpu=True, gpus=1)
+    trainer = Trainer(
+        default_root_dir=tmpdir, limit_val_batches=2, move_metrics_to_cpu=True, accelerator="gpu", devices=1
+    )
     trainer.validate(model, verbose=False)
 
 
@@ -753,7 +758,8 @@ def test_logging_results_with_no_dataloader_idx(tmpdir):
     }
 
 
-def test_logging_multi_dataloader_on_epoch_end(tmpdir):
+@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+def test_logging_multi_dataloader_on_epoch_end(mock_log_metrics, tmpdir):
     class CustomBoringModel(BoringModel):
         def test_step(self, batch, batch_idx, dataloader_idx):
             self.log("foo", dataloader_idx + 1)
@@ -763,10 +769,266 @@ def test_logging_multi_dataloader_on_epoch_end(tmpdir):
             self.log("foobar", sum(sum(o) for o in outputs))
 
         def test_dataloader(self):
-            return [super().val_dataloader(), super().val_dataloader()]
+            return [super().test_dataloader(), super().test_dataloader()]
 
     model = CustomBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer = Trainer(default_root_dir=tmpdir, limit_test_batches=1)
     results = trainer.test(model)
+
     # what's logged in `test_epoch_end` gets included in the results of each dataloader
     assert results == [{"foo/dataloader_idx_0": 1, "foobar": 3}, {"foo/dataloader_idx_1": 2, "foobar": 3}]
+    cb_metrics = set(trainer.callback_metrics)
+    assert cb_metrics == {"foo/dataloader_idx_0", "foo/dataloader_idx_1", "foobar"}
+
+    mock_call = mock_log_metrics.mock_calls[0]
+    logged_metrics = mock_call.kwargs["metrics"] if _PYTHON_GREATER_EQUAL_3_8_0 else mock_call[2]["metrics"]
+    cb_metrics.add("epoch")
+    assert set(logged_metrics) == cb_metrics
+
+
+inputs0 = ([{"log": torch.tensor(5)}, {"no_log": torch.tensor(6)}], RunningStage.TESTING)
+expected0 = """
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+       Test metric             DataLoader 0             DataLoader 1
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+           log                       5
+         no_log                                               6
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+"""
+
+inputs1 = (
+    [
+        {
+            "value": torch.tensor(2),
+            "performance": {"log:1": torch.tensor(0), "log2": torch.tensor(3), "log3": torch.tensor(7)},
+            "extra": {"log3": torch.tensor(7)},
+        },
+        {"different value": torch.tensor(1.5), "tes:t": {"no_log1": torch.tensor(6), "no_log2": torch.tensor(1)}},
+    ],
+    RunningStage.TESTING,
+)
+expected1 = """
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+       Test metric             DataLoader 0             DataLoader 1
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+     different value                                         1.5
+       extra:log3                    7
+    performance:log2                 3
+    performance:log3                 7
+    performance:log:1                0
+      tes:t:no_log1                                           6
+      tes:t:no_log2                                           1
+          value                      2
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+"""
+
+inputs2 = (
+    [
+        {f"a {'really ' * 11}long metric name": torch.tensor(5)},
+        {f"a {'really ' * 11}long metric name": torch.tensor([[6]])},
+    ],
+    RunningStage.VALIDATING,
+)
+expected2 = """
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+                      Validate metric                                               DataLoader 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+a really really really really really really really really re                             5
+            ally really really long metric name
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+                      Validate metric                                               DataLoader 1
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+a really really really really really really really really re                             6
+            ally really really long metric name
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+"""
+
+inputs3 = ([{f"log/dataloader_idx_{i}": torch.tensor(5)} for i in range(5)], "foobar")
+expected3 = """
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+      Foobar metric            DataLoader 0             DataLoader 1             DataLoader 2
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+           log                       5                        5                        5
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+      Foobar metric            DataLoader 3             DataLoader 4
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+           log                       5                        5
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+"""
+
+inputs4 = ([{}], "foo")
+expected4 = ""
+
+
+@pytest.mark.parametrize(
+    ["inputs", "expected"],
+    [
+        pytest.param(inputs0, expected0, id="case0"),
+        pytest.param(inputs1, expected1, id="case1"),
+        pytest.param(inputs2, expected2, id="case2"),
+        pytest.param(inputs3, expected3, id="case3"),
+        pytest.param(inputs4, expected4, id="empty case"),
+    ],
+)
+def test_native_print_results(monkeypatch, inputs, expected):
+    import pytorch_lightning.loops.dataloader.evaluation_loop as imports
+
+    monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
+
+    with redirect_stdout(StringIO()) as out:
+        EvaluationLoop._print_results(*inputs)
+    expected = expected[1:]  # remove the initial line break from the """ string
+    assert out.getvalue().replace(os.linesep, "\n") == expected.lstrip()
+
+
+@pytest.mark.parametrize("encoding", ["latin-1", "utf-8"])
+def test_native_print_results_encodings(monkeypatch, encoding):
+    import pytorch_lightning.loops.dataloader.evaluation_loop as imports
+
+    monkeypatch.setattr(imports, "_RICH_AVAILABLE", False)
+
+    out = mock.Mock()
+    out.encoding = encoding
+    with redirect_stdout(out) as out:
+        EvaluationLoop._print_results(*inputs0)
+
+    # Attempt to encode everything the file is told to write with the given encoding
+    for call_ in out.method_calls:
+        name, args, kwargs = call_
+        if name == "write":
+            args[0].encode(encoding)
+
+
+expected0 = """
+┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃       Test metric       ┃      DataLoader 0       ┃       DataLoader 1       ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│           log           │            5            │                          │
+│         no_log          │                         │            6             │
+└─────────────────────────┴─────────────────────────┴──────────────────────────┘
+"""
+
+expected1 = """
+┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃       Test metric       ┃      DataLoader 0       ┃       DataLoader 1       ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│     different value     │                         │           1.5            │
+│       extra:log3        │            7            │                          │
+│    performance:log2     │            3            │                          │
+│    performance:log3     │            7            │                          │
+│    performance:log:1    │            0            │                          │
+│      tes:t:no_log1      │                         │            6             │
+│      tes:t:no_log2      │                         │            1             │
+│          value          │            2            │                          │
+└─────────────────────────┴─────────────────────────┴──────────────────────────┘
+"""
+
+expected2 = """
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           Validate metric            ┃             DataLoader 0              ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ a really really really really really │                   5                   │
+│  really really really really really  │                                       │
+│       really long metric name        │                                       │
+└──────────────────────────────────────┴───────────────────────────────────────┘
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃           Validate metric            ┃             DataLoader 1              ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ a really really really really really │                   6                   │
+│  really really really really really  │                                       │
+│       really long metric name        │                                       │
+└──────────────────────────────────────┴───────────────────────────────────────┘
+"""
+
+expected3 = """
+┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┓
+┃   Foobar metric   ┃   DataLoader 0    ┃   DataLoader 1    ┃   DataLoader 2   ┃
+┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━┩
+│        log        │         5         │         5         │        5         │
+└───────────────────┴───────────────────┴───────────────────┴──────────────────┘
+┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃      Foobar metric      ┃      DataLoader 3       ┃       DataLoader 4       ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│           log           │            5            │            5             │
+└─────────────────────────┴─────────────────────────┴──────────────────────────┘
+"""
+
+
+@pytest.mark.parametrize(
+    ["inputs", "expected"],
+    [
+        pytest.param(inputs0, expected0, id="case0"),
+        pytest.param(inputs1, expected1, id="case1"),
+        pytest.param(inputs2, expected2, id="case2"),
+        pytest.param(inputs3, expected3, id="case3"),
+        pytest.param(inputs4, expected4, id="empty case"),
+    ],
+)
+@RunIf(skip_windows=True, rich=True)
+def test_rich_print_results(inputs, expected):
+    console = get_console()
+    with console.capture() as capture:
+        EvaluationLoop._print_results(*inputs)
+    expected = expected[1:]  # remove the initial line break from the """ string
+    assert capture.get() == expected.lstrip()
+
+
+@mock.patch("pytorch_lightning.loggers.TensorBoardLogger.log_metrics")
+@pytest.mark.parametrize("num_dataloaders", (1, 2))
+def test_eval_step_logging(mock_log_metrics, tmpdir, num_dataloaders):
+    """Test that eval step during fit/validate/test is updated correctly."""
+
+    class CustomBoringModel(BoringModel):
+        def validation_step(self, batch, batch_idx, dataloader_idx=None):
+            self.log(f"val_log_{self.trainer.state.fn}", batch_idx, on_step=True, on_epoch=False)
+
+        def test_step(self, batch, batch_idx, dataloader_idx=None):
+            self.log("test_log", batch_idx, on_step=True, on_epoch=False)
+
+        def val_dataloader(self):
+            return [super().val_dataloader()] * num_dataloaders
+
+        def test_dataloader(self):
+            return [super().test_dataloader()] * num_dataloaders
+
+        validation_epoch_end = None
+        test_epoch_end = None
+
+    limit_batches = 4
+    max_epochs = 3
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=max_epochs,
+        limit_train_batches=1,
+        limit_val_batches=limit_batches,
+        limit_test_batches=limit_batches,
+    )
+    model = CustomBoringModel()
+
+    trainer.fit(model)
+    trainer.validate(model)
+    trainer.test(model)
+
+    def get_suffix(dl_idx):
+        return f"/dataloader_idx_{dl_idx}" if num_dataloaders == 2 else ""
+
+    eval_steps = range(limit_batches)
+    fit_calls = [
+        call(metrics={f"val_log_fit{get_suffix(dl_idx)}": float(step)}, step=step + (limit_batches * epoch))
+        for epoch in range(max_epochs)
+        for dl_idx in range(num_dataloaders)
+        for step in eval_steps
+    ]
+    validate_calls = [
+        call(metrics={f"val_log_validate{get_suffix(dl_idx)}": float(val)}, step=val)
+        for dl_idx in range(num_dataloaders)
+        for val in eval_steps
+    ]
+    test_calls = [
+        call(metrics={f"test_log{get_suffix(dl_idx)}": float(val)}, step=val)
+        for dl_idx in range(num_dataloaders)
+        for val in eval_steps
+    ]
+    assert mock_log_metrics.mock_calls == fit_calls + validate_calls + test_calls

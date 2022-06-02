@@ -19,7 +19,6 @@ def test_horovod_model_script(tmpdir):
     """This just for testing/debugging horovod script without horovod..."""
     trainer_options = dict(
         default_root_dir=str(tmpdir),
-        weights_save_path=str(tmpdir),
         gradient_clip_val=1.0,
         enable_progress_bar=False,
         max_epochs=1,

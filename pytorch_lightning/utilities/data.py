@@ -15,20 +15,22 @@ import functools
 import inspect
 import os
 from contextlib import contextmanager
+from dataclasses import fields
 from functools import partial
 from itertools import chain
 from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Set, Type, Union
 
 import torch
-from torch.utils.data import BatchSampler, DataLoader, IterableDataset, Sampler
+from torch.utils.data import BatchSampler, DataLoader, IterableDataset, RandomSampler, Sampler, SequentialSampler
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.apply_func import _is_dataclass_instance
 from pytorch_lightning.utilities.auto_restart import CaptureIterableDataset, CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.enums import _FaultTolerantMode
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -49,6 +51,9 @@ def _extract_batch_size(batch: BType) -> Generator[int, None, None]:
 
         for sample in batch:
             yield from _extract_batch_size(sample)
+    elif _is_dataclass_instance(batch):
+        for field in fields(batch):
+            yield from _extract_batch_size(getattr(batch, field.name))
     else:
         yield None
 
@@ -89,17 +94,13 @@ def has_iterable_dataset(dataloader: DataLoader) -> bool:
 
 def has_len(dataloader: Union[DataLoader, Iterable]) -> bool:
     """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or
-    infinite dataloader.
-
-    Raises:
-        ValueError:
-            If the length of Dataloader is 0, as it requires at least one batch
-    """
-
+    infinite dataloader."""
     try:
         # try getting the length
         if len(dataloader) == 0:
-            raise ValueError("`Dataloader` returned 0 length. Please make sure that it returns at least 1 batch")
+            rank_zero_warn(
+                f"`{dataloader.__class__.__name__}` returned 0 length. Please make sure this was your intention."
+            )
         has_len = True
     except TypeError:
         has_len = False
@@ -122,30 +123,27 @@ def has_len_all_ranks(
     model: Union["pl.LightningModule", "pl.LightningDataModule"],
 ) -> bool:
     """Checks if a given Dataloader has ``__len__`` method implemented i.e. if it is a finite dataloader or
-    infinite dataloader.
-
-    Raises:
-        ValueError:
-            If the length of Dataloader is 0, as it requires at least one batch
-    """
+    infinite dataloader."""
     try:
-        total_length = training_type.reduce(torch.tensor(len(dataloader)).to(model.device), reduce_op="sum")
         local_length = len(dataloader)
+        total_length = training_type.reduce(torch.tensor(local_length).to(model.device), reduce_op="sum")
 
         if total_length == 0:
-            raise MisconfigurationException(
-                "Total length of `Dataloader` across ranks is zero. Please make sure that it returns at least 1 batch."
+            rank_zero_warn(
+                f"Total length of `{dataloader.__class__.__name__}` across ranks is zero."
+                " Please make sure this was your intention."
             )
         if total_length > 0 and local_length == 0:
             if model.allow_zero_length_dataloader_with_multiple_devices:
                 rank_zero_warn(
-                    "Total length of `Dataloader` across ranks is zero, but local rank has zero length."
-                    " Please be cautious of uneven batch length."
+                    f"Total length of `{dataloader.__class__.__name__}` across ranks is zero, but local rank has zero"
+                    " length. Please be cautious of uneven batch length."
                 )
                 has_len = False
             else:
                 raise MisconfigurationException(
-                    "`Dataloader` within local rank has zero length. Please make sure that it returns at least 1 batch."
+                    f"`{dataloader.__class__.__name__}` within local rank has zero length."
+                    " Please make sure that it returns at least 1 batch."
                 )
         else:
             has_len = True
@@ -177,7 +175,9 @@ def get_len(dataloader: DataLoader) -> Union[int, float]:
     return float("inf")
 
 
-def _update_dataloader(dataloader: DataLoader, sampler: Sampler, mode: Optional[RunningStage] = None) -> DataLoader:
+def _update_dataloader(
+    dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
+) -> DataLoader:
     dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler, mode=mode)
     dl_cls = type(dataloader)
     try:
@@ -326,10 +326,23 @@ def _wrap_init(init: Callable) -> Callable:
 
     @functools.wraps(init)
     def wrapper(obj: DataLoader, *args: Any, **kwargs: Any) -> None:
-        params = dict(inspect.signature(obj.__init__).parameters)
-        params.pop("args", None)
-        params.pop("kwargs", None)
-        for arg_name, arg_value in chain(zip(params, args), kwargs.items()):
+        # We need to inspect `init`, as inspecting `obj.__init__`
+        # can lead to inspecting the wrong function with multiple inheritance
+        params = inspect.signature(init).parameters
+
+        param_names = [
+            param.name
+            for param in params.values()
+            if param.name != "self" and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
+        ]
+
+        cls = type(obj)
+        for arg_name, arg_value in chain(zip(param_names, args), kwargs.items()):
+            if hasattr(cls, arg_name) and getattr(cls, arg_name).fset is None:
+                # the class defines a read-only (no setter) property of this name. it's likely that the implementation
+                # will set `self._arg_name = arg_value` in `__init__` which is the attribute returned by the `arg_name`
+                # property so we are fine skipping in that case
+                continue
             setattr(obj, arg_name, arg_value)
         init(obj, *args, **kwargs)
 
@@ -374,3 +387,20 @@ def _apply_fault_tolerant_automatic_capture_dataset_wrapper(dl_kwargs: Dict) -> 
     else:
         raise MisconfigurationException("This shouldn't happen, please open an issue on Lightning Github repository.")
     return dl_kwargs
+
+
+def _is_dataloader_shuffled(dataloader: object) -> bool:
+    if hasattr(dataloader, "shuffle"):
+        # this attribute is not part of PyTorch's DataLoader, but could have been set by
+        # our `_replace_dataloader_init_method` context manager
+        return dataloader.shuffle
+    if isinstance(dataloader.dataset, IterableDataset):
+        # shuffling is useless with iterable datasets
+        return False
+    if not hasattr(dataloader, "sampler"):
+        # shuffling is enabled via a sampler. No sampler, no shuffling
+        return False
+    sampler = dataloader.sampler
+    if isinstance(sampler, SequentialSampler):
+        return False
+    return isinstance(sampler, RandomSampler)

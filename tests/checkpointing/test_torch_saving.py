@@ -34,7 +34,7 @@ def test_model_torch_save(tmpdir):
     trainer = torch.load(temp_path)
 
 
-@RunIf(skip_windows=True, skip_49370=True)
+@RunIf(skip_windows=True)
 def test_model_torch_save_ddp_cpu(tmpdir):
     """Test to ensure torch save does not fail for model and trainer using cpu ddp."""
     model = BoringModel()
@@ -50,7 +50,7 @@ def test_model_torch_save_ddp_cpu(tmpdir):
     torch.save(trainer, temp_path)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 def test_model_torch_save_ddp_cuda(tmpdir):
     """Test to ensure torch save does not fail for model and trainer using gpu ddp."""
     model = BoringModel()

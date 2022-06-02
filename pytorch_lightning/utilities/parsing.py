@@ -21,10 +21,11 @@ from argparse import Namespace
 from dataclasses import fields, is_dataclass
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 
+from torch import nn
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.warnings import rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 
 def str_to_bool_or_str(val: str) -> Union[str, bool]:
@@ -224,14 +225,16 @@ def save_hyperparameters(
         init_args = {}
         for local_args in collect_init_args(frame, []):
             init_args.update(local_args)
-    assert init_args, "failed to inspect the obj init"
 
-    if ignore is not None:
-        if isinstance(ignore, str):
-            ignore = [ignore]
-        if isinstance(ignore, (list, tuple)):
-            ignore = [arg for arg in ignore if isinstance(arg, str)]
-        init_args = {k: v for k, v in init_args.items() if k not in ignore}
+    if ignore is None:
+        ignore = []
+    elif isinstance(ignore, str):
+        ignore = [ignore]
+    elif isinstance(ignore, (list, tuple)):
+        ignore = [arg for arg in ignore if isinstance(arg, str)]
+
+    ignore = list(set(ignore))
+    init_args = {k: v for k, v in init_args.items() if k not in ignore}
 
     if not args:
         # take all arguments
@@ -249,10 +252,16 @@ def save_hyperparameters(
             obj._hparams_name = "kwargs"
 
     # `hparams` are expected here
-    if hp:
-        obj._set_hparams(hp)
-    # make deep copy so  there is not other runtime changes reflected
+    obj._set_hparams(hp)
+    # make deep copy so there is not other runtime changes reflected
     obj._hparams_initial = copy.deepcopy(obj._hparams)
+
+    for k, v in obj._hparams.items():
+        if isinstance(v, nn.Module):
+            rank_zero_warn(
+                f"Attribute {k!r} is an instance of `nn.Module` and is already saved during checkpointing."
+                f" It is recommended to ignore them using `self.save_hyperparameters(ignore=[{k!r}])`."
+            )
 
 
 class AttributeDict(Dict):

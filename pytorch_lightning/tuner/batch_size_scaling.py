@@ -19,12 +19,12 @@ from typing import Any, Dict, Optional, Tuple
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.loggers.base import DummyLogger
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.utilities.data import has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
 from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_hasattr, lightning_setattr
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 log = logging.getLogger(__name__)
 
@@ -60,11 +60,7 @@ def scale_batch_size(
 
     # Save initial model, that is loaded after batch size is found
     ckpt_path = os.path.join(trainer.default_root_dir, f".scale_batch_size_{uuid.uuid4()}.ckpt")
-    trainer.fit_loop.current_epoch -= 1
-    trainer.fit_loop.global_step -= 1
     trainer.save_checkpoint(ckpt_path)
-    trainer.fit_loop.current_epoch += 1
-    trainer.fit_loop.global_step += 1
     params = __scale_batch_dump_params(trainer)
 
     # Set to values that are required by the algorithm
@@ -85,13 +81,14 @@ def scale_batch_size(
     garbage_collection_cuda()
     log.info(f"Finished batch size finder, will continue with full run using batch size {new_size}")
 
-    # Restore initial state of model
-    trainer.checkpoint_connector.restore(ckpt_path)
-    trainer.strategy.remove_checkpoint(ckpt_path)
     __scale_batch_restore_params(trainer, params)
 
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.enable()
+
+    # Restore initial state of model
+    trainer._checkpoint_connector.restore(ckpt_path)
+    trainer.strategy.remove_checkpoint(ckpt_path)
 
     return new_size
 
@@ -110,9 +107,8 @@ def __scale_batch_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
 def __scale_batch_reset_params(trainer: "pl.Trainer", steps_per_trial: int) -> None:
     trainer.auto_scale_batch_size = None  # prevent recursion
     trainer.auto_lr_find = False  # avoid lr find being called multiple times
-    trainer.fit_loop.current_epoch = 0
     trainer.fit_loop.max_steps = steps_per_trial  # take few steps
-    trainer.logger = DummyLogger() if trainer.logger is not None else None
+    trainer.loggers = [DummyLogger()] if trainer.loggers else []
     trainer.callbacks = []  # not needed before full run
     trainer.limit_train_batches = 1.0
 

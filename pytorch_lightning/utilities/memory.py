@@ -17,26 +17,13 @@ import gc
 import os
 import shutil
 import subprocess
+from io import BytesIO
 from typing import Any, Dict
 
 import torch
 from torch.nn import Module
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection
-
-
-class _ByteCounter:
-    """Accumulate and stores the total bytes of an object."""
-
-    def __init__(self) -> None:
-        self.nbytes: int = 0
-
-    def write(self, data: bytes) -> None:
-        """Stores the total bytes of the data."""
-        self.nbytes += len(data)
-
-    def flush(self) -> None:
-        pass
 
 
 def recursive_detach(in_dict: Any, to_cpu: bool = False) -> Any:
@@ -109,39 +96,6 @@ def garbage_collection_cuda() -> None:
             raise
 
 
-def get_memory_profile(mode: str) -> Dict[str, float]:
-    r"""
-    .. deprecated:: v1.5
-        This function was deprecated in v1.5 in favor of
-        `pytorch_lightning.accelerators.gpu._get_nvidia_gpu_stats` and will be removed in v1.7.
-
-    Get a profile of the current memory usage.
-
-    Args:
-        mode: There are two modes:
-
-            - 'all' means return memory for all gpus
-            - 'min_max' means return memory for max and min
-
-    Return:
-        A dictionary in which the keys are device ids as integers and
-        values are memory usage as integers in MB.
-        If mode is 'min_max', the dictionary will also contain two additional keys:
-
-        - 'min_gpu_mem': the minimum memory usage in MB
-        - 'max_gpu_mem': the maximum memory usage in MB
-    """
-    memory_map = get_gpu_memory_map()
-
-    if mode == "min_max":
-        min_index, min_memory = min(memory_map.items(), key=lambda item: item[1])
-        max_index, max_memory = max(memory_map.items(), key=lambda item: item[1])
-
-        memory_map = {"min_gpu_mem": min_memory, "max_gpu_mem": max_memory}
-
-    return memory_map
-
-
 def get_gpu_memory_map() -> Dict[str, float]:
     r"""
     .. deprecated:: v1.5
@@ -183,7 +137,7 @@ def get_model_size_mb(model: Module) -> float:
     Returns:
         Number of megabytes in the parameters of the input module.
     """
-    model_size = _ByteCounter()
+    model_size = BytesIO()
     torch.save(model.state_dict(), model_size)
-    size_mb = model_size.nbytes / 1e6
+    size_mb = model_size.getbuffer().nbytes / 1e6
     return size_mb

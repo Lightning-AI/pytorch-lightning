@@ -26,10 +26,9 @@ jobs:
   - job: benchmarks
     timeoutInMinutes: "90"
     cancelTimeoutInMinutes: "2"
-    pool: gridai-spot-pool
+    pool: azure-gpus-spot
     container:
-      # should match the one in '.azure-pipelines/gpu-benchmark.yml'
-      image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8"
+      image: "pytorchlightning/pytorch_lightning:base-cuda-py3.9-torch1.11"
       options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=32g"
     workspace:
       clean: all

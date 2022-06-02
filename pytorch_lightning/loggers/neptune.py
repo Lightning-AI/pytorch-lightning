@@ -24,17 +24,18 @@ import os
 import warnings
 from argparse import Namespace
 from functools import reduce
-from typing import Any, Dict, Generator, Optional, Set, Union
+from typing import Any, Callable, Dict, Generator, Mapping, Optional, Sequence, Set, Union
 from weakref import ReferenceType
 
 import torch
 
 from pytorch_lightning import __version__
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import rank_zero_only
+from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.imports import _NEPTUNE_AVAILABLE, _NEPTUNE_GREATER_EQUAL_0_9
+from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _sanitize_callable_params
 from pytorch_lightning.utilities.model_summary import ModelSummary
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 if _NEPTUNE_AVAILABLE and _NEPTUNE_GREATER_EQUAL_0_9:
     try:
@@ -84,7 +85,7 @@ _LEGACY_NEPTUNE_LOGGER_KWARGS = [
 ]
 
 
-class NeptuneLogger(LightningLoggerBase):
+class NeptuneLogger(Logger):
     r"""
     Log using `Neptune <https://neptune.ai>`_.
 
@@ -119,7 +120,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     **How to use NeptuneLogger?**
 
-    Use the logger anywhere in your :class:`~pytorch_lightning.core.lightning.LightningModule` as follows:
+    Use the logger anywhere in your :class:`~pytorch_lightning.core.module.LightningModule` as follows:
 
     .. code-block:: python
 
@@ -264,6 +265,8 @@ class NeptuneLogger(LightningLoggerBase):
         run: Optional["Run"] = None,
         log_model_checkpoints: Optional[bool] = True,
         prefix: str = "training",
+        agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+        agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
         **neptune_run_kwargs,
     ):
         # verify if user passed proper init arguments
@@ -274,7 +277,7 @@ class NeptuneLogger(LightningLoggerBase):
                 " `pip install neptune-client`."
             )
 
-        super().__init__()
+        super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
         self._log_model_checkpoints = log_model_checkpoints
         self._prefix = prefix
         self._run_name = name
@@ -400,7 +403,7 @@ class NeptuneLogger(LightningLoggerBase):
     def experiment(self) -> Run:
         r"""
         Actual Neptune run object. Allows you to use neptune logging features in your
-        :class:`~pytorch_lightning.core.lightning.LightningModule`.
+        :class:`~pytorch_lightning.core.module.LightningModule`.
 
         Example::
 
@@ -479,8 +482,8 @@ class NeptuneLogger(LightningLoggerBase):
 
             neptune_logger.log_hyperparams(PARAMS)
         """
-        params = self._convert_params(params)
-        params = self._sanitize_callable_params(params)
+        params = _convert_params(params)
+        params = _sanitize_callable_params(params)
 
         parameters_key = self.PARAMETERS_KEY
         parameters_key = self._construct_path_with_prefix(parameters_key)
@@ -498,7 +501,7 @@ class NeptuneLogger(LightningLoggerBase):
         if rank_zero_only.rank != 0:
             raise ValueError("run tried to log from global_rank != 0")
 
-        metrics = self._add_prefix(metrics)
+        metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
         for key, val in metrics.items():
             # `step` is ignored because Neptune expects strictly increasing step values which
@@ -578,7 +581,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     @staticmethod
     def _get_full_model_name(model_path: str, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> str:
-        """Returns model name which is string `modle_path` appended to `checkpoint_callback.dirpath`."""
+        """Returns model name which is string `model_path` appended to `checkpoint_callback.dirpath`."""
         expected_model_path = f"{checkpoint_callback.dirpath}{os.path.sep}"
         if not model_path.startswith(expected_model_path):
             raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
