@@ -71,7 +71,9 @@ ENV \
 COPY environment.yml environment.yml
 
 # conda init
-RUN conda update -n base -c defaults conda && \
+RUN \
+    # TODO: Use the latest conda https://github.com/mamba-org/mamba/issues/1706
+    conda update -n base -c defaults conda && \
     conda install mamba -n base -c conda-forge && \
     mamba create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} torchvision torchtext cudatoolkit=${CUDA_VERSION} -c nvidia -c pytorch -c pytorch-test -c pytorch-nightly && \
     conda init bash && \
