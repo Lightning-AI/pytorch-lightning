@@ -302,7 +302,6 @@ class IPUStrategy(ParallelStrategy):
             return self._step(RunningStage.PREDICTING, *args, **kwargs)
 
     def teardown(self) -> None:
-        super().teardown()
         if self._update_dataloader_original is not None:
             # undo dataloader patching
             pl.trainer.connectors.data_connector._update_dataloader = self._update_dataloader_original
@@ -313,6 +312,8 @@ class IPUStrategy(ParallelStrategy):
 
         for model in self.poptorch_models.values():
             model.destroy()
+
+        super().teardown()
 
     def _compiled(self, model: Any):
         # Required to ensure we only attach compiled models, as they are compiled lazily.

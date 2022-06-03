@@ -135,7 +135,7 @@ class TestPrecisionModel(BoringModel):
         return TestClippingOptimizer(self.layer.parameters(), lr=0.1)
 
 
-@RunIf(min_gpus=2)
+@RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize("accum", [1, 2])
 def test_amp_gradient_unscale(tmpdir, accum: int):
     model = TestPrecisionModel()
@@ -161,7 +161,7 @@ def test_amp_gradient_unscale(tmpdir, accum: int):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_amp_skip_optimizer(tmpdir):
     """Test that optimizers can be skipped when using amp."""
 
@@ -195,7 +195,7 @@ def test_amp_skip_optimizer(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=2, amp_apex=True, standalone=True)
+@RunIf(min_cuda_gpus=2, amp_apex=True, standalone=True)
 @pytest.mark.parametrize("amp_level", ["O2"])
 def test_amp_apex_ddp_fit(amp_level, tmpdir):
     class CustomBoringModel(BoringModel):
@@ -222,7 +222,7 @@ def test_amp_apex_ddp_fit(amp_level, tmpdir):
     trainer.test(model)
 
 
-@RunIf(min_gpus=2, amp_apex=True)
+@RunIf(min_cuda_gpus=2, amp_apex=True)
 @pytest.mark.parametrize("amp_level", ["O2"])
 def test_amp_apex_ddp_spawn_fit(amp_level, tmpdir):
     trainer = Trainer(

@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional
 from deprecate import void
 from torch.utils.data import DataLoader
 
-from pytorch_lightning.loops.base import Loop
+from pytorch_lightning.loops.loop import Loop
 from pytorch_lightning.trainer.progress import BatchProgress
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
@@ -49,6 +49,7 @@ class EvaluationEpochLoop(Loop):
         self._dl_max_batches = 0
         self._data_fetcher: Optional[AbstractDataFetcher] = None
         self._dataloader_state_dict: Dict[str, Any] = {}
+        self._dl_batch_idx = [0]
 
     @property
     def done(self) -> bool:
@@ -150,7 +151,10 @@ class EvaluationEpochLoop(Loop):
         self.batch_progress.increment_completed()
 
         # log batch metrics
-        self.trainer._logger_connector.update_eval_step_metrics()
+        if not self.trainer.sanity_checking:
+            dataloader_idx = kwargs.get("dataloader_idx", 0)
+            self.trainer._logger_connector.update_eval_step_metrics(self._dl_batch_idx[dataloader_idx])
+            self._dl_batch_idx[dataloader_idx] += 1
 
         # track epoch level outputs
         if self._should_track_batch_outputs_for_epoch_end() and output is not None:
@@ -301,3 +305,6 @@ class EvaluationEpochLoop(Loop):
         if self.trainer.testing:
             return is_overridden("test_epoch_end", model)
         return is_overridden("validation_epoch_end", model)
+
+    def _reset_dl_batch_idx(self, num_dataloaders: int) -> None:
+        self._dl_batch_idx = [0] * num_dataloaders

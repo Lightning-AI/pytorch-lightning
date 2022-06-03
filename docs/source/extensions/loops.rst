@@ -81,7 +81,7 @@ The core research logic is simply shifted to the :class:`~pytorch_lightning.core
         loss.backward()
         optimizer.step()
 
-Under the hood, the above loop is implemented using the :class:`~pytorch_lightning.loops.base.Loop` API like so:
+Under the hood, the above loop is implemented using the :class:`~pytorch_lightning.loops.loop.Loop` API like so:
 
 .. code-block:: python
 
@@ -183,7 +183,7 @@ Now your code is FULLY flexible and you can still leverage ALL the best parts of
 Creating a New Loop From Scratch
 --------------------------------
 
-You can also go wild and implement a full loop from scratch by sub-classing the :class:`~pytorch_lightning.loops.base.Loop` base class.
+You can also go wild and implement a full loop from scratch by sub-classing the :class:`~pytorch_lightning.loops.loop.Loop` base class.
 You will need to override a minimum of two things:
 
 .. code-block:: python
@@ -222,7 +222,7 @@ Loop API
 --------
 Here is the full API of methods available in the Loop base class.
 
-The :class:`~pytorch_lightning.loops.base.Loop` class is the base of all loops in the same way as the :class:`~pytorch_lightning.core.module.LightningModule` is the base of all models.
+The :class:`~pytorch_lightning.loops.loop.Loop` class is the base of all loops in the same way as the :class:`~pytorch_lightning.core.module.LightningModule` is the base of all models.
 It defines a public interface that each loop implementation must follow, the key ones are:
 
 Properties
@@ -231,13 +231,13 @@ Properties
 done
 ~~~~
 
-.. autoattribute:: pytorch_lightning.loops.base.Loop.done
+.. autoattribute:: pytorch_lightning.loops.loop.Loop.done
     :noindex:
 
 skip (optional)
 ~~~~~~~~~~~~~~~
 
-.. autoattribute:: pytorch_lightning.loops.base.Loop.skip
+.. autoattribute:: pytorch_lightning.loops.loop.Loop.skip
     :noindex:
 
 Methods
@@ -246,19 +246,19 @@ Methods
 reset (optional)
 ~~~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.loops.base.Loop.reset
+.. automethod:: pytorch_lightning.loops.loop.Loop.reset
     :noindex:
 
 advance
 ~~~~~~~
 
-.. automethod:: pytorch_lightning.loops.base.Loop.advance
+.. automethod:: pytorch_lightning.loops.loop.Loop.advance
     :noindex:
 
 run (optional)
 ~~~~~~~~~~~~~~
 
-.. automethod:: pytorch_lightning.loops.base.Loop.run
+.. automethod:: pytorch_lightning.loops.loop.Loop.run
     :noindex:
 
 
@@ -267,7 +267,7 @@ run (optional)
 Subloops
 --------
 
-When you want to customize nested loops within loops, use the :meth:`~pytorch_lightning.loops.base.Loop.replace` method:
+When you want to customize nested loops within loops, use the :meth:`~pytorch_lightning.loops.loop.Loop.replace` method:
 
 .. code-block:: python
 
@@ -276,7 +276,7 @@ When you want to customize nested loops within loops, use the :meth:`~pytorch_li
     # Trainer runs the fit loop with your new epoch loop!
     trainer.fit(model)
 
-Alternatively, for more fine-grained control, use the :meth:`~pytorch_lightning.loops.base.Loop.connect` method:
+Alternatively, for more fine-grained control, use the :meth:`~pytorch_lightning.loops.loop.Loop.connect` method:
 
 .. code-block:: python
 
@@ -326,7 +326,7 @@ Here is what the structure would look like in plain Python:
                 ...
 
 
-Each of these :code:`for`-loops represents a class implementing the :class:`~pytorch_lightning.loops.base.Loop` interface.
+Each of these :code:`for`-loops represents a class implementing the :class:`~pytorch_lightning.loops.loop.Loop` interface.
 
 
 .. list-table:: Trainer entry points and associated loops

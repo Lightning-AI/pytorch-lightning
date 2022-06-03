@@ -42,6 +42,7 @@ from pytorch_lightning.utilities.distributed import (
     sync_ddp_if_available,
 )
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
+from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -122,20 +123,22 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
-        super().setup(trainer)
+
+        self.accelerator.setup(trainer)
 
         # move the model to the correct device
         self.model_to_device()
 
-        trainer_fn = self.lightning_module.trainer.state.fn
-        if trainer_fn != TrainerFn.FITTING:
-            return
-
-        if self._layer_sync:
-            self.model = self._layer_sync.apply(self.model)
-
         # skip wrapping the model if we are not fitting as no gradients need to be exchanged
-        self.configure_ddp()
+        trainer_fn = trainer.state.fn
+        if trainer_fn == TrainerFn.FITTING:
+            if self._layer_sync:
+                self.model = self._layer_sync.apply(self.model)
+
+        self.setup_precision_plugin()
+
+        if trainer_fn == TrainerFn.FITTING:
+            self.configure_ddp()
 
     def _setup_model(self, model: Module) -> DistributedDataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
@@ -185,6 +188,10 @@ class DDPSpawnStrategy(ParallelStrategy):
         self.pre_configure_ddp()
         self.model = self._setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
+
+        # set up optimizers after the wrapped module has been moved to the device
+        self.setup_optimizers(self.lightning_module.trainer)
+        optimizers_to_device(self.optimizers, self.root_device)
 
     def determine_ddp_device_ids(self):
         if self.root_device.type == "cpu":
@@ -276,7 +283,6 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     def teardown(self) -> None:
         log.detail(f"{self.__class__.__name__}: tearing down strategy")
-        super().teardown()
 
         if isinstance(self.model, DistributedDataParallel):
             if (
@@ -299,10 +305,4 @@ class DDPSpawnStrategy(ParallelStrategy):
             # `self.lightning_module.trainer` can be None if teardown gets called on an exception before
             # the trainer gets set on the LightningModule
             self.model = self._layer_sync.revert(self.model)
-
-        if self.root_device.type == "cuda":
-            # GPU teardown
-            log.detail(f"{self.__class__.__name__}: moving model to CPU")
-            self.lightning_module.cpu()
-            # clean up memory
-            torch.cuda.empty_cache()
+        super().teardown()

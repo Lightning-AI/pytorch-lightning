@@ -15,14 +15,11 @@
 
 import inspect
 import os
-import sys
 from functools import partial, update_wrapper
 from types import MethodType, ModuleType
 from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Type, Union
-from unittest import mock
 
 import torch
-import yaml
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -33,16 +30,21 @@ from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.meta import get_all_subclasses
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import _warn, rank_zero_deprecation, rank_zero_warn
-from pytorch_lightning.utilities.seed import _select_seed_randomly
 
-_JSONARGPARSE_SIGNATURES_AVAILABLE = _RequirementAvailable("jsonargparse[signatures]>=4.7.1")
+_JSONARGPARSE_SIGNATURES_AVAILABLE = _RequirementAvailable("jsonargparse[signatures]>=4.9.0")
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     import docstring_parser
-    from jsonargparse import ActionConfigFile, ArgumentParser, class_from_function, Namespace, set_config_read_mode
-    from jsonargparse.typehints import get_all_subclass_paths
-    from jsonargparse.util import import_object
+    from jsonargparse import (
+        ActionConfigFile,
+        ArgumentParser,
+        class_from_function,
+        Namespace,
+        register_unresolvable_import_paths,
+        set_config_read_mode,
+    )
 
+    register_unresolvable_import_paths(torch)  # Required until fix https://github.com/pytorch/pytorch/issues/74483
     set_config_read_mode(fsspec_enabled=True)
 else:
     locals()["ArgumentParser"] = object
@@ -254,73 +256,6 @@ class LightningArgumentParser(ArgumentParser):
         else:
             self.add_class_arguments(lr_scheduler_class, nested_key, sub_configs=True, **kwargs)
         self._lr_schedulers[nested_key] = (lr_scheduler_class, link_to)
-
-    def parse_args(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
-        argv = sys.argv
-        nested_key = "trainer.callbacks"
-        if any(arg.startswith(f"--{nested_key}") for arg in argv):
-            classes = tuple(import_object(x) for x in get_all_subclass_paths(Callback))
-            argv = self._convert_argv_issue_85(classes, nested_key, argv)
-        with mock.patch("sys.argv", argv):
-            return super().parse_args(*args, **kwargs)
-
-    @staticmethod
-    def _convert_argv_issue_85(classes: Tuple[Type, ...], nested_key: str, argv: List[str]) -> List[str]:
-        """Placeholder for https://github.com/omni-us/jsonargparse/issues/85.
-
-        Adds support for shorthand notation for ``List[object]`` arguments.
-        """
-        passed_args, clean_argv = [], []
-        passed_configs = {}
-        argv_key = f"--{nested_key}"
-        # get the argv args for this nested key
-        i = 0
-        while i < len(argv):
-            arg = argv[i]
-            if arg.startswith(argv_key):
-                if "=" in arg:
-                    key, value = arg.split("=")
-                else:
-                    key = arg
-                    i += 1
-                    value = argv[i]
-                if "class_path" in value:
-                    # the user passed a config as a dict
-                    passed_configs[key] = yaml.safe_load(value)
-                else:
-                    passed_args.append((key, value))
-            else:
-                clean_argv.append(arg)
-            i += 1
-        # generate the associated config file
-        config = []
-        i, n = 0, len(passed_args)
-        while i < n - 1:
-            ki, vi = passed_args[i]
-            # convert class name to class path
-            for cls in classes:
-                if cls.__name__ == vi:
-                    cls_type = cls
-                    break
-            else:
-                raise ValueError(f"Could not generate a config for {repr(vi)}")
-            config.append(_global_add_class_path(cls_type))
-            # get any init args
-            j = i + 1  # in case the j-loop doesn't run
-            for j in range(i + 1, n):
-                kj, vj = passed_args[j]
-                if ki == kj:
-                    break
-                if kj.startswith(ki):
-                    init_arg_name = kj.split(".")[-1]
-                    config[-1]["init_args"][init_arg_name] = vj
-            i = j
-        # update at the end to preserve the order
-        for k, v in passed_configs.items():
-            config.extend(v)
-        if not config:
-            return clean_argv
-        return clean_argv + [argv_key, str(config)]
 
 
 class SaveConfigCallback(Callback):
@@ -641,7 +576,11 @@ class LightningCLI:
         return self._instantiate_trainer(trainer_config, extra_callbacks)
 
     def _instantiate_trainer(self, config: Dict[str, Any], callbacks: List[Callback]) -> Trainer:
-        config["callbacks"] = config["callbacks"] or []
+        if config["callbacks"] is None:
+            config["callbacks"] = []
+        elif not isinstance(config["callbacks"], list):
+            config["callbacks"] = [config["callbacks"]]
+        assert isinstance(config["callbacks"], list)  # to handle mypy false positive
         config["callbacks"].extend(callbacks)
         if "callbacks" in self.trainer_defaults:
             if isinstance(self.trainer_defaults["callbacks"], list):
@@ -778,13 +717,14 @@ class LightningCLI:
     def _set_seed(self) -> None:
         """Sets the seed."""
         config_seed = self._get(self.config, "seed_everything")
-
-        if isinstance(config_seed, bool) and config_seed:
-            config_seed = _select_seed_randomly()
-
-        if config_seed is not None and config_seed is not False:
-            seed_everything(config_seed, workers=True)
-            self.config["seed_everything"] = config_seed
+        if config_seed is False:
+            return
+        if config_seed is True:
+            # user requested seeding, choose randomly
+            config_seed = seed_everything(workers=True)
+        else:
+            config_seed = seed_everything(config_seed, workers=True)
+        self.config["seed_everything"] = config_seed
 
 
 def _class_path_from_class(class_type: Type) -> str:

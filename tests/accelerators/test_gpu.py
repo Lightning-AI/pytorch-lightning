@@ -23,7 +23,7 @@ from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_get_torch_gpu_stats(tmpdir):
     current_device = torch.device(f"cuda:{torch.cuda.current_device()}")
     gpu_stats = GPUAccelerator().get_device_stats(current_device)
@@ -33,7 +33,7 @@ def test_get_torch_gpu_stats(tmpdir):
         assert any(f in h for h in gpu_stats.keys())
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_get_nvidia_gpu_stats(tmpdir):
     current_device = torch.device(f"cuda:{torch.cuda.current_device()}")
     gpu_stats = get_nvidia_gpu_stats(current_device)
@@ -43,7 +43,7 @@ def test_get_nvidia_gpu_stats(tmpdir):
         assert any(f in h for h in gpu_stats.keys())
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 @mock.patch("torch.cuda.set_device")
 def test_set_cuda_device(set_device_mock, tmpdir):
     model = BoringModel()
@@ -60,12 +60,12 @@ def test_set_cuda_device(set_device_mock, tmpdir):
     set_device_mock.assert_called_once()
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_gpu_availability():
     assert GPUAccelerator.is_available()
 
 
-@RunIf(min_gpus=1)
+@RunIf(min_cuda_gpus=1)
 def test_warning_if_gpus_not_used():
     with pytest.warns(UserWarning, match="GPU available but not used. Set `accelerator` and `devices`"):
         Trainer()

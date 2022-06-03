@@ -204,8 +204,9 @@ class FitLoop(Loop[None]):
         if not self._iteration_based_training():
             self.epoch_progress.current.completed = self.epoch_progress.current.processed
 
-        # reset train dataloader and val dataloader
-        self.trainer.reset_train_val_dataloaders(self.trainer.lightning_module)
+        self.trainer.reset_train_dataloader(self.trainer.lightning_module)
+        # reload the evaluation dataloaders too for proper display in the progress bar
+        self.epoch_loop.val_loop._reload_evaluation_dataloaders()
 
         data_fetcher_cls = _select_data_fetcher(self.trainer)
         self._data_fetcher = data_fetcher_cls(prefetch_batches=self.prefetch_batches)
@@ -304,14 +305,14 @@ class FitLoop(Loop[None]):
         if self.epoch_loop._num_ready_batches_reached():
             self.epoch_loop.update_lr_schedulers("epoch", update_plateau_schedulers=True)
 
-        self.epoch_progress.increment_completed()
-
         # we manually decrease here because loggers expect that the same step is used when logging epoch-end metrics
         # even when the batch loop has finished
         self.epoch_loop._batches_that_stepped -= 1
         # log epoch metrics
         self.trainer._logger_connector.update_train_epoch_metrics()
         self.epoch_loop._batches_that_stepped += 1
+
+        self.epoch_progress.increment_completed()
 
         # if fault tolerant is enabled and process has been notified, exit.
         self.trainer._exit_gracefully_on_signal()

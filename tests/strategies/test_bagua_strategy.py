@@ -33,7 +33,7 @@ class BoringModel4QAdam(BoringModel):
         return [optimizer], [lr_scheduler]
 
 
-@RunIf(min_gpus=1, bagua=True)
+@RunIf(min_cuda_gpus=1, bagua=True)
 def test_bagua_default(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -45,7 +45,7 @@ def test_bagua_default(tmpdir):
     assert isinstance(trainer.strategy, BaguaStrategy)
 
 
-@RunIf(min_gpus=2, standalone=True, bagua=True)
+@RunIf(min_cuda_gpus=2, standalone=True, bagua=True)
 def test_async_algorithm(tmpdir):
     model = BoringModel()
     bagua_strategy = BaguaStrategy(algorithm="async")
@@ -64,7 +64,7 @@ def test_async_algorithm(tmpdir):
         assert torch.norm(param) < 3
 
 
-@RunIf(min_gpus=1, bagua=True)
+@RunIf(min_cuda_gpus=1, bagua=True)
 @pytest.mark.parametrize(
     "algorithm", ["gradient_allreduce", "bytegrad", "qadam", "decentralized", "low_precision_decentralized"]
 )
@@ -87,12 +87,12 @@ def test_configuration(algorithm, tmpdir):
     ), mock.patch("bagua.torch_api.communication.is_initialized", return_value=True):
         if algorithm == "qadam":
             with pytest.raises(MisconfigurationException, match="Bagua QAdam can only accept one QAdamOptimizer"):
-                trainer.strategy.configure_ddp()
+                trainer.strategy._configure_bagua_model(trainer)
         else:
-            trainer.strategy.configure_ddp()
+            trainer.strategy._configure_bagua_model(trainer)
 
 
-@RunIf(min_gpus=1, bagua=True)
+@RunIf(min_cuda_gpus=1, bagua=True)
 def test_qadam_configuration(tmpdir):
     model = BoringModel4QAdam()
     bagua_strategy = BaguaStrategy(algorithm="qadam")
@@ -111,7 +111,7 @@ def test_qadam_configuration(tmpdir):
     with mock.patch(
         "bagua.torch_api.data_parallel.bagua_distributed.BaguaDistributedDataParallel.__init__", return_value=None
     ), mock.patch("bagua.torch_api.communication.is_initialized", return_value=True):
-        trainer.strategy.configure_ddp()
+        trainer.strategy._configure_bagua_model(trainer)
 
 
 def test_bagua_not_available(monkeypatch):
