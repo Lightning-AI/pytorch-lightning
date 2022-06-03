@@ -21,7 +21,7 @@ jobs:
     strategy:
       matrix:
         'PyTorch - LTS':
-          image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8"
+          image: "pytorchlightning/pytorch_lightning:base-cuda-py3.7-torch1.8@sha256:fe3f5560d539135cdd6bdfe9e2a87b9a7b6955b928cd2780a9bff565688bf618"
         'PyTorch - stable':
           image: "pytorchlightning/pytorch_lightning:base-cuda-py3.9-torch1.11@sha256:e51b268be67096fa0942e6f395d85ec26ede493f35a7636d8a56b569cf65ddad"
     # how long to run the job before automatically cancelling
