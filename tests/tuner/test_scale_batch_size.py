@@ -185,22 +185,20 @@ def test_auto_scale_batch_size_set_model_attribute(tmpdir, use_hparams):
     hparams = {"batch_size": 2}
     before_batch_size = hparams.get("batch_size")
 
-    class HparamsBatchSizeModel(BoringModel):
-        def __init__(self, batch_size):
-            super().__init__()
-            self.batch_size = batch_size
-
-    class BatchSizeDataModule_hparams(BoringDataModule):
-        def __init__(self, batch_size):
-            super().__init__()
+    class BatchSizeDataModule_hparams(BatchSizeDataModule):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
             self.save_hyperparameters()
 
-        def train_dataloader(self):
-            return DataLoader(self.random_train, batch_size=self.hparams.batch_size)
+        def dataloader(self, *args, **kwargs):
+            setattr(self, "batch_size", before_batch_size)
+            dataloader = super().dataloader(*args, **kwargs)
+            del self.batch_size
+            return dataloader
 
-    datamodule_class = BatchSizeDataModule_hparams if use_hparams else BatchSizeDataModule
-    model_fit = HparamsBatchSizeModel(batch_size=before_batch_size)
-    datamodule = datamodule_class(**hparams)
+    datamodule_class = BatchSizeDataModule_hparams if use_hparams else HparamsBatchSizeDataModule
+    model_fit = BatchSizeModel(batch_size=before_batch_size)
+    datamodule = datamodule_class(**hparams) if use_hparams else datamodule_class(data_dir=tmpdir, **hparams)
 
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_scale_batch_size=True, accelerator="gpu", devices=1)
     trainer.tune(model_fit, datamodule)
