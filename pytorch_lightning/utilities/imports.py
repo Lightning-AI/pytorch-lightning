@@ -134,9 +134,9 @@ _TORCH_GREATER_EQUAL_1_12 = _compare_version("torch", operator.ge, "1.12.0", use
 
 _APEX_AVAILABLE = _module_available("apex.amp")
 _BAGUA_AVAILABLE = _package_available("bagua")
-_DEEPSPEED_AVAILABLE = _package_available("deepspeed")
-_DEEPSPEED_GREATER_EQUAL_0_5_9 = _DEEPSPEED_AVAILABLE and _compare_version("deepspeed", operator.ge, "0.5.9")
-_DEEPSPEED_GREATER_EQUAL_0_6 = _DEEPSPEED_AVAILABLE and _compare_version("deepspeed", operator.ge, "0.6.0")
+_DEEPSPEED_AVAILABLE = bool(_RequirementAvailable("deepspeed"))
+_DEEPSPEED_GREATER_EQUAL_0_5_9 = _DEEPSPEED_AVAILABLE and bool(_RequirementAvailable("deepspeed>=0.5.9"))
+_DEEPSPEED_GREATER_EQUAL_0_6 = _DEEPSPEED_AVAILABLE and bool(_RequirementAvailable("deepspeed>=0.6.0"))
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
 _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
 _FAIRSCALE_FULLY_SHARDED_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.4")
