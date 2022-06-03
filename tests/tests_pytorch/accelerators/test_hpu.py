@@ -268,7 +268,7 @@ def test_strategy_params_with_hpu_parallel_strategy():
 
 
 @RunIf(hpu=True)
-def test_multi_optimizers_with_hpu(tmpdir, hpus):
+def test_multi_optimizers_with_hpu(tmpdir):
     class TestModel(HPUTestModel):
 
         optims = [False, False]
@@ -287,7 +287,7 @@ def test_multi_optimizers_with_hpu(tmpdir, hpus):
     trainer = Trainer(
         default_root_dir=tmpdir,
         accelerator="hpu",
-        devices=hpus,
+        devices=1,
         limit_train_batches=2,
         limit_val_batches=2,
         max_epochs=1,
