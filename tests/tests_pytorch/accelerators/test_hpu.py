@@ -27,6 +27,7 @@ from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
+
 class HPUTestModel(BoringModel):
     def configure_optimizers(self):
         opt_a = torch.optim.Adam(self.layer.parameters(), lr=0.001)
