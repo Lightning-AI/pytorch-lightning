@@ -19,8 +19,15 @@ import pytest
 import pytorch_lightning.loggers.base as logger_base
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.module import LightningModule
-from pytorch_lightning.utilities.cli import LightningCLI
+from pytorch_lightning.utilities.cli import (
+    CALLBACK_REGISTRY,
+    deprecate_registry_message,
+    deprecate_auto_registry_message,
+    LightningCLI,
+    SaveConfigCallback,
+)
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
+from tests.helpers import BoringModel
 
 
 def test_lightning_logger_base_deprecation_warning():
@@ -133,3 +140,16 @@ def test_deprecated_dataloader_reset():
     trainer = Trainer()
     with pytest.deprecated_call(match="reset_train_val_dataloaders` has been deprecated in v1.7"):
         trainer.reset_train_val_dataloaders()
+
+
+def test_lightningCLI_registries_register():
+    with pytest.deprecated_call(match=deprecate_registry_message):
+        @CALLBACK_REGISTRY
+        class CustomCallback(SaveConfigCallback):
+            pass
+
+
+def test_lightningCLI_registries_register_automatically():
+    with pytest.deprecated_call(match=deprecate_auto_registry_message):
+        with mock.patch("sys.argv", ["any.py"]):
+            LightningCLI(BoringModel, run=False, auto_registry=True)
