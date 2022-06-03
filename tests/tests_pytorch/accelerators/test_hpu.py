@@ -27,6 +27,12 @@ from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.simple_models import ClassificationModel
 
+class HPUTestModel(BoringModel):
+    def configure_optimizers(self):
+        opt_a = torch.optim.Adam(self.layer.parameters(), lr=0.001)
+        opt_b = torch.optim.SGD(self.layer.parameters(), lr=0.001)
+        return opt_a, opt_b
+
 
 @RunIf(hpu=True)
 def test_availability():
@@ -258,3 +264,35 @@ def test_strategy_params_with_hpu_parallel_strategy():
     assert strategy._ddp_kwargs["gradient_as_bucket_view"] == gradient_as_bucket_view
     assert strategy._ddp_kwargs["static_graph"] == static_graph
     assert strategy._ddp_kwargs["find_unused_parameters"] == find_unused_parameters
+
+
+@RunIf(hpu=True)
+def test_multi_optimizers_with_hpu(tmpdir, hpus):
+    class TestModel(HPUTestModel):
+
+        optims = [False, False]
+
+        def training_step(self, batch, batch_idx, optimizer_idx):
+            self.optims[optimizer_idx] = True
+            return super().training_step(batch, batch_idx)
+
+        def training_epoch_end(self, outputs) -> None:
+            # outputs should be an array with an entry per optimizer
+            assert len(outputs) == 2
+
+    model = TestModel()
+    model.val_dataloader = None
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        accelerator="hpu",
+        devices=hpus,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        enable_model_summary=False,
+    )
+    trainer.fit(model)
+
+    assert all(model.optims)
