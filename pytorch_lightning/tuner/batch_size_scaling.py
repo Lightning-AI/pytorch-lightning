@@ -243,12 +243,11 @@ def _adjust_batch_size(
         new_size = min(new_size, len(trainer.train_dataloader.dataset))
 
     changed = new_size != batch_size
+    lightning_setattr(model, batch_arg_name, new_size)
 
-    if hasattr(model, "hparams"):
-        lightning_setattr(model, batch_arg_name, new_size)
-
-    if hasattr(datamodule, "hparams"):
+    if hasattr(datamodule, "batch_size"):
         lightning_setattr(datamodule, batch_arg_name, new_size)
+
     return new_size, changed
 
 
