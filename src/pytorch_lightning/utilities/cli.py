@@ -116,7 +116,7 @@ class _Registry(dict):  # Remove in v1.9
     def __str__(self) -> str:
         return f"Registered objects: {self.names}"
 
-    def _deprecation(self, show_deprecation: bool = True):
+    def _deprecation(self, show_deprecation: bool = True) -> None:
         if show_deprecation and not getattr(self, "deprecation_shown", False):
             rank_zero_deprecation(deprecate_registry_message)
             self.deprecation_shown = True
@@ -271,7 +271,8 @@ class LightningArgumentParser(ArgumentParser):
         """Adds arguments from a learning rate scheduler class to a nested key of the parser.
 
         Args:
-            lr_scheduler_class: Any subclass of ``torch.optim.lr_scheduler.{_LRScheduler, ReduceLROnPlateau}``. Use tuple to allow subclasses.
+            lr_scheduler_class: Any subclass of ``torch.optim.lr_scheduler.{_LRScheduler, ReduceLROnPlateau}``. Use
+                tuple to allow subclasses.
             nested_key: Name of the nested namespace to store arguments.
             link_to: Dot notation of a parser key to set arguments or AUTOMATIC.
         """
