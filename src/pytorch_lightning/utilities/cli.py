@@ -65,7 +65,9 @@ deprecate_auto_registry_message = (
 
 
 class _Registry(dict):  # Remove in v1.9
-    def __call__(self, cls: Type, key: Optional[str] = None, override: bool = False, show_deprecation: bool = True) -> Type:
+    def __call__(
+        self, cls: Type, key: Optional[str] = None, override: bool = False, show_deprecation: bool = True
+    ) -> Type:
         """Registers a class mapped to a name.
 
         Args:
@@ -84,7 +86,9 @@ class _Registry(dict):  # Remove in v1.9
         self._deprecation(show_deprecation)
         return cls
 
-    def register_classes(self, module: ModuleType, base_cls: Type, override: bool = False, show_deprecation: bool = True) -> None:
+    def register_classes(
+        self, module: ModuleType, base_cls: Type, override: bool = False, show_deprecation: bool = True
+    ) -> None:
         """This function is an utility to register all classes from a module."""
         for cls in self.get_members(module, base_cls):
             self(cls=cls, override=override, show_deprecation=show_deprecation)
@@ -113,7 +117,7 @@ class _Registry(dict):  # Remove in v1.9
         return f"Registered objects: {self.names}"
 
     def _deprecation(self, show_deprecation: bool = True):
-        if show_deprecation and not getattr(self, 'deprecation_shown', False):
+        if show_deprecation and not getattr(self, "deprecation_shown", False):
             rank_zero_deprecation(deprecate_registry_message)
             self.deprecation_shown = True
 
@@ -157,7 +161,9 @@ def _populate_registries(subclasses: bool) -> None:  # Remove in v1.9
     else:
         # manually register torch's subclasses and our subclasses
         OPTIMIZER_REGISTRY.register_classes(torch.optim, Optimizer, show_deprecation=False)
-        LR_SCHEDULER_REGISTRY.register_classes(torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler, show_deprecation=False)
+        LR_SCHEDULER_REGISTRY.register_classes(
+            torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler, show_deprecation=False
+        )
         CALLBACK_REGISTRY.register_classes(pl.callbacks, pl.Callback, show_deprecation=False)
         LOGGER_REGISTRY.register_classes(pl.loggers, pl.loggers.Logger, show_deprecation=False)
     # `ReduceLROnPlateau` does not subclass `_LRScheduler`

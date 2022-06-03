@@ -231,9 +231,9 @@ run. To select classes from any package by using only the class name, import the
 
     import torch
     from pytorch_lightning.utilities import cli as pl_cli
-    import my_code.models        # noqa: F401
+    import my_code.models  # noqa: F401
     import my_code.data_modules  # noqa: F401
-    import my_code.optimizers    # noqa: F401
+    import my_code.optimizers  # noqa: F401
 
     cli = pl_cli.LightningCLI()
 

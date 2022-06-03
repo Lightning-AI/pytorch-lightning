@@ -907,8 +907,6 @@ def test_lightning_cli_run():
     assert isinstance(cli.model, LightningModule)
 
 
-
-
 class TestModel(BoringModel):
     def __init__(self, foo, bar=5):
         super().__init__()
