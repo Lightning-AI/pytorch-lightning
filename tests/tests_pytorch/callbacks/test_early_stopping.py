@@ -458,28 +458,35 @@ def test_early_stopping_squeezes():
     es_mock.assert_called_once_with(torch.tensor(0))
 
 
+@pytest.mark.parametrize("trainer", [Trainer(), None])
 @pytest.mark.parametrize(
     "log_rank_zero_only, world_size, global_rank, expected_log",
     [
-        (False, 1, 0, f"bar"),
-        (False, 2, 0, f"[rank: 0] bar"),
-        (False, 2, 1, f"[rank: 1] bar"),
-        (True, 1, 0, f"bar"),
-        (True, 2, 0, f"[rank: 0] bar"),
+        (False, 1, 0, "bar"),
+        (False, 2, 0, "[rank: 0] bar"),
+        (False, 2, 1, "[rank: 1] bar"),
+        (True, 1, 0, "bar"),
+        (True, 2, 0, "[rank: 0] bar"),
         (True, 2, 1, None),
     ],
 )
-def test_early_stopping_log_info(tmpdir, log_rank_zero_only, world_size, global_rank, expected_log):
+def test_early_stopping_log_info(tmpdir, trainer, log_rank_zero_only, world_size, global_rank, expected_log):
     """checks if log.info() gets called with expected message when used within EarlyStopping."""
 
     early_stopping = EarlyStopping(monitor="foo")
-    trainer = Trainer()
-    trainer.strategy.global_rank = global_rank
-    trainer.strategy.world_size = world_size
+
+    # set the global_rank and world_size if trainer is not None
+    # or else always expect the simple logging message
+    if trainer:
+        trainer.strategy.global_rank = global_rank
+        trainer.strategy.world_size = world_size
+    else:
+        expected_log = "bar"
 
     with mock.patch("pytorch_lightning.callbacks.early_stopping.log.info") as log_mock:
         early_stopping._log_info(trainer, "bar", log_rank_zero_only)
 
+    # check log.info() was called or not with expected arg
     if expected_log:
         log_mock.assert_called_once_with(expected_log)
     else:

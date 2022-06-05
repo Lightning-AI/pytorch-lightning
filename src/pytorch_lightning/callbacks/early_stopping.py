@@ -259,10 +259,12 @@ class EarlyStopping(Callback):
 
     @staticmethod
     def _log_info(trainer: Optional["pl.Trainer"], message: str, log_rank_zero_only: bool) -> None:
-        # ignore logging in non-zero ranks if log_rank_zero_only flag is enabled
-        if log_rank_zero_only and trainer.global_rank != 0:
-            return
-        if trainer is not None and trainer.world_size > 1:
-            log.info(f"[rank: {trainer.global_rank}] {message}")
-        else:
-            log.info(message)
+        if trainer:
+            # ignore logging in non-zero ranks if log_rank_zero_only flag is enabled
+            if log_rank_zero_only and trainer.global_rank != 0:
+                return
+            # if world size is more than one then specify the rank of the processed being logged
+            if trainer.world_size > 1:
+                log.info(f"[rank: {trainer.global_rank}] {message}")
+                return
+        log.info(message)
