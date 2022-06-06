@@ -14,5 +14,11 @@ COPY ./dockers/ci-runner-hpu/start.sh /usr/local/bin/
 
 RUN chmod +x /usr/local/bin/start.sh
 
+RUN curl -fsSL https://get.docker.com -o get-docker.sh && \
+    sh get-docker.sh && \
+    rm get-docker.sh
+
+#RUN docker --help
+
 ENTRYPOINT ["/usr/local/bin/start.sh"]
 CMD ["bash"]
