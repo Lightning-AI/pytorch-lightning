@@ -154,6 +154,6 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
-          file: dockers/ipu-ci-runner/Dockerfile
+          file: dockers/ci-runner-ipu/Dockerfile
           push: false
         timeout-minutes: 60

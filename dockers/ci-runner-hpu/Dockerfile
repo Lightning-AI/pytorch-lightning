@@ -6,14 +6,11 @@ FROM vault.habana.ai/gaudi-docker/${VERSION}/ubuntu20.04/habanalabs/${PYTORCH_IN
 
 LABEL maintainer="https://vault.habana.ai/"
 
-# Remove the pytorch-lightning available in the docker image
-RUN pip uninstall pytorch-lightning -y
-
 RUN echo "ALL ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 WORKDIR /azp
 
-COPY ./dockers/hpu-ci-runner/start.sh /usr/local/bin/
+COPY ./dockers/ci-runner-hpu/start.sh /usr/local/bin/
 
 RUN chmod +x /usr/local/bin/start.sh
 
