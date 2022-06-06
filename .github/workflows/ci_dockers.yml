@@ -157,3 +157,26 @@ jobs:
           file: dockers/ci-runner-ipu/Dockerfile
           push: false
         timeout-minutes: 60
+
+  build-hpu:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # the config used in 'dockers/hpu-ci-runner/Dockerfile'
+        gaudi_version: ["1.4.0"]
+        pytorch_version: ["1.10.2"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build HPU CI runner Docker
+        uses: docker/build-push-action@v2
+        with:
+          build-args: |
+            DIST="latest"
+            GAUDI_VERSION=${{ matrix.gaudi_version }}
+            PYTORCH_VERSION=${{ matrix.pytorch_version }}
+          file: dockers/ci-runner-hpu/Dockerfile
+          push: false
+        timeout-minutes: 60
