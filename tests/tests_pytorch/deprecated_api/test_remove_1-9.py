@@ -20,9 +20,9 @@ import pytorch_lightning.loggers.base as logger_base
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.utilities.cli import (
-    CALLBACK_REGISTRY,
     _deprecate_auto_registry_message,
     _deprecate_registry_message,
+    CALLBACK_REGISTRY,
     LightningCLI,
     SaveConfigCallback,
 )
