@@ -86,9 +86,10 @@ file example that defines a couple of callbacks is the following:
 
 Similar to the callbacks, any parameter in :class:`~pytorch_lightning.trainer.trainer.Trainer` and user extended
 :class:`~pytorch_lightning.core.module.LightningModule` and
-:class:`~pytorch_lightning.core.datamodule.LightningDataModule` classes that have as type hint a class can be configured
-the same way using :code:`class_path` and :code:`init_args`. If the package that defines a subclass is imported before
-the ``LightningCLI`` class is run, the name can be used instead of the full import path.
+:class:`~pytorch_lightning.core.datamodule.LightningDataModule` classes that have as type hint a class, can be
+configured the same way using :code:`class_path` and :code:`init_args`. If the package that defines a subclass is
+imported before the :class:`~pytorch_lightning.utilities.cli.LightningCLI` class is run, the name can be used instead of
+the full import path.
 
 From command line the syntax is the following:
 
@@ -113,6 +114,12 @@ callback appended. Here is an example:
         --trainer.callbacks.patience=5 \
         --trainer.callbacks+=LearningRateMonitor \
         --trainer.callbacks.logging_interval=epoch
+
+.. note::
+
+    Serialized config files (e.g. ``--print_config`` or :class:`~pytorch_lightning.utilities.cli.SaveConfigCallback`)
+    always have the full ``class_path``'s, even when class name shorthand notation is used in command line or in input
+    config files.
 
 
 Multiple models and/or datasets

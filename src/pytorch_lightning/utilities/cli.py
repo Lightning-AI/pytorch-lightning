@@ -51,13 +51,13 @@ else:
     locals()["Namespace"] = object
 
 
-deprecate_registry_message = (
+_deprecate_registry_message = (
     "`LightningCLI`'s registries were deprecated in v1.7 and will be removed "
     "in v1.9. Now any imported subclass is automatically available by name in "
     "`LightningCLI` without any need to explicitly register it."
 )
 
-deprecate_auto_registry_message = (
+_deprecate_auto_registry_message = (
     "`LightningCLI.auto_registry` parameter was deprecated in v1.7 and will be removed "
     "in v1.9. Now any imported subclass is automatically available by name in "
     "`LightningCLI` without any need to explicitly register it."
@@ -118,7 +118,7 @@ class _Registry(dict):  # Remove in v1.9
 
     def _deprecation(self, show_deprecation: bool = True) -> None:
         if show_deprecation and not getattr(self, "deprecation_shown", False):
-            rank_zero_deprecation(deprecate_registry_message)
+            rank_zero_deprecation(_deprecate_registry_message)
             self.deprecation_shown = True
 
 
@@ -144,7 +144,7 @@ LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[Reduce
 
 def _populate_registries(subclasses: bool) -> None:  # Remove in v1.9
     if subclasses:
-        rank_zero_deprecation(deprecate_auto_registry_message)
+        rank_zero_deprecation(_deprecate_auto_registry_message)
         # this will register any subclasses from all loaded modules including userland
         for cls in get_all_subclasses(torch.optim.Optimizer):
             OPTIMIZER_REGISTRY(cls, show_deprecation=False)

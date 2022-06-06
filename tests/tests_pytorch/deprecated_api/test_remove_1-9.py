@@ -21,8 +21,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.utilities.cli import (
     CALLBACK_REGISTRY,
-    deprecate_auto_registry_message,
-    deprecate_registry_message,
+    _deprecate_auto_registry_message,
+    _deprecate_registry_message,
     LightningCLI,
     SaveConfigCallback,
 )
@@ -143,7 +143,7 @@ def test_deprecated_dataloader_reset():
 
 
 def test_lightningCLI_registries_register():
-    with pytest.deprecated_call(match=deprecate_registry_message):
+    with pytest.deprecated_call(match=_deprecate_registry_message):
 
         @CALLBACK_REGISTRY
         class CustomCallback(SaveConfigCallback):
@@ -151,6 +151,6 @@ def test_lightningCLI_registries_register():
 
 
 def test_lightningCLI_registries_register_automatically():
-    with pytest.deprecated_call(match=deprecate_auto_registry_message):
+    with pytest.deprecated_call(match=_deprecate_auto_registry_message):
         with mock.patch("sys.argv", ["any.py"]):
             LightningCLI(BoringModel, run=False, auto_registry=True)
