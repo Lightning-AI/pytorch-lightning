@@ -346,7 +346,7 @@ class DummyLogger(Logger):
         # if DummyLogger is substituting a logger collection, pretend it is empty
         yield from ()
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Callable:
         """Allows the DummyLogger to be called with arbitrary methods, to avoid AttributeErrors."""
 
         def method(*args, **kwargs):

@@ -257,11 +257,16 @@ def test_dummylogger_noop_method_calls():
     logger.log_metrics("1", 2, three="three")
 
 
-def test_dummlogger_arbitrary_method_calls():
+def test_dummlogger_arbitrary_method_calls(caplog):
     """Test that the DummyLogger can be called with non existing methods."""
     logger = DummyLogger()
     # Example method from WandbLogger
     logger.log_text("1", columns=["1", "2", "3"], data=[[1, 2, 3]])
+
+    assert (
+        "The `DummyLogger` is being used and the method `log_text` was called on it "
+        "but it does not exist. This is the case when `fast_dev_run` is enabled\n" in caplog.text
+    )
 
 
 def test_dummyexperiment_support_item_assignment():
