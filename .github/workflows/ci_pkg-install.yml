@@ -54,8 +54,8 @@ jobs:
           # install as archive
           pip install *.tar.gz
           cd ..
-          python -c "import pytorch_lightning as pl ; print(pl.__version__)"
-          pip uninstall -y pytorch-lightning
+          python -c "import pytorch_lightning ; print(pytorch_lightning.__version__)"
+          pip uninstall -y pytorch_lightning
 
       - name: Install | Uninstall package - wheel
         working-directory: ./dist
@@ -63,5 +63,5 @@ jobs:
           # install as wheel
           pip install *.whl
           cd ..
-          python -c "import pytorch_lightning as pl ; print(pl.__version__)"
-          pip uninstall -y pytorch-lightning
+          python -c "import pytorch_lightning ; print(pytorch_lightning.__version__)"
+          pip uninstall -y pytorch_lightning

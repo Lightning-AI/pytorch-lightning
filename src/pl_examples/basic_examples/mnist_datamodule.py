@@ -33,7 +33,7 @@ if _TORCHVISION_AVAILABLE:
 
 
 class _MNIST(Dataset):
-    """Carbon copy of ``tests.helpers.datasets.MNIST``.
+    """Carbon copy of ``unittests.helpers.datasets.MNIST``.
 
     We cannot import the tests as they are not distributed with the package.
     See https://github.com/PyTorchLightning/pytorch-lightning/pull/7614#discussion_r671183652 for more context.

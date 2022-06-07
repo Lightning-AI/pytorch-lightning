@@ -39,11 +39,12 @@ jobs:
       run: |
         conda info
         conda list
+        pip install -e .
         pip install -r requirements/test.txt
 
     - name: DocTests
-      run: |
-        coverage run --source pytorch_lightning -m pytest pytorch_lightning
+      working-directory: ./src
+      run: pytest pytorch_lightning --cov=pytorch_lightning
 
     - name: Update all dependencies
       env:
@@ -67,19 +68,19 @@ jobs:
       run: bash .actions/pull_legacy_checkpoints.sh
 
     - name: UnitTests
-      run: |
-        coverage run --source pytorch_lightning -m pytest --timeout 150 tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
+      working-directory: ./test
+      run: coverage run --source pytorch_lightning -m pytest unittests -v --timeout 150 --durations=50 --junitxml=results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
 
     - name: Upload pytest results
       uses: actions/upload-artifact@v2
       with:
-        name: pytest-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}
-        path: junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
-        if-no-files-found: error
+        name: unittest-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}
+        path: test/results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
       if: failure()
 
     - name: Statistics
       if: success()
+      working-directory: ./test
       run: |
         coverage report
         coverage xml
@@ -91,7 +92,7 @@ jobs:
       continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: coverage.xml
-        flags: cpu,pytest,torch${{ matrix.pytorch-version }}
+        file: test/coverage.xml
+        flags: cpu,unittests,conda,torch${{ matrix.pytorch-version }}
         name: CPU-coverage
         fail_ci_if_error: false

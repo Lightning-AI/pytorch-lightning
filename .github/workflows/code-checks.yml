@@ -37,4 +37,4 @@ jobs:
         pip list
 
     - name: Type check
-      run: mypy --install-types --non-interactive
+      run: mypy src/ --install-types --non-interactive

@@ -411,8 +411,8 @@ def test_lightning_cli_save_config_cases(tmpdir):
 def test_lightning_cli_config_and_subclass_mode(tmpdir):
     input_config = {
         "fit": {
-            "model": {"class_path": "tests.helpers.BoringModel"},
-            "data": {"class_path": "tests.helpers.BoringDataModule", "init_args": {"data_dir": str(tmpdir)}},
+            "model": {"class_path": "unittests.helpers.BoringModel"},
+            "data": {"class_path": "unittests.helpers.BoringDataModule", "init_args": {"data_dir": str(tmpdir)}},
             "trainer": {"default_root_dir": str(tmpdir), "max_epochs": 1, "enable_model_summary": False},
         }
     }
@@ -463,7 +463,7 @@ def test_lightning_cli_help():
         if param not in skip_params:
             assert f"--trainer.{param}" in out
 
-    cli_args = ["any.py", "fit", "--data.help=tests.helpers.BoringDataModule"]
+    cli_args = ["any.py", "fit", "--data.help=unittests.helpers.BoringDataModule"]
     out = StringIO()
     with mock.patch("sys.argv", cli_args), redirect_stdout(out), pytest.raises(SystemExit):
         any_model_any_data_cli()
@@ -476,8 +476,8 @@ def test_lightning_cli_print_config():
         "any.py",
         "predict",
         "--seed_everything=1234",
-        "--model=tests.helpers.BoringModel",
-        "--data=tests.helpers.BoringDataModule",
+        "--model=unittests.helpers.BoringModel",
+        "--data=unittests.helpers.BoringDataModule",
         "--print_config",
     ]
     out = StringIO()
@@ -592,7 +592,7 @@ def test_lightning_cli_link_arguments(tmpdir):
             parser.link_arguments("data.batch_size", "model.init_args.batch_size")
             parser.link_arguments("data.num_classes", "model.init_args.num_classes", apply_on="instantiate")
 
-    cli_args[-1] = "--model=tests.utilities.test_cli.BoringModelRequiredClasses"
+    cli_args[-1] = "--model=unittests.utilities.test_cli.BoringModelRequiredClasses"
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(
