@@ -201,11 +201,14 @@ class CollaborativeStrategy(Strategy):
     def root_device(self) -> torch.device:
         from pytorch_lightning.accelerators.cpu import CPUAccelerator
         from pytorch_lightning.accelerators.gpu import GPUAccelerator
+        from pytorch_lightning.accelerators.mps import MPSAccelerator
 
         if isinstance(self.accelerator, GPUAccelerator):
             return torch.device(f"cuda:{torch.cuda.current_device()}")
         elif isinstance(self.accelerator, CPUAccelerator):
             return torch.device("cpu")
+        elif isinstance(self.accelerator, MPSAccelerator):
+            return torch.device("mps")
         raise MisconfigurationException(
             f"Was unable to infer device type from the accelerator: {self.accelerator.__class__.__name__}."
         )
