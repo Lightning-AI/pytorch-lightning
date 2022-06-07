@@ -263,8 +263,10 @@ class EarlyStopping(Callback):
             # ignore logging in non-zero ranks if log_rank_zero_only flag is enabled
             if log_rank_zero_only and trainer.global_rank != 0:
                 return
-            # if world size is more than one then specify the rank of the processed being logged
+            # if world size is more than one then specify the rank of the process being logged
             if trainer.world_size > 1:
                 log.info(f"[rank: {trainer.global_rank}] {message}")
                 return
+
+        # if above conditions don't meet and we have to log
         log.info(message)
