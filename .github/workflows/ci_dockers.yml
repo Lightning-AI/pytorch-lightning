@@ -130,7 +130,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # the config used in 'dockers/ipu-ci-runner/Dockerfile'
+        # the config used in 'dockers/ci-runner-ipu/Dockerfile'
         python_version: ["3.9"]  # latest
         pytorch_version: ["1.9"]
     steps:
@@ -163,7 +163,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # the config used in 'dockers/hpu-ci-runner/Dockerfile'
+        # the config used in 'dockers/ci-runner-hpu/Dockerfile'
         gaudi_version: ["1.4.0"]
         pytorch_version: ["1.10.2"]
     steps:
