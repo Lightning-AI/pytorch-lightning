@@ -65,6 +65,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Added `teardown()` method to `Accelerator` ([#11935](https://github.com/PyTorchLightning/pytorch-lightning/pull/11935))
 
+
+- Override `__getattr__` in `DummyLogger` to avoid `AttributeError` from third party logger calls in `fast_dev_run` ([#13224](https://github.com/PyTorchLightning/pytorch-lightning/pull/13224))
+
 ### Changed
 
 - Enable validation during overfitting ([#12527](https://github.com/PyTorchLightning/pytorch-lightning/pull/12527))
