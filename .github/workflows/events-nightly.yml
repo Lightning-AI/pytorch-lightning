@@ -293,7 +293,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Publish IPU CI runner to Docker Hub
+      - name: Publish HPU CI runner to Docker Hub
         # publish master/release
         uses: docker/build-push-action@v2
         with:
