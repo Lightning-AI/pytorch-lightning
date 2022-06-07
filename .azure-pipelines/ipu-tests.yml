@@ -5,11 +5,13 @@ trigger:
   branches:
     include:
       - master
-      - release/*
-      - refs/tags/*
+      - "release/*"
+      - "future/*"
+      - "refs/tags/*"
 pr:
   - master
-  - release/*
+  - "release/*"
+  - "future/*"
 
 variables:
 - name: poplar_sdk

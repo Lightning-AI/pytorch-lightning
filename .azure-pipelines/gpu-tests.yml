@@ -11,10 +11,12 @@ trigger:
     include:
       - "master"
       - "release/*"
+      - "future/*"
       - "refs/tags/*"
 pr:
   - "master"
   - "release/*"
+  - "future/*"
 
 jobs:
   - job: pytest

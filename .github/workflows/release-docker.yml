@@ -3,7 +3,7 @@ name: Docker
 # https://github.com/docker/build-push-action
 on:
   push:
-    branches: [master, "release/*"]
+    branches: [master, "release/*", "future/*"]
   release:
     types: [published]
 

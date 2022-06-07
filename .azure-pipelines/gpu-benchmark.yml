@@ -11,6 +11,7 @@ trigger:
     include:
       - "master"
       - "release/*"
+      - "future/*"
       - "refs/tags/*"
 
 pr: none
