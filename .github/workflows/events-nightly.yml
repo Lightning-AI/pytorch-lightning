@@ -298,7 +298,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           build-args: |
-            DIST="latest"
+            DIST=latest
             GAUDI_VERSION=${{ matrix.gaudi_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/ci-runner-hpu/Dockerfile
