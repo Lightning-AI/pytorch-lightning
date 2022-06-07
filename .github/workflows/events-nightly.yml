@@ -217,7 +217,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # the config used in 'dockers/ipu-ci-runner/Dockerfile'
+        # the config used in 'dockers/ci-runner-ipu/Dockerfile'
         include:
           - {python_version: "3.9", pytorch_version: "1.9"}
 
@@ -276,7 +276,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # the config used in 'dockers/ipu-ci-runner/Dockerfile'
+        # the config used in 'dockers/ci-runner-hpu/Dockerfile'
         include:
           - {gaudi_version: "1.4.0", pytorch_version: "1.10.2"}
 
