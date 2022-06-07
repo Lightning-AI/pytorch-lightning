@@ -109,15 +109,17 @@ class HyperparametersMixin:
             if current_frame:
                 frame = current_frame.f_back
                 if not (
-                    frame.f_code.co_name == "__init__" and
-                    'self' in frame.f_locals and
-                    isinstance(frame.f_locals['self'], HyperparametersMixin)
-                    ):
-                    called_from_fn = (f"{frame.f_locals['self'].__class__.__name__}." if 'self' in frame.f_locals else '') + f"{frame.f_code.co_name}"
+                    frame.f_code.co_name == "__init__"
+                    and "self" in frame.f_locals
+                    and isinstance(frame.f_locals["self"], HyperparametersMixin)
+                ):
+                    called_from_fn = (
+                        f"{frame.f_locals['self'].__class__.__name__}." if "self" in frame.f_locals else ""
+                    ) + f"{frame.f_code.co_name}"
                     raise ValueError(
                         "The `save_hyperparameter` method must be called from the `LightningModule.__init__` method, "
                         + f"but was called from `{called_from_fn}` instead."
-                        )
+                    )
         save_hyperparameters(self, *args, ignore=ignore, frame=frame)
 
     def _set_hparams(self, hp: Union[MutableMapping, Namespace, str]) -> None:
