@@ -351,7 +351,8 @@ class DummyLogger(Logger):
 
         def method(*args, **kwargs):
             rank_zero_info(
-                f"The DummyLogger is being used and the method `{name}` was called on it but it does not exist"
+                f"The `DummyLogger` is being used and the method `{name}` was called on it but it does not exist."
+                " This is the case when `fast_dev_run` is enabled"
             )
 
         return method
