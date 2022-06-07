@@ -473,8 +473,6 @@ def test_early_stopping_squeezes():
 def test_early_stopping_log_info(tmpdir, trainer, log_rank_zero_only, world_size, global_rank, expected_log):
     """checks if log.info() gets called with expected message when used within EarlyStopping."""
 
-    early_stopping = EarlyStopping(monitor="foo")
-
     # set the global_rank and world_size if trainer is not None
     # or else always expect the simple logging message
     if trainer:
@@ -484,7 +482,7 @@ def test_early_stopping_log_info(tmpdir, trainer, log_rank_zero_only, world_size
         expected_log = "bar"
 
     with mock.patch("pytorch_lightning.callbacks.early_stopping.log.info") as log_mock:
-        early_stopping._log_info(trainer, "bar", log_rank_zero_only)
+        EarlyStopping._log_info(trainer, "bar", log_rank_zero_only)
 
     # check log.info() was called or not with expected arg
     if expected_log:
