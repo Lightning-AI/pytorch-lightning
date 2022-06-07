@@ -105,7 +105,8 @@ class RunIf:
             tpu: Require that TPU is available.
             ipu: Require that IPU is available.
             hpu: Require that HPU is available.
-            mps: Require that MPS (Apple Sillicon) is available.
+            mps: If True: Require that MPS (Apple Silicon) is available, 
+                if False: Explicitly Require that MPS is not available
             horovod: Require that Horovod is installed.
             horovod_nccl: Require that Horovod is installed with NCCL support.
             skip_windows: Skip for Windows platform.
