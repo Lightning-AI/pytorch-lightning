@@ -18,12 +18,10 @@ variables:
   value: "poplar_sdk-ubuntu_20_04-2.3.1+793-89796d462d"
 
 jobs:
-  - job: tests
-
+  - job: testing
     # how long to run the job before automatically cancelling
     timeoutInMinutes: "15"
     pool: graphcore-ipus
-
     workspace:
       clean: all
 
@@ -57,6 +55,7 @@ jobs:
         export GIT_TERMINAL_PROMPT=1
         python ./requirements/adjust-versions.py requirements/extra.txt
         python ./requirements/adjust-versions.py requirements/examples.txt
+        pip install -e .
         pip install . --requirement ./requirements/devel.txt
         pip list
       displayName: 'Install dependencies'
@@ -70,16 +69,23 @@ jobs:
         set -eux
         source ${{ variables.poplar_sdk }}/poplar-ubuntu*/enable.sh
         source ${{ variables.poplar_sdk }}/popart-ubuntu*/enable.sh
-
         python -c "import poptorch; print(poptorch.__version__)"
       displayName: "Check poptorch installation"
 
     - bash: |
         source ${{ variables.poplar_sdk }}/poplar-ubuntu*/enable.sh
         source ${{ variables.poplar_sdk }}/popart-ubuntu*/enable.sh
-        export POPTORCH_WAIT_FOR_IPU=1
-        export PL_RUN_IPU_TESTS=1
-        python -m coverage run --source pytorch_lightning -m pytest tests -vv --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
+        cd src
+        python -m pytest pytorch_lightning
+      displayName: 'DocTests'
+
+    - bash: |
+        source ${{ variables.poplar_sdk }}/poplar-ubuntu*/enable.sh
+        source ${{ variables.poplar_sdk }}/popart-ubuntu*/enable.sh
+        cd test
+        python -m coverage run --source pytorch_lightning -m pytest unittests -vv --durations=50
       env:
         MKL_THREADING_LAYER: "GNU"
-      displayName: 'Testing: standard'
+        POPTORCH_WAIT_FOR_IPU: 1
+        PL_RUN_IPU_TESTS: 1
+      displayName: 'UnitTests'

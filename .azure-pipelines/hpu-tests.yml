@@ -16,15 +16,12 @@ pr:
   - "future/*"
 
 jobs:
-  - job: tests
-
+  - job: testing
     # how long to run the job before automatically cancelling
     timeoutInMinutes: "10"
     # how much time to give 'run always even if cancelled tasks' before stopping them
     cancelTimeoutInMinutes: "2"
-
     pool: intel-hpus
-
     workspace:
       clean: all
 
@@ -35,25 +32,32 @@ jobs:
       displayName: 'Instance HW info'
 
     - bash: |
-        pip install . --requirement requirements/extra.txt
+        pip install -e .[extra]
         pip install . --requirement requirements/test.txt
       displayName: 'Install dependencies'
 
     - bash: |
-        python -m pytest -sv tests/accelerators/test_hpu.py --forked --junitxml=hpu1_test-results.xml
+        python -m pytest -sv unittests/accelerators/test_hpu.py --forked --junitxml=hpu1_test-results.xml
+      workingDirectory: test
       displayName: 'Single card HPU test'
 
     - bash: |
-        python -m pytest -sv tests/accelerators/test_hpu.py --forked --hpus 8 --junitxml=hpu8_test-results.xml
+        python -m pytest -sv unittests/accelerators/test_hpu.py --forked --hpus 8 --junitxml=hpu8_test-results.xml
+      workingDirectory: test
       displayName: 'Multi card(8) HPU test'
 
     - bash: |
-        python -m pytest -sv tests/plugins/precision/hpu/test_hpu.py --hmp-bf16 'tests/plugins/precision/hpu/ops_bf16.txt' --hmp-fp32 'tests/plugins/precision/hpu/ops_fp32.txt' --forked --junitxml=hpu1_precision_test-results.xml
+        python -m pytest -sv unittests/plugins/precision/hpu/test_hpu.py --hmp-bf16 \
+          'unittests/plugins/precision/hpu/ops_bf16.txt' --hmp-fp32 \
+          'unittests/plugins/precision/hpu/ops_fp32.txt' --forked \
+          --junitxml=hpu1_precision_test-results.xml
+      workingDirectory: test
       displayName: 'HPU precision test'
 
     - bash: |
         export PYTHONPATH="${PYTHONPATH}:$(pwd)"
         python "pl_examples/hpu_examples/simple_mnist/mnist.py"
+      workingDirectory: src
       displayName: 'Testing: HPU examples'
 
     - task: PublishTestResults@2
