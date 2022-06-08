@@ -16,7 +16,7 @@
 | test-on-tpus                | .circleci/config.yml                | Run only TPU-specific tests.                                                                                                                                               | TPU           | (3.7, 1.9)                                       | linux               |
 
 - \*Accelerators used in CI
-  - GPU: 2 x NVIDIA P100
+  - GPU: 2 x NVIDIA Tesla K80
   - TPU: Google GKE TPUv3
   - IPU: [Colossus MK1 IPU](https://www.graphcore.ai/products/ipu)
   - HPU: [Intel Habana Gaudi SYS-420GH-TNGR](https://www.supermicro.com/en/products/system/AI/4U/SYS-420GH-TNGR) which has 8 Gaudi accelerators
