@@ -134,6 +134,7 @@ _TORCH_GREATER_EQUAL_1_12 = _compare_version("torch", operator.ge, "1.12.0", use
 
 _APEX_AVAILABLE = _module_available("apex.amp")
 _BAGUA_AVAILABLE = _package_available("bagua")
+_DALI_AVAILABLE = _module_available("nvidia.dali")
 _DEEPSPEED_AVAILABLE = _package_available("deepspeed")
 _DEEPSPEED_GREATER_EQUAL_0_5_9 = _DEEPSPEED_AVAILABLE and _compare_version("deepspeed", operator.ge, "0.5.9")
 _DEEPSPEED_GREATER_EQUAL_0_6 = _DEEPSPEED_AVAILABLE and _compare_version("deepspeed", operator.ge, "0.6.0")
