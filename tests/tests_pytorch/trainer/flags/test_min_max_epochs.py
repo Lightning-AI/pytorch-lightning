@@ -1,3 +1,5 @@
+import warnings
+
 import pytest
 
 from pytorch_lightning import Trainer
@@ -41,3 +43,11 @@ def test_max_epochs_not_set_warning():
     with pytest.warns(PossibleUserWarning, match="`max_epochs` was not set. Setting it to 1000 epochs."):
         trainer = Trainer(max_epochs=None)
         assert trainer.max_epochs == 1000
+
+
+def test_fast_dev_run_no_warning():
+    """Test that no warning is emitted when `fast_dev_run` is set."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        Trainer(fast_dev_run=True)
+        Trainer(fast_dev_run=1)
