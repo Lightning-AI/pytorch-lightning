@@ -37,4 +37,5 @@ jobs:
         pip list
 
     - name: Type check
-      run: mypy src/ --install-types --non-interactive
+      working-directory: ./src
+      run: mypy -p pytorch_lightning --install-types --non-interactive --verbose --config-file ../pyproject.toml --warn-unused-configs
