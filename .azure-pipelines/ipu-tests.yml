@@ -83,7 +83,7 @@ jobs:
         source ${{ variables.poplar_sdk }}/poplar-ubuntu*/enable.sh
         source ${{ variables.poplar_sdk }}/popart-ubuntu*/enable.sh
         cd test
-        python -m coverage run --source pytorch_lightning -m pytest unittests -vv --durations=50
+        python -m coverage run --source pytorch_lightning -m pytest unittests_pl -vv --durations=50
       env:
         MKL_THREADING_LAYER: "GNU"
         POPTORCH_WAIT_FOR_IPU: 1

@@ -76,7 +76,7 @@ jobs:
       workingDirectory: src
       displayName: 'Testing: doctests'
 
-    - bash: python -m coverage run --source pytorch_lightning -m pytest unittests --ignore unittests/benchmarks -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
+    - bash: python -m coverage run --source pytorch_lightning -m pytest unittests_pl --ignore unittests_pl/benchmarks -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
       displayName: 'Testing: unittests'
       workingDirectory: test
 
@@ -124,6 +124,6 @@ jobs:
         PL_USE_MOCKED_MNIST: "1"
       displayName: 'Testing: examples'
 
-    - bash: python -m pytest unittests/benchmarks -v --maxfail=2 --durations=0
+    - bash: python -m pytest unittests_pl/benchmarks -v --maxfail=2 --durations=0
       workingDirectory: test
       displayName: 'Testing: benchmarks'

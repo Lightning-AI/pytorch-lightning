@@ -37,19 +37,19 @@ jobs:
       displayName: 'Install dependencies'
 
     - bash: |
-        python -m pytest -sv unittests/accelerators/test_hpu.py --forked --junitxml=hpu1_test-results.xml
+        python -m pytest -sv unittests_pl/accelerators/test_hpu.py --forked --junitxml=hpu1_test-results.xml
       workingDirectory: test
       displayName: 'Single card HPU test'
 
     - bash: |
-        python -m pytest -sv unittests/accelerators/test_hpu.py --forked --hpus 8 --junitxml=hpu8_test-results.xml
+        python -m pytest -sv unittests_pl/accelerators/test_hpu.py --forked --hpus 8 --junitxml=hpu8_test-results.xml
       workingDirectory: test
       displayName: 'Multi card(8) HPU test'
 
     - bash: |
-        python -m pytest -sv unittests/plugins/precision/hpu/test_hpu.py --hmp-bf16 \
-          'unittests/plugins/precision/hpu/ops_bf16.txt' --hmp-fp32 \
-          'unittests/plugins/precision/hpu/ops_fp32.txt' --forked \
+        python -m pytest -sv unittests_pl/plugins/precision/hpu/test_hpu.py --hmp-bf16 \
+          'unittests_pl/plugins/precision/hpu/ops_bf16.txt' --hmp-fp32 \
+          'unittests_pl/plugins/precision/hpu/ops_fp32.txt' --forked \
           --junitxml=hpu1_precision_test-results.xml
       workingDirectory: test
       displayName: 'HPU precision test'

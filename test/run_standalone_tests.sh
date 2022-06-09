@@ -20,7 +20,7 @@ export PL_RUN_STANDALONE_TESTS=1
 defaults='-m coverage run --source pytorch_lightning --append -m pytest --capture=no'
 
 # find tests marked as `@RunIf(standalone=True)`. done manually instead of with pytest because it is faster
-grep_output=$(grep --recursive --word-regexp 'unittests' --regexp 'standalone=True' --include '*.py' --exclude 'unittests/conftest.py')
+grep_output=$(grep --recursive --word-regexp 'unittests_pl' --regexp 'standalone=True' --include '*.py' --exclude 'unittests_pl/conftest.py')
 
 # file paths, remove duplicates
 files=$(echo "$grep_output" | cut -f1 -d: | sort | uniq)
@@ -35,7 +35,7 @@ fi
 parametrizations_arr=(${parametrizations//"test/"/""})
 
 # tests to skip - space separated
-blocklist='unittests/profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx unittests/utilities/test_warnings.py'
+blocklist='unittests_pl/profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx unittests_pl/utilities/test_warnings.py'
 report=''
 
 for i in "${!parametrizations_arr[@]}"; do
@@ -55,13 +55,13 @@ for i in "${!parametrizations_arr[@]}"; do
 done
 
 if nvcc --version; then
-    nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} unittests/profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
+    nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} unittests_pl/profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
 fi
 
 # needs to run outside of `pytest`
-python unittests/utilities/test_warnings.py
+python unittests_pl/utilities/test_warnings.py
 if [ $? -eq 0 ]; then
-    report+="Ran\tunittests/utilities/test_warnings.py\n"
+    report+="Ran\tunittests_pl/utilities/test_warnings.py\n"
 fi
 
 # TODO: enable when CI uses torch>=1.9

@@ -35,10 +35,10 @@ local tputests = base.BaseTest {
       # TODO (@kaushikb11): Add device stats tests here
       cd test
       coverage run --source=pytorch_lightning -m pytest -v --capture=no \
-          unittests/strategies/test_tpu_spawn.py \
-          unittests/profiler/test_xla_profiler.py \
-          unittests/accelerators/test_tpu.py \
-          unittests/models/test_tpu.py
+          unittests_pl/strategies/test_tpu_spawn.py \
+          unittests_pl/profiler/test_xla_profiler.py \
+          unittests_pl/accelerators/test_tpu.py \
+          unittests_pl/models/test_tpu.py
       test_exit_code=$?
       echo "\n||| END PYTEST LOGS |||\n"
       coverage xml

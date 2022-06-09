@@ -35,7 +35,7 @@ jobs:
       clean: all
 
     steps:
-      - bash: python -m pytest unittests/benchmarks -v --durations=0
+      - bash: python -m pytest unittests_pl/benchmarks -v --durations=0
         env:
           PL_RUNNING_BENCHMARKS: 1
         workingDirectory: test

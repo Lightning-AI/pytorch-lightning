@@ -10,7 +10,7 @@ known_first_party = [
     "pl_examples",
     "pytorch_lightning",
     "legacy",
-    "unittests",
+    "unittests_pl",
 ]
 profile = "black"
 line_length = 120
