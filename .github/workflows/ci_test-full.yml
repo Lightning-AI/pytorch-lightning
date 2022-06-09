@@ -83,13 +83,14 @@ jobs:
       run: |
         flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
         url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
-        pip install -r requirements.txt --upgrade $flag --find-links "https://download.pytorch.org/whl/${url}"
+        pip install -e . --upgrade $flag --find-links "https://download.pytorch.org/whl/${url}"
         pip install -r requirements/test.txt --upgrade
         pip list
       shell: bash
 
     - name: DocTests
-      run: coverage run --source pytorch_lightning -m pytest pytorch_lightning
+      working-directory: ./src
+      run: pytest pytorch_lightning --cov=pytorch_lightning
 
     - name: Install extra dependencies
       run: |
@@ -123,8 +124,7 @@ jobs:
         key: pl-dataset
 
     - name: Sanity check
-      run: |
-        python requirements/check-avail-extras.py
+      run: python requirements/check-avail-extras.py
 
     - name: UnitTests
       run: |

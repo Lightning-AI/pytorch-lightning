@@ -39,11 +39,12 @@ jobs:
       run: |
         conda info
         conda list
+        pip install -e .
         pip install -r requirements/test.txt
 
     - name: DocTests
-      run: |
-        coverage run --source pytorch_lightning -m pytest pytorch_lightning
+      working-directory: ./src
+      run: pytest pytorch_lightning --cov=pytorch_lightning
 
     - name: Update all dependencies
       env:
