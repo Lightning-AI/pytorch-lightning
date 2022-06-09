@@ -24,12 +24,13 @@ from warnings import warn
 import torch
 from torch.utils.data import DataLoader, Dataset, random_split
 
-from pl_examples import _DATASETS_PATH
 from pytorch_lightning import LightningDataModule
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
     from torchvision import transforms as transform_lib
+
+_DATASETS_PATH = "./data"
 
 
 class _MNIST(Dataset):
