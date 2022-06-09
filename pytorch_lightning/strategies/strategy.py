@@ -250,10 +250,10 @@ class Strategy(ABC):
     @abstractmethod
     def reduce(
         self,
-        tensor: Union[torch.Tensor, Any],
+        tensor: Union[Tensor, Any],
         group: Optional[Any] = None,
         reduce_op: Optional[Union[ReduceOp, str]] = "mean",
-    ) -> Union[torch.Tensor, Any]:
+    ) -> Union[Tensor, Any]:
         """Reduces the given tensor (e.g. across GPUs/processes).
 
         Args:
@@ -281,7 +281,7 @@ class Strategy(ABC):
         """
 
     @abstractmethod
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform an all_gather on all processes.
 
         Args:
@@ -294,10 +294,10 @@ class Strategy(ABC):
         """Reduce the early stopping decision across all processes."""
         return decision
 
-    def pre_backward(self, closure_loss: torch.Tensor) -> None:
+    def pre_backward(self, closure_loss: Tensor) -> None:
         """Run before precision plugin executes backward."""
 
-    def post_backward(self, closure_loss: torch.Tensor) -> None:
+    def post_backward(self, closure_loss: Tensor) -> None:
         """Run after precision plugin executes backward."""
 
     @property

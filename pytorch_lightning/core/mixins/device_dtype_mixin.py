@@ -89,8 +89,9 @@ class DeviceDtypeModuleMixin(Module):
             Module: self
 
         Example::
+            >>> from torch import Tensor
             >>> class ExampleModule(DeviceDtypeModuleMixin):
-            ...     def __init__(self, weight: torch.Tensor):
+            ...     def __init__(self, weight: Tensor):
             ...         super().__init__()
             ...         self.register_buffer('weight', weight)
             >>> _ = torch.manual_seed(0)

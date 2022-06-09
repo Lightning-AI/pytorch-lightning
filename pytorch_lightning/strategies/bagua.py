@@ -3,6 +3,7 @@ import os
 from typing import Any, Dict, List, Optional, Union
 
 import torch
+from torch import Tensor
 from torch.nn import Module
 
 import pytorch_lightning as pl
@@ -234,8 +235,8 @@ class BaguaStrategy(DDPStrategy):
         return broadcast_object(obj, src)
 
     def reduce(
-        self, tensor: torch.Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
-    ) -> torch.Tensor:
+        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
+    ) -> Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
@@ -247,7 +248,7 @@ class BaguaStrategy(DDPStrategy):
         Return:
             The reduced value, except when the input was not a tensor the output remains is unchanged.
         """
-        if not isinstance(tensor, torch.Tensor):
+        if not isinstance(tensor, Tensor):
             return tensor
         if group is not None:
             raise ValueError("`Bagua` does not support allreduce using a subcommunicator at this time. Unset `group`.")

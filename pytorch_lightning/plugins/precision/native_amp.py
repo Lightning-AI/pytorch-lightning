@@ -57,7 +57,7 @@ class NativeMixedPrecisionPlugin(MixedPrecisionPlugin):
         self.device = device
         self.scaler = scaler
 
-    def pre_backward(self, model: "pl.LightningModule", closure_loss: torch.Tensor) -> torch.Tensor:
+    def pre_backward(self, model: "pl.LightningModule", closure_loss: Tensor) -> Tensor:
         if self.scaler is not None:
             closure_loss = self.scaler.scale(closure_loss)
         return super().pre_backward(model, closure_loss)

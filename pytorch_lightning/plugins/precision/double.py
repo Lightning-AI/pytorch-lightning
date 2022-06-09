@@ -16,6 +16,7 @@ from typing import Any, cast, Generator, List, Tuple
 
 import torch
 import torch.nn as nn
+from torch import FloatTensor, Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -33,14 +34,14 @@ class LightningDoublePrecisionModule(_LightningPrecisionModuleWrapperBase):
     """
 
     @staticmethod
-    def _to_double_precision(data: torch.Tensor) -> torch.Tensor:
+    def _to_double_precision(data: Tensor) -> Tensor:
         if data.is_floating_point():
             return data.double()
         return data
 
     @staticmethod
     def _move_float_tensors_to_double(collection: Any) -> Any:
-        return apply_to_collection(collection, torch.Tensor, LightningDoublePrecisionModule._to_double_precision)
+        return apply_to_collection(collection, Tensor, LightningDoublePrecisionModule._to_double_precision)
 
     def training_step(self, *args: Any, **kwargs: Any) -> Any:
         return self.module.training_step(
@@ -99,4 +100,4 @@ class DoublePrecisionPlugin(PrecisionPlugin):
         """
         torch.set_default_tensor_type(torch.DoubleTensor)
         yield
-        torch.set_default_tensor_type(torch.FloatTensor)
+        torch.set_default_tensor_type(FloatTensor)

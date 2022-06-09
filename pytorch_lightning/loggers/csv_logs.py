@@ -24,7 +24,7 @@ import os
 from argparse import Namespace
 from typing import Any, Dict, Optional, Union
 
-import torch
+from torch import Tensor
 
 from pytorch_lightning.core.saving import save_hparams_to_yaml
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
@@ -70,7 +70,7 @@ class ExperimentWriter:
         """Record metrics."""
 
         def _handle_value(value):
-            if isinstance(value, torch.Tensor):
+            if isinstance(value, Tensor):
                 return value.item()
             return value
 

@@ -16,6 +16,7 @@
 from typing import Any, Dict, List, Optional
 
 import torch
+from torch import Tensor
 from torch.optim.optimizer import Optimizer
 
 from pytorch_lightning.utilities import move_data_to_device
@@ -254,7 +255,7 @@ class ModelHooks:
             optimizer: The optimizer for which grads should be zeroed.
         """
 
-    def on_before_backward(self, loss: torch.Tensor) -> None:
+    def on_before_backward(self, loss: Tensor) -> None:
         """Called before ``loss.backward()``.
 
         Args:
