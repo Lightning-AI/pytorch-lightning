@@ -28,8 +28,8 @@ test: clean
 	python -m coverage report
 
 docs: clean
-	pip install --quiet -r requirements/docs.txt
-	python -m sphinx -b html -W --keep-going docs/source docs/build
+	pip install -e . --quiet -r requirements/docs.txt
+	python -m sphinx -b html -W --keep-going docs/source-PL docs/build
 
 update:
 	git submodule update --init --recursive --remote
