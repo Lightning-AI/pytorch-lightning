@@ -3,9 +3,9 @@ name: Test full
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master, "release/*"]
+    branches: [master, "release/*", "future/*"]
   pull_request:
-    branches: [master, "release/*"]
+    branches: [master, "release/*", "future/*"]
     types: [opened, reopened, ready_for_review, synchronize]
 
 concurrency:
@@ -123,20 +123,12 @@ jobs:
         key: pl-dataset
 
     - name: Sanity check
-      run: |
-        python requirements/check-avail-extras.py
+      run: python requirements/check-avail-extras.py
 
     - name: UnitTests
       run: |
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
         coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
-
-    - name: Examples
-      run: |
-        # adjust versions according installed Torch version
-        python ./requirements/adjust-versions.py requirements/examples.txt
-        pip install -r requirements/examples.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
-        python -m pytest pl_examples -v --durations=10
 
     - name: Upload pytest results
       uses: actions/upload-artifact@v2
@@ -145,6 +137,16 @@ jobs:
         path: junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
         if-no-files-found: error
       if: failure()
+
+    - name: Prepare Examples
+      run: |
+        # adjust versions according installed Torch version
+        python ./requirements/adjust-versions.py requirements/examples.txt
+        pip install -r requirements/examples.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+
+    - name: Run Examples
+      working-directory: ./examples
+      run: python -m pytest test_pl_examples.py -v --durations=10
 
     - name: Statistics
       if: success()

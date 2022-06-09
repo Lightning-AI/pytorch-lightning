@@ -51,7 +51,8 @@ jobs:
 
     - bash: |
         export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-        python "pl_examples/hpu_examples/simple_mnist/mnist.py"
+        python "pl_hpu/mnist_sample.py"
+      workingDirectory: examples
       displayName: 'Testing: HPU examples'
 
     - task: PublishTestResults@2
