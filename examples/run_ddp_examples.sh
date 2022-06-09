@@ -17,5 +17,5 @@ set -e
 # test that a user can manually launch individual processes
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 args="--trainer.gpus 2 --trainer.strategy ddp --trainer.max_epochs=1 --trainer.limit_train_batches=1 --trainer.limit_val_batches=1 --trainer.limit_test_batches=1"
-MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python pl_examples/basic_examples/mnist_examples/image_classifier_5_lightning_datamodule.py ${args} &
-MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python pl_examples/basic_examples/mnist_examples/image_classifier_5_lightning_datamodule.py ${args}
+MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python convert_from_pt_to_pl/image_classifier_5_lightning_datamodule.py ${args} &
+MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python convert_from_pt_to_pl/image_classifier_5_lightning_datamodule.py ${args}

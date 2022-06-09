@@ -441,12 +441,12 @@ Advanced Examples
 
    * - Link to Example
      - Description
-   * - `K-fold Cross Validation <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/loop_examples/kfold.py>`_
+   * - `K-fold Cross Validation <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/examples/pl_loops/kfold.py>`_
      - `KFold / Cross Validation <https://en.wikipedia.org/wiki/Cross-validation_(statistics)>`__ is a machine learning practice in which the training dataset is being partitioned into ``num_folds`` complementary subsets.
        One cross validation round will perform fitting where one fold is left out for validation and the other folds are used for training.
        To reduce variability, once all rounds are performed using the different folds, the trained models are ensembled and their predictions are
        averaged when estimating the model's predictive performance on the test dataset.
-   * - `Yielding Training Step <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/loop_examples/yielding_training_step.py>`_
+   * - `Yielding Training Step <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/examples/pl_loops/yielding_training_step.py>`_
      - This loop enables you to write the :meth:`~pytorch_lightning.core.module.LightningModule.training_step` hook
        as a Python Generator for automatic optimization with multiple optimizers, i.e., you can :code:`yield` loss
        values from it instead of returning them. This can enable more elegant and expressive implementations, as shown

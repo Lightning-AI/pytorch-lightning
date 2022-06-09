@@ -35,8 +35,14 @@ jobs:
       clean: all
 
     steps:
-      - bash: python -m pytest unittests_pl/benchmarks -v --durations=0
-        env:
-          PL_RUNNING_BENCHMARKS: 1
-        workingDirectory: test
-        displayName: 'Testing: benchmarks'
+
+    - bash: |
+        pip install -e . -r requirements/strategies.txt
+        pip list
+      displayName: 'Install package'
+
+    - bash: python -m pytest unittests_pl/benchmarks -v --durations=0
+      env:
+        PL_RUNNING_BENCHMARKS: 1
+      workingDirectory: test
+      displayName: 'Testing: benchmarks'

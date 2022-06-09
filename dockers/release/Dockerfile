@@ -27,7 +27,7 @@ COPY ./ /home/pytorch-lightning/
 RUN \
     cd /home && \
     mv pytorch-lightning/_notebooks notebooks && \
-    mv pytorch-lightning/src/pl_examples . && \
+    mv pytorch-lightning/examples . && \
     # replace by specific version if asked
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \
         rm -rf pytorch-lightning ; \

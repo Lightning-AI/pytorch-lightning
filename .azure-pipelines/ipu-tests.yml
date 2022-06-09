@@ -55,8 +55,7 @@ jobs:
         export GIT_TERMINAL_PROMPT=1
         python ./requirements/adjust-versions.py requirements/extra.txt
         python ./requirements/adjust-versions.py requirements/examples.txt
-        pip install -e .
-        pip install . --requirement ./requirements/devel.txt
+        pip install -e . --requirement ./requirements/devel.txt
         pip list
       displayName: 'Install dependencies'
 

@@ -17,11 +17,12 @@ import platform
 import random
 import time
 import urllib
-from typing import Optional, Tuple
+from typing import Any, Callable, Optional, Tuple
 from urllib.error import HTTPError
 from warnings import warn
 
 import torch
+from torch import Tensor
 from torch.utils.data import DataLoader, Dataset, random_split
 
 from pytorch_lightning import LightningDataModule
@@ -50,8 +51,8 @@ class _MNIST(Dataset):
     cache_folder_name = "complete"
 
     def __init__(
-        self, root: str, train: bool = True, normalize: tuple = (0.1307, 0.3081), download: bool = True, **kwargs
-    ):
+        self, root: str, train: bool = True, normalize: tuple = (0.1307, 0.3081), download: bool = True, **kwargs: Any
+    ) -> None:
         super().__init__()
         self.root = root
         self.train = train  # training set or test set
@@ -62,7 +63,7 @@ class _MNIST(Dataset):
         data_file = self.TRAIN_FILE_NAME if self.train else self.TEST_FILE_NAME
         self.data, self.targets = self._try_load(os.path.join(self.cached_folder_path, data_file))
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
+    def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
         img = self.data[idx].float().unsqueeze(0)
         target = int(self.targets[idx])
 
@@ -84,7 +85,7 @@ class _MNIST(Dataset):
             existing = existing and os.path.isfile(os.path.join(data_folder, fname))
         return existing
 
-    def prepare_data(self, download: bool = True):
+    def prepare_data(self, download: bool = True) -> None:
         if download and not self._check_exists(self.cached_folder_path):
             self._download(self.cached_folder_path)
         if not self._check_exists(self.cached_folder_path):
@@ -98,7 +99,7 @@ class _MNIST(Dataset):
             urllib.request.urlretrieve(url, fpath)
 
     @staticmethod
-    def _try_load(path_data, trials: int = 30, delta: float = 1.0):
+    def _try_load(path_data: str, trials: int = 30, delta: float = 1.0) -> Tuple[Tensor, Tensor]:
         """Resolving loading from the same time from multiple concurrent processes."""
         res, exception = None, None
         assert trials, "at least some trial has to be set"
@@ -107,8 +108,8 @@ class _MNIST(Dataset):
             try:
                 res = torch.load(path_data)
             # todo: specify the possible exception
-            except Exception as e:
-                exception = e
+            except Exception as ex:
+                exception = ex
                 time.sleep(delta * random.random())
             else:
                 break
@@ -118,13 +119,13 @@ class _MNIST(Dataset):
         return res
 
     @staticmethod
-    def normalize_tensor(tensor: torch.Tensor, mean: float = 0.0, std: float = 1.0) -> torch.Tensor:
+    def normalize_tensor(tensor: Tensor, mean: float = 0.0, std: float = 1.0) -> Tensor:
         mean = torch.as_tensor(mean, dtype=tensor.dtype, device=tensor.device)
         std = torch.as_tensor(std, dtype=tensor.dtype, device=tensor.device)
         return tensor.sub(mean).div(std)
 
 
-def MNIST(*args, **kwargs):
+def MNIST(*args: Any, **kwargs: Any) -> Dataset:
     torchvision_mnist_available = not bool(os.getenv("PL_USE_MOCKED_MNIST", False))
     if torchvision_mnist_available:
         try:
@@ -157,9 +158,9 @@ class MNISTDataModule(LightningDataModule):
         normalize: bool = False,
         seed: int = 42,
         batch_size: int = 32,
-        *args,
-        **kwargs,
-    ):
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         """
         Args:
             data_dir: where to save/load the data
@@ -188,22 +189,22 @@ class MNISTDataModule(LightningDataModule):
         self.dataset_val = ...
 
     @property
-    def num_classes(self):
+    def num_classes(self) -> int:
         return 10
 
-    def prepare_data(self):
+    def prepare_data(self) -> None:
         """Saves MNIST files to `data_dir`"""
         MNIST(self.data_dir, train=True, download=True)
         MNIST(self.data_dir, train=False, download=True)
 
-    def setup(self, stage: Optional[str] = None):
+    def setup(self, stage: Optional[str] = None) -> None:
         """Split the train and valid dataset."""
         extra = dict(transform=self.default_transforms) if self.default_transforms else {}
-        dataset = MNIST(self.data_dir, train=True, download=False, **extra)
+        dataset: Dataset = MNIST(self.data_dir, train=True, download=False, **extra)
         train_length = len(dataset)
         self.dataset_train, self.dataset_val = random_split(dataset, [train_length - self.val_split, self.val_split])
 
-    def train_dataloader(self):
+    def train_dataloader(self) -> DataLoader:
         """MNIST train set removes a subset to use for validation."""
         loader = DataLoader(
             self.dataset_train,
@@ -215,7 +216,7 @@ class MNISTDataModule(LightningDataModule):
         )
         return loader
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> DataLoader:
         """MNIST val set uses a subset of the training set for validation."""
         loader = DataLoader(
             self.dataset_val,
@@ -227,7 +228,7 @@ class MNISTDataModule(LightningDataModule):
         )
         return loader
 
-    def test_dataloader(self):
+    def test_dataloader(self) -> DataLoader:
         """MNIST test set uses the test split."""
         extra = dict(transform=self.default_transforms) if self.default_transforms else {}
         dataset = MNIST(self.data_dir, train=False, download=False, **extra)
@@ -242,7 +243,7 @@ class MNISTDataModule(LightningDataModule):
         return loader
 
     @property
-    def default_transforms(self):
+    def default_transforms(self) -> Optional[Callable]:
         if not _TORCHVISION_AVAILABLE:
             return None
         if self.normalize:

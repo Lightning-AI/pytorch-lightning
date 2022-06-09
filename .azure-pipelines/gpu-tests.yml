@@ -115,11 +115,10 @@ jobs:
     - script: |
         set -e
         bash run_ddp_examples.sh
-        python -m pytest pl_examples -v --maxfail=2 --durations=0
-        bash pl_examples/run_examples.sh --trainer.accelerator=gpu --trainer.devices=1
-        bash pl_examples/run_examples.sh --trainer.accelerator=gpu --trainer.devices=2 --trainer.strategy=ddp
-        bash pl_examples/run_examples.sh --trainer.accelerator=gpu --trainer.devices=2 --trainer.strategy=ddp --trainer.precision=16
-      workingDirectory: src
+        bash run_pl_examples.sh --trainer.accelerator=gpu --trainer.devices=1
+        bash run_pl_examples.sh --trainer.accelerator=gpu --trainer.devices=2 --trainer.strategy=ddp
+        bash run_pl_examples.sh --trainer.accelerator=gpu --trainer.devices=2 --trainer.strategy=ddp --trainer.precision=16
+      workingDirectory: examples
       env:
         PL_USE_MOCKED_MNIST: "1"
       displayName: 'Testing: examples'

@@ -131,6 +131,13 @@ jobs:
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: coverage run --source pytorch_lightning -m pytest unittests_pl -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
+    - name: Upload pytest results
+      uses: actions/upload-artifact@v2
+      with:
+        name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
+        path: test/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+      if: failure()
+
     - name: Prepare Examples
       run: |
         # adjust versions according installed Torch version
@@ -138,15 +145,8 @@ jobs:
         pip install -r requirements/examples.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
 
     - name: Run Examples
-      working-directory: ./src
-      run: python -m pytest pl_examples -v --durations=10
-
-    - name: Upload pytest results
-      uses: actions/upload-artifact@v2
-      with:
-        name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
-        path: test/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
-      if: failure()
+      working-directory: ./examples
+      run: python -m pytest test_pl_examples.py -v --durations=10
 
     - name: Statistics
       if: success()

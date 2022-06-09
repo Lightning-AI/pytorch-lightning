@@ -37,7 +37,7 @@ __all__ = ["Trainer", "LightningDataModule", "LightningModule", "Callback", "see
 # for compatibility with namespace packages
 __import__("pkg_resources").declare_namespace(__name__)
 
-LIGHTNING_LOGO = """
+LIGHTNING_LOGO: str = """
                     ####
                 ###########
              ####################
@@ -63,7 +63,7 @@ LIGHTNING_LOGO = """
 """
 
 
-def cli_lightning_logo():
+def cli_lightning_logo() -> None:
     print()
     print("\033[0;35m" + LIGHTNING_LOGO + "\033[0m")
     print()
