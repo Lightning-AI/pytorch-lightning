@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import torch
+from torch import Tensor
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -30,11 +30,11 @@ def metrics_to_scalars(metrics: Any) -> Any:
             If tensors inside ``metrics`` contains multiple elements, hence preventing conversion to a scalar.
     """
 
-    def to_item(value: torch.Tensor) -> int | float | bool:
+    def to_item(value: Tensor) -> int | float | bool:
         if value.numel() != 1:
             raise MisconfigurationException(
                 f"The metric `{value}` does not contain a single element, thus it cannot be converted to a scalar."
             )
         return value.item()
 
-    return apply_to_collection(metrics, torch.Tensor, to_item)
+    return apply_to_collection(metrics, Tensor, to_item)

@@ -15,8 +15,8 @@ from abc import ABC
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Type, Union
 
-import torch
 from packaging.version import Version
+from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
@@ -627,7 +627,7 @@ class TrainerCallbackHookMixin(ABC):
                 state = deepcopy(state)
                 callback.on_load_checkpoint(self, self.lightning_module, state)
 
-    def on_before_backward(self, loss: torch.Tensor) -> None:
+    def on_before_backward(self, loss: Tensor) -> None:
         r"""
         .. deprecated:: v1.6
             `TrainerCallbackHookMixin.on_before_backward` was deprecated in v1.6 and will be removed in v1.8.

@@ -22,7 +22,7 @@ from argparse import Namespace
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
 
 import numpy as np
-import torch
+from torch import Tensor
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.tensorboard.summary import hparams
 
@@ -222,7 +222,7 @@ class TensorBoardLogger(Logger):
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
 
         for k, v in metrics.items():
-            if isinstance(v, torch.Tensor):
+            if isinstance(v, Tensor):
                 v = v.item()
 
             if isinstance(v, dict):
@@ -316,7 +316,7 @@ class TensorBoardLogger(Logger):
     def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
         params = _utils_sanitize_params(params)
         # logging of arrays with dimension > 1 is not supported, sanitize as string
-        return {k: str(v) if isinstance(v, (torch.Tensor, np.ndarray)) and v.ndim > 1 else v for k, v in params.items()}
+        return {k: str(v) if isinstance(v, (Tensor, np.ndarray)) and v.ndim > 1 else v for k, v in params.items()}
 
     def __getstate__(self):
         state = self.__dict__.copy()

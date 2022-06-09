@@ -16,6 +16,7 @@ from __future__ import annotations
 from typing import Any
 
 import torch
+from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -42,7 +43,7 @@ class SingleDeviceStrategy(Strategy):
         self.local_rank = 0
         self.world_size = 1
 
-    def reduce(self, tensor: Any | torch.Tensor, *args: Any, **kwargs: Any) -> Any | torch.Tensor:
+    def reduce(self, tensor: Any | Tensor, *args: Any, **kwargs: Any) -> Any | Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor. As this plugin only
         operates with a single device, the reduction is simply the identity.
 
@@ -56,7 +57,7 @@ class SingleDeviceStrategy(Strategy):
         """
         return tensor
 
-    def all_gather(self, tensor: torch.Tensor, group: Any | None = None, sync_grads: bool = False) -> torch.Tensor:
+    def all_gather(self, tensor: Tensor, group: Any | None = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
         return tensor
 

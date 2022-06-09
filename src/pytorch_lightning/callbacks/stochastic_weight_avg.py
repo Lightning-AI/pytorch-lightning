@@ -19,7 +19,7 @@ from copy import deepcopy
 from typing import Callable, List, Optional, Union
 
 import torch
-from torch import nn
+from torch import FloatTensor, nn, Tensor
 from torch.optim.swa_utils import SWALR
 
 import pytorch_lightning as pl
@@ -28,7 +28,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerConfig
 
-_AVG_FN = Callable[[torch.Tensor, torch.Tensor, torch.LongTensor], torch.FloatTensor]
+_AVG_FN = Callable[[Tensor, Tensor, torch.LongTensor], FloatTensor]
 
 
 class StochasticWeightAveraging(Callback):
@@ -269,7 +269,7 @@ class StochasticWeightAveraging(Callback):
 
     @staticmethod
     def avg_fn(
-        averaged_model_parameter: torch.Tensor, model_parameter: torch.Tensor, num_averaged: torch.LongTensor
-    ) -> torch.FloatTensor:
+        averaged_model_parameter: Tensor, model_parameter: Tensor, num_averaged: torch.LongTensor
+    ) -> FloatTensor:
         """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L95-L97."""
         return averaged_model_parameter + (model_parameter - averaged_model_parameter) / (num_averaged + 1)

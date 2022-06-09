@@ -21,8 +21,7 @@ import os
 from argparse import Namespace
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
 
-import torch
-from torch import is_tensor
+from torch import is_tensor, Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
@@ -241,7 +240,7 @@ class CometLogger(Logger):
         self.experiment.log_parameters(params)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, Union[torch.Tensor, float]], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
         # Comet.ml expects metrics to be a dictionary of detached tensors on CPU
         metrics_without_epoch = metrics.copy()

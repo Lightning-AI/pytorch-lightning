@@ -16,6 +16,7 @@ import os
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
+from torch import FloatTensor, Tensor
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
@@ -54,11 +55,11 @@ class LightningIPUModule(_LightningModuleWrapperBase):
         return super().forward(*inputs, **kwargs)
 
     @staticmethod
-    def batch_to(data: torch.Tensor) -> torch.Tensor:
+    def batch_to(data: Tensor) -> Tensor:
         return data.half()
 
     def _move_float_tensors_to_half(self, batch: Any) -> Any:
-        batch = apply_to_collection(batch, (torch.FloatTensor, torch.cuda.FloatTensor), function=self.batch_to)
+        batch = apply_to_collection(batch, (FloatTensor, torch.cuda.FloatTensor), function=self.batch_to)
         return batch
 
 
@@ -376,13 +377,13 @@ class IPUStrategy(ParallelStrategy):
     def is_global_zero(self) -> bool:
         return True
 
-    def reduce(self, tensor: Union[torch.Tensor, Any], *args: Any, **kwargs: Any) -> Union[torch.Tensor, Any]:
+    def reduce(self, tensor: Union[Tensor, Any], *args: Any, **kwargs: Any) -> Union[Tensor, Any]:
         return tensor
 
     def barrier(self, name: Optional[str] = None) -> None:
         pass
 
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         return tensor
 
     def broadcast(self, obj: object, src: int = 0) -> object:

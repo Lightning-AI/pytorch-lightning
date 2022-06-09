@@ -14,7 +14,7 @@
 from contextlib import contextmanager
 from typing import Dict, Generator, List, Optional, Tuple
 
-import torch
+from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
@@ -109,7 +109,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
             )
         return unwrap_lightning_module_sharded(self.model) if self.model is not None else None
 
-    def pre_backward(self, closure_loss: torch.Tensor) -> None:
+    def pre_backward(self, closure_loss: Tensor) -> None:
         pass
 
     def post_training_step(self):

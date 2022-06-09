@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
+from torch import Tensor
 from torch.nn import Module
 from torch.optim import Optimizer
 
@@ -75,10 +76,10 @@ class LightningDeepSpeedModule(_LightningModuleWrapperBase):
         self.precision = precision
 
     def forward(self, *inputs, **kwargs):
-        inputs = apply_to_collection(inputs, torch.Tensor, function=self._batch_to)
+        inputs = apply_to_collection(inputs, Tensor, function=self._batch_to)
         return super().forward(*inputs, **kwargs)
 
-    def _batch_to(self, batch: torch.Tensor) -> torch.Tensor:
+    def _batch_to(self, batch: Tensor) -> Tensor:
         if torch.is_floating_point(batch):
             if self.precision == PrecisionType.HALF:
                 return batch.half()

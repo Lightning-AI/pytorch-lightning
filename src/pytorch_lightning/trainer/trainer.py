@@ -31,6 +31,7 @@ from weakref import proxy
 import torch
 import torch.distributed as dist
 from packaging.version import Version
+from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
@@ -1192,7 +1193,7 @@ class Trainer(
                 lm_val, dm_val = lightning_hparams[key], datamodule_hparams[key]
                 if type(lm_val) != type(dm_val):
                     inconsistent_keys.append(key)
-                elif isinstance(lm_val, torch.Tensor) and id(lm_val) != id(dm_val):
+                elif isinstance(lm_val, Tensor) and id(lm_val) != id(dm_val):
                     inconsistent_keys.append(key)
                 elif lm_val != dm_val:
                     inconsistent_keys.append(key)
@@ -1289,7 +1290,7 @@ class Trainer(
         for result in eval_loop_results:
             if isinstance(result, dict):
                 for k, v in result.items():
-                    if isinstance(v, torch.Tensor):
+                    if isinstance(v, Tensor):
                         result[k] = v.cpu().item()
 
         return eval_loop_results

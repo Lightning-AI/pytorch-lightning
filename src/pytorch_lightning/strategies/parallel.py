@@ -16,6 +16,7 @@ from contextlib import contextmanager
 from typing import Any, List, Optional
 
 import torch
+from torch import Tensor
 from torch.nn.parallel import DistributedDataParallel
 
 import pytorch_lightning as pl
@@ -106,7 +107,7 @@ class ParallelStrategy(Strategy, ABC):
     def reconciliate_processes(self, trace: str):
         """Function to re-conciliate processes on failure."""
 
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """Perform a all_gather on all processes."""
         return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 

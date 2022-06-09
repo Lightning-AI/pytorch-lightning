@@ -12,6 +12,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import requests
 import torch
+from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.strategies.strategy import Strategy, TBroadcast
@@ -306,10 +307,10 @@ class CollaborativeStrategy(Strategy):
                     ) from e
             self._initialize_hivemind()
 
-    def reduce(self, tensor: Union[Any, torch.Tensor], *args: Any, **kwargs: Any) -> Union[Any, torch.Tensor]:
+    def reduce(self, tensor: Union[Any, Tensor], *args: Any, **kwargs: Any) -> Union[Any, Tensor]:
         return tensor
 
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         return tensor
 
     def model_to_device(self) -> None:

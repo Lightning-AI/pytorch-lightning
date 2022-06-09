@@ -342,8 +342,8 @@ class LightningLite(ABC):
         self._strategy.barrier(name=name)
 
     def all_gather(
-        self, data: Union[torch.Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
-    ) -> Union[torch.Tensor, Dict, List, Tuple]:
+        self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
+    ) -> Union[Tensor, Dict, List, Tuple]:
         r"""
         Gather tensors or collections of tensors from multiple processes.
 
@@ -358,7 +358,7 @@ class LightningLite(ABC):
         """
         group = group if group is not None else torch.distributed.group.WORLD
         data = convert_to_tensors(data, device=self.device)
-        return apply_to_collection(data, torch.Tensor, self._strategy.all_gather, group=group, sync_grads=sync_grads)
+        return apply_to_collection(data, Tensor, self._strategy.all_gather, group=group, sync_grads=sync_grads)
 
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return self._strategy.broadcast(obj, src=src)

@@ -22,6 +22,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 import torch.distributed
+from torch import Tensor
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
@@ -321,7 +322,7 @@ class DDPStrategy(ParallelStrategy):
         torch.distributed.broadcast_object_list(obj, src, group=_group.WORLD)
         return obj[0]
 
-    def pre_backward(self, closure_loss: torch.Tensor) -> None:
+    def pre_backward(self, closure_loss: Tensor) -> None:
         """Run before precision plugin executes backward."""
         if not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)
@@ -330,7 +331,7 @@ class DDPStrategy(ParallelStrategy):
         log.detail(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
         self.model.to(self.root_device)
 
-    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
+    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
@@ -342,7 +343,7 @@ class DDPStrategy(ParallelStrategy):
         Return:
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
-        if isinstance(tensor, torch.Tensor):
+        if isinstance(tensor, Tensor):
             tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 

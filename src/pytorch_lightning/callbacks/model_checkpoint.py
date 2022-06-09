@@ -31,6 +31,7 @@ from weakref import proxy
 import numpy as np
 import torch
 import yaml
+from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
@@ -477,7 +478,7 @@ class ModelCheckpoint(Callback):
     def every_n_epochs(self) -> Optional[int]:
         return self._every_n_epochs
 
-    def check_monitor_top_k(self, trainer: "pl.Trainer", current: Optional[torch.Tensor] = None) -> bool:
+    def check_monitor_top_k(self, trainer: "pl.Trainer", current: Optional[Tensor] = None) -> bool:
         if current is None:
             return False
 
@@ -628,11 +629,9 @@ class ModelCheckpoint(Callback):
         # cast to int if necessary because `self.log("epoch", 123)` will convert it to float. if it's not a tensor
         # or does not exist we overwrite it as it's likely an error
         epoch = monitor_candidates.get("epoch")
-        monitor_candidates["epoch"] = (
-            epoch.int() if isinstance(epoch, torch.Tensor) else torch.tensor(trainer.current_epoch)
-        )
+        monitor_candidates["epoch"] = epoch.int() if isinstance(epoch, Tensor) else torch.tensor(trainer.current_epoch)
         step = monitor_candidates.get("step")
-        monitor_candidates["step"] = step.int() if isinstance(step, torch.Tensor) else torch.tensor(trainer.global_step)
+        monitor_candidates["step"] = step.int() if isinstance(step, Tensor) else torch.tensor(trainer.global_step)
         return monitor_candidates
 
     def _save_last_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, _METRIC]) -> None:
@@ -670,7 +669,7 @@ class ModelCheckpoint(Callback):
             trainer.strategy.remove_checkpoint(previous)
 
     def _update_best_and_save(
-        self, current: torch.Tensor, trainer: "pl.Trainer", monitor_candidates: Dict[str, _METRIC]
+        self, current: Tensor, trainer: "pl.Trainer", monitor_candidates: Dict[str, _METRIC]
     ) -> None:
         k = len(self.best_k_models) + 1 if self.save_top_k == -1 else self.save_top_k
 
@@ -680,7 +679,7 @@ class ModelCheckpoint(Callback):
             self.best_k_models.pop(del_filepath)
 
         # do not save nan, replace with +/- inf
-        if isinstance(current, torch.Tensor) and torch.isnan(current):
+        if isinstance(current, Tensor) and torch.isnan(current):
             current = torch.tensor(float("inf" if self.mode == "min" else "-inf"), device=current.device)
 
         filepath = self._get_metric_interpolated_filepath_name(monitor_candidates, trainer, del_filepath)

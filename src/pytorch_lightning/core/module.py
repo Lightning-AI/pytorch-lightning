@@ -528,7 +528,7 @@ class LightningModule(
     def __check_allowed(v: Any, name: str, value: Any) -> None:
         raise ValueError(f"`self.log({name}, {value})` was called, but `{type(v).__name__}` values cannot be logged")
 
-    def __to_tensor(self, value: numbers.Number) -> torch.Tensor:
+    def __to_tensor(self, value: numbers.Number) -> Tensor:
         return torch.tensor(value, device=self.device)
 
     def log_grad_norm(self, grad_norm_dict: Dict[str, float]) -> None:
@@ -547,9 +547,7 @@ class LightningModule(
         """
         self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=False, logger=True)
 
-    def all_gather(
-        self, data: Union[torch.Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
-    ):
+    def all_gather(self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False):
         r"""
         Allows users to call ``self.all_gather()`` from the LightningModule, thus making the ``all_gather`` operation
         accelerator agnostic. ``all_gather`` is a function provided by accelerators to gather a tensor from several
@@ -567,7 +565,7 @@ class LightningModule(
         group = group if group is not None else torch.distributed.group.WORLD
         all_gather = self.trainer.strategy.all_gather
         data = convert_to_tensors(data, device=self.device)
-        return apply_to_collection(data, torch.Tensor, all_gather, group=group, sync_grads=sync_grads)
+        return apply_to_collection(data, Tensor, all_gather, group=group, sync_grads=sync_grads)
 
     def forward(self, *args, **kwargs) -> Any:
         r"""
@@ -1701,7 +1699,7 @@ class LightningModule(
             if :paramref:`~pytorch_lightning.core.module.LightningModule.truncated_bptt_steps` > 0.
             Each returned batch split is passed separately to :meth:`training_step`.
         """
-        time_dims = [len(x[0]) for x in batch if isinstance(x, (torch.Tensor, collections.Sequence))]
+        time_dims = [len(x[0]) for x in batch if isinstance(x, (Tensor, collections.Sequence))]
         assert len(time_dims) >= 1, "Unable to determine batch time dimension"
         assert all(x == time_dims[0] for x in time_dims), "Batch time dimension length is ambiguous"
 
@@ -1709,7 +1707,7 @@ class LightningModule(
         for t in range(0, time_dims[0], split_size):
             batch_split = []
             for i, x in enumerate(batch):
-                if isinstance(x, torch.Tensor):
+                if isinstance(x, Tensor):
                     split_x = x[:, t : t + split_size]
                 elif isinstance(x, collections.Sequence):
                     split_x = [None] * len(x)

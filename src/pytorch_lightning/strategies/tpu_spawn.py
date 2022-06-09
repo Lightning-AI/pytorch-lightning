@@ -16,6 +16,7 @@ import os
 from typing import Any, Dict, List, Optional, Union
 
 import torch
+from torch import Tensor
 from torch.nn import Module
 from torch.utils.data import DataLoader
 
@@ -198,7 +199,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         return decision
 
     def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
-        if not isinstance(output, torch.Tensor):
+        if not isinstance(output, Tensor):
             output = torch.tensor(output, device=self.root_device)
 
         _invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
@@ -275,7 +276,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         if self.local_rank == 0:
             self.checkpoint_io.remove_checkpoint(filepath)
 
-    def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
+    def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         """
         Function to gather a tensor from several distributed processes
         Args:
@@ -285,7 +286,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         Return:
             A tensor of shape (world_size, batch, ...)
         """
-        if isinstance(tensor, torch.Tensor) and tensor.dim() == 0:
+        if isinstance(tensor, Tensor) and tensor.dim() == 0:
             tensor = tensor.unsqueeze(0)
         return xm.all_gather(tensor)
 

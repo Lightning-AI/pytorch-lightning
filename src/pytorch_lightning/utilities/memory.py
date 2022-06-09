@@ -21,6 +21,7 @@ from io import BytesIO
 from typing import Any, Dict
 
 import torch
+from torch import Tensor
 from torch.nn import Module
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -30,7 +31,7 @@ def recursive_detach(in_dict: Any, to_cpu: bool = False) -> Any:
     """Detach all tensors in `in_dict`.
 
     May operate recursively if some of the values in `in_dict` are dictionaries
-    which contain instances of `torch.Tensor`. Other types in `in_dict` are
+    which contain instances of `Tensor`. Other types in `in_dict` are
     not affected by this utility function.
 
     Args:
@@ -41,13 +42,13 @@ def recursive_detach(in_dict: Any, to_cpu: bool = False) -> Any:
         out_dict: Dictionary with detached tensors
     """
 
-    def detach_and_move(t: torch.Tensor, to_cpu: bool) -> torch.Tensor:
+    def detach_and_move(t: Tensor, to_cpu: bool) -> Tensor:
         t = t.detach()
         if to_cpu:
             t = t.cpu()
         return t
 
-    return apply_to_collection(in_dict, torch.Tensor, detach_and_move, to_cpu=to_cpu)
+    return apply_to_collection(in_dict, Tensor, detach_and_move, to_cpu=to_cpu)
 
 
 def is_oom_error(exception: BaseException) -> bool:

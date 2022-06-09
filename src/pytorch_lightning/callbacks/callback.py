@@ -18,7 +18,7 @@ Base class used to build new callbacks.
 
 from typing import Any, Dict, List, Optional, Type
 
-import torch
+from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -342,7 +342,7 @@ class Callback:
             checkpoint dictionary instead of only the callback state from the checkpoint.
         """
 
-    def on_before_backward(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", loss: torch.Tensor) -> None:
+    def on_before_backward(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", loss: Tensor) -> None:
         """Called before ``loss.backward()``."""
 
     def on_after_backward(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
