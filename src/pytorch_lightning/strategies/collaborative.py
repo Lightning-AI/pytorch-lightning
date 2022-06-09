@@ -25,6 +25,8 @@ from pytorch_lightning.utilities.types import _LRScheduler, ReduceLROnPlateau
 
 if _HIVEMIND_AVAILABLE:
     import hivemind
+else:
+    hivemind = None
 
 log = logging.getLogger(__name__)
 
