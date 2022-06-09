@@ -74,6 +74,7 @@ def _parse_loop_limits(
     min_epochs: Optional[int],
     max_epochs: int,
     max_time: Optional[Union[str, timedelta, Dict[str, int]]],
+    fast_dev_run: Union[int, bool],
 ) -> Tuple[Optional[int], int, int, int, Optional[Union[str, timedelta, Dict[str, int]]]]:
     """This utility computes the default values for the minimum and maximum number of steps and epochs given the
     values the user has selected.
@@ -84,12 +85,13 @@ def _parse_loop_limits(
         min_epochs: Minimum number of epochs.
         max_epochs: Maximum number of epochs.
         max_time: Maximum time for the training.
+        fast_dev_run: Whether or not fast_dev_run is requested.
 
     Returns:
         The parsed limits, with default values being set for the ones that the user did not specify.
     """
     if max_epochs is None:
-        if max_steps == -1 and max_time is None:
+        if max_steps == -1 and max_time is None and not fast_dev_run:
             rank_zero_warn(
                 "`max_epochs` was not set. Setting it to 1000 epochs. To train without an epoch limit,"
                 " set `max_epochs=-1`.",
