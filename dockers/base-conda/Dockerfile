@@ -97,9 +97,10 @@ RUN \
     python requirements/adjust-versions.py requirements/extra.txt && \
     python requirements/adjust-versions.py requirements/examples.txt && \
     # Install remaining requirements
-    pip install -r requirements/base.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
-    pip install -r requirements/extra.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
-    pip install -r requirements/examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
+    pip install -r requirements/base.txt \
+       -r requirements/extra.txt \
+       -r requirements/examples.txt \
+       --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
     rm assistant.py
 
 ENV \
