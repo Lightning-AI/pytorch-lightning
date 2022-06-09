@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/source/_static/images/logo.png" width="400px">
+<img src="docs/source-PL/_static/images/logo.png" width="400px">
 
 **The lightweight PyTorch wrapper for high-performance AI research.
 Scale your models, not the boilerplate.**
@@ -44,7 +44,7 @@ ______________________________________________________________________
 ## PyTorch Lightning is just organized PyTorch
 
 Lightning disentangles PyTorch code to decouple the science from the engineering.
-![PT to PL](docs/source/_static/images/general/pl_quick_start_full_compressed.gif)
+![PT to PL](docs/source-PL/_static/images/general/pl_quick_start_full_compressed.gif)
 
 ______________________________________________________________________
 
@@ -354,7 +354,7 @@ ______________________________________________________________________
 ## Lightning Lite
 
 <div align="center">
-  <img src="docs/source/_static/images/lightning_lite/lite.gif" height="200px" width="600px">
+  <img src="docs/source-PL/_static/images/lightning_lite/lite.gif" height="200px" width="600px">
 </div>
 
 In the Lightning 1.5 release, LightningLite now enables you to leverage all the capabilities of PyTorch Lightning Accelerators without any refactoring to your training loop. Check out the

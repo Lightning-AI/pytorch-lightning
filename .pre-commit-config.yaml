@@ -37,12 +37,12 @@ repos:
         exclude: |
             (?x)^(
                 CHANGELOG.md|
-                docs/source/_static/images/general/fast_2.gif|
-                docs/source/_static/images/mnist_imgs/pt_to_pl.jpg|
-                docs/source/_static/images/lightning_module/pt_to_pl.png|
-                docs/source/_static/images/general/pl_quick_start_full_compressed.gif|
-                docs/source/_static/images/general/pl_overview_flat.jpg|
-                docs/source/_static/images/general/pl_overview.gif
+                docs/source-PL/_static/images/general/fast_2.gif|
+                docs/source-PL/_static/images/mnist_imgs/pt_to_pl.jpg|
+                docs/source-PL/_static/images/lightning_module/pt_to_pl.png|
+                docs/source-PL/_static/images/general/pl_quick_start_full_compressed.gif|
+                docs/source-PL/_static/images/general/pl_overview_flat.jpg|
+                docs/source-PL/_static/images/general/pl_overview.gif
             )$
       - id: detect-private-key
 
