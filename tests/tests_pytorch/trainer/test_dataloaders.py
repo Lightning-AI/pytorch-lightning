@@ -831,7 +831,7 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
     assert trainer.state.finished, "DDP Training failed"
 
 
-@RunIf(min_cuda_gpus=3)
+@RunIf(min_cuda_gpus=3, standalone=True)
 def test_batch_size_smaller_than_num_gpus(tmpdir):
     # we need at least 3 gpus for this test
     num_gpus = 3
