@@ -53,6 +53,7 @@ class CollaborativeStrategy(Strategy):
         port: Optional[int] = None,
         retry_endpoint_attempts: int = 5,
         retry_endpoint_sleep_duration: int = 5,
+        client_mode=False,
         **optimizer_kwargs: Any,
     ):
         """Provides capabilities to train using the Hivemind Library, training collaboratively across the internet
@@ -153,6 +154,7 @@ class CollaborativeStrategy(Strategy):
             initial_peers=initial_peers,
             retry_endpoint_attempts=retry_endpoint_attempts,
             retry_endpoint_sleep_duration=retry_endpoint_sleep_duration,
+            client_mode=client_mode,
         )
         self._target_batch_size = target_batch_size
         self._batch_size = batch_size
@@ -382,6 +384,7 @@ class DHTManager:
         port: Optional[int],
         retry_endpoint_attempts: int = 5,
         retry_endpoint_sleep_duration: int = 5,
+        client_mode=False,
     ) -> None:
         """Manages the `hivemind.DHT` connection and provides a side-car endpoint server for initial peer access.
 
@@ -414,6 +417,7 @@ class DHTManager:
         self._peer_endpoint = peer_endpoint
         self._host = host
         self._port = port
+        self.client_mode = client_mode
 
         self._parse_env_vars()
 
@@ -426,6 +430,7 @@ class DHTManager:
             start=True,
             initial_peers=self._initial_peers,
             host_maddrs=host_maddrs if host_maddrs is not None else ["/ip4/0.0.0.0/tcp/0", "/ip4/0.0.0.0/udp/0/quic"],
+            client_mode=client_mode,
         )
 
         visible_addresses = [
