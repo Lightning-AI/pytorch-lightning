@@ -186,8 +186,8 @@ Use ``self.lr_schedulers()`` in  your :class:`~pytorch_lightning.core.module.Lig
 defined in your :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers`.
 
 .. warning::
-   * Before v1.3, Lightning automatically called ``lr_scheduler.step()`` in both automatic and manual optimization. From
-     1.3, ``lr_scheduler.step()`` is now for the user to call at arbitrary intervals.
+   * Before v1.3, Lightning automatically called ``lr_scheduler.step()`` in both automatic and manual optimization. 1.3, ``lr_scheduler.step()`` can now be called at arbitrary intervals by the user, or automatically by Lightning if ``"interval"`` is defined in ``configure_optimizers()``.
+     Check ``configure_optimizers()`` for more details.
    * Note that the ``lr_scheduler_config`` keys, such as ``"frequency"`` and ``"interval"``, will be ignored even if they are provided in
      your :meth:`~pytorch_lightning.core.module.LightningModule.configure_optimizers` during manual optimization.
 
