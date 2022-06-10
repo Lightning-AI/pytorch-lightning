@@ -72,13 +72,13 @@ def _load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     text = open(path_readme, encoding="utf-8").read()
 
     # drop images from readme
-    text = text.replace("![PT to PL](docs/source/_static/images/general/pl_quick_start_full_compressed.gif)", "")
+    text = text.replace("![PT to PL](docs/source-PL/_static/images/general/pl_quick_start_full_compressed.gif)", "")
 
-    # https://github.com/PyTorchLightning/pytorch-lightning/raw/master/docs/source/_static/images/lightning_module/pt_to_pl.png
+    # https://github.com/PyTorchLightning/pytorch-lightning/raw/master/docs/source-PL/_static/images/lightning_module/pt_to_pl.png
     github_source_url = os.path.join(homepage, "raw", version)
     # replace relative repository path to absolute link to the release
     #  do not replace all "docs" as in the readme we reger some other sources with particular path to docs
-    text = text.replace("docs/source/_static/", f"{os.path.join(github_source_url, 'docs/source-PL/_static/')}")
+    text = text.replace("docs/source-PL/_static/", f"{os.path.join(github_source_url, 'docs/source-PL/_static/')}")
 
     # readthedocs badge
     text = text.replace("badge/?version=stable", f"badge/?version={version}")

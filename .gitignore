@@ -71,9 +71,8 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
-tests/tests_tt_dir/
-tests/save_dir
-tests/tests/
+test/*/tests_tt_dir/
+test/*/save_dir
 
 # Translations
 *.mo

@@ -14,18 +14,23 @@ clean:
 	rm -rf .mypy_cache
 	rm -rf .pytest_cache
 	rm -rf ./docs/build
-	rm -rf ./docs/source/notebooks
-	rm -rf ./docs/source/generated
-	rm -rf ./docs/source/*/generated
-	rm -rf ./docs/source/api
+	rm -rf ./docs/source-PL/notebooks
+	rm -rf ./docs/source-PL/generated
+	rm -rf ./docs/source-PL/*/generated
+	rm -rf ./docs/source-PL/api
+	rm -rf build
+	rm -rf dist
+	rm -rf *.egg-info
+	rm -rf src/*.egg-info
 
 test: clean
 	# Review the CONTRIBUTING documentation for other ways to test.
-	pip install -r requirements/devel.txt
+	pip install -e . -r requirements/devel.txt
 	pip install -r requirements/strategies.txt
 	# run tests with coverage
-	python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v
-	python -m coverage report
+	cd src && python -m pytest pytorch_lightning
+	cd test && python -m coverage run --source pytorch_lightning -m pytest unittests_pl -v
+	cd test && python -m coverage report
 
 docs: clean
 	pip install -e . --quiet -r requirements/docs.txt

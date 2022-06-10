@@ -134,7 +134,7 @@ To learn about development of docs, check out the docs [README.md](https://githu
 
 ### Testing
 
-To learn about tests, check out the tests [README.md](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/tests/README.md).
+To learn about tests, check out the tests [README.md](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/test/README.md).
 
 ### Pull Request
 
@@ -165,7 +165,7 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 
 1. If any of the existing tests fail in your PR on our CI, refer to the following READMEs to identify what's failing and try to address it.
 
-   - [Test README](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/tests/README.md)
+   - [Test README](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/test/README.md)
    - [CI/CD README](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/.github/workflows/README.md)
 
 1. When you feel ready for integrating your work, mark your PR "Ready for review".
@@ -235,7 +235,7 @@ Here are tutorials:
 Here is the process to create a new test
 
 - 0. Optional: Follow tutorials !
-- 1. Find a file in tests/ which match what you want to test. If none, create one.
+- 1. Find a file in test/ which match what you want to test. If none, create one.
 - 2. Use this template to get started !
 - 3. Use **BoringModel and derivates to test out your code**.
 

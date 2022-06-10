@@ -1,6 +1,6 @@
 # PyTorch-Lightning Tests
 
-Most of the tests in PyTorch Lightning train a [BoringModel](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/tests/helpers/boring_model.py) under various trainer conditions (ddp, ddp2+amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://www.pytorchlightning.ai/community)
+Most of the tests in PyTorch Lightning train a [BoringModel](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/test/unittests_pl/helpers/boring_model.py) under various trainer conditions (ddp, ddp2+amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://www.pytorchlightning.ai/community)
 
 ## Running tests
 
@@ -47,7 +47,7 @@ python -m pytest src/pytorch_lightning test/unitests_pl -v
 You can also run a single test as follows:
 
 ```bash
-python -m pytest -v tests/trainer/test_trainer_cli.py::test_default_args
+python -m pytest -v test/unittests_pl/trainer/test_trainer_cli.py::test_default_args
 ```
 
 ### Conditional Tests
@@ -64,9 +64,9 @@ You can rely on our CI to make sure all these tests pass.
 There are certain standalone tests, which you can run using:
 
 ```bash
-PL_RUN_STANDALONE_TESTS=1 python -m pytest -v tests/trainer/
+PL_RUN_STANDALONE_TESTS=1 python -m pytest -v test/unittests_pl/trainer/
 # or
-./tests/standalone_tests.sh tests/trainer
+./test/standalone_tests.sh test/unittests_pl/trainer
 ```
 
 ## Running Coverage
