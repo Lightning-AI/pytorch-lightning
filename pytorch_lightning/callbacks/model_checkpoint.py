@@ -704,8 +704,8 @@ class ModelCheckpoint(Callback):
         self.best_model_score = self.best_k_models[self.best_model_path]
 
         if prev_best_model_path != self.best_model_path:
-            self.best_model_epoch = monitor_candidates['epoch'].item()
-            self.best_model_step = monitor_candidates['step'].item()
+            self.best_model_epoch = monitor_candidates["epoch"].item()
+            self.best_model_step = monitor_candidates["step"].item()
 
         if self.verbose:
             epoch = monitor_candidates["epoch"]
