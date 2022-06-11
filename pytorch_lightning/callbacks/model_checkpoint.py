@@ -236,6 +236,8 @@ class ModelCheckpoint(Callback):
         self.best_model_score = None
         self.best_model_path = ""
         self.last_model_path = ""
+        self.best_model_epoch = None
+        self.best_model_step = None
 
         self.__init_monitor_mode(mode)
         self.__init_ckpt_dir(dirpath, filename)
@@ -695,9 +697,15 @@ class ModelCheckpoint(Callback):
             self.kth_best_model_path = _op(self.best_k_models, key=self.best_k_models.get)
             self.kth_value = self.best_k_models[self.kth_best_model_path]
 
+        prev_best_model_path = self.best_model_path
+
         _op = min if self.mode == "min" else max
         self.best_model_path = _op(self.best_k_models, key=self.best_k_models.get)
         self.best_model_score = self.best_k_models[self.best_model_path]
+
+        if prev_best_model_path != self.best_model_path:
+            self.best_model_epoch = monitor_candidates['epoch'].item()
+            self.best_model_step = monitor_candidates['step'].item()
 
         if self.verbose:
             epoch = monitor_candidates["epoch"]
