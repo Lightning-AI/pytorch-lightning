@@ -214,7 +214,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed issue where the CLI fails with certain torch objects ([#13153](https://github.com/PyTorchLightning/pytorch-lightning/pull/13153))
 
 
--
+- Fixed `tuner.scale_batch_size()` to update `DataModule` hparams ([#12806](https://github.com/PyTorchLightning/pytorch-lightning/pull/12806))
 
 
 ## [1.6.4] - 2022-06-01
