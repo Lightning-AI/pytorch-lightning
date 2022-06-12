@@ -227,7 +227,7 @@ def test_configure_launcher_create_processes_externally():
     assert ddp_strategy.launcher is None
     ddp_strategy._configure_launcher()
     assert ddp_strategy.launcher is None
-    
+
 
 @RunIf(min_cuda_gpus=1)
 @mock.patch("torch.distributed.init_process_group")
@@ -246,5 +246,3 @@ def test_ddp_strategy_set_timeout(mock_init_process_group):
     trainer.lightning_module.trainer = trainer
     trainer.strategy.setup_environment()
     mock_init_process_group.assert_called_with(timeout=test_timedelta)
-
-
