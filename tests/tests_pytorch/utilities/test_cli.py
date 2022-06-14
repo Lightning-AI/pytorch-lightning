@@ -34,11 +34,20 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.loggers import Logger, TensorBoardLogger
+from pytorch_lightning.loggers import (
+    Logger,
+    TensorBoardLogger,
+    _COMET_AVAILABLE,
+    _NEPTUNE_AVAILABLE,
+    _WANDB_AVAILABLE,
+)
 from pytorch_lightning.plugins.environments import SLURMEnvironment
+from pytorch_lightning.profiler import PyTorchProfiler
+from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import (
+    _JSONARGPARSE_SIGNATURES_AVAILABLE,
     _populate_registries,
     CALLBACK_REGISTRY,
     DATAMODULE_REGISTRY,
@@ -60,6 +69,9 @@ from tests_pytorch.helpers.utils import no_warning_call
 torchvision_version = version.parse("0")
 if _TORCHVISION_AVAILABLE:
     torchvision_version = version.parse(__import__("torchvision").__version__)
+
+if _JSONARGPARSE_SIGNATURES_AVAILABLE:
+    from jsonargparse import lazy_instance
 
 
 @contextmanager
@@ -1423,8 +1435,6 @@ def test_cli_configureoptimizers_can_be_overridden():
 
 
 def test_cli_parameter_with_lazy_instance_default():
-    from jsonargparse import lazy_instance
-
     class TestModel(BoringModel):
         def __init__(self, activation: torch.nn.Module = lazy_instance(torch.nn.LeakyReLU, negative_slope=0.05)):
             super().__init__()
@@ -1440,6 +1450,20 @@ def test_cli_parameter_with_lazy_instance_default():
         assert cli.model.activation is not model.activation
 
 
+def test_ddpstrategy_lazy_instance_with_find_unused_parameters():
+    with mock.patch("sys.argv", ["any.py"]):
+        cli = LightningCLI(
+            BoringModel,
+            run=False,
+            trainer_defaults={
+                'strategy': lazy_instance(DDPStrategy, find_unused_parameters=False)
+            }
+        )
+
+    assert cli.config.trainer.strategy.init_args.find_unused_parameters is False
+    assert isinstance(cli.config_init.trainer.strategy, DDPStrategy)
+
+
 def test_cli_logger_shorthand():
     with mock.patch("sys.argv", ["any.py"]):
         cli = LightningCLI(TestModel, run=False, trainer_defaults={"logger": False})
@@ -1452,6 +1476,38 @@ def test_cli_logger_shorthand():
     with mock.patch("sys.argv", ["any.py", "--trainer.logger=False"]):
         cli = LightningCLI(TestModel, run=False)
     assert cli.trainer.logger is None
+
+
+def _test_logger_init_args(logger_name, logger_init):
+    cli_args = [f"--trainer.logger={logger_name}"]
+    cli_args += [f"--trainer.logger.{k}={v}" for k, v in logger_init.items()]
+    cli_args.append("--print_config")
+
+    out = StringIO()
+    with mock.patch("sys.argv", ["any.py"] + cli_args), redirect_stdout(out), pytest.raises(SystemExit):
+        LightningCLI(TestModel, run=False)
+
+    init_args = yaml.safe_load(out.getvalue())["trainer"]["logger"]["init_args"]
+    assert {k: init_args[k] for k in logger_init} == logger_init
+
+
+@pytest.mark.skipif(not _COMET_AVAILABLE, reason="comet-ml is required")
+def test_comet_logger_init_args():
+    _test_logger_init_args("CometLogger", {"save_dir": "comet", "workspace": "comet"})
+
+
+@pytest.mark.skipif(not _NEPTUNE_AVAILABLE, reason="neptune-client is required")
+def test_neptune_logger_init_args():
+    _test_logger_init_args("NeptuneLogger", {"name": "neptune", "__unresolved__": {"description": "neptune"}})
+
+
+def test_tensorboard_logger_init_args():
+    _test_logger_init_args("TensorBoardLogger", {"save_dir": "tb", "name": "tb"})
+
+
+@pytest.mark.skipif(not _WANDB_AVAILABLE, reason="wandb is required")
+def test_wandb_logger_init_args():
+    _test_logger_init_args("WandbLogger", {"save_dir": "wandb", "notes": "wandb"})
 
 
 def test_cli_auto_seeding():
@@ -1513,3 +1569,23 @@ def test_unresolvable_import_paths():
         LightningCLI(TestModel, run=False)
 
     assert "a_func: torch.softmax" in out.getvalue()
+
+
+def test_pytorch_profiler_init_args():
+    profiler_init = {
+        "dirpath": "profiler",
+        "row_limit": 10,
+        "group_by_input_shapes": True,
+        "__unresolved__": {
+            "profile_memory": True,
+            "record_shapes": True,
+        },
+    }
+    cli_args = ["--trainer.profiler=PyTorchProfiler"]
+    cli_args += [f"--trainer.profiler.{k}={v}" for k, v in profiler_init.items()]
+
+    with mock.patch("sys.argv", ["any.py"] + cli_args):
+        cli = LightningCLI(TestModel, run=False)
+
+    assert isinstance(cli.config_init.trainer.profiler, PyTorchProfiler)
+    assert {k: cli.config.trainer.profiler.init_args[k] for k in profiler_init} == profiler_init
