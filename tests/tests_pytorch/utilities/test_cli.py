@@ -33,14 +33,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.loggers import (
-    Logger,
-    TensorBoardLogger,
-    _COMET_AVAILABLE,
-    _NEPTUNE_AVAILABLE,
-    _WANDB_AVAILABLE,
-)
+from pytorch_lightning.loggers import _COMET_AVAILABLE, _NEPTUNE_AVAILABLE, _WANDB_AVAILABLE, Logger, TensorBoardLogger
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.profiler import PyTorchProfiler
 from pytorch_lightning.strategies import DDPStrategy
@@ -1455,9 +1448,7 @@ def test_ddpstrategy_lazy_instance_with_find_unused_parameters():
         cli = LightningCLI(
             BoringModel,
             run=False,
-            trainer_defaults={
-                'strategy': lazy_instance(DDPStrategy, find_unused_parameters=False)
-            }
+            trainer_defaults={"strategy": lazy_instance(DDPStrategy, find_unused_parameters=False)},
         )
 
     assert cli.config.trainer.strategy.init_args.find_unused_parameters is False
