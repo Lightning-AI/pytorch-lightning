@@ -1,0 +1,31 @@
+name: Reusable Check Code
+
+on:
+  workflow_call:
+
+jobs:
+  mypy:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v3
+      with:
+        python-version: 3.9
+
+    - name: Cache pip
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        pip install torch==1.11 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+        python ./requirements/adjust-versions.py requirements/extra.txt
+        pip install '.[dev]'
+        pip list
+
+    - name: Type check
+      run: mypy --install-types --non-interactive

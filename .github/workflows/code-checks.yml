@@ -1,10 +1,12 @@
-name: Code check
+name: Check Code
 
-on:  # Trigger the workflow on push or pull request, but only for the master branch
+on:
   push:
-    branches: [master, "release/*"]
+    # branches: [master, "release/*"]
+    branches: ["ci/define-reusable-workflows"]
   pull_request:
-    branches: [master, "release/*"]
+    # branches: [master, "release/*"]
+    branches: ["ci/define-reusable-workflows"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -12,29 +14,6 @@ concurrency:
 
 jobs:
   mypy:
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@master
-    - uses: actions/setup-python@v2
-      with:
-        python-version: 3.9
-
-    # Note: This uses an internal pip API and may not always work
-    # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
-    - name: Cache pip
-      uses: actions/cache@v2
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-
-    - name: Install dependencies
-      run: |
-        pip install torch==1.11 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-        python ./requirements/adjust-versions.py requirements/extra.txt
-        pip install '.[dev]'
-        pip list
-
-    - name: Type check
-      run: mypy --install-types --non-interactive
+    uses: ./.github/workflows/_check-code.yml
+    # TODO: Update to reuse the workflow in a specific hash/branch/tag.
+    # uses: PyTorchLightning/pytorch-lightning/.github/workflows/_check-install.yml@master
