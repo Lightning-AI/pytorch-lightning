@@ -40,7 +40,7 @@ jobs:
         pip list
       displayName: 'Install package'
 
-    - bash: python -m pytest tests4pl/benchmarks -v --durations=0
+    - bash: python -m pytest tests_pytorch/benchmarks -v --durations=0
       env:
         PL_RUNNING_BENCHMARKS: 1
       workingDirectory: test
