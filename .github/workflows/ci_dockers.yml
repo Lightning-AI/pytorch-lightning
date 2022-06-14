@@ -95,7 +95,7 @@ jobs:
             UBUNTU_VERSION=${{ matrix.ubuntu_version }}
           file: dockers/base-cuda/Dockerfile
           push: false
-        timeout-minutes: 75
+        timeout-minutes: 95
 
   build-Conda:
     runs-on: ubuntu-20.04
@@ -120,14 +120,14 @@ jobs:
             CUDA_VERSION=${{ matrix.cuda_version }}
           file: dockers/base-conda/Dockerfile
           push: false
-        timeout-minutes: 75
+        timeout-minutes: 95
 
   build-ipu:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
-        # the config used in 'dockers/ipu-ci-runner/Dockerfile'
+        # the config used in 'dockers/ci-runner-ipu/Dockerfile'
         python_version: ["3.9"]  # latest
         pytorch_version: ["1.9"]
     steps:
@@ -151,6 +151,29 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
-          file: dockers/ipu-ci-runner/Dockerfile
+          file: dockers/ci-runner-ipu/Dockerfile
+          push: false
+        timeout-minutes: 60
+
+  build-hpu:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # the config used in 'dockers/ci-runner-hpu/Dockerfile'
+        gaudi_version: ["1.4.0"]
+        pytorch_version: ["1.10.2"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build HPU CI runner Docker
+        uses: docker/build-push-action@v2
+        with:
+          build-args: |
+            DIST=latest
+            GAUDI_VERSION=${{ matrix.gaudi_version }}
+            PYTORCH_VERSION=${{ matrix.pytorch_version }}
+          file: dockers/ci-runner-hpu/Dockerfile
           push: false
         timeout-minutes: 60

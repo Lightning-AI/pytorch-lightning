@@ -850,6 +850,9 @@ Useful when debugging or testing something that happens at the end of an epoch.
     # run for only 10 batches
     trainer = Trainer(limit_val_batches=10)
 
+    # disable validation
+    trainer = Trainer(limit_val_batches=0)
+
 In the case of multiple validation dataloaders, the limit applies to each dataloader individually.
 
 log_every_n_steps
