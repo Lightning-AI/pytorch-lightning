@@ -20,7 +20,7 @@ import warnings
 
 import pt_lightning_sphinx_theme
 
-import pytorch_lightninga
+import pytorch_lightning
 
 # -----------------------
 # VARIABLES WHEN WORKING ON DOCS... MAKE THIS TRUE TO BUILD FASTER
