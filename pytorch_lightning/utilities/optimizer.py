@@ -14,7 +14,7 @@
 
 from typing import Iterable
 
-import torch
+from torch import Tensor
 from torch.optim import Optimizer
 
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
@@ -30,4 +30,4 @@ def optimizers_to_device(optimizers: Iterable[Optimizer], device: _DEVICE) -> No
 def optimizer_to_device(optimizer: Optimizer, device: _DEVICE) -> None:
     """Moves the state of a single optimizer to the device."""
     for p, v in optimizer.state.items():
-        optimizer.state[p] = apply_to_collection(v, torch.Tensor, move_data_to_device, device)
+        optimizer.state[p] = apply_to_collection(v, Tensor, move_data_to_device, device)

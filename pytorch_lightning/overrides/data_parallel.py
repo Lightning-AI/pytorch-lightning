@@ -16,6 +16,7 @@ import warnings
 from typing import Any, cast, Union
 
 import torch
+from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
@@ -69,7 +70,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
             data = unsqueeze_scalar_tensor(data)
             return data
 
-        output = apply_to_collection(output, dtype=(numbers.Number, torch.Tensor), function=output_transform)
+        output = apply_to_collection(output, dtype=(numbers.Number, Tensor), function=output_transform)
         return output
 
     def update_replica_device_attributes(self, inputs: Any) -> None:
@@ -84,13 +85,13 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         """
         replica_device = None
 
-        def find_tensor_with_device(tensor: torch.Tensor) -> torch.Tensor:
+        def find_tensor_with_device(tensor: Tensor) -> Tensor:
             nonlocal replica_device
             if replica_device is None and tensor.device != torch.device("cpu"):
                 replica_device = tensor.device
             return tensor
 
-        apply_to_collection(inputs, dtype=torch.Tensor, function=find_tensor_with_device)
+        apply_to_collection(inputs, dtype=Tensor, function=find_tensor_with_device)
 
         if replica_device is not None:
             # by calling .to() we force the update to the self.device property
@@ -112,6 +113,6 @@ def python_scalar_to_tensor(data: Any, device: Union[str, torch.device] = torch.
 
 def unsqueeze_scalar_tensor(data: Any) -> Any:
     """Un-squeezes a 0-dim tensor."""
-    if isinstance(data, torch.Tensor) and data.dim() == 0:
+    if isinstance(data, Tensor) and data.dim() == 0:
         data = data.unsqueeze(0)
     return data

@@ -14,6 +14,7 @@
 from typing import Any, Dict, List, Optional
 
 import torch
+from torch import Tensor
 from torch.nn import DataParallel, Module
 
 import pytorch_lightning as pl
@@ -98,11 +99,11 @@ class DataParallelStrategy(ParallelStrategy):
             Reduced tensor values or the same value if it was not or did not contain a tensor.
         """
 
-        def mean(t: torch.Tensor) -> torch.Tensor:
+        def mean(t: Tensor) -> Tensor:
             original_dtype = t.dtype
             return t.float().mean().to(original_dtype)
 
-        return apply_to_collection(collection, torch.Tensor, mean)
+        return apply_to_collection(collection, Tensor, mean)
 
     @property
     def root_device(self):
@@ -143,7 +144,7 @@ class DataParallelStrategy(ParallelStrategy):
         if isinstance(output, dict) and "loss" in output:
             output["loss"] = self.reduce(output["loss"])
 
-        elif isinstance(output, torch.Tensor):
+        elif isinstance(output, Tensor):
             output = self.reduce(output)
 
         return output

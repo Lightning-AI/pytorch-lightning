@@ -18,6 +18,7 @@ from typing import Any, Dict, Generator, List, MutableMapping, Optional, Union
 
 import numpy as np
 import torch
+from torch import Tensor
 
 
 def _convert_params(params: Union[Dict[str, Any], Namespace]) -> Dict[str, Any]:
@@ -126,7 +127,7 @@ def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
         # convert relevant np scalars to python types first (instead of str)
         if isinstance(params[k], (np.bool_, np.integer, np.floating)):
             params[k] = params[k].item()
-        elif type(params[k]) not in [bool, int, float, str, torch.Tensor]:
+        elif type(params[k]) not in [bool, int, float, str, Tensor]:
             params[k] = str(params[k])
     return params
 

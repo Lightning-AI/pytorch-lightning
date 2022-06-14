@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.distributed
+from torch import Tensor
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 
@@ -221,12 +222,12 @@ class DDPSpawnStrategy(ParallelStrategy):
             torch.cuda.set_device(self.root_device)
         self.model.to(self.root_device)
 
-    def pre_backward(self, closure_loss: torch.Tensor) -> None:
+    def pre_backward(self, closure_loss: Tensor) -> None:
         """Run before precision plugin executes backward."""
         if not self.lightning_module.automatic_optimization:
             prepare_for_backward(self.model, closure_loss)
 
-    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> torch.Tensor:
+    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
@@ -238,7 +239,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         Return:
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
-        if isinstance(tensor, torch.Tensor):
+        if isinstance(tensor, Tensor):
             tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 

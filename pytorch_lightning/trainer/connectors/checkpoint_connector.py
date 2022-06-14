@@ -19,6 +19,7 @@ from copy import deepcopy
 from typing import Any, Dict, Optional
 
 import torch
+from torch import Tensor
 from torchmetrics import Metric
 
 import pytorch_lightning as pl
@@ -448,7 +449,7 @@ class CheckpointConnector:
         _checkpoint = self.dump_checkpoint(weights_only)
         self.trainer.strategy.save_checkpoint(_checkpoint, filepath, storage_options=storage_options)
 
-    def _get_lightning_module_state_dict(self) -> Dict[str, torch.Tensor]:
+    def _get_lightning_module_state_dict(self) -> Dict[str, Tensor]:
         metrics = (
             [m for m in self.trainer.lightning_module.modules() if isinstance(m, Metric)]
             if _fault_tolerant_training()

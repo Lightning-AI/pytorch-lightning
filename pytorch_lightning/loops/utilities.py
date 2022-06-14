@@ -20,6 +20,7 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Sequence, Tup
 
 import numpy as np
 import torch
+from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -34,7 +35,7 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 
-def check_finite_loss(loss: Optional[torch.Tensor]) -> None:
+def check_finite_loss(loss: Optional[Tensor]) -> None:
     """Checks for finite loss value.
 
     Args:

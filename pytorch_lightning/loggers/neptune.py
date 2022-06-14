@@ -28,6 +28,7 @@ from typing import Any, Callable, Dict, Generator, Mapping, Optional, Sequence, 
 from weakref import ReferenceType
 
 import torch
+from torch import Tensor
 
 from pytorch_lightning import __version__
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
@@ -491,7 +492,7 @@ class NeptuneLogger(Logger):
         self.run[parameters_key] = params
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, Union[torch.Tensor, float]], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Dict[str, Union[Tensor, float]], step: Optional[int] = None) -> None:
         """Log metrics (numeric values) in Neptune runs.
 
         Args:
@@ -640,7 +641,7 @@ class NeptuneLogger(Logger):
             raise ValueError("The function you've used is deprecated.\n" + msg_suffix)
 
     @rank_zero_only
-    def log_metric(self, metric_name: str, metric_value: Union[torch.Tensor, float, str], step: Optional[int] = None):
+    def log_metric(self, metric_name: str, metric_value: Union[Tensor, float, str], step: Optional[int] = None):
         key = f"{self._prefix}/{metric_name}"
         self._signal_deprecated_api_usage("log_metric", f"logger.run['{key}'].log(42)")
         if torch.is_tensor(metric_value):

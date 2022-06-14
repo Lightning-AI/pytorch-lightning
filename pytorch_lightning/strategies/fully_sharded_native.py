@@ -16,6 +16,7 @@ import logging
 from typing import Any, Dict, Generator, List, Optional, Union
 
 import torch
+from torch import Tensor
 from torch.distributed.distributed_c10d import _get_default_group, ProcessGroup
 
 import pytorch_lightning as pl
@@ -194,10 +195,10 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
     def reduce(
         self,
-        tensor: Union[torch.Tensor, Any],
+        tensor: Union[Tensor, Any],
         group: Optional[Any] = None,
         reduce_op: Optional[Union[ReduceOp, str]] = "mean",
-    ) -> torch.Tensor:
+    ) -> Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
@@ -209,7 +210,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         Return:
             reduced value, except when the input was not a tensor the output remains is unchanged
         """
-        if isinstance(tensor, torch.Tensor):
+        if isinstance(tensor, Tensor):
             tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 

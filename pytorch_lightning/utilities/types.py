@@ -21,15 +21,16 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Type, Union
 
 import torch
+from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
 from typing_extensions import Protocol, runtime_checkable
 
 _NUMBER = Union[int, float]
-_METRIC = Union[Metric, torch.Tensor, _NUMBER]
+_METRIC = Union[Metric, Tensor, _NUMBER]
 _METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
-STEP_OUTPUT = Union[torch.Tensor, Dict[str, Any]]
+STEP_OUTPUT = Union[Tensor, Dict[str, Any]]
 EPOCH_OUTPUT = List[STEP_OUTPUT]
 _EVALUATE_OUTPUT = List[Dict[str, float]]  # 1 dict per DataLoader
 _PREDICT_OUTPUT = Union[List[Any], List[List[Any]]]
@@ -94,7 +95,7 @@ class ReduceLROnPlateau(_Stateful, Protocol):
     ) -> None:
         ...
 
-    def step(self, metrics: Union[float, int, torch.Tensor], epoch: Optional[int] = None) -> None:
+    def step(self, metrics: Union[float, int, Tensor], epoch: Optional[int] = None) -> None:
         ...
 
 

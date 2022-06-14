@@ -13,7 +13,7 @@
 # limitations under the License.
 from typing import Dict
 
-import torch
+from torch import Tensor
 
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -46,11 +46,11 @@ class DDP2Strategy(DDPStrategy):
             Reduced tensor values or the same value if it was not or did not contain a tensor.
         """
 
-        def mean(t: torch.Tensor) -> torch.Tensor:
+        def mean(t: Tensor) -> Tensor:
             original_dtype = t.dtype
             return t.float().mean().to(original_dtype)
 
-        return apply_to_collection(collection, torch.Tensor, mean)
+        return apply_to_collection(collection, Tensor, mean)
 
     @property
     def root_device(self):
