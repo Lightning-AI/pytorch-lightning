@@ -21,7 +21,7 @@ jobs:
           pip install check-jsonschema
 
       - name: GitHub Workflows
-        run: check-jsonschema .github/workflows/*.yml --builtin-schema "github-workflows"
+        run: check-jsonschema $(find .github/workflows -name '*.yml' -a ! -name '_*.yml') --builtin-schema "github-workflows"
 
       - name: Azure Pipelines
         env:
