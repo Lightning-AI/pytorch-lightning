@@ -1,4 +1,4 @@
-name: Reusable test docs
+name: Reusable Check Docs
 # https://github.com/marketplace/actions/sphinx-build
 
 on:

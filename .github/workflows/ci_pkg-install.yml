@@ -2,11 +2,9 @@ name: Check Installation
 
 on:
   push:
-    # branches: [master, "release/*"]
-    branches: ["ci/define-reusable-workflows"]
+    branches: [master, "release/*"]
   pull_request:
-    # branches: [master, "release/*"]
-    branches: ["ci/define-reusable-workflows"]
+    branches: [master, "release/*"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
