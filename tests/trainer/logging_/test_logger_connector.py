@@ -21,11 +21,11 @@ from torchmetrics import Accuracy, AveragePrecision, MeanAbsoluteError, MeanSqua
 
 from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks.callback import Callback
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 from tests.models.test_hooks import get_members
 
