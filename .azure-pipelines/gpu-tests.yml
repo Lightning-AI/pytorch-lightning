@@ -70,12 +70,11 @@ jobs:
     - bash: bash .actions/pull_legacy_checkpoints.sh
       displayName: 'Get legacy checkpoints'
 
-    - bash: |
-        python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests --ignore tests/benchmarks -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
-      displayName: 'Testing: standard'
+    - bash: python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning
+      displayName: 'Testing: doctests'
 
     - bash: python -m coverage run --source pytorch_lightning -m pytest tests_pytorch --ignore tests_pytorch/benchmarks -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
-      displayName: 'Testing: unittests'
+      displayName: 'Testing: standard'
       workingDirectory: test
 
     - bash: bash run_standalone_tests.sh
