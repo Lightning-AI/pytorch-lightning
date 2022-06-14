@@ -1,4 +1,4 @@
-from tests_pytorch.helpers.boring_model import (  # noqa: F401
+from pytorch_lightning.demos.boring_classes import (  # noqa: F401
     BoringDataModule,
     BoringModel,
     ManualOptimBoringModel,
