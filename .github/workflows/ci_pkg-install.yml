@@ -13,3 +13,6 @@ concurrency:
 jobs:
   install:
     uses: ./.github/workflows/_check-install.yml
+    with:
+      import-name: pytorch_lightning
+      pypi-name: pytorch-lightning

@@ -2,6 +2,16 @@ name: Reusable Check Installation
 
 on:
   workflow_call:
+    inputs:
+      import-name:
+        description: 'Import name to test with after installation'
+        required: true
+        type: string
+      pypi-name:
+        description: 'PyPI name to install the package with'
+        required: true
+        type: string
+
 
 jobs:
   install:
@@ -44,13 +54,13 @@ jobs:
           # install as archive
           pip install dist/*.tar.gz
           cd ..
-          python -c "import pytorch_lightning as pl ; print(pl.__version__)"
-          pip uninstall -y pytorch-lightning
+          python -c "import ${{ inputs.import-name }}; print(${{ inputs.import-name }}.__version__)"
+          pip uninstall -y ${{ inputs.pypi-name }}
 
       - name: Install | Uninstall package - wheel
         run: |
           # install as wheel
           pip install dist/*.whl
           cd ..
-          python -c "import pytorch_lightning as pl ; print(pl.__version__)"
-          pip uninstall -y pytorch-lightning
+          python -c "import ${{ inputs.import-name }}; print(${{ inputs.import-name }}.__version__)"
+          pip uninstall -y ${{ inputs.pypi-name }}
