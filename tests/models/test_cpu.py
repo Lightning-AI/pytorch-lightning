@@ -118,7 +118,7 @@ def test_early_stopping_cpu_model(tmpdir):
     )
 
     model = ModelTrainVal()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model)
 
     # test freeze on cpu
     model.freeze()
@@ -143,7 +143,7 @@ def test_multi_cpu_model_ddp(tmpdir):
 
     dm = ClassifDataModule()
     model = ClassificationModel()
-    tpipes.run_model_test(trainer_options, model, data=dm, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model, data=dm)
 
 
 def test_lbfgs_cpu_model(tmpdir):
@@ -297,7 +297,7 @@ def test_cpu_model(tmpdir):
     )
 
     model = BoringModel()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model)
 
 
 def test_all_features_cpu_model(tmpdir):
@@ -316,4 +316,4 @@ def test_all_features_cpu_model(tmpdir):
 
     model = BoringModel()
 
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, min_acc=0.01)
+    tpipes.run_model_test(trainer_options, model, min_acc=0.01)
