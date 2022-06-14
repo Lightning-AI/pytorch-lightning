@@ -3,13 +3,8 @@ name: Reusable Schema
 on:
   workflow_call:
     inputs:
-      disable-azure:
-        description: 'Disable check on Azure Pipelines config files'
-        default: false
-        required: false
-        type: bool
       azure-dir:
-        description: 'Directory containing Azure Pipelines config files'
+        description: 'Directory containing Azure Pipelines config files. Provide an empty string to skip checking on Azure Pipelines files.'
         default: './.azure-pipelines'
         required: false
         type: string
@@ -29,7 +24,7 @@ jobs:
         run: check-jsonschema $(find .github/workflows -name '*.yml' -a ! -name '_*.yml') --builtin-schema "github-workflows"
 
       - name: Azure Pipelines
-        if: ${{ inputs.disable-azure == false }}
+        if: ${{ inputs.azure-dir == '' }}
         env:
           SCHEMA_FILE: https://raw.githubusercontent.com/microsoft/azure-pipelines-vscode/v1.204.0/service-schema.json
         run: check-jsonschema ${{ inputs.azure-dir }}/*.yml --schemafile "$SCHEMA_FILE"
