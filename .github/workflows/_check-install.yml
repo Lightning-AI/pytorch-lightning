@@ -2,17 +2,6 @@ name: Reusable Check Installation
 
 on:
   workflow_call:
-    inputs:
-      python-version-min:
-        description: 'Minimal Python version to test installation with.'
-        default: '3.7'
-        required: false
-        type: string
-      python-version-max:
-        description: 'Maximal Python version to test installation with.'
-        default: '3.9'
-        required: false
-        type: string
 
 jobs:
   install:
@@ -22,7 +11,7 @@ jobs:
       # max-parallel: 6
       matrix:
         os: [ubuntu-20.04, macOS-10.15, windows-2019]
-        python-version: [${{ inputs.python-version-min }}, ${{ inputs.python-version-max}}]
+        python-version: [3.7, 3.9]
 
     steps:
       - uses: actions/checkout@v2
