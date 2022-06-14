@@ -134,7 +134,7 @@ To learn about development of docs, check out the docs [README.md](https://githu
 
 ### Testing
 
-To learn about tests, check out the tests [README.md](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/tests/README.md).
+To learn about tests, check out the tests [README.md](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/test/README.md).
 
 ### Pull Request
 

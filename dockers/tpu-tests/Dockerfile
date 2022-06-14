@@ -22,7 +22,8 @@ LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
 COPY ./ ./pytorch-lightning/
 
 # Pull the legacy checkpoints
-RUN cd pytorch-lightning && bash .actions/pull_legacy_checkpoints.sh
+RUN cd pytorch-lightning && \
+    bash .actions/pull_legacy_checkpoints.sh
 
 RUN \
     pip install -q fire && \

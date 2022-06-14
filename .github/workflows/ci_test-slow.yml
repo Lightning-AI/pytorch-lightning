@@ -49,27 +49,27 @@ jobs:
       run: |
         # adjust versions according installed Torch version
         python ./requirements/adjust-versions.py requirements.txt ${{ matrix.pytorch-version }}
-        pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+        pip install -e . --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip install -r requirements/test.txt
         pip list
       shell: bash
 
-    - name: Tests
-      run: |
-        coverage run --source pytorch_lightning -m pytest tests -v --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}.xml
+    - name: UnitTests
+      working-directory: ./test
+      run: coverage run --source pytorch_lightning -m pytest unittests_pl -v --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}.xml
       env:
         PL_RUN_SLOW_TESTS: 1
 
     - name: Upload pytest test results
       uses: actions/upload-artifact@v2
       with:
-        name: pytest-results-${{ runner.os }}-py${{ matrix.python-version }}
-        path: junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}.xml
-        if-no-files-found: error
+        name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}
+        path: test/results-${{ runner.os }}-py${{ matrix.python-version }}.xml
       if: failure()
 
     - name: Statistics
       if: success()
+      working-directory: ./test
       run: |
         coverage report
         coverage xml
@@ -81,7 +81,7 @@ jobs:
       continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: coverage.xml
+        file: test/coverage.xml
         flags: cpu,pytest,torch${{ matrix.pytorch-version }}
         name: CPU-coverage
         fail_ci_if_error: false

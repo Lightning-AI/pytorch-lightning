@@ -17,7 +17,7 @@ pr:
   - "release/*"
 
 jobs:
-  - job: pytest
+  - job: testing
     strategy:
       matrix:
         'PyTorch - LTS':
@@ -28,15 +28,12 @@ jobs:
     timeoutInMinutes: "100"
     # how much time to give 'run always even if cancelled tasks' before stopping them
     cancelTimeoutInMinutes: "2"
-
     pool: azure-jirka-spot
-
     container:
       image: $(image)
       # default shm size is 64m. Increase it to avoid:
       # 'Error while creating shared memory: unhandled system error, NCCL version 2.7.8'
       options: "--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all --shm-size=512m"
-
     workspace:
       clean: all
 
@@ -56,8 +53,9 @@ jobs:
         python -c "fname = 'requirements/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
         CUDA_VERSION_MM=$(python -c "import torch ; print(''.join(map(str, torch.version.cuda.split('.')[:2])))")
         pip install "bagua-cuda$CUDA_VERSION_MM>=0.9.0"
-        pip install . --requirement requirements/devel.txt
-        pip install . --requirement requirements/strategies.txt
+        pip install -e .
+        pip install --requirement requirements/devel.txt
+        pip install --requirement requirements/strategies.txt
         pip list
       displayName: 'Install dependencies'
 
@@ -76,8 +74,12 @@ jobs:
         python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests --ignore tests/benchmarks -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
       displayName: 'Testing: standard'
 
-    - bash: |
-        bash tests/standalone_tests.sh
+    - bash: python -m coverage run --source pytorch_lightning -m pytest unittests_pl --ignore unittests_pl/benchmarks -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
+      displayName: 'Testing: unittests'
+      workingDirectory: test
+
+    - bash: bash run_standalone_tests.sh
+      workingDirectory: test
       env:
         PL_USE_MOCKED_MNIST: "1"
       displayName: 'Testing: standalone'
@@ -88,6 +90,7 @@ jobs:
         python -m coverage html
         python -m codecov --token=$(CODECOV_TOKEN) --commit=$(Build.SourceVersion) --flags=gpu,pytest --name="GPU-coverage" --env=linux,azure
         ls -l
+      workingDirectory: test
       displayName: 'Statistics'
 
     - task: PublishTestResults@2
@@ -117,6 +120,6 @@ jobs:
         PL_USE_MOCKED_MNIST: "1"
       displayName: 'Testing: examples'
 
-    - bash: |
-        python -m pytest tests/benchmarks -v --maxfail=2 --durations=0
+    - bash: python -m pytest unittests_pl/benchmarks -v --maxfail=2 --durations=0
+      workingDirectory: test
       displayName: 'Testing: benchmarks'
