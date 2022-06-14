@@ -28,8 +28,9 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset, has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset, RandomIterableDatasetWithLen
+from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
+from tests.helpers.datasets import RandomIterableDataset, RandomIterableDatasetWithLen
 from tests.helpers.runif import RunIf
 
 

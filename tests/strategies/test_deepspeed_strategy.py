@@ -38,8 +38,9 @@ from pytorch_lightning.utilities.imports import (
     _DEEPSPEED_GREATER_EQUAL_0_6,
 )
 from pytorch_lightning.utilities.meta import init_meta_context
-from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
+from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.datasets import RandomIterableDataset
 from tests.helpers.runif import RunIf
 
 if _DEEPSPEED_AVAILABLE:

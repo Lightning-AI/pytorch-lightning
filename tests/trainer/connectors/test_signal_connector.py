@@ -20,10 +20,10 @@ from unittest import mock
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException
-from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 

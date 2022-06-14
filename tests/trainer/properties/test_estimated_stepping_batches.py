@@ -23,7 +23,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
 from pytorch_lightning.strategies.ipu import IPUStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringModel, RandomIterableDataset
+from tests.helpers.boring_model import BoringModel
+from tests.helpers.datasets import RandomIterableDataset
 from tests.helpers.runif import RunIf
 from tests.helpers.utils import pl_multi_process_test
 

@@ -36,7 +36,7 @@ if _HOROVOD_AVAILABLE:
 else:
     print("You requested to import Horovod which is missing or not supported for your OS.")
 
-from tests.helpers import BoringModel  # noqa: E402
+from pytorch_lightning.demos.boring_classes import BoringModel  # noqa: E402
 from tests.helpers.utils import reset_seed, set_random_main_port  # noqa: E402
 
 parser = argparse.ArgumentParser()

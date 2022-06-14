@@ -21,8 +21,8 @@ import pytest
 import torch
 
 from pytorch_lightning import __version__, Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import NeptuneLogger
-from tests.helpers import BoringModel
 
 
 def fetchable_paths(value):

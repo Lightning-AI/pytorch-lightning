@@ -24,7 +24,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import StochasticWeightAveraging
 from pytorch_lightning.strategies import DDPSpawnStrategy, Strategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
+from tests.helpers.boring_model import BoringModel, RandomDataset
+from tests.helpers.datasets import RandomIterableDataset
 from tests.helpers.runif import RunIf
 
 

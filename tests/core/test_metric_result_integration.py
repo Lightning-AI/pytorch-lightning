@@ -27,13 +27,13 @@ from torchmetrics import Metric, MetricCollection
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.connectors.logger_connector.result import (
     _Metadata,
     _ResultCollection,
     _ResultMetric,
     _Sync,
 )
-from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 
