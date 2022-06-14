@@ -76,8 +76,7 @@ jobs:
     - bash: python -m coverage run --source pytorch_lightning -m pytest tests --ignore tests/benchmarks -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
       displayName: 'Testing: unittests'
 
-    - bash: bash run_standalone_tests.sh
-      workingDirectory: test
+    - bash: bash tests/standalone_tests.sh
       env:
         PL_USE_MOCKED_MNIST: "1"
       displayName: 'Testing: standalone'
