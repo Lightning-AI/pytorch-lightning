@@ -1,104 +1,18 @@
-name: Check Docs
-# https://github.com/marketplace/actions/sphinx-build
+name: Test docs
 
-on:  # Trigger the workflow on push or pull request, but only for the master branch
+on:
   push:
-    branches: [master, "release/*"]
+    # FIXME
+    # branches: [master, "release/*"]
+    branches: ["ci/define-reusable-workflows"]
   pull_request:
-    branches: [master, "release/*"]
+    # branches: [master, "release/*"]
+    branches: ["ci/define-reusable-workflows"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 jobs:
-  doctest:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: true
-      - uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
-
-      - name: Reset caching
-        run: python -c "import time; days = time.time() / 60 / 60 / 24; print(f'TIME_PERIOD=d{int(days / 2) * 2}')" >> $GITHUB_ENV
-
-      # Note: This uses an internal pip API and may not always work
-      # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
-      - name: Cache pip
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-${{ hashFiles('requirements/base.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake pandoc
-          pip --version
-          pip install -q fire
-          # python -m pip install --upgrade --user pip
-          pip install -r requirements.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
-          pip install -r requirements/devel.txt
-          pip install -r requirements/docs.txt
-          pip list
-        shell: bash
-
-      - name: Test Documentation
-        env:
-          SPHINX_MOCK_REQUIREMENTS: 0
-        working-directory: ./docs
-        run: |
-          # First run the same pipeline as Read-The-Docs
-          make doctest
-          make coverage
-
-  make-docs:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: true
-          # lfs: true
-      - uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
-
-      # Note: This uses an internal pip API and may not always work
-      # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
-      - name: Cache pip
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake pandoc
-          pip --version
-          pip install --requirement requirements/docs.txt
-          # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
-          sudo apt-get update && sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
-          pip list
-        shell: bash
-
-      - name: Make Documentation
-        working-directory: ./docs
-        run: |
-          # First run the same pipeline as Read-The-Docs
-          make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
-
-      - name: Upload built docs
-        uses: actions/upload-artifact@v2
-        with:
-          name: docs-results-${{ github.sha }}
-          path: docs/build/html/
-        # Use always() to always run this step to publish test results when there are test failures
-        if: success()
+  test:
+    uses: ./.github/workflows/_test-docs.yml
