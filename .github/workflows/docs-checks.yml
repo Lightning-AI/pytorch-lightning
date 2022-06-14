@@ -42,7 +42,8 @@ jobs:
           pip --version
           pip install -q fire
           # python -m pip install --upgrade --user pip
-          pip install -e . --quiet -r requirements/docs.txt -r requirements/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -e . --quiet -r requirements/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -r requirements/devel.txt
           pip list
         shell: bash
 
