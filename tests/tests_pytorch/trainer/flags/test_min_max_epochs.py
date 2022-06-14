@@ -1,10 +1,9 @@
-import warnings
-
 import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
+from tests.helpers.utils import no_warning_call
 
 
 @pytest.mark.parametrize(
@@ -47,7 +46,6 @@ def test_max_epochs_not_set_warning():
 
 def test_fast_dev_run_no_warning():
     """Test that no warning is emitted when `fast_dev_run` is set."""
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
+    with no_warning_call():
         Trainer(fast_dev_run=True)
         Trainer(fast_dev_run=1)
