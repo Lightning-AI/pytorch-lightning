@@ -17,8 +17,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install dependencies
-        run: |
-          pip install check-jsonschema
+        run: pip install check-jsonschema
 
       - name: GitHub Workflows
         run: check-jsonschema $(find .github/workflows -name '*.yml' -a ! -name '_*.yml') --builtin-schema "github-workflows"
