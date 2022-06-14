@@ -411,8 +411,11 @@ def test_lightning_cli_save_config_cases(tmpdir):
 def test_lightning_cli_config_and_subclass_mode(tmpdir):
     input_config = {
         "fit": {
-            "model": {"class_path": "tests.helpers.BoringModel"},
-            "data": {"class_path": "tests.helpers.BoringDataModule", "init_args": {"data_dir": str(tmpdir)}},
+            "model": {"class_path": "pytorch_lightning.demos.boring_classes.BoringModel"},
+            "data": {
+                "class_path": "pytorch_lightning.demos.boring_classes.BoringDataModule",
+                "init_args": {"data_dir": str(tmpdir)},
+            },
             "trainer": {"default_root_dir": str(tmpdir), "max_epochs": 1, "enable_model_summary": False},
         }
     }
@@ -463,7 +466,7 @@ def test_lightning_cli_help():
         if param not in skip_params:
             assert f"--trainer.{param}" in out
 
-    cli_args = ["any.py", "fit", "--data.help=tests.helpers.BoringDataModule"]
+    cli_args = ["any.py", "fit", "--data.help=pytorch_lightning.demos.boring_classes.BoringDataModule"]
     out = StringIO()
     with mock.patch("sys.argv", cli_args), redirect_stdout(out), pytest.raises(SystemExit):
         any_model_any_data_cli()
@@ -476,8 +479,8 @@ def test_lightning_cli_print_config():
         "any.py",
         "predict",
         "--seed_everything=1234",
-        "--model=tests.helpers.BoringModel",
-        "--data=tests.helpers.BoringDataModule",
+        "--model=pytorch_lightning.demos.boring_classes.BoringModel",
+        "--data=pytorch_lightning.demos.boring_classes.BoringDataModule",
         "--print_config",
     ]
     out = StringIO()
