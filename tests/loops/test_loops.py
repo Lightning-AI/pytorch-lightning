@@ -24,10 +24,10 @@ from torch.utils.data.dataloader import _MultiProcessingDataLoaderIter, DataLoad
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.loops import EvaluationLoop, Loop, TrainingBatchLoop, TrainingEpochLoop
 from pytorch_lightning.trainer.progress import BaseProgress
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 

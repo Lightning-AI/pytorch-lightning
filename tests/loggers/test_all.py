@@ -23,6 +23,7 @@ import torch
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import (
     CometLogger,
     CSVLogger,
@@ -32,7 +33,6 @@ from pytorch_lightning.loggers import (
     WandbLogger,
 )
 from pytorch_lightning.loggers.logger import DummyExperiment
-from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation
