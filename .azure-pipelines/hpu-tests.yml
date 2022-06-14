@@ -31,7 +31,8 @@ jobs:
       displayName: 'Instance HW info'
 
     - bash: |
-        pip install -e .[extra,test]
+        pip install -e .[extra]
+        pip install . --requirement requirements/test.txt
       displayName: 'Install dependencies'
 
     - bash: |
