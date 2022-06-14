@@ -455,6 +455,18 @@ class Trainer(
         self._signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
 
+        # init debugging flags
+        self.val_check_interval: Union[int, float]
+        self._init_debugging_flags(
+            limit_train_batches,
+            limit_val_batches,
+            limit_test_batches,
+            limit_predict_batches,
+            val_check_interval,
+            overfit_batches,
+            fast_dev_run,
+        )
+
         min_steps, max_steps, min_epochs, max_epochs, max_time = _parse_loop_limits(
             min_steps, max_steps, min_epochs, max_epochs, max_time
         )
@@ -545,18 +557,6 @@ class Trainer(
         # init logger flags
         self._loggers: List[Logger]
         self._logger_connector.on_trainer_init(logger, log_every_n_steps, move_metrics_to_cpu)
-
-        # init debugging flags
-        self.val_check_interval: Union[int, float]
-        self._init_debugging_flags(
-            limit_train_batches,
-            limit_val_batches,
-            limit_test_batches,
-            limit_predict_batches,
-            val_check_interval,
-            overfit_batches,
-            fast_dev_run,
-        )
 
         # Callback system
         self._call_callback_hooks("on_init_end")
