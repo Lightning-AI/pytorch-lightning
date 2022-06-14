@@ -412,7 +412,10 @@ def test_lightning_cli_config_and_subclass_mode(tmpdir):
     input_config = {
         "fit": {
             "model": {"class_path": "pytorch_lightning.demos.boring_classes.BoringModel"},
-            "data": {"class_path": "pytorch_lightning.demos.boring_classes.BoringDataModule", "init_args": {"data_dir": str(tmpdir)}},
+            "data": {
+                "class_path": "pytorch_lightning.demos.boring_classes.BoringDataModule",
+                "init_args": {"data_dir": str(tmpdir)},
+            },
             "trainer": {"default_root_dir": str(tmpdir), "max_epochs": 1, "enable_model_summary": False},
         }
     }
