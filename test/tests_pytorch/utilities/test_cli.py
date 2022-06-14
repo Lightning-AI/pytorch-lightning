@@ -595,7 +595,7 @@ def test_lightning_cli_link_arguments(tmpdir):
             parser.link_arguments("data.batch_size", "model.init_args.batch_size")
             parser.link_arguments("data.num_classes", "model.init_args.num_classes", apply_on="instantiate")
 
-    cli_args[-1] = "--model=pytorch_lightning.demos.boring_classes.utilities.test_cli.BoringModelRequiredClasses"
+    cli_args[-1] = "--model=tests_pytorch.utilities.test_cli.BoringModelRequiredClasses"
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(
