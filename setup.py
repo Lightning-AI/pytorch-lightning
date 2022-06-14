@@ -16,6 +16,7 @@
 import os
 import re
 from importlib.util import module_from_spec, spec_from_file_location
+from types import ModuleType
 from typing import List
 
 from pkg_resources import parse_requirements
@@ -24,11 +25,12 @@ from setuptools import find_packages, setup
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 _PATH_ROOT = os.path.dirname(__file__)
-_PATH_REQUIRE = os.path.join(_PATH_ROOT, "requirements")
+_PATH_REQUIREMENTS = os.path.join(_PATH_ROOT, "requirements")
+_PATH_PL_SRC = os.path.join(_PATH_ROOT, "src", "pytorch_lightning")
 
 
-def _load_py_module(fname, pkg="pytorch_lightning"):
-    spec = spec_from_file_location(os.path.join(pkg, fname), os.path.join(_PATH_ROOT, "src", pkg, fname))
+def _load_py_module(name: str, location: str) -> ModuleType:
+    spec = spec_from_file_location(name, location)
     py = module_from_spec(spec)
     spec.loader.exec_module(py)
     return py
@@ -39,7 +41,7 @@ def _load_requirements(
 ) -> List[str]:
     """Load requirements from a file.
 
-    >>> _load_requirements(os.path.join(_PATH_ROOT, "requirements"))  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    >>> _load_requirements(_PATH_REQUIREMENTS)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     ['numpy...', 'torch...', ...]
     """
     with open(os.path.join(path_dir, file_name)) as file:
@@ -103,7 +105,7 @@ def _load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     return text
 
 
-PKG_ABOUT = _load_py_module("__about__.py")
+_ABOUT_MODULE = _load_py_module(name="about", location=os.path.join(_PATH_PL_SRC, "__about__.py"))
 
 # https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras
 # Define package extras. These are only installed if you specify them.
@@ -111,19 +113,20 @@ PKG_ABOUT = _load_py_module("__about__.py")
 # From local copy of repo, use like `pip install ".[dev, docs]"`
 extras = {
     # 'docs': load_requirements(file_name='docs.txt'),
-    "examples": _load_requirements(path_dir=_PATH_REQUIRE, file_name="examples.txt"),
-    "loggers": _load_requirements(path_dir=_PATH_REQUIRE, file_name="loggers.txt"),
-    "extra": _load_requirements(path_dir=_PATH_REQUIRE, file_name="extra.txt"),
-    "strategies": _load_requirements(path_dir=_PATH_REQUIRE, file_name="strategies.txt"),
-    "test": _load_requirements(path_dir=_PATH_REQUIRE, file_name="test.txt"),
+    "examples": _load_requirements(path_dir=_PATH_REQUIREMENTS, file_name="examples.txt"),
+    "loggers": _load_requirements(path_dir=_PATH_REQUIREMENTS, file_name="loggers.txt"),
+    "extra": _load_requirements(path_dir=_PATH_REQUIREMENTS, file_name="extra.txt"),
+    "strategies": _load_requirements(path_dir=_PATH_REQUIREMENTS, file_name="strategies.txt"),
+    "test": _load_requirements(path_dir=_PATH_REQUIREMENTS, file_name="test.txt"),
 }
-
 for req in parse_requirements(extras["strategies"]):
     extras[req.key] = [str(req)]
 extras["dev"] = extras["extra"] + extras["loggers"] + extras["test"]
 extras["all"] = extras["dev"] + extras["examples"] + extras["strategies"]  # + extras['docs']
 
-long_description = _load_readme_description(_PATH_ROOT, homepage=PKG_ABOUT.__homepage__, version=PKG_ABOUT.__version__)
+long_description = _load_readme_description(
+    _PATH_ROOT, homepage=_ABOUT_MODULE.__homepage__, version=_ABOUT_MODULE.__version__
+)
 
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
 # keep the meta-data here for simplicity in reading this file... it's not obvious
@@ -133,13 +136,13 @@ long_description = _load_readme_description(_PATH_ROOT, homepage=PKG_ABOUT.__hom
 if __name__ == "__main__":
     setup(
         name="pytorch-lightning",
-        version=PKG_ABOUT.__version__,
-        description=PKG_ABOUT.__docs__,
-        author=PKG_ABOUT.__author__,
-        author_email=PKG_ABOUT.__author_email__,
-        url=PKG_ABOUT.__homepage__,
+        version=_ABOUT_MODULE.__version__,
+        description=_ABOUT_MODULE.__docs__,
+        author=_ABOUT_MODULE.__author__,
+        author_email=_ABOUT_MODULE.__author_email__,
+        url=_ABOUT_MODULE.__homepage__,
         download_url="https://github.com/PyTorchLightning/pytorch-lightning",
-        license=PKG_ABOUT.__license__,
+        license=_ABOUT_MODULE.__license__,
         packages=find_packages(where="src"),
         package_dir={"": "src"},
         include_package_data=True,
@@ -149,7 +152,7 @@ if __name__ == "__main__":
         keywords=["deep learning", "pytorch", "AI"],
         python_requires=">=3.7",
         setup_requires=[],
-        install_requires=_load_requirements(_PATH_REQUIRE),
+        install_requires=_load_requirements(_PATH_REQUIREMENTS),
         extras_require=extras,
         project_urls={
             "Bug Tracker": "https://github.com/PyTorchLightning/pytorch-lightning/issues",

@@ -39,8 +39,7 @@ jobs:
       run: |
         conda info
         conda list
-        pip install -e .
-        pip install -r requirements/test.txt
+        pip install -e .[test]
 
     - name: DocTests
       working-directory: ./src
