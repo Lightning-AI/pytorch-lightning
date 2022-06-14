@@ -20,7 +20,7 @@ export PL_RUN_STANDALONE_TESTS=1
 defaults='-m coverage run --source pytorch_lightning --append -m pytest --capture=no'
 
 # find tests marked as `@RunIf(standalone=True)`. done manually instead of with pytest because it is faster
-grep_output=$(grep --recursive --word-regexp 'tests' --regexp 'standalone=True' --include '*.py' --exclude 'tests/conftest.py')
+grep_output=$(grep --recursive --word-regexp 'tests_pytorch' --regexp 'standalone=True' --include '*.py' --exclude 'tests_pytorch/conftest.py')
 
 # file paths, remove duplicates
 files=$(echo "$grep_output" | cut -f1 -d: | sort | uniq)
@@ -35,7 +35,7 @@ fi
 parametrizations_arr=($parametrizations)
 
 # tests to skip - space separated
-blocklist='tests/profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx tests/utilities/test_warnings.py'
+blocklist='tests_pytorch/profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx tests_pytorch/utilities/test_warnings.py'
 report=''
 
 for i in "${!parametrizations_arr[@]}"; do
@@ -55,13 +55,13 @@ for i in "${!parametrizations_arr[@]}"; do
 done
 
 if nvcc --version; then
-    nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} tests/profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
+    nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} tests_pytorch/profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
 fi
 
 # needs to run outside of `pytest`
-python tests/utilities/test_warnings.py
+python tests_pytorch/utilities/test_warnings.py
 if [ $? -eq 0 ]; then
-    report+="Ran\ttests/utilities/test_warnings.py\n"
+    report+="Ran\ttests_pytorch/utilities/test_warnings.py\n"
 fi
 
 # TODO: enable when CI uses torch>=1.9
@@ -73,7 +73,7 @@ fi
 # report+="Ran\ttests/plugins/environments/torch_elastic_deadlock.py\n"
 
 # test that a user can manually launch individual processes
-export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+export PYTHONPATH="${PYTHONPATH}:$(pwd)/.."
 args="--trainer.gpus 2 --trainer.strategy ddp --trainer.max_epochs=1 --trainer.limit_train_batches=1 --trainer.limit_val_batches=1 --trainer.limit_test_batches=1"
 MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python pl_examples/basic_examples/mnist_examples/image_classifier_5_lightning_datamodule.py ${args} &
 MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python pl_examples/basic_examples/mnist_examples/image_classifier_5_lightning_datamodule.py ${args}
