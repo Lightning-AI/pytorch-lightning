@@ -20,10 +20,10 @@ from torch import nn
 from torch.optim import Adam, SGD
 
 from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
-from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 

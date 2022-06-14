@@ -28,9 +28,9 @@ from pytorch_lightning.callbacks import (
     ProgressBarBase,
     TQDMProgressBar,
 )
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.connectors.callback_connector import CallbackConnector
 from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
-from tests.helpers import BoringModel
 
 
 def test_checkpoint_callbacks_are_last(tmpdir):

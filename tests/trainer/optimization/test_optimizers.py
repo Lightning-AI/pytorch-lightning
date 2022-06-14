@@ -25,9 +25,9 @@ from pytorch_lightning.core.optimizer import (
     _configure_schedulers_automatic_opt,
     _init_optimizers_and_lr_schedulers,
 )
+from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import LRSchedulerConfig
-from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 
 
