@@ -13,5 +13,3 @@ concurrency:
 jobs:
   mypy:
     uses: ./.github/workflows/_check-code.yml
-    # TODO: Update to reuse the workflow in a specific hash/branch/tag.
-    # uses: PyTorchLightning/pytorch-lightning/.github/workflows/_check-install.yml@master
