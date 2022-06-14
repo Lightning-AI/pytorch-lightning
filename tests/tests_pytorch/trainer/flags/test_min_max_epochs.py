@@ -38,14 +38,13 @@ def test_min_max_steps_epochs(tmpdir, min_epochs, max_epochs, min_steps, max_ste
 
 
 def test_max_epochs_not_set_warning():
-    """Test that a warning is emitted when `max_epochs` was not set by the user."""
-    with pytest.warns(PossibleUserWarning, match="`max_epochs` was not set. Setting it to 1000 epochs."):
+    """Test that a warning is only emitted when `max_epochs` was not set by the user."""
+    match = "`max_epochs` was not set. Setting it to 1000 epochs."
+
+    with pytest.warns(PossibleUserWarning, match=match):
         trainer = Trainer(max_epochs=None)
         assert trainer.max_epochs == 1000
 
-
-def test_fast_dev_run_no_warning():
-    """Test that no warning is emitted when `fast_dev_run` is set."""
-    with no_warning_call():
+    with no_warning_call(expected_warning=PossibleUserWarning, match=match):
         Trainer(fast_dev_run=True)
         Trainer(fast_dev_run=1)
