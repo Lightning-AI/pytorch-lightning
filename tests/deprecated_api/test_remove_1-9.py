@@ -95,6 +95,23 @@ def test_old_lightningmodule_path():
         LightningModule()
 
 
+def test_old_loop_path():
+    from pytorch_lightning.loops.base import Loop
+
+    class MyLoop(Loop):
+        def advance(self):
+            ...
+
+        def done(self):
+            ...
+
+        def reset(self):
+            ...
+
+    with pytest.deprecated_call(match="pytorch_lightning.loops.base.Loop has been deprecated in v1.7"):
+        MyLoop()
+
+
 def test_lightningCLI_seed_everything_default_to_None_deprecation_warning():
     with mock.patch("sys.argv", ["any.py"]), pytest.deprecated_call(
         match="Setting `LightningCLI.seed_everything_default` to `None` is deprecated in v1.7 "

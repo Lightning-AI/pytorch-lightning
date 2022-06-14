@@ -20,7 +20,7 @@ import sys
 from argparse import Namespace
 from contextlib import contextmanager, ExitStack, redirect_stdout
 from io import StringIO
-from typing import List, Optional, Union
+from typing import Callable, List, Optional, Union
 from unittest import mock
 from unittest.mock import ANY
 
@@ -316,6 +316,14 @@ def test_lightning_cli_args_callbacks(tmpdir):
         cli = LightningCLI(TestModel, trainer_defaults=dict(default_root_dir=str(tmpdir), fast_dev_run=True))
 
     assert cli.trainer.ran_asserts
+
+
+def test_lightning_cli_single_arg_callback():
+    with mock.patch("sys.argv", ["any.py", "--trainer.callbacks=DeviceStatsMonitor"]):
+        cli = LightningCLI(BoringModel, run=False)
+
+    assert cli.config.trainer.callbacks.class_path == "pytorch_lightning.callbacks.DeviceStatsMonitor"
+    assert not isinstance(cli.config_init.trainer, list)
 
 
 @pytest.mark.parametrize("run", (False, True))
@@ -1046,7 +1054,7 @@ def test_lightning_cli_datamodule_short_arguments():
 
 
 @pytest.mark.parametrize("use_class_path_callbacks", [False, True])
-def test_registries_resolution(use_class_path_callbacks):
+def test_callbacks_append(use_class_path_callbacks):
 
     """This test validates registries are used when simplified command line are being used."""
     cli_args = [
@@ -1054,11 +1062,12 @@ def test_registries_resolution(use_class_path_callbacks):
         "Adam",
         "--optimizer.lr",
         "0.0001",
-        "--trainer.callbacks=LearningRateMonitor",
+        "--trainer.callbacks+=LearningRateMonitor",
         "--trainer.callbacks.logging_interval=epoch",
         "--trainer.callbacks.log_momentum=True",
         "--model=BoringModel",
-        "--trainer.callbacks=ModelCheckpoint",
+        "--trainer.callbacks+",
+        "ModelCheckpoint",
         "--trainer.callbacks.monitor=loss",
         "--lr_scheduler",
         "StepLR",
@@ -1071,7 +1080,7 @@ def test_registries_resolution(use_class_path_callbacks):
             {"class_path": "pytorch_lightning.callbacks.Callback"},
             {"class_path": "pytorch_lightning.callbacks.Callback", "init_args": {}},
         ]
-        cli_args += [f"--trainer.callbacks={json.dumps(callbacks)}"]
+        cli_args += [f"--trainer.callbacks+={json.dumps(callbacks)}"]
         extras = [Callback, Callback]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args), mock_subclasses(LightningModule, BoringModel):
@@ -1086,79 +1095,6 @@ def test_registries_resolution(use_class_path_callbacks):
     callback_types = [type(c) for c in cli.trainer.callbacks]
     expected = [LearningRateMonitor, SaveConfigCallback, ModelCheckpoint] + extras
     assert all(t in callback_types for t in expected)
-
-
-def test_argv_transformation_noop():
-    base = ["any.py", "--trainer.max_epochs=1"]
-    argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, "trainer.callbacks", base)
-    assert argv == base
-
-
-def test_argv_transformation_single_callback():
-    base = ["any.py", "--trainer.max_epochs=1"]
-    input = base + ["--trainer.callbacks=ModelCheckpoint", "--trainer.callbacks.monitor=val_loss"]
-    callbacks = [
-        {
-            "class_path": "pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
-            "init_args": {"monitor": "val_loss"},
-        }
-    ]
-    expected = base + ["--trainer.callbacks", str(callbacks)]
-    _populate_registries(False)
-    argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, "trainer.callbacks", input)
-    assert argv == expected
-
-
-def test_argv_transformation_multiple_callbacks():
-    base = ["any.py", "--trainer.max_epochs=1"]
-    input = base + [
-        "--trainer.callbacks=ModelCheckpoint",
-        "--trainer.callbacks.monitor=val_loss",
-        "--trainer.callbacks=ModelCheckpoint",
-        "--trainer.callbacks.monitor=val_acc",
-    ]
-    callbacks = [
-        {
-            "class_path": "pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
-            "init_args": {"monitor": "val_loss"},
-        },
-        {
-            "class_path": "pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
-            "init_args": {"monitor": "val_acc"},
-        },
-    ]
-    expected = base + ["--trainer.callbacks", str(callbacks)]
-    _populate_registries(False)
-    argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, "trainer.callbacks", input)
-    assert argv == expected
-
-
-def test_argv_transformation_multiple_callbacks_with_config():
-    base = ["any.py", "--trainer.max_epochs=1"]
-    nested_key = "trainer.callbacks"
-    input = base + [
-        f"--{nested_key}=ModelCheckpoint",
-        f"--{nested_key}.monitor=val_loss",
-        f"--{nested_key}=ModelCheckpoint",
-        f"--{nested_key}.monitor=val_acc",
-        f"--{nested_key}=[{{'class_path': 'pytorch_lightning.callbacks.Callback'}}]",
-    ]
-    callbacks = [
-        {
-            "class_path": "pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
-            "init_args": {"monitor": "val_loss"},
-        },
-        {
-            "class_path": "pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint",
-            "init_args": {"monitor": "val_acc"},
-        },
-        {"class_path": "pytorch_lightning.callbacks.Callback"},
-    ]
-    expected = base + ["--trainer.callbacks", str(callbacks)]
-    nested_key = "trainer.callbacks"
-    _populate_registries(False)
-    argv = LightningArgumentParser._convert_argv_issue_85(CALLBACK_REGISTRY.classes, nested_key, input)
-    assert argv == expected
 
 
 def test_optimizers_and_lr_schedulers_reload(tmpdir):
@@ -1561,3 +1497,16 @@ def test_cli_auto_seeding():
         cli = LightningCLI(TestModel, run=False)
     assert cli.seed_everything_default is True
     assert cli.config["seed_everything"] == 123  # the original seed is kept
+
+
+def test_unresolvable_import_paths():
+    class TestModel(BoringModel):
+        def __init__(self, a_func: Callable = torch.softmax):
+            super().__init__()
+            self.a_func = a_func
+
+    out = StringIO()
+    with mock.patch("sys.argv", ["any.py", "--print_config"]), redirect_stdout(out), pytest.raises(SystemExit):
+        LightningCLI(TestModel, run=False)
+
+    assert "a_func: torch.softmax" in out.getvalue()

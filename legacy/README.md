@@ -7,8 +7,7 @@ At this moment we focus on ability running old checkpoints, so the flow here is 
 If you want to pull all saved version-checkpoints for local testing/development, call
 
 ```bash
-wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip
-unzip -o checkpoints.zip
+bash .actions/pull_legacy_checkpoints.sh
 ```
 
 To back populate collection with past version you can use following bash:

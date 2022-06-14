@@ -54,7 +54,7 @@ class BasePredictionWriter(Callback):
 
             def __init__(self, output_dir: str, write_interval: str):
                 super().__init__(write_interval)
-                self.output_dir
+                self.output_dir = output_dir
 
             def write_on_batch_end(
                 self, trainer, pl_module: 'LightningModule', prediction: Any, batch_indices: List[int], batch: Any,
