@@ -97,7 +97,7 @@ jobs:
             UBUNTU_VERSION=${{ matrix.ubuntu_version }}
           file: dockers/base-cuda/Dockerfile
           push: false
-        timeout-minutes: 75
+        timeout-minutes: 95
 
   build-Conda:
     runs-on: ubuntu-20.04
@@ -123,7 +123,7 @@ jobs:
             CUDA_VERSION=${{ matrix.cuda_version }}
           file: dockers/base-conda/Dockerfile
           push: false
-        timeout-minutes: 75
+        timeout-minutes: 95
 
   build-ipu:
     runs-on: ubuntu-20.04
