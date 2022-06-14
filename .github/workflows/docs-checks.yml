@@ -12,4 +12,4 @@ concurrency:
 
 jobs:
   test:
-    uses: ./.github/workflows/_test-docs.yml
+    uses: ./.github/workflows/_check-docs.yml
