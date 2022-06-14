@@ -33,6 +33,8 @@ if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
 
     from pytorch_lightning.overrides.fairscale import LightningShardedDataParallel, unwrap_lightning_module_sharded
+else:
+    OSS = ShardedDataParallel = object
 
 
 class DDPShardedStrategy(DDPStrategy):
