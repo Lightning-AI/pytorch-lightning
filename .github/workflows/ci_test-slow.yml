@@ -56,7 +56,7 @@ jobs:
 
     - name: UnitTests
       working-directory: ./test
-      run: coverage run --source pytorch_lightning -m pytest unittests_pl -v --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}.xml
+      run: coverage run --source pytorch_lightning -m pytest tests4pl -v --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}.xml
       env:
         PL_RUN_SLOW_TESTS: 1
 
