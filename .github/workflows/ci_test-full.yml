@@ -125,7 +125,7 @@ jobs:
     - name: Sanity check
       run: python requirements/check-avail-extras.py
 
-    - name: UnitTests
+    - name: Testing
       run: |
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
         coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
