@@ -14,10 +14,10 @@ clean:
 	rm -rf .mypy_cache
 	rm -rf .pytest_cache
 	rm -rf ./docs/build
-	rm -rf ./docs/source-PL/notebooks
-	rm -rf ./docs/source-PL/generated
-	rm -rf ./docs/source-PL/*/generated
-	rm -rf ./docs/source-PL/api
+	rm -rf ./docs/source-pytorch/notebooks
+	rm -rf ./docs/source-pytorch/generated
+	rm -rf ./docs/source-pytorch/*/generated
+	rm -rf ./docs/source-pytorch/api
 	rm -rf build
 	rm -rf dist
 	rm -rf *.egg-info
@@ -33,7 +33,7 @@ test: clean
 
 docs: clean
 	pip install -e . --quiet -r requirements/docs.txt
-	python -m sphinx -b html -W --keep-going docs/source-PL docs/build
+	python -m sphinx -b html -W --keep-going docs/source-pytorch docs/build
 
 update:
 	git submodule update --init --recursive --remote

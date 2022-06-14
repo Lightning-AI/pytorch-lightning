@@ -8,13 +8,13 @@ lightning_logs/
 .vscode/
 
 # Documentations
-docs/source-PL/api
+docs/source-pytorch/api
 docs/source/*.md
-docs/source-PL/generated
-docs/source-PL/*/generated
-docs/source-PL/notebooks
-docs/source-PL/_static/images/course_UvA-DL
-docs/source-PL/_static/images/lightning_examples
+docs/source-pytorch/generated
+docs/source-pytorch/*/generated
+docs/source-pytorch/notebooks
+docs/source-pytorch/_static/images/course_UvA-DL
+docs/source-pytorch/_static/images/lightning_examples
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
