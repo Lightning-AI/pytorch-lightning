@@ -8,6 +8,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
+
     - uses: actions/setup-python@v3
       with:
         python-version: 3.9
@@ -27,5 +28,23 @@ jobs:
         pip install '.[dev]'
         pip list
 
-    - name: Type check
-      run: mypy --install-types --non-interactive
+    - name: Check typing
+      run: mypy --install-types --non-interactive --show-error-codes --warn-unused-configs
+
+  flake8:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v3
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: |
+          pip install flake8
+          pip list
+        shell: bash
+
+      - name: Check PEP8
+        run: flake8
