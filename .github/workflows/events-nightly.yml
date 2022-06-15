@@ -13,7 +13,7 @@ env:
 # based on https://github.com/pypa/gh-action-pypi-publish
 jobs:
   pypi-release:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
     runs-on: ubuntu-20.04
 
     steps:
@@ -61,7 +61,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   docker-XLA:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -108,7 +108,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   docker-CUDA:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -159,7 +159,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   docker-Conda:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -209,7 +209,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   docker-IPU:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -268,7 +268,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   docker-HPU:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false

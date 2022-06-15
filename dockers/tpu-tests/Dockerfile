@@ -17,7 +17,7 @@ ARG PYTORCH_VERSION=1.9
 
 FROM pytorchlightning/pytorch_lightning:base-xla-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
-LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
+LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
 COPY ./ ./pytorch-lightning/
 
