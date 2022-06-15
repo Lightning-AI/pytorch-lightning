@@ -21,7 +21,7 @@ export PL_RUN_STANDALONE_TESTS=1
 defaults='-m coverage run --source pytorch_lightning --append -m pytest --capture=no'
 
 # find tests marked as `@RunIf(standalone=True)`. done manually instead of with pytest because it is faster
-grep_output=$(grep --recursive --word-regexp 'tests' --regexp 'standalone=True' --include '*.py' --exclude 'conftest.py')
+grep_output=$(grep --recursive --word-regexp . --regexp 'standalone=True' --include '*.py' --exclude 'conftest.py')
 
 # file paths, remove duplicates
 files=$(echo "$grep_output" | cut -f1 -d: | sort | uniq)
@@ -33,6 +33,8 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 else
   parametrizations=$(python -m pytest $files --collect-only --quiet "$@" | head -n -2)
 fi
+# remove the "tests/tests_pytorch" path suffixes
+parametrizations=${parametrizations//"tests/tests_pytorch/"/}
 parametrizations_arr=($parametrizations)
 
 # tests to skip - space separated
@@ -49,8 +51,8 @@ for i in "${!parametrizations_arr[@]}"; do
   fi
 
   # run the test
-  echo "Running ${parametrization}"
-  python ${defaults} "${parametrization}"
+  echo "Running $parametrization"
+  python ${defaults} "$parametrization"
 
   report+="Ran\t$parametrization\n"
 done
