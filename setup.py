@@ -76,7 +76,7 @@ def _load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     # drop images from readme
     text = text.replace("![PT to PL](docs/source/_static/images/general/pl_quick_start_full_compressed.gif)", "")
 
-    # https://github.com/Lightning-AI/pytorch-lightning/raw/master/docs/source/_static/images/lightning_module/pt_to_pl.png
+    # https://github.com/Lightning-AI/lightning/raw/master/docs/source/_static/images/lightning_module/pt_to_pl.png
     github_source_url = os.path.join(homepage, "raw", version)
     # replace relative repository path to absolute link to the release
     #  do not replace all "docs" as in the readme we reger some other sources with particular path to docs
@@ -141,7 +141,7 @@ if __name__ == "__main__":
         author=_ABOUT_MODULE.__author__,
         author_email=_ABOUT_MODULE.__author_email__,
         url=_ABOUT_MODULE.__homepage__,
-        download_url="https://github.com/Lightning-AI/pytorch-lightning",
+        download_url="https://github.com/Lightning-AI/lightning",
         license=_ABOUT_MODULE.__license__,
         packages=find_packages(where="src"),
         package_dir={"": "src"},
@@ -155,9 +155,9 @@ if __name__ == "__main__":
         install_requires=_load_requirements(_PATH_REQUIREMENTS),
         extras_require=extras,
         project_urls={
-            "Bug Tracker": "https://github.com/Lightning-AI/pytorch-lightning/issues",
+            "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
             "Documentation": "https://pytorch-lightning.rtfd.io/en/latest/",
-            "Source Code": "https://github.com/Lightning-AI/pytorch-lightning",
+            "Source Code": "https://github.com/Lightning-AI/lightning",
         },
         classifiers=[
             "Environment :: Console",

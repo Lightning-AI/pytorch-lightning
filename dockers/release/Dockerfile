@@ -31,7 +31,7 @@ RUN \
     # replace by specific version if asked
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \
         rm -rf pytorch-lightning ; \
-        wget https://github.com/Lightning-AI/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \
+        wget https://github.com/Lightning-AI/lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \
         unzip ${LIGHTNING_VERSION}.zip ; \
         mv pytorch-lightning-*/ pytorch-lightning ; \
         rm *.zip ; \

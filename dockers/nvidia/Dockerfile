@@ -30,7 +30,7 @@ RUN \
     # replace by specific version if asked
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \
         rm -rf pytorch-lightning ; \
-        git clone https://github.com/Lightning-AI/pytorch-lightning.git ; \
+        git clone https://github.com/Lightning-AI/lightning.git ; \
         cd pytorch-lightning ; \
         git checkout ${LIGHTNING_VERSION} ; \
         git submodule update --init --recursive ; \
