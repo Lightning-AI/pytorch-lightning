@@ -32,13 +32,13 @@ local tputests = base.BaseTest {
       pip install -e .
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
       export XRT_TPU_CONFIG="tpu_worker;0;${KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS:7}"
+      cd tests/tests_pytorch
       # TODO (@kaushikb11): Add device stats tests here
-      cd test
       coverage run --source=pytorch_lightning -m pytest -v --capture=no \
-          tests_pytorch/strategies/test_tpu_spawn.py \
-          tests_pytorch/profiler/test_xla_profiler.py \
-          tests_pytorch/accelerators/test_tpu.py \
-          tests_pytorch/models/test_tpu.py
+          strategies/test_tpu_spawn.py \
+          profiler/test_xla_profiler.py \
+          accelerators/test_tpu.py \
+          models/test_tpu.py
       test_exit_code=$?
       echo "\n||| END PYTEST LOGS |||\n"
       coverage xml

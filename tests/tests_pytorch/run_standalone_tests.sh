@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 set -e
+# THIS FILE ASSUMES IT IS RUN INSIDE THE tests/tests_pytorch DIRECTORY
 
 # this environment variable allows special tests to run
 export PL_RUN_STANDALONE_TESTS=1
@@ -25,7 +26,7 @@ grep_output=$(grep --recursive --word-regexp 'tests' --regexp 'standalone=True' 
 # file paths, remove duplicates
 files=$(echo "$grep_output" | cut -f1 -d: | sort | uniq)
 
-# get the list of parametrization. we need to call them separately. the last two lines are removed.
+# get the list of parametrizations. we need to call them separately. the last two lines are removed.
 # note: if there's a syntax error, this will fail with some garbled output
 if [[ "$OSTYPE" == "darwin"* ]]; then
   parametrizations=$(python -m pytest $files --collect-only --quiet "$@" | tail -r | sed -e '1,3d' | tail -r)
@@ -64,15 +65,20 @@ if [ $? -eq 0 ]; then
     report+="Ran\tutilities/test_warnings.py\n"
 fi
 
-# TODO: enable when CI uses torch>=1.9
 # test deadlock is properly handled with TorchElastic.
-# LOGS=$(PL_RUN_STANDALONE_TESTS=1 PL_RECONCILE_PROCESS=1 python -m torch.distributed.run --nproc_per_node=2 --max_restarts 0 -m coverage run --source pytorch_lightning -a tests/plugins/environments/torch_elastic_deadlock.py | grep "SUCCEEDED")
-# if  [ -z "$LOGS" ]; then
-#    exit 1
-# fi
-# report+="Ran\tplugins/environments/torch_elastic_deadlock.py\n"
+LOGS=$(PL_RUN_STANDALONE_TESTS=1 PL_RECONCILE_PROCESS=1 python -m torch.distributed.run --nproc_per_node=2 --max_restarts 0 -m coverage run --source pytorch_lightning -a plugins/environments/torch_elastic_deadlock.py | grep "SUCCEEDED")
+if [ -z "$LOGS" ]; then
+    exit 1
+fi
+report+="Ran\tplugins/environments/torch_elastic_deadlock.py\n"
 
+# test that a user can manually launch individual processes
+export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+args="--trainer.gpus 2 --trainer.strategy ddp --trainer.max_epochs=1 --trainer.limit_train_batches=1 --trainer.limit_val_batches=1 --trainer.limit_test_batches=1"
+MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python ../../examples/convert_from_pt_to_pl/image_classifier_5_lightning_datamodule.py ${args} &
+MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python ../../examples/convert_from_pt_to_pl/image_classifier_5_lightning_datamodule.py ${args}
 report+="Ran\tmanual ddp launch test\n"
+
 # echo test report
 printf '=%.s' {1..80}
 printf "\n$report"
