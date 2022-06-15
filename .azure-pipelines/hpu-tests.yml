@@ -20,9 +20,7 @@ jobs:
     timeoutInMinutes: "10"
     # how much time to give 'run always even if cancelled tasks' before stopping them
     cancelTimeoutInMinutes: "2"
-
     pool: intel-hpus
-
     workspace:
       clean: all
 
@@ -33,7 +31,7 @@ jobs:
       displayName: 'Instance HW info'
 
     - bash: |
-        pip install . --requirement requirements/extra.txt
+        pip install -e .[extra]
         pip install . --requirement requirements/test.txt
       displayName: 'Install dependencies'
 

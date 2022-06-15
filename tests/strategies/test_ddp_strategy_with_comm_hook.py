@@ -17,9 +17,9 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import DDPSpawnStrategy, DDPStrategy
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10
-from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 if torch.distributed.is_available():
@@ -42,7 +42,7 @@ class TestDDPStrategy(DDPStrategy):
         return super().teardown()
 
 
-@RunIf(min_cuda_gpus=2, min_torch="1.9.0", skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_ddp_fp16_compress_comm_hook(tmpdir):
     """Test for DDP FP16 compress hook."""
     model = BoringModel()
@@ -65,7 +65,7 @@ def test_ddp_fp16_compress_comm_hook(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@RunIf(min_cuda_gpus=2, min_torch="1.9.0", skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_ddp_sgd_comm_hook(tmpdir):
     """Test for DDP FP16 compress hook."""
     model = BoringModel()
@@ -89,7 +89,7 @@ def test_ddp_sgd_comm_hook(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@RunIf(min_cuda_gpus=2, min_torch="1.9.0", skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
     """Test for DDP FP16 compress wrapper for SGD hook."""
     model = BoringModel()
@@ -114,7 +114,7 @@ def test_ddp_fp16_compress_wrap_sgd_comm_hook(tmpdir):
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
-@RunIf(min_cuda_gpus=2, min_torch="1.9.0", skip_windows=True, standalone=True)
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True)
 def test_ddp_spawn_fp16_compress_comm_hook(tmpdir):
     """Test for DDP Spawn FP16 compress hook."""
     model = BoringModel()

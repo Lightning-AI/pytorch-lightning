@@ -17,9 +17,10 @@ import os
 import shutil
 import sys
 import warnings
-from importlib.util import module_from_spec, spec_from_file_location
 
 import pt_lightning_sphinx_theme
+
+import pytorch_lightning
 
 # -----------------------
 # VARIABLES WHEN WORKING ON DOCS... MAKE THIS TRUE TO BUILD FASTER
@@ -32,11 +33,9 @@ _PL_FAST_DOCS_DEV = bool(int(os.getenv("PL_FAST_DOCS_DEV", 0)))
 PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 PATH_ROOT = os.path.join(PATH_HERE, "..", "..")
 PATH_RAW_NB = os.path.join(PATH_ROOT, "_notebooks")
+_SHOULD_COPY_NOTEBOOKS = True
 sys.path.insert(0, os.path.abspath(PATH_ROOT))
 sys.path.append(os.path.join(PATH_RAW_NB, ".actions"))
-
-_SHOULD_COPY_NOTEBOOKS = True
-
 
 try:
     from assistant import AssistantCLI
@@ -46,12 +45,6 @@ except ImportError:
 
 FOLDER_GENERATED = "generated"
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
-
-spec = spec_from_file_location(
-    "pytorch_lightning/__about__.py", os.path.join(PATH_ROOT, "pytorch_lightning", "__about__.py")
-)
-about = module_from_spec(spec)
-spec.loader.exec_module(about)
 
 # -- Project documents -------------------------------------------------------
 if _SHOULD_COPY_NOTEBOOKS:
@@ -85,13 +78,13 @@ _transform_changelog(os.path.join(PATH_ROOT, "CHANGELOG.md"), os.path.join(PATH_
 # -- Project information -----------------------------------------------------
 
 project = "PyTorch Lightning"
-copyright = about.__copyright__
-author = about.__author__
+copyright = pytorch_lightning.__copyright__
+author = pytorch_lightning.__author__
 
 # The short X.Y version
-version = about.__version__
+version = pytorch_lightning.__version__
 # The full version, including alpha/beta/rc tags
-release = about.__version__
+release = pytorch_lightning.__version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -192,7 +185,7 @@ html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
 
 html_theme_options = {
     "pytorch_project": "https://pytorchlightning.ai",
-    "canonical_url": about.__docs_url__,
+    "canonical_url": pytorch_lightning.__docs_url__,
     "collapse_navigation": False,
     "display_version": True,
     "logo_only": False,
@@ -344,7 +337,6 @@ PACKAGE_MAPPING = {
 }
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
-    MOCK_PACKAGES += ["fairscale"]
     _path_require = lambda fname: os.path.join(PATH_ROOT, "requirements", fname)
     # mock also base packages when we are on RTD since we don't install them there
     MOCK_PACKAGES += package_list_from_file(_path_require("base.txt"))

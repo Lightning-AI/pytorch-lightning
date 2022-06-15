@@ -19,9 +19,9 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.sampler import RandomSampler
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.loops import EvaluationEpochLoop
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 

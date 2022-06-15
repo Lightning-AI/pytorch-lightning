@@ -40,6 +40,7 @@ from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationSched
 from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.strategies import (
@@ -57,9 +58,8 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.seed import seed_everything
-from tests.helpers import BoringModel, RandomDataset
-from tests.helpers.boring_model import RandomIterableDataset, RandomIterableDatasetWithLen
 from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.datasets import RandomIterableDataset, RandomIterableDatasetWithLen
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import ClassificationModel
 

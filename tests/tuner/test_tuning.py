@@ -14,8 +14,8 @@
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringModel
 
 
 def test_tuner_with_distributed_strategies():
