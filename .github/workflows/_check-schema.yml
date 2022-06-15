@@ -19,8 +19,11 @@ jobs:
       - name: Install dependencies
         run: pip install check-jsonschema
 
-      - name: GitHub Workflows
+      - name: GitHub Actions - workflow
         run: check-jsonschema $(find .github/workflows -name '*.yml' -a ! -name '_*.yml') --builtin-schema "github-workflows"
+
+      - name: GitHub Actions - action
+        run: check-jsonschema .github/actions/*/*.yml --builtin-schema "github-actions"
 
       - name: Azure Pipelines
         if: ${{ inputs.azure-dir != '' }}
