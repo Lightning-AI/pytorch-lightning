@@ -21,4 +21,4 @@ updates:
     open-pull-requests-limit: 5
     reviewers:
       - "carmocca"
-      - "PyTorchLightning/teams/core-lightning"
+      - "Lightning-AI/teams/core-lightning"

@@ -17,7 +17,7 @@ ARG PYTORCH_VERSION=1.9
 
 FROM pytorchlightning/pytorch_lightning:base-cuda-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
-LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
+LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
 ARG LIGHTNING_VERSION=""
 
@@ -31,7 +31,7 @@ RUN \
     # replace by specific version if asked
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \
         rm -rf pytorch-lightning ; \
-        wget https://github.com/PyTorchLightning/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \
+        wget https://github.com/Lightning-AI/pytorch-lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \
         unzip ${LIGHTNING_VERSION}.zip ; \
         mv pytorch-lightning-*/ pytorch-lightning ; \
         rm *.zip ; \
