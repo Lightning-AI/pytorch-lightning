@@ -72,6 +72,14 @@ jobs:
     - bash: |
         source ${{ variables.poplar_sdk }}/poplar-ubuntu*/enable.sh
         source ${{ variables.poplar_sdk }}/popart-ubuntu*/enable.sh
+        cd src
+        python -m pytest pytorch_lightning
+      displayName: 'DocTests'
+
+    - bash: |
+        source ${{ variables.poplar_sdk }}/poplar-ubuntu*/enable.sh
+        source ${{ variables.poplar_sdk }}/popart-ubuntu*/enable.sh
+        python -m coverage run --source pytorch_lightning -m pytest tests -vv --durations=50
         python -m pytest pytorch_lightning
       displayName: 'DocTests'
 

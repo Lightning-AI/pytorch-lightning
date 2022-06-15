@@ -51,9 +51,8 @@ jobs:
         python -c "fname = 'requirements/strategies.txt' ; lines = [line for line in open(fname).readlines() if 'horovod' not in line] ; open(fname, 'w').writelines(lines)"
         CUDA_VERSION_MM=$(python -c "import torch ; print(''.join(map(str, torch.version.cuda.split('.')[:2])))")
         pip install "bagua-cuda$CUDA_VERSION_MM>=0.9.0"
-        pip install -e .
+        pip install -e .[strategies]
         pip install --requirement requirements/devel.txt
-        pip install --requirement requirements/strategies.txt
         pip list
       displayName: 'Install dependencies'
 
@@ -69,6 +68,7 @@ jobs:
       displayName: 'Get legacy checkpoints'
 
     - bash: python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning
+      workingDirectory: src
       displayName: 'Testing: doctests'
 
     - bash: python -m coverage run --source pytorch_lightning -m pytest tests_pytorch --ignore tests_pytorch/benchmarks -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50

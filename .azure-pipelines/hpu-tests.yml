@@ -30,7 +30,7 @@ jobs:
       displayName: 'Instance HW info'
 
     - bash: |
-        pip install . --requirement requirements/extra.txt
+        pip install -e .[extra]
         pip install . --requirement requirements/test.txt
       displayName: 'Install dependencies'
 

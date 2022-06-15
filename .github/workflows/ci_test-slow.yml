@@ -49,12 +49,11 @@ jobs:
       run: |
         # adjust versions according installed Torch version
         python ./requirements/adjust-versions.py requirements.txt ${{ matrix.pytorch-version }}
-        pip install -e . --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
-        pip install -r requirements/test.txt
+        pip install -e .[test] --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip list
       shell: bash
 
-    - name: UnitTests
+    - name: Testing
       working-directory: ./test
       run: coverage run --source pytorch_lightning -m pytest tests_pytorch -v --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}.xml
       env:
