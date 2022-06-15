@@ -36,7 +36,7 @@ local tputests = base.BaseTest {
       coverage run --source=pytorch_lightning -m pytest -v --capture=no \
           tests/strategies/test_tpu_spawn.py \
           tests/profiler/test_xla_profiler.py \
-          pytorch_lightning/utilities/xla_device.py \
+          src/pytorch_lightning/utilities/xla_device.py \
           tests/accelerators/test_tpu.py \
           tests/models/test_tpu.py
       test_exit_code=$?

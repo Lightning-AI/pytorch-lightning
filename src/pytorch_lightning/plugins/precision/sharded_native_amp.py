@@ -22,6 +22,8 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
     from fairscale.optim.grad_scaler import ShardedGradScaler
+else:
+    OSS = ShardedGradScaler = object
 
 
 class ShardedNativeMixedPrecisionPlugin(NativeMixedPrecisionPlugin):

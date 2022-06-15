@@ -80,13 +80,13 @@ jobs:
       run: |
         flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
         url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
-        pip install -r requirements.txt --upgrade $flag --find-links "https://download.pytorch.org/whl/${url}"
-        pip install -r requirements/test.txt --upgrade
+        pip install -e .[test] --upgrade $flag --find-links "https://download.pytorch.org/whl/${url}"
         pip list
       shell: bash
 
     - name: DocTests
-      run: coverage run --source pytorch_lightning -m pytest pytorch_lightning
+      working-directory: ./src
+      run: pytest pytorch_lightning --cov=pytorch_lightning
 
     - name: Install extra dependencies
       run: |
@@ -120,13 +120,12 @@ jobs:
         key: pl-dataset
 
     - name: Sanity check
-      run: |
-        python requirements/check-avail-extras.py
+      run: python requirements/check-avail-extras.py
 
-    - name: UnitTests
+    - name: Testing
       run: |
         # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-        coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+        coverage run --source pytorch_lightning -m pytest tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Examples
       run: |
