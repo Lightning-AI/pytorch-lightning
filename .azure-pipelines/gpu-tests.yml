@@ -73,10 +73,10 @@ jobs:
 
     - bash: python -m coverage run --source pytorch_lightning -m pytest tests_pytorch --ignore tests_pytorch/benchmarks -v --junitxml=$(Build.StagingDirectory)/test-results.xml --durations=50
       displayName: 'Testing: standard'
-      workingDirectory: test
+      workingDirectory: tests
 
     - bash: bash run_standalone_tests.sh
-      workingDirectory: test
+      workingDirectory: tests
       env:
         PL_USE_MOCKED_MNIST: "1"
       displayName: 'Testing: standalone'
@@ -87,7 +87,7 @@ jobs:
         python -m coverage html
         python -m codecov --token=$(CODECOV_TOKEN) --commit=$(Build.SourceVersion) --flags=gpu,pytest --name="GPU-coverage" --env=linux,azure
         ls -l
-      workingDirectory: test
+      workingDirectory: tests
       displayName: 'Statistics'
 
     - task: PublishTestResults@2
@@ -118,5 +118,5 @@ jobs:
       displayName: 'Testing: examples'
 
     - bash: python -m pytest tests_pytorch/benchmarks -v --maxfail=2 --durations=0
-      workingDirectory: test
+      workingDirectory: tests
       displayName: 'Testing: benchmarks'

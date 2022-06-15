@@ -123,7 +123,7 @@ jobs:
       run: python requirements/check-avail-extras.py
 
     - name: Testing
-      working-directory: ./test
+      working-directory: ./tests
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
       run: coverage run --source pytorch_lightning -m pytest tests_pytorch -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
@@ -138,12 +138,12 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
-        path: test/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+        path: tests/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
       if: failure()
 
     - name: Statistics
       if: success()
-      working-directory: ./test
+      working-directory: ./tests
       run: |
         coverage report
         coverage xml
@@ -155,7 +155,7 @@ jobs:
       continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: test/coverage.xml
+        file: tests/coverage.xml
         flags: cpu,pytest,python${{ matrix.python-version }}
         name: CPU-coverage
         fail_ci_if_error: false

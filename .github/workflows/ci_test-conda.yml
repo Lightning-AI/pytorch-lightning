@@ -67,19 +67,19 @@ jobs:
       run: bash .actions/pull_legacy_checkpoints.sh
 
     - name: Testing
-      working-directory: ./test
+      working-directory: ./tests
       run: coverage run --source pytorch_lightning -m pytest tests_pytorch -v --timeout 150 --durations=50 --junitxml=results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
 
     - name: Upload pytest results
       uses: actions/upload-artifact@v2
       with:
         name: unittest-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}
-        path: test/results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
+        path: tests/results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
       if: failure()
 
     - name: Statistics
       if: success()
-      working-directory: ./test
+      working-directory: ./tests
       run: |
         coverage report
         coverage xml
@@ -91,7 +91,7 @@ jobs:
       continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: test/coverage.xml
+        file: tests/coverage.xml
         flags: cpu,pytest,torch${{ matrix.pytorch-version }}
         name: CPU-coverage
         fail_ci_if_error: false

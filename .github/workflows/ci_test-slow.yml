@@ -54,7 +54,7 @@ jobs:
       shell: bash
 
     - name: Testing
-      working-directory: ./test
+      working-directory: ./tests
       run: coverage run --source pytorch_lightning -m pytest tests_pytorch -v --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}.xml
       env:
         PL_RUN_SLOW_TESTS: 1
@@ -63,12 +63,12 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}
-        path: test/results-${{ runner.os }}-py${{ matrix.python-version }}.xml
+        path: tests/results-${{ runner.os }}-py${{ matrix.python-version }}.xml
       if: failure()
 
     - name: Statistics
       if: success()
-      working-directory: ./test
+      working-directory: ./tests
       run: |
         coverage report
         coverage xml
@@ -80,7 +80,7 @@ jobs:
       continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: test/coverage.xml
+        file: tests/coverage.xml
         flags: cpu,pytest,torch${{ matrix.pytorch-version }}
         name: CPU-coverage
         fail_ci_if_error: false
