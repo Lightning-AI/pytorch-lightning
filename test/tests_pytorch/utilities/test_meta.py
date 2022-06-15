@@ -17,7 +17,7 @@ from torch import nn
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities.meta import init_meta_context, is_on_meta_device, materialize_module
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 class MLP(nn.Module):

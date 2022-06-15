@@ -27,7 +27,7 @@ from pytorch_lightning.overrides.data_parallel import (
     unsqueeze_scalar_tensor,
 )
 from pytorch_lightning.trainer.states import RunningStage
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("wrapper_class", [LightningParallelModule, LightningDistributedModule])

@@ -26,7 +26,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(min_cuda_gpus=1)

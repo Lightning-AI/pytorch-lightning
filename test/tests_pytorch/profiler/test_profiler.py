@@ -30,7 +30,7 @@ from pytorch_lightning.profiler import AdvancedProfiler, PassThroughProfiler, Py
 from pytorch_lightning.profiler.pytorch import RegisterRecordFunction, warning_cache
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 PROFILER_OVERHEAD_MAX_TOLERANCE = 0.0005
 

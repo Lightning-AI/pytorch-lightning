@@ -28,8 +28,8 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.data import _update_dataloader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
-from tests.helpers.runif import RunIf
-from tests.helpers.utils import no_warning_call
+from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.utils import no_warning_call
 
 
 @RunIf(skip_windows=True)

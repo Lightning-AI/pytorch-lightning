@@ -28,7 +28,7 @@ from pytorch_lightning.core.optimizer import (
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import LRSchedulerConfig
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 def test_optimizer_with_scheduling(tmpdir):

@@ -25,15 +25,15 @@ from sklearn.metrics import accuracy_score
 from torch import optim
 from torchmetrics.classification.accuracy import Accuracy
 
-import tests.helpers.pipelines as tpipes
-import tests.helpers.utils as tutils
+import tests_pytorch.helpers.pipelines as tpipes
+import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.advanced_models import BasicGAN
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.advanced_models import BasicGAN
+from tests_pytorch.helpers.runif import RunIf
 
 if _HOROVOD_AVAILABLE:
     import horovod
@@ -42,7 +42,7 @@ if _HOROVOD_AVAILABLE:
 
 @RunIf(min_cuda_gpus=1, horovod=True)
 def test_nccl_is_available_on_gpu_environment():
-    from tests.helpers.runif import _HOROVOD_NCCL_AVAILABLE
+    from tests_pytorch.helpers.runif import _HOROVOD_NCCL_AVAILABLE
 
     # the GPU environment should always install Horovod NCCL
     assert _HOROVOD_NCCL_AVAILABLE

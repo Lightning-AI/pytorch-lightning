@@ -22,7 +22,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.loops import EvaluationEpochLoop
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 @mock.patch("pytorch_lightning.loops.dataloader.evaluation_loop.EvaluationLoop._on_evaluation_epoch_end")

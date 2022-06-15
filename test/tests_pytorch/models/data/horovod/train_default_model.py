@@ -37,7 +37,7 @@ else:
     print("You requested to import Horovod which is missing or not supported for your OS.")
 
 from pytorch_lightning.demos.boring_classes import BoringModel  # noqa: E402
-from tests.helpers.utils import reset_seed, set_random_main_port  # noqa: E402
+from tests_pytorch.helpers.utils import reset_seed, set_random_main_port  # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--trainer-options", required=True)

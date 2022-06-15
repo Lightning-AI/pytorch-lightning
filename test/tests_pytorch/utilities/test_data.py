@@ -20,8 +20,8 @@ from pytorch_lightning.utilities.data import (
     warning_cache,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.datasets import RandomIterableDataset
-from tests.helpers.utils import no_warning_call
+from tests_pytorch.helpers.datasets import RandomIterableDataset
+from tests_pytorch.helpers.utils import no_warning_call
 
 
 def test_extract_batch_size():

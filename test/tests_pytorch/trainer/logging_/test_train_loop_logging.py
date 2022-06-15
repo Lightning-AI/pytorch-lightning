@@ -30,8 +30,8 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProg
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.datasets import RandomDictDataset
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.datasets import RandomDictDataset
+from tests_pytorch.helpers.runif import RunIf
 
 
 def test__training_step__log(tmpdir):

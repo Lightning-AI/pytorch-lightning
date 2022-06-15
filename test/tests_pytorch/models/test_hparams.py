@@ -33,8 +33,8 @@ from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_t
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from pytorch_lightning.utilities import _HYDRA_EXPERIMENTAL_AVAILABLE, _OMEGACONF_AVAILABLE, AttributeDict, is_picklable
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.runif import RunIf
-from tests.helpers.utils import no_warning_call
+from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.utils import no_warning_call
 
 if _HYDRA_EXPERIMENTAL_AVAILABLE:
     from hydra.experimental import compose, initialize

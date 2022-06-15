@@ -24,7 +24,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.connectors.signal_connector import SignalConnector
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(skip_windows=True)

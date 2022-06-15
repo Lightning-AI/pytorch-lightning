@@ -11,7 +11,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel

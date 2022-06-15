@@ -23,9 +23,9 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.strategies import TPUSpawnStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.dataloaders import CustomNotImplementedErrorDataloader
-from tests.helpers.runif import RunIf
-from tests.helpers.utils import pl_multi_process_test
+from tests_pytorch.helpers.dataloaders import CustomNotImplementedErrorDataloader
+from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.utils import pl_multi_process_test
 
 
 class BoringModelNoDataloaders(BoringModel):

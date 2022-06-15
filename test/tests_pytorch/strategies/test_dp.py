@@ -19,15 +19,15 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-import tests.helpers.pipelines as tpipes
-import tests.helpers.utils as tutils
+import tests_pytorch.helpers.pipelines as tpipes
+import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.datamodules import ClassifDataModule
-from tests.helpers.runif import RunIf
-from tests.helpers.simple_models import ClassificationModel
+from tests_pytorch.helpers.datamodules import ClassifDataModule
+from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
 class CustomClassificationModelDP(ClassificationModel):

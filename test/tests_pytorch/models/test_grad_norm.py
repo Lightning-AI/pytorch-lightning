@@ -18,7 +18,7 @@ import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from tests.helpers.utils import reset_seed
+from tests_pytorch.helpers.utils import reset_seed
 
 
 class ModelWithManualGradTracker(BoringModel):

@@ -10,7 +10,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import DDPShardedStrategy, DDPSpawnShardedStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel

@@ -25,9 +25,9 @@ from pytorch_lightning.callbacks import QuantizationAwareTraining
 from pytorch_lightning.demos.boring_classes import RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import get_model_size_mb
-from tests.helpers.datamodules import RegressDataModule
-from tests.helpers.runif import RunIf
-from tests.helpers.simple_models import RegressionModel
+from tests_pytorch.helpers.datamodules import RegressDataModule
+from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.simple_models import RegressionModel
 
 
 @pytest.mark.parametrize("observe", ["average", "histogram"])

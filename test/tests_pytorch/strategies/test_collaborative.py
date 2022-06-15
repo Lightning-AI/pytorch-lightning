@@ -18,7 +18,7 @@ from pytorch_lightning.strategies.collaborative import HiveMindScheduler
 from pytorch_lightning.utilities import _HIVEMIND_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 if _HIVEMIND_AVAILABLE:
     import hivemind

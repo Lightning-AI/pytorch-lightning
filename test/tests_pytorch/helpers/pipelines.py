@@ -16,7 +16,7 @@ from torchmetrics.functional import accuracy
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from tests.helpers.utils import get_default_logger, load_model_from_checkpoint, reset_seed
+from tests_pytorch.helpers.utils import get_default_logger, load_model_from_checkpoint, reset_seed
 
 
 def run_model_test_without_loggers(

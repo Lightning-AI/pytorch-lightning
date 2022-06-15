@@ -27,7 +27,7 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher, InterBatchParallelDataFetcher
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 class IterDataset(IterableDataset):

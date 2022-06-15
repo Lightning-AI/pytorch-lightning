@@ -19,7 +19,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import DeepSpeedStrategy
 from pytorch_lightning.utilities.deepspeed import convert_zero_checkpoint_to_fp32_state_dict
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)

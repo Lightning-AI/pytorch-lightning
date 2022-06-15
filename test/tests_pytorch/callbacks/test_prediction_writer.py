@@ -22,7 +22,7 @@ from pytorch_lightning.callbacks import BasePredictionWriter
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 class DummyPredictionWriter(BasePredictionWriter):

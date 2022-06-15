@@ -24,16 +24,16 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-import tests.helpers.pipelines as tpipes
-import tests.helpers.utils as tutils
+import tests_pytorch.helpers.pipelines as tpipes
+import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.states import TrainerFn
-from tests.helpers.datamodules import ClassifDataModule
-from tests.helpers.runif import RunIf
-from tests.helpers.simple_models import ClassificationModel
-from tests.loops.test_loops import CustomException
+from tests_pytorch.helpers.datamodules import ClassifDataModule
+from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.simple_models import ClassificationModel
+from tests_pytorch.loops.test_loops import CustomException
 
 
 class ModelTrainerPropertyParity(Callback):

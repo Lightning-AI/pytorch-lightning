@@ -30,7 +30,7 @@ from pytorch_lightning.callbacks.progress.tqdm_progress import Tqdm
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 class MockTqdm(Tqdm):

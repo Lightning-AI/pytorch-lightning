@@ -31,7 +31,7 @@ from pytorch_lightning.loops.dataloader import EvaluationLoop
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _RICH_AVAILABLE
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 if _RICH_AVAILABLE:
     from rich import get_console

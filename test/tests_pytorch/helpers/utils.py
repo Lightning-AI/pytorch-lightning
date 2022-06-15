@@ -81,7 +81,7 @@ def init_checkpoint_callback(logger):
 
 
 def pl_multi_process_test(func):
-    """Wrapper for running multi-processing tests."""
+    """Wrapper for running multi-processing tests_pytorch."""
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):

@@ -21,8 +21,8 @@ from fsspec.implementations.local import LocalFileSystem
 
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from tests.helpers.advanced_models import BasicGAN, ParityModuleRNN
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.advanced_models import BasicGAN, ParityModuleRNN
+from tests_pytorch.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("modelclass", [BoringModel, ParityModuleRNN, BasicGAN])

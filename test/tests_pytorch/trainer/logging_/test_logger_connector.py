@@ -26,8 +26,8 @@ from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.runif import RunIf
-from tests.models.test_hooks import get_members
+from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.models.test_hooks import get_members
 
 
 def test_fx_validator():

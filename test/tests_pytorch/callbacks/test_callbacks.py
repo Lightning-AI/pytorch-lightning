@@ -20,7 +20,7 @@ import pytest
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
-from tests.helpers.utils import no_warning_call
+from tests_pytorch.helpers.utils import no_warning_call
 
 
 def test_callbacks_configured_in_model(tmpdir):

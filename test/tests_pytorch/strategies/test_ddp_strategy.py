@@ -23,7 +23,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.environments import ClusterEnvironment, LightningEnvironment
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 class BoringModelGPU(BoringModel):

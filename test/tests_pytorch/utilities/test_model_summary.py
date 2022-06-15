@@ -21,8 +21,8 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_9
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize, UNKNOWN_SIZE
-from tests.helpers.advanced_models import ParityModuleRNN
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.advanced_models import ParityModuleRNN
+from tests_pytorch.helpers.runif import RunIf
 
 
 class EmptyModule(LightningModule):

@@ -37,7 +37,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.auto_restart import CaptureMapDataset, FastForwardSampler
 from pytorch_lightning.utilities.data import get_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 def test_tensor_running_accum_reset():

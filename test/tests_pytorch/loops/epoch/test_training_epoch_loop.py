@@ -20,7 +20,7 @@ from pytorch_lightning import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loops import TrainingEpochLoop
 from pytorch_lightning.trainer.trainer import Trainer
-from tests.deprecated_api import no_deprecated_call
+from tests_pytorch.deprecated_api import no_deprecated_call
 
 _out00 = {"loss": 0.0}
 _out01 = {"loss": 0.1}

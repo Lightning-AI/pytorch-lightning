@@ -13,7 +13,7 @@
 # limitations under the License.
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 class BatchHookObserverCallback(Callback):

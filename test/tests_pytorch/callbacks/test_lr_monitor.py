@@ -15,15 +15,15 @@ import pytest
 import torch
 from torch import optim
 
-import tests.helpers.utils as tutils
+import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.callbacks.finetuning import BackboneFinetuning
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.datamodules import ClassifDataModule
-from tests.helpers.simple_models import ClassificationModel
+from tests_pytorch.helpers.datamodules import ClassifDataModule
+from tests_pytorch.helpers.simple_models import ClassificationModel
 
 
 def test_lr_monitor_single_lr(tmpdir):

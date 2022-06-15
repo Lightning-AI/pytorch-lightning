@@ -24,9 +24,9 @@ from pytorch_lightning.callbacks.gradient_accumulation_scheduler import Gradient
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies.ipu import IPUStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.datasets import RandomIterableDataset
-from tests.helpers.runif import RunIf
-from tests.helpers.utils import pl_multi_process_test
+from tests_pytorch.helpers.datasets import RandomIterableDataset
+from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.utils import pl_multi_process_test
 
 
 def test_num_stepping_batches_basic():

@@ -33,7 +33,7 @@ from torch.optim import SGD
 from torch.utils.data import DataLoader, IterableDataset
 
 import pytorch_lightning
-import tests.helpers.utils as tutils
+import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, GPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
@@ -58,10 +58,10 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.seed import seed_everything
-from tests.helpers.datamodules import ClassifDataModule
-from tests.helpers.datasets import RandomIterableDataset, RandomIterableDatasetWithLen
-from tests.helpers.runif import RunIf
-from tests.helpers.simple_models import ClassificationModel
+from tests_pytorch.helpers.datamodules import ClassifDataModule
+from tests_pytorch.helpers.datasets import RandomIterableDataset, RandomIterableDatasetWithLen
+from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.simple_models import ClassificationModel
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf

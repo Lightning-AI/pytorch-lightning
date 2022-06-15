@@ -21,7 +21,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import BaguaStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 class BoringModel4QAdam(BoringModel):

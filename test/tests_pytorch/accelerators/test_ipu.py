@@ -30,9 +30,9 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities import _IPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.datamodules import ClassifDataModule
-from tests.helpers.runif import RunIf
-from tests.helpers.simple_models import ClassificationModel
+from tests_pytorch.helpers.datamodules import ClassifDataModule
+from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.simple_models import ClassificationModel
 
 if _IPU_AVAILABLE:
     import poptorch

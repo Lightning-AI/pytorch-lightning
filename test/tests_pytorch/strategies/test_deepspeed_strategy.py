@@ -39,9 +39,9 @@ from pytorch_lightning.utilities.imports import (
     _DEEPSPEED_GREATER_EQUAL_0_6,
 )
 from pytorch_lightning.utilities.meta import init_meta_context
-from tests.helpers.datamodules import ClassifDataModule
-from tests.helpers.datasets import RandomIterableDataset
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.datamodules import ClassifDataModule
+from tests_pytorch.helpers.datasets import RandomIterableDataset
+from tests_pytorch.helpers.runif import RunIf
 
 if _DEEPSPEED_AVAILABLE:
     import deepspeed

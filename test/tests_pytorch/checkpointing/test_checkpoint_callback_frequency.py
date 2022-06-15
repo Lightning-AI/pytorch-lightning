@@ -19,7 +19,7 @@ import torch
 
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 def test_disabled_checkpointing(tmpdir):

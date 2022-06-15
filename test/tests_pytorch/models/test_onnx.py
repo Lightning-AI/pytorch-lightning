@@ -18,12 +18,12 @@ import onnxruntime
 import pytest
 import torch
 
-import tests.helpers.pipelines as tpipes
-import tests.helpers.utils as tutils
+import tests_pytorch.helpers.pipelines as tpipes
+import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from tests.helpers.runif import RunIf
-from tests.utilities.test_model_summary import UnorderedModel
+from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.utilities.test_model_summary import UnorderedModel
 
 
 def test_model_saves_with_input_sample(tmpdir):
