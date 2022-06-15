@@ -76,7 +76,7 @@ jobs:
       workingDirectory: test
 
     - bash: bash run_standalone_tests.sh
-      workingDirectory: test
+      workingDirectory: tests/tests_pytorch
       env:
         PL_USE_MOCKED_MNIST: "1"
       displayName: 'Testing: standalone'

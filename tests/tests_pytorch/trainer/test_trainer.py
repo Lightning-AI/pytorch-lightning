@@ -401,7 +401,7 @@ def test_model_freeze_unfreeze():
         assert param.requires_grad
 
 
-# TODO: move to `test/models/test_restore.py`
+# TODO: move to `tests/test_pytorch/models/test_restore.py`
 @pytest.mark.parametrize("url_ckpt", [True, False])
 def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     """Verify resuming from checkpoint runs the right number of epochs."""
