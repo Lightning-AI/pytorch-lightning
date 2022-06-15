@@ -43,10 +43,8 @@ Run these commands
 
 ```bash
 git submodule update --init --recursive
-pip install -r requirements/docs.txt
-make clean
-cd docs
-make html
+pip install -e . -r requirements/docs.txt
+make docs
 ```
 
 and open `docs/build/html/index.html` in your browser.
