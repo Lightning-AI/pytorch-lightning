@@ -10,7 +10,7 @@ on:
         type: string
 
 jobs:
-  check:
+  schema:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
