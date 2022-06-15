@@ -25,7 +25,7 @@ from torch.autograd.profiler import record_function
 
 from pytorch_lightning.profiler.profiler import Profiler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE, _TORCH_GREATER_EQUAL_1_9
+from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.warnings import WarningCache
 
@@ -445,8 +445,7 @@ class PyTorchProfiler(Profiler):
             if self._schedule is not None:
                 self.profiler.step_num = self._schedule.num_step
             self.profiler.step()
-            if _TORCH_GREATER_EQUAL_1_9:
-                self.profiler.add_metadata("Framework", "pytorch-lightning")
+            self.profiler.add_metadata("Framework", "pytorch-lightning")
 
     def summary(self) -> str:
         if not self._profiler_kwargs.get("enabled", True) or self._emit_nvtx:
