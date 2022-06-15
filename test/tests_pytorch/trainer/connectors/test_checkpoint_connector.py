@@ -20,9 +20,9 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
-from tests_pytorch.helpers import BoringModel
 
 
 # TODO: remove HPCHookedModel in v1.8

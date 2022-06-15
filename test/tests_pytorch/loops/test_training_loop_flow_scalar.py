@@ -18,11 +18,11 @@ from torch.utils.data._utils.collate import default_collate
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.module import LightningModule
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.loops.optimization.optimizer_loop import Closure
 from pytorch_lightning.trainer.states import RunningStage
-from tests_pytorch.helpers.boring_model import BoringModel, RandomDataset
-from tests_pytorch.helpers.deterministic_model import DeterministicModel
-from tests_pytorch.helpers.utils import no_warning_call
+from tests.helpers.deterministic_model import DeterministicModel
+from tests.helpers.utils import no_warning_call
 
 
 def test__training_step__flow_scalar(tmpdir):

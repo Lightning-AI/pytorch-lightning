@@ -18,8 +18,8 @@ import pytest
 import torch
 
 from pytorch_lightning import callbacks, Trainer
-from tests_pytorch.helpers import BoringModel
-from tests_pytorch.helpers.runif import RunIf
+from pytorch_lightning.demos.boring_classes import BoringModel
+from tests.helpers.runif import RunIf
 
 
 def test_disabled_checkpointing(tmpdir):

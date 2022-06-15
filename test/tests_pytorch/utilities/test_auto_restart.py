@@ -36,8 +36,9 @@ from torch.utils.data.dataloader import DataLoader, default_collate
 from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.sampler import Sampler
 
-import tests_pytorch.helpers.utils as tutils
+import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer.states import RunningStage, TrainerState
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.auto_restart import (
@@ -59,8 +60,7 @@ from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBat
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
-from tests_pytorch.helpers.boring_model import BoringModel, RandomDataset
-from tests_pytorch.helpers.runif import RunIf
+from tests.helpers.runif import RunIf
 
 
 # Credit to PyTorch Team.

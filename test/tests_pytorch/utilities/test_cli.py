@@ -33,6 +33,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.loggers import Logger, TensorBoardLogger
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
@@ -53,9 +54,8 @@ from pytorch_lightning.utilities.cli import (
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
-from tests_pytorch.helpers import BoringDataModule, BoringModel
-from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import no_warning_call
+from tests.helpers.runif import RunIf
+from tests.helpers.utils import no_warning_call
 
 torchvision_version = version.parse("0")
 if _TORCHVISION_AVAILABLE:
@@ -411,8 +411,11 @@ def test_lightning_cli_save_config_cases(tmpdir):
 def test_lightning_cli_config_and_subclass_mode(tmpdir):
     input_config = {
         "fit": {
-            "model": {"class_path": "tests_pytorch.helpers.BoringModel"},
-            "data": {"class_path": "tests_pytorch.helpers.BoringDataModule", "init_args": {"data_dir": str(tmpdir)}},
+            "model": {"class_path": "pytorch_lightning.demos.boring_classes.BoringModel"},
+            "data": {
+                "class_path": "pytorch_lightning.demos.boring_classes.BoringDataModule",
+                "init_args": {"data_dir": str(tmpdir)},
+            },
             "trainer": {"default_root_dir": str(tmpdir), "max_epochs": 1, "enable_model_summary": False},
         }
     }
@@ -463,7 +466,7 @@ def test_lightning_cli_help():
         if param not in skip_params:
             assert f"--trainer.{param}" in out
 
-    cli_args = ["any.py", "fit", "--data.help=tests_pytorch.helpers.BoringDataModule"]
+    cli_args = ["any.py", "fit", "--data.help=pytorch_lightning.demos.boring_classes.BoringDataModule"]
     out = StringIO()
     with mock.patch("sys.argv", cli_args), redirect_stdout(out), pytest.raises(SystemExit):
         any_model_any_data_cli()
@@ -476,8 +479,8 @@ def test_lightning_cli_print_config():
         "any.py",
         "predict",
         "--seed_everything=1234",
-        "--model=tests_pytorch.helpers.BoringModel",
-        "--data=tests_pytorch.helpers.BoringDataModule",
+        "--model=pytorch_lightning.demos.boring_classes.BoringModel",
+        "--data=pytorch_lightning.demos.boring_classes.BoringDataModule",
         "--print_config",
     ]
     out = StringIO()
@@ -592,7 +595,7 @@ def test_lightning_cli_link_arguments(tmpdir):
             parser.link_arguments("data.batch_size", "model.init_args.batch_size")
             parser.link_arguments("data.num_classes", "model.init_args.num_classes", apply_on="instantiate")
 
-    cli_args[-1] = "--model=tests_pytorch.utilities.test_cli.BoringModelRequiredClasses"
+    cli_args[-1] = "--model=tests.utilities.test_cli.BoringModelRequiredClasses"
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(

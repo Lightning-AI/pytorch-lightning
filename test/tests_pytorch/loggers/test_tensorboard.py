@@ -23,10 +23,10 @@ import torch
 import yaml
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.imports import _compare_version, _OMEGACONF_AVAILABLE
-from tests_pytorch.helpers import BoringModel
-from tests_pytorch.helpers.runif import RunIf
+from tests.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf

@@ -3,9 +3,9 @@ import sys
 from contextlib import suppress
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
-from tests_pytorch.helpers.boring_model import BoringModel
 
 if os.getenv("PL_RUN_STANDALONE_TESTS", "0") == "1" and os.getenv("PL_RECONCILE_PROCESS", "0") == "1":
 

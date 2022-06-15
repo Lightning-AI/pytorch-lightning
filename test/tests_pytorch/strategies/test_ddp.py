@@ -23,11 +23,11 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import DDPStrategy
-from tests_pytorch.helpers.boring_model import BoringModel
-from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.strategies import ddp_model
-from tests_pytorch.utilities.distributed import call_training_script
+from tests.helpers.runif import RunIf
+from tests.strategies import ddp_model
+from tests.utilities.distributed import call_training_script
 
 CLI_ARGS = "--max_epochs 1 --accelerator gpu --devices 2 --strategy ddp"
 

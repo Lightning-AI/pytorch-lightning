@@ -19,19 +19,19 @@ import pytest
 import torch
 from torch.utils.data import DataLoader
 
-import tests_pytorch.helpers.pipelines as tpipes
-import tests_pytorch.helpers.utils as tutils
+import tests.helpers.pipelines as tpipes
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.strategies import TPUSpawnStrategy
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers import BoringModel, RandomDataset
-from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import pl_multi_process_test
+from tests.helpers.runif import RunIf
+from tests.helpers.utils import pl_multi_process_test
 
 if _TPU_AVAILABLE:
     import torch_xla

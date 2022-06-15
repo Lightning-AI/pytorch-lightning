@@ -25,6 +25,7 @@ from torch import optim
 import pytorch_lightning
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.loggers import CSVLogger, Logger, LoggerCollection
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
@@ -47,10 +48,9 @@ from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
-from tests_pytorch.deprecated_api import no_deprecated_call
-from tests_pytorch.helpers.boring_model import BoringDataModule, BoringModel
-from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
+from tests.deprecated_api import no_deprecated_call
+from tests.helpers.runif import RunIf
+from tests.helpers.torchtext_utils import get_dummy_torchtext_data_iterator
 
 
 def test_v1_8_0_deprecated_distributed_type_enum():

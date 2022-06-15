@@ -8,11 +8,11 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.strategies import SingleDeviceStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.boring_model import BoringModel
 
 
 def test_restore_checkpoint_after_pre_setup_default():

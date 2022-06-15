@@ -21,9 +21,9 @@ from torch.optim import Adam, SGD
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loops.optimization.optimizer_loop import ClosureResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers import BoringModel
 
 
 def test_closure_result_deepcopy():

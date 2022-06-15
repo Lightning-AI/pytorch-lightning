@@ -20,19 +20,19 @@ from unittest.mock import patch
 import pytest
 import torch
 
-import tests_pytorch.helpers.pipelines as tpipes
-import tests_pytorch.helpers.utils as tutils
+import tests.helpers.pipelines as tpipes
+import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, GPUAccelerator
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_LEGACY
-from tests_pytorch.helpers import BoringModel
-from tests_pytorch.helpers.datamodules import ClassifDataModule
-from tests_pytorch.helpers.imports import Batch, Dataset, Example, Field, LabelField
-from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.simple_models import ClassificationModel
+from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.imports import Batch, Dataset, Example, Field, LabelField
+from tests.helpers.runif import RunIf
+from tests.helpers.simple_models import ClassificationModel
 
 PL_VERSION_LT_1_5 = _compare_version("pytorch_lightning", operator.lt, "1.5")
 PRETEND_N_OF_GPUS = 16

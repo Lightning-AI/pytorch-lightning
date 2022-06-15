@@ -17,9 +17,9 @@ from unittest.mock import Mock
 
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers.logger import Logger
-from tests_pytorch.helpers import BoringModel
-from tests_pytorch.helpers.runif import RunIf
+from tests.helpers.runif import RunIf
 
 
 class AllRankLogger(Logger):

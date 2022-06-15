@@ -22,9 +22,9 @@ import torch.distributed as torch_distrib
 import torch.nn.functional as F
 
 from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import Strategy
-from tests_pytorch.helpers.boring_model import BoringModel
-from tests_pytorch.helpers.runif import RunIf
+from tests.helpers.runif import RunIf
 
 
 class ManualOptModel(BoringModel):

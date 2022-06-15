@@ -23,15 +23,15 @@ import torch
 
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.profiler.simple import SimpleProfiler
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers import BoringDataModule, BoringModel
-from tests_pytorch.helpers.datamodules import ClassifDataModule
-from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.simple_models import ClassificationModel
-from tests_pytorch.helpers.utils import reset_seed
+from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.runif import RunIf
+from tests.helpers.simple_models import ClassificationModel
+from tests.helpers.utils import reset_seed
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf

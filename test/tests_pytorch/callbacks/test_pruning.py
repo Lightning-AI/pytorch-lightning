@@ -24,9 +24,9 @@ from torch.nn import Sequential
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint, ModelPruning
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.boring_model import BoringModel
-from tests_pytorch.helpers.runif import RunIf
+from tests.helpers.runif import RunIf
 
 
 class TestModel(BoringModel):

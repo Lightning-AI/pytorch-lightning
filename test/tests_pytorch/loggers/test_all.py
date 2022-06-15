@@ -21,8 +21,9 @@ from unittest.mock import ANY
 import pytest
 import torch
 
-import tests_pytorch.helpers.utils as tutils
+import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import (
     CometLogger,
     CSVLogger,
@@ -32,11 +33,10 @@ from pytorch_lightning.loggers import (
     WandbLogger,
 )
 from pytorch_lightning.loggers.logger import DummyExperiment
-from tests_pytorch.helpers import BoringModel
-from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.loggers.test_comet import _patch_comet_atexit
-from tests_pytorch.loggers.test_mlflow import mock_mlflow_run_creation
-from tests_pytorch.loggers.test_neptune import create_neptune_mock
+from tests.helpers.runif import RunIf
+from tests.loggers.test_comet import _patch_comet_atexit
+from tests.loggers.test_mlflow import mock_mlflow_run_creation
+from tests.loggers.test_neptune import create_neptune_mock
 
 LOGGER_CTX_MANAGERS = (
     mock.patch("pytorch_lightning.loggers.comet.comet_ml"),

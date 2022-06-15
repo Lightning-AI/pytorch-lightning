@@ -6,6 +6,7 @@ from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.data import (
     _get_dataloader_init_kwargs,
@@ -19,8 +20,8 @@ from pytorch_lightning.utilities.data import (
     warning_cache,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
-from tests_pytorch.helpers.utils import no_warning_call
+from tests.helpers.datasets import RandomIterableDataset
+from tests.helpers.utils import no_warning_call
 
 
 def test_extract_batch_size():

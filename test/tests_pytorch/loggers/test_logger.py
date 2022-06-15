@@ -22,12 +22,12 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.loggers import Logger, LoggerCollection, TensorBoardLogger
 from pytorch_lightning.loggers.logger import DummyExperiment, DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.logger import _convert_params, _sanitize_params
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
-from tests_pytorch.helpers.boring_model import BoringDataModule, BoringModel
 
 
 def test_logger_collection():

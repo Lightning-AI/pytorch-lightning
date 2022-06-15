@@ -15,8 +15,8 @@ import pytest
 import torch
 from torch import nn
 
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities import find_shared_parameters, set_shared_parameters
-from tests_pytorch.helpers import BoringModel
 
 
 class ParameterSharingModule(BoringModel):

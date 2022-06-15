@@ -22,6 +22,7 @@ import torch
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
@@ -31,9 +32,8 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.strategies import SingleDeviceStrategy
-from tests_pytorch.deprecated_api import _soft_unimport_module
-from tests_pytorch.helpers import BoringModel
-from tests_pytorch.plugins.environments.test_lsf_environment import _make_rankfile
+from tests.deprecated_api import _soft_unimport_module
+from tests.plugins.environments.test_lsf_environment import _make_rankfile
 
 
 def test_v1_7_0_on_interrupt(tmpdir):

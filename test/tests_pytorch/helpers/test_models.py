@@ -16,10 +16,10 @@ import os
 import pytest
 
 from pytorch_lightning import Trainer
-from tests_pytorch.helpers.advanced_models import BasicGAN, ParityModuleMNIST, ParityModuleRNN
-from tests_pytorch.helpers.boring_model import BoringModel
-from tests_pytorch.helpers.datamodules import ClassifDataModule, RegressDataModule
-from tests_pytorch.helpers.simple_models import ClassificationModel, RegressionModel
+from pytorch_lightning.demos.boring_classes import BoringModel
+from tests.helpers.advanced_models import BasicGAN, ParityModuleMNIST, ParityModuleRNN
+from tests.helpers.datamodules import ClassifDataModule, RegressDataModule
+from tests.helpers.simple_models import ClassificationModel, RegressionModel
 
 
 @pytest.mark.parametrize(

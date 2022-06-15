@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import tests_pytorch.helpers.pipelines as tpipes
-import tests_pytorch.helpers.utils as tutils
+import tests.helpers.pipelines as tpipes
+import tests.helpers.utils as tutils
 from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer import Trainer
-from tests_pytorch.helpers import BoringModel
-from tests_pytorch.helpers.datamodules import ClassifDataModule
-from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.simple_models import ClassificationModel
+from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.runif import RunIf
+from tests.helpers.simple_models import ClassificationModel
 
 
 @RunIf(min_cuda_gpus=2)

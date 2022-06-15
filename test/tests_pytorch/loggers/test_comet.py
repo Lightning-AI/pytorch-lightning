@@ -18,9 +18,9 @@ import pytest
 from torch import tensor
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import CometLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers import BoringModel
 
 
 def _patch_comet_atexit(monkeypatch):

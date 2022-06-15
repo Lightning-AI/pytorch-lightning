@@ -20,6 +20,7 @@ import pytest
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.trainer.connectors.data_connector import _DataHookSelector, _DataLoaderSource, warning_cache
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
@@ -27,9 +28,8 @@ from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.data import _update_dataloader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
-from tests_pytorch.helpers.boring_model import BoringDataModule, BoringModel, RandomDataset
-from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import no_warning_call
+from tests.helpers.runif import RunIf
+from tests.helpers.utils import no_warning_call
 
 
 @RunIf(skip_windows=True)

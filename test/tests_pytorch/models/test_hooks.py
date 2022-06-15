@@ -21,8 +21,8 @@ import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, Trainer
-from tests_pytorch.helpers import BoringDataModule, BoringModel, RandomDataset
-from tests_pytorch.helpers.runif import RunIf
+from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
+from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("max_steps", [1, 2, 3])

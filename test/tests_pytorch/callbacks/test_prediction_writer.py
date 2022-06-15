@@ -19,10 +19,10 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import BasePredictionWriter
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers import BoringModel, RandomDataset
-from tests_pytorch.helpers.runif import RunIf
+from tests.helpers.runif import RunIf
 
 
 class DummyPredictionWriter(BasePredictionWriter):

@@ -19,11 +19,11 @@ import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.strategies.launchers.spawn import _SpawnLauncher
 from pytorch_lightning.trainer.states import TrainerFn
-from tests_pytorch.helpers.boring_model import BoringDataModule, BoringModel
-from tests_pytorch.helpers.runif import RunIf
+from tests.helpers.runif import RunIf
 
 
 class BoringModelDDPCPU(BoringModel):

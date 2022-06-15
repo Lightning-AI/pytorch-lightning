@@ -31,15 +31,15 @@ import yaml
 from torch import optim
 
 import pytorch_lightning as pl
-import tests_pytorch.helpers.utils as tutils
+import tests.helpers.utils as tutils
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
-from tests_pytorch.helpers import BoringModel
-from tests_pytorch.helpers.runif import RunIf
+from tests.helpers.runif import RunIf
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import Container, OmegaConf

@@ -33,13 +33,14 @@ from torch.optim import SGD
 from torch.utils.data import DataLoader, IterableDataset
 
 import pytorch_lightning
-import tests_pytorch.helpers.utils as tutils
+import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.accelerators import CPUAccelerator, GPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
 from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.saving import load_hparams_from_tags_csv, load_hparams_from_yaml, save_hparams_to_tags_csv
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper, UnrepeatedDistributedSampler
 from pytorch_lightning.strategies import (
@@ -57,11 +58,10 @@ from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _OMEGACONF_AVAILABLE
 from pytorch_lightning.utilities.seed import seed_everything
-from tests_pytorch.helpers import BoringModel, RandomDataset
-from tests_pytorch.helpers.boring_model import RandomIterableDataset, RandomIterableDatasetWithLen
-from tests_pytorch.helpers.datamodules import ClassifDataModule
-from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.simple_models import ClassificationModel
+from tests.helpers.datamodules import ClassifDataModule
+from tests.helpers.datasets import RandomIterableDataset, RandomIterableDatasetWithLen
+from tests.helpers.runif import RunIf
+from tests.helpers.simple_models import ClassificationModel
 
 if _OMEGACONF_AVAILABLE:
     from omegaconf import OmegaConf

@@ -18,8 +18,8 @@ import pytest
 
 import pytorch_lightning
 from pytorch_lightning import Trainer
-from tests_pytorch.callbacks.test_callbacks import OldStatefulCallback
-from tests_pytorch.helpers import BoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel
+from tests.callbacks.test_callbacks import OldStatefulCallback
 
 
 def test_v2_0_0_deprecated_num_processes():

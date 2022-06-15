@@ -17,8 +17,8 @@ import pytest
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.callbacks import Callback, LambdaCallback
-from tests_pytorch.helpers.boring_model import BoringModel
-from tests_pytorch.models.test_hooks import get_members
+from pytorch_lightning.demos.boring_classes import BoringModel
+from tests.models.test_hooks import get_members
 
 
 def test_lambda_call(tmpdir):

@@ -17,9 +17,9 @@ from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Samp
 
 from legacy.simple_classif_training import ClassifDataModule, ClassificationModel
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer.states import RunningStage
-from tests_pytorch.helpers.boring_model import BoringModel, RandomDataset
-from tests_pytorch.helpers.runif import RunIf
+from tests.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("overfit_batches", [1, 2, 0.1, 0.25, 1.0])

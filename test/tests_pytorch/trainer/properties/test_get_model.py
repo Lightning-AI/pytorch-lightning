@@ -13,8 +13,8 @@
 # limitations under the License.
 
 from pytorch_lightning import Trainer
-from tests_pytorch.helpers.boring_model import BoringModel
-from tests_pytorch.helpers.runif import RunIf
+from pytorch_lightning.demos.boring_classes import BoringModel
+from tests.helpers.runif import RunIf
 
 
 class TrainerGetModel(BoringModel):

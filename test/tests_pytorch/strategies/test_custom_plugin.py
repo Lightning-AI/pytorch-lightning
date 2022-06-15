@@ -18,8 +18,8 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import SingleDeviceStrategy
-from tests_pytorch.helpers import BoringModel
 
 
 @pytest.mark.parametrize("restore_optimizer_and_schedulers", [True, False])

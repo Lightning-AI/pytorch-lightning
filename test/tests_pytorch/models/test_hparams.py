@@ -30,12 +30,11 @@ from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.saving import load_hparams_from_yaml, save_hparams_to_yaml
+from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from pytorch_lightning.utilities import _HYDRA_EXPERIMENTAL_AVAILABLE, _OMEGACONF_AVAILABLE, AttributeDict, is_picklable
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers import BoringModel, RandomDataset
-from tests_pytorch.helpers.boring_model import BoringDataModule
-from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import no_warning_call
+from tests.helpers.runif import RunIf
+from tests.helpers.utils import no_warning_call
 
 if _HYDRA_EXPERIMENTAL_AVAILABLE:
     from hydra.experimental import compose, initialize

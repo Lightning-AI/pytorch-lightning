@@ -28,9 +28,10 @@ from torchmetrics import Accuracy
 from pytorch_lightning import callbacks, Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.core.module import LightningModule
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests_pytorch.helpers.boring_model import BoringModel, RandomDataset, RandomDictDataset
-from tests_pytorch.helpers.runif import RunIf
+from tests.helpers.datasets import RandomDictDataset
+from tests.helpers.runif import RunIf
 
 
 def test__training_step__log(tmpdir):
