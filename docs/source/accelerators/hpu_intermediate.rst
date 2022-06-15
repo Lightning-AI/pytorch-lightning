@@ -45,7 +45,7 @@ This enables advanced users to provide their own BF16 and FP32 operator list ins
         accelerator="hpu",
         devices=1,
         # Optional Habana mixed precision params to be set
-        # Checkout `pl_examples/hpu_examples/simple_mnist/ops_bf16_mnist.txt` for the format
+        # Checkout `examples/pl_hpu/ops_bf16_mnist.txt` for the format
         plugins=[
             HPUPrecisionPlugin(
                 precision=16,

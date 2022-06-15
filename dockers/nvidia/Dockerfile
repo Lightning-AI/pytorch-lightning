@@ -38,7 +38,7 @@ RUN \
     fi && \
 # save the examples
     mv pytorch-lightning/_notebooks/.notebooks/ notebooks && \
-    mv pytorch-lightning/pl_examples . && \
+    mv pytorch-lightning/examples . && \
 
 # Installations \
     pip install -q fire && \
