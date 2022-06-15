@@ -1,4 +1,4 @@
-name: Reusable Check Installation
+name: Reusable Check Package
 
 on:
   workflow_call:
@@ -12,9 +12,8 @@ on:
         required: true
         type: string
 
-
 jobs:
-  install:
+  package:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

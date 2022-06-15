@@ -1,4 +1,4 @@
-name: Check Installation
+name: Check Package
 
 on:
   push:
@@ -11,8 +11,8 @@ concurrency:
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 jobs:
-  install:
-    uses: ./.github/workflows/_check-install.yml
+  check:
+    uses: ./.github/workflows/_check-package.yml
     with:
       import-name: pytorch_lightning
       pypi-name: pytorch-lightning
