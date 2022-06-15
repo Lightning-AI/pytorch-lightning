@@ -1,9 +1,9 @@
 #!/bin/bash
 # Run this script from the project root.
 URL="https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip"
-mkdir -p test/legacy
+mkdir -p tests/legacy
 # wget is simpler but does not work on Windows
-python -c "from urllib.request import urlretrieve; urlretrieve('$URL', 'test/legacy/checkpoints.zip')"
-ls -l test/legacy/
-unzip -o test/legacy/checkpoints.zip -d test/legacy/
-ls -l test/legacy/checkpoints/
+python -c "from urllib.request import urlretrieve; urlretrieve('$URL', 'tests/legacy/checkpoints.zip')"
+ls -l tests/legacy/
+unzip -o tests/legacy/checkpoints.zip -d test/legacy/
+ls -l tests/legacy/checkpoints/

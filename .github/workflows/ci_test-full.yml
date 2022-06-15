@@ -122,10 +122,10 @@ jobs:
     - name: Sanity check
       run: python requirements/check-avail-extras.py
 
-    - name: Testing
-      working-directory: ./tests
+    - name: Testing PyTorch
+      working-directory: tests/tests_pytorch
       # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-      run: coverage run --source pytorch_lightning -m pytest tests_pytorch -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+      run: coverage run --source pytorch_lightning -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Upload pytest results
       uses: actions/upload-artifact@v2

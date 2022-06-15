@@ -41,13 +41,13 @@ This is useful if you do not test against all required dependency versions.
 **Docker:** Another option is to utilize the [pytorch lightning cuda base docker image](https://hub.docker.com/repository/docker/pytorchlightning/pytorch_lightning/tags?page=1&name=cuda). You can then run:
 
 ```bash
-python -m pytest src/pytorch_lightning tests/test_pytorch -v
+python -m pytest src/pytorch_lightning tests/tests_pytorch -v
 ```
 
 You can also run a single test as follows:
 
 ```bash
-python -m pytest -v tests/test_pytorch/trainer/test_trainer_cli.py::test_default_args
+python -m pytest -v tests/tests_pytorch/trainer/test_trainer_cli.py::test_default_args
 ```
 
 ### Conditional Tests
@@ -64,9 +64,9 @@ You can rely on our CI to make sure all these tests pass.
 There are certain standalone tests, which you can run using:
 
 ```bash
-PL_RUN_STANDALONE_TESTS=1 python -m pytest -v tests/test_pytorch/trainer/
+PL_RUN_STANDALONE_TESTS=1 python -m pytest -v tests/tests_pytorch/trainer/
 # or
-./tests/run_standalone_tests.sh tests/test_pytorch/trainer/
+./tests/run_standalone_tests.sh tests/tests_pytorch/trainer/
 ```
 
 ## Running Coverage
