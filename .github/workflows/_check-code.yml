@@ -25,6 +25,7 @@ jobs:
       run: |
         pip install torch==1.11 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         pip install '.[dev]'
+        pip install mypy
         pip list
 
     - name: Check typing
