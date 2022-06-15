@@ -123,17 +123,6 @@ def test_v1_7_0_deprecated_max_steps_none(tmpdir):
     with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
         trainer.fit_loop.max_steps = None
 
-
-def test_v1_7_0_deprecate_lr_sch_names(tmpdir):
-    model = BoringModel()
-    lr_monitor = LearningRateMonitor()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, callbacks=[lr_monitor])
-    trainer.fit(model)
-
-    with pytest.deprecated_call(match="`LearningRateMonitor.lr_sch_names` has been deprecated in v1.5"):
-        assert lr_monitor.lr_sch_names == ["lr-SGD"]
-
-
 @pytest.mark.parametrize(
     "cls",
     [
