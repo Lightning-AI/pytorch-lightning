@@ -616,31 +616,6 @@ def _user_worker_init_fn(_):
     pass
 
 
-@RunIf(max_torch="1.8.9")
-def test_missing_worker_init_fn():
-    """Test that naive worker seed initialization leads to undesired random state in subprocesses.
-
-    PyTorch 1.9+ does not have this issue.
-    """
-    dataset = NumpyRandomDataset()
-
-    seed_everything(0)
-    dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
-    batches0 = torch.cat(list(dataloader))
-
-    seed_everything(0)
-    dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
-    batches1 = torch.cat(list(dataloader))
-
-    is_duplicated = len(torch.unique(batches1, dim=0)) < len(dataset)
-    is_deterministic = torch.eq(batches0, batches1).all()
-
-    # depending on the OS, we either have
-    # 1) the same seed in all worker processes, producing duplicate samples / augmentations, or
-    # 2) different seeds in each worker process, but they are not derived from the seed of the main process
-    assert not is_deterministic or is_duplicated
-
-
 def test_auto_add_worker_init_fn():
     """Test Trainer adds a default worker_init_fn to the dataloader when seed_everything() is used."""
     dataset = Mock()

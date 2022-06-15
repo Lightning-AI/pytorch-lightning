@@ -19,7 +19,6 @@ import torch.nn as nn
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_9
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize, UNKNOWN_SIZE
 from tests_pytorch.helpers.advanced_models import ParityModuleRNN
 from tests_pytorch.helpers.runif import RunIf
@@ -311,14 +310,8 @@ def test_lazy_model_summary():
         match=r"A layer with UninitializedParameter was found. "
         r"Thus, the total number of parameters detected may be inaccurate.",
     ):
-        if _TORCH_GREATER_EQUAL_1_9:
-            assert summary.total_parameters == 0
-            assert summary.trainable_parameters == 0
-        else:
-            # bug in 1.8: the bias of a LazyLinear layer is initialized!
-            # https://github.com/pytorch/pytorch/issues/58350
-            assert summary.total_parameters == 7
-            assert summary.trainable_parameters == 7
+        assert summary.total_parameters == 0
+        assert summary.trainable_parameters == 0
 
 
 @pytest.mark.parametrize("max_depth", [-1, 0, 1, 3, 999])

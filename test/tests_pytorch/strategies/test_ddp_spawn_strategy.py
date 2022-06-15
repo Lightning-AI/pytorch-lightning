@@ -137,7 +137,7 @@ class BoringModelDDP(BoringModel):
         assert isinstance(self.trainer.model, LightningModule)
 
 
-@RunIf(skip_windows=True, skip_hanging_spawn=True)
+@RunIf(skip_windows=True)
 def test_ddp_spawn_configure_ddp(tmpdir):
     """Tests with ddp spawn strategy."""
     trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=True)

@@ -321,7 +321,7 @@ def pytorch_profiler(tmpdir):
     return PyTorchProfiler(dirpath=tmpdir, filename="profiler")
 
 
-@RunIf(max_torch="1.8.1")
+@pytest.mark.xfail(raises=AssertionError, reason="TODO: Support after 1.11 profiler added")
 def test_pytorch_profiler_describe(pytorch_profiler):
     """Ensure the profiler won't fail when reporting the summary."""
     with pytorch_profiler.profile("on_test_start"):
