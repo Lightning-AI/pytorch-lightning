@@ -13,9 +13,9 @@
 # limitations under the License.
 import pytest
 import torch
+from legacy.simple_classif_training import ClassifDataModule, ClassificationModel
 from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, Sampler, SequentialSampler
 
-from legacy.simple_classif_training import ClassifDataModule, ClassificationModel
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer.states import RunningStage
