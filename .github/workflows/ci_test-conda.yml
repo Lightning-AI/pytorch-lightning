@@ -74,12 +74,12 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: unittest-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}
-        path: tests/results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
+        path: tests/tests_pytorch/results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
       if: failure()
 
     - name: Statistics
       if: success()
-      working-directory: ./tests
+      working-directory: tests/tests_pytorch
       run: |
         coverage report
         coverage xml
@@ -91,7 +91,7 @@ jobs:
       continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: tests/coverage.xml
+        file: tests/tests_pytorch/coverage.xml
         flags: cpu,pytest,torch${{ matrix.pytorch-version }}
         name: CPU-coverage
         fail_ci_if_error: false

@@ -76,7 +76,7 @@ jobs:
       workingDirectory: tests/tests_pytorch
 
     - bash: bash run_standalone_tests.sh
-      workingDirectory: tests
+      workingDirectory: tests/tests_pytorch
       env:
         PL_USE_MOCKED_MNIST: "1"
       displayName: 'Testing: PyTorch standalone tests'
@@ -87,7 +87,7 @@ jobs:
         python -m coverage html
         python -m codecov --token=$(CODECOV_TOKEN) --commit=$(Build.SourceVersion) --flags=gpu,pytest --name="GPU-coverage" --env=linux,azure
         ls -l
-      workingDirectory: tests
+      workingDirectory: tests/tests_pytorch
       displayName: 'Statistics'
 
     - task: PublishTestResults@2
@@ -96,16 +96,6 @@ jobs:
         testResultsFiles: '$(Build.StagingDirectory)/test-results.xml'
         testRunTitle: '$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)'
       condition: succeededOrFailed()
-
-    # todo: re-enable after schema check pass, also atm it seems does not have any effect
-    #- task: PublishCodeCoverageResults@2
-    #  displayName: 'Publish coverage report'
-    #  inputs:
-    #    codeCoverageTool: 'Cobertura'
-    #    summaryFileLocation: 'coverage.xml'
-    #    reportDirectory: '$(Build.SourcesDirectory)/htmlcov'
-    #    testRunTitle: '$(Agent.OS) - $(Build.BuildNumber)[$(Agent.JobName)] - Python $(python.version)'
-    #  condition: succeededOrFailed()
 
     - script: |
         set -e
