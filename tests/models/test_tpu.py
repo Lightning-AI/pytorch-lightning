@@ -64,7 +64,7 @@ def test_model_tpu_devices_1(tmpdir):
     )
 
     model = BoringModel()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+    tpipes.run_model_test(trainer_options, model, with_hpc=False)
 
 
 @pytest.mark.parametrize("tpu_core", [1, 5])
@@ -84,7 +84,7 @@ def test_model_tpu_index(tmpdir, tpu_core):
     )
 
     model = BoringModel()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+    tpipes.run_model_test(trainer_options, model, with_hpc=False)
     assert torch_xla._XLAC._xla_get_default_device() == f"xla:{tpu_core}"
 
 
@@ -105,7 +105,7 @@ def test_model_tpu_devices_8(tmpdir):
 
     # 8 cores needs a big dataset
     model = SerialLoaderBoringModel()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False, min_acc=0.05)
+    tpipes.run_model_test(trainer_options, model, with_hpc=False, min_acc=0.05)
 
 
 @RunIf(tpu=True)
@@ -125,7 +125,7 @@ def test_model_16bit_tpu_devices_1(tmpdir):
     )
 
     model = BoringModel()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model)
 
 
 @pytest.mark.parametrize("tpu_core", [1, 5])
@@ -146,7 +146,7 @@ def test_model_16bit_tpu_index(tmpdir, tpu_core):
     )
 
     model = BoringModel()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False)
+    tpipes.run_model_test(trainer_options, model)
     assert torch_xla._XLAC._xla_get_default_device() == f"xla:{tpu_core}"
 
 
@@ -168,7 +168,7 @@ def test_model_16bit_tpu_devices_8(tmpdir):
 
     # 8 cores needs a big dataset
     model = SerialLoaderBoringModel()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False, min_acc=0.05)
+    tpipes.run_model_test(trainer_options, model, with_hpc=False, min_acc=0.05)
 
 
 @RunIf(tpu=True)
@@ -215,7 +215,7 @@ def test_tpu_grad_norm(tmpdir):
     )
 
     model = BoringModel()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+    tpipes.run_model_test(trainer_options, model, with_hpc=False)
 
 
 @RunIf(tpu=True)
@@ -236,7 +236,7 @@ def test_tpu_clip_grad_by_value(tmpdir):
     )
 
     model = BoringModel()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+    tpipes.run_model_test(trainer_options, model, with_hpc=False)
 
 
 @RunIf(tpu=True)
@@ -354,7 +354,7 @@ def test_tpu_precision_16_clip_gradients(mock_clip_grad_norm, clip_val, tmpdir):
         gradient_clip_val=clip_val,
     )
     model = BoringModel()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+    tpipes.run_model_test(trainer_options, model, with_hpc=False)
 
     if clip_val > 0:
         mock_clip_grad_norm.assert_called()
@@ -420,7 +420,7 @@ def test_tpu_debug_mode(tmpdir):
     )
 
     model = DebugModel()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+    tpipes.run_model_test(trainer_options, model, with_hpc=False)
 
 
 @RunIf(tpu=True)
@@ -447,7 +447,7 @@ def test_tpu_host_world_size(tmpdir):
     )
 
     model = DebugModel()
-    tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+    tpipes.run_model_test(trainer_options, model, with_hpc=False)
 
 
 @RunIf(tpu=True)
