@@ -70,8 +70,8 @@ def _collect_layout(app: "lightning_app.LightningApp", flow: "lightning_app.Ligh
 
 
 def _collect_content_layout(layout: List[Dict], flow: "lightning_app.LightningFlow") -> List[Dict]:
-    """Process the layout returned by the ``configure_layout()`` method if the returned format represents an aggregation
-    of child layouts."""
+    """Process the layout returned by the ``configure_layout()`` method if the returned format represents an
+    aggregation of child layouts."""
     for entry in layout:
         if "content" not in entry:
             raise ValueError(

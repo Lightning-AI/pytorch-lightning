@@ -136,8 +136,8 @@ class ModelInferenceAPI(LightningWork, abc.ABC):
 
 
 def maybe_create_instance() -> Optional[ModelInferenceAPI]:
-    """This function tries to re-create the user `ModelInferenceAPI` if the environment associated with multi workers
-    are present."""
+    """This function tries to re-create the user `ModelInferenceAPI` if the environment associated with multi
+    workers are present."""
     render_fn_name = os.getenv("LIGHTNING_MODEL_INFERENCE_API_CLASS_NAME", None)
     render_fn_module_file = os.getenv("LIGHTNING_MODEL_INFERENCE_API_FILE", None)
     if render_fn_name is None or render_fn_module_file is None:

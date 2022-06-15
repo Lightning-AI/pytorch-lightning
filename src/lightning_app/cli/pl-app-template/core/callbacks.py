@@ -2,14 +2,14 @@ import inspect
 import logging
 from typing import Any, Dict, Optional, TYPE_CHECKING, Union
 
-import pytorch_lightning as pl
 from core.state import ProgressBarState, TrainerState
+
+import pytorch_lightning as pl
+from lightning_app.storage import Path
 from pytorch_lightning import Callback
 from pytorch_lightning.callbacks.progress.base import get_standard_metrics
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from pytorch_lightning.utilities.parsing import collect_init_args
-
-from lightning_app.storage import Path
 
 if TYPE_CHECKING:
     from core.components.script_runner import ScriptRunner

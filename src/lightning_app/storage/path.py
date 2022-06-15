@@ -51,7 +51,7 @@ class Path(PathlibPath):
         """
         if args and isinstance(args[0], str) and args[0].startswith("lit://"):
             parts = list(args)
-            parts[0] = parts[0][len("lit://") :]  # noqa: E203
+            parts[0] = parts[0][len("lit://") :]
             args = (storage_root_dir(), *parts)
 
         if LooseVersion(python_version()) < "3.10":
@@ -361,7 +361,8 @@ def is_lit_path(path: Union[str, Path]) -> bool:
 
 
 def _shared_local_mount_path() -> pathlib.Path:
-    """Returns the shared directory through which the Copier threads move files from one Work filesystem to another.
+    """Returns the shared directory through which the Copier threads move files from one Work filesystem to
+    another.
 
     The shared directory can be set via the environment variable ``SHARED_MOUNT_DIRECTORY`` and should be pointing to a
     directory that all Works have mounted (shared filesystem).

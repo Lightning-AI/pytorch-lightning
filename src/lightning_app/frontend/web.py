@@ -84,7 +84,8 @@ def start_server(serve_dir: str, host: str = "localhost", port: int = -1, path: 
 
 
 def _get_log_config(log_file: str) -> dict:
-    """Returns a logger configuration in the format expected by uvicorn that sends all logs to the given logfile."""
+    """Returns a logger configuration in the format expected by uvicorn that sends all logs to the given
+    logfile."""
     # Modified from the default config found in uvicorn.config.LOGGING_CONFIG
     return {
         "version": 1,

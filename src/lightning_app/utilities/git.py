@@ -13,9 +13,7 @@ def execute_git_command(args: List[str], cwd=None) -> str:
     output: str
         String combining stdout and stderr.
     """
-    process = subprocess.run(
-        ["git"] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, cwd=cwd, check=False
-    )
+    process = subprocess.run(["git"] + args, capture_output=True, text=True, cwd=cwd, check=False)
     output = process.stdout.strip() + process.stderr.strip()
     return output
 

@@ -24,20 +24,16 @@ class Dict(t.Dict[str, T]):
             >>> from lightning_app import LightningFlow, LightningWork
             >>> from lightning_app.core import Dict
             >>> class CounterWork(LightningWork):
-            ...
             ...     def __init__(self):
             ...         super().__init__()
             ...         self.counter = 0
-            ...
             ...     def run(self):
             ...         self.counter += 1
             ...
             >>> class RootFlow(LightningFlow):
-            ...
             ...     def __init__(self):
             ...         super().__init__()
             ...         self.dict = Dict(**{"work_0": CounterWork(), "work_1": CounterWork()})
-            ...
             ...     def run(self):
             ...         for work_name, work in self.dict.items():
             ...             work.run()

@@ -181,8 +181,8 @@ class Drive:
             self._get(self.fs, match, pathlib.Path(os.path.join(self.root_folder, path)).resolve(), overwrite=overwrite)
 
     def delete(self, path: str) -> None:
-        """This method enables to delete files under the provided path from the Drive in a blocking fashion. Only the
-        component which added a file can delete them.
+        """This method enables to delete files under the provided path from the Drive in a blocking fashion. Only
+        the component which added a file can delete them.
 
         Arguments:
             path: The relative path you want to delete files from the Drive.

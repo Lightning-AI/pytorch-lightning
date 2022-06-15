@@ -38,10 +38,12 @@ class StreamlitFrontend(Frontend):
                 def configure_layout(self):
                     return StreamlitFrontend(render_fn=my_streamlit_ui)
 
+
             # define this function anywhere you want
             # this gets called anytime the UI needs to refresh
             def my_streamlit_ui(state):
                 import streamlit as st
+
                 st.write("Hello from streamlit!")
                 st.write(state.counter)
     """

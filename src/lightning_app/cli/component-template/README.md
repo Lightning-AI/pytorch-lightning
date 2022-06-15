@@ -27,9 +27,7 @@ class LitApp(lapp.LightningFlow):
         self.placeholdername = TemplateComponent()
 
     def run(self):
-        print(
-            "this is a simple Lightning app to verify your component is working as expected"
-        )
+        print("this is a simple Lightning app to verify your component is working as expected")
         self.placeholdername.run()
 
 

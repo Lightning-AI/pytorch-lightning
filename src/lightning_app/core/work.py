@@ -143,8 +143,8 @@ class LightningWork(abc.ABC):
 
     @property
     def cache_calls(self) -> bool:
-        """Returns whether the ``run`` method should cache its input arguments and not run again when provided with the
-        same arguments in subsequent calls."""
+        """Returns whether the ``run`` method should cache its input arguments and not run again when provided with
+        the same arguments in subsequent calls."""
         return self._cache_calls
 
     @property
@@ -443,7 +443,8 @@ class LightningWork(abc.ABC):
             raise exception
 
     def _aggregate_status_timeout(self, statuses: List[Dict]) -> WorkStatus:
-        """Method used to return the first request and the total count of timeout after the latest succeeded status."""
+        """Method used to return the first request and the total count of timeout after the latest succeeded
+        status."""
         succeeded_statuses = [
             status_idx for status_idx, status in enumerate(statuses) if status["stage"] == WorkStageStatus.SUCCEEDED
         ]

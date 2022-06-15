@@ -153,8 +153,8 @@ async def post_delta(
     x_lightning_session_uuid: Optional[str] = Header(None),
     x_lightning_session_id: Optional[str] = Header(None),
 ) -> Mapping:
-    """This endpoint is used to make an update to the app state using delta diff, mainly used by streamlit to update the
-    state."""
+    """This endpoint is used to make an update to the app state using delta diff, mainly used by streamlit to
+    update the state."""
 
     if x_lightning_session_uuid is None:
         raise Exception("Missing X-Lightning-Session-UUID header")
@@ -202,8 +202,8 @@ async def post_state(
 
 @fastapi_service.get("/healthz", status_code=200)
 async def healthz(response: Response):
-    """Health check endpoint used in the cloud FastAPI servers to check the status periodically. This requires Redis to
-    be installed for it to work.
+    """Health check endpoint used in the cloud FastAPI servers to check the status periodically. This requires
+    Redis to be installed for it to work.
 
     # TODO - Once the state store abstraction is in, check that too
     """

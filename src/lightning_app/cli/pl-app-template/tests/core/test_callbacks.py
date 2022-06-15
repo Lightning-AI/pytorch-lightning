@@ -4,10 +4,10 @@ from unittest.mock import Mock
 import pytest
 from core.callbacks import PLAppArtifactsTracker, PLAppProgressTracker, PLAppSummary
 from core.components.script_runner import ScriptRunner
-from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.loggers import TensorBoardLogger
 
 from lightning_app.storage import Path
+from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.loggers import TensorBoardLogger
 
 
 @pytest.mark.parametrize("rank", (0, 1))

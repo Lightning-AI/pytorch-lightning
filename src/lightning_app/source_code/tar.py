@@ -56,12 +56,13 @@ class TarResults:
 def get_split_size(
     total_size: int, minimum_split_size: int = 1024 * 1000 * 20, max_split_count: int = MAX_SPLIT_COUNT
 ) -> int:
-    """Calculate the split size we should use to split the multipart upload of an object to a bucket.  We are limited to
-    1000 max parts as the way we are using ListMultipartUploads. More info https://github.com/gridai/grid/pull/5267
+    """Calculate the split size we should use to split the multipart upload of an object to a bucket.  We are
+    limited to 1000 max parts as the way we are using ListMultipartUploads. More info
+    https://github.com/gridai/grid/pull/5267
     https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html#mpu-process
     https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListMultipartUploads.html
-    https://github.com/psf/requests/issues/2717#issuecomment-724725392 Python or requests has a limit of 2**31 bytes for
-    a single file upload.
+    https://github.com/psf/requests/issues/2717#issuecomment-724725392 Python or requests has a limit of 2**31
+    bytes for a single file upload.
 
     Parameters
     ----------
