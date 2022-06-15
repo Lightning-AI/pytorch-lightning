@@ -45,7 +45,7 @@ jobs:
       - name: Check package
         run: |
           # Check MANIFEST.in
-          check-manifest
+          # check-manifest  # TODO: Enable check on manifest.in
           # Check package description
           twine check dist/*
           # Check package
