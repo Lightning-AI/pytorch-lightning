@@ -15,12 +15,12 @@ import pytest
 import torch
 from torch.nn import DataParallel
 
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.overrides.base import (
     _LightningModuleWrapperBase,
     _LightningPrecisionModuleWrapperBase,
     unwrap_lightning_module,
 )
-from tests.helpers import BoringModel
 
 
 @pytest.mark.parametrize("wrapper_class", [_LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase])

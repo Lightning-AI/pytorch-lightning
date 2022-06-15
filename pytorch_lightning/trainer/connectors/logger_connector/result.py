@@ -17,6 +17,7 @@ from functools import partial, wraps
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
 
 import torch
+from torch import Tensor
 from torchmetrics import Metric
 from typing_extensions import TypedDict
 
@@ -29,8 +30,8 @@ from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.warnings import WarningCache
 
-_IN_METRIC = Union[Metric, torch.Tensor]  # Do not include scalars as they were converted to tensors
-_OUT_METRIC = Union[torch.Tensor, Dict[str, torch.Tensor]]
+_IN_METRIC = Union[Metric, Tensor]  # Do not include scalars as they were converted to tensors
+_OUT_METRIC = Union[Tensor, Dict[str, Tensor]]
 _PBAR_METRIC = Union[float, Dict[str, float]]
 _OUT_DICT = Dict[str, _OUT_METRIC]
 _PBAR_DICT = Dict[str, _PBAR_METRIC]
@@ -216,14 +217,14 @@ class _ResultMetric(Metric, DeviceDtypeModuleMixin):
             # do not set a dtype in case the default dtype was changed
             self.add_state("value", torch.tensor(default), dist_reduce_fx=torch.sum)
             if self.meta.is_mean_reduction:
-                self.cumulated_batch_size: torch.Tensor
+                self.cumulated_batch_size: Tensor
                 self.add_state("cumulated_batch_size", torch.tensor(0), dist_reduce_fx=torch.sum)
         # this is defined here only because upstream is missing the type annotation
         self._forward_cache: Optional[Any] = None
 
     def update(self, value: _IN_METRIC, batch_size: int) -> None:  # type: ignore[override]
         if self.is_tensor:
-            value = cast(torch.Tensor, value)
+            value = cast(Tensor, value)
             if not torch.is_floating_point(value):
                 dtype = torch.get_default_dtype()
                 warning_cache.warn(
@@ -254,7 +255,7 @@ class _ResultMetric(Metric, DeviceDtypeModuleMixin):
             self.value = value
             self._forward_cache = value._forward_cache
 
-    def compute(self) -> torch.Tensor:
+    def compute(self) -> Tensor:
         if self.is_tensor:
             value = self.meta.sync(self.value)
             if self.meta.is_mean_reduction:
@@ -331,9 +332,7 @@ class _ResultMetric(Metric, DeviceDtypeModuleMixin):
         return result_metric
 
     def to(self, *args: Any, **kwargs: Any) -> "_ResultMetric":
-        self.__dict__.update(
-            apply_to_collection(self.__dict__, (torch.Tensor, Metric), move_data_to_device, *args, **kwargs)
-        )
+        self.__dict__.update(apply_to_collection(self.__dict__, (Tensor, Metric), move_data_to_device, *args, **kwargs))
         return self
 
 
@@ -455,7 +454,7 @@ class _ResultCollection(dict):
             value = recursive_detach(value)
 
         # move metrics to cpu on TPU.
-        if isinstance(value, torch.Tensor) and value.device.type == "xla":
+        if isinstance(value, Tensor) and value.device.type == "xla":
             value = value.cpu()
 
         # storage key
@@ -500,16 +499,16 @@ class _ResultCollection(dict):
         """
 
         def fn(v: _IN_METRIC) -> _ResultMetric:
-            metric = _ResultMetric(meta, isinstance(v, torch.Tensor))
+            metric = _ResultMetric(meta, isinstance(v, Tensor))
             return metric.to(self.device)
 
-        value = apply_to_collection(value, (torch.Tensor, Metric), fn)
+        value = apply_to_collection(value, (Tensor, Metric), fn)
         if isinstance(value, dict):
             value = _ResultMetricCollection(value)
         self[key] = value
 
     def update_metrics(self, key: str, value: _METRIC_COLLECTION, batch_size: int) -> None:
-        def fn(result_metric: _ResultMetric, v: torch.Tensor) -> None:
+        def fn(result_metric: _ResultMetric, v: Tensor) -> None:
             # performance: avoid calling `__call__` to avoid the checks in `torch.nn.Module._call_impl`
             result_metric.forward(v.to(self.device), batch_size)
             result_metric.has_reset = False
@@ -517,7 +516,7 @@ class _ResultCollection(dict):
         apply_to_collections(self[key], value, _ResultMetric, fn)
 
     @staticmethod
-    def _get_cache(result_metric: _ResultMetric, on_step: bool) -> Optional[torch.Tensor]:
+    def _get_cache(result_metric: _ResultMetric, on_step: bool) -> Optional[Tensor]:
         cache = None
         if on_step and result_metric.meta.on_step:
             cache = result_metric._forward_cache
@@ -571,7 +570,7 @@ class _ResultCollection(dict):
                 nonlocal has_tensor
                 has_tensor = True
 
-            apply_to_collection(value, torch.Tensor, any_tensor)
+            apply_to_collection(value, Tensor, any_tensor)
             if not has_tensor:
                 continue
 
@@ -612,7 +611,7 @@ class _ResultCollection(dict):
 
     def to(self, *args: Any, **kwargs: Any) -> "_ResultCollection":
         """Move all data to the given device."""
-        self.update(apply_to_collection(dict(self), (torch.Tensor, Metric), move_data_to_device, *args, **kwargs))
+        self.update(apply_to_collection(dict(self), (Tensor, Metric), move_data_to_device, *args, **kwargs))
 
         if "device" in kwargs:
             self.device = kwargs["device"]

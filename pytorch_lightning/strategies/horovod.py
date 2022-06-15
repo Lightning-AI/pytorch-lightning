@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
+from torch import Tensor
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
@@ -174,9 +175,7 @@ class HorovodStrategy(ParallelStrategy):
         self.join()
         return hvd.allreduce(tensor, op=reduce_op)
 
-    def all_gather(
-        self, result: torch.Tensor, group: Optional[Any] = dist_group.WORLD, sync_grads: bool = False
-    ) -> torch.Tensor:
+    def all_gather(self, result: Tensor, group: Optional[Any] = dist_group.WORLD, sync_grads: bool = False) -> Tensor:
         if group is not None and group != dist_group.WORLD:
             raise ValueError("Horovod does not support allgather using a subcommunicator at this time. Unset `group`.")
 
@@ -188,7 +187,7 @@ class HorovodStrategy(ParallelStrategy):
         self.join()
         return hvd.allgather(result)
 
-    def post_backward(self, closure_loss: torch.Tensor) -> None:
+    def post_backward(self, closure_loss: Tensor) -> None:
         # synchronize all horovod optimizers.
         for optimizer in self.optimizers:
             optimizer.synchronize()

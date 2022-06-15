@@ -21,9 +21,8 @@ from copy import deepcopy
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
-import torch
 import torch.nn.utils.prune as pytorch_prune
-from torch import nn
+from torch import nn, Tensor
 from typing_extensions import TypedDict
 
 import pytorch_lightning as pl
@@ -275,7 +274,7 @@ class ModelPruning(Callback):
     def _copy_param(new: nn.Module, old: nn.Module, name: str) -> None:
         dst = getattr(new, name)
         src = getattr(old, name)
-        if dst is None or src is None or not isinstance(dst, torch.Tensor) or not isinstance(src, torch.Tensor):
+        if dst is None or src is None or not isinstance(dst, Tensor) or not isinstance(src, Tensor):
             return
         dst.data = src.data.to(dst.device)
 
@@ -418,11 +417,11 @@ class ModelPruning(Callback):
             # make weights permanent
             state_dict[tensor_name] = mask.to(dtype=orig.dtype) * orig
 
-        def move_to_cpu(tensor: torch.Tensor) -> torch.Tensor:
+        def move_to_cpu(tensor: Tensor) -> Tensor:
             # each tensor and move them on cpu
             return tensor.cpu()
 
-        return apply_to_collection(state_dict, torch.Tensor, move_to_cpu)
+        return apply_to_collection(state_dict, Tensor, move_to_cpu)
 
     def on_save_checkpoint(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", checkpoint: Dict[str, Any]

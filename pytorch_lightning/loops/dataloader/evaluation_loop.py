@@ -18,8 +18,8 @@ from collections import ChainMap, OrderedDict
 from functools import partial
 from typing import Any, Iterable, List, Optional, Sequence, Tuple, Type, Union
 
-import torch
 from deprecate.utils import void
+from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
 
 import pytorch_lightning as pl
@@ -350,7 +350,7 @@ class EvaluationLoop(DataLoaderLoop):
             for metric, row in zip(metrics_paths, rows):
                 val = EvaluationLoop._find_value(result, metric)
                 if val is not None:
-                    if isinstance(val, torch.Tensor):
+                    if isinstance(val, Tensor):
                         val = val.item() if val.numel() == 1 else val.tolist()
                     row.append(f"{val}")
                 else:

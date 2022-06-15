@@ -23,6 +23,7 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 import numpy as np
 import torch
+from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
@@ -203,7 +204,7 @@ class EarlyStopping(Callback):
         if reason and self.verbose:
             self._log_info(trainer, reason)
 
-    def _evaluate_stopping_criteria(self, current: torch.Tensor) -> Tuple[bool, Optional[str]]:
+    def _evaluate_stopping_criteria(self, current: Tensor) -> Tuple[bool, Optional[str]]:
         should_stop = False
         reason = None
         if self.check_finite and not torch.isfinite(current):
@@ -242,7 +243,7 @@ class EarlyStopping(Callback):
 
         return should_stop, reason
 
-    def _improvement_message(self, current: torch.Tensor) -> str:
+    def _improvement_message(self, current: Tensor) -> str:
         """Formats a log message that informs the user about an improvement in the monitored score."""
         if torch.isfinite(self.best_score):
             msg = (

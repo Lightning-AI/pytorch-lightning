@@ -19,6 +19,7 @@ from typing import Any, Callable, NamedTuple, Optional
 import numpy as np
 import torch
 import torch.multiprocessing as mp
+from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.strategies.launchers.base import _Launcher
@@ -162,7 +163,7 @@ class _SpawnLauncher(_Launcher):
             queue: the instance of the queue to append the data.
         """
         callback_metrics: dict = apply_to_collection(
-            trainer.callback_metrics, torch.Tensor, lambda x: x.cpu().numpy()
+            trainer.callback_metrics, Tensor, lambda x: x.cpu().numpy()
         )  # send as numpy to avoid issues with memory sharing
         queue.put(callback_metrics)
 

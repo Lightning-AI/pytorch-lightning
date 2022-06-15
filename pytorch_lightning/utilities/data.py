@@ -21,6 +21,7 @@ from itertools import chain
 from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Set, Type, Union
 
 import torch
+from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, IterableDataset, RandomSampler, Sampler, SequentialSampler
 
 import pytorch_lightning as pl
@@ -34,13 +35,13 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.seed import pl_worker_init_function
 from pytorch_lightning.utilities.warnings import WarningCache
 
-BType = Union[torch.Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
+BType = Union[Tensor, str, Mapping[Any, "BType"], Iterable["BType"]]
 
 warning_cache = WarningCache()
 
 
 def _extract_batch_size(batch: BType) -> Generator[int, None, None]:
-    if isinstance(batch, torch.Tensor):
+    if isinstance(batch, Tensor):
         if batch.ndim == 0:
             yield 1
         else:

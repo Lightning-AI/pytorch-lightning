@@ -17,9 +17,9 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import DDPSpawnStrategy, DDPStrategy
 from pytorch_lightning.utilities import _TORCH_GREATER_EQUAL_1_10
-from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 if torch.distributed.is_available():

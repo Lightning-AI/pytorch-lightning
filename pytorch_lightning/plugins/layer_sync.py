@@ -15,6 +15,7 @@
 from abc import ABC, abstractmethod
 
 import torch
+from torch import Tensor
 from torch.nn import Module
 
 
@@ -86,7 +87,7 @@ class NativeSyncBatchNorm(LayerSync):
 
 
 class _BatchNormXd(torch.nn.modules.batchnorm._BatchNorm):
-    def _check_input_dim(self, input: torch.Tensor) -> None:
+    def _check_input_dim(self, input: Tensor) -> None:
         # The only difference between BatchNorm1d, BatchNorm2d, BatchNorm3d, etc
         # is this method that is overwritten by the subclass.
         # Here, we are bypassing some tensor sanity checks and trusting that the user
