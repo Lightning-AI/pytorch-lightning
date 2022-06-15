@@ -47,7 +47,6 @@ def run_model_test(
     trainer_options,
     model: LightningModule,
     data: LightningDataModule = None,
-    on_gpu: bool = True,
     version=None,
     with_hpc: bool = True,
     min_acc: float = 0.25,
