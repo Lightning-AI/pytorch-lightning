@@ -22,9 +22,9 @@ from torchmetrics.functional import mean_absolute_percentage_error as mape
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.callbacks import QuantizationAwareTraining
+from pytorch_lightning.demos.boring_classes import RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import get_model_size_mb
-from tests.helpers.boring_model import RandomDataset
 from tests.helpers.datamodules import RegressDataModule
 from tests.helpers.runif import RunIf
 from tests.helpers.simple_models import RegressionModel

@@ -19,10 +19,10 @@ import torch
 from torch.nn.parallel.distributed import DistributedDataParallel
 
 from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.strategies import DDPSpawnStrategy
 from pytorch_lightning.strategies.launchers.spawn import _SpawnLauncher
 from pytorch_lightning.trainer.states import TrainerFn
-from tests.helpers.boring_model import BoringDataModule, BoringModel
 from tests.helpers.runif import RunIf
 
 
@@ -137,7 +137,7 @@ class BoringModelDDP(BoringModel):
         assert isinstance(self.trainer.model, LightningModule)
 
 
-@RunIf(skip_windows=True, skip_hanging_spawn=True)
+@RunIf(skip_windows=True)
 def test_ddp_spawn_configure_ddp(tmpdir):
     """Tests with ddp spawn strategy."""
     trainer = Trainer(default_root_dir=tmpdir, accelerator="cpu", devices=2, strategy="ddp_spawn", fast_dev_run=True)

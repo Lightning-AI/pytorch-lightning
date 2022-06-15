@@ -18,6 +18,8 @@ clean:
 	rm -rf ./docs/source/generated
 	rm -rf ./docs/source/*/generated
 	rm -rf ./docs/source/api
+	rm -rf *.egg-info
+	rm -rf src/*.egg-info
 
 test: clean
 	# Review the CONTRIBUTING documentation for other ways to test.

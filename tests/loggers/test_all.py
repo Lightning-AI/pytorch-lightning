@@ -23,6 +23,7 @@ import torch
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import (
     CometLogger,
     CSVLogger,
@@ -32,7 +33,6 @@ from pytorch_lightning.loggers import (
     WandbLogger,
 )
 from pytorch_lightning.loggers.logger import DummyExperiment
-from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 from tests.loggers.test_comet import _patch_comet_atexit
 from tests.loggers.test_mlflow import mock_mlflow_run_creation
@@ -299,7 +299,7 @@ class RankZeroLoggerCheck(Callback):
 
 
 @pytest.mark.parametrize("logger_class", ALL_LOGGER_CLASSES_WO_NEPTUNE_WANDB)
-@RunIf(skip_windows=True, skip_hanging_spawn=True)
+@RunIf(skip_windows=True)
 def test_logger_created_on_rank_zero_only(tmpdir, monkeypatch, logger_class):
     """Test that loggers get replaced by dummy loggers on global rank > 0."""
     _patch_comet_atexit(monkeypatch)

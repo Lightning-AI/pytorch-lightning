@@ -18,8 +18,8 @@ import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel
 from tests.helpers.datamodules import ClassifDataModule
 from tests.helpers.simple_models import ClassificationModel
 from tests.helpers.utils import no_warning_call

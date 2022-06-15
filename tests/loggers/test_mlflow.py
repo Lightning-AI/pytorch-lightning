@@ -18,9 +18,9 @@ from unittest.mock import MagicMock
 import pytest
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import _MLFLOW_AVAILABLE, MLFlowLogger
 from pytorch_lightning.loggers.mlflow import MLFLOW_RUN_NAME, resolve_tags
-from tests.helpers import BoringModel
 
 
 def mock_mlflow_run_creation(logger, experiment_name=None, experiment_id=None, run_id=None):

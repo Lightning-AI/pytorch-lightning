@@ -15,8 +15,8 @@ import os
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
-from tests.helpers.boring_model import BoringModel
 
 
 class TestModel(BoringModel):
