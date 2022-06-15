@@ -476,6 +476,8 @@ class Trainer(
             raise MisconfigurationException(
                 f"fast_dev_run={fast_dev_run} is not a valid configuration. It should be >= 0."
             )
+        self.fast_dev_run = fast_dev_run
+
         # set fast_dev_run=True when it is 1, used while logging
         if fast_dev_run == 1:
             self.fast_dev_run = True
