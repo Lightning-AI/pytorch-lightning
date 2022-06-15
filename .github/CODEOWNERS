@@ -16,10 +16,10 @@
 /docs/                                  @edenlightning @tchaton @borda @awaelchli @RobertLaurella
 /.github/*.md                           @edenlightning @williamfalcon @borda
 /.github/ISSUE_TEMPLATE/                @edenlightning @borda @tchaton
-/docs/source/conf.py                    @borda @awaelchli @carmocca
-/docs/source/index.rst                  @williamfalcon
-/docs/source/levels                     @williamfalcon @RobertLaurella
-/docs/source/expertise_levels           @williamfalcon @RobertLaurella
+/docs/source-pytorch/conf.py                    @borda @awaelchli @carmocca
+/docs/source-pytorch/index.rst                  @williamfalcon
+/docs/source-pytorch/levels                     @williamfalcon @RobertLaurella
+/docs/source-pytorch/expertise_levels           @williamfalcon @RobertLaurella
 
 # Packages
 /src/pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
