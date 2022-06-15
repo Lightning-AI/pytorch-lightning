@@ -17,8 +17,8 @@ import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.optimizer import LightningOptimizer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import SingleDeviceStrategy
-from tests.helpers.boring_model import BoringModel
 from tests.helpers.runif import RunIf
 
 

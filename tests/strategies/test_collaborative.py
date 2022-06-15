@@ -11,13 +11,13 @@ import torch
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
 from pytorch_lightning.strategies import CollaborativeStrategy
 from pytorch_lightning.strategies.collaborative import HiveMindScheduler
 from pytorch_lightning.utilities import _HIVEMIND_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
 
 if _HIVEMIND_AVAILABLE:

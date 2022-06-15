@@ -15,8 +15,8 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel
 
 
 def test_optimizer_step_no_closure_raises(tmpdir):

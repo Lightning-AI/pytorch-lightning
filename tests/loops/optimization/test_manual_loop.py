@@ -15,9 +15,9 @@ import pytest
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loops.optimization.manual_loop import ManualResult
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers import BoringModel
 
 
 def test_manual_result():

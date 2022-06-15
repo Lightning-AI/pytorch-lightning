@@ -14,8 +14,8 @@
 import pytest
 
 from pytorch_lightning import Callback, Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
-from tests.helpers import BoringModel
 
 
 def test_initialize_state():
