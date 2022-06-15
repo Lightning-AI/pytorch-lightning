@@ -38,4 +38,4 @@ jobs:
 
     - name: Type check PyTorch
       working-directory: src/pytorch_lightning
-      run: mypy --install-types --non-interactive --config-file ../../pyproject.toml
+      run: mypy . --install-types --non-interactive --config-file ../../pyproject.toml
