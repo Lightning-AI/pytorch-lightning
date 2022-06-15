@@ -21,12 +21,12 @@ import torch
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.profiler import SimpleProfiler
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher, InterBatchParallelDataFetcher
 from pytorch_lightning.utilities.types import STEP_OUTPUT
-from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 

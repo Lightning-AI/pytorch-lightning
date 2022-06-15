@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning import Callback, Trainer
-from tests.helpers import BoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel
 from tests.helpers.runif import RunIf
 
 

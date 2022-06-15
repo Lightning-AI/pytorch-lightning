@@ -19,10 +19,10 @@ from unittest.mock import ANY
 import torch
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.trainer.connectors.logger_connector.fx_validator import _FxValidator
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
-from tests.helpers.boring_model import BoringModel
 
 
 def test_default_level_for_hooks_that_support_logging():

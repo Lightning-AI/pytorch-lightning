@@ -21,7 +21,8 @@ from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ProgressBarBase, RichProgressBar
 from pytorch_lightning.callbacks.progress.rich_progress import RichProgressBarTheme
-from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from tests.helpers.datasets import RandomIterableDataset
 from tests.helpers.runif import RunIf
 
 

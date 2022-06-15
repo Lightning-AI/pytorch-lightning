@@ -12,9 +12,6 @@ VERSIONS = [
     dict(torch="1.10.0", torchvision="0.11.1", torchtext="0.11.0"),
     dict(torch="1.9.1", torchvision="0.10.1", torchtext="0.10.1"),
     dict(torch="1.9.0", torchvision="0.10.0", torchtext="0.10.0"),
-    # dict(torch="1.8.2", torchvision="0.9.1", torchtext="0.9.1"), # LTS # Not on PyPI, commented so 1.8.1 is used
-    dict(torch="1.8.1", torchvision="0.9.1", torchtext="0.9.1"),
-    dict(torch="1.8.0", torchvision="0.9.0", torchtext="0.9.0"),
 ]
 
 
