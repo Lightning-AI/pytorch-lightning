@@ -24,7 +24,7 @@ from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
-from tests import _TEMP_PATH, RANDOM_PORTS
+from tests_pytorch import _TEMP_PATH, RANDOM_PORTS
 
 
 def get_default_logger(save_dir, version=None):
