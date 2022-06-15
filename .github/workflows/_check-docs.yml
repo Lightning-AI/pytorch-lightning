@@ -21,7 +21,7 @@ on:
         type: number
 
 jobs:
-  doctest:
+  test-docs:
     runs-on: ubuntu-20.04
     timeout-minutes: ${{ inputs.timeout-minutes }}
     steps:
@@ -45,12 +45,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
-          python -m pip install --upgrade --user pip
-          pip --version
+          python -m pip install -U pip
           pip install -q fire
-          pip install -r requirements.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
-          pip install -r requirements/devel.txt
-          pip install -r requirements/docs.txt
+          pip install -e .[devel,docs] -U --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           pip list
         shell: bash
 
@@ -89,6 +86,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
+          # For torchmetrics, install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
+          sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
           pip --version
           pip install --requirement requirements/docs.txt
           # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
@@ -100,7 +99,7 @@ jobs:
         working-directory: ${{ inputs.docs-dir }}
         run: |
           # First run the same pipeline as Read-The-Docs
-          make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
+          make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going" -b linkcheck
 
       - name: Upload built docs
         uses: actions/upload-artifact@v3
