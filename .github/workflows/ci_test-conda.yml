@@ -31,7 +31,7 @@ jobs:
     timeout-minutes: 30
     steps:
     - name: Workaround for https://github.com/actions/checkout/issues/760
-      run: git config --global --add safe.directory /__w/pytorch-lightning/pytorch-lightning
+      run: git config --global --add safe.directory /__w/lightning/lightning
 
     - uses: actions/checkout@v2
 
@@ -66,20 +66,20 @@ jobs:
     - name: Pull legacy checkpoints
       run: bash .actions/pull_legacy_checkpoints.sh
 
-    - name: Testing
-      run: |
-        coverage run --source pytorch_lightning -m pytest --timeout 150 tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
+    - name: Testing PyTorch
+      working-directory: tests/tests_pytorch
+      run: coverage run --source pytorch_lightning -m pytest -v --timeout 150 --durations=50 --junitxml=results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
 
     - name: Upload pytest results
       uses: actions/upload-artifact@v2
       with:
-        name: pytest-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}
-        path: junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
-        if-no-files-found: error
+        name: unittest-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}
+        path: tests/tests_pytorch/results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
       if: failure()
 
     - name: Statistics
       if: success()
+      working-directory: tests/tests_pytorch
       run: |
         coverage report
         coverage xml
@@ -91,7 +91,7 @@ jobs:
       continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: coverage.xml
+        file: tests/tests_pytorch/coverage.xml
         flags: cpu,pytest,torch${{ matrix.pytorch-version }}
         name: CPU-coverage
         fail_ci_if_error: false

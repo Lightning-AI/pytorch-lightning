@@ -122,17 +122,16 @@ jobs:
     - name: Sanity check
       run: python requirements/check-avail-extras.py
 
-    - name: Testing
-      run: |
-        # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-        coverage run --source pytorch_lightning -m pytest tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+    - name: Testing PyTorch
+      working-directory: tests/tests_pytorch
+      # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
+      run: coverage run --source pytorch_lightning -m pytest -v --durations=50 --junitxml=results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Upload pytest results
       uses: actions/upload-artifact@v2
       with:
-        name: pytest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
-        path: junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
-        if-no-files-found: error
+        name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}
+        path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
       if: failure()
 
     - name: Prepare Examples
@@ -147,6 +146,7 @@ jobs:
 
     - name: Statistics
       if: success()
+      working-directory: tests/tests_pytorch
       run: |
         coverage report
         coverage xml
@@ -158,7 +158,7 @@ jobs:
       continue-on-error: true
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: coverage.xml
+        file: tests/tests_pytorch/coverage.xml
         flags: cpu,pytest,python${{ matrix.python-version }}
         name: CPU-coverage
         fail_ci_if_error: false

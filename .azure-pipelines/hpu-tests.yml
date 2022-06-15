@@ -14,8 +14,7 @@ pr:
   - "release/*"
 
 jobs:
-  - job: tests
-
+  - job: testing
     # how long to run the job before automatically cancelling
     timeoutInMinutes: "10"
     # how much time to give 'run always even if cancelled tasks' before stopping them
@@ -36,15 +35,21 @@ jobs:
       displayName: 'Install dependencies'
 
     - bash: |
-        python -m pytest -sv tests/accelerators/test_hpu.py --forked --junitxml=hpu1_test-results.xml
+        python -m pytest -sv accelerators/test_hpu.py --forked --junitxml=hpu1_test-results.xml
+      workingDirectory: tests/tests_pytorch
       displayName: 'Single card HPU test'
 
     - bash: |
-        python -m pytest -sv tests/accelerators/test_hpu.py --forked --hpus 8 --junitxml=hpu8_test-results.xml
+        python -m pytest -sv accelerators/test_hpu.py --forked --hpus 8 --junitxml=hpu8_test-results.xml
+      workingDirectory: tests/tests_pytorch
       displayName: 'Multi card(8) HPU test'
 
     - bash: |
-        python -m pytest -sv tests/plugins/precision/hpu/test_hpu.py --hmp-bf16 'tests/plugins/precision/hpu/ops_bf16.txt' --hmp-fp32 'tests/plugins/precision/hpu/ops_fp32.txt' --forked --junitxml=hpu1_precision_test-results.xml
+        python -m pytest -sv plugins/precision/hpu/test_hpu.py --hmp-bf16 \
+          'plugins/precision/hpu/ops_bf16.txt' --hmp-fp32 \
+          'plugins/precision/hpu/ops_fp32.txt' --forked \
+          --junitxml=hpu1_precision_test-results.xml
+      workingDirectory: tests/tests_pytorch
       displayName: 'HPU precision test'
 
     - bash: |

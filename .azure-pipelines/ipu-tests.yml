@@ -16,8 +16,7 @@ variables:
   value: "poplar_sdk-ubuntu_20_04-2.3.1+793-89796d462d"
 
 jobs:
-  - job: tests
-
+  - job: testing
     # how long to run the job before automatically cancelling
     timeoutInMinutes: "15"
     pool: graphcore-ipus
@@ -73,16 +72,17 @@ jobs:
     - bash: |
         source ${{ variables.poplar_sdk }}/poplar-ubuntu*/enable.sh
         source ${{ variables.poplar_sdk }}/popart-ubuntu*/enable.sh
-        cd src
-        python -m pytest pytorch_lightning
-      displayName: 'DocTests'
+        python -m coverage run --source pytorch_lightning -m pytest
+      workingDirectory: src/pytorch_lightning
+      displayName: 'Testing: PyTorch doctests'
 
     - bash: |
         source ${{ variables.poplar_sdk }}/poplar-ubuntu*/enable.sh
         source ${{ variables.poplar_sdk }}/popart-ubuntu*/enable.sh
-        python -m coverage run --source pytorch_lightning -m pytest tests -vv --durations=50
+        python -m coverage run --source pytorch_lightning -m pytest -vv --durations=50
       env:
         MKL_THREADING_LAYER: "GNU"
         POPTORCH_WAIT_FOR_IPU: 1
         PL_RUN_IPU_TESTS: 1
-      displayName: 'UnitTests'
+      displayName: 'Testing: PyTorch standard'
+      workingDirectory: tests/tests_pytorch

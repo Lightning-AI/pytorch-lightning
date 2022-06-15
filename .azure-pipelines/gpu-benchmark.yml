@@ -40,8 +40,8 @@ jobs:
         pip list
       displayName: 'Install package'
 
-    - bash: |
-        python -m pytest tests/benchmarks -v --durations=0
-      displayName: 'Testing: benchmarks'
+    - bash: python -m pytest benchmarks -v --durations=0
       env:
         PL_RUNNING_BENCHMARKS: 1
+      workingDirectory: tests/tests_pytorch
+      displayName: 'Testing: PyTorch benchmarks'

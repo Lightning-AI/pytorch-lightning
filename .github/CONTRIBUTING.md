@@ -240,11 +240,11 @@ Here is the process to create a new test
 - 3. Use **BoringModel and derivates to test out your code**.
 
 ```python
-# TEST SHOULD BE IN YOUR FILE: tests/..../...py
+# TEST SHOULD BE IN YOUR FILE: tests/.../test_file.py
 # TEST CODE TEMPLATE
 
 # [OPTIONAL] pytest decorator
-# @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+# @RunIf(min_cuda_gpus=1)
 def test_explain_what_is_being_tested(tmpdir):
     """
     Test description about text reason to be
@@ -269,7 +269,7 @@ def test_explain_what_is_being_tested(tmpdir):
 run our/your test with
 
 ```bash
-python -m pytest tests/..../...py::test_explain_what_is_being_tested -v --capture=no
+python -m pytest tests/.../test_file.py::test_explain_what_is_being_tested -v --capture=no
 ```
 
 #### How to fix PR with mixed base and target branches?
