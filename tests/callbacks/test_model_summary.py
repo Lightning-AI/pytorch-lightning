@@ -15,7 +15,7 @@ from typing import List, Union
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelSummary
-from tests.helpers.boring_model import BoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel
 
 
 def test_model_summary_callback_present_trainer():

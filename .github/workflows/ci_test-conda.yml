@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.8"]  # previous to last Python version as that one is already used in test-full
-        pytorch-version: ["1.8", "1.9", "1.10"]
+        pytorch-version: ["1.9", "1.10"]
         # nightly: add when there's a release candidate
         include:
           - {python-version: "3.9", pytorch-version: "1.11"}
@@ -35,15 +35,23 @@ jobs:
 
     - uses: actions/checkout@v2
 
-    - name: Update dependencies
+    - name: Update base dependencies
+      run: |
+        conda info
+        conda list
+        pip install -e .[test]
+
+    - name: DocTests
+      working-directory: ./src
+      run: pytest pytorch_lightning --cov=pytorch_lightning
+
+    - name: Update all dependencies
       env:
         HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
         HOROVOD_WITHOUT_MXNET: 1
         HOROVOD_WITHOUT_TENSORFLOW: 1
       run: |
         set -e
-        conda info
-        conda list
         # adjust versions according installed Torch version
         python ./requirements/adjust-versions.py requirements/extra.txt
         python ./requirements/adjust-versions.py requirements/examples.txt
@@ -58,9 +66,9 @@ jobs:
     - name: Pull legacy checkpoints
       run: bash .actions/pull_legacy_checkpoints.sh
 
-    - name: Tests
+    - name: Testing
       run: |
-        coverage run --source pytorch_lightning -m pytest --timeout 150 pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
+        coverage run --source pytorch_lightning -m pytest --timeout 150 tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
 
     - name: Upload pytest results
       uses: actions/upload-artifact@v2

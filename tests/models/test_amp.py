@@ -21,8 +21,8 @@ from torch.utils.data import DataLoader
 
 import tests.helpers.utils as tutils
 from pytorch_lightning import Trainer
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.plugins.environments import SLURMEnvironment
-from tests.helpers import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 

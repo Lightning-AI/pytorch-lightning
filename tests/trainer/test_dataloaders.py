@@ -25,11 +25,12 @@ from torch.utils.data.sampler import SequentialSampler
 
 from pytorch_lightning import Callback, seed_everything, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, has_iterable_dataset, has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from tests.helpers.boring_model import BoringModel, RandomDataset, RandomIterableDataset, RandomIterableDatasetWithLen
 from tests.helpers.dataloaders import CustomInfDataloader, CustomNotImplementedErrorDataloader
+from tests.helpers.datasets import RandomIterableDataset, RandomIterableDatasetWithLen
 from tests.helpers.runif import RunIf
 
 
@@ -613,31 +614,6 @@ class NumpyRandomDataset(Dataset):
 
 def _user_worker_init_fn(_):
     pass
-
-
-@RunIf(max_torch="1.8.9")
-def test_missing_worker_init_fn():
-    """Test that naive worker seed initialization leads to undesired random state in subprocesses.
-
-    PyTorch 1.9+ does not have this issue.
-    """
-    dataset = NumpyRandomDataset()
-
-    seed_everything(0)
-    dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
-    batches0 = torch.cat(list(dataloader))
-
-    seed_everything(0)
-    dataloader = DataLoader(dataset, batch_size=2, num_workers=2, shuffle=False)
-    batches1 = torch.cat(list(dataloader))
-
-    is_duplicated = len(torch.unique(batches1, dim=0)) < len(dataset)
-    is_deterministic = torch.eq(batches0, batches1).all()
-
-    # depending on the OS, we either have
-    # 1) the same seed in all worker processes, producing duplicate samples / augmentations, or
-    # 2) different seeds in each worker process, but they are not derived from the seed of the main process
-    assert not is_deterministic or is_duplicated
 
 
 def test_auto_add_worker_init_fn():
