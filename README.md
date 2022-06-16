@@ -19,26 +19,21 @@ Lightning AI allows researchers, data scientists, and software engineers to buil
 Lightning AI combines a wide variety of extant tools into a modular, intuitive platform for building AI applications in research, enterprise and personal contexts. It is the foundation of the growing Lightning ecosystem, which provides developers with a suite of ready-to-use tools and required infrastructure and compute resources, as well as community support for building AI applications.
 
 The Lightning AI platform includes:
-* The new Lightning framework, which extends PyTorch Lightning’s simple, modular, and flexible design principles to the entire app development process.
-* A collection of tools and functionalities relevant to machine learning, including workflow scheduling for distributed computing, infrastructure-as-code, and connecting web UIs.
-* A gallery of AI apps, curated by the Lightning team, which can be used instantly or further built upon.
-* A library of components that add functionalities to users’ apps, such as extracting data from streaming video.
-* A hosting platform for running and maintaining private and public AI apps on the cloud.
-* The ability to build and run Lightning Apps on private cloud infrastructure or in an on-prem enterprise environment.
+
+- The new Lightning framework, which extends PyTorch Lightning’s simple, modular, and flexible design principles to the entire app development process.
+- A collection of tools and functionalities relevant to machine learning, including workflow scheduling for distributed computing, infrastructure-as-code, and connecting web UIs.
+- A gallery of AI apps, curated by the Lightning team, which can be used instantly or further built upon.
+- A library of components that add functionalities to users’ apps, such as extracting data from streaming video.
+- A hosting platform for running and maintaining private and public AI apps on the cloud.
+- The ability to build and run Lightning Apps on private cloud infrastructure or in an on-prem enterprise environment.
 
 # Models
 
-
 # Apps
-
-
-
-
 
 ## Turn any PyTorch Lightning model ito a Lightning App
 
 Turn your PyTorch Lightning Script into a Lightning App with a cool UI for tracking your run, no code changes needed! Run on the cloud (including multi-GPU), add deployment components, build a research demo, plug-in feature stores, add notifications via Slack or text — and a ton more!
-
 
 1. Create an app from your PyTorch Lightning script
 
