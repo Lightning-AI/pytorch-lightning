@@ -245,4 +245,4 @@ def test_ddp_strategy_set_timeout(mock_init_process_group):
     trainer.strategy.connect(model)
     trainer.lightning_module.trainer = trainer
     trainer.strategy.setup_environment()
-    mock_init_process_group.assert_called_with(timeout=test_timedelta)
+    mock_init_process_group.assert_any_call(timeout=test_timedelta)
