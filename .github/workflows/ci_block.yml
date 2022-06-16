@@ -1,4 +1,4 @@
-name: Temp Prevent edit apps
+name: Block app edits
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on PR to master
@@ -7,7 +7,7 @@ on:  # Trigger the workflow on PR to master
       - src/lightning_app/**
 
 jobs:
-  block-ipynb:
+  block:
     runs-on: ubuntu-latest
     steps:
     - run: exit 1
