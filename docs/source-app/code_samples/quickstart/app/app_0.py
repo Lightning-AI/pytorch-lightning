@@ -1,4 +1,5 @@
 from docs.quickstart.app_02 import HourLongWork
+
 from lightning_app import LightningApp, LightningFlow, LightningWork
 
 

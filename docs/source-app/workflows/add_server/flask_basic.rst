@@ -25,10 +25,13 @@ First, define your flask app as you normally would without Lightning:
 
     flask_app = Flask(__name__)
 
-    @flask_app.route('/')
+
+    @flask_app.route("/")
     def hello():
-        return 'Hello, World!'
-    flask_app.run(host='0.0.0.0', port=80)
+        return "Hello, World!"
+
+
+    flask_app.run(host="0.0.0.0", port=80)
 
 To enable the server inside the component, start the Flask server in the run method and use the ``self.host`` and ``self.port`` properties:
 
@@ -38,13 +41,15 @@ To enable the server inside the component, start the Flask server in the run met
     import lightning_app as la
     from flask import Flask
 
+
     class LitFlask(lapp.LightningWork):
         def run(self):
             flask_app = Flask(__name__)
 
-            @flask_app.route('/')
+            @flask_app.route("/")
             def hello():
-                return 'Hello, World!'
+                return "Hello, World!"
+
             flask_app.run(host=self.host, port=self.port)
 
 ----
@@ -61,14 +66,17 @@ In this case, we render the ``LitFlask`` output in the ``home`` tab of the appli
     import lightning_app as la
     from flask import Flask
 
+
     class LitFlask(lapp.LightningWork):
         def run(self):
             flask_app = Flask(__name__)
 
-            @flask_app.route('/')
+            @flask_app.route("/")
             def hello():
-                return 'Hello, World!'
+                return "Hello, World!"
+
             flask_app.run(host=self.host, port=self.port)
+
 
     class Root(lapp.LightningFlow):
         def __init__(self):
@@ -79,8 +87,9 @@ In this case, we render the ``LitFlask`` output in the ``home`` tab of the appli
             self.lit_flask.run()
 
         def configure_layout(self):
-            tab1 = {'name': 'home', 'content': self.lit_flask}
+            tab1 = {"name": "home", "content": self.lit_flask}
             return tab1
+
 
     app = lapp.LightningApp(Root())
 
@@ -108,13 +117,15 @@ To run the app on the cloud, use the ``--cloud`` argument.
 
     from flask import Flask
 
+
     class LitFlask(lapp.LightningWork):
         def run(self):
             flask_app = Flask(__name__)
 
-            @flask_app.route('/')
+            @flask_app.route("/")
             def hello():
-                return 'Hello, World!'
+                return "Hello, World!"
+
             flask_app.run(host=self.host, port=self.port)
 
 ----

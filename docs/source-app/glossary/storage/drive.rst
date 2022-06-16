@@ -59,6 +59,7 @@ Any components can create a drive object.
     from lightning_app import LightningFlow, LightningWork
     from lightning_app.storage import Drive
 
+
     class Flow(LightningFlow):
         def __init__(self):
             super().__init__()
@@ -66,6 +67,7 @@ Any components can create a drive object.
 
         def run(self):
             ...
+
 
     class Work(LightningWork):
         def __init__(self):
@@ -89,7 +91,7 @@ A drive supports put, list, get, delete actions.
 
     drive = Drive("lit://drive")
 
-    drive.list(".") # Returns [] as empty
+    drive.list(".")  # Returns [] as empty
 
     # Created file.
     with open("a.txt", "w") as f:
@@ -97,13 +99,13 @@ A drive supports put, list, get, delete actions.
 
     drive.put("a.txt")
 
-    drive.list(".") # Returns ["a.txt"] as the file copied in the Drive during the put action.
+    drive.list(".")  # Returns ["a.txt"] as the file copied in the Drive during the put action.
 
-    drive.get("a.txt") # Get the file into the current worker
+    drive.get("a.txt")  # Get the file into the current worker
 
     drive.delete("a.txt")
 
-    drive.list(".") # Returns [] as empty
+    drive.list(".")  # Returns [] as empty
 
 ----
 
@@ -123,7 +125,6 @@ Here is an illustrated code example on how to create drives within works.
 
 
     class Work_A(LightningWork):
-
         def __init__(self):
             super().__init__()
             # The identifier of the Drive is ``drive_1``
@@ -140,7 +141,6 @@ Here is an illustrated code example on how to create drives within works.
 
 
     class Work_B(LightningWork):
-
         def __init__(self):
             super().__init__()
 
@@ -160,8 +160,8 @@ Here is an illustrated code example on how to create drives within works.
             self.drive_1.put("b.txt")
             self.drive_2.put("b.txt")
 
-    class Work_C(LightningWork):
 
+    class Work_C(LightningWork):
         def __init__(self):
             super().__init__()
             self.drive_2 = Drive("lit://drive_2")

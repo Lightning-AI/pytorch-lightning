@@ -38,10 +38,10 @@ As explained in the pre-requisite, the Lightning App runs within an infinite whi
     from datetime import datetime
 
     # Lightning code
-    while True: # This is the Lightning Event Loop
+    while True:  # This is the Lightning Event Loop
 
         # Your code
-        today = datetime.now().strftime("%D") # '05/25/22'
+        today = datetime.now().strftime("%D")  # '05/25/22'
         data_processor.run(today)
         train_model.run(data_processor.data)
 
@@ -101,20 +101,18 @@ as the work continuously execute in a blocking way.
 
     from lightning_app import LightningApp, LightningFlow, LightningWork
 
-    class Flow(LightningFlow):
 
+    class Flow(LightningFlow):
         def __init__(self):
             super().__init__()
 
-            self.work = Work(
-                cache_calls=False,
-                parallel=False
-            )
+            self.work = Work(cache_calls=False, parallel=False)
 
         def run(self):
             print("HERE BEFORE")
             self.work.run()
             print("HERE AFTER")
+
 
     app = LightningApp(Flow())
 

@@ -23,6 +23,7 @@ Create a :class:`~lightning_app.utilities.packaging.build_config.BuildConfig` an
 
     from lightning_app import LightningWork, BuildConfig
 
+
     class MyWork(LightningWork):
         def __init__(self):
             super().__init__()

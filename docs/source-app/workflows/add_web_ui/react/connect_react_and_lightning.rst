@@ -79,13 +79,16 @@ You can use this single react app for the FULL Lightning app, or you can specify
 
     import lightning_app as la
 
+
     class ComponentA(lapp.LightningFlow):
         def configure_layout(self):
             return lapp.frontend.StaticWebFrontend(Path(__file__).parent / "react_app_1/dist")
 
+
     class ComponentB(lapp.LightningFlow):
         def configure_layout(self):
             return lapp.frontend.StaticWebFrontend(Path(__file__).parent / "react_app_2/dist")
+
 
     class HelloLitReact(lapp.LightningFlow):
         def __init__(self):
@@ -97,6 +100,7 @@ You can use this single react app for the FULL Lightning app, or you can specify
             tab_1 = {"name": "App 1", "content": self.react_app_1}
             tab_2 = {"name": "App 2", "content": self.react_app_2}
             return tab_1, tab_2
+
 
     app = lapp.LightningApp(HelloLitReact())
 

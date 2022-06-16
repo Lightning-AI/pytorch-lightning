@@ -1,9 +1,9 @@
 import flash
 from flash.core.data.utils import download_data
 from flash.image import ImageClassificationData, ImageClassifier
-from pytorch_lightning.callbacks import ModelCheckpoint
 
 from lightning_app import CloudCompute, LightningApp, LightningFlow, LightningWork
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 
 # Step 1: Create a training LightningWork component that gets a backbone as input

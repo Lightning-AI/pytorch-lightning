@@ -19,8 +19,9 @@ The environment variables are available in all flows and works, and can be acces
 .. code:: python
 
     import os
-    print(os.environ["FOO"])   # BAR
-    print(os.environ["BAZ"])   # FAZ
+
+    print(os.environ["FOO"])  # BAR
+    print(os.environ["BAZ"])  # FAZ
 
 .. note::
 	Environment variables are currently not encrypted.

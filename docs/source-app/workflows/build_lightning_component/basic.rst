@@ -52,7 +52,7 @@ Use a **LightningFlow** component for any programming logic that runs in less th
 .. code:: python
 
     for i in range(10):
-        print(f'{i}: this kind of code belongs in a LightningFlow')
+        print(f"{i}: this kind of code belongs in a LightningFlow")
 
 Use a **LightningWork** component for any programming logic that takes more than 1 second or requires its own hardware.
 
@@ -62,7 +62,7 @@ Use a **LightningWork** component for any programming logic that takes more than
 
     for i in range(100000):
         sleep(2.0)
-        print(f'{i} LightningWork: work that is long running or may never end (like a server)')
+        print(f"{i} LightningWork: work that is long running or may never end (like a server)")
 
 ----
 
@@ -83,10 +83,12 @@ To implement a LightningFlow, simply subclass ``LightningFlow`` and define the r
     # app.py
     import lightning_app as la
 
+
     class LitFlow(lapp.LightningFlow):
         def run(self):
             for i in range(10):
-                print(f'{i}: this kind of code belongs in a LightningFlow')
+                print(f"{i}: this kind of code belongs in a LightningFlow")
+
 
     app = lapp.LightningApp(LitFlow())
 
@@ -115,11 +117,12 @@ To implement a LightningWork, simply subclass ``LightningWork`` and define the r
     from time import sleep
     import lightning_app as la
 
+
     class LitWork(lapp.LightningWork):
         def run(self):
             for i in range(100000):
                 sleep(2.0)
-                print(f'{i} LightningWork: work that is long running or may never end (like a server)')
+                print(f"{i} LightningWork: work that is long running or may never end (like a server)")
 
 A LightningWork must always be attached to a LightningFlow and explicitely asked to ``run()``:
 
@@ -129,11 +132,13 @@ A LightningWork must always be attached to a LightningFlow and explicitely asked
     from time import sleep
     import lightning_app as la
 
+
     class LitWork(lapp.LightningWork):
         def run(self):
             for i in range(100000):
                 sleep(2.0)
-                print(f'{i} LightningWork: work that is long running or may never end (like a server)')
+                print(f"{i} LightningWork: work that is long running or may never end (like a server)")
+
 
     class LitFlow(lapp.LightningFlow):
         def __init__(self):
@@ -142,6 +147,7 @@ A LightningWork must always be attached to a LightningFlow and explicitely asked
 
         def run(self):
             self.lit_work.run()
+
 
     app = lapp.LightningApp(LitFlow())
 

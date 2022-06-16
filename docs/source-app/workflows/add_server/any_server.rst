@@ -25,13 +25,15 @@ Any server that listens on a port, can be enabled via a work. For example, here'
     import socketserver
     from http import HTTPStatus, server
 
+
     class PlainServer(server.SimpleHTTPRequestHandler):
         def do_GET(self):
             self.send_response(HTTPStatus.OK)
             self.end_headers()
             self.wfile.write(b"<h1 style='color: blue'> Hello lit world </div>")
 
-    httpd = socketserver.TCPServer(('localhost', '3000'), PlainServer)
+
+    httpd = socketserver.TCPServer(("localhost", "3000"), PlainServer)
     httpd.serve_forever()
 
 To enable the server inside the component, start the server in the run method and use the ``self.host`` and ``self.port`` properties:
@@ -43,11 +45,13 @@ To enable the server inside the component, start the server in the run method an
     import socketserver
     from http import HTTPStatus, server
 
+
     class PlainServer(server.SimpleHTTPRequestHandler):
         def do_GET(self):
             self.send_response(HTTPStatus.OK)
             self.end_headers()
             self.wfile.write(b"<h1 style='color: blue'> Hello lit world </div>")
+
 
     class LitServer(lapp.LightningWork):
         def run(self):
@@ -69,16 +73,19 @@ In this case, we render the ``LitServer`` output in the ``home`` tab of the appl
     import socketserver
     from http import HTTPStatus, server
 
+
     class PlainServer(server.SimpleHTTPRequestHandler):
         def do_GET(self):
             self.send_response(HTTPStatus.OK)
             self.end_headers()
             self.wfile.write(b"<h1 style='color: blue'> Hello lit world </div>")
 
+
     class LitServer(lapp.LightningWork):
         def run(self):
             httpd = socketserver.TCPServer((self.host, self.port), PlainServer)
             httpd.serve_forever()
+
 
     class Root(lapp.LightningFlow):
         def __init__(self):
@@ -89,8 +96,9 @@ In this case, we render the ``LitServer`` output in the ``home`` tab of the appl
             self.lit_server.run()
 
         def configure_layout(self):
-            tab1 = {'name': 'home', 'content': self.lit_server}
+            tab1 = {"name": "home", "content": self.lit_server}
             return tab1
+
 
     app = lapp.LightningApp(Root())
 

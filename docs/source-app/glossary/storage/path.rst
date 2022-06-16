@@ -99,6 +99,7 @@ For example, share a directory by passing it as an input to the run method of th
 
     from lightning_app import LightningFlow
 
+
     class Flow(LightningFlow):
         def __init__(self):
             super().__init__()
@@ -172,8 +173,8 @@ You can check if a path exists locally or remotely in the source Work using the 
             # OR
 
             if checkpoint_dir.exists_local():
-               # Do something with the file if it exists locally
-               files = os.listdir(checkpoint_dir)
+                # Do something with the file if it exists locally
+                files = os.listdir(checkpoint_dir)
 
 
 ----
@@ -189,6 +190,7 @@ Lightning makes sure all Paths that are part of the state get stored and made ac
 .. code-block:: python
 
     from lightning_app.storage import Path
+
 
     class Work(LightningWork):
         def __init__(self):
@@ -217,6 +219,7 @@ First, define a component that saves a checkpoint:
     from lightning_app.storage.path import Path
     import torch
     import os
+
 
     class ModelTraining(LightningWork):
         def __init__(self, *args, **kwargs):
@@ -263,6 +266,7 @@ Link both components via a parent component:
         def run(self):
             self.train.run()
             self.deploy.run(checkpoint_dir=self.train.checkpoint_dir)
+
 
     app = lapp.LightningApp(Flow())
 

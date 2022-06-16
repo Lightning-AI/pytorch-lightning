@@ -34,8 +34,8 @@ To write a file, first create a reference to the file with the :class:`~lightnin
     boring_file_reference = Path("boring_file.txt")
 
     # write to that file
-    with open(self.boring_file_reference, 'w') as f:
-        f.write('yolo')
+    with open(self.boring_file_reference, "w") as f:
+        f.write("yolo")
 
 
 ----
@@ -80,17 +80,18 @@ First, define a component that saves a checkpoint:
     import torch
     import os
 
+
     class ModelTraining(lit.LightningWork):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
-            self.model_checkpoints_path = Path('/checkpoints')
+            self.model_checkpoints_path = Path("/checkpoints")
 
         def run(self):
             # make fake checkpoints
             checkpoint_1 = torch.tensor([0, 1, 2, 3, 4])
             checkpoint_2 = torch.tensor([0, 1, 2, 3, 4])
-            torch.save(checkpoint_1, self.model_checkpoints_path + 'checkpoint_1.ckpt')
-            torch.save(checkpoint_2, self.model_checkpoints_path + 'checkpoint_2.ckpt')
+            torch.save(checkpoint_1, self.model_checkpoints_path + "checkpoint_1.ckpt")
+            torch.save(checkpoint_2, self.model_checkpoints_path + "checkpoint_2.ckpt")
 
 
 Next, define a component that needs the checkpoints:
@@ -121,6 +122,7 @@ Link both components via a parent component:
             self.train.run()
             self.deploy.run()
 
+
     app = lit.LightningApp(Root())
 
 
@@ -129,6 +131,7 @@ For example, here we save a file on one component and use it in another componen
 .. code:: python
 
     from lightning_app.storage.path import Path
+
 
     class ComponentA(LightningWork):
         def __init__(self):

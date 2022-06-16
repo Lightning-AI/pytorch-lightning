@@ -49,6 +49,7 @@ Instead of listing the requirements in a file, you can also pass them to the Lig
 
     from lightning_app import LightningWork, BuildConfig
 
+
     class MyWork(LightningWork):
         def __init__(self):
             super().__init__()
