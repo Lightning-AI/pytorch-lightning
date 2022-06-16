@@ -6,7 +6,7 @@
 ______________________________________________________________________
 
 <p align="center">
-  <a href="https://www.pytorchlightning.ai/">Website</a> •
+  <a href="https://www.lightning.ai/">Lightning Gallery</a> •
   <a href="#key-features">Key Features</a> •
   <a href="#how-to-use">How To Use</a> •
   <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a> •
@@ -45,14 +45,6 @@ Lightning disentangles PyTorch code to decouple the science from the engineering
 
 
 ## Build AI products with Lightning Apps
-
-<p>
-  <a href="https://lightning.ai/">Website</a> •
-  <a href="https://lightning.ai/lightning-docs">Docs</a> •
-  <a href="#getting-started">Getting started</a> •
-  <a href="#asking-for-help">Help</a> •
-  <a href="https://www.pytorchlightning.ai/community">Slack</a>
-</p>
 
 Once you're done building models, publish a paper demo or build a full production end-to-end ML system with Lightning Apps. Lightning Apps remove the cloud infrastructure boilerplate so you can focus on solving the research or business problems. Lightning Apps can run on the Lightning Cloud, your own cluster or a private cloud.
 
