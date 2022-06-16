@@ -33,6 +33,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
+from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.loggers import _COMET_AVAILABLE, _NEPTUNE_AVAILABLE, _WANDB_AVAILABLE, Logger, TensorBoardLogger
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.profiler import PyTorchProfiler
@@ -1443,16 +1444,19 @@ def test_cli_parameter_with_lazy_instance_default():
         assert cli.model.activation is not model.activation
 
 
-def test_ddpstrategy_lazy_instance_with_find_unused_parameters():
-    with mock.patch("sys.argv", ["any.py"]):
+def test_ddpstrategy_instantiation_and_find_unused_parameters():
+    strategy_default = lazy_instance(DDPStrategy, find_unused_parameters=True)
+    with mock.patch("sys.argv", ["any.py", "--trainer.strategy.process_group_backend=group"]):
         cli = LightningCLI(
             BoringModel,
             run=False,
-            trainer_defaults={"strategy": lazy_instance(DDPStrategy, find_unused_parameters=False)},
+            trainer_defaults={"strategy": strategy_default},
         )
 
-    assert cli.config.trainer.strategy.init_args.find_unused_parameters is False
+    assert cli.config.trainer.strategy.init_args.find_unused_parameters is True
     assert isinstance(cli.config_init.trainer.strategy, DDPStrategy)
+    assert cli.config_init.trainer.strategy.process_group_backend == "group"
+    assert strategy_default is not cli.config_init.trainer.strategy
 
 
 def test_cli_logger_shorthand():
@@ -1469,17 +1473,20 @@ def test_cli_logger_shorthand():
     assert cli.trainer.logger is None
 
 
-def _test_logger_init_args(logger_name, logger_init):
+def _test_logger_init_args(logger_name, init, unresolved = {}):
     cli_args = [f"--trainer.logger={logger_name}"]
-    cli_args += [f"--trainer.logger.{k}={v}" for k, v in logger_init.items()]
+    cli_args += [f"--trainer.logger.{k}={v}" for k, v in init.items()]
+    cli_args += [f"--trainer.logger.dict_kwargs.{k}={v}" for k, v in unresolved.items()]
     cli_args.append("--print_config")
 
     out = StringIO()
     with mock.patch("sys.argv", ["any.py"] + cli_args), redirect_stdout(out), pytest.raises(SystemExit):
         LightningCLI(TestModel, run=False)
 
-    init_args = yaml.safe_load(out.getvalue())["trainer"]["logger"]["init_args"]
-    assert {k: init_args[k] for k in logger_init} == logger_init
+    data = yaml.safe_load(out.getvalue())["trainer"]["logger"]
+    assert {k: data['init_args'][k] for k in init} == init
+    if unresolved:
+        assert data['dict_kwargs'] == unresolved
 
 
 @pytest.mark.skipif(not _COMET_AVAILABLE, reason="comet-ml is required")
@@ -1489,7 +1496,7 @@ def test_comet_logger_init_args():
 
 @pytest.mark.skipif(not _NEPTUNE_AVAILABLE, reason="neptune-client is required")
 def test_neptune_logger_init_args():
-    _test_logger_init_args("NeptuneLogger", {"name": "neptune", "__unresolved__": {"description": "neptune"}})
+    _test_logger_init_args("NeptuneLogger", {"name": "neptune"}, {"description": "neptune"})
 
 
 def test_tensorboard_logger_init_args():
@@ -1563,20 +1570,22 @@ def test_unresolvable_import_paths():
 
 
 def test_pytorch_profiler_init_args():
-    profiler_init = {
+    init = {
         "dirpath": "profiler",
         "row_limit": 10,
         "group_by_input_shapes": True,
-        "__unresolved__": {
-            "profile_memory": True,
-            "record_shapes": True,
-        },
+    }
+    unresolved = {
+        "profile_memory": True,
+        "record_shapes": True,
     }
     cli_args = ["--trainer.profiler=PyTorchProfiler"]
-    cli_args += [f"--trainer.profiler.{k}={v}" for k, v in profiler_init.items()]
+    cli_args += [f"--trainer.profiler.{k}={v}" for k, v in init.items()]
+    cli_args += [f"--trainer.profiler.dict_kwargs.{k}={v}" for k, v in unresolved.items()]
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = LightningCLI(TestModel, run=False)
 
     assert isinstance(cli.config_init.trainer.profiler, PyTorchProfiler)
-    assert {k: cli.config.trainer.profiler.init_args[k] for k in profiler_init} == profiler_init
+    assert {k: cli.config.trainer.profiler.init_args[k] for k in init} == init
+    assert cli.config.trainer.profiler.dict_kwargs == unresolved
