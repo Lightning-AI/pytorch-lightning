@@ -41,9 +41,8 @@ ______________________________________________________________________
 ## PyTorch Lightning is just organized PyTorch
 
 Lightning disentangles PyTorch code to decouple the science from the engineering.
-![PT to PL](docs/source/_static/images/general/pl_quick_start_full_compressed.gif)
+![PT to PL](docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif)
 
-----
 
 ## Build AI products with Lightning Apps
 
