@@ -1473,7 +1473,7 @@ def test_cli_logger_shorthand():
     assert cli.trainer.logger is None
 
 
-def _test_logger_init_args(logger_name, init, unresolved = {}):
+def _test_logger_init_args(logger_name, init, unresolved={}):
     cli_args = [f"--trainer.logger={logger_name}"]
     cli_args += [f"--trainer.logger.{k}={v}" for k, v in init.items()]
     cli_args += [f"--trainer.logger.dict_kwargs.{k}={v}" for k, v in unresolved.items()]
@@ -1484,9 +1484,9 @@ def _test_logger_init_args(logger_name, init, unresolved = {}):
         LightningCLI(TestModel, run=False)
 
     data = yaml.safe_load(out.getvalue())["trainer"]["logger"]
-    assert {k: data['init_args'][k] for k in init} == init
+    assert {k: data["init_args"][k] for k in init} == init
     if unresolved:
-        assert data['dict_kwargs'] == unresolved
+        assert data["dict_kwargs"] == unresolved
 
 
 @pytest.mark.skipif(not _COMET_AVAILABLE, reason="comet-ml is required")
