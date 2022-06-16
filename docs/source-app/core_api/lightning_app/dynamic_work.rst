@@ -35,12 +35,11 @@ You can simply attach your components in the **run** method of a flow using pyth
 .. code-block:: python
 
     class RootFlow(lapp.LightningFlow):
-
         def run(self):
 
             if not hasattr(self, "work"):
-                setattr(self, "work", Work()) # The `Work` component is created and attached here.
-            getattr(self,  "work").run() # Run the `Work` component.
+                setattr(self, "work", Work())  # The `Work` component is created and attached here.
+            getattr(self, "work").run()  # Run the `Work` component.
 
 But it is usually more readable to use Lightning built-in :class:`~lightning_app.structures.Dict` or :class:`~lightning_app.structures.List` as follows:
 
@@ -48,8 +47,8 @@ But it is usually more readable to use Lightning built-in :class:`~lightning_app
 
     from lightning_app.structures import Dict
 
-    class RootFlow(lapp.LightningFlow):
 
+    class RootFlow(lapp.LightningFlow):
         def __init__(self):
             super().__init__()
             self.dict = Dict()
@@ -69,7 +68,6 @@ In order to stop a work, simply use the work ``stop`` method as follows:
 .. code-block:: python
 
     class RootFlow(lapp.LightningFlow):
-
         def __init__(self):
             super().__init__()
             self.work = Work()
@@ -96,9 +94,9 @@ To do so, we are iterating over the list of ``jupyter_config_requests`` infinite
 
     import lightning_app as la
 
-    class JupyterLabManager(lapp.LightningFlow):
 
-        """This flow manages the users notebooks running within works.""""
+    class JupyterLabManager(lapp.LightningFlow):
+        """This flow manages the users notebooks running within works."""
 
         def __init__(self):
             super().__init__()
@@ -132,7 +130,7 @@ To do so, we are iterating over the list of ``jupyter_config_requests`` infinite
                     jupyter_config["token"] = self.jupyter_works[username].token
 
                 # Step 5: Stop the work if the user requested it.
-                if jupyter_config['stop']:
+                if jupyter_config["stop"]:
                     self.jupyter_works[username].stop()
                     self.jupyter_config_requests.pop(idx)
 
@@ -155,10 +153,10 @@ In the UI below, we receive the **state** of the Jupyter Manager and it can be m
         with column_1:
             create_jupyter = st.button("Create Jupyter Notebook")
         with column_2:
-            username = st.text_input('Enter your username', "tchaton")
+            username = st.text_input("Enter your username", "tchaton")
             assert username
         with column_3:
-            use_gpu = st.checkbox('Use GPU')
+            use_gpu = st.checkbox("Use GPU")
 
         # Step 2: If a user clicked the button, add an element to the list of configs
         # Note: state.jupyter_config_requests = ... will sent the state update to the component.
@@ -176,7 +174,7 @@ In the UI below, we receive the **state** of the Jupyter Manager and it can be m
             with column_2:
                 if not idx:
                     st.write(f"Use GPU")
-                st.write(config['use_gpu'])
+                st.write(config["use_gpu"])
             with column_3:
                 if not idx:
                     st.write(f"Stop")

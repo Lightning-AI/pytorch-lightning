@@ -12,8 +12,8 @@ Below is a pseudo-code using the lightning framework that uses a LightningFlow t
 
     import lightning_app as la
 
-    class DAGFlow(lapp.LightningFlow):
 
+    class DAGFlow(lapp.LightningFlow):
         def __init__(self):
             super().__init__()
             self.processor = DataProcessorWork(...)
@@ -31,17 +31,19 @@ Below is a pseudo-code to run several works in parallel using a built-in :class:
 
     import lightning_app as la
 
-    class DAGFlow(lapp.LightningFlow):
 
+    class DAGFlow(lapp.LightningFlow):
         def __init__(self):
             super().__init__()
             ...
-            self.train_works = lapp.structures.Dict(**{
-                "1": TrainingWork(..., parallel=True),
-                "2": TrainingWork(..., parallel=True),
-                "3": TrainingWork(..., parallel=True),
-                ...
-                })
+            self.train_works = lapp.structures.Dict(
+                **{
+                    "1": TrainingWork(..., parallel=True),
+                    "2": TrainingWork(..., parallel=True),
+                    "3": TrainingWork(..., parallel=True),
+                    # ...
+                }
+            )
             ...
 
         def run(self):

@@ -22,19 +22,22 @@ The LightningFlow has a ``schedule`` method which can be used to schedule your c
 
 
     class MyFlow(LightningFlow):
-
         def run(self):
             if self.schedule("hourly"):
                 # run some code once every hour.
+                pass
 
             if self.schedule("daily"):
                 # run some code once day.
+                pass
 
             if self.schedule("daily") and anything_else:
                 # run some code once day if the anything else is also True.
+                pass
 
             if self.schedule("2 4 * * mon,fri"):
                 # defined with cron syntax, run some code at 04:02 on every Monday and Friday.
+                pass
 
 Learn more about the cron syntax `here <https://github.com/kiorky/croniter>`_
 
@@ -52,6 +55,7 @@ In the example above, the line ``self.schedule("hourly")`` will return ``True`` 
 
     from lightning_app import LightningFlow
     from lightning_app.core.structures import List
+
 
     class ScheduledDAG(LightningFlow):
         def __init__(self):
@@ -76,6 +80,7 @@ In the example above, the line ``self.schedule("hourly")`` will return ``True`` 
     from lightning_app import LightningFlow
     from time import time
 
+
     class ScheduledDAG(LightningFlow):
         def __init__(self):
             super().__init__()
@@ -94,6 +99,7 @@ In the example above, the line ``self.schedule("hourly")`` will return ``True`` 
     from lightning_app import LightningFlow
     from time import time
 
+
     class ScheduledDAG(LightningFlow):
         def __init__(self):
             super().__init__()
@@ -107,7 +113,7 @@ In the example above, the line ``self.schedule("hourly")`` will return ``True`` 
                 self.should_execute = True
 
             if self.should_execute:  # Runs in 10 min
-                self.data_processor.run(trigger_time=time()) # Runs in 5 min
+                self.data_processor.run(trigger_time=time())  # Runs in 5 min
                 if self.data_processor.has_succeeded:
                     self.training_work.run(self.data_processor.data)  # Runs in 5 min
                 if self.training_work.has_succeeded:
@@ -127,6 +133,7 @@ Here is an example of something which **WON'T** work:
     from lightning_app import LightningFlow
     from time import time
 
+
     class ScheduledDAG(LightningFlow):
         def __init__(self):
             super().__init__()
@@ -136,7 +143,7 @@ Here is an example of something which **WON'T** work:
         def run(self):
             ...
             if self.schedule("hourly"):
-                self.data_processor.run(trigger_time=time()) # This executes and finishes 5 min later
+                self.data_processor.run(trigger_time=time())  # This executes and finishes 5 min later
                 if self.data_processor.has_succeeded:
                     # This will never be reached as the data processor will keep processing forever...
                     self.training_work.run(self.data_processor.data)

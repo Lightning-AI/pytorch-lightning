@@ -76,13 +76,13 @@ Run the app
 ***********
 Run the app locally to see it!
 
-.. code:: python
+.. code:: bash
 
     lightning run app app.py
 
 Now run it on the cloud as well:
 
-.. code:: python
+.. code:: bash
 
     lightning run app app.py --cloud
 

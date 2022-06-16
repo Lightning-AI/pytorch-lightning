@@ -41,12 +41,15 @@ First **create a file named app.py** with the app content:
     import lightning_app as la
     import streamlit as st
 
+
     def your_streamlit_app(lightning_app_state):
-        st.write('hello world')
+        st.write("hello world")
+
 
     class LitStreamlit(lapp.LightningFlow):
         def configure_layout(self):
             return lapp.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
+
 
     class LitApp(lapp.LightningFlow):
         def __init__(self):
@@ -56,6 +59,7 @@ First **create a file named app.py** with the app content:
         def configure_layout(self):
             tab1 = {"name": "home", "content": self.lit_streamlit}
             return tab1
+
 
     app = lapp.LightningApp(LitApp())
 
@@ -74,13 +78,13 @@ Run the app
 ***********
 Run the app locally to see it!
 
-.. code:: python
+.. code:: bash
 
     lightning run app app.py
 
 Now run it on the cloud as well:
 
-.. code:: python
+.. code:: bash
 
     lightning run app app.py --cloud
 
@@ -101,8 +105,9 @@ First, find the streamlit app you want to integrate. In this example, that app l
 
     import streamlit as st
 
+
     def your_streamlit_app():
-        st.write('hello world')
+        st.write("hello world")
 
 Refer to the `Streamlit documentation <https://docs.streamlit.io/>`_ for more complex examples.
 
@@ -120,12 +125,15 @@ the ``configure_layout`` method of the Lightning component you want to connect t
     import lightning_app as la
     import streamlit as st
 
+
     def your_streamlit_app(lightning_app_state):
-        st.write('hello world')
+        st.write("hello world")
+
 
     class LitStreamlit(lapp.LightningFlow):
         def configure_layout(self):
             return lapp.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
+
 
     class LitApp(lapp.LightningFlow):
         def __init__(self):
@@ -135,6 +143,7 @@ the ``configure_layout`` method of the Lightning component you want to connect t
         def configure_layout(self):
             tab1 = {"name": "home", "content": self.lit_streamlit}
             return tab1
+
 
     app = lapp.LightningApp(LitApp())
 
@@ -155,12 +164,15 @@ In this case, we render the ``LitStreamlit`` UI in the ``home`` tab of the appli
     import lightning_app as la
     import streamlit as st
 
+
     def your_streamlit_app(lightning_app_state):
-        st.write('hello world')
+        st.write("hello world")
+
 
     class LitStreamlit(lapp.LightningFlow):
         def configure_layout(self):
             return lapp.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
+
 
     class LitApp(lapp.LightningFlow):
         def __init__(self):
@@ -170,5 +182,6 @@ In this case, we render the ``LitStreamlit`` UI in the ``home`` tab of the appli
         def configure_layout(self):
             tab1 = {"name": "home", "content": self.lit_streamlit}
             return tab1
+
 
     app = lapp.LightningApp(LitApp())

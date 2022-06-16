@@ -31,8 +31,6 @@ However, for the user case stated above, we want to capture the work exceptions.
 
 .. code-block:: python
 
-    import lightning_app as la
-
     MyCustomWork(raise_exception=False)  # <== HERE: The exception is captured.
 
     # Default behavior
@@ -43,12 +41,13 @@ And you can customize this behavior by overriding the ``on_exception`` hook to t
 
 .. code-block:: python
 
-    import lightning_app as la
+    import lightning as L
 
-    class MyCustomWork(lapp.LightningWork):
 
+    class MyCustomWork(L.LightningWork):
         def on_exception(self, exception: Exception):
             # do something when an exception is triggered.
+            pass
 
 
 *******************
@@ -59,7 +58,8 @@ This is the pseudo-code for the application described above.
 
 .. code-block:: python
 
-    import lightning_app as la
+    import lightning_app as lapp
+
 
     class RootFlow(lapp.LightningFlow):
         def __init__(self):
@@ -74,10 +74,10 @@ This is the pseudo-code for the application described above.
                     # Note: The `GithubRepoLauncher` doesn't exist yet.
                     self.user_jobs[job_id] = GithubRepoLauncher(
                         **request,
-                        raise_exception=False, # <== HERE: The exception is captured.
+                        raise_exception=False,  # <== HERE: The exception is captured.
                     )
                 self.user_jobs[job_id].run()
 
                 if self.user_jobs[job_id].status.stage == "failed" and "printed" not in request:
-                    print(self.user_jobs[job_id].status) # <== HERE: Print the user exception.
+                    print(self.user_jobs[job_id].status)  # <== HERE: Print the user exception.
                     request["printed"] = True

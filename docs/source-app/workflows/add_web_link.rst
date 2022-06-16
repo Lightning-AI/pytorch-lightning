@@ -22,11 +22,13 @@ and connect the UIs. Create a file named **app.py** with this code:
 
     import lightning_app as la
 
+
     class LitApp(lapp.LightningFlow):
         def configure_layout(self):
             tab_1 = {"name": "TB logs", "content": "https://bit.ly/tb-aasae"}
             tab_2 = {"name": "Paper", "content": "https://arxiv.org/pdf/2107.12329.pdf"}
             return tab_1, tab_2
+
 
     app = lapp.LightningApp(LitApp())
 
@@ -37,12 +39,12 @@ Run the app
 ***********
 Run the app locally to see it!
 
-.. code:: python
+.. code:: bash
 
     lightning run app app.py
 
 Now run it on the cloud as well:
 
-.. code:: python
+.. code:: bash
 
     lightning run app app.py --cloud

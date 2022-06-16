@@ -67,7 +67,7 @@ Step 1: Install Lightning
 
 First, you'll need to install Lightning (make sure you use Python 3.8+).
 
-.. code:: python
+.. code:: bash
 
     python -m pip install -U lightning
 
@@ -151,6 +151,7 @@ This is the app code:
     import lightning_app as la
     from quick_start.components import PyTorchLightningScript, ImageServeGradio
 
+
     class TrainDeploy(lapp.LightningFlow):
         def __init__(self):
             super().__init__()
@@ -174,6 +175,7 @@ This is the app code:
             tab_2 = {"name": "Interactive demo", "content": self.serve_work}
             return [tab_1, tab_2]
 
+
     app = lapp.LightningApp(TrainDeploy())
 
 Let's break down the app code by each section to understand what it is doing.
@@ -195,6 +197,7 @@ The top-level component (Root) must subclass lapp.LightningFlow
     import lightning_app as la
     from quick_start.components import PyTorchLightningScript, ImageServeGradio
 
+
     class TrainDeploy(lapp.LightningFlow):
         def __init__(self):
             super().__init__()
@@ -217,6 +220,7 @@ The top-level component (Root) must subclass lapp.LightningFlow
             tab_1 = {"name": "Model training", "content": self.train_work}
             tab_2 = {"name": "Interactive demo", "content": self.serve_work}
             return [tab_1, tab_2]
+
 
     app = lapp.LightningApp(TrainDeploy())
 
@@ -236,6 +240,7 @@ start a gradio server for demo purposes.
     import lightning_app as la
     from quick_start.components import PyTorchLightningScript, ImageServeGradio
 
+
     class TrainDeploy(lapp.LightningFlow):
         def __init__(self):
             super().__init__()
@@ -258,6 +263,7 @@ start a gradio server for demo purposes.
             tab_1 = {"name": "Model training", "content": self.train_work}
             tab_2 = {"name": "Interactive demo", "content": self.serve_work}
             return [tab_1, tab_2]
+
 
     app = lapp.LightningApp(TrainDeploy())
 
@@ -278,6 +284,7 @@ demo server:
     import lightning_app as la
     from quick_start.components import PyTorchLightningScript, ImageServeGradio
 
+
     class TrainDeploy(lapp.LightningFlow):
         def __init__(self):
             super().__init__()
@@ -300,6 +307,7 @@ demo server:
             tab_1 = {"name": "Model training", "content": self.train_work}
             tab_2 = {"name": "Interactive demo", "content": self.serve_work}
             return [tab_1, tab_2]
+
 
     app = lapp.LightningApp(TrainDeploy())
 
@@ -323,6 +331,7 @@ Implement the `configure_layout` method to connect them together:
     import lightning_app as la
     from quick_start.components import PyTorchLightningScript, ImageServeGradio
 
+
     class TrainDeploy(lapp.LightningFlow):
         def __init__(self):
             super().__init__()
@@ -345,6 +354,7 @@ Implement the `configure_layout` method to connect them together:
             tab_1 = {"name": "Model training", "content": self.train_work}
             tab_2 = {"name": "Interactive demo", "content": self.serve_work}
             return [tab_1, tab_2]
+
 
     app = lapp.LightningApp(TrainDeploy())
 
@@ -362,6 +372,7 @@ Initalize an app object with the `TrainDeploy` component (this won't run the app
     import lightning_app as la
     from quick_start.components import PyTorchLightningScript, ImageServeGradio
 
+
     class TrainDeploy(lapp.LightningFlow):
         def __init__(self):
             super().__init__()
@@ -384,6 +395,7 @@ Initalize an app object with the `TrainDeploy` component (this won't run the app
             tab_1 = {"name": "Model training", "content": self.train_work}
             tab_2 = {"name": "Interactive demo", "content": self.serve_work}
             return [tab_1, tab_2]
+
 
     app = lapp.LightningApp(TrainDeploy())
 
