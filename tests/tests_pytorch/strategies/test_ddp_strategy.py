@@ -245,13 +245,10 @@ def test_ddp_strategy_set_timeout(mock_init_process_group):
     trainer.strategy.connect(model)
     trainer.lightning_module.trainer = trainer
     trainer.strategy.setup_environment()
-    
+
     process_group_backend = trainer.strategy._get_process_group_backend()
     global_rank = trainer.strategy.cluster_environment.global_rank()
     world_size = trainer.strategy.cluster_environment.world_size()
     mock_init_process_group.assert_called_with(
-        process_group_backend, 
-        rank=global_rank,
-        world_size=world_size,
-        timeout=test_timedelta
+        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
     )
