@@ -42,7 +42,8 @@ repos:
                 docs/source-pytorch/_static/images/lightning_module/pt_to_pl.png|
                 docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif|
                 docs/source-pytorch/_static/images/general/pl_overview_flat.jpg|
-                docs/source-pytorch/_static/images/general/pl_overview.gif
+                docs/source-pytorch/_static/images/general/pl_overview.gif|
+                src/lightning_app/cli/pl-app-template/ui/yarn.lock
             )$
       - id: detect-private-key
 

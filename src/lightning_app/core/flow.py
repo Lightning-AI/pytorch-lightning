@@ -90,6 +90,7 @@ class LightningFlow:
             ...         self.counter = 0
             ...     def run(self):
             ...         self.counter += 1
+            ...
             >>> flow = RootFlow()
             >>> flow.run()
             >>> assert flow.counter == 1
@@ -351,7 +352,7 @@ class LightningFlow:
     ) -> bool:
         """The schedule method is used to run a part of the flow logic on timely manner.
 
-        .. code-block:: python
+        .. code-block::
 
             from lightning_app import LightningFlow
 
@@ -374,8 +375,8 @@ class LightningFlow:
             from lightning_app import LightningFlow
             from lightning_app.structures import List
 
-            class SchedulerDAG(LightningFlow):
 
+            class SchedulerDAG(LightningFlow):
                 def __init__(self):
                     super().__init__()
                     self.dags = List()
@@ -453,7 +454,7 @@ class LightningFlow:
 
         **Example:** Serve a static directory (with at least a file index.html inside).
 
-        .. code-block:: python
+        .. code-block::
 
             from lightning_app.frontend import StaticWebFrontend
 
@@ -464,7 +465,7 @@ class LightningFlow:
 
         **Example:** Serve a streamlit UI (needs the streamlit package to be installed).
 
-        .. code-block:: python
+        .. code-block::
 
             from lightning_app.frontend import StaticWebFrontend
 
@@ -478,7 +479,7 @@ class LightningFlow:
 
         **Example:** Arrange the UI of my children in tabs (default UI by Lightning).
 
-        .. code-block:: python
+        .. code-block::
 
             class Flow(LightningFlow):
                 ...
