@@ -54,10 +54,9 @@ Lightning disentangles PyTorch code to decouple the science from the engineering
   <a href="https://www.pytorchlightning.ai/community">Slack</a>
 </p>
 
-Use Lightning Apps to build everything from production-ready, multi-cloud ML systems to simple research demos.
-Just group the components of your choice into an app and customize the underlying code however you want to.
-Run your app on your on hardware, on the cloud, or your own infrastructure.
-Lightning Apps can then be republished into the community for future use, or kept private in your personal library.
+Once you're done building models, publish a paper demo or build a full production end-to-end ML system with Lightning Apps. Lightning Apps remove the cloud infrastructure boilerplate so you can focus on solving the research or business problems. Lightning Apps can run on the Lightning Cloud, your own cluster or a private cloud.
+
+[Browse available Lightning apps here](https://lightning.ai/)
 
 <div align="center">
     <img src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/logos/lightning-apps-teaser.png" width="80%">
