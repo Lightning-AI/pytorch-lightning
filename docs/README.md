@@ -43,7 +43,7 @@ Run these commands
 
 ```bash
 git submodule update --init --recursive
-pip install -e . -r requirements/docs.txt
+pip install -e . -r requirements/pytorch/docs.txt
 make docs
 ```
 
