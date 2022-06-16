@@ -2,8 +2,8 @@
     <img src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/logos/lightning-ai.png" width="400px">
 
 ______________________________________________________________________
-</div>
 
+</div>
 
 ## Scale your models with PyTorch Lightning
 
@@ -18,7 +18,6 @@ ______________________________________________________________________
   <a href="#license">License</a>
 </p>
 
-
 The ultimate deep learning framework. Scale your models, without the boilerplate.
 Whether you want to train your models fast or with more power (or both!), we’ve got you covered.
 With PyTorch Lightning, you can leave complex engineering boilerplate behind and focus on the research questions that matter to you.
@@ -32,7 +31,6 @@ With PyTorch Lightning, you can leave complex engineering boilerplate behind and
 ______________________________________________________________________
 
 ## Share your models with Lightning Apps
-
 
 <p>
   <a href="https://lightning.ai/">Website</a> •
