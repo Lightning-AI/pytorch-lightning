@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/source-pytorch/_static/images/logo.png" width="400px">
+<img src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/logos/pytorch-lightning.png" width="400px">
 
 **The lightweight PyTorch wrapper for high-performance AI research.
 Scale your models, not the boilerplate.**
@@ -44,7 +44,7 @@ ______________________________________________________________________
 ## PyTorch Lightning is just organized PyTorch
 
 Lightning disentangles PyTorch code to decouple the science from the engineering.
-![PT to PL](docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif)
+![PT to PL](../docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif)
 
 ______________________________________________________________________
 
