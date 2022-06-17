@@ -6,14 +6,17 @@ jobs:
   block:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: "2"  # To retrieve the preceding commit.
+
       - name: Get changed files using defaults
         id: changed-files
         uses: tj-actions/changed-files@v23
-
       - name: List all added files
         run: |
-          for file in ${{ steps.changed-files.outputs.added_files }}; do
-            echo "$file was added"
+          for file in ${{ steps.changed-files.outputs.all_changed_and_modified_files }}; do
+            echo "$file"
           done
 
       - name: Run step when a file changes
