@@ -1,10 +1,6 @@
 name: Block app edits
 
-# see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:  # Trigger the workflow on PR to master
-  pull_request:
-    paths:
-      - src/lightning_app/**
+on: ["pull_request"]
 
 jobs:
   block:
