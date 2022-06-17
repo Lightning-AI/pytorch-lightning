@@ -17,7 +17,7 @@ ARG CUDA_VERSION=11.3.1
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
 
 ARG PYTHON_VERSION=3.9
-ARG PYTORCH_VERSION=1.8
+ARG PYTORCH_VERSION=1.9
 ARG CONDA_VERSION=4.11.0
 
 SHELL ["/bin/bash", "-c"]
@@ -72,41 +72,34 @@ COPY environment.yml environment.yml
 
 # conda init
 RUN conda update -n base -c defaults conda && \
-    conda install mamba -n base -c conda-forge && \
-    mamba create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} torchvision torchtext cudatoolkit=${CUDA_VERSION} -c nvidia -c pytorch -c pytorch-test -c pytorch-nightly && \
+    conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} torchvision torchtext cudatoolkit=${CUDA_VERSION} -c nvidia -c pytorch -c pytorch-test -c pytorch-nightly && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages \
     printf "import re;\nfname = 'environment.yml';\nreq = open(fname).read();\nfor n in ['python', 'pytorch', 'torchtext', 'torchvision']:\n    req = re.sub(rf'- {n}[>=]+', f'# - {n}=', req);\nopen(fname, 'w').write(req)" > prune.py && \
     python prune.py && \
     rm prune.py && \
     cat environment.yml && \
-    mamba env update --name $CONDA_ENV --file environment.yml && \
-    mamba clean -ya && \
+    conda env update --name $CONDA_ENV --file environment.yml && \
+    conda clean -ya && \
     rm environment.yml
 
 ENV \
     PATH=/root/miniconda3/envs/${CONDA_ENV}/bin:$PATH \
     LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH"
 
-COPY ./requirements.txt requirements.txt
-COPY ./requirements/extra.txt requirements-extra.txt
-COPY ./requirements/examples.txt requirements-examples.txt
-COPY ./requirements/strategies.txt requirements-strategies.txt
-COPY ./requirements/adjust-versions.py requirements_adjust_versions.py
+COPY ./requirements/ ./requirements/
 COPY ./.actions/assistant.py assistant.py
 
 RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
-    python requirements_adjust_versions.py requirements-extra.txt && \
-    python -c "print(' '.join([ln for ln in open('requirements-extra.txt').readlines() if 'horovod' in ln]))" > requirements_horovod.txt && \
     pip install -q fire && \
-    python assistant.py requirements_prune_pkgs "horovod" --req_files requirements-extra.txt && \
-    python requirements_adjust_versions.py requirements-examples.txt && \
+    python requirements/adjust-versions.py requirements/extra.txt && \
+    python requirements/adjust-versions.py requirements/examples.txt && \
     # Install remaining requirements
-    pip install -r requirements.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
-    pip install -r requirements-extra.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
-    pip install -r requirements-examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
+    pip install -r requirements/base.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
+    pip install -r requirements/extra.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
+    pip install -r requirements/examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
     rm assistant.py
 
 ENV \
@@ -121,11 +114,9 @@ ENV \
     HOROVOD_WITH_MPI=1
 
 RUN \
-   HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
-   export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
-   cat requirements_horovod.txt && \
-   pip install --no-cache-dir -r requirements-strategies.txt && \
-   rm requirements*
+    HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
+    export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
+    pip install --no-cache-dir -r requirements/strategies.txt
 
 RUN \
     CUDA_VERSION_MAJOR=$(python -c "import torch ; print(torch.version.cuda.split('.')[0])") && \
@@ -149,9 +140,6 @@ RUN \
     python -c "import bagua_core; bagua_core.install_deps()" && \
     python -c "import bagua; print(bagua.__version__)"
 
-COPY requirements/check-avail-extras.py check-avail-extras.py
-COPY requirements/check-avail-strategies.py check-avail-strategies.py
-
 RUN \
     # Show what we have
     pip --version && \
@@ -159,6 +147,6 @@ RUN \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
-    python check-avail-extras.py && \
-    python check-avail-strategies.py && \
-    rm check-avail-*.py
+    python requirements/check-avail-extras.py && \
+    python requirements/check-avail-strategies.py && \
+    rm -rf requirements/

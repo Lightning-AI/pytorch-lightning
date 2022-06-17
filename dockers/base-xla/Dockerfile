@@ -14,12 +14,12 @@
 
 FROM google/cloud-sdk:slim
 
-LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
+LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
 # CALL: docker image build -t pytorch-lightning:XLA-image -f dockers/base-xla/Dockerfile . --build-arg PYTHON_VERSION=3.8
 ARG PYTHON_VERSION=3.9
 ARG CONDA_VERSION=4.9.2
-ARG XLA_VERSION=1.8
+ARG XLA_VERSION=1.11
 
 SHELL ["/bin/bash", "-c"]
 # for skipping configurations
@@ -97,7 +97,7 @@ RUN \
     # drop unnecessary packages
     python ./requirements/adjust-versions.py ./requirements/extra.txt && \
     # install PL dependencies
-    pip install --requirement ./requirements/devel-base.txt --no-cache-dir && \
+    pip install --requirement ./requirements/devel.txt --no-cache-dir && \
     cd .. && \
     rm -rf pytorch-lightning && \
     rm -rf /root/.cache
