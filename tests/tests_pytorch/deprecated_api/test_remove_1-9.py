@@ -15,11 +15,11 @@
 from unittest import mock
 
 import pytest
-from tests.helpers import BoringModel
 
 import pytorch_lightning.loggers.base as logger_base
 from pytorch_lightning import Trainer
 from pytorch_lightning.core.module import LightningModule
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities.cli import (
     _deprecate_auto_registry_message,
     _deprecate_registry_message,
