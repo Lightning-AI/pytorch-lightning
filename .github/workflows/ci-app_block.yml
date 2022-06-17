@@ -19,6 +19,10 @@ jobs:
             echo "$file"
           done
 
-      - name: Run step when a file changes
-        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'lightning_app')
+      - name: Block edits in src/lightning_app
+        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'src/lightning_app')
+        run:  exit 1
+
+      - name: Block edits in docs/source-app
+        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'docs/source-app')
         run:  exit 1
