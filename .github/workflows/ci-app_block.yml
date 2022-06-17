@@ -26,3 +26,7 @@ jobs:
       - name: Block edits in docs/source-app
         if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'docs/source-app')
         run:  exit 1
+
+      - name: Block edits in tests/tests_app
+        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'tests/tests_app')
+        run:  exit 1
