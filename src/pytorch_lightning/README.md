@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/source-pytorch/_static/images/logo.png" width="400px">
+<img src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/logos/pytorch-lightning.png" width="400px">
 
 **The lightweight PyTorch wrapper for high-performance AI research.
 Scale your models, not the boilerplate.**
@@ -44,7 +44,7 @@ ______________________________________________________________________
 ## PyTorch Lightning is just organized PyTorch
 
 Lightning disentangles PyTorch code to decouple the science from the engineering.
-![PT to PL](docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif)
+![PT to PL](../docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif)
 
 ______________________________________________________________________
 
@@ -357,7 +357,7 @@ ______________________________________________________________________
   <img src="docs/source-pytorch/_static/images/lightning_lite/lite.gif" height="200px" width="600px">
 </div>
 
-In the Lightning 1.5 release, LightningLite now enables you to leverage all the capabilities of PyTorch Lightning Accelerators without any refactoring to your training loop. Check out the
+In the PyTorch Lightning 1.5 release, LightningLite now enables you to leverage all the capabilities of PyTorch Lightning Accelerators without any refactoring to your training loop. Check out the
 [blogpost](https://devblog.pytorchlightning.ai/scale-your-pytorch-code-with-lightninglite-d5692a303f00) and
 [docs](https://pytorch-lightning.readthedocs.io/en/stable/starter/lightning_lite.html) for more info.
 
@@ -400,46 +400,19 @@ ______________________________________________________________________
 
 ## Community
 
-The lightning community is maintained by
+The PyTorch Lightning community is maintained by
 
 - [10+ core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
-- 590+ active community contributors.
+- 680+ active community contributors.
 
 Want to help us build Lightning and reduce boilerplate for thousands of researchers? [Learn how to make your first contribution here](https://devblog.pytorchlightning.ai/quick-contribution-guide-86d977171b3a)
 
-Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
+PyTorch Lightning is also part of the [PyTorch ecosystem](https://pytorch.org/ecosystem/) which requires projects to have solid testing, documentation and support.
 
 ### Asking for help
 
 If you have any questions please:
 
 1. [Read the docs](https://pytorch-lightning.rtfd.io/en/latest).
-1. [Search through existing Discussions](https://github.com/PyTorchLightning/pytorch-lightning/discussions), or [add a new question](https://github.com/PyTorchLightning/pytorch-lightning/discussions/new)
-1. [Join our slack](https://www.pytorchlightning.ai/community).
-
-### Funding
-
-[We're venture funded](https://techcrunch.com/2020/10/08/grid-ai-raises-18-6m-series-a-to-help-ai-researchers-and-engineers-bring-their-models-to-production/) to make sure we can provide around the clock support, hire a full-time staff, attend conferences, and move faster through implementing features you request.
-
-______________________________________________________________________
-
-## Grid AI
-
-Grid AI is our platform for training models at scale on the cloud!
-
-**Sign up for our FREE community Tier [here](https://www.grid.ai/pricing/)**
-
-To use grid, take your regular command:
-
-```
-python my_model.py --learning_rate 1e-6 --layers 2 --accelerator 'gpu' --devices 4
-```
-
-And change it to use the grid train command:
-
-```
-grid train --grid_gpus 4 my_model.py --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
-```
-
-The above command will launch (20 * 4) experiments each running on 4 GPUs (320 GPUs!) - by making ZERO changes to
-your code.
+1. [Search through existing Discussions](https://github.com/Lightning-AI/lightning/discussions), or [add a new question](https://github.com/Lightning-AI/lightning/discussions/new)
+1. [Join our Slack community](https://www.pytorchlightning.ai/community).
