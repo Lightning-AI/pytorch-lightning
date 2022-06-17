@@ -7,9 +7,8 @@ on: # Trigger the workflow on push or pull request, but only for the master bran
     branches: [master, "release/*"] # include release branches like release/1.0.x
   pull_request:
     branches: [master, "release/*"]
-    paths-ignore:
-      - "src/lightning_app/**"  # todo: implement job skip
     paths:
+      - "!src/lightning_app/**"  # todo: implement job skip
       - "dockers/**"
       - "!dockers/README.md"
       - "requirements/*"
