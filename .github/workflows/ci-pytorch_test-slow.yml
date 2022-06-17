@@ -6,8 +6,9 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
-    paths:
-      - "!src/lightning_app/**"  # todo: implement job skip
+    types: [opened, reopened, ready_for_review, synchronize]
+    paths-ignore:
+      - "src/lightning_app/**"  # todo: implement job skip
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -16,6 +17,7 @@ concurrency:
 jobs:
   slow:
     runs-on: ${{ matrix.os }}
+    if: github.event.pull_request.draft == false
     strategy:
       fail-fast: false
       matrix:
