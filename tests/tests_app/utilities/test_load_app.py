@@ -2,8 +2,8 @@ import os
 from unittest.mock import ANY
 
 import pytest
-
 import tests_app.core.scripts
+
 from lightning_app import _PROJECT_ROOT, LightningApp
 from lightning_app.utilities.exceptions import MisconfigurationException
 from lightning_app.utilities.load_app import extract_metadata_from_app, load_app_from_file

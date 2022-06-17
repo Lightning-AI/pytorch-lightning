@@ -145,8 +145,8 @@ class AppStageTestingApp(LightningApp):
 @pytest.mark.skipif(True, reason="TODO: Resolve flaky test.")
 @pytest.mark.parametrize("runtime_cls", [SingleProcessRuntime, MultiProcessRuntime])
 def test_app_stage_from_frontend(runtime_cls):
-    """This test validates that delta from the `api_delta_queue` manipulating the ['app_state']['stage'] would start and
-    stop the app."""
+    """This test validates that delta from the `api_delta_queue` manipulating the ['app_state']['stage'] would
+    start and stop the app."""
     app = AppStageTestingApp(FlowA(), debug=True)
     app.stage = AppStage.BLOCKING
     runtime_cls(app, start_server=True).dispatch()

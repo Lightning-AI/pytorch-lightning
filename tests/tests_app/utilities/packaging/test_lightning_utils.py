@@ -1,8 +1,8 @@
 import os
 
 import pytest
-
 from lightning import __about__
+
 from lightning_app.testing.helpers import RunIf
 from lightning_app.utilities.packaging import lightning_utils
 from lightning_app.utilities.packaging.lightning_utils import (

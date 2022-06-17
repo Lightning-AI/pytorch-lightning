@@ -38,8 +38,8 @@ def test_copier_copies_all_files(fs_mock, tmpdir):
 
 
 def test_copier_handles_exception(monkeypatch):
-    """Test that the Copier captures exceptions from the file copy and forwards them through the queue without raising
-    it."""
+    """Test that the Copier captures exceptions from the file copy and forwards them through the queue without
+    raising it."""
     copy_request_queue = MockQueue()
     copy_response_queue = MockQueue()
     fs = mock.Mock()
@@ -88,7 +88,8 @@ def test_copier_existence_check(tmpdir):
 
 
 def test_copy_files(tmpdir):
-    """Test that the `test_copy_files` utility can handle both files and folders when the destination does not exist."""
+    """Test that the `test_copy_files` utility can handle both files and folders when the destination does not
+    exist."""
     # copy from a src that does not exist
     src = pathlib.Path(tmpdir, "dir1")
     dst = pathlib.Path(tmpdir, "dir2")
