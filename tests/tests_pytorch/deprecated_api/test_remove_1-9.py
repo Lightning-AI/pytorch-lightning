@@ -15,6 +15,7 @@
 from unittest import mock
 
 import pytest
+from tests.helpers import BoringModel
 
 import pytorch_lightning.loggers.base as logger_base
 from pytorch_lightning import Trainer
@@ -27,7 +28,6 @@ from pytorch_lightning.utilities.cli import (
     SaveConfigCallback,
 )
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
-from tests.helpers import BoringModel
 
 
 def test_lightning_logger_base_deprecation_warning():
