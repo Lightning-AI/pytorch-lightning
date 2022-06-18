@@ -144,7 +144,7 @@ if __name__ == "__main__":
         download_url="https://github.com/Lightning-AI/lightning",
         license=_ABOUT_MODULE.__license__,
         # todo: temp disable installing apps from source
-        packages=find_packages(where="src", exclude=["lightning_app", "lightning_app.*"]),
+        packages=find_packages(where="src", exclude=["lightning", "lightning_app", "lightning_app.*"]),
         package_dir={"": "src"},
         include_package_data=True,
         long_description=long_description,
