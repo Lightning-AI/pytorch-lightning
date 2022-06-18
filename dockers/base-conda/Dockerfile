@@ -17,7 +17,7 @@ ARG CUDA_VERSION=11.3.1
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
 
 ARG PYTHON_VERSION=3.9
-ARG PYTORCH_VERSION=1.8
+ARG PYTORCH_VERSION=1.9
 ARG CONDA_VERSION=4.11.0
 
 SHELL ["/bin/bash", "-c"]
@@ -72,16 +72,15 @@ COPY environment.yml environment.yml
 
 # conda init
 RUN conda update -n base -c defaults conda && \
-    conda install mamba -n base -c conda-forge && \
-    mamba create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} torchvision torchtext cudatoolkit=${CUDA_VERSION} -c nvidia -c pytorch -c pytorch-test -c pytorch-nightly && \
+    conda create -y --name $CONDA_ENV python=${PYTHON_VERSION} pytorch=${PYTORCH_VERSION} torchvision torchtext cudatoolkit=${CUDA_VERSION} -c nvidia -c pytorch -c pytorch-test -c pytorch-nightly && \
     conda init bash && \
     # NOTE: this requires that the channel is presented in the yaml before packages \
     printf "import re;\nfname = 'environment.yml';\nreq = open(fname).read();\nfor n in ['python', 'pytorch', 'torchtext', 'torchvision']:\n    req = re.sub(rf'- {n}[>=]+', f'# - {n}=', req);\nopen(fname, 'w').write(req)" > prune.py && \
     python prune.py && \
     rm prune.py && \
     cat environment.yml && \
-    mamba env update --name $CONDA_ENV --file environment.yml && \
-    mamba clean -ya && \
+    conda env update --name $CONDA_ENV --file environment.yml && \
+    conda clean -ya && \
     rm environment.yml
 
 ENV \
