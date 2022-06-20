@@ -20,6 +20,7 @@ from functools import partial
 from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Set, Tuple, Type, Union
 
 import torch
+from torch import Tensor
 from torch.utils.data import (
     BatchSampler,
     DataLoader,
