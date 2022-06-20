@@ -13,7 +13,7 @@ env:
 # based on https://github.com/pypa/gh-action-pypi-publish
 jobs:
   pypi-release:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
     runs-on: ubuntu-20.04
 
     steps:
@@ -61,7 +61,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   docker-XLA:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -108,18 +108,16 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   docker-CUDA:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         include:
           # the config used in '.azure-pipelines/gpu-tests.yml'
-          - {python_version: "3.7", pytorch_version: "1.8", cuda_version: "10.2", ubuntu_version: "18.04"}
           - {python_version: "3.7", pytorch_version: "1.10", cuda_version: "11.1", ubuntu_version: "20.04"}
           - {python_version: "3.7", pytorch_version: "1.11", cuda_version: "11.3.1", ubuntu_version: "20.04"}
           # latest (used in Tutorials)
-          - {python_version: "3.8", pytorch_version: "1.8", cuda_version: "11.1", ubuntu_version: "20.04"}
           - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1", ubuntu_version: "20.04"}
           - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.1", ubuntu_version: "20.04"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1", ubuntu_version: "20.04"}
@@ -161,14 +159,13 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   docker-Conda:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         include:
           # see: https://pytorch.org/get-started/previous-versions/
-          - {python_version: "3.8", pytorch_version: "1.8", cuda_version: "11.1"}
           - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1"}
           - {python_version: "3.8", pytorch_version: "1.10", cuda_version: "11.1"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
@@ -212,7 +209,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   docker-IPU:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -271,7 +268,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   docker-HPU:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
