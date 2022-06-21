@@ -67,30 +67,4 @@ pull_request_rules:
     actions:
       request_reviews:
         teams:
-          - "@PyTorchLightning/core-lightning"
-
-  - name: Grid.ai employee approval
-    conditions:
-      - or:
-        - approved-reviews-by=awaelchli
-        - approved-reviews-by=Borda
-        - approved-reviews-by=carmocca
-        - approved-reviews-by=edenlightning
-        - approved-reviews-by=ethanwharris
-        - approved-reviews-by=kaushikb11
-        - approved-reviews-by=krshrimali
-        - approved-reviews-by=rohitgr7
-        - approved-reviews-by=tchaton
-        - approved-reviews-by=williamFalcon
-    actions:
-      post_check:
-        title: |
-          {% if check_succeed %}
-          This PR has Grid.ai approval.
-          {% else %}
-          This PR is waiting for approval from a Grid.ai team member.
-          {% endif %}
-        summary: |
-          {% if not check_succeed %}
-          Each pull request must be approved by at least one Grid.ai team member.
-          {% endif %}
+          - "@Lightning-AI/core-lightning"

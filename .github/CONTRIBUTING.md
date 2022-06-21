@@ -97,13 +97,13 @@ _**Note**, even if you do not find the solution, sending a PR with a test coveri
 
 1. Add/update the relevant tests!
 
-- [This PR](https://github.com/PyTorchLightning/pytorch-lightning/pull/2671) is a good example for adding a new metric, and [this one for a new logger](https://github.com/PyTorchLightning/pytorch-lightning/pull/2721).
+- [This PR](https://github.com/Lightning-AI/lightning/pull/2671) is a good example for adding a new metric, and [this one for a new logger](https://github.com/Lightning-AI/lightning/pull/2721).
 
 ### Test cases:
 
 Want to keep Lightning healthy? Love seeing those green tests? So do we! How to we keep it that way? We write tests! We value tests contribution even more than new features.
 
-Most of the tests in PyTorch Lightning train a random `BoringModel` under various trainer conditions (ddp, ddp2+amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-12iz3cds1-uyyyBYJLiaL2bqVmMN7n~A)
+Most of the tests in PyTorch Lightning train a random `BoringModel` under various trainer conditions (ddp, ddp2+amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://www.pytorchlightning.ai/community)
 
 ______________________________________________________________________
 
@@ -130,11 +130,11 @@ In case you adding new dependencies, make sure that they are compatible with the
 
 ### Documentation
 
-To learn about development of docs, check out the docs [README.md](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/docs/README.md).
+To learn about development of docs, check out the docs [README.md](https://github.com/Lightning-AI/lightning/blob/master/docs/README.md).
 
 ### Testing
 
-To learn about tests, check out the tests [README.md](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/tests/README.md).
+To learn about tests, check out the tests [README.md](https://github.com/Lightning-AI/lightning/blob/master/tests/README.md).
 
 ### Pull Request
 
@@ -163,6 +163,11 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 
 1. If your PR is not ready for reviews, but you want to run it on our CI, open a "Draft PR" to let us know you don't need feedback yet.
 
+1. If any of the existing tests fail in your PR on our CI, refer to the following READMEs to identify what's failing and try to address it.
+
+   - [Test README](https://github.com/Lightning-AI/lightning/blob/master/tests/README.md)
+   - [CI/CD README](https://github.com/Lightning-AI/lightning/blob/master/.github/workflows/README.md)
+
 1. When you feel ready for integrating your work, mark your PR "Ready for review".
 
    - Your code should be readable and follow the project's design principles.
@@ -184,7 +189,7 @@ We welcome any useful contribution! For your convenience here's a recommended wo
 #### How can I help/contribute?
 
 All types of contributions are welcome - reporting bugs, fixing documentation, adding test cases, solving issues, and preparing bug fixes.
-To get started with code contributions, look for issues marked with the label [good first issue](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or chose something close to your domain with the label [help wanted](https://github.com/PyTorchLightning/pytorch-lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22). Before coding, make sure that the issue description is clear and comment on the issue so that we can assign it to you (or simply self-assign if you can).
+To get started with code contributions, look for issues marked with the label [good first issue](https://github.com/Lightning-AI/lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) or chose something close to your domain with the label [help wanted](https://github.com/Lightning-AI/lightning/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22). Before coding, make sure that the issue description is clear and comment on the issue so that we can assign it to you (or simply self-assign if you can).
 
 #### Is there a recommendation for branch names?
 
@@ -235,11 +240,11 @@ Here is the process to create a new test
 - 3. Use **BoringModel and derivates to test out your code**.
 
 ```python
-# TEST SHOULD BE IN YOUR FILE: tests/..../...py
+# TEST SHOULD BE IN YOUR FILE: tests/.../test_file.py
 # TEST CODE TEMPLATE
 
 # [OPTIONAL] pytest decorator
-# @pytest.mark.skipif(not torch.cuda.is_available(), reason="test requires GPU machine")
+# @RunIf(min_cuda_gpus=1)
 def test_explain_what_is_being_tested(tmpdir):
     """
     Test description about text reason to be
@@ -264,7 +269,7 @@ def test_explain_what_is_being_tested(tmpdir):
 run our/your test with
 
 ```bash
-python -m pytest tests/..../...py::test_explain_what_is_being_tested -v --capture=no
+python -m pytest tests/.../test_file.py::test_explain_what_is_being_tested -v --capture=no
 ```
 
 #### How to fix PR with mixed base and target branches?
@@ -284,7 +289,7 @@ and the last true master commit is `ccc111` and your first commit is `mmm222`.
   ```bash
   git checkout my-branch
   # create a local backup of your branch
-  git checkout -b my-branch-backup
+  git branch my-branch-backup
   # reset your branch to the correct base
   git reset release/1.2-dev --hard
   # ACTION: this step is much easier to do with IDE

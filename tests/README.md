@@ -1,6 +1,6 @@
 # PyTorch-Lightning Tests
 
-Most of the tests in PyTorch Lightning train a [BoringModel](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/tests/helpers/boring_model.py) under various trainer conditions (ddp, ddp2+amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-12iz3cds1-uyyyBYJLiaL2bqVmMN7n~A)
+Most of the tests in PyTorch Lightning train a [BoringModel](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/tests/helpers/boring_model.py) under various trainer conditions (ddp, ddp2+amp, etc...). Want to add a new test case and not sure how? [Talk to us!](https://www.pytorchlightning.ai/community)
 
 ## Running tests
 
@@ -22,8 +22,7 @@ pre-commit install
 Additionally, for testing backward compatibility with older versions of PyTorch Lightning, you also need to download all saved version-checkpoints from the public AWS storage. Run the following script to get all saved version-checkpoints:
 
 ```bash
-wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/
-unzip -o legacy/checkpoints.zip -d legacy/
+bash .actions/pull_legacy_checkpoints.sh
 ```
 
 Note: These checkpoints are generated to set baselines for maintaining backward compatibility with legacy versions of PyTorch Lightning. Details of checkpoints for back-compatibility can be found [here](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/legacy/README.md).
@@ -42,13 +41,13 @@ This is useful if you do not test against all required dependency versions.
 **Docker:** Another option is to utilize the [pytorch lightning cuda base docker image](https://hub.docker.com/repository/docker/pytorchlightning/pytorch_lightning/tags?page=1&name=cuda). You can then run:
 
 ```bash
-python -m pytest pytorch_lightning tests pl_examples -v
+python -m pytest src/pytorch_lightning tests/tests_pytorch -v
 ```
 
 You can also run a single test as follows:
 
 ```bash
-python -m pytest -v tests/trainer/test_trainer_cli.py::test_default_args
+python -m pytest -v tests/tests_pytorch/trainer/test_trainer_cli.py::test_default_args
 ```
 
 ### Conditional Tests
@@ -65,9 +64,9 @@ You can rely on our CI to make sure all these tests pass.
 There are certain standalone tests, which you can run using:
 
 ```bash
-PL_RUN_STANDALONE_TESTS=1 python -m pytest -v tests/trainer/
+PL_RUN_STANDALONE_TESTS=1 python -m pytest -v tests/tests_pytorch/trainer/
 # or
-./tests/standalone_tests.sh tests/trainer
+./tests/run_standalone_tests.sh tests/tests_pytorch/trainer/
 ```
 
 ## Running Coverage
@@ -77,8 +76,8 @@ Make sure to run coverage on a GPU machine with at least 2 GPUs and NVIDIA apex 
 ```bash
 cd pytorch-lightning
 
-# generate coverage (coverage is also installed as part of dev dependencies under requirements/devel.txt)
-coverage run --source pytorch_lightning -m pytest pytorch_lightning tests pl_examples -v
+# generate coverage (coverage is also installed as part of dev dependencies under requirements/pytorch/devel.txt)
+coverage run --source pytorch_lightning -m pytest src/pytorch_lightning tests/tests_pytorch pl_examples -v
 
 # print coverage stats
 coverage report -m
