@@ -1119,10 +1119,10 @@ def test_invalid_gradient_clip_algo(tmpdir):
 @RunIf(min_cuda_gpus=1)
 def test_gpu_choice():
     num_gpus = torch.cuda.device_count()
-    Trainer(accelerator="gpu", devices=num_gpus, auto_select_gpus=True)
+    Trainer(accelerator="gpu", devices=num_gpus)
 
-    with pytest.raises(MisconfigurationException, match=r".*but your machine only has.*"):
-        Trainer(accelerator="gpu", devices=num_gpus + 1, auto_select_gpus=True)
+    with pytest.raises(ValueError, match=r".*but your machine only has.*"):
+        Trainer(accelerator="gpu", devices=(num_gpus + 1))
 
 
 @pytest.mark.parametrize("limit_val_batches", [0.0, 1, 1.0, 0.5, 5])
