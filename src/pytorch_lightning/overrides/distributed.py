@@ -134,7 +134,6 @@ class _DatasetFromSampler(Dataset):
                 " method in your sampler which returns a finite number, remove it from DataLoader"
                 " or set `replace_sampler_ddp=False` if you want to handle distributed sampling yourself."
             )
-            raise TypeError("The given sampler must be bounded.")
         self._sampler = sampler
         self._sampler_list: Optional[List[Any]] = None
 
