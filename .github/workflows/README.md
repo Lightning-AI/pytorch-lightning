@@ -23,12 +23,11 @@
 
 ## Documentation
 
-| workflow file                      | action                                                                                       |
-| ---------------------------------- | -------------------------------------------------------------------------------------------- |
-| .github/workflows/ci_test-base.yml | Validate code examples in docstrings in the package with pytest’s doctest.                   |
-| .github/workflows/docs-checks.yml  | Run doctest, build documentation, and upload built docs to make them available as artifacts. |
-| .circleci/config.yml (build-docs)  | Build docs and host them on output.circleci-artifacts.com for easy access to the built docs. |
-| .github/workflows/docs-link.yml    | Provide a direct link to built docs on output.circleci-artifacts.com.                        |
+| workflow file                     | action                                                                                       |
+| --------------------------------- | -------------------------------------------------------------------------------------------- |
+| .github/workflows/docs-checks.yml | Run doctest, build documentation, and upload built docs to make them available as artifacts. |
+| .circleci/config.yml (build-docs) | Build docs and host them on output.circleci-artifacts.com for easy access to the built docs. |
+| .github/workflows/docs-link.yml   | Provide a direct link to built docs on output.circleci-artifacts.com.                        |
 
 ## Code Quality
 

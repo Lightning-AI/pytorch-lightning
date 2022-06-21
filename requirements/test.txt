@@ -1,11 +1,12 @@
 coverage>=6.4
 codecov>=2.1
 pytest>=6.0
+pytest-cov
+pytest-forked
 pytest-rerunfailures>=10.2
 mypy>=0.920
 flake8>=3.9.2
 pre-commit>=1.0
-pytest-forked
 
 # needed in tests
 cloudpickle>=1.3

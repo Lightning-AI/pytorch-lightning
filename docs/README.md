@@ -43,10 +43,8 @@ Run these commands
 
 ```bash
 git submodule update --init --recursive
-pip install -r requirements/docs.txt
-make clean
-cd docs
-make html
+pip install -e . -r requirements/docs.txt
+make docs
 ```
 
 and open `docs/build/html/index.html` in your browser.
@@ -75,5 +73,5 @@ export PL_FAST_DOCS_DEV=1
 
 ## docs CSS/theme
 
-To change the CSS theme of the docs, go [here](https://github.com/PyTorchLightning/lightning_sphinx_theme).
+To change the CSS theme of the docs, go [here](https://github.com/Lightning-AI/lightning_sphinx_theme).
 Apologies in advance... this is a bit complex to build and requires basic understanding of javascript/npm.

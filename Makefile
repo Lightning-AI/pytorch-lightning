@@ -14,22 +14,28 @@ clean:
 	rm -rf .mypy_cache
 	rm -rf .pytest_cache
 	rm -rf ./docs/build
-	rm -rf ./docs/source/notebooks
-	rm -rf ./docs/source/generated
-	rm -rf ./docs/source/*/generated
-	rm -rf ./docs/source/api
+	rm -rf ./docs/source-pytorch/notebooks
+	rm -rf ./docs/source-pytorch/generated
+	rm -rf ./docs/source-pytorch/*/generated
+	rm -rf ./docs/source-pytorch/api
+	rm -rf ./docs/source-app/generated
+	rm -rf ./docs/source-app/*/generated
+	rm -rf build
+	rm -rf dist
+	rm -rf *.egg-info
+	rm -rf src/*.egg-info
 
 test: clean
 	# Review the CONTRIBUTING documentation for other ways to test.
-	pip install -r requirements/devel.txt
+	pip install -e . -r requirements/devel.txt
 	pip install -r requirements/strategies.txt
 	# run tests with coverage
-	python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests pl_examples -v
+	python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v
 	python -m coverage report
 
 docs: clean
-	pip install --quiet -r requirements/docs.txt
-	python -m sphinx -b html -W --keep-going docs/source docs/build
+	pip install -e . --quiet -r requirements/docs.txt
+	python -m sphinx -b html -W --keep-going docs/source-pytorch docs/build
 
 update:
 	git submodule update --init --recursive --remote

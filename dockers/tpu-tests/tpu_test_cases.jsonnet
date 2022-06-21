@@ -23,7 +23,7 @@ local tputests = base.BaseTest {
       source ~/.bashrc
       conda activate lightning
       mkdir -p /home/runner/work/pytorch-lightning && cd /home/runner/work/pytorch-lightning
-      git clone https://github.com/PyTorchLightning/pytorch-lightning.git
+      git clone https://github.com/Lightning-AI/lightning.git
       cd pytorch-lightning
       echo $PWD
       git ls-remote --refs origin
@@ -32,13 +32,13 @@ local tputests = base.BaseTest {
       pip install -e .
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
       export XRT_TPU_CONFIG="tpu_worker;0;${KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS:7}"
+      cd tests/tests_pytorch
       # TODO (@kaushikb11): Add device stats tests here
       coverage run --source=pytorch_lightning -m pytest -v --capture=no \
-          tests/strategies/test_tpu_spawn.py \
-          tests/profiler/test_xla_profiler.py \
-          pytorch_lightning/utilities/xla_device.py \
-          tests/accelerators/test_tpu.py \
-          tests/models/test_tpu.py
+          strategies/test_tpu_spawn.py \
+          profiler/test_xla_profiler.py \
+          accelerators/test_tpu.py \
+          models/test_tpu.py
       test_exit_code=$?
       echo "\n||| END PYTEST LOGS |||\n"
       coverage xml

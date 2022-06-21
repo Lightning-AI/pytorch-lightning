@@ -2,16 +2,25 @@ approvals:
   # check will fail if there is no approval
   minimum: 1
   groups:
-    - name: GridAI
-      minimum: 1
+    - name: 'PyTorch Lightning'
+      minimum: 0
       from:
         - awaelchli
         - Borda
         - carmocca
-        - edenlightning
         - ethanwharris
         - kaushikb11
         - krshrimali
+        - otaj
         - rohitgr7
         - tchaton
         - williamFalcon
+    - name: 'Lightning Apps'
+      minimum: 0
+        - alecmerdler
+        - awaelchli
+        - hhsecond
+        - lantiga
+        - manskx
+        - nohalon
+        - tchaton
