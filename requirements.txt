@@ -1,2 +1,2 @@
 # the default package dependencies
--r ./requirements/base.txt
+-r ./requirements/pytorch/base.txt
