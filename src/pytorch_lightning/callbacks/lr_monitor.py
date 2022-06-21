@@ -262,7 +262,8 @@ class LearningRateMonitor(Callback):
         return {n for n in names if names.count(n) > 1}
 
     def _find_names_from_schedulers(
-        self, lr_scheduler_configs: List[LRSchedulerConfig],
+        self,
+        lr_scheduler_configs: List[LRSchedulerConfig],
     ) -> Tuple[List[List[str]], List[Optimizer], DefaultDict[Type[Optimizer], int]]:
         # Create unique names in the case we have multiple of the same learning
         # rate scheduler + multiple parameter groups
@@ -300,7 +301,8 @@ class LearningRateMonitor(Callback):
 
             name = "lr-" + optimizer.__class__.__name__
             updated_names = self._check_duplicates_and_update_name(
-                optimizer, name, seen_optimizers, seen_optimizer_types, None)
+                optimizer, name, seen_optimizers, seen_optimizer_types, None
+            )
             names.append(updated_names)
             optimizers_without_scheduler.append(optimizer)
 
@@ -334,4 +336,3 @@ class LearningRateMonitor(Callback):
         name_list = [self._add_suffix(name, param_groups, i) for i in range(len(param_groups))]
 
         return name_list
-

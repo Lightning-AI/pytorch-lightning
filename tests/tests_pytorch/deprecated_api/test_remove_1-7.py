@@ -123,6 +123,7 @@ def test_v1_7_0_deprecated_max_steps_none(tmpdir):
     with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
         trainer.fit_loop.max_steps = None
 
+
 @pytest.mark.parametrize(
     "cls",
     [
