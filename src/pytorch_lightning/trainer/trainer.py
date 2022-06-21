@@ -222,7 +222,7 @@ class Trainer(
                 at a time can access them. Default: ``False``.
 
                 .. deprecated:: v1.7
-                    ``auto_select_gpus`` has been deprecated in v1.7 and will be removed in v2.9.
+                    ``auto_select_gpus`` has been deprecated in v1.7 and will be removed in v1.9.
                     The selection among usable GPUs is now done by default when setting ``devices`` to an int.
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
@@ -421,7 +421,7 @@ class Trainer(
         super().__init__()
         if auto_select_gpus is not None:
             rank_zero_deprecation(
-                "The Trainer argument `auto_select_gpus` has been deprecated in v1.7 and will be removed in v2.9."
+                "The Trainer argument `auto_select_gpus` has been deprecated in v1.7 and will be removed in v1.9."
                 " The selection among usable GPUs is now done by default when setting `devices` to an int."
             )
         Trainer._log_api_event("init")

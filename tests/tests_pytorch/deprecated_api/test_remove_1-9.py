@@ -142,7 +142,7 @@ def test_deprecated_dataloader_reset():
         trainer.reset_train_val_dataloaders()
 
 
-def test_lightningCLI_registries_register():
+def test_lightning_cli_registries_register():
     with pytest.deprecated_call(match=_deprecate_registry_message):
 
         @CALLBACK_REGISTRY
@@ -150,7 +150,14 @@ def test_lightningCLI_registries_register():
             pass
 
 
-def test_lightningCLI_registries_register_automatically():
+def test_lightning_cli_registries_register_automatically():
     with pytest.deprecated_call(match=_deprecate_auto_registry_message):
         with mock.patch("sys.argv", ["any.py"]):
             LightningCLI(BoringModel, run=False, auto_registry=True)
+
+
+def test_auto_select_gpus():
+    with pytest.deprecated_call(
+        match="The Trainer argument `auto_select_gpus` has been deprecated in v1.7 and will be removed in v1.9"
+    ):
+        Trainer(auto_select_gpus=False)
