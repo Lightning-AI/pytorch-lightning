@@ -217,11 +217,13 @@ class Trainer(
                 a power search or `binsearch` that estimates the batch size through a binary search.
                 Default: ``False``.
 
-            auto_select_gpus: If enabled and ``gpus`` or ``devices`` is an integer, pick available
-                gpus automatically. This is especially useful when
-                GPUs are configured to be in "exclusive mode", such
-                that only one process at a time can access them.
-                Default: ``False``.
+            auto_select_gpus: If enabled and ``gpus`` or ``devices`` is an integer, pick available gpus automatically.
+                This is especially useful when GPUs are configured to be in "exclusive mode", such that only one process
+                at a time can access them. Default: ``False``.
+
+                .. deprecated:: v1.7
+                    ``auto_select_gpus`` has been deprecated in v1.7 and will be removed in v2.9.
+                    The selection among usable GPUs is now done by default.
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
@@ -437,7 +439,6 @@ class Trainer(
             benchmark=benchmark,
             replace_sampler_ddp=replace_sampler_ddp,
             deterministic=deterministic,
-            auto_select_gpus=auto_select_gpus,
             precision=precision,
             amp_type=amp_backend,
             amp_level=amp_level,
