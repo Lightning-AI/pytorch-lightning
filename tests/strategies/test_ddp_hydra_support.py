@@ -5,9 +5,9 @@ import sys
 from pathlib import Path
 
 import pytest
+from tests.helpers.runif import RunIf
 
 from pytorch_lightning.utilities.imports import _HYDRA_AVAILABLE
-from tests.helpers.runif import RunIf
 
 if _HYDRA_AVAILABLE:
     from omegaconf import OmegaConf
