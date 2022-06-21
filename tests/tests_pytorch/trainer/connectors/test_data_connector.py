@@ -18,6 +18,7 @@ from typing import Sized
 from unittest.mock import Mock
 
 import pytest
+from torch import Tensor
 from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, Sampler, SequentialSampler
 
 from pytorch_lightning import Trainer
@@ -280,9 +281,15 @@ def test_dataloader_reinit_for_subclass():
         def __len__(self):
             return len(self.data_source)
 
+        def __iter__(self):
+            return iter(range(len(self)))
+
     # Should raise an error if existing sampler is being replaced
     dataloader = CustomDataLoader(dataset, sampler=CustomSampler(dataset))
-    result = trainer._data_connector._prepare_dataloader(dataloader, shuffle=True)
+    result = trainer._data_connector._prepare_dataloader(dataloader)
+    result_dataset = list(iter(result))
+    assert len(result_dataset) == 5
+    assert result_dataset == [Tensor([x]) for x in [0, 2, 4, 6, 8]]
     assert isinstance(result.sampler, DistributedSamplerWrapper)
     assert isinstance(result.sampler.dataset._sampler, CustomSampler)
 

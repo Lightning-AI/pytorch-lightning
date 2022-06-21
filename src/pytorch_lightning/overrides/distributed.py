@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
-from operator import itemgetter
-from typing import Any, cast, Iterable, Iterator, List, Optional, Sized, Tuple, Union
+from typing import Any, cast, Iterable, Iterator, List, Optional, Sized, Union
 
 import torch
 from torch import Tensor
@@ -156,16 +155,9 @@ class _DatasetFromSampler(Dataset):
         """
         return len(self._sampler)
 
-
-def _subsample_dataset(dataset: Dataset, iterator_: Iterator) -> Iterator:
-    indexes_of_indexes = list(iterator_)
-    num_indices = len(indexes_of_indexes)
-    indices: Tuple = ()
-    if num_indices:
-        indices = itemgetter(*indexes_of_indexes)(dataset)
-        if num_indices == 1:
-            indices = (indices,)  # avoid splitting
-    return iter(indices)
+    def reset(self) -> None:
+        """Reset the sampler list in order to get new sampling."""
+        self._sampler_list = list(self._sampler)
 
 
 class DistributedSamplerWrapper(DistributedSampler):
@@ -186,8 +178,8 @@ class DistributedSamplerWrapper(DistributedSampler):
         self.sampler = sampler
 
     def __iter__(self) -> Iterator:
-        self.dataset = _DatasetFromSampler(self.sampler)
-        return _subsample_dataset(self.dataset, super().__iter__())
+        self.dataset.reset()
+        return iter(self.dataset[index] for index in super().__iter__())
 
 
 class UnrepeatedDistributedSamplerWrapper(UnrepeatedDistributedSampler):
@@ -198,8 +190,8 @@ class UnrepeatedDistributedSamplerWrapper(UnrepeatedDistributedSampler):
         self.sampler = sampler
 
     def __iter__(self) -> Iterator:
-        self.dataset = _DatasetFromSampler(self.sampler)
-        return _subsample_dataset(self.dataset, super().__iter__())
+        self.dataset.reset()
+        return iter(self.dataset[index] for index in super().__iter__())
 
 
 class IndexBatchSamplerWrapper:
