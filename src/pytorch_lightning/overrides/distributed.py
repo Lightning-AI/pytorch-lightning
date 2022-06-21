@@ -105,14 +105,8 @@ class UnrepeatedDistributedSampler(DistributedSampler):
         return iter(indices)
 
 
-class _DatasetFromSampler(Dataset):
-    """Dataset to create indexes from `Sampler`.
-
-    Adapted from https://github.com/catalyst-team/catalyst/blob/v22.04/catalyst/data/dataset.py#L6
-
-    Args:
-        sampler: The sampler.
-    """
+class _SamplerWrapperDataset(Dataset):
+    """Dataset to create indexes from `Sampler` or `Iterable`"""
 
     def __init__(self, sampler: Union[Sampler, Iterable]) -> None:
         if not isinstance(sampler, Sized):
@@ -137,22 +131,11 @@ class _DatasetFromSampler(Dataset):
         self._sampler_list: Optional[List[Any]] = None
 
     def __getitem__(self, index: int) -> Any:
-        """Gets element of the dataset.
-
-        Args:
-            index: index of the element in the dataset
-        Returns:
-            Single element by index
-        """
         if self._sampler_list is None:
             self._sampler_list = list(self._sampler)
         return self._sampler_list[index]
 
     def __len__(self) -> int:
-        """
-        Returns:
-            int: length of the dataset
-        """
         return len(self._sampler)
 
     def reset(self) -> None:
@@ -161,20 +144,14 @@ class _DatasetFromSampler(Dataset):
 
 
 class DistributedSamplerWrapper(DistributedSampler):
-    """Wrapper over ``Sampler`` for distributed training. Allows you to use any sampler in distributed mode.
+    """Wrapper over ``Sampler`` for distributed training.
 
-    It is especially useful in conjunction with :class:`torch.nn.parallel.DistributedDataParallel`.
-    In such case, each process can pass a ``DistributedSamplerWrapper`` instance as a ``DataLoader``
-    sampler, and load a subset of subsampled data of the original dataset that is exclusive to it.
-
-    .. note::
-        Sampler is assumed to be of constant size.
-
-    Adapted from https://github.com/catalyst-team/catalyst/blob/v22.04/catalyst/data/sampler.py#L499
+    Allows you to use any sampler in distributed mode. It will be automatically used by PyTorch Lightning in distributed
+    mode if `replace_sampler_ddp=True`
     """
 
     def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:
-        super().__init__(_DatasetFromSampler(sampler), *args, **kwargs)
+        super().__init__(_SamplerWrapperDataset(sampler), *args, **kwargs)
 
     def __iter__(self) -> Iterator:
         self.dataset.reset()
@@ -185,7 +162,7 @@ class UnrepeatedDistributedSamplerWrapper(UnrepeatedDistributedSampler):
     """Equivalent class to ``DistributedSamplerWrapper`` but for the ``UnrepeatedDistributedSampler``."""
 
     def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:
-        super().__init__(_DatasetFromSampler(sampler), *args, **kwargs)
+        super().__init__(_SamplerWrapperDataset(sampler), *args, **kwargs)
 
     def __iter__(self) -> Iterator:
         self.dataset.reset()
