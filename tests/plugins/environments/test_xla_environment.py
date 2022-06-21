@@ -15,10 +15,10 @@ import os
 from unittest import mock
 
 import pytest
+from tests.helpers.runif import RunIf
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments import XLAEnvironment
-from tests.helpers.runif import RunIf
 
 
 @RunIf(tpu=True)
