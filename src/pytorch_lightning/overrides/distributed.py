@@ -105,7 +105,7 @@ class UnrepeatedDistributedSampler(DistributedSampler):
         return iter(indices)
 
 
-class _SamplerWrapperDataset(Dataset):
+class _DatasetSamplerWrapper(Dataset):
     """Dataset to create indexes from `Sampler` or `Iterable`"""
 
     def __init__(self, sampler: Union[Sampler, Iterable]) -> None:
