@@ -357,6 +357,8 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.accelerator.setup(trainer)
+        # we set the device so that optimizers can be created with distributed comms.
+        self.lightning_module._device = self.root_device
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
         optimizers_to_device(self.optimizers, self.root_device)
