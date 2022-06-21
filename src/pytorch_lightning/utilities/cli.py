@@ -608,7 +608,10 @@ class LightningCLI:
     def _instantiate_trainer(self, config: Dict[str, Any], callbacks: List[Callback]) -> Trainer:
         key = "callbacks"
         if key in config:
-            config[key] = config[key] or []
+            if config[key] is None:
+                config[key] = []
+            elif not isinstance(config[key], list):
+                config[key] = [config[key]]
             config[key].extend(callbacks)
             if key in self.trainer_defaults:
                 if isinstance(self.trainer_defaults[key], list):
