@@ -175,7 +175,6 @@ class DistributedSamplerWrapper(DistributedSampler):
 
     def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:
         super().__init__(_DatasetFromSampler(sampler), *args, **kwargs)
-        self.sampler = sampler
 
     def __iter__(self) -> Iterator:
         self.dataset.reset()
@@ -187,11 +186,10 @@ class UnrepeatedDistributedSamplerWrapper(UnrepeatedDistributedSampler):
 
     def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:
         super().__init__(_DatasetFromSampler(sampler), *args, **kwargs)
-        self.sampler = sampler
 
     def __iter__(self) -> Iterator:
         self.dataset.reset()
-        return iter(self.dataset[index] for index in super().__iter__())
+        return (self.dataset[index] for index in super().__iter__())
 
 
 class IndexBatchSamplerWrapper:
