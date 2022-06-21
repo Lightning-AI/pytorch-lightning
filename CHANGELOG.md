@@ -5,6 +5,246 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
+## [1.7.0] - 2022-MM-DD
+
+### Added
+
+- Added a flag named `log_rank_zero_only` to `EarlyStopping` to disable logging to non-zero rank processes ([#13233](https://github.com/PyTorchLightning/pytorch-lightning/pull/13233))
+
+
+- Added support for reloading the last checkpoint saved by passing `ckpt_path="last"` ([#12816](https://github.com/PyTorchLightning/pytorch-lightning/pull/12816))
+
+
+- Added `LightningDataModule.load_from_checkpoint` to support loading datamodules directly from checkpoint ([#12550](https://github.com/PyTorchLightning/pytorch-lightning/pull/12550))
+
+
+- Added a friendly error message when attempting to call `Trainer.save_checkpoint()` without a model attached ([#12772](https://github.com/PyTorchLightning/pytorch-lightning/pull/12772))
+
+
+- Added a friendly error message when attempting to use `DeepSpeedStrategy` on unsupported accelerators ([#12699](https://github.com/PyTorchLightning/pytorch-lightning/pull/12699))
+
+
+- Enabled `torch.inference_mode` for evaluation and prediction ([#12715](https://github.com/PyTorchLightning/pytorch-lightning/pull/12715))
+
+
+- Added support for setting `val_check_interval` to a value higher than the amount of training batches when `check_val_every_n_epoch=None` ([#11993](https://github.com/PyTorchLightning/pytorch-lightning/pull/11993))
+
+
+- Include the `pytorch_lightning` version as a header in the CLI config files ([#12532](https://github.com/PyTorchLightning/pytorch-lightning/pull/12532))
+
+
+- Added support for `Callback` registration through entry points ([#12739](https://github.com/PyTorchLightning/pytorch-lightning/pull/12739))
+
+
+- Added support for `Trainer(deterministic="warn")` to warn instead of fail when a non-deterministic operation is encountered ([#12588](https://github.com/PyTorchLightning/pytorch-lightning/pull/12588))
+
+
+- Added profiling to the loops' dataloader `__next__` calls ([#12124](https://github.com/PyTorchLightning/pytorch-lightning/pull/12124))
+
+
+- Added `CollaborativeStrategy` ([#12842](https://github.com/PyTorchLightning/pytorch-lightning/pull/12842))
+
+
+- Include a version suffix for new "last" checkpoints of later runs in the same directory ([#12902](https://github.com/PyTorchLightning/pytorch-lightning/pull/12902))
+
+
+- Added missing `predict_dataset` argument in `LightningDataModule.from_datasets` to create predict dataloaders ([#12942](https://github.com/PyTorchLightning/pytorch-lightning/pull/12942))
+
+
+- Added class name prefix to metrics logged by `DeviceStatsMonitor` ([#12228](https://github.com/PyTorchLightning/pytorch-lightning/pull/12228))
+
+
+- Added profiling of `LightningDataModule` hooks ([#12971](https://github.com/PyTorchLightning/pytorch-lightning/pull/12971))
+
+
+- Added Native FSDP Strategy ([#12447](https://github.com/PyTorchLightning/pytorch-lightning/pull/12447))
+
+
+- Added breaking of lazy graph across training, validation, test and predict steps when training with habana accelerators to ensure better performance ([#12938](https://github.com/PyTorchLightning/pytorch-lightning/pull/12938))
+
+
+- Added CPU metric tracking to `DeviceStatsMonitor` ([#11795](https://github.com/PyTorchLightning/pytorch-lightning/pull/11795))
+
+
+- Added `teardown()` method to `Accelerator` ([#11935](https://github.com/PyTorchLightning/pytorch-lightning/pull/11935))
+-
+
+
+- Added a `timeout` argument to `DDPStrategy`. ([#13244](https://github.com/PyTorchLightning/pytorch-lightning/pull/13244))
+-
+
+
+### Changed
+
+- Enable validation during overfitting ([#12527](https://github.com/PyTorchLightning/pytorch-lightning/pull/12527))
+
+
+- Added dataclass support to `extract_batch_size` ([#12573](https://github.com/PyTorchLightning/pytorch-lightning/pull/12573))
+
+
+- Changed checkpoints save path in the case of one logger and user-provided weights_save_path from `weights_save_path/name/version/checkpoints` to `weights_save_path/checkpoints` ([#12372](https://github.com/PyTorchLightning/pytorch-lightning/pull/12372))
+
+
+- Changed checkpoints save path in the case of multiple loggers and user-provided weights_save_path from `weights_save_path/name1_name2/version1_version2/checkpoints` to `weights_save_path/checkpoints` ([#12372](https://github.com/PyTorchLightning/pytorch-lightning/pull/12372))
+
+
+- Marked `swa_lrs` argument in `StochasticWeightAveraging` callback as required ([#12556](https://github.com/PyTorchLightning/pytorch-lightning/pull/12556))
+
+
+- `LightningCLI`'s shorthand notation changed to use jsonargparse native feature ([#12614](https://github.com/PyTorchLightning/pytorch-lightning/pull/12614))
+
+
+- `LightningCLI` changed to use jsonargparse native support for list append ([#13129](https://github.com/PyTorchLightning/pytorch-lightning/pull/13129))
+
+
+- Changed `seed_everything_default` argument in the `LightningCLI` to type `Union[bool, int]`. If set to `True` a seed is automatically generated for the parser argument `--seed_everything`. ([#12822](https://github.com/PyTorchLightning/pytorch-lightning/pull/12822), [#13110](https://github.com/PyTorchLightning/pytorch-lightning/pull/13110))
+
+
+- Make positional arguments required for classes passed into the `add_argparse_args` function. ([#12504](https://github.com/PyTorchLightning/pytorch-lightning/pull/12504))
+
+
+- Raise an error if there are insufficient training batches when using a float value of `limit_train_batches` ([#12885](https://github.com/PyTorchLightning/pytorch-lightning/pull/12885))
+
+
+- The `WandbLogger` will now use the run name in the logs folder if it is provided, and otherwise the project name  ([#12604](https://github.com/PyTorchLightning/pytorch-lightning/pull/12604))
+
+
+
+### Deprecated
+
+- Deprecated `pytorch_lightning.loggers.base.LightningLoggerBase` in favor of `pytorch_lightning.loggers.logger.Logger`, and deprecated `pytorch_lightning.loggers.base` in favor of `pytorch_lightning.loggers.logger` ([#120148](https://github.com/PyTorchLightning/pytorch-lightning/pull/12014))
+
+
+- Deprecated `pytorch_lightning.callbacks.base.Callback` in favor of `pytorch_lightning.callbacks.callback.Callback` ([#13031](https://github.com/PyTorchLightning/pytorch-lightning/pull/13031))
+
+
+- Deprecated `num_processes`, `gpus`, `tpu_cores,` and `ipus` from the `Trainer` constructor in favor of using the `accelerator` and `devices` arguments ([#11040](https://github.com/PyTorchLightning/pytorch-lightning/pull/11040))
+
+
+- Deprecated setting `LightningCLI(seed_everything_default=None)` in favor of `False` ([#12804](https://github.com/PyTorchLightning/pytorch-lightning/issues/12804)).
+
+
+- Deprecated `pytorch_lightning.core.lightning.LightningModule` in favor of `pytorch_lightning.core.module.LightningModule` ([#12740](https://github.com/PyTorchLightning/pytorch-lightning/pull/12740))
+
+
+- Deprecated `pytorch_lightning.loops.base.Loop` in favor of `pytorch_lightning.loops.loop.Loop` ([#13043](https://github.com/PyTorchLightning/pytorch-lightning/pull/13043))
+
+
+- Deprecated `Trainer.reset_train_val_dataloaders()` in favor of `Trainer.reset_{train,val}_dataloader` ([#12184](https://github.com/PyTorchLightning/pytorch-lightning/pull/12184))
+
+
+- Deprecated LightningCLI's registries in favor of importing the respective package ([#13221](https://github.com/PyTorchLightning/pytorch-lightning/pull/13221))
+
+
+### Removed
+
+- Removed the deprecated `Logger.close` method ([#13149](https://github.com/PyTorchLightning/pytorch-lightning/pull/13149))
+
+
+- Removed the deprecated `weights_summary` argument from the `Trainer` constructor ([#13070](https://github.com/PyTorchLightning/pytorch-lightning/pull/13070))
+
+
+- Removed the deprecated `flush_logs_every_n_steps` argument from the `Trainer` constructor ([#13074](https://github.com/PyTorchLightning/pytorch-lightning/pull/13074))
+
+
+- Removed the deprecated `process_position` argument from the `Trainer` constructor ([13071](https://github.com/PyTorchLightning/pytorch-lightning/pull/13071))
+
+
+- Removed the deprecated `checkpoint_callback` argument from the `Trainer` constructor ([#13027](https://github.com/PyTorchLightning/pytorch-lightning/pull/13027))
+
+
+- Removed the deprecated `on_{train,val,test,predict}_dataloader` hooks from the `LightningModule` and `LightningDataModule` ([#13033](https://github.com/PyTorchLightning/pytorch-lightning/pull/13033))
+
+
+- Removed the deprecated `TestTubeLogger` ([#12859](https://github.com/PyTorchLightning/pytorch-lightning/pull/12859))
+
+
+- Removed the deprecated `pytorch_lightning.core.memory.LayerSummary` and `pytorch_lightning.core.memory.ModelSummary` ([#12593](https://github.com/PyTorchLightning/pytorch-lightning/pull/12593))
+
+
+- Removed the deprecated `summarize` method from the `LightningModule` ([#12559](https://github.com/PyTorchLightning/pytorch-lightning/pull/12559))
+
+
+- Removed the deprecated `model_size` property from the `LightningModule` class ([#12641](https://github.com/PyTorchLightning/pytorch-lightning/pull/12641))
+
+
+- Removed the deprecated `stochastic_weight_avg` argument from the `Trainer` constructor ([#12535](https://github.com/PyTorchLightning/pytorch-lightning/pull/12535))
+
+
+- Removed the deprecated `progress_bar_refresh_rate` argument from the `Trainer` constructor ([#12514](https://github.com/PyTorchLightning/pytorch-lightning/pull/12514))
+
+
+- Removed the deprecated `prepare_data_per_node` argument from the `Trainer` constructor ([#12536](https://github.com/PyTorchLightning/pytorch-lightning/pull/12536))
+
+
+- Removed the deprecated `pytorch_lightning.core.memory.{get_gpu_memory_map,get_memory_profile}` ([#12659](https://github.com/PyTorchLightning/pytorch-lightning/pull/12659))
+
+
+- Removed the deprecated `terminate_on_nan` argument from the `Trainer` constructor ([#12553](https://github.com/PyTorchLightning/pytorch-lightning/pull/12553))
+
+
+- Removed the deprecated `XLAStatsMonitor` callback ([#12688](https://github.com/PyTorchLightning/pytorch-lightning/pull/12688))
+
+
+- Remove deprecated `pytorch_lightning.callbacks.progress.progress` ([#12658](https://github.com/PyTorchLightning/pytorch-lightning/pull/12658))
+
+
+- Removed the deprecated `dim` and `size` arguments from the `LightningDataModule` constructor([#12780](https://github.com/PyTorchLightning/pytorch-lightning/pull/12780))
+
+
+- Removed the deprecated `train_transforms` argument from the `LightningDataModule` constructor([#12662](https://github.com/PyTorchLightning/pytorch-lightning/pull/12662))
+
+
+- Removed the deprecated `log_gpu_memory` argument from the `Trainer` constructor ([#12657](https://github.com/PyTorchLightning/pytorch-lightning/pull/12657))
+
+
+- Removed the deprecated automatic logging of GPU stats by the logger connector ([#12657](https://github.com/PyTorchLightning/pytorch-lightning/pull/12657))
+
+
+- Removed deprecated `GPUStatsMonitor` callback ([#12554](https://github.com/PyTorchLightning/pytorch-lightning/pull/12554))
+
+
+- Removed support for passing strategy names or strategy instances to the accelerator Trainer argument ([#12696](https://github.com/PyTorchLightning/pytorch-lightning/pull/12696))
+
+
+- Removed support for passing strategy names or strategy instances to the plugins Trainer argument ([#12700](https://github.com/PyTorchLightning/pytorch-lightning/pull/12700))
+
+
+- Removed the deprecated `val_transforms` argument from the `LightningDataModule` constructor ([#12763](https://github.com/PyTorchLightning/pytorch-lightning/pull/12763))
+
+
+- Removed the deprecated `test_transforms` argument from the `LightningDataModule` constructor ([#12773](https://github.com/PyTorchLightning/pytorch-lightning/pull/12773))
+
+
+- Removed deprecated `dataloader_idx` argument from `on_train_batch_start/end` hooks `Callback` and `LightningModule` ([#12769](https://github.com/PyTorchLightning/pytorch-lightning/pull/12769), [#12977](https://github.com/PyTorchLightning/pytorch-lightning/pull/12977))
+
+
+- Removed deprecated `get_progress_bar_dict` property from `LightningModule` ([#12839](https://github.com/PyTorchLightning/pytorch-lightning/pull/12839))
+
+- Removed sanity check for multi-optimizer support with habana backends ([#13217](https://github.com/PyTorchLightning/pytorch-lightning/pull/13217))
+
+
+- Removed the need to explicitly load habana module ([#13338](https://github.com/PyTorchLightning/pytorch-lightning/pull/13338))
+
+
+### Fixed
+
+- Fixed an issue with unsupported torch.inference_mode() on hpu backends by making it use no_grad ([#13014](https://github.com/PyTorchLightning/pytorch-lightning/pull/13014))
+
+
+- The model wrapper returned by `LightningLite.setup()` now properly supports pass-through when looking up attributes ([#12597](https://github.com/PyTorchLightning/pytorch-lightning/pull/12597))
+
+
+- Fixed issue where the CLI fails with certain torch objects ([#13153](https://github.com/PyTorchLightning/pytorch-lightning/pull/13153))
+
+
+## [1.6.5] - 2022-07-05
+
+### Fixed
+
+- Fixed `estimated_stepping_batches` requiring distributed comms in `configure_optimizers` for the `DeepSpeedStrategy` ([#13350](https://github.com/PyTorchLightning/pytorch-lightning/pull/13350))
+
+
 ## [1.6.4] - 2022-06-01
 
 ### Added
