@@ -357,6 +357,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.accelerator.setup(trainer)
+        self.model_to_device()
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
         optimizers_to_device(self.optimizers, self.root_device)
