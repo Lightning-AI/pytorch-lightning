@@ -141,7 +141,7 @@ class Trainer(
         num_processes: Optional[int] = None,  # TODO: Remove in 2.0
         devices: Optional[Union[List[int], str, int]] = None,
         gpus: Optional[Union[List[int], str, int]] = None,  # TODO: Remove in 2.0
-        auto_select_gpus: bool = False,
+        auto_select_gpus: Optional[bool] = None,
         tpu_cores: Optional[Union[List[int], str, int]] = None,  # TODO: Remove in 2.0
         ipus: Optional[int] = None,  # TODO: Remove in 2.0
         enable_progress_bar: bool = True,
@@ -223,7 +223,7 @@ class Trainer(
 
                 .. deprecated:: v1.7
                     ``auto_select_gpus`` has been deprecated in v1.7 and will be removed in v2.9.
-                    The selection among usable GPUs is now done by default.
+                    The selection among usable GPUs is now done by default when setting ``devices`` to an int.
 
             benchmark: The value (``True`` or ``False``) to set ``torch.backends.cudnn.benchmark`` to.
                 The value for ``torch.backends.cudnn.benchmark`` set in the current session will be used
@@ -419,6 +419,11 @@ class Trainer(
                 Default: ``"max_size_cycle"``.
         """
         super().__init__()
+        if auto_select_gpus is not None:
+            rank_zero_deprecation(
+                "The Trainer argument `auto_select_gpus` has been deprecated in v1.7 and will be removed in v2.9."
+                " The selection among usable GPUs is now done by default when setting `devices` to an int."
+            )
         Trainer._log_api_event("init")
         log.detail(f"{self.__class__.__name__}: Initializing trainer with parameters: {locals()}")
         self.state = TrainerState()

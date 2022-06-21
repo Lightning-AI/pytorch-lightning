@@ -363,7 +363,7 @@ auto_select_gpus
 ^^^^^^^^^^^^^^^^
 
 .. warning:: ``auto_select_gpus`` has been deprecated in v1.7 and will be removed in v1.9.
-    The selection among usable GPUs is now done by default.
+    The selection among usable GPUs is now done by default when setting ``devices`` to an int.
 
 .. raw:: html
 
