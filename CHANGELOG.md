@@ -228,6 +228,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed the deprecated `pytorch_lightning.callbacks.lr_monitor.LearningRateMonitor.lr_sch_names` ([#13353](https://github.com/Lightning-AI/lightning/pull/13353))
 
+- Removed the deprecated `remove-pytorch_lightning.callbacks.lr_monitor.LearningRateMonitor.add_lr_sch_names` ([#13353](https://github.com/Lightning-AI/lightning/pull/13353))
+
+
 ### Fixed
 
 - Fixed an issue with unsupported torch.inference_mode() on hpu backends by making it use no_grad ([#13014](https://github.com/PyTorchLightning/pytorch-lightning/pull/13014))
