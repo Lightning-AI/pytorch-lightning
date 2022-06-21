@@ -67,6 +67,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Added `teardown()` method to `Accelerator` ([#11935](https://github.com/PyTorchLightning/pytorch-lightning/pull/11935))
+-
+
+
+- Added a `timeout` argument to `DDPStrategy`. ([#13244](https://github.com/PyTorchLightning/pytorch-lightning/pull/13244))
+-
+
 
 ### Changed
 
@@ -98,6 +104,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Raise an error if there are insufficient training batches when using a float value of `limit_train_batches` ([#12885](https://github.com/PyTorchLightning/pytorch-lightning/pull/12885))
+
+
+
 
 ### Deprecated
 
