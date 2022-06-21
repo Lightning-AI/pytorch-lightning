@@ -362,6 +362,9 @@ before any training.
 auto_select_gpus
 ^^^^^^^^^^^^^^^^
 
+.. warning:: ``auto_select_gpus`` has been deprecated in v1.7 and will be removed in v1.9.
+    The selection among usable GPUs is now done by default.
+
 .. raw:: html
 
     <video width="50%" max-width="400px" controls

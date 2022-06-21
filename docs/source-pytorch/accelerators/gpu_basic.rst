@@ -90,8 +90,7 @@ The table below lists examples of possible input formats and how they are interp
 
 .. note::
 
-    When specifying number of ``devices`` as an integer ``devices=k``, setting the trainer flag
-    ``auto_select_gpus=True`` will automatically help you find ``k`` GPUs that are not
-    occupied by other processes. This is especially useful when GPUs are configured
-    to be in "exclusive mode", such that only one process at a time can access them.
-    For more details see the :doc:`trainer guide <../common/trainer>`.
+    If a GPU is set to "exclusive" mode (a flag that can be set in the driver), the Trainer might fail when attempting
+    to move the model to that device if another process is already occupying it.
+    When specifying the number of ``devices`` as an integer ``devices=k``, the Trainer will avoid picking exclusive GPUs
+    that have already running processes. For more details see the :doc:`trainer guide <../common/trainer>`.
