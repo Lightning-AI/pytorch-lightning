@@ -21,7 +21,6 @@ import pytest
 import torch
 
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.plugins.environments import (
