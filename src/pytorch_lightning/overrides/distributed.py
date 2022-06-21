@@ -179,7 +179,7 @@ class DistributedSamplerWrapper(DistributedSampler):
 
     def __iter__(self) -> Iterator:
         self.dataset.reset()
-        return iter(self.dataset[index] for index in super().__iter__())
+        return (self.dataset[index] for index in super().__iter__())
 
 
 class UnrepeatedDistributedSamplerWrapper(UnrepeatedDistributedSampler):

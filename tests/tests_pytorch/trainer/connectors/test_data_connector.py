@@ -287,7 +287,7 @@ def test_dataloader_reinit_for_subclass():
     # Should raise an error if existing sampler is being replaced
     dataloader = CustomDataLoader(dataset, sampler=CustomSampler(dataset))
     result = trainer._data_connector._prepare_dataloader(dataloader)
-    result_dataset = list(iter(result))
+    result_dataset = list(result)
     assert len(result_dataset) == 5
     assert result_dataset == [Tensor([x]) for x in [0, 2, 4, 6, 8]]
     assert isinstance(result.sampler, DistributedSamplerWrapper)
