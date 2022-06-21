@@ -51,8 +51,23 @@ else:
     locals()["Namespace"] = object
 
 
-class _Registry(dict):
-    def __call__(self, cls: Type, key: Optional[str] = None, override: bool = False) -> Type:
+_deprecate_registry_message = (
+    "`LightningCLI`'s registries were deprecated in v1.7 and will be removed "
+    "in v1.9. Now any imported subclass is automatically available by name in "
+    "`LightningCLI` without any need to explicitly register it."
+)
+
+_deprecate_auto_registry_message = (
+    "`LightningCLI.auto_registry` parameter was deprecated in v1.7 and will be removed "
+    "in v1.9. Now any imported subclass is automatically available by name in "
+    "`LightningCLI` without any need to explicitly register it."
+)
+
+
+class _Registry(dict):  # Remove in v1.9
+    def __call__(
+        self, cls: Type, key: Optional[str] = None, override: bool = False, show_deprecation: bool = True
+    ) -> Type:
         """Registers a class mapped to a name.
 
         Args:
@@ -67,12 +82,16 @@ class _Registry(dict):
 
         if key not in self or override:
             self[key] = cls
+
+        self._deprecation(show_deprecation)
         return cls
 
-    def register_classes(self, module: ModuleType, base_cls: Type, override: bool = False) -> None:
+    def register_classes(
+        self, module: ModuleType, base_cls: Type, override: bool = False, show_deprecation: bool = True
+    ) -> None:
         """This function is an utility to register all classes from a module."""
         for cls in self.get_members(module, base_cls):
-            self(cls=cls, override=override)
+            self(cls=cls, override=override, show_deprecation=show_deprecation)
 
     @staticmethod
     def get_members(module: ModuleType, base_cls: Type) -> Generator[Type, None, None]:
@@ -85,15 +104,22 @@ class _Registry(dict):
     @property
     def names(self) -> List[str]:
         """Returns the registered names."""
+        self._deprecation()
         return list(self.keys())
 
     @property
     def classes(self) -> Tuple[Type, ...]:
         """Returns the registered classes."""
+        self._deprecation()
         return tuple(self.values())
 
     def __str__(self) -> str:
         return f"Registered objects: {self.names}"
+
+    def _deprecation(self, show_deprecation: bool = True) -> None:
+        if show_deprecation and not getattr(self, "deprecation_shown", False):
+            rank_zero_deprecation(_deprecate_registry_message)
+            self.deprecation_shown = True
 
 
 OPTIMIZER_REGISTRY = _Registry()
@@ -116,29 +142,32 @@ LRSchedulerTypeUnion = Union[torch.optim.lr_scheduler._LRScheduler, ReduceLROnPl
 LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[ReduceLROnPlateau]]
 
 
-def _populate_registries(subclasses: bool) -> None:
+def _populate_registries(subclasses: bool) -> None:  # Remove in v1.9
     if subclasses:
+        rank_zero_deprecation(_deprecate_auto_registry_message)
         # this will register any subclasses from all loaded modules including userland
         for cls in get_all_subclasses(torch.optim.Optimizer):
-            OPTIMIZER_REGISTRY(cls)
+            OPTIMIZER_REGISTRY(cls, show_deprecation=False)
         for cls in get_all_subclasses(torch.optim.lr_scheduler._LRScheduler):
-            LR_SCHEDULER_REGISTRY(cls)
+            LR_SCHEDULER_REGISTRY(cls, show_deprecation=False)
         for cls in get_all_subclasses(pl.Callback):
-            CALLBACK_REGISTRY(cls)
+            CALLBACK_REGISTRY(cls, show_deprecation=False)
         for cls in get_all_subclasses(pl.LightningModule):
-            MODEL_REGISTRY(cls)
+            MODEL_REGISTRY(cls, show_deprecation=False)
         for cls in get_all_subclasses(pl.LightningDataModule):
-            DATAMODULE_REGISTRY(cls)
+            DATAMODULE_REGISTRY(cls, show_deprecation=False)
         for cls in get_all_subclasses(pl.loggers.Logger):
-            LOGGER_REGISTRY(cls)
+            LOGGER_REGISTRY(cls, show_deprecation=False)
     else:
         # manually register torch's subclasses and our subclasses
-        OPTIMIZER_REGISTRY.register_classes(torch.optim, Optimizer)
-        LR_SCHEDULER_REGISTRY.register_classes(torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler)
-        CALLBACK_REGISTRY.register_classes(pl.callbacks, pl.Callback)
-        LOGGER_REGISTRY.register_classes(pl.loggers, pl.loggers.Logger)
+        OPTIMIZER_REGISTRY.register_classes(torch.optim, Optimizer, show_deprecation=False)
+        LR_SCHEDULER_REGISTRY.register_classes(
+            torch.optim.lr_scheduler, torch.optim.lr_scheduler._LRScheduler, show_deprecation=False
+        )
+        CALLBACK_REGISTRY.register_classes(pl.callbacks, pl.Callback, show_deprecation=False)
+        LOGGER_REGISTRY.register_classes(pl.loggers, pl.loggers.Logger, show_deprecation=False)
     # `ReduceLROnPlateau` does not subclass `_LRScheduler`
-    LR_SCHEDULER_REGISTRY(cls=ReduceLROnPlateau)
+    LR_SCHEDULER_REGISTRY(cls=ReduceLROnPlateau, show_deprecation=False)
 
 
 class LightningArgumentParser(ArgumentParser):
@@ -211,14 +240,14 @@ class LightningArgumentParser(ArgumentParser):
 
     def add_optimizer_args(
         self,
-        optimizer_class: Union[Type[Optimizer], Tuple[Type[Optimizer], ...]],
+        optimizer_class: Union[Type[Optimizer], Tuple[Type[Optimizer], ...]] = (Optimizer,),
         nested_key: str = "optimizer",
         link_to: str = "AUTOMATIC",
     ) -> None:
         """Adds arguments from an optimizer class to a nested key of the parser.
 
         Args:
-            optimizer_class: Any subclass of :class:`torch.optim.Optimizer`.
+            optimizer_class: Any subclass of :class:`torch.optim.Optimizer`. Use tuple to allow subclasses.
             nested_key: Name of the nested namespace to store arguments.
             link_to: Dot notation of a parser key to set arguments or AUTOMATIC.
         """
@@ -235,14 +264,15 @@ class LightningArgumentParser(ArgumentParser):
 
     def add_lr_scheduler_args(
         self,
-        lr_scheduler_class: Union[LRSchedulerType, Tuple[LRSchedulerType, ...]],
+        lr_scheduler_class: Union[LRSchedulerType, Tuple[LRSchedulerType, ...]] = LRSchedulerTypeTuple,
         nested_key: str = "lr_scheduler",
         link_to: str = "AUTOMATIC",
     ) -> None:
         """Adds arguments from a learning rate scheduler class to a nested key of the parser.
 
         Args:
-            lr_scheduler_class: Any subclass of ``torch.optim.lr_scheduler.{_LRScheduler, ReduceLROnPlateau}``.
+            lr_scheduler_class: Any subclass of ``torch.optim.lr_scheduler.{_LRScheduler, ReduceLROnPlateau}``. Use
+                tuple to allow subclasses.
             nested_key: Name of the nested namespace to store arguments.
             link_to: Dot notation of a parser key to set arguments or AUTOMATIC.
         """

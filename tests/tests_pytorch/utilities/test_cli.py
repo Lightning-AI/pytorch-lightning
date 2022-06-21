@@ -34,22 +34,15 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.loggers import Logger, TensorBoardLogger
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.cli import (
-    _populate_registries,
-    CALLBACK_REGISTRY,
-    DATAMODULE_REGISTRY,
     instantiate_class,
     LightningArgumentParser,
     LightningCLI,
-    LOGGER_REGISTRY,
-    LR_SCHEDULER_REGISTRY,
     LRSchedulerTypeTuple,
-    MODEL_REGISTRY,
-    OPTIMIZER_REGISTRY,
     SaveConfigCallback,
 )
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -914,72 +907,6 @@ def test_lightning_cli_run():
     assert isinstance(cli.model, LightningModule)
 
 
-@pytest.fixture(autouse=True)
-def clear_registries():
-    # since the registries are global, it's good to clear them after each test to avoid unwanted interactions
-    yield
-    OPTIMIZER_REGISTRY.clear()
-    LR_SCHEDULER_REGISTRY.clear()
-    CALLBACK_REGISTRY.clear()
-    MODEL_REGISTRY.clear()
-    DATAMODULE_REGISTRY.clear()
-    LOGGER_REGISTRY.clear()
-
-
-def test_registries():
-    # the registries are global so this is only necessary when this test is run standalone
-    _populate_registries(False)
-
-    @OPTIMIZER_REGISTRY
-    class CustomAdam(torch.optim.Adam):
-        pass
-
-    @LR_SCHEDULER_REGISTRY
-    class CustomCosineAnnealingLR(torch.optim.lr_scheduler.CosineAnnealingLR):
-        pass
-
-    @CALLBACK_REGISTRY
-    class CustomCallback(Callback):
-        pass
-
-    @LOGGER_REGISTRY
-    class CustomLogger(Logger):
-        pass
-
-    assert "SGD" in OPTIMIZER_REGISTRY.names
-    assert "RMSprop" in OPTIMIZER_REGISTRY.names
-    assert "CustomAdam" in OPTIMIZER_REGISTRY.names
-
-    assert "CosineAnnealingLR" in LR_SCHEDULER_REGISTRY.names
-    assert "CosineAnnealingWarmRestarts" in LR_SCHEDULER_REGISTRY.names
-    assert "CustomCosineAnnealingLR" in LR_SCHEDULER_REGISTRY.names
-    assert "ReduceLROnPlateau" in LR_SCHEDULER_REGISTRY.names
-
-    assert "EarlyStopping" in CALLBACK_REGISTRY.names
-    assert "CustomCallback" in CALLBACK_REGISTRY.names
-
-    class Foo:
-        ...
-
-    OPTIMIZER_REGISTRY(Foo, key="SGD")  # not overridden by default
-    assert OPTIMIZER_REGISTRY["SGD"] is torch.optim.SGD
-    OPTIMIZER_REGISTRY(Foo, key="SGD", override=True)
-    assert OPTIMIZER_REGISTRY["SGD"] is Foo
-
-    # test `_Registry.__call__` returns the class
-    assert isinstance(CustomCallback(), CustomCallback)
-
-    assert "WandbLogger" in LOGGER_REGISTRY
-    assert "CustomLogger" in LOGGER_REGISTRY
-
-
-def test_registries_register_automatically():
-    assert "SaveConfigCallback" not in CALLBACK_REGISTRY
-    with mock.patch("sys.argv", ["any.py"]):
-        LightningCLI(BoringModel, run=False, auto_registry=True)
-    assert "SaveConfigCallback" in CALLBACK_REGISTRY
-
-
 class TestModel(BoringModel):
     def __init__(self, foo, bar=5):
         super().__init__()
@@ -1137,11 +1064,11 @@ def test_optimizers_and_lr_schedulers_add_arguments_to_parser_implemented_reload
             super().__init__(*args, run=False)
 
         def add_arguments_to_parser(self, parser):
-            parser.add_optimizer_args(OPTIMIZER_REGISTRY.classes, nested_key="opt1", link_to="model.opt1_config")
+            parser.add_optimizer_args(nested_key="opt1", link_to="model.opt1_config")
             parser.add_optimizer_args(
                 (torch.optim.ASGD, torch.optim.SGD), nested_key="opt2", link_to="model.opt2_config"
             )
-            parser.add_lr_scheduler_args(LR_SCHEDULER_REGISTRY.classes, link_to="model.sch_config")
+            parser.add_lr_scheduler_args(link_to="model.sch_config")
             parser.add_argument("--something", type=str, nargs="+")
 
     class TestModel(BoringModel):

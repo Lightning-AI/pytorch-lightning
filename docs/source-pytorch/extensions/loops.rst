@@ -371,7 +371,7 @@ Available Loops in Lightning Flash
 
 `Active Learning <https://en.wikipedia.org/wiki/Active_learning_(machine_learning)>`__ is a machine learning practice in which the user interacts with the learner in order to provide new labels when required.
 
-You can find a real use case in `Lightning Flash <https://github.com/PyTorchLightning/lightning-flash>`_.
+You can find a real use case in `Lightning Flash <https://github.com/Lightning-AI/lightning-flash>`_.
 
 Flash implements the :code:`ActiveLearningLoop` that you can use together with the :code:`ActiveLearningDataModule` to label new data on the fly.
 To run the following demo, install Flash and `BaaL <https://github.com/ElementAI/baal>`__  first:
@@ -426,7 +426,7 @@ To run the following demo, install Flash and `BaaL <https://github.com/ElementAI
     # 5. Save the model!
     trainer.save_checkpoint("image_classification_model.pt")
 
-Here is the `Active Learning Loop example <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash_examples/integrations/baal/image_classification_active_learning.py>`_ and the `code for the active learning loop <https://github.com/PyTorchLightning/lightning-flash/blob/master/flash/image/classification/integrations/baal/loop.py>`_.
+Here is the `Active Learning Loop example <https://github.com/Lightning-AI/lightning-flash/blob/master/flash_examples/integrations/baal/image_classification_active_learning.py>`_ and the `code for the active learning loop <https://github.com/Lightning-AI/lightning-flash/blob/master/flash/image/classification/integrations/baal/loop.py>`_.
 
 
 ----------
@@ -441,12 +441,12 @@ Advanced Examples
 
    * - Link to Example
      - Description
-   * - `K-fold Cross Validation <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/examples/pl_loops/kfold.py>`_
+   * - `K-fold Cross Validation <https://github.com/Lightning-AI/lightning/blob/master/examples/pl_loops/kfold.py>`_
      - `KFold / Cross Validation <https://en.wikipedia.org/wiki/Cross-validation_(statistics)>`__ is a machine learning practice in which the training dataset is being partitioned into ``num_folds`` complementary subsets.
        One cross validation round will perform fitting where one fold is left out for validation and the other folds are used for training.
        To reduce variability, once all rounds are performed using the different folds, the trained models are ensembled and their predictions are
        averaged when estimating the model's predictive performance on the test dataset.
-   * - `Yielding Training Step <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/examples/pl_loops/yielding_training_step.py>`_
+   * - `Yielding Training Step <https://github.com/Lightning-AI/lightning/blob/master/examples/pl_loops/yielding_training_step.py>`_
      - This loop enables you to write the :meth:`~pytorch_lightning.core.module.LightningModule.training_step` hook
        as a Python Generator for automatic optimization with multiple optimizers, i.e., you can :code:`yield` loss
        values from it instead of returning them. This can enable more elegant and expressive implementations, as shown
