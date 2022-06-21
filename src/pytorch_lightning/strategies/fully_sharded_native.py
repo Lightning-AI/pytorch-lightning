@@ -32,7 +32,7 @@ from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.distributed import (
     _get_process_group_backend_from_env,
     distributed_available,
-    get_default_process_group_backend_for_device,
+    get_default_process_group_backend_for_device, rank_zero_info,
 )
 from pytorch_lightning.utilities.distributed import group as _group
 from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
@@ -276,7 +276,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         return [self.root_device.index]
 
     def teardown(self) -> None:
-        log.info(f"{self.__class__.__name__}: tearing down strategy...")
+        rank_zero_info(f"{self.__class__.__name__}: tearing down strategy...")
         if (
             self.lightning_module is not None
             and self.lightning_module.trainer is not None
