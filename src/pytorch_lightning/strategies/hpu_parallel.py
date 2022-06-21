@@ -33,7 +33,6 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 if _HPU_AVAILABLE:
     import habana_frameworks.torch.core as htcore
     import habana_frameworks.torch.core.hccl  # noqa: F401
-    from habana_frameworks.torch.utils.library_loader import load_habana_module
 
 log = logging.getLogger(__name__)
 
@@ -76,9 +75,6 @@ class HPUParallelStrategy(DDPStrategy):
         )
 
     def setup_environment(self) -> None:
-        # This function is used to load Habana libraries required for PyTorch
-        # to register HPU as one of the available devices.
-        load_habana_module()
 
         os.environ["ID"] = str(self.local_rank)
         if self._process_group_backend == "hccl":
