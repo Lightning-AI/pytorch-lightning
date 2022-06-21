@@ -14,12 +14,12 @@
 
 FROM google/cloud-sdk:slim
 
-LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
+LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
 # CALL: docker image build -t pytorch-lightning:XLA-image -f dockers/base-xla/Dockerfile . --build-arg PYTHON_VERSION=3.8
 ARG PYTHON_VERSION=3.9
 ARG CONDA_VERSION=4.9.2
-ARG XLA_VERSION=1.8
+ARG XLA_VERSION=1.11
 
 SHELL ["/bin/bash", "-c"]
 # for skipping configurations
@@ -91,14 +91,13 @@ COPY ./ ./pytorch-lightning/
 RUN \
     python --version && \
     cd pytorch-lightning && \
+    pip install -q fire && \
     # drop packages installed with XLA
-    python .github/prune-packages.py requirements.txt "torch" && \
-    python .github/prune-packages.py requirements/examples.txt "torchvision" && \
+    python .actions/assistant.py requirements_prune_pkgs torch,torchvision && \
     # drop unnecessary packages
-    python .github/prune-packages.py requirements/extra.txt "fairscale" "horovod" && \
-    python ./requirements/adjust_versions.py ./requirements/extra.txt && \
+    python ./requirements/pytorch/adjust-versions.py ./requirements/pytorch/extra.txt && \
     # install PL dependencies
-    pip install --requirement ./requirements/devel.txt --no-cache-dir && \
+    pip install --requirement ./requirements/pytorch/devel.txt --no-cache-dir && \
     cd .. && \
     rm -rf pytorch-lightning && \
     rm -rf /root/.cache
