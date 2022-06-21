@@ -25,7 +25,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/base.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
 
@@ -36,5 +36,6 @@ jobs:
         pip install '.[dev]'
         pip list
 
-    - name: Type check
-      run: mypy --install-types --non-interactive
+    - name: Type check PyTorch
+      working-directory: src/pytorch_lightning
+      run: mypy . --install-types --non-interactive --config-file ../../pyproject.toml
