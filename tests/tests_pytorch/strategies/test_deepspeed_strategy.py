@@ -1341,15 +1341,13 @@ def test_error_with_invalid_accelerator(tmpdir):
 
 @RunIf(min_cuda_gpus=2, deepspeed=True, standalone=True)
 def test_deepspeed_configure_optimizer_device_set(tmpdir):
-    """
-    Test to ensure that the LM has access to the device within the ``configure_optimizer`` function,
-    and estimated_stepping_batches works correctly as a result.
-    """
+    """Test to ensure that the LM has access to the device within the ``configure_optimizer`` function, and
+    estimated_stepping_batches works correctly as a result."""
 
     class TestModel(BoringModel):
         def configure_optimizers(self):
             assert self.trainer.estimated_stepping_batches == 1
-            assert self.device.type == 'cuda'
+            assert self.device.type == "cuda"
             raise SystemExit
 
     model = TestModel()
