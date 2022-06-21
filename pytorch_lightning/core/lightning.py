@@ -46,7 +46,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.utilities.memory import get_model_size_mb
 from pytorch_lightning.utilities.model_summary import ModelSummary, summarize
 from pytorch_lightning.utilities.parsing import collect_init_args
@@ -2064,7 +2064,10 @@ class LightningModule(
             rank_zero_debug("Could not register sharded tensor state dict hooks")
             return
 
-        from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook
+        if _TORCH_GREATER_EQUAL_1_11:
+            from torch.distributed._shard.sharded_tensor import pre_load_state_dict_hook, state_dict_hook
+        else:
+            from torch.distributed._sharded_tensor import pre_load_state_dict_hook, state_dict_hook
 
         self._register_state_dict_hook(state_dict_hook)
 
