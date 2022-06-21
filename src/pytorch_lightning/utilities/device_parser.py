@@ -49,20 +49,6 @@ def determine_root_gpu_device(gpus: List[_DEVICE]) -> Optional[_DEVICE]:
     return root_gpu
 
 
-def _parse_devices(
-    gpus: Optional[Union[List[int], str, int]],
-    auto_select_gpus: bool,
-    tpu_cores: Optional[Union[List[int], str, int]],
-) -> Tuple[Optional[List[int]], Optional[Union[List[int], int]]]:
-    if auto_select_gpus and isinstance(gpus, int):
-        gpus = pick_multiple_gpus(gpus)
-
-    # TODO (@seannaren, @kaushikb11): Include IPU parsing logic here
-    gpu_ids = parse_gpu_ids(gpus)
-    tpu_cores = parse_tpu_cores(tpu_cores)
-    return gpu_ids, tpu_cores
-
-
 def parse_gpu_ids(gpus: Optional[Union[int, str, List[int]]]) -> Optional[List[int]]:
     """
     Parses the GPU ids given in the format as accepted by the
