@@ -1,0 +1,96 @@
+{
+  "name": "pytorch-lightning-app",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@emotion/react": "^11.7.1",
+    "@emotion/styled": "^11.6.0",
+    "@fullstory/browser": "^1.5.1",
+    "@mui/icons-material": "^5.6.2",
+    "@mui/lab": "^5.0.0-alpha.64",
+    "@mui/material": "^5.2.7",
+    "@reduxjs/toolkit": "^1.8.0",
+    "@stripe/stripe-js": "^1.29.0",
+    "axios": "^0.25.0",
+    "boring-avatars": "^1.6.3",
+    "filter-material-ui": "2.7.0",
+    "fontfaceobserver": "^2.1.0",
+    "lightning-ui": "git+ssh://git@github.com/gridai/lightning-ui.git#35f4124cc8a16a313174fe63ec82cb74af388c6b",
+    "lodash": "^4.17.21",
+    "notistack": "^2.0.4",
+    "query-string": "^7.1.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-github-btn": "^1.2.1",
+    "react-hook-form": "^7.27.1",
+    "react-query": "^3.34.7",
+    "react-router-dom": "^6.2.1",
+    "react-scripts": "5.0.0",
+    "react-spring": "^9.4.4",
+    "react-table": "^7.7.0",
+    "rxjs": "^7.5.2",
+    "typescript": "^4.4.2",
+    "use-debounce": "^7.0.1",
+    "web-vitals": "^2.1.0",
+    "xterm": "^4.18.0",
+    "xterm-addon-fit": "^0.5.0",
+    "xterm-addon-search": "^0.8.2"
+  },
+  "scripts": {
+    "start": "craco start",
+    "build": "craco build",
+    "lint": "eslint --cache --max-warnings=0 . && prettier -c .",
+    "lint:fix": "eslint --cache --max-warnings=0 . --fix && prettier -w .",
+    "eject": "react-scripts eject"
+  },
+  "lint-staged": {
+    "**/*": "prettier --write --ignore-unknown"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app"
+    ],
+    "ignorePatterns": [
+      "node_modules/**",
+      "build/**"
+    ],
+    "rules": {
+      "react/jsx-sort-props": [
+        "off",
+        {
+          "callbacksLast": true,
+          "ignoreCase": true,
+          "noSortAlphabetically": false,
+          "reservedFirst": true,
+          "shorthandFirst": true
+        }
+      ],
+      "react/jsx-pascal-case": "warn"
+    }
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@craco/craco": "^6.4.3",
+    "@trivago/prettier-plugin-sort-imports": "^3.1.1",
+    "@types/fontfaceobserver": "^2.1.0",
+    "@types/lodash": "^4.14.182",
+    "@types/node": "^16.7.13",
+    "@types/react": "^17.0.20",
+    "@types/react-dom": "^17.0.9",
+    "@types/react-table": "^7.7.9",
+    "craco-babel-loader": "^1.0.3",
+    "lint-staged": "^12.3.2",
+    "prettier": "2.5.1"
+  }
+}

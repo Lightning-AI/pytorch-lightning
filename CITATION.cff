@@ -11,7 +11,7 @@ version: 1.4
 doi: 10.5281/zenodo.3828935
 license: "Apache-2.0"
 url: "https://www.pytorchlightning.ai"
-repository-code: "https://github.com/PyTorchLightning/pytorch-lightning"
+repository-code: "https://github.com/Lightning-AI/lightning"
 keywords:
   - machine learning
   - deep learning
