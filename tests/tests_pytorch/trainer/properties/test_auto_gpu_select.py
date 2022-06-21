@@ -24,10 +24,7 @@ from tests_pytorch.helpers.runif import RunIf
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
     ["nb", "expected_gpu_idxs"],
-    [
-        (0, []),
-        (-1, list(range(torch.cuda.device_count()))),
-        (1, [0])],
+    [(0, []), (-1, list(range(torch.cuda.device_count()))), (1, [0])],
 )
 def test_pick_multiple_gpus(nb, expected_gpu_idxs):
     assert expected_gpu_idxs == pick_multiple_gpus(nb)
