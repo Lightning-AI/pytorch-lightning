@@ -13,24 +13,22 @@
 # limitations under the License.
 
 ARG PYTHON_VERSION=3.9
-ARG PYTORCH_VERSION=1.8
+ARG PYTORCH_VERSION=1.9
 
 FROM pytorchlightning/pytorch_lightning:base-xla-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
-LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
+LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
 COPY ./ ./pytorch-lightning/
 
 # Pull the legacy checkpoints
 RUN cd pytorch-lightning && \
-    wget https://pl-public-data.s3.amazonaws.com/legacy/checkpoints.zip -P legacy/ && \
-    unzip -o legacy/checkpoints.zip -d legacy/ && \
-    ls -l legacy/checkpoints/
+    bash .actions/pull_legacy_checkpoints.sh
 
 RUN \
     pip install -q fire && \
     # drop unnecessary packages
-    pip install -r pytorch-lightning/requirements/devel.txt --no-cache-dir
+    pip install -r pytorch-lightning/requirements/pytorch/devel.txt --no-cache-dir
 
 COPY ./dockers/tpu-tests/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
