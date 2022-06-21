@@ -123,8 +123,9 @@ jobs:
         path: dist
 
     - name: Pull files from S3
+      working-directory: ./tests/legacy
       run: |
-        aws s3 cp --recursive s3://pl-public-data/legacy/checkpoints/ legacy/checkpoints/ #  --acl public-read
+        aws s3 cp --recursive s3://pl-public-data/legacy/checkpoints/ checkpoints/ #  --acl public-read
         ls -l legacy/checkpoints/
 
     - name: Generate checkpoint
@@ -137,7 +138,7 @@ jobs:
         bash legacy/generate_checkpoints.sh $pl_ver
 
     - name: Push files to S3
-      working-directory: ./legacy
+      working-directory: ./tests/legacy
       run: |
         aws s3 sync legacy/checkpoints/ s3://pl-public-data/legacy/checkpoints/
         zip -r checkpoints.zip checkpoints
