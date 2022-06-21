@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+ARG UBUNTU_VERSION=20.04
 ARG CUDA_VERSION=11.3.1
 
-FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu20.04
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
 
 ARG PYTHON_VERSION=3.9
-ARG PYTORCH_VERSION=1.8
+ARG PYTORCH_VERSION=1.9
 
 SHELL ["/bin/bash", "-c"]
 # https://techoverflow.net/2019/05/18/how-to-fix-configuring-tzdata-interactive-input-when-building-docker-images/
@@ -47,6 +48,8 @@ RUN \
         ca-certificates \
         software-properties-common \
         libopenmpi-dev \
+        openmpi-bin \
+        ssh \
     && \
 
 # Install python
@@ -66,8 +69,7 @@ RUN \
     rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
 
-COPY ./requirements.txt requirements.txt
-COPY ./requirements/ ./requirements/
+COPY ./requirements/pytorch/ ./requirements/pytorch/
 COPY ./.actions/assistant.py assistant.py
 
 ENV PYTHONPATH=/usr/lib/python${PYTHON_VERSION}/site-packages
@@ -82,14 +84,11 @@ RUN \
     CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
     pip config set global.cache-dir false && \
     # set particular PyTorch version
-    python ./requirements/adjust-versions.py requirements.txt ${PYTORCH_VERSION} && \
-    python ./requirements/adjust-versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
-    python ./requirements/adjust-versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
-    python -c "print(' '.join([ln for ln in open('requirements/extra.txt').readlines() if 'horovod' in ln]))" > ./requirements/horovod.txt && \
-    python assistant.py requirements_prune_pkgs "horovod" && \
+    python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${PYTORCH_VERSION} && \
+    python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt ${PYTORCH_VERSION} && \
+    python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${PYTORCH_VERSION} && \
     # Install all requirements \
-    pip install -r requirements/devel.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
-    rm -rf requirements.* && \
+    pip install -r requirements/pytorch/devel.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
     rm assistant.py
 
 RUN \
@@ -112,12 +111,14 @@ ENV \
     HOROVOD_WITH_MPI=1
 
 RUN \
+    # CUDA 10.2 doesn't support ampere architecture (8.0).
+    if [[ "$CUDA_VERSION" < "11.0" ]]; then export TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST//";8.0"/}; echo $TORCH_CUDA_ARCH_LIST; fi && \
     HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
     export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
-    cat ./requirements/horovod.txt && \
+    echo $HOROVOD_BUILD_CUDA_CC_LIST && \
     cmake --version && \
-    pip install --no-cache-dir -r ./requirements/horovod.txt && \
-    rm -rf requirements/
+    pip install --no-cache-dir -r ./requirements/pytorch/strategies.txt && \
+    horovodrun --check-build
 
 RUN \
     CUDA_VERSION_MAJOR=$(python -c "import torch; print(torch.version.cuda.split('.')[0])") && \
@@ -130,19 +131,11 @@ RUN \
     fi
 
 RUN \
+    # CUDA 10.2 doesn't support ampere architecture (8.0).
+    if [[ "$CUDA_VERSION" < "11.0" ]]; then export TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST//";8.0"/}; echo $TORCH_CUDA_ARCH_LIST; fi && \
     # install NVIDIA apex
     pip install -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" https://github.com/NVIDIA/apex/archive/refs/heads/master.zip && \
     python -c "from apex import amp"
-
-RUN \
-    # install FairScale
-    pip install fairscale==0.4.5 && \
-    python -c "import fairscale; print(fairscale.__version__)"
-
-RUN \
-    # install DeepSpeed
-    pip install deepspeed==0.6.0 && \
-    python -c "import deepspeed; print(deepspeed.__version__)"
 
 RUN \
     # install Bagua
@@ -151,8 +144,8 @@ RUN \
     python -c "import bagua_core; bagua_core.install_deps()" && \
     python -c "import bagua; print(bagua.__version__)"
 
-COPY requirements/check-avail-extras.py check-avail-extras.py
-COPY requirements/check-avail-strategies.py check-avail-strategies.py
+COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py
+COPY requirements/pytorch/check-avail-strategies.py check-avail-strategies.py
 
 RUN \
     # Show what we have
@@ -160,6 +153,6 @@ RUN \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
-    python check-avail-extras.py && \
-    python check-avail-strategies.py && \
-    rm check-avail-*.py
+    python requirements/pytorch/check-avail-extras.py && \
+    python requirements/pytorch/check-avail-strategies.py && \
+    rm -rf requirements/
