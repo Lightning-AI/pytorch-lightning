@@ -7,10 +7,9 @@ requires = [
 
 [tool.isort]
 known_first_party = [
-    "docs",
     "pl_examples",
     "pytorch_lightning",
-    "tests",
+    "tests_pytorch",
 ]
 profile = "black"
 line_length = 120
@@ -53,6 +52,7 @@ module = [
     "pytorch_lightning.core.mixins.device_dtype_mixin",
     "pytorch_lightning.core.saving",
     "pytorch_lightning.demos.boring_classes",
+    "pytorch_lightning.demos.mnist_datamodule",
     "pytorch_lightning.distributed.dist",
     "pytorch_lightning.loggers.base",
     "pytorch_lightning.loggers.logger",

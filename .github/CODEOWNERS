@@ -16,41 +16,41 @@
 /docs/                                  @edenlightning @tchaton @borda @awaelchli @RobertLaurella
 /.github/*.md                           @edenlightning @williamfalcon @borda
 /.github/ISSUE_TEMPLATE/                @edenlightning @borda @tchaton
-/docs/source/conf.py                    @borda @awaelchli @carmocca
-/docs/source/index.rst                  @williamfalcon
-/docs/source/levels                     @williamfalcon @RobertLaurella
-/docs/source/expertise_levels           @williamfalcon @RobertLaurella
+/docs/source-pytorch/conf.py                    @borda @awaelchli @carmocca
+/docs/source-pytorch/index.rst                  @williamfalcon
+/docs/source-pytorch/levels                     @williamfalcon @RobertLaurella
+/docs/source-pytorch/expertise_levels           @williamfalcon @RobertLaurella
 
 # Packages
-/pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
-/pytorch_lightning/callbacks            @williamfalcon @tchaton @carmocca @borda @kaushikb11
-/pytorch_lightning/core                 @tchaton @SeanNaren @borda @carmocca @justusschock @kaushikb11
-/pytorch_lightning/distributed          @williamfalcon @tchaton @awaelchli @kaushikb11
-/pytorch_lightning/lite                 @tchaton @awaelchli @carmocca
-/pytorch_lightning/loggers              @tchaton @awaelchli @borda
-/pytorch_lightning/loggers/wandb.py     @borisdayma
-/pytorch_lightning/loggers/neptune.py   @shnela @HubertJaworski @pkasprzyk @pitercl @Raalsky @aniezurawski @kamil-kaczmarek
-/pytorch_lightning/loops                @tchaton @awaelchli @justusschock @carmocca
-/pytorch_lightning/overrides            @tchaton @SeanNaren @borda
-/pytorch_lightning/plugins              @tchaton @SeanNaren @awaelchli @justusschock
-/pytorch_lightning/profiler             @williamfalcon @tchaton @borda @carmocca
-/pytorch_lightning/profiler/pytorch.py  @nbcsm @guotuofeng
-/pytorch_lightning/strategies           @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
-/pytorch_lightning/trainer              @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock @kaushikb11
-/pytorch_lightning/trainer/connectors   @tchaton @SeanNaren @carmocca @borda
-/pytorch_lightning/tuner                @SkafteNicki @borda @awaelchli
-/pytorch_lightning/utilities            @borda @tchaton @SeanNaren @carmocca
+/src/pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
+/src/pytorch_lightning/callbacks            @williamfalcon @tchaton @carmocca @borda @kaushikb11
+/src/pytorch_lightning/core                 @tchaton @SeanNaren @borda @carmocca @justusschock @kaushikb11
+/src/pytorch_lightning/distributed          @williamfalcon @tchaton @awaelchli @kaushikb11
+/src/pytorch_lightning/lite                 @tchaton @awaelchli @carmocca
+/src/pytorch_lightning/loggers              @tchaton @awaelchli @borda
+/src/pytorch_lightning/loggers/wandb.py     @borisdayma
+/src/pytorch_lightning/loggers/neptune.py   @shnela @HubertJaworski @pkasprzyk @pitercl @Raalsky @aniezurawski @kamil-kaczmarek
+/src/pytorch_lightning/loops                @tchaton @awaelchli @justusschock @carmocca
+/src/pytorch_lightning/overrides            @tchaton @SeanNaren @borda
+/src/pytorch_lightning/plugins              @tchaton @SeanNaren @awaelchli @justusschock
+/src/pytorch_lightning/profiler             @williamfalcon @tchaton @borda @carmocca
+/src/pytorch_lightning/profiler/pytorch.py  @nbcsm @guotuofeng
+/src/pytorch_lightning/strategies           @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
+/src/pytorch_lightning/trainer              @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock @kaushikb11
+/src/pytorch_lightning/trainer/connectors   @tchaton @SeanNaren @carmocca @borda
+/src/pytorch_lightning/tuner                @SkafteNicki @borda @awaelchli
+/src/pytorch_lightning/utilities            @borda @tchaton @SeanNaren @carmocca
 
 # Specifics
-/pytorch_lightning/trainer/connectors/logger_connector      @tchaton @carmocca
-/pytorch_lightning/trainer/progress.py                      @tchaton @awaelchli @carmocca
+/src/pytorch_lightning/trainer/connectors/logger_connector      @tchaton @carmocca
+/src/pytorch_lightning/trainer/progress.py                      @tchaton @awaelchli @carmocca
 
 # API
-/pytorch_lightning/callbacks/base.py    @williamfalcon @awaelchli @ananthsub @carmocca
-/pytorch_lightning/core/datamodule.py   @williamFalcon @awaelchli @ananthsub @carmocca
-/pytorch_lightning/trainer/trainer.py   @williamfalcon @tchaton @awaelchli
-/pytorch_lightning/core/hooks.py        @williamfalcon @tchaton @awaelchli @ananthsub @carmocca
-/pytorch_lightning/core/lightning.py    @williamfalcon @tchaton @awaelchli
+/src/pytorch_lightning/callbacks/base.py    @williamfalcon @awaelchli @ananthsub @carmocca
+/src/pytorch_lightning/core/datamodule.py   @williamFalcon @awaelchli @ananthsub @carmocca
+/src/pytorch_lightning/trainer/trainer.py   @williamfalcon @tchaton @awaelchli
+/src/pytorch_lightning/core/hooks.py        @williamfalcon @tchaton @awaelchli @ananthsub @carmocca
+/src/pytorch_lightning/core/lightning.py    @williamfalcon @tchaton @awaelchli
 
 # Testing
 /tests/helpers/boring_model.py          @williamfalcon @tchaton @borda
@@ -60,4 +60,4 @@
 /SECURITY.md                     @williamfalcon
 /README.md                       @williamfalcon @edenlightning @borda
 /setup.py                        @williamfalcon @borda @carmocca
-/pytorch_lightning/__about__.py  @williamfalcon @borda @carmocca
+/src/pytorch_lightning/__about__.py  @williamfalcon @borda @carmocca
