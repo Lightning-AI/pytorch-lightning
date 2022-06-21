@@ -16,7 +16,6 @@ from typing import Any, List, MutableSequence, Optional, Tuple, Union
 import torch
 
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
-from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _DEVICE
 
