@@ -14,7 +14,7 @@
 
 FROM ubuntu:20.04
 
-LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
+LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
 ARG PYTHON_VERSION=3.9
 ARG CONDA_VERSION=4.9.2

@@ -36,5 +36,6 @@ jobs:
         pip install '.[dev]'
         pip list
 
-    - name: Type check
-      run: mypy --install-types --non-interactive
+    - name: Type check PyTorch
+      working-directory: src/pytorch_lightning
+      run: mypy . --install-types --non-interactive --config-file ../../pyproject.toml

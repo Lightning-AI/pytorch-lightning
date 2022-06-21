@@ -13,16 +13,17 @@
 # limitations under the License.
 
 ARG PYTHON_VERSION=3.9
-ARG PYTORCH_VERSION=1.8
+ARG PYTORCH_VERSION=1.9
 
 FROM pytorchlightning/pytorch_lightning:base-xla-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
-LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
+LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
 COPY ./ ./pytorch-lightning/
 
 # Pull the legacy checkpoints
-RUN cd pytorch-lightning && bash .actions/pull_legacy_checkpoints.sh
+RUN cd pytorch-lightning && \
+    bash .actions/pull_legacy_checkpoints.sh
 
 RUN \
     pip install -q fire && \
