@@ -77,7 +77,7 @@ and start tracking the development. It is possible that priorities change over t
 
 Commits to the project are exclusively to be added by pull requests on GitHub and anyone in the community is welcome to
 review them. However, reviews submitted by
-`code owners <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/.github/CODEOWNERS>`_
+`code owners <https://github.com/Lightning-AI/lightning/blob/master/.github/CODEOWNERS>`_
 have higher weight and it is necessary to get the approval of code owners before a pull request can be merged.
 Additional requirements may apply case by case.
 

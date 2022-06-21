@@ -25,7 +25,7 @@ from setuptools import find_packages, setup
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 _PATH_ROOT = os.path.dirname(__file__)
-_PATH_REQUIREMENTS = os.path.join(_PATH_ROOT, "requirements")
+_PATH_REQUIREMENTS = os.path.join(_PATH_ROOT, "requirements", "pytorch")
 _PATH_PL_SRC = os.path.join(_PATH_ROOT, "src", "pytorch_lightning")
 
 
@@ -143,7 +143,8 @@ if __name__ == "__main__":
         url=_ABOUT_MODULE.__homepage__,
         download_url="https://github.com/Lightning-AI/lightning",
         license=_ABOUT_MODULE.__license__,
-        packages=find_packages(where="src"),
+        # todo: temp disable installing apps from source
+        packages=find_packages(where="src", exclude=["lightning_app", "lightning_app.*"]),
         package_dir={"": "src"},
         include_package_data=True,
         long_description=long_description,

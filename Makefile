@@ -18,6 +18,8 @@ clean:
 	rm -rf ./docs/source-pytorch/generated
 	rm -rf ./docs/source-pytorch/*/generated
 	rm -rf ./docs/source-pytorch/api
+	rm -rf ./docs/source-app/generated
+	rm -rf ./docs/source-app/*/generated
 	rm -rf build
 	rm -rf dist
 	rm -rf *.egg-info
@@ -25,14 +27,14 @@ clean:
 
 test: clean
 	# Review the CONTRIBUTING documentation for other ways to test.
-	pip install -e . -r requirements/devel.txt
-	pip install -r requirements/strategies.txt
+	pip install -e . -r requirements/pytorch/devel.txt
+	pip install -r requirements/pytorch/strategies.txt
 	# run tests with coverage
 	python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v
 	python -m coverage report
 
 docs: clean
-	pip install -e . --quiet -r requirements/docs.txt
+	pip install -e . --quiet -r requirements/pytorch/docs.txt
 	python -m sphinx -b html -W --keep-going docs/source-pytorch docs/build
 
 update:
