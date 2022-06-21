@@ -26,7 +26,7 @@ import numpy as np
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info, rank_zero_only
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:
@@ -350,10 +350,7 @@ class DummyLogger(Logger):
         """Allows the DummyLogger to be called with arbitrary methods, to avoid AttributeErrors."""
 
         def method(*args, **kwargs):
-            rank_zero_info(
-                f"The `DummyLogger` is being used and the method `{name}` was called on it but it does not exist."
-                " This is the case when `fast_dev_run` is enabled"
-            )
+            return None
 
         return method
 
