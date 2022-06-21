@@ -1,4 +1,4 @@
-name: "Docs check"
+name: Check Docs
 # https://github.com/marketplace/actions/sphinx-build
 
 on:  # Trigger the workflow on push or pull request, but only for the master branch
@@ -7,21 +7,23 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
   pull_request:
     branches: [master, "release/*"]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+
 jobs:
-  test-docs:
+  doctest:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
         with:
           submodules: true
-          # lfs: true
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.7
+          python-version: 3.9
 
-      - name: Weekly reset caching
-        run: echo "::set-output name=period::$(python -c 'import time ; days = time.time() / 60 / 60 / 24 ; print(int(days / 7))' 2>&1)"
-        id: times
+      - name: Reset caching
+        run: python -c "import time; days = time.time() / 60 / 60 / 24; print(f'TIME_PERIOD=d{int(days / 2) * 2}')" >> $GITHUB_ENV
 
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -29,22 +31,19 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-docs-test-pip-td${{ env.TIME_PERIOD }}-${{ hashFiles('requirements/pytorch/*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-td${{ steps.times.outputs.period }}-
+            ${{ runner.os }}-docs-test-pip-td${{ env.TIME_PERIOD }}-
 
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
           pip --version
-          # remove Horovod from requirements
-          python .github/prune-packages.py requirements/extra.txt "horovod"
+          pip install -q fire
           # python -m pip install --upgrade --user pip
-          pip install --requirement requirements.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
-          pip install --requirement requirements/extra.txt
-          pip install --requirement requirements/loggers.txt
-          pip install --requirement requirements/docs.txt
+          pip install -e . --quiet -r requirements/pytorch/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -r requirements/pytorch/devel.txt
           pip list
         shell: bash
 
@@ -66,7 +65,7 @@ jobs:
           # lfs: true
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.7
+          python-version: 3.9
 
       # Note: This uses an internal pip API and may not always work
       # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
@@ -74,17 +73,16 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-docs-make-pip-${{ hashFiles('requirements/pytorch/base.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-docs-make-pip-
 
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
           pip --version
-          # pip install --requirement requirements.txt --upgrade-strategy only-if-needed --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
-          pip install --requirement requirements/docs.txt
+          pip install -e . --quiet -r requirements/pytorch/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
           sudo apt-get update && sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
           pip list

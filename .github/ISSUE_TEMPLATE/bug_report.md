@@ -1,14 +1,14 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Create a bug report to help us improve
 title: ''
-labels: bug / fix, help wanted
+labels: needs triage
 assignees: ''
 ---
 
 ## 🐛 Bug
 
-<!-- A clear and concise description of what the bug is. -->
+<!-- A clear and concise description of the bug. -->
 
 ### To Reproduce
 
@@ -16,11 +16,11 @@ assignees: ''
 Please reproduce using the BoringModel!
 
 You can use the following Colab link:
-https://colab.research.google.com/drive/1HvWVVTK8j2Nj52qU4Q4YCyzOm0_aLQF3?usp=sharing
+https://colab.research.google.com/github/Lightning-AI/lightning/blob/master/examples/pl_bug_report/bug_report_model.ipynb
 IMPORTANT: has to be public.
 
 or this simple template:
-https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pl_examples/bug_report_model.py
+https://github.com/Lightning-AI/lightning/blob/master/examples/pl_bug_report/bug_report_model.py
 
 If you could not reproduce using the BoringModel and still think there's a bug, please post here
 but remember, bugs with code are fixed faster!
@@ -34,21 +34,21 @@ but remember, bugs with code are fixed faster!
 
 <!--
 Please copy and paste the output from our environment collection script:
-https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/requirements/collect_env_details.py
+https://raw.githubusercontent.com/Lightning-AI/lightning/master/requirements/collect_env_details.py
 (For security purposes, please check the contents of the script before running it)
 
 You can get the script and run it with:
 ```bash
-wget https://raw.githubusercontent.com/PyTorchLightning/pytorch-lightning/master/requirements/collect_env_details.py
+wget https://raw.githubusercontent.com/Lightning-AI/lightning/master/requirements/collect_env_details.py
 python collect_env_details.py
 ```
 
 You can also fill out the list below manually.
 -->
 
-- PyTorch Lightning Version (e.g., 1.3.0):
-- PyTorch Version (e.g., 1.8)
-- Python version:
+- PyTorch Lightning Version (e.g., 1.5.0):
+- PyTorch Version (e.g., 1.10):
+- Python version (e.g., 3.9):
 - OS (e.g., Linux):
 - CUDA/cuDNN version:
 - GPU models and configuration:

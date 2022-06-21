@@ -1,20 +1,17 @@
 <div align="center">
+<img src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/logos/lightning-ai.png" width="400px">
 
-<img src="docs/source/_static/images/logo.png" width="400px">
-
-**The lightweight PyTorch wrapper for high-performance AI research.
-Scale your models, not the boilerplate.**
+**Build high-performance PyTorch models and deploy them with Lightning Apps (scalable end-to-end ML systems).**
 
 ______________________________________________________________________
 
 <p align="center">
-  <a href="https://www.pytorchlightning.ai/">Website</a> •
+  <a href="https://www.lightning.ai/">Lightning Gallery</a> •
   <a href="#key-features">Key Features</a> •
   <a href="#how-to-use">How To Use</a> •
   <a href="https://pytorch-lightning.readthedocs.io/en/stable/">Docs</a> •
   <a href="#examples">Examples</a> •
   <a href="#community">Community</a> •
-  <a href="#grid-ai">Grid AI</a> •
   <a href="#license">License</a>
 </p>
 
@@ -27,8 +24,8 @@ ______________________________________________________________________
 [![DockerHub](https://img.shields.io/docker/pulls/pytorchlightning/pytorch_lightning.svg)](https://hub.docker.com/r/pytorchlightning/pytorch_lightning)
 [![codecov](https://codecov.io/gh/PyTorchLightning/pytorch-lightning/branch/master/graph/badge.svg)](https://codecov.io/gh/PyTorchLightning/pytorch-lightning)
 
-[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=stable)](https://pytorch-lightning.readthedocs.io/en/stable/)
-[![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-pw5v393p-qRaDgEk24~EjiZNBpSQFgQ)
+[![ReadTheDocs](https://readthedocs.org/projects/pytorch-lightning/badge/?version=stable)](https://pytorch-lightning.readthedocs.io/en/stable/starter/new-project.html)
+[![Slack](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-12iz3cds1-uyyyBYJLiaL2bqVmMN7n~A)
 [![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/PytorchLightning/pytorch-lightning/blob/master/LICENSE)
 
 <!--
@@ -44,7 +41,19 @@ ______________________________________________________________________
 ## PyTorch Lightning is just organized PyTorch
 
 Lightning disentangles PyTorch code to decouple the science from the engineering.
-![PT to PL](docs/source/_static/images/general/pl_quick_start_full_compressed.gif)
+![PT to PL](docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif)
+
+## Build AI products with Lightning Apps
+
+Once you're done building models, publish a paper demo or build a full production end-to-end ML system with Lightning Apps. Lightning Apps remove the cloud infrastructure boilerplate so you can focus on solving the research or business problems. Lightning Apps can run on the Lightning Cloud, your own cluster or a private cloud.
+
+[Browse available Lightning apps here](https://lightning.ai/)
+
+<div align="center">
+    <img src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/docs/images/logos/lightning-apps-teaser.png" width="80%">
+</div>
+
+### [Learn more about Lightning Apps](src/lightning_app/README.md)
 
 ______________________________________________________________________
 
@@ -78,18 +87,17 @@ Lightning is rigorously tested across multiple GPUs, TPUs CPUs and against major
 
 <center>
 
-|   System / PyTorch ver.    |                                                                                                                           1.6 (min. req.)                                                                                                                            |                                                                                                                                 1.7                                                                                                                                  |                                                                                                                              1.8 (LTS)                                                                                                                               |                                                                                                                             1.9 (latest)                                                                                                                             |                                                                                                                            1.10 (nightly)                                                                                                                            |
-| :------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-|   Conda py3.7 \[linux\]    | [![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22PyTorch+%26+Conda%22+branch%3Amaster) | [![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22PyTorch+%26+Conda%22+branch%3Amaster) | [![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22PyTorch+%26+Conda%22+branch%3Amaster) | [![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22PyTorch+%26+Conda%22+branch%3Amaster) | [![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22PyTorch+%26+Conda%22+branch%3Amaster) |
-|  Linux py3.7 \[GPUs\*\*\]  |                                                                                                                                  -                                                                                                                                   |                                                                                                                                  -                                                                                                                                   |      [![Build Status](<https://dev.azure.com/PytorchLightning/pytorch-lightning/_apis/build/status/PL.pytorch-lightning%20(GPUs)?branchName=master>)](https://dev.azure.com/PytorchLightning/pytorch-lightning/_build/latest?definitionId=6&branchName=master)       |                                                                                                                                  -                                                                                                                                   |                                                                                                                                  -                                                                                                                                   |
-| Linux py3.7 \[TPUs\*\*\*\] |                                                                                                                                  -                                                                                                                                   |                                                                                                                                  -                                                                                                                                   |                                             [![CircleCI](https://circleci.com/gh/PyTorchLightning/pytorch-lightning/tree/master.svg?style=svg)](https://circleci.com/gh/PyTorchLightning/pytorch-lightning/tree/master)                                              |                                                                                                                                  -                                                                                                                                   |                                                                                                                                  -                                                                                                                                   |
-|    Linux py3.{6,7,8,9}     |        [![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22)         |                                                                                                                                  -                                                                                                                                   |                                                                                                                                  -                                                                                                                                   |        [![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22)         |                                                                                                                                  -                                                                                                                                   |
-|     OSX py3.{6,7,8,9}      |        [![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22)         |                                                                                                                                  -                                                                                                                                   |                                                                                                                                  -                                                                                                                                   |        [![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22)         |                                                                                                                                  -                                                                                                                                   |
-|   Windows py3.{6,7,8,9}    |        [![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22)         |                                                                                                                                  -                                                                                                                                   |                                                                                                                                  -                                                                                                                                   |        [![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions?query=workflow%3A%22CI+testing%22)         |                                                                                                                                  -                                                                                                                                   |
+|   System / PyTorch ver.    |                                                                                                                   1.8 (LTS, min. req.)                                                                                                                    |                                                                                                                1.9                                                                                                                 |                                                                                                           1.10 (latest)                                                                                                            |
+| :------------------------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+|  Linux py3.7 \[GPUs\*\*\]  | [![Build Status](<https://dev.azure.com/PytorchLightning/pytorch-lightning/_apis/build/status/PL.pytorch-lightning%20(GPUs)?branchName=master>)](https://dev.azure.com/PytorchLightning/pytorch-lightning/_build/latest?definitionId=6&branchName=master) |                                                                                                                 -                                                                                                                  |                                                                                                                 -                                                                                                                  |
+| Linux py3.7 \[TPUs\*\*\*\] |                                        [![CircleCI](https://circleci.com/gh/PyTorchLightning/pytorch-lightning/tree/master.svg?style=svg)](https://circleci.com/gh/PyTorchLightning/pytorch-lightning/tree/master)                                        |                                                                                                                 -                                                                                                                  |                                                                                                                 -                                                                                                                  |
+|  Linux py3.8 (with Conda   |            [![Test](https://github.com/PyTorchLightning/pytorch-lightning/actions/workflows/ci_test-conda.yml/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions/workflows/ci_test-conda.yml)             | [![Test](https://github.com/PyTorchLightning/pytorch-lightning/actions/workflows/ci_test-conda.yml/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions/workflows/ci_test-conda.yml) | [![Test](https://github.com/PyTorchLightning/pytorch-lightning/actions/workflows/ci_test-conda.yml/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions/workflows/ci_test-conda.yml) |
+|      Linux py3.{7,9}       |                                                                                                                             -                                                                                                                             |                                                                                                                 -                                                                                                                  |  [![Test](https://github.com/PyTorchLightning/pytorch-lightning/actions/workflows/ci_test-full.yml/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions/workflows/ci_test-full.yml)  |
+|       OSX py3.{7,9}        |                                                                                                                             -                                                                                                                             |                                                                                                                 -                                                                                                                  |  [![Test](https://github.com/PyTorchLightning/pytorch-lightning/actions/workflows/ci_test-full.yml/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions/workflows/ci_test-full.yml)  |
+|     Windows py3.{7,9}      |                                                                                                                             -                                                                                                                             |                                                                                                                 -                                                                                                                  |  [![Test](https://github.com/PyTorchLightning/pytorch-lightning/actions/workflows/ci_test-full.yml/badge.svg?branch=master&event=push)](https://github.com/PyTorchLightning/pytorch-lightning/actions/workflows/ci_test-full.yml)  |
 
 - _\*\* tests run on two NVIDIA P100_
-- _\*\*\* tests run on Google GKE TPUv2/3_
-- _TPU py3.7 means we support Colab and Kaggle env._
+- _\*\*\* tests run on Google GKE TPUv2/3. TPU py3.7 means we support Colab and Kaggle env._
 
 </center>
 </details>
@@ -124,23 +132,23 @@ pip install pytorch-lightning['extra']
 conda install pytorch-lightning -c conda-forge
 ```
 
-#### Install stable 1.4.x
+#### Install stable 1.5.x
 
-the actual status of 1.4 \[stable\] is following:
+the actual status of 1.5 \[stable\] is following:
 
-![CI basic testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20basic%20testing/badge.svg?branch=release%2F1.4.x&event=push)
-![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.4.x&event=push)
-![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.4.x&event=push)
-![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=release%2F1.4.x&event=push)
-![Docs check](https://github.com/PyTorchLightning/pytorch-lightning/workflows/Docs%20check/badge.svg?branch=release%2F1.4.x&event=push)
+![CI basic testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20basic%20testing/badge.svg?branch=release%2F1.5.x&event=push)
+![CI complete testing](https://github.com/PyTorchLightning/pytorch-lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.5.x&event=push)
+![PyTorch & Conda](https://github.com/PyTorchLightning/pytorch-lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.5.x&event=push)
+![TPU tests](https://github.com/PyTorchLightning/pytorch-lightning/workflows/TPU%20tests/badge.svg?branch=release%2F1.5.x&event=push)
+![Docs check](https://github.com/PyTorchLightning/pytorch-lightning/workflows/Docs%20check/badge.svg?branch=release%2F1.5.x&event=push)
 
 Install future release from the source
 
 ```bash
-pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@release/1.4.x --upgrade
+pip install git+https://github.com/PytorchLightning/pytorch-lightning.git@release/1.5.x --upgrade
 ```
 
-#### Install bleeding-edge - future 1.5
+#### Install bleeding-edge - future 1.6
 
 Install nightly from the source (no guarantees)
 
@@ -230,17 +238,17 @@ Here are some examples:
 ```python
 # 8 GPUs
 # no code changes needed
-trainer = Trainer(max_epochs=1, gpus=8)
+trainer = Trainer(max_epochs=1, accelerator="gpu", devices=8)
 
 # 256 GPUs
-trainer = Trainer(max_epochs=1, gpus=8, num_nodes=32)
+trainer = Trainer(max_epochs=1, accelerator="gpu", devices=8, num_nodes=32)
 ```
 
 <summary>Train on TPUs without code changes</summary>
 
 ```python
 # no code changes needed
-trainer = Trainer(tpu_cores=8)
+trainer = Trainer(accelerator="tpu", devices=8)
 ```
 
 <summary>16-bit precision</summary>
@@ -349,6 +357,18 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
+## Lightning Lite
+
+<div align="center">
+  <img src="docs/source/_static/images/lightning_lite/lite.gif" height="200px" width="600px">
+</div>
+
+In the Lighting 1.5 release, LightningLite now enables you to leverage all the capabilities of PyTorch Lightning Accelerators without any refactoring to your training loop. Check out the
+[blogpost](https://devblog.pytorchlightning.ai/scale-your-pytorch-code-with-lightninglite-d5692a303f00) and
+[docs](https://pytorch-lightning.readthedocs.io/en/stable/starter/lightning_lite.html) for more info.
+
+______________________________________________________________________
+
 ## Examples
 
 ###### Hello world
@@ -357,21 +377,21 @@ ______________________________________________________________________
 
 ###### Contrastive Learning
 
-- [BYOL](https://lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#byol)
-- [CPC v2](https://lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#cpc-v2)
-- [Moco v2](https://lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#moco-v2)
-- [SIMCLR](https://lightning-bolts.readthedocs.io/en/latest/self_supervised_models.html#simclr)
+- [BYOL](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/self_supervised.html#byol)
+- [CPC v2](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/self_supervised.html#cpc-v2)
+- [Moco v2](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/self_supervised.html#moco-v2-api)
+- [SIMCLR](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/self_supervised.html#simclr)
 
 ###### NLP
 
-- [GPT-2](https://lightning-bolts.readthedocs.io/en/latest/convolutional.html#gpt-2)
+- [GPT-2](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/convolutional.html#gpt-2)
 - [BERT](https://pytorch-lightning.readthedocs.io/en/latest/notebooks/lightning_examples/text-transformers.html)
 
 ###### Reinforcement Learning
 
-- [DQN](https://lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html#dqn-models)
-- [Dueling-DQN](https://lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html#dueling-dqn)
-- [Reinforce](https://lightning-bolts.readthedocs.io/en/latest/reinforce_learn.html#reinforce)
+- [DQN](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/reinforce_learn.html#dqn-models)
+- [Dueling-DQN](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/reinforce_learn.html#dueling-dqn)
+- [Reinforce](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/reinforce_learn.html#reinforce)
 
 ###### Vision
 
@@ -379,8 +399,8 @@ ______________________________________________________________________
 
 ###### Classic ML
 
-- [Logistic Regression](https://lightning-bolts.readthedocs.io/en/latest/classic_ml.html#logistic-regression)
-- [Linear Regression](https://lightning-bolts.readthedocs.io/en/latest/classic_ml.html#linear-regression)
+- [Logistic Regression](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/classic_ml.html#logistic-regression)
+- [Linear Regression](https://lightning-bolts.readthedocs.io/en/stable/deprecated/models/classic_ml.html#linear-regression)
 
 ______________________________________________________________________
 
@@ -389,7 +409,7 @@ ______________________________________________________________________
 The lightning community is maintained by
 
 - [10+ core contributors](https://pytorch-lightning.readthedocs.io/en/latest/governance.html) who are all a mix of professional engineers, Research Scientists, and Ph.D. students from top AI labs.
-- 480+ active community contributors.
+- 590+ active community contributors.
 
 Want to help us build Lightning and reduce boilerplate for thousands of researchers? [Learn how to make your first contribution here](https://devblog.pytorchlightning.ai/quick-contribution-guide-86d977171b3a)
 
@@ -402,30 +422,3 @@ If you have any questions please:
 1. [Read the docs](https://pytorch-lightning.rtfd.io/en/latest).
 1. [Search through existing Discussions](https://github.com/PyTorchLightning/pytorch-lightning/discussions), or [add a new question](https://github.com/PyTorchLightning/pytorch-lightning/discussions/new)
 1. [Join our slack](https://join.slack.com/t/pytorch-lightning/shared_invite/zt-pw5v393p-qRaDgEk24~EjiZNBpSQFgQ).
-
-### Funding
-
-[We're venture funded](https://techcrunch.com/2020/10/08/grid-ai-raises-18-6m-series-a-to-help-ai-researchers-and-engineers-bring-their-models-to-production/) to make sure we can provide around the clock support, hire a full-time staff, attend conferences, and move faster through implementing features you request.
-
-______________________________________________________________________
-
-## Grid AI
-
-Grid AI is our platform for training models at scale on the cloud!
-
-**Sign up for our FREE community Tier [here](https://www.grid.ai/pricing/)**
-
-To use grid, take your regular command:
-
-```
-python my_model.py --learning_rate 1e-6 --layers 2 --gpus 4
-```
-
-And change it to use the grid train command:
-
-```
-grid train --grid_gpus 4 my_model.py --learning_rate 'uniform(1e-6, 1e-1, 20)' --layers '[2, 4, 8, 16]'
-```
-
-The above command will launch (20 * 4) experiments each running on 4 GPUs (320 GPUs!) - by making ZERO changes to
-your code.
