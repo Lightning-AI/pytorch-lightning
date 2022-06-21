@@ -87,19 +87,19 @@ ENV \
     PATH=/root/miniconda3/envs/${CONDA_ENV}/bin:$PATH \
     LD_LIBRARY_PATH="/root/miniconda3/envs/${CONDA_ENV}/lib:$LD_LIBRARY_PATH"
 
-COPY ./requirements/ ./requirements/
+COPY ./requirements/pytorch/ ./requirements/pytorch/
 COPY ./.actions/assistant.py assistant.py
 
 RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
     pip install -q fire && \
-    python requirements/adjust-versions.py requirements/extra.txt && \
-    python requirements/adjust-versions.py requirements/examples.txt && \
+    python requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt && \
+    python requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt && \
     # Install remaining requirements
-    pip install -r requirements/base.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
-    pip install -r requirements/extra.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
-    pip install -r requirements/examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
+    pip install -r requirements/pytorch/base.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
+    pip install -r requirements/pytorch/extra.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
+    pip install -r requirements/pytorch/examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
     rm assistant.py
 
 ENV \
@@ -116,7 +116,7 @@ ENV \
 RUN \
     HOROVOD_BUILD_CUDA_CC_LIST=${TORCH_CUDA_ARCH_LIST//";"/","} && \
     export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
-    pip install --no-cache-dir -r requirements/strategies.txt
+    pip install --no-cache-dir -r requirements/pytorch/strategies.txt
 
 RUN \
     CUDA_VERSION_MAJOR=$(python -c "import torch ; print(torch.version.cuda.split('.')[0])") && \
@@ -147,6 +147,6 @@ RUN \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
-    python requirements/check-avail-extras.py && \
-    python requirements/check-avail-strategies.py && \
+    python requirements/pytorch/check-avail-extras.py && \
+    python requirements/pytorch/check-avail-strategies.py && \
     rm -rf requirements/
