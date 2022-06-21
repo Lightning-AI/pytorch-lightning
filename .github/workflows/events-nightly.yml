@@ -13,7 +13,7 @@ env:
 # based on https://github.com/pypa/gh-action-pypi-publish
 jobs:
   pypi-release:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
     runs-on: ubuntu-20.04
 
     steps:
@@ -61,7 +61,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   docker-XLA:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -108,18 +108,16 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   docker-CUDA:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         include:
           # the config used in '.azure-pipelines/gpu-tests.yml'
-          - {python_version: "3.7", pytorch_version: "1.8", cuda_version: "10.2", ubuntu_version: "18.04"}
           - {python_version: "3.7", pytorch_version: "1.10", cuda_version: "11.1", ubuntu_version: "20.04"}
           - {python_version: "3.7", pytorch_version: "1.11", cuda_version: "11.3.1", ubuntu_version: "20.04"}
           # latest (used in Tutorials)
-          - {python_version: "3.8", pytorch_version: "1.8", cuda_version: "11.1", ubuntu_version: "20.04"}
           - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1", ubuntu_version: "20.04"}
           - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.1", ubuntu_version: "20.04"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1", ubuntu_version: "20.04"}
@@ -146,7 +144,7 @@ jobs:
           file: dockers/base-cuda/Dockerfile
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
-        timeout-minutes: 85
+        timeout-minutes: 95
 
       # report failure to Slack
       - name: Slack notification
@@ -161,14 +159,13 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   docker-Conda:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         include:
           # see: https://pytorch.org/get-started/previous-versions/
-          - {python_version: "3.8", pytorch_version: "1.8", cuda_version: "11.1"}
           - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1"}
           - {python_version: "3.8", pytorch_version: "1.10", cuda_version: "11.1"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
@@ -197,7 +194,7 @@ jobs:
           file: dockers/base-conda/Dockerfile
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
-        timeout-minutes: 85
+        timeout-minutes: 95
 
       # report failure to Slack
       - name: Slack notification
@@ -212,12 +209,12 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   docker-IPU:
-    if: ${{ github.repository_owner == 'PyTorchLightning' }}
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
-        # the config used in 'dockers/ipu-ci-runner/Dockerfile'
+        # the config used in 'dockers/ci-runner-ipu/Dockerfile'
         include:
           - {python_version: "3.9", pytorch_version: "1.9"}
 
@@ -253,7 +250,7 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
-          file: dockers/ipu-ci-runner/Dockerfile
+          file: dockers/ci-runner-ipu/Dockerfile
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:ipu-ci-runner-py${{ matrix.python_version }}
         timeout-minutes: 55
@@ -267,5 +264,53 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           notification_title: ${{ format('IPU; {0} py{1} for *{2}*', runner.os, matrix.python_version, matrix.pytorch_version) }}
           message_format: '{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@U01BULUS2BG>'  #SeanNaren
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  docker-HPU:
+    if: ${{ github.repository_owner == 'Lightning-AI' }}
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # the config used in 'dockers/ci-runner-hpu/Dockerfile'
+        include:
+          - {gaudi_version: "1.4.0", pytorch_version: "1.10.2"}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      # https://github.com/docker/setup-buildx-action
+      # Set up Docker Buildx - to use cache-from and cache-to argument of buildx command
+      - uses: docker/setup-buildx-action@v1
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Publish HPU CI runner to Docker Hub
+        # publish master/release
+        uses: docker/build-push-action@v2
+        with:
+          build-args: |
+            DIST=latest
+            GAUDI_VERSION=${{ matrix.gaudi_version }}
+            PYTORCH_VERSION=${{ matrix.pytorch_version }}
+          file: dockers/ci-runner-hpu/Dockerfile
+          push: ${{ env.PUSH_TO_HUB }}
+          tags: pytorchlightning/pytorch_lightning:hpu-ci-runner-gaudi${{ matrix.gaudi_version }}
+        timeout-minutes: 55
+
+      # report failure to Slack
+      - name: Slack notification
+        if: failure() && github.event_name == 'schedule'
+        uses: ravsamhq/notify-slack-action@v1
+        with:
+          status: ${{ job.status }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          notification_title: ${{ format('HPU; {0} py{1} for *{2}*', runner.os, matrix.gaudi_version, matrix.pytorch_version) }}
+          message_format: '{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@U02PV6CL144> <@U0355SJN6HK>'  #arao & Mythravarun N R
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

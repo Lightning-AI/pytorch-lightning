@@ -6,6 +6,8 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
+    paths-ignore:
+      - "src/lightning_app/**"  # todo: implement job skip
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -49,17 +51,19 @@ jobs:
           pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
 
       - name: Install | Uninstall package - archive
+        working-directory: ./dist
         run: |
           # install as archive
-          pip install dist/*.tar.gz
+          pip install *.tar.gz
           cd ..
-          python -c "import pytorch_lightning as pl ; print(pl.__version__)"
-          pip uninstall -y pytorch-lightning
+          python -c "import pytorch_lightning ; print(pytorch_lightning.__version__)"
+          pip uninstall -y pytorch_lightning
 
       - name: Install | Uninstall package - wheel
+        working-directory: ./dist
         run: |
           # install as wheel
-          pip install dist/*.whl
+          pip install *.whl
           cd ..
-          python -c "import pytorch_lightning as pl ; print(pl.__version__)"
-          pip uninstall -y pytorch-lightning
+          python -c "import pytorch_lightning ; print(pytorch_lightning.__version__)"
+          pip uninstall -y pytorch_lightning

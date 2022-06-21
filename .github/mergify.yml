@@ -67,4 +67,4 @@ pull_request_rules:
     actions:
       request_reviews:
         teams:
-          - "@PyTorchLightning/core-lightning"
+          - "@Lightning-AI/core-lightning"

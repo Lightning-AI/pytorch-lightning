@@ -26,7 +26,7 @@ submodules:
 # Build documentation in the docs/ directory with Sphinx
 # reference: https://docs.readthedocs.io/en/stable/config-file/v2.html#sphinx
 sphinx:
-  configuration: docs/source/conf.py
+  configuration: docs/source-pytorch/conf.py
   fail_on_warning: true
 
 # Build documentation with MkDocs
@@ -52,3 +52,5 @@ python:
   install:
     - requirements: requirements/docs.txt
     #- requirements: requirements.txt
+    - method: pip
+      path: .
