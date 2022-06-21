@@ -106,6 +106,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Raise an error if there are insufficient training batches when using a float value of `limit_train_batches` ([#12885](https://github.com/PyTorchLightning/pytorch-lightning/pull/12885))
 
 
+- The `WandbLogger` will now use the run name in the logs folder if it is provided, and otherwise the project name  ([#12604](https://github.com/PyTorchLightning/pytorch-lightning/pull/12604))
+
 
 
 ### Deprecated
@@ -237,6 +239,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed ``LightningCLI`` signature parameter resolving for some lightning classes ([#13283](https://github.com/PyTorchLightning/pytorch-lightning/pull/13283))
+
+
+- Fixed `estimated_stepping_batches` requiring distributed comms in `configure_optimizers` for the `DeepSpeedStrategy` ([#13350](https://github.com/PyTorchLightning/pytorch-lightning/pull/13350))
 
 
 -
