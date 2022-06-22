@@ -590,7 +590,7 @@ class Trainer(
             self.loggers = [DummyLogger()] if self.loggers else []
 
             rank_zero_info(
-                f"Running in fast_dev_run mode: will run the requested loop using {num_batches} batch(es). "
+                f"Running in `fast_dev_run` mode: will run the requested loop using {num_batches} batch(es). "
                 "Logging and checkpointing is suppressed."
             )
 
