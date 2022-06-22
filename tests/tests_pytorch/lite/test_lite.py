@@ -201,7 +201,7 @@ def test_setup_dataloaders_raises_for_unknown_custom_args():
     with pytest.raises(
         MisconfigurationException,
         match=(
-            r"Trying to inject `DistributedSampler` into the `CustomDataLoader` instance.*"
+            r"Trying to inject custom `Sampler` into the `CustomDataLoader` instance.*"
             r"The missing attributes are \['new_arg'\]"
         ),
     ):

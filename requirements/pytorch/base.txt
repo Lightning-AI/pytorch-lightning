@@ -4,7 +4,7 @@ tqdm>=4.57.0, <=4.63.0
 PyYAML>=5.4, <=6.0
 fsspec[http]>=2021.05.0, !=2021.06.0, <=2022.2.0
 tensorboard>=2.2.0, <2.10.0
-torchmetrics>=0.4.1, <=0.7.2
+torchmetrics>=0.4.1, <0.9.2
 pyDeprecate>=0.3.1, <=0.3.2
 packaging>=17.0, <=21.3
 typing-extensions>=4.0.0, <4.2.1
