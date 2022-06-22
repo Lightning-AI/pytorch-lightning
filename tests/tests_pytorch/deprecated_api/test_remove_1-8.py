@@ -40,7 +40,7 @@ from pytorch_lightning.plugins.training_type.sharded_spawn import DDPSpawnSharde
 from pytorch_lightning.plugins.training_type.single_device import SingleDevicePlugin
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
-from pytorch_lightning.profiler import AbstractProfiler, AdvancedProfiler, BaseProfiler, Profiler, SimpleProfiler
+from pytorch_lightning.profilers import AbstractProfiler, AdvancedProfiler, BaseProfiler, Profiler, SimpleProfiler
 from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage

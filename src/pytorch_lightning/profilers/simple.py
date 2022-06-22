@@ -21,7 +21,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
-from pytorch_lightning.profiler.profiler import Profiler
+from pytorch_lightning.profilers.profiler import Profiler
 
 log = logging.getLogger(__name__)
 

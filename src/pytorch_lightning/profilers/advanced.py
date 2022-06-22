@@ -19,7 +19,7 @@ import pstats
 from pathlib import Path
 from typing import Dict, Optional, Union
 
-from pytorch_lightning.profiler.profiler import Profiler
+from pytorch_lightning.profilers.profiler import Profiler
 
 log = logging.getLogger(__name__)
 
