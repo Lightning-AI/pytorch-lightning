@@ -138,7 +138,3 @@ def _setup_args():
             "Programming Language :: Python :: 3.9",
         ],
     )
-
-
-# fixme
-print()

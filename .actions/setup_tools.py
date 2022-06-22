@@ -20,6 +20,7 @@ import shutil
 from typing import List
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+_PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app"}
 
 
 def load_requirements(
