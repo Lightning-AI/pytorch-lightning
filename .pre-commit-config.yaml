@@ -23,7 +23,7 @@ ci:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.1.0
+    rev: v4.3.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
@@ -37,17 +37,18 @@ repos:
         exclude: |
             (?x)^(
                 CHANGELOG.md|
-                docs/source/_static/images/general/fast_2.gif|
-                docs/source/_static/images/mnist_imgs/pt_to_pl.jpg|
-                docs/source/_static/images/lightning_module/pt_to_pl.png|
-                docs/source/_static/images/general/pl_quick_start_full_compressed.gif|
-                docs/source/_static/images/general/pl_overview_flat.jpg|
-                docs/source/_static/images/general/pl_overview.gif
+                docs/source-pytorch/_static/images/general/fast_2.gif|
+                docs/source-pytorch/_static/images/mnist_imgs/pt_to_pl.jpg|
+                docs/source-pytorch/_static/images/lightning_module/pt_to_pl.png|
+                docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif|
+                docs/source-pytorch/_static/images/general/pl_overview_flat.jpg|
+                docs/source-pytorch/_static/images/general/pl_overview.gif|
+                src/lightning_app/cli/pl-app-template/ui/yarn.lock
             )$
       - id: detect-private-key
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.31.1
+    rev: v2.34.0
     hooks:
       - id: pyupgrade
         args: [--py37-plus]
