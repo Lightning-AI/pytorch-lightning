@@ -115,7 +115,7 @@ jobs:
       matrix:
         include:
           # the config used in '.azure/gpu-tests.yml'
-          - {python_version: "3.7", pytorch_version: "1.10", cuda_version: "10.2", ubuntu_version: "18.04"}
+          - {python_version: "3.7", pytorch_version: "1.9", cuda_version: "10.2", ubuntu_version: "18.04"}
           - {python_version: "3.7", pytorch_version: "1.11", cuda_version: "10.2", ubuntu_version: "18.04"}
           - {python_version: "3.8", pytorch_version: "1.11", cuda_version: "11.3.1", ubuntu_version: "20.04"}
           # latest (used in Tutorials)
