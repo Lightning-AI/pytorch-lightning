@@ -75,7 +75,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 
-- Override `__getattr__` in `DummyLogger` to avoid `AttributeError` from third party logger calls in `fast_dev_run` ([#13224](https://github.com/PyTorchLightning/pytorch-lightning/pull/13224))
+- Added support for calling unknown methods with `DummyLogger` ([#13224](https://github.com/PyTorchLightning/pytorch-lightning/pull/13224))
 
 ### Changed
 
