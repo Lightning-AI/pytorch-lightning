@@ -8,4 +8,4 @@ torchmetrics>=0.4.1, <0.9.2
 pyDeprecate>=0.3.1, <=0.3.2
 packaging>=17.0, <=21.3
 typing-extensions>=4.0.0, <4.2.1
-protobuf<=3.20.1  # strict. TODO: Remove after tensorboard gets compatible https://github.com/tensorflow/tensorboard/issues/5708
+protobuf<4.21.2  # strict. TODO: Remove after tensorboard gets compatible https://github.com/tensorflow/tensorboard/issues/5708
