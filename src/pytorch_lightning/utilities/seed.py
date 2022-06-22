@@ -24,7 +24,7 @@ from typing import Any, Dict, Generator, Optional
 import numpy as np
 import torch
 
-from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn, _log_info
+from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn, _get_rank
 
 log = logging.getLogger(__name__)
 
