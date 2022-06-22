@@ -13,10 +13,10 @@
 # limitations under the License.
 import operator
 
+from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _BAGUA_AVAILABLE,
-    _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _module_available,
