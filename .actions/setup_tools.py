@@ -19,53 +19,66 @@ import re
 import shutil
 from typing import List
 
-_PACKAGE_ROOT = os.path.dirname(__file__)
-_PROJECT_ROOT = os.path.dirname(_PACKAGE_ROOT)
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 
 
-def _load_requirements(path_dir: str, file_name: str = "requirements.txt", comment_char: str = "#") -> List[str]:
+def load_requirements(
+    path_dir: str, file_name: str = "base.txt", comment_char: str = "#", unfreeze: bool = True
+) -> List[str]:
     """Load requirements from a file.
 
-    >>> _load_requirements(_PROJECT_ROOT)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-    [...]
+    >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
+    >>> load_requirements(path_req)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    ['numpy...', 'torch...', ...]
     """
     with open(os.path.join(path_dir, file_name)) as file:
         lines = [ln.strip() for ln in file.readlines()]
     reqs = []
     for ln in lines:
         # filer all comments
+        comment = ""
         if comment_char in ln:
-            ln = ln[: ln.index(comment_char)].strip()
+            comment = ln[ln.index(comment_char) :]
+            ln = ln[: ln.index(comment_char)]
+        req = ln.strip()
         # skip directly installed dependencies
-        if ln.startswith("http"):
+        if not req or req.startswith("http") or "@http" in req:
             continue
-        # skip index url
-        if ln.startswith("--extra-index-url"):
-            continue
-        if ln:  # if requirement is not empty
-            reqs.append(ln)
+        # remove version restrictions unless they are strict
+        if unfreeze and "<" in req and "strict" not in comment:
+            req = re.sub(r",? *<=? *[\d\.\*]+", "", req).strip()
+        reqs.append(req)
     return reqs
 
 
-def _load_readme_description(path_dir: str, homepage: str, ver: str) -> str:
-    """Load readme as decribtion."""
-    path_readme = os.path.join(path_dir, "README.md")
-    with open(path_readme, encoding="utf-8") as fp:
-        text = fp.read()
+def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
+    """Load readme as decribtion.
 
-    # https://github.com/PyTorchLightning/pytorch-lightning/raw/master/docs/source/_images/lightning_module/pt_to_pl.png
-    github_source_url = os.path.join(homepage, "raw", ver)
+    >>> load_readme_description(_PROJECT_ROOT, "", "")  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
+    '<div align="center">...'
+    """
+    path_readme = os.path.join(path_dir, "README.md")
+    text = open(path_readme, encoding="utf-8").read()
+
+    # drop images from readme
+    text = text.replace("![PT to PL](docs/source/_static/images/general/pl_quick_start_full_compressed.gif)", "")
+
+    # https://github.com/Lightning-AI/lightning/raw/master/docs/source/_static/images/lightning_module/pt_to_pl.png
+    github_source_url = os.path.join(homepage, "raw", version)
     # replace relative repository path to absolute link to the release
     #  do not replace all "docs" as in the readme we reger some other sources with particular path to docs
     text = text.replace("docs/source/_static/", f"{os.path.join(github_source_url, 'docs/source/_static/')}")
 
     # readthedocs badge
-    text = text.replace("badge/?version=stable", f"badge/?version={ver}")
-    text = text.replace("lightning.readthedocs.io/en/stable/", f"lightning.readthedocs.io/en/{ver}")
+    text = text.replace("badge/?version=stable", f"badge/?version={version}")
+    text = text.replace("pytorch-lightning.readthedocs.io/en/stable/", f"pytorch-lightning.readthedocs.io/en/{version}")
     # codecov badge
-    text = text.replace("/branch/master/graph/badge.svg", f"/release/{ver}/graph/badge.svg")
+    text = text.replace("/branch/master/graph/badge.svg", f"/release/{version}/graph/badge.svg")
     # replace github badges for release ones
-    text = text.replace("badge.svg?branch=master&event=push", f"badge.svg?tag={ver}")
+    text = text.replace("badge.svg?branch=master&event=push", f"badge.svg?tag={version}")
+    # Azure...
+    text = text.replace("?branchName=master", f"?branchName=refs%2Ftags%2F{version}")
+    text = re.sub(r"\?definitionId=\d+&branchName=master", f"?definitionId=2&branchName=refs%2Ftags%2F{version}", text)
 
     skip_begin = r"<!-- following section will be skipped from PyPI description -->"
     skip_end = r"<!-- end skipping PyPI description -->"
@@ -73,13 +86,13 @@ def _load_readme_description(path_dir: str, homepage: str, ver: str) -> str:
     text = re.sub(rf"{skip_begin}.+?{skip_end}", "<!--  -->", text, flags=re.IGNORECASE + re.DOTALL)
 
     # # https://github.com/Borda/pytorch-lightning/releases/download/1.1.0a6/codecov_badge.png
-    # github_release_url = os.path.join(homepage, "releases", "download", ver)
+    # github_release_url = os.path.join(homepage, "releases", "download", version)
     # # download badge and replace url with local file
     # text = _parse_for_badge(text, github_release_url)
     return text
 
 
-def _create_meta_package(package_dir: str = _PACKAGE_ROOT, folder: str = _PROJECT_ROOT, new_pkg: str = "lightning.app"):
+def _create_meta_package(package_dir: str, folder: str = _PROJECT_ROOT, new_pkg: str = "lightning.app"):
     """
     >>> _create_meta_package()
     """
