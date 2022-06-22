@@ -18,7 +18,7 @@ import pytest
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments import XLAEnvironment
-from tests.helpers.runif import RunIf
+from tests_pytorch.helpers.runif import RunIf
 
 
 @RunIf(tpu=True)
