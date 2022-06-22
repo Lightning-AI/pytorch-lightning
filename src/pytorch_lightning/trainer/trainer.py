@@ -505,6 +505,7 @@ class Trainer(
                 self.limit_val_batches = _determine_batch_limits(limit_val_batches, "limit_val_batches")
             self.limit_test_batches = _determine_batch_limits(limit_test_batches, "limit_test_batches")
             self.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
+            self.num_sanity_val_steps = float("inf") if num_sanity_val_steps == -1 else num_sanity_val_steps
             self.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
         if overfit_batches_enabled:
             self.limit_train_batches = overfit_batches
@@ -576,7 +577,7 @@ class Trainer(
         self.track_grad_norm: float = float(track_grad_norm)
 
         self._detect_anomaly: bool = detect_anomaly
-        self._setup_on_init(num_sanity_val_steps)
+        self._setup_on_init()
 
         # configure tuner
         self.tuner.on_trainer_init(auto_lr_find, auto_scale_batch_size)
@@ -587,18 +588,13 @@ class Trainer(
         # Callback system
         self._call_callback_hooks("on_init_end")
 
-    def _setup_on_init(self, num_sanity_val_steps: int) -> None:
+    def _setup_on_init(self) -> None:
         self._log_device_info()
 
         self.should_stop = False
         self.state = TrainerState()
         self.num_training_batches = float("inf")
         self.train_dataloader = None
-
-        if num_sanity_val_steps == -1:
-            self.num_sanity_val_steps = float("inf")
-        else:
-            self.num_sanity_val_steps = num_sanity_val_steps
 
         self.num_sanity_val_batches = []
         self.num_test_batches = []
