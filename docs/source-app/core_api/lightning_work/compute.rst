@@ -71,7 +71,7 @@ Here is the full list of supported machine names:
      - 4 (V100 16 GB)
      - 244 GB
 
-The up-to-date prices for these instances can be found `here <https://lightning.ai/pricing>`_.
+The up-to-date prices for these instances can be found `here <https://lightning.ai/pages/pricing>`_.
 
 
 *******************************************
