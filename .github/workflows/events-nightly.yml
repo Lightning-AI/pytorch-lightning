@@ -3,6 +3,7 @@ name: Nightly
 # https://jasonet.co/posts/scheduled-actions/
 # https://github.community/t/distinct-job-for-each-schedule/17811/2
 on:
+  push: {}  # fixme
   schedule:
     # At the end of every day
     - cron: "0 0 * * *"
@@ -114,9 +115,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # the config used in '.azure-pipelines/gpu-tests.yml'
-          - {python_version: "3.7", pytorch_version: "1.10", cuda_version: "11.1", ubuntu_version: "20.04"}
-          - {python_version: "3.7", pytorch_version: "1.11", cuda_version: "11.3.1", ubuntu_version: "20.04"}
+          # the config used in '.azure/gpu-tests.yml'
+          - {python_version: "3.7", pytorch_version: "1.10", cuda_version: "10.2", ubuntu_version: "18.04"}
+          - {python_version: "3.8", pytorch_version: "1.11", cuda_version: "11.3.1", ubuntu_version: "20.04"}
           # latest (used in Tutorials)
           - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1", ubuntu_version: "20.04"}
           - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.1", ubuntu_version: "20.04"}
@@ -143,7 +144,7 @@ jobs:
             UBUNTU_VERSION=${{ matrix.ubuntu_version }}
           file: dockers/base-cuda/Dockerfile
           push: ${{ env.PUSH_TO_HUB }}
-          tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+          tags: pytorchlightning/pytorch_lightning:base-cuda${{ matrix.cuda_version }}-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 95
 
       # report failure to Slack
