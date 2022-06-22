@@ -232,7 +232,7 @@ others
 profiler
 --------
 
-.. currentmodule:: pytorch_lightning.profiler
+.. currentmodule:: pytorch_lightning.profilers
 
 .. autosummary::
     :toctree: api
