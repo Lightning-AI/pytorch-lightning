@@ -115,7 +115,11 @@ class _XLASpawnLauncher(_SpawnLauncher):
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
         rank_zero_debug("Finalizing the TPU spawn environment.")
         checkpoint_callback = trainer.checkpoint_callback
-        best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
+        best_model_path = (
+            checkpoint_callback.best_model_path
+            if checkpoint_callback and hasattr(checkpoint_callback, "best_model_path")
+            else None
+        )
 
         # requires to compute the state_dict on all processes in case Metrics are present
         state_dict = trainer.lightning_module.state_dict()

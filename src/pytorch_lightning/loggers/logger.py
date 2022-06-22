@@ -25,7 +25,7 @@ from weakref import ReferenceType
 import numpy as np
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.model_checkpoint import Checkpoint
+from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
 
 

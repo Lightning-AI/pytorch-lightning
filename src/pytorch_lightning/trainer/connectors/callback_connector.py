@@ -19,6 +19,7 @@ from typing import Dict, List, Optional, Sequence, Union
 
 from pytorch_lightning.callbacks import (
     Callback,
+    Checkpoint,
     GradientAccumulationScheduler,
     ModelCheckpoint,
     ModelSummary,
@@ -26,7 +27,6 @@ from pytorch_lightning.callbacks import (
     RichProgressBar,
     TQDMProgressBar,
 )
-from pytorch_lightning.callbacks.model_checkpoint import Checkpoint
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities.exceptions import MisconfigurationException

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.callbacks.callback import Callback
+from pytorch_lightning.callbacks.checkpoint import Checkpoint
 from pytorch_lightning.callbacks.device_stats_monitor import DeviceStatsMonitor
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.finetuning import BackboneFinetuning, BaseFinetuning
@@ -32,6 +33,7 @@ __all__ = [
     "BackboneFinetuning",
     "BaseFinetuning",
     "Callback",
+    "Checkpoint",
     "DeviceStatsMonitor",
     "EarlyStopping",
     "GradientAccumulationScheduler",

@@ -1397,7 +1397,7 @@ class Trainer(
                     f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured.'
                 )
 
-            if not self.checkpoint_callback.best_model_path:
+            if hasattr(self.checkpoint_callback, "best_model_path") and not self.checkpoint_callback.best_model_path:
                 if self.fast_dev_run:
                     raise MisconfigurationException(
                         f'You cannot execute `.{fn}(ckpt_path="best")` with `fast_dev_run=True`.'
@@ -1407,11 +1407,15 @@ class Trainer(
                     f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'
                 )
             # load best weights
-            ckpt_path = self.checkpoint_callback.best_model_path
+            ckpt_path = (
+                self.checkpoint_callback.best_model_path
+                if hasattr(self.checkpoint_callback, "best_model_path")
+                else None
+            )
 
         if ckpt_path == "last":
-            candidates = [ft.ckpt_path for ft in ft_checkpoints] + [
-                cb.last_model_path for cb in self.checkpoint_callbacks
+            candidates = [ft.ckpt_path if hasattr(ft, "ckpt_path") else None for ft in ft_checkpoints] + [
+                cb.last_model_path if hasattr(cb, "last_model_path") else None for cb in self.checkpoint_callbacks
             ]
             candidates_fs = {path: get_filesystem(path) for path in candidates if path}
             candidates_ts = {path: fs.modified(path) for path, fs in candidates_fs.items() if fs.exists(path)}

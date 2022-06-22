@@ -34,7 +34,7 @@ import yaml
 from torch import Tensor
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.callback import Callback
+from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.logger import _name, _version
@@ -44,14 +44,6 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 log = logging.getLogger(__name__)
 warning_cache = WarningCache()
-
-
-class Checkpoint(Callback):
-    r"""
-    This is the base class for Model checkpointing. Expert users may want to subclass it in case of writing
-    custom :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callback, so that
-    the trainer recognizes the custom class as a checkpointing callback.
-    """
 
 
 class ModelCheckpoint(Checkpoint):

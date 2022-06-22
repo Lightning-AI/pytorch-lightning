@@ -31,7 +31,7 @@ import torch
 from torch import Tensor
 
 from pytorch_lightning import __version__
-from pytorch_lightning.callbacks.model_checkpoint import Checkpoint
+from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.imports import _NEPTUNE_AVAILABLE, _NEPTUNE_GREATER_EQUAL_0_9
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _sanitize_callable_params
@@ -547,19 +547,20 @@ class NeptuneLogger(Logger):
         checkpoints_namespace = self._construct_path_with_prefix("model/checkpoints")
 
         # save last model
-        if checkpoint_callback.last_model_path:
+        if hasattr(checkpoint_callback, "last_model_path") and checkpoint_callback.last_model_path:
             model_last_name = self._get_full_model_name(checkpoint_callback.last_model_path, checkpoint_callback)
             file_names.add(model_last_name)
             self.run[f"{checkpoints_namespace}/{model_last_name}"].upload(checkpoint_callback.last_model_path)
 
         # save best k models
-        for key in checkpoint_callback.best_k_models.keys():
-            model_name = self._get_full_model_name(key, checkpoint_callback)
-            file_names.add(model_name)
-            self.run[f"{checkpoints_namespace}/{model_name}"].upload(key)
+        if hasattr(checkpoint_callback, "best_k_models"):
+            for key in checkpoint_callback.best_k_models.keys():
+                model_name = self._get_full_model_name(key, checkpoint_callback)
+                file_names.add(model_name)
+                self.run[f"{checkpoints_namespace}/{model_name}"].upload(key)
 
         # log best model path and checkpoint
-        if checkpoint_callback.best_model_path:
+        if hasattr(checkpoint_callback, "best_model_path") and checkpoint_callback.best_model_path:
             self.run[self._construct_path_with_prefix("model/best_model_path")] = checkpoint_callback.best_model_path
 
             model_name = self._get_full_model_name(checkpoint_callback.best_model_path, checkpoint_callback)
@@ -575,7 +576,7 @@ class NeptuneLogger(Logger):
                 del self.run[f"{checkpoints_namespace}/{file_to_drop}"]
 
         # log best model score
-        if checkpoint_callback.best_model_score:
+        if hasattr(checkpoint_callback, "best_model_score") and checkpoint_callback.best_model_score:
             self.run[self._construct_path_with_prefix("model/best_model_score")] = (
                 checkpoint_callback.best_model_score.cpu().detach().numpy()
             )
@@ -583,11 +584,14 @@ class NeptuneLogger(Logger):
     @staticmethod
     def _get_full_model_name(model_path: str, checkpoint_callback: "ReferenceType[Checkpoint]") -> str:
         """Returns model name which is string `model_path` appended to `checkpoint_callback.dirpath`."""
-        expected_model_path = f"{checkpoint_callback.dirpath}{os.path.sep}"
-        if not model_path.startswith(expected_model_path):
-            raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
-        # Remove extension from filepath
-        filepath, _ = os.path.splitext(model_path[len(expected_model_path) :])
+        if hasattr(checkpoint_callback, "dirpath"):
+            expected_model_path = f"{checkpoint_callback.dirpath}{os.path.sep}"
+            if not model_path.startswith(expected_model_path):
+                raise ValueError(f"{model_path} was expected to start with {expected_model_path}.")
+            # Remove extension from filepath
+            filepath, _ = os.path.splitext(model_path[len(expected_model_path) :])
+        else:
+            filepath = model_path
 
         return filepath
 
