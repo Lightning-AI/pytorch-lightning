@@ -465,6 +465,7 @@ class LightningWork(abc.ABC):
         pass
 
     def stop(self):
+        """Stops LightingWork component and shuts down hardware provisioned via L.CloudCompute."""
         if not self._backend:
             raise Exception(
                 "Can't stop the work, it looks like it isn't attached to a LightningFlow. "
