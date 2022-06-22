@@ -19,6 +19,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 
 def verify_loop_configurations(trainer: "pl.Trainer") -> None:
@@ -115,9 +116,15 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
     has_val_step = is_overridden("validation_step", model)
 
     if has_val_loader and not has_val_step:
-        rank_zero_warn("You passed in a `val_dataloader` but have no `validation_step`. Skipping val loop.")
+        rank_zero_warn(
+            "You passed in a `val_dataloader` but have no `validation_step`. Skipping val loop.",
+            category=PossibleUserWarning,
+        )
     if has_val_step and not has_val_loader:
-        rank_zero_warn("You defined a `validation_step` but have no `val_dataloader`. Skipping val loop.")
+        rank_zero_warn(
+            "You defined a `validation_step` but have no `val_dataloader`. Skipping val loop.",
+            category=PossibleUserWarning,
+        )
 
 
 def _check_on_post_move_to_device(model: "pl.LightningModule") -> None:
