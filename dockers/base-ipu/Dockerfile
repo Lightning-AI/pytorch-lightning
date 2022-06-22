@@ -73,9 +73,9 @@ ENV \
     CONDA_DEFAULT_ENV=${CONDA_ENV} \
     MKL_THREADING_LAYER=GNU
 
-COPY ./requirements/extra.txt requirements-extra.txt
-COPY ./requirements/test.txt requirements-test.txt
-COPY ./requirements/adjust-versions.py adjust_versions.py
+COPY ./requirements/pytorch/extra.txt requirements-extra.txt
+COPY ./requirements/pytorch/test.txt requirements-test.txt
+COPY ./requirements/pytorch/adjust-versions.py adjust_versions.py
 COPY ./.actions/assistant.py assistant.py
 
 RUN \

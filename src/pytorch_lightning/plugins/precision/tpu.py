@@ -46,7 +46,7 @@ class TPUPrecisionPlugin(PrecisionPlugin):
             # we lack coverage here so disable this - something to explore if there's demand
             raise MisconfigurationException(
                 "Skipping backward by returning `None` from your `training_step` is not implemented for TPUs."
-                " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`"
+                " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
                 " requesting this feature."
             )
         return closure_result

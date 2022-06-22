@@ -1337,3 +1337,26 @@ def test_error_with_invalid_accelerator(tmpdir):
     model = BoringModel()
     with pytest.raises(MisconfigurationException, match="DeepSpeed strategy is only supported on GPU"):
         trainer.fit(model)
+
+
+@RunIf(min_cuda_gpus=2, deepspeed=True, standalone=True)
+def test_deepspeed_configure_optimizer_device_set(tmpdir):
+    """Test to ensure that the LM has access to the device within the ``configure_optimizer`` function, and
+    estimated_stepping_batches works correctly as a result."""
+
+    class TestModel(BoringModel):
+        def configure_optimizers(self):
+            assert self.trainer.estimated_stepping_batches == 1
+            assert self.device.type == "cuda"
+            raise SystemExit
+
+    model = TestModel()
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        accelerator="gpu",
+        devices=2,
+        strategy=DeepSpeedStrategy(),
+    )
+    with pytest.raises(SystemExit):
+        trainer.fit(model)
