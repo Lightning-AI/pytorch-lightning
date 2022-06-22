@@ -24,7 +24,7 @@ from typing import Any, Dict, Generator, Optional
 import numpy as np
 import torch
 
-from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn, _get_rank
 
 log = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
 
     # using `log.info` instead of `rank_zero_info`,
     # so users can verify the seed is properly set in distributed training.
-    log.info(f"Global seed set to {seed}")
+    log.info(f"Global seed set to {seed} with rank {_get_rank}")
     os.environ["PL_GLOBAL_SEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
