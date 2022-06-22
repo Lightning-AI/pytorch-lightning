@@ -84,7 +84,7 @@ If you are using multiple training dataloaders, Lightning won't be able to resto
             loader_b = batch["loader_b"]
 
 
-If you believe this to be useful, please open a `feature request <https://github.com/PyTorchLightning/pytorch-lightning/issues>`_.
+If you believe this to be useful, please open a `feature request <https://github.com/Lightning-AI/lightning/issues>`_.
 
 
 ----
@@ -93,7 +93,7 @@ If you believe this to be useful, please open a `feature request <https://github
 What are the performance impacts?
 *********************************
 Fault-tolerant Training was tested on common and worst-case scenarios in order to measure the impact of the internal state tracking on the total training time.
-On tiny models like the `BoringModel and RandomDataset <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/examples/pl_bug_report/bug_report_model.py>`_
+On tiny models like the `BoringModel and RandomDataset <https://github.com/Lightning-AI/lightning/blob/master/examples/pl_bug_report/bug_report_model.py>`_
 which has virtually no data loading and processing overhead, we noticed up to 50% longer training time with fault tolerance enabled.
 In this worst-case scenario, fault-tolerant adds an overhead that is noticeable in comparison to the compute time for dataloading itself.
 However, for more realistic training workloads where data loading and preprocessing is more expensive, the constant overhead that fault tolerance adds becomes less noticeable or not noticeable at all.

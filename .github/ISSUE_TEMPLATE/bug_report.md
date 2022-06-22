@@ -16,7 +16,7 @@ assignees: ''
 Please reproduce using the BoringModel!
 
 You can use the following Colab link:
-https://colab.research.google.com/github/PytorchLightning/pytorch-lightning/blob/master/examples/pl_bug_report/bug_report_model.ipynb
+https://colab.research.google.com/github/Lightning-AI/lightning/blob/master/examples/pl_bug_report/bug_report_model.ipynb
 IMPORTANT: has to be public.
 
 or this simple template:

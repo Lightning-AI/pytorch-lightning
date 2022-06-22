@@ -71,7 +71,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/*.txt') }}
+        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/pytorch/*.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
 
@@ -93,8 +93,8 @@ jobs:
     - name: Install extra dependencies
       run: |
         # adjust versions according installed Torch version
-        python ./requirements/adjust-versions.py requirements/extra.txt
-        pip install --requirement ./requirements/extra.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
+        pip install --requirement ./requirements/pytorch/extra.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip list
       shell: bash
 
@@ -108,8 +108,8 @@ jobs:
         HOROVOD_BUILT=$(python -c "import horovod.torch; horovod.torch.nccl_built(); print('SUCCESS')" || true)
         if [[ $HOROVOD_BUILT != "SUCCESS" ]]; then
           pip uninstall -y horovod
-          grep "horovod" requirements/strategies.txt > requirements/horovod.txt
-          pip install --no-cache-dir -r requirements/horovod.txt
+          grep "horovod" requirements/pytorch/strategies.txt > requirements/pytorch/horovod.txt
+          pip install --no-cache-dir -r requirements/pytorch/horovod.txt
         fi
         horovodrun --check-build
         python -c "import horovod.torch"
@@ -122,7 +122,7 @@ jobs:
         key: pl-dataset
 
     - name: Sanity check
-      run: python requirements/check-avail-extras.py
+      run: python requirements/pytorch/check-avail-extras.py
 
     - name: Testing PyTorch
       working-directory: tests/tests_pytorch
@@ -139,8 +139,8 @@ jobs:
     - name: Prepare Examples
       run: |
         # adjust versions according installed Torch version
-        python ./requirements/adjust-versions.py requirements/examples.txt
-        pip install -r requirements/examples.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt
+        pip install -r requirements/pytorch/examples.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
 
     - name: Run Examples
       working-directory: ./examples

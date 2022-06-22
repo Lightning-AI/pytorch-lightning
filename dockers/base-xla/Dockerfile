@@ -95,9 +95,9 @@ RUN \
     # drop packages installed with XLA
     python .actions/assistant.py requirements_prune_pkgs torch,torchvision && \
     # drop unnecessary packages
-    python ./requirements/adjust-versions.py ./requirements/extra.txt && \
+    python ./requirements/pytorch/adjust-versions.py ./requirements/pytorch/extra.txt && \
     # install PL dependencies
-    pip install --requirement ./requirements/devel.txt --no-cache-dir && \
+    pip install --requirement ./requirements/pytorch/devel.txt --no-cache-dir && \
     cd .. && \
     rm -rf pytorch-lightning && \
     rm -rf /root/.cache

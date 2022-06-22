@@ -134,7 +134,7 @@ in a `HyperOptArgumentParser
 
 Here is an example where you run a grid search of 9 combinations of hyperparameters.
 See also the multi-node examples
-`here <https://github.com/PyTorchLightning/pytorch-lightning/tree/master/examples/pl_basics>`__.
+`here <https://github.com/Lightning-AI/lightning/tree/master/examples/pl_basics>`__.
 
 .. code-block:: python
 
