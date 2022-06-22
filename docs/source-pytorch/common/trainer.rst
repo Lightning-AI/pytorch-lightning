@@ -1281,6 +1281,7 @@ replace_sampler_ddp
 Enables auto adding of :class:`~torch.utils.data.distributed.DistributedSampler`. In PyTorch, you must use it in
 distributed settings such as TPUs or multi-node. The sampler makes sure each GPU sees the appropriate part of your data.
 By default it will add ``shuffle=True`` for train sampler and ``shuffle=False`` for val/test sampler.
+If you already use a custom sampler, Lightning will wrap it in a way that it samples from your sampler in a distributed manner.
 If you want to customize it, you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
 If ``replace_sampler_ddp=True`` and a distributed sampler was already added,
 Lightning will not replace the existing one.
