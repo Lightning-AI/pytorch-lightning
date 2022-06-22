@@ -198,6 +198,7 @@ environments
     LSFEnvironment
     SLURMEnvironment
     TorchElasticEnvironment
+    XLAEnvironment
 
 io
 ""
