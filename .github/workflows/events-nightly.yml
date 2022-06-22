@@ -68,7 +68,7 @@ jobs:
       matrix:
         # the config used in '.circleci/config.yml`'
         python_version: ["3.7"]
-        xla_version: ["1.8"]
+        xla_version: ["1.11"]
 
     steps:
       - name: Checkout
