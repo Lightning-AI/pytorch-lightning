@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
 from torch import Tensor
 from torch.nn import Module
@@ -22,12 +22,14 @@ from pytorch_lightning.plugins.precision.precision_plugin import PrecisionPlugin
 from pytorch_lightning.utilities import GradClipAlgorithmType
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE, _DEEPSPEED_GREATER_EQUAL_0_6
+from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
 
-if _DEEPSPEED_AVAILABLE:
-    from deepspeed import DeepSpeedEngine
+_DEEPSPEED_GREATER_EQUAL_0_6 = _RequirementAvailable("deepspeed>=0.6.0")
+if TYPE_CHECKING:
+    if pl.strategies.deepspeed._DEEPSPEED_AVAILABLE:
+        import deepspeed
 
 warning_cache = WarningCache()
 
@@ -75,10 +77,12 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 " the backward logic internally."
             )
         assert model.trainer is not None
-        deepspeed_engine: DeepSpeedEngine = model.trainer.model
+        deepspeed_engine: "deepspeed.DeepSpeedEngine" = model.trainer.model
         deepspeed_engine.backward(closure_loss, *args, **kwargs)
 
-    def _run_backward(self, tensor: Tensor, model: Optional["DeepSpeedEngine"], *args: Any, **kwargs: Any) -> None:
+    def _run_backward(
+        self, tensor: Tensor, model: Optional["deepspeed.DeepSpeedEngine"], *args: Any, **kwargs: Any
+    ) -> None:
         if model is None:
             raise ValueError("Please provide the model as input to `backward`.")
         model.backward(tensor, *args, **kwargs)
@@ -104,7 +108,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 "Skipping backward by returning `None` from your `training_step` is not supported by `DeepSpeed`"
             )
         # DeepSpeed handles the optimizer step internally
-        deepspeed_engine: DeepSpeedEngine
+        deepspeed_engine: "deepspeed.DeepSpeedEngine"
         if isinstance(model, pl.LightningModule):
             assert model.trainer is not None
             deepspeed_engine = model.trainer.model
