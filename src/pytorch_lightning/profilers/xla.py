@@ -14,7 +14,7 @@
 import logging
 from typing import Dict
 
-from pytorch_lightning.profiler.profiler import Profiler
+from pytorch_lightning.profilers.profiler import Profiler
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 

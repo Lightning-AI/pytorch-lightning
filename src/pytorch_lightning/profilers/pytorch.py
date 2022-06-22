@@ -23,7 +23,7 @@ import torch
 from torch import nn, Tensor
 from torch.autograd.profiler import record_function
 
-from pytorch_lightning.profiler.profiler import Profiler
+from pytorch_lightning.profilers.profiler import Profiler
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
