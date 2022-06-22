@@ -128,6 +128,7 @@ class _DatasetSamplerWrapper(Dataset):
                 " or set `replace_sampler_ddp=False` if you want to handle distributed sampling yourself."
             )
         self._sampler = sampler
+        # defer materializing an iterator until it is necessary
         self._sampler_list: Optional[List[Any]] = None
 
     def __getitem__(self, index: int) -> Any:
@@ -151,7 +152,7 @@ class DistributedSamplerWrapper(DistributedSampler):
     """
 
     def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:
-        super().__init__(_SamplerWrapperDataset(sampler), *args, **kwargs)
+        super().__init__(_DatasetSamplerWrapper(sampler), *args, **kwargs)
 
     def __iter__(self) -> Iterator:
         self.dataset.reset()
@@ -162,7 +163,7 @@ class UnrepeatedDistributedSamplerWrapper(UnrepeatedDistributedSampler):
     """Equivalent class to ``DistributedSamplerWrapper`` but for the ``UnrepeatedDistributedSampler``."""
 
     def __init__(self, sampler: Union[Sampler, Iterable], *args: Any, **kwargs: Any) -> None:
-        super().__init__(_SamplerWrapperDataset(sampler), *args, **kwargs)
+        super().__init__(_DatasetSamplerWrapper(sampler), *args, **kwargs)
 
     def __iter__(self) -> Iterator:
         self.dataset.reset()
