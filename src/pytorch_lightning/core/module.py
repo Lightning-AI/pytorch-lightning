@@ -1330,7 +1330,7 @@ class LightningModule(
             Some things to know:
 
             - Lightning calls ``.backward()`` and ``.step()`` on each optimizer as needed.
-            - If learning rate scheduler is specified in ``configure_optimizers()`` with key ``"interval"`` (default="epoch") in the scheduler configuration,
+            - If learning rate scheduler is specified in ``configure_optimizers()`` with key ``"interval"`` (default "epoch") in the scheduler configuration,
               Lightning will call the scheduler's ``.step()`` method automatically in case of automatic optimization.
             - If you use 16-bit precision (``precision=16``), Lightning will automatically handle the optimizers.
             - If you use multiple optimizers, :meth:`training_step` will have an additional ``optimizer_idx`` parameter.
