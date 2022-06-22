@@ -554,9 +554,11 @@ class _ResultCollection(dict):
         metrics = _METRICS(callback={}, log={}, pbar={})
 
         for result_key, result_metric in self.valid_items():
-             
+
             # extract forward_cache or computed from the _ResultMetric. ignore when the output is None
-            value = apply_to_collection(result_metric, _ResultMetric, self._get_cache, on_step, result_key, include_none=False)
+            value = apply_to_collection(
+                result_metric, _ResultMetric, self._get_cache, on_step, result_key, include_none=False
+            )
 
             # convert metric collection to dict container.
             if isinstance(value, _ResultMetricCollection):
