@@ -98,6 +98,7 @@ class LightningDeprecationWarning(DeprecationWarning):
 
 rank_zero_deprecation = partial(rank_zero_warn, category=LightningDeprecationWarning)
 
+
 def _log_info(trainer: Optional["pl.Trainer"], message: str, log_rank_zero_only: bool) -> None:
     if trainer:
         # ignore logging in non-zero ranks if log_rank_zero_only flag is enabled
