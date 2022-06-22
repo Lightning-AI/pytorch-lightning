@@ -72,7 +72,7 @@ class IPUPrecisionPlugin(PrecisionPlugin):
             # we lack coverage here and IPUs are (currently) limited - something to explore if there's demand
             raise MisconfigurationException(
                 "Skipping backward by returning `None` from your `training_step` is not implemented for IPUs."
-                " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`"
+                " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
                 " requesting this feature."
             )
         return closure_result

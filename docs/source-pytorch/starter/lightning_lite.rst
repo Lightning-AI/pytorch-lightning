@@ -123,7 +123,7 @@ Here are five required steps to convert to :class:`~pytorch_lightning.lite.Light
     Lite(...).run(args)
 
 
-That's all. You can now train on any kind of device and scale your training. Check out `this <https://github.com/PyTorchLightning/pytorch-lightning/blob/master/examples/convert_from_pt_to_pl/image_classifier_2_lite.py>`_ full MNIST training example with LightningLite.
+That's all. You can now train on any kind of device and scale your training. Check out `this <https://github.com/Lightning-AI/lightning/blob/master/examples/convert_from_pt_to_pl/image_classifier_2_lite.py>`_ full MNIST training example with LightningLite.
 
 :class:`~pytorch_lightning.lite.LightningLite` takes care of device management, so you don't have to.
 You should remove any device-specific logic within your code.

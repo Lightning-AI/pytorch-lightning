@@ -162,8 +162,8 @@ jobs:
       fail-fast: false
       matrix:
         # the config used in 'dockers/ci-runner-hpu/Dockerfile'
-        gaudi_version: ["1.4.0"]
-        pytorch_version: ["1.10.2"]
+        gaudi_version: ["1.5.0"]
+        pytorch_version: ["1.11.0"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2

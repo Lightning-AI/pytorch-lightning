@@ -31,7 +31,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-docs-test-pip-td${{ env.TIME_PERIOD }}-${{ hashFiles('requirements/*.txt') }}
+          key: ${{ runner.os }}-docs-test-pip-td${{ env.TIME_PERIOD }}-${{ hashFiles('requirements/pytorch/*.txt') }}
           restore-keys: |
             ${{ runner.os }}-docs-test-pip-td${{ env.TIME_PERIOD }}-
 
@@ -42,8 +42,8 @@ jobs:
           pip --version
           pip install -q fire
           # python -m pip install --upgrade --user pip
-          pip install -e . --quiet -r requirements/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-          pip install -r requirements/devel.txt
+          pip install -e . --quiet -r requirements/pytorch/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -r requirements/pytorch/devel.txt
           pip list
         shell: bash
 
@@ -73,7 +73,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-docs-make-pip-${{ hashFiles('requirements/base.txt') }}
+          key: ${{ runner.os }}-docs-make-pip-${{ hashFiles('requirements/pytorch/base.txt') }}
           restore-keys: |
             ${{ runner.os }}-docs-make-pip-
 
@@ -82,7 +82,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
           pip --version
-          pip install -e . --quiet -r requirements/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -e . --quiet -r requirements/pytorch/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
           sudo apt-get update && sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
           pip list
