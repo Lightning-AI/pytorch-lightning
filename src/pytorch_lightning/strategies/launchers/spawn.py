@@ -55,7 +55,8 @@ class _SpawnLauncher(_Launcher):
         # The start method 'spawn' is currently the only one that works with DDP and CUDA support
         # The start method 'fork' is the only one supported in Jupyter environments but not compatible with CUDA
         # For more context, see https://github.com/Lightning-AI/lightning/issues/7550
-        return self._start_method == "fork" and self._strategy.root_device.type != "cuda"
+        # return self._start_method == "fork" and self._strategy.root_device.type != "cuda"
+        return True
 
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
         """Spawns processes that run the given function in parallel.
@@ -76,11 +77,11 @@ class _SpawnLauncher(_Launcher):
         os.environ["MASTER_PORT"] = str(self._strategy.cluster_environment.main_port)
         context = mp.get_context(self._start_method)
         return_queue = context.SimpleQueue()
-        mp.spawn(
+        mp.start_processes(
             self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
             nprocs=self._strategy.num_processes,
-            start_method=self._start_method,
+            start_method="fork",
         )
         spawn_output = return_queue.get()
         if trainer is None:
