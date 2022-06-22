@@ -12,6 +12,41 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""This is the main and only one setup entry point for installing each package as stand-alone as well as joint
+installation for all packages.
+
+There are considered three main scenarios for installing this project:
+
+1. Using PyPI registry when you can install `pytorch-lightning`, `lightning-app`, etc. or `lightning` for all.
+
+2. Installation from source code after cloning repository.
+    In such case we recommend to use command `pip install .` or `pip install -e .` for development version
+     (development ver. do not copy python files to your pip file system, just create links, so you can edit here)
+    In case you want to install just one package you need to export env. variable before calling `pip`
+
+     - for `pytorch-lightning` use `export PACKAGE_NAME=pytorch ; pip install .`
+     - for `lightning-app` use `export PACKAGE_NAME=app ; pip install .`
+
+3. Building packages as sdist or binary wheel and installing or publish to PyPI afterwords you use command
+    `python setup.py sdist` or `python setup.py bdist_wheel` accordingly.
+   In case you want to build just a particular package you would use exporting env. variable as above:
+   `export PACKAGE_NAME=pytorch|app ; python setup.py sdist bdist_wheel`
+
+4. Automated releasing with GitHub action is natural extension of 3) is composed of three consecutive steps:
+    a) determine which packages shall be released based on version increment in `__version__.py` and eventually
+     compared against PyPI registry
+    b) with a parameterization build desired packages in to standard `dist/` folder
+    c) validate packages and publish to PyPI
+
+
+| Installation   | PIP version *       | Pkg version **  |
+| -------------- | ------------------- | --------------- |
+| source         | calendar + branch   | semantic        |
+| PyPI           | semantic            | semantic        |
+
+* shown version while calling `pip list | grep lightning`
+** shown version in python `from <pytorch_lightning|lightning_app> import __version__`
+"""
 
 import os
 from importlib.util import module_from_spec, spec_from_file_location

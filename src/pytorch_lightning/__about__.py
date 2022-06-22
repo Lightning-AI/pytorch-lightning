@@ -1,3 +1,18 @@
+#!/usr/bin/env python
+# Copyright The PyTorch Lightning team.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os.path
 import time
 from importlib.util import module_from_spec, spec_from_file_location
@@ -95,14 +110,13 @@ def _prepare_extras():
 def _setup_args():
     return dict(
         name="pytorch-lightning",
-        version=__version.version,
+        version=__version.version,  # todo: consider using date version + branch for installation from source
         description=__docs__,
         author=__author__,
         author_email=__author_email__,
         url=__homepage__,
         download_url="https://github.com/Lightning-AI/lightning",
         license=__license__,
-        # todo: temp disable installing apps from source
         packages=find_packages(where="src", include=["pytorch_lightning", "pytorch_lightning.*"]),
         package_dir={"": "src"},
         include_package_data=True,
