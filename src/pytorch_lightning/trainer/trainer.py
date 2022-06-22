@@ -166,6 +166,7 @@ class Trainer(
         sync_batchnorm: bool = False,
         precision: Union[int, str] = 32,
         enable_model_summary: bool = True,
+        enable_device_summary: bool = True,
         weights_save_path: Optional[str] = None,  # TODO: Remove in 1.8
         num_sanity_val_steps: int = 2,
         resume_from_checkpoint: Optional[Union[Path, str]] = None,
@@ -395,6 +396,9 @@ class Trainer(
             enable_model_summary: Whether to enable model summarization by default.
                 Default: ``True``.
 
+            enable_device_summary: Whether to enable device summarization by default.
+                Default: ``True``.
+
             weights_save_path: Where to save weights if specified. Will override default_root_dir
                 for checkpoints only. Use this if for whatever reason you need the checkpoints
                 stored in a different place than the logs written in `default_root_dir`.
@@ -528,7 +532,7 @@ class Trainer(
         self.track_grad_norm: float = float(track_grad_norm)
 
         self._detect_anomaly: bool = detect_anomaly
-        self._setup_on_init(num_sanity_val_steps)
+        self._setup_on_init(num_sanity_val_steps, enable_device_summary)
 
         # configure tuner
         self.tuner.on_trainer_init(auto_lr_find, auto_scale_batch_size)
@@ -608,8 +612,8 @@ class Trainer(
             self.limit_train_batches = overfit_batches
             self.limit_val_batches = overfit_batches
 
-    def _setup_on_init(self, num_sanity_val_steps: int) -> None:
-        self._log_device_info()
+    def _setup_on_init(self, num_sanity_val_steps: int, enable_device_summary: bool) -> None:
+        self._log_device_info(enable_device_summary)
 
         self.should_stop = False
         self.state = TrainerState()
@@ -1730,19 +1734,20 @@ class Trainer(
         self.profiler._lightning_module = proxy(self.lightning_module)
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
 
-    def _log_device_info(self) -> None:
-        rank_zero_info(
-            f"GPU available: {torch.cuda.is_available()}, used: {isinstance(self.accelerator, GPUAccelerator)}"
-        )
+    def _log_device_info(self, enable_device_summary) -> None:
+        if enable_device_summary:
+            rank_zero_info(
+                f"GPU available: {torch.cuda.is_available()}, used: {isinstance(self.accelerator, GPUAccelerator)}"
+            )
 
-        num_tpu_cores = self.num_devices if isinstance(self.accelerator, TPUAccelerator) else 0
-        rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
+            num_tpu_cores = self.num_devices if isinstance(self.accelerator, TPUAccelerator) else 0
+            rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
 
-        num_ipus = self.num_devices if isinstance(self.accelerator, IPUAccelerator) else 0
-        rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
+            num_ipus = self.num_devices if isinstance(self.accelerator, IPUAccelerator) else 0
+            rank_zero_info(f"IPU available: {_IPU_AVAILABLE}, using: {num_ipus} IPUs")
 
-        num_hpus = self.num_devices if isinstance(self.accelerator, HPUAccelerator) else 0
-        rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
+            num_hpus = self.num_devices if isinstance(self.accelerator, HPUAccelerator) else 0
+            rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
 
         if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
             rank_zero_warn(
