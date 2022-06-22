@@ -15,6 +15,7 @@ import os
 
 import pytest
 import torch
+import torch.distributed
 import torch.multiprocessing as mp
 
 import tests_pytorch.helpers.utils as tutils
@@ -47,13 +48,13 @@ def test_collect_states():
 
 def _test_all_gather_uneven_tensors(rank, world_size):
     os.environ["MASTER_ADDR"] = "localhost"
-
-    torch.cuda.set_device(f"cuda:{rank}")
+    device = torch.device("cuda", rank)
+    torch.cuda.set_device(device)
 
     # initialize the process group
     torch.distributed.init_process_group("nccl", rank=rank, world_size=world_size)
 
-    tensor = torch.ones(rank)
+    tensor = torch.ones(rank, device=device)
     result = gather_all_tensors(tensor)
     assert len(result) == world_size
     for idx in range(world_size):
@@ -63,12 +64,12 @@ def _test_all_gather_uneven_tensors(rank, world_size):
 
 def _test_all_gather_uneven_tensors_multidim(rank, world_size):
     os.environ["MASTER_ADDR"] = "localhost"
-
-    torch.cuda.set_device(f"cuda:{rank}")
+    device = torch.device("cuda", rank)
+    torch.cuda.set_device(device)
 
     # initialize the process group
     torch.distributed.init_process_group("nccl", rank=rank, world_size=world_size)
-    tensor = torch.ones(rank + 1, 2 - rank)
+    tensor = torch.ones(rank + 1, 2 - rank, device=device)
     result = gather_all_tensors(tensor)
     assert len(result) == world_size
     for idx in range(world_size):
@@ -77,7 +78,7 @@ def _test_all_gather_uneven_tensors_multidim(rank, world_size):
         assert (val == torch.ones_like(val)).all()
 
 
-@RunIf(min_gpus=2, min_torch="1.10", skip_windows=True)
+@RunIf(min_cuda_gpus=2, min_torch="1.10", skip_windows=True)
 @pytest.mark.parametrize(
     "process",
     [
