@@ -200,7 +200,6 @@ class LightningCallbackVisitor(LightningVisitor):
         "on_validation_end",
         "on_test_start",
         "on_test_end",
-        "on_keyboard_interrupt",
         "on_save_checkpoint",
         "on_load_checkpoint",
     }
