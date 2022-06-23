@@ -96,8 +96,8 @@ def _adjust_manifest():
     with open(manifest_path) as fp:
         lines = fp.readlines()
     lines += [
-        "recursive-include src/pytorch_lightning *.md" + os.linesep,
-        "recursive-include requirements/pytorch *.txt" + os.linesep,
+        "recursive-include src/lightning_app *.md" + os.linesep,
+        "recursive-include requirements/app *.txt" + os.linesep,
     ]
     with open(manifest_path, "w") as fp:
         fp.writelines(lines)

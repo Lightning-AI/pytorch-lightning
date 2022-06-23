@@ -47,7 +47,7 @@ There are considered three main scenarios for installing this project:
 * shown version while calling `pip list | grep lightning`
 ** shown version in python `from <pytorch_lightning|lightning_app> import __version__`
 """
-
+import glob
 import os
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
@@ -71,6 +71,9 @@ for i, ln in enumerate(lines):
         lines[i] = f'_PACKAGE_NAME = "{_PACKAGE_NAME}"{os.linesep}'
 with open(__file__, "w") as fp:
     fp.writelines(lines)
+
+ls = glob.glob(os.path.join(_PATH_ROOT, "src", "*", "_setup_tools.py"))
+_ = [os.remove(p) for p in ls]
 
 
 def _load_py_module(name: str, location: str) -> ModuleType:
