@@ -107,7 +107,7 @@ def create_meta_package(src_folder: str, pkg_name: str = "lightning_app", lit_na
             continue
 
         if fname in ("__init__.py", "__main__.py", "__version__.py"):
-            with open(py_file) as fp:
+            with open(py_file, encoding="utf-8") as fp:
                 lines = fp.readlines()
             body = []
             # ToDo: consider some more aggressive pruning
@@ -136,7 +136,7 @@ def create_meta_package(src_folder: str, pkg_name: str = "lightning_app", lit_na
             # spec = spec_from_file_location(os.path.join(pkg_name, local_path), py_file)
             # py = module_from_spec(spec)
             # spec.loader.exec_module(py)
-            with open(py_file) as fp:
+            with open(py_file, encoding="utf-8") as fp:
                 lines = fp.readlines()
             body = []
             skip_offset = 0
@@ -175,5 +175,5 @@ def create_meta_package(src_folder: str, pkg_name: str = "lightning_app", lit_na
 
         new_file = os.path.join(src_folder, "lightning", lit_name, local_path)
         os.makedirs(os.path.dirname(new_file), exist_ok=True)
-        with open(new_file, "w") as fp:
+        with open(new_file, "w", encoding="utf-8") as fp:
             fp.writelines([ln + os.linesep for ln in body])
