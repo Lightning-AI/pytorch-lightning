@@ -35,15 +35,11 @@ from pytorch_lightning.utilities.distributed import (
     get_default_process_group_backend_for_device,
 )
 from pytorch_lightning.utilities.distributed import group as _group
-from pytorch_lightning.utilities.distributed import (
-    init_dist_connection,
-    rank_zero_info,
-    ReduceOp,
-    sync_ddp_if_available,
-)
+from pytorch_lightning.utilities.distributed import init_dist_connection, ReduceOp, sync_ddp_if_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
+from pytorch_lightning.utilities.rank_zero import rank_zero_info
 from pytorch_lightning.utilities.seed import reset_seed
 
 MixedPrecision = None
@@ -218,8 +214,8 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             assert self.model is not None
             self.model = self._layer_sync.apply(self.model)
 
-        if not self.cpu_offload:
-            self.model_to_device()
+        # we set the device so that optimizers can be created with distributed comms.
+        self.lightning_module._device = self.root_device
 
         self.barrier()
         self.setup_optimizers(trainer)
@@ -227,10 +223,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         self.setup_precision_plugin()
 
     def model_to_device(self) -> None:
-        # ensure we update the device type in the lightning module
-        assert self.lightning_module is not None
-        log.info(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
-        self.lightning_module.to(self.root_device)
+        pass
 
     @contextlib.contextmanager
     def model_sharded_context(self) -> Generator:
@@ -241,6 +234,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             cpu_offload=self.cpu_offload,
             backward_prefetch=self.backward_prefetch,
             mixed_precision=self.mixed_precision_config,
+            device_id=self.root_device.index,
             **self.kwargs,
         ):
             yield
@@ -295,7 +289,9 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             assert self.model is not None
             self.model = self._layer_sync.revert(self.model)
 
-        super().teardown()
+        self.cluster_environment.teardown()
+        self.precision_plugin.teardown()
+        self.accelerator.teardown()
 
     @classmethod
     def get_registered_strategies(cls) -> List[str]:

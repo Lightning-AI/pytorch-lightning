@@ -3,16 +3,16 @@ from typing import Any, Dict, Optional
 
 import pytest
 import torch
-from tests.helpers.boring_model import BoringModel
-from tests.helpers.runif import RunIf
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.precision.fully_sharded_native_amp import FullyShardedNativeMixedPrecisionPlugin
 from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from pytorch_lightning.utilities.types import STEP_OUTPUT
+from tests_pytorch.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
     from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel, MixedPrecision
@@ -110,7 +110,7 @@ class TestFSDPModel(BoringModel):
         assert self.layer.mixed_precision.buffer_dtype == precision
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.11")
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12dev")
 def test_fully_sharded_native_strategy_sync_batchnorm(tmpdir):
     """Test to ensure that sync_batchnorm works when using fsdp_native and GPU, and all stages can be run."""
 
@@ -120,7 +120,7 @@ def test_fully_sharded_native_strategy_sync_batchnorm(tmpdir):
         accelerator="gpu",
         devices=2,
         strategy="fsdp_native",
-        precision=precision,
+        precision=16,
         max_epochs=1,
         sync_batchnorm=True,
     )
@@ -139,7 +139,7 @@ def test_fully_sharded_native_strategy_checkpoint(tmpdir, precision):
     _run_multiple_stages(trainer, model, os.path.join(tmpdir, "last.ckpt"))
 
 
-@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.11")
+@RunIf(min_cuda_gpus=2, skip_windows=True, standalone=True, min_torch="1.12dev")
 def test_fully_sharded_native_strategy_checkpoint_multi_gpus(tmpdir):
     """Test to ensure that checkpoint is saved correctly when using multiple GPUs, and all stages can be run."""
 
@@ -150,7 +150,7 @@ def test_fully_sharded_native_strategy_checkpoint_multi_gpus(tmpdir):
         accelerator="gpu",
         devices=2,
         strategy="fsdp_native",
-        precision=precision,
+        precision=16,
         max_epochs=1,
         callbacks=[ck],
     )
