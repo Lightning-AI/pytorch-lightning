@@ -76,6 +76,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         cpu_offload=None,
         backward_prefetch=None,
         mixed_precision=None,
+        **kwargs
     ) -> None:
         """Strategy for Fully Sharded Data Parallel provided by torch.Distributed.
 
@@ -111,6 +112,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
                 Mixed Precision config. By default, Lightning will enable FP16 if ``precision=16`
                 or BF16 if ``precision=bf16`` unless a config is passed in.
                 This is only available in PyTorch 1.12 and later.
+            **kwargs: Passed to the FSDP Context manager which will configure the FSDP class when wrapping modules.
         """
         if not _TORCH_GREATER_EQUAL_1_12:
             raise MisconfigurationException("DDPFullyShardedNativeStrategy is supported from pytorch v1.12.0 onwards.")
@@ -129,6 +131,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         self.backward_prefetch: Optional[BackwardPrefetch] = backward_prefetch
         self.mixed_precision: Optional[MixedPrecision] = mixed_precision  # type: ignore
         self._rank_0_will_call_children_scripts: bool = False
+        self.kwargs = kwargs
 
     @property
     def root_device(self) -> torch.device:
@@ -238,6 +241,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             cpu_offload=self.cpu_offload,
             backward_prefetch=self.backward_prefetch,
             mixed_precision=self.mixed_precision_config,
+            **self.kwargs
         ):
             yield
 
