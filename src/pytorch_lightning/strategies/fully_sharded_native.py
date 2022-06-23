@@ -76,7 +76,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         cpu_offload=None,
         backward_prefetch=None,
         mixed_precision=None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """Strategy for Fully Sharded Data Parallel provided by torch.Distributed.
 
@@ -241,7 +241,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             cpu_offload=self.cpu_offload,
             backward_prefetch=self.backward_prefetch,
             mixed_precision=self.mixed_precision_config,
-            **self.kwargs
+            **self.kwargs,
         ):
             yield
 
