@@ -130,8 +130,6 @@ def create_meta_package(src_folder: str, pkg_name: str = "lightning_app", lit_na
                     body.append(f"from {import_path} import {name}  # noqa: F401")
                 elif "import " in ln and "-" in ln:
                     continue
-                elif "__about__" not in ln:
-                    body.append(ln.replace(pkg_name, f"lightning.{lit_name}"))
         else:
             if fname.startswith("_") and fname not in ("__main__.py",):
                 logging.warning(f"unsupported file: {local_path}")

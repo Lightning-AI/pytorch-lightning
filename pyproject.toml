@@ -96,5 +96,6 @@ module = [
     "pytorch_lightning.utilities.data",
     "pytorch_lightning.utilities.distributed",
     "pytorch_lightning.utilities.meta",
+    "pytorch_lightning.__sertup__",
 ]
 ignore_errors = "True"
