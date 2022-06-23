@@ -9,20 +9,28 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
 
 
 jobs:
+  # Todo run job which determine changed versions
+
   # based on https://github.com/pypa/gh-action-pypi-publish
   build-package:
+    # todo run sequential
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
+    - uses: actions/download-artifact@v2
+      with:
+        name: pypi-packages-${{ github.sha }}
+        path: dist
     - uses: actions/setup-python@v2
       with:
         python-version: 3.9
 
     - name: Install dependencies
-      run: >-
-        python -m pip install --user --upgrade setuptools wheel
+      run: pip install --upgrade setuptools wheel
 
     - name: Build packages
+      env:
+        PACKAGE_NAME: pytorch
       run: |
         python setup.py sdist bdist_wheel
         ls -lh dist/
@@ -83,6 +91,7 @@ jobs:
         password: ${{ secrets.pypi_password }}
 
   create-legacy-ckpt:
+    # todo skip if pytorch was not released
     runs-on: ubuntu-20.04
     needs: [build-package, publish-package]
     steps:
@@ -92,22 +101,9 @@ jobs:
       with:
         python-version: 3.9
 
-    - name: Reset caching
-      run: python -c "import time; days = time.time() / 60 / 60 / 24; print(f'TIME_PERIOD=d{int(days / 2) * 2}')" >> $GITHUB_ENV
-      shell: bash
-
-    # Note: This uses an internal pip API and may not always work
-    # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
-    - name: Cache pip
-      uses: actions/cache@v2
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-${{ hashFiles('requirements/pytorch/base.txt') }}
-        restore-keys: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-
-
     - name: Install dependencies
       run: |
-        pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
+        pip install -e . --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
         pip install awscli
 
     - name: Configure AWS credentials
@@ -126,20 +122,21 @@ jobs:
       working-directory: ./tests/legacy
       run: |
         aws s3 cp --recursive s3://pl-public-data/legacy/checkpoints/ checkpoints/ #  --acl public-read
-        ls -l legacy/checkpoints/
+        ls -l checkpoints/
 
     - name: Generate checkpoint
+      working-directory: ./tests/legacy
       run: |
         ls -lh dist/
         pip install dist/*.whl
 
         pl_ver=$(python -c "import pytorch_lightning as pl ; print(pl.__version__)" 2>&1)
         # generate checkpoint to this version
-        bash legacy/generate_checkpoints.sh $pl_ver
+        bash generate_checkpoints.sh $pl_ver
 
     - name: Push files to S3
       working-directory: ./tests/legacy
       run: |
-        aws s3 sync legacy/checkpoints/ s3://pl-public-data/legacy/checkpoints/
+        aws s3 sync checkpoints/ s3://pl-public-data/legacy/checkpoints/
         zip -r checkpoints.zip checkpoints
         aws s3 cp checkpoints.zip s3://pl-public-data/legacy/ --acl public-read
