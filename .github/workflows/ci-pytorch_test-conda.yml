@@ -24,11 +24,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8"]  # previous to last Python version as that one is already used in test-full
-        pytorch-version: ["1.9", "1.10"]
         # nightly: add when there's a release candidate
         include:
+          - {python-version: "3.7", pytorch-version: "1.9"}
+          - {python-version: "3.8", pytorch-version: "1.10"}
           - {python-version: "3.9", pytorch-version: "1.11"}
+          - {python-version: "3.9", pytorch-version: "1.12"}
 
     timeout-minutes: 30
     steps:
