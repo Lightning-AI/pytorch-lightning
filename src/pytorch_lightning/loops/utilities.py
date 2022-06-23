@@ -224,7 +224,12 @@ def _v1_8_output_format(fx: Callable) -> bool:
 
 
 def _set_sampler_epoch(dataloader: DataLoader, epoch: int) -> None:
-    # set seed for distributed sampler (enables shuffling for each epoch)
+    """Calls the ``set_epoch`` method on either the sampler or the batch sampler of the given dataloader.
+
+    Every PyTorch dataloader has either a sampler or a batch sampler, and if it is wrapped by a
+    :class:`~torch.utils.data.DistributedSampler`, ``set_epoch`` must be called at the beginning of every epoch to
+    ensure shuffling applies a new ordering. This has no effect if shuffling is off.
+    """
     for sampler_name in ("sampler", "batch_sampler"):
         sampler = getattr(dataloader, sampler_name, None)
         if sampler and callable(getattr(sampler, "set_epoch", None)):
