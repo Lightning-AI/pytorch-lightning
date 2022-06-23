@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Added a flag named `enable_model_summary` to `Trainer` to disable device summarization ([#13379](https://github.com/PyTorchLightning/pytorch-lightning/pull/13379))
+
+
 - Added a flag named `log_rank_zero_only` to `EarlyStopping` to disable logging to non-zero rank processes ([#13233](https://github.com/PyTorchLightning/pytorch-lightning/pull/13233))
 
 
