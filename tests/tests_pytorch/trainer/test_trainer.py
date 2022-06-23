@@ -1014,9 +1014,6 @@ def test_on_exception_hook(tmpdir):
         def on_exception(self, trainer, pl_module, exception):
             self.exception = exception
 
-        def on_keyboard_interrupt(self, trainer, pl_module):
-            self.exc_info = sys.exc_info()
-
     interrupt_callback = InterruptCallback()
     handle_interrupt_callback = HandleInterruptCallback()
 
@@ -1032,15 +1029,10 @@ def test_on_exception_hook(tmpdir):
     assert not trainer.interrupted
     assert handle_interrupt_callback.exception is None
     assert handle_interrupt_callback.exc_info is None
-    with pytest.deprecated_call(match="on_keyboard_interrupt` callback hook was deprecated in v1.5"):
-        trainer.fit(model)
     assert trainer.interrupted
     assert isinstance(handle_interrupt_callback.exception, KeyboardInterrupt)
     assert isinstance(handle_interrupt_callback.exc_info[1], KeyboardInterrupt)
-    with pytest.raises(MisconfigurationException), pytest.deprecated_call(
-        match="on_keyboard_interrupt` callback hook was deprecated in v1.5"
-    ):
-        trainer.test(model)
+    
     assert trainer.interrupted
     assert isinstance(handle_interrupt_callback.exception, MisconfigurationException)
 

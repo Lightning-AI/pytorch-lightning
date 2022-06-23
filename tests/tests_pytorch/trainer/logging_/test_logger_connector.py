@@ -48,7 +48,6 @@ def test_fx_validator():
         "on_fit_start",
         "on_init_end",
         "on_init_start",
-        "on_keyboard_interrupt",
         "on_exception",
         "on_load_checkpoint",
         "load_state_dict",

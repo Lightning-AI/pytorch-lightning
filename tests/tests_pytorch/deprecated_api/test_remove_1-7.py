@@ -36,27 +36,23 @@ from tests_pytorch.deprecated_api import _soft_unimport_module
 from tests_pytorch.plugins.environments.test_lsf_environment import _make_rankfile
 
 
-def test_v1_7_0_on_interrupt(tmpdir):
-    class HandleInterruptCallback(Callback):
-        def on_keyboard_interrupt(self, trainer, pl_module):
-            print("keyboard interrupt")
+# def test_v1_7_0_on_interrupt(tmpdir):
+#     class HandleInterruptCallback(Callback):
+#         def on_keyboard_interrupt(self, trainer, pl_module):
+#             print("keyboard interrupt")
 
-    model = BoringModel()
-    handle_interrupt_callback = HandleInterruptCallback()
+#     model = BoringModel()
+#     handle_interrupt_callback = HandleInterruptCallback()
 
-    trainer = Trainer(
-        callbacks=[handle_interrupt_callback],
-        max_epochs=1,
-        limit_val_batches=0.1,
-        limit_train_batches=0.2,
-        enable_progress_bar=False,
-        logger=False,
-        default_root_dir=tmpdir,
-    )
-    with pytest.deprecated_call(
-        match="The `on_keyboard_interrupt` callback hook was deprecated in v1.5 and will be removed in v1.7"
-    ):
-        trainer.fit(model)
+#     trainer = Trainer(
+#         callbacks=[handle_interrupt_callback],
+#         max_epochs=1,
+#         limit_val_batches=0.1,
+#         limit_train_batches=0.2,
+#         enable_progress_bar=False,
+#         logger=False,
+#         default_root_dir=tmpdir,
+#     )
 
 
 class BoringCallbackDDPSpawnModel(BoringModel):
