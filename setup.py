@@ -84,6 +84,9 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 # the goal of the project is simplicity for researchers, don't want to add too much
 # engineer specific practices
 if __name__ == "__main__":
+    _SETUP_TOOLS = _load_py_module(name="setup_tools", location=os.path.join(".actions", "setup_tools.py"))
+    for lit_name, pkg_name in _PACKAGE_MAPPING.items():
+        _SETUP_TOOLS.create_meta_package(os.path.join(_PATH_ROOT, "src"), pkg_name, lit_name)
     _SETUP_MODULE = _load_py_module(name="pkg_setup", location=_PATH_SETUP)
     _SETUP_MODULE._adjust_manifest()
     setup(**_SETUP_MODULE._setup_args())

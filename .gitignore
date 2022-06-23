@@ -48,7 +48,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-src/*/_setup_tools.py
+src/lightning/*/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

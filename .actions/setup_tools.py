@@ -16,6 +16,7 @@ import glob
 import logging
 import os
 import re
+import shutil
 from typing import List
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
@@ -92,20 +93,21 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     return text
 
 
-def create_meta_package(package_dir: str, folder: str = _PROJECT_ROOT, new_pkg: str = "lightning.app"):
+def create_meta_package(src_folder: str, pkg_name: str = "lightning_app", lit_name: str = "app"):
     """
-    >>> create_meta_package()
+    >>> create_meta_package(os.path.join(_PROJECT_ROOT, "src"))
     """
-    KEEP_FILES = ("_logger", "_root_logger", "_console", "formatter", "_PACKAGE_ROOT", "_PROJECT_ROOT")
-    pkg_name = os.path.basename(package_dir)
-    py_files = glob.glob(os.path.join(package_dir, "**", "*.py"), recursive=True)
+    KEEP_FILES = ("_logger", "_root_logger", "_console", "formatter", "_DETAIL")
+    package_dir = os.path.join(src_folder, pkg_name)
+    shutil.rmtree(os.path.join(src_folder, "lightning", lit_name))
+    py_files = glob.glob(os.path.join(src_folder, pkg_name, "**", "*.py"), recursive=True)
     for py_file in py_files:
         local_path = py_file.replace(package_dir + os.path.sep, "")
         fname = os.path.basename(py_file)
         if "-" in fname:
             continue
 
-        if fname in ("__init__.py", "__main__.py"):
+        if fname in ("__init__.py", "__main__.py", "__version__.py"):
             with open(py_file) as fp:
                 lines = fp.readlines()
             body = []
@@ -126,7 +128,7 @@ def create_meta_package(package_dir: str, folder: str = _PROJECT_ROOT, new_pkg: 
                 elif "import " in ln and "-" in ln:
                     continue
                 elif "__about__" not in ln:
-                    body.append(ln.replace(pkg_name, new_pkg))
+                    body.append(ln.replace(pkg_name, f"lightning.{lit_name}"))
         else:
             if fname.startswith("_") and fname not in ("__main__.py",):
                 logging.warning(f"unsupported file: {local_path}")
@@ -172,7 +174,7 @@ def create_meta_package(package_dir: str, folder: str = _PROJECT_ROOT, new_pkg: 
                     body.append(f"from {import_path} import {name}  # noqa: F401")
                     skip_offset = len(ln) - len(ln.lstrip()) + 4
 
-        new_file = os.path.join(folder, new_pkg.replace(".", os.path.sep), local_path)
+        new_file = os.path.join(src_folder, "lightning", lit_name, local_path)
         os.makedirs(os.path.dirname(new_file), exist_ok=True)
         with open(new_file, "w") as fp:
             fp.writelines([ln + os.linesep for ln in body])
