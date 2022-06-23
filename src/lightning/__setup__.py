@@ -16,23 +16,19 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-_path_setup_tools = os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py")
-assert os.path.isfile(_path_setup_tools)
-_setup_tools = _load_py_module("setup_tools", _path_setup_tools)
-_about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
-_version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))
-_long_description = _setup_tools.load_readme_description(
-    _PROJECT_ROOT, homepage=_about.__homepage__, version=_version.version
-)
-
-
 def _adjust_manifest():
     # todo
     pass
 
 
 def _setup_args():
-
+    _path_setup_tools = os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py")
+    _setup_tools = _load_py_module("setup_tools", _path_setup_tools)
+    _about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
+    _version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))
+    _long_description = _setup_tools.load_readme_description(
+        _PROJECT_ROOT, homepage=_about.__homepage__, version=_version.version
+    )
     # todo: consider invaliding some additional arguments from packages, for example if include data or safe to zip
     return dict(
         name="lightning",
