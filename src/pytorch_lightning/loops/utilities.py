@@ -22,6 +22,7 @@ import numpy as np
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
+from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops import Loop
@@ -220,3 +221,11 @@ def _reset_progress(loop: Loop) -> None:
 def _v1_8_output_format(fx: Callable) -> bool:
     parameters = inspect.signature(fx).parameters
     return "new_format" in parameters and parameters["new_format"].default is True
+
+
+def _set_sampler_epoch(dataloader: DataLoader, epoch: int) -> None:
+    # set seed for distributed sampler (enables shuffling for each epoch)
+    for sampler_name in ("sampler", "batch_sampler"):
+        sampler = getattr(dataloader, sampler_name, None)
+        if sampler and callable(getattr(sampler, "set_epoch", None)):
+            sampler.set_epoch(epoch)

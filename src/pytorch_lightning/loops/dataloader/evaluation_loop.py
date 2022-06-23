@@ -26,6 +26,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
+from pytorch_lightning.loops.utilities import _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _OUT_DICT, _ResultCollection
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -161,14 +162,8 @@ class EvaluationLoop(DataLoaderLoop):
             self._has_run = True
 
     def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
-        dataloader = self.current_dataloader
-        if (
-            dataloader is not None
-            and getattr(dataloader, "sampler", None)
-            and callable(getattr(dataloader.sampler, "set_epoch", None))
-        ):
-            # set seed for distributed sampler (enables shuffling for each epoch)
-            dataloader.sampler.set_epoch(self.trainer.fit_loop.epoch_progress.current.processed)
+        if self.current_dataloader is not None:
+            _set_sampler_epoch(self.current_dataloader, self.trainer.fit_loop.epoch_progress.current.processed)
 
         super().on_advance_start(*args, **kwargs)
 
