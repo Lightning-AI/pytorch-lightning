@@ -16,20 +16,20 @@ To use Collaborative Training, you need to first install Hivemind.
 
     pip install hivemind
 
-The ``CollaborativeStrategy`` accumulates gradients from all processes that are collaborating until they reach a ``target_batch_size``. By default, we use the batch size
+The ``HivemindStrategy`` accumulates gradients from all processes that are collaborating until they reach a ``target_batch_size``. By default, we use the batch size
 of the first batch to determine what each local machine batch contributes towards the ``target_batch_size``. Once the ``target_batch_size`` is reached, an optimizer step
 is made on all processes.
 
 .. warning::
 
-    When using ``CollaborativeStrategy`` note that you cannot use gradient accumulation (``accumulate_grad_batches``). This is because Hivemind manages accumulation internally.
+    When using ``HivemindStrategy`` note that you cannot use gradient accumulation (``accumulate_grad_batches``). This is because Hivemind manages accumulation internally.
 
 .. code-block:: python
 
     import pytorch_lightning as pl
-    from pytorch_lightning.strategies import CollaborativeStrategy
+    from pytorch_lightning.strategies import HivemindStrategy
 
-    trainer = pl.Trainer(strategy=CollaborativeStrategy(target_batch_size=8192), accelerator="gpu", devices=1)
+    trainer = pl.Trainer(strategy=HivemindStrategy(target_batch_size=8192), accelerator="gpu", devices=1)
 
 .. code-block:: bash
 
@@ -37,7 +37,7 @@ is made on all processes.
     # Other machines can connect running the same command:
     # INITIAL_PEERS=... python train.py
     # or passing the peers to the strategy:"
-    # CollaborativeStrategy(initial_peers=...)"
+    # HivemindStrategy(initial_peers=...)"
 
 
 A helper message is printed once your training begins, which shows you how to start training on other machines using the same code.
