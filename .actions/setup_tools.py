@@ -106,7 +106,11 @@ def create_meta_package(src_folder: str, pkg_name: str = "lightning_app", lit_na
         if "-" in fname:
             continue
 
-        if fname in ("__init__.py", "__main__.py", "__version__.py"):
+        if fname in ("__about__.py", "__version__.py"):
+            with open(py_file, encoding="utf-8") as fp:
+                body = [ln.rstrip() for ln in fp.readlines()]
+
+        elif fname in ("__init__.py", "__main__.py"):
             with open(py_file, encoding="utf-8") as fp:
                 lines = fp.readlines()
             body = []
