@@ -1,7 +1,9 @@
+import glob
 import os.path
 from importlib.util import module_from_spec, spec_from_file_location
+from itertools import chain
 from types import ModuleType
-from typing import Dict, Any
+from typing import Any, Dict
 
 from setuptools import find_packages
 
@@ -41,6 +43,16 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
     _long_description = _setup_tools.load_readme_description(
         _PROJECT_ROOT, homepage=_about.__homepage__, version=_version.version
     )
+    if kwargs["pkg_name"]:
+        _include_pkgs = ["lightning", "lightning.*"]
+        # todo: generate this list automatically with parsing feature pkg versions
+        _requires = ["pytorch-lightning==1.6.*", "lightning-app==0.5.*"]
+    else:
+        _include_pkgs = ["*"]
+        _requires = [
+            _setup_tools.load_requirements(d) for d in glob.glob(os.path.join("requirements", "*")) if os.path.isdir(d)
+        ]
+        _requires = list(chain(*_requires))
     # todo: consider invaliding some additional arguments from packages, for example if include data or safe to zip
     return dict(
         name="lightning",
@@ -51,18 +63,14 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
         url=_about.__homepage__,
         download_url="https://github.com/Lightning-AI/lightning",
         license=_about.__license__,
-        packages=find_packages(
-            where="src", include=["lightning", "lightning.*"] if kwargs["pkg_name"] else ['*']
-        ),  # todo: if install from source include all package and remove them from requirements
+        packages=find_packages(where="src", include=_include_pkgs),
         package_dir={"": "src"},
         long_description=_long_description,
         long_description_content_type="text/markdown",
         keywords=["deep learning", "pytorch", "AI"],  # todo: aggregate tags from all packages
         python_requires=">=3.7",  # todo: take the lowes based on all packages
         setup_requires=[],
-        # todo: generate this list automatically with parsing feature pkg versions,
-        #  otherwise pull/aggregate dependencies from particular packages
-        install_requires=["pytorch-lightning==1.6.*", "lightning-app==0.5.*"] if kwargs["pkg_name"] else [],
+        install_requires=_requires,
         extras_require={},  # todo: consider porting all other packages extras with prefix
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
