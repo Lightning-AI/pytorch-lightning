@@ -14,7 +14,7 @@ Trains a simple CNN over MNIST using vanilla PyTorch.
 
 ```bash
 # CPU
-python mnist_examples/image_classifier_1_pytorch.py
+python ../convert_from_pt_to_pl/image_classifier_1_pytorch.py
 ```
 
 ______________________________________________________________________
@@ -25,7 +25,7 @@ This script shows you how to scale the previous script to enable GPU and multi-G
 
 ```bash
 # CPU / multiple GPUs if available
-python mnist_examples/image_classifier_2_lite.py
+python ../convert_from_pt_to_pl/image_classifier_2_lite.py
 ```
 
 ______________________________________________________________________
@@ -36,7 +36,7 @@ This script shows you how to prepare your conversion from [LightningLite](https:
 
 ```bash
 # CPU / multiple GPUs if available
-python mnist_examples/image_classifier_3_lite_to_lightning_module.py
+python ../convert_from_pt_to_pl/image_classifier_3_lite_to_lightning_module.py
 ```
 
 ______________________________________________________________________
@@ -47,10 +47,10 @@ This script shows you the result of the conversion to the `LightningModule` and 
 
 ```bash
 # CPU
-python mnist_examples/image_classifier_4_lightning_module.py
+python ../convert_from_pt_to_pl/image_classifier_4_lightning_module.py
 
 # GPUs (any number)
-python mnist_examples/image_classifier_4_lightning_module.py --trainer.accelerator 'gpu' --trainer.devices 2
+python ../convert_from_pt_to_pl/image_classifier_4_lightning_module.py --trainer.accelerator 'gpu' --trainer.devices 2
 ```
 
 ______________________________________________________________________
@@ -61,13 +61,13 @@ This script shows you how to extract the data related components into a `Lightni
 
 ```bash
 # CPU
-python mnist_examples/image_classifier_5_lightning_datamodule.py
+python ../convert_from_pt_to_pl/image_classifier_5_lightning_datamodule.py
 
 # GPUs (any number)
-python mnist_examples/image_classifier_5_lightning_datamodule.py --trainer.accelerator 'gpu' --trainer.devices 2
+python ../convert_from_pt_to_pl/image_classifier_5_lightning_datamodule.py --trainer.accelerator 'gpu' --trainer.devices 2
 
 # Distributed Data Parallel (DDP)
-python mnist_examples/image_classifier_5_lightning_datamodule.py --trainer.accelerator 'gpu' --trainer.devices 2 --trainer.strategy 'ddp'
+python ../convert_from_pt_to_pl/image_classifier_5_lightning_datamodule.py --trainer.accelerator 'gpu' --trainer.devices 2 --trainer.strategy 'ddp'
 ```
 
 ______________________________________________________________________
