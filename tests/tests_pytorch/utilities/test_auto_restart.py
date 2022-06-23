@@ -60,7 +60,6 @@ from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBat
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TORCH_GREATER_EQUAL_1_12
-from tests_pytorch.helpers.boring_model import BoringModel, RandomDataset
 from tests_pytorch.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:

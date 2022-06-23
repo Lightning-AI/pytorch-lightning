@@ -15,17 +15,13 @@
 from collections import namedtuple
 
 import pytest
-import tests.helpers.pipelines as tpipes
 import torch
-from tests.helpers import BoringModel
-from tests.helpers.imports import Batch, Dataset, Example, Field, LabelField
-from tests.helpers.runif import RunIf
 
 import tests_pytorch.helpers.pipelines as tpipes
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import MPSAccelerator
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
-from tests_pytorch.helpers import BoringModel
 from tests_pytorch.helpers.imports import Batch, Dataset, Example, Field, LabelField
 from tests_pytorch.helpers.runif import RunIf
 

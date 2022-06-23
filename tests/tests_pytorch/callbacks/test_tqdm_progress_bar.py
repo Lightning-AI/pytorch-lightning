@@ -22,8 +22,6 @@ from unittest.mock import ANY, call, PropertyMock
 
 import pytest
 import torch
-from tests.helpers.boring_model import BoringModel, RandomDataset
-from tests.helpers.runif import RunIf
 from torch.utils.data.dataloader import DataLoader
 
 from pytorch_lightning import Trainer
@@ -33,6 +31,7 @@ from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from tests_pytorch.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
     torch_test_assert_close = torch.testing.assert_close
