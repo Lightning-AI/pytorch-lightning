@@ -11,7 +11,7 @@ from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.strategies import CollaborativeStrategy
+from pytorch_lightning.strategies import HivemindStrategy
 from pytorch_lightning.strategies.collaborative import HiveMindScheduler
 from pytorch_lightning.utilities import _HIVEMIND_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -26,13 +26,13 @@ if _HIVEMIND_AVAILABLE:
 def test_raise_exception_if_hivemind_unavailable():
     """Test that we raise an exception when Hivemind is not available."""
     with pytest.raises(MisconfigurationException, match="you must have Hivemind installed"):
-        CollaborativeStrategy(target_batch_size=1)
+        HivemindStrategy(target_batch_size=1)
 
 
 @RunIf(hivemind=True)
 @mock.patch("hivemind.DHT", autospec=True)
 def test_strategy(mock_dht):
-    strategy = CollaborativeStrategy(target_batch_size=1)
+    strategy = HivemindStrategy(target_batch_size=1)
     trainer = pl.Trainer(strategy=strategy)
     assert trainer.strategy == strategy
 
@@ -46,7 +46,7 @@ def test_optimizer_wrapped():
             assert isinstance(optimizer, hivemind.Optimizer)
 
     model = TestModel()
-    trainer = pl.Trainer(strategy=CollaborativeStrategy(target_batch_size=1), fast_dev_run=True)
+    trainer = pl.Trainer(strategy=HivemindStrategy(target_batch_size=1), fast_dev_run=True)
     trainer.fit(model)
 
 
@@ -64,7 +64,7 @@ def test_scheduler_wrapped():
 
     model = TestModel()
     trainer = pl.Trainer(
-        strategy=CollaborativeStrategy(target_batch_size=1),
+        strategy=HivemindStrategy(target_batch_size=1),
         fast_dev_run=True,
     )
     trainer.fit(model)
@@ -82,7 +82,7 @@ def test_scheduler_wrapped():
 @mock.patch("hivemind.DHT", autospec=True)
 def test_env_variables_parsed(mock_dht):
     """Test that env variables are parsed correctly."""
-    strategy = CollaborativeStrategy(target_batch_size=1)
+    strategy = HivemindStrategy(target_batch_size=1)
     assert strategy._initial_peers == ["TEST_PEERS"]
 
 
@@ -100,9 +100,7 @@ def test_reuse_grad_buffers_warning():
             pass
 
     model = TestModel()
-    trainer = pl.Trainer(
-        strategy=CollaborativeStrategy(target_batch_size=1, reuse_grad_buffers=True), fast_dev_run=True
-    )
+    trainer = pl.Trainer(strategy=HivemindStrategy(target_batch_size=1, reuse_grad_buffers=True), fast_dev_run=True)
 
     with pytest.warns(UserWarning, match="You have overridden `optimizer_zero_grad` which will be disabled."):
         trainer.fit(model)
@@ -119,7 +117,7 @@ def test_raise_exception_multiple_optimizers():
             return [optimizer, optimizer], [lr_scheduler]
 
     model = TestModel()
-    trainer = pl.Trainer(strategy=CollaborativeStrategy(target_batch_size=1), fast_dev_run=True)
+    trainer = pl.Trainer(strategy=HivemindStrategy(target_batch_size=1), fast_dev_run=True)
 
     with pytest.raises(MisconfigurationException, match="Hivemind only supports training with one optimizer."):
         trainer.fit(model)
@@ -131,7 +129,7 @@ def test_raise_exception_no_batch_size(mock_extract_batch_size):
     """Test that we raise an exception when no batch size is automatically found."""
 
     model = BoringModel()
-    trainer = pl.Trainer(strategy=CollaborativeStrategy(target_batch_size=1), fast_dev_run=True)
+    trainer = pl.Trainer(strategy=HivemindStrategy(target_batch_size=1), fast_dev_run=True)
 
     with pytest.raises(MisconfigurationException, match="Please provide the batch size to the Strategy."):
         trainer.fit(model)
@@ -148,7 +146,7 @@ def test_warn_if_argument_passed(delay_grad_averaging, delay_state_averaging, de
     function."""
     model = BoringModel()
     trainer = pl.Trainer(
-        strategy=CollaborativeStrategy(
+        strategy=HivemindStrategy(
             target_batch_size=1,
             delay_grad_averaging=delay_grad_averaging,
             delay_state_averaging=delay_state_averaging,
@@ -163,7 +161,7 @@ def test_warn_if_argument_passed(delay_grad_averaging, delay_state_averaging, de
 
 @RunIf(hivemind=True)
 @mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
-@mock.patch("pytorch_lightning.strategies.collaborative.CollaborativeStrategy.num_peers", new_callable=PropertyMock)
+@mock.patch("pytorch_lightning.strategies.collaborative.HivemindStrategy.num_peers", new_callable=PropertyMock)
 def test_args_passed_to_optimizer(mock_peers):
     """Test to ensure arguments are correctly passed to the hivemind optimizer wrapper."""
     mock_peers.return_value = 1
@@ -190,7 +188,7 @@ def test_args_passed_to_optimizer(mock_peers):
 
         model = TestModel()
         trainer = pl.Trainer(
-            strategy=CollaborativeStrategy(
+            strategy=HivemindStrategy(
                 target_batch_size=1,
                 reuse_grad_buffers=True,
                 delay_state_averaging=True,
@@ -214,7 +212,7 @@ def test_args_passed_to_optimizer(mock_peers):
 )
 def test_maddrs(host_maddrs, expected_maddrs):
     """Test that the multiple addresses are correctly assigned."""
-    strategy = CollaborativeStrategy(target_batch_size=1, host_maddrs=host_maddrs)
+    strategy = HivemindStrategy(target_batch_size=1, host_maddrs=host_maddrs)
     assert strategy.dht.kwargs["host_maddrs"] == expected_maddrs
 
 
@@ -237,7 +235,7 @@ def _run_collab_training_fn(initial_peers, wait_seconds, barrier, recorded_proce
         max_epochs=1,
         limit_train_batches=16,
         limit_val_batches=0,
-        strategy=CollaborativeStrategy(
+        strategy=HivemindStrategy(
             delay_state_averaging=True,
             offload_optimizer=True,
             delay_optimizer_step=True,
@@ -303,7 +301,7 @@ def test_scaler_updated_precision_16():
 
     model = TestModel()
     trainer = pl.Trainer(
-        strategy=CollaborativeStrategy(target_batch_size=1),
+        strategy=HivemindStrategy(target_batch_size=1),
         fast_dev_run=True,
         precision=16,
         accelerator="gpu",

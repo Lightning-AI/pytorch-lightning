@@ -25,7 +25,7 @@ else:
 log = logging.getLogger(__name__)
 
 
-class CollaborativeStrategy(Strategy):
+class HivemindStrategy(Strategy):
     INITIAL_PEERS_ENV: str = "PL_INITIAL_PEERS"
 
     def __init__(
@@ -51,7 +51,7 @@ class CollaborativeStrategy(Strategy):
         with unreliable machines. For more information, `refer to the docs <https://pytorch-
         lightning.readthedocs.io/en/latest/strategies/collaborative_training.html>`__.
 
-        .. warning:: ``CollaborativeStrategy`` is experimental and subject to change.
+        .. warning:: ``HivemindStrategy`` is experimental and subject to change.
 
         Arguments:
 
@@ -69,11 +69,11 @@ class CollaborativeStrategy(Strategy):
                 corresponding :meth:`hivemind.Optimizer.step` call.
 
             delay_optimizer_step: Run optimizer in background, apply results in future .step. requires
-                :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.offload_optimizer`.
+                :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.offload_optimizer`.
 
             delay_grad_averaging: Average gradients in background; requires
-                :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.offload_optimizer` and
-                :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.delay_optimizer_step`.
+                :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.offload_optimizer` and
+                :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.delay_optimizer_step`.
 
             offload_optimizer: Offload the optimizer to host memory, saving GPU memory for parameters and gradients.
 
@@ -83,7 +83,7 @@ class CollaborativeStrategy(Strategy):
 
             scheduler_fn: callable(optimizer) -> PyTorch LRScheduler or a pre-initialized PyTorch scheduler.
                 When using `offload_optimizer`/`delay_optimizer_step`/`delay_state_averaging` ``scheduler_fn``
-                is required to be passed to the ``CollaborativeStrategy``. This is because the optimizer
+                is required to be passed to the ``HivemindStrategy``. This is because the optimizer
                 is re-created and the scheduler needs to be re-created as well.
 
             matchmaking_time: When looking for group, wait for peers to join for up to this many seconds.
@@ -119,18 +119,18 @@ class CollaborativeStrategy(Strategy):
             port: When creating the endpoint, the host port to use.
 
             retry_endpoint_attempts: When connecting to the
-                :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.peer_endpoint`,
+                :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.peer_endpoint`,
                 how many time to retry before raising an exception.
 
             retry_endpoint_sleep_duration: When connecting to the
-                :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.peer_endpoint`,
+                :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.peer_endpoint`,
                 how long to wait between retries.
 
             **optimizer_kwargs: kwargs are passed to the :class:`hivemind.Optimizer` class.
         """
         if not _HIVEMIND_AVAILABLE or platform.system() != "Linux":
             raise MisconfigurationException(
-                "To use the `CollaborativeStrategy`, you must have Hivemind installed and be running on Linux."
+                "To use the `HivemindStrategy`, you must have Hivemind installed and be running on Linux."
                 " Install it by running `pip install -U hivemind`."
             )
 
@@ -174,7 +174,7 @@ class CollaborativeStrategy(Strategy):
                 "\nOther machines can connect running the same command:\n"
                 f"INITIAL_PEERS={','.join(visible_addresses)} python ...\n"
                 "or passing the peers to the strategy:\n"
-                f"CollaborativeStrategy(initial_peers='{','.join(visible_addresses)}')"
+                f"HivemindStrategy(initial_peers='{','.join(visible_addresses)}')"
             )
 
         self._hivemind_initialized = False
@@ -259,7 +259,7 @@ class CollaborativeStrategy(Strategy):
             assert lightning_module is not None  # `is_overridden` returns False otherwise
             rank_zero_warn(
                 "You have overridden `optimizer_zero_grad` which will be disabled."
-                " When `CollaborativeStrategy(reuse_grad_buffers=True)`, the optimizer cannot call zero grad,"
+                " When `HivemindStrategy(reuse_grad_buffers=True)`, the optimizer cannot call zero grad,"
                 " as this would delete the gradients before they are averaged."
             )
         assert lightning_module is not None
@@ -291,7 +291,7 @@ class CollaborativeStrategy(Strategy):
                     raise MisconfigurationException(
                         "We tried to infer the batch size from the first batch of data. "
                         "Please provide the batch size to the Strategy by "
-                        "``Trainer(strategy=CollaborativeStrategy(batch_size=x))``. "
+                        "``Trainer(strategy=HivemindStrategy(batch_size=x))``. "
                     ) from e
             self._initialize_hivemind()
 
