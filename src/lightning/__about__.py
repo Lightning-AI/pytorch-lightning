@@ -72,6 +72,11 @@ _long_description = _setup_tools.load_readme_description(
 )
 
 
+def _adjust_manifest():
+    # todo
+    pass
+
+
 def _setup_args():
 
     # todo: consider invaliding some additional arguments from packages, for example if include data or safe to zip

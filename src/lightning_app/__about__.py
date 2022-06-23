@@ -49,6 +49,7 @@ _PACKAGE_ROOT = os.path.dirname(__file__)
 _SOURCE_ROOT = os.path.dirname(_PACKAGE_ROOT)
 _PROJECT_ROOT = os.path.dirname(_SOURCE_ROOT)
 _PATH_REQUIREMENTS = os.path.join(_PROJECT_ROOT, "requirements", "app")
+_PKG_BUILD_EVENT = False
 
 
 def _load_py_module(name: str, location: str) -> ModuleType:
@@ -60,6 +61,7 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 
 _setup_tools_path = os.path.join(_PACKAGE_ROOT, "_setup_tools.py")
 if not os.path.isfile(_setup_tools_path):
+    _PKG_BUILD_EVENT = True
     shutil.copy(os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py"), _setup_tools_path)
 _setup_tools = _load_py_module("setup_tools", _setup_tools_path)
 __version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))
@@ -84,6 +86,21 @@ def _prepare_extras():
     extras["dev"] = extras["cloud"] + extras["ui"] + extras["test"]  # + extras['docs']
     extras["all"] = extras["cloud"] + extras["ui"]
     return extras
+
+
+def _adjust_manifest():
+    if not _PKG_BUILD_EVENT:
+        return
+    manifest_path = os.path.join(_PROJECT_ROOT, "MANIFEST.in")
+    assert os.path.isfile(manifest_path)
+    with open(manifest_path) as fp:
+        lines = fp.readlines()
+    lines += [
+        "recursive-include src/pytorch_lightning *.md" + os.linesep,
+        "recursive-include requirements/pytorch *.txt" + os.linesep,
+    ]
+    with open(manifest_path, "w") as fp:
+        fp.writelines(lines)
 
 
 def _setup_args():

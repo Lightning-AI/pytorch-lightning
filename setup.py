@@ -88,4 +88,5 @@ _ABOUT_MODULE = _load_py_module(name="about", location=_PATH_ABOUT)
 # the goal of the project is simplicity for researchers, don't want to add too much
 # engineer specific practices
 if __name__ == "__main__":
+    _ABOUT_MODULE._adjust_manifest()
     setup(**_ABOUT_MODULE._setup_args())
