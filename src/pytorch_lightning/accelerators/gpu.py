@@ -40,7 +40,7 @@ class GPUAccelerator(Accelerator):
         super().setup_environment(root_device)
         if root_device.type != "cuda":
             raise MisconfigurationException(f"Device should be GPU, got {root_device} instead")
-        torch.cuda.set_device(root_device)
+        # torch.cuda.set_device(root_device)
 
     def setup(self, trainer: "pl.Trainer") -> None:
         # TODO refactor input from trainer to local_rank @four4fish
