@@ -15,15 +15,15 @@
 from collections import namedtuple
 
 import pytest
-import torch
-
 import tests.helpers.pipelines as tpipes
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import MPSAccelerator
-from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
+import torch
 from tests.helpers import BoringModel
 from tests.helpers.imports import Batch, Dataset, Example, Field, LabelField
 from tests.helpers.runif import RunIf
+
+from pytorch_lightning import Trainer
+from pytorch_lightning.accelerators import MPSAccelerator
+from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
 
 
 @RunIf(mps=True)
