@@ -22,7 +22,8 @@ jobs:
       # max-parallel: 6
       matrix:
         os: [ubuntu-20.04, macOS-10.15, windows-2019]
-        python-version: [3.7, 3.9]
+        pkg: ["", "lightning", "app", "pytorch"]
+        python-version: [3.7]  # , 3.9
 
     steps:
       - uses: actions/checkout@v2
@@ -35,35 +36,40 @@ jobs:
           pip install "twine==3.2" setuptools wheel
 
       - name: Create package
+        env:
+          PACKAGE_NAME: ${{ matrix.pkg }}
         run: |
           python setup.py check --metadata --strict
           python setup.py sdist bdist_wheel
 
       - name: Check package
         run: |
+          ls -l dist/
           twine check dist/*
           python setup.py clean
 
-      - name: Setup Windows
-        if: runner.os == 'windows'
-        run: |
-          # this is just a hotfix because of Win cannot install it directly
-          pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+      # ToDo
+      #- name: Setup Windows
+      #  if: runner.os == 'windows'
+      #  run: |
+      #    # this is just a hotfix because of Win cannot install it directly
+      #    pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+
+      - name: Package name
+        run: python -c "import os, glob ; ls = glob.glob('*.tar.gz') ; name = '_'.join(ls[0].split('-')[:-1]) ; print(f'PKG_NAME={name}')" >> $GITHUB_ENV
 
       - name: Install | Uninstall package - archive
         working-directory: ./dist
         run: |
           # install as archive
           pip install *.tar.gz
-          cd ..
-          python -c "import pytorch_lightning ; print(pytorch_lightning.__version__)"
-          pip uninstall -y pytorch_lightning
+          python -c "import ${PKG_NAME} ; print(${PKG_NAME}.__version__)"
+          pip uninstall -y ${PKG_NAME}
 
       - name: Install | Uninstall package - wheel
         working-directory: ./dist
         run: |
           # install as wheel
           pip install *.whl
-          cd ..
-          python -c "import pytorch_lightning ; print(pytorch_lightning.__version__)"
-          pip uninstall -y pytorch_lightning
+          python -c "import ${PKG_NAME} ; print(${PKG_NAME}.__version__)"
+          pip uninstall -y ${PKG_NAME}

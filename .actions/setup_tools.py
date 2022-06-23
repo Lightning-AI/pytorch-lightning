@@ -16,7 +16,6 @@ import glob
 import logging
 import os
 import re
-import shutil
 from typing import List
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
@@ -93,9 +92,9 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     return text
 
 
-def _create_meta_package(package_dir: str, folder: str = _PROJECT_ROOT, new_pkg: str = "lightning.app"):
+def create_meta_package(package_dir: str, folder: str = _PROJECT_ROOT, new_pkg: str = "lightning.app"):
     """
-    >>> _create_meta_package()
+    >>> create_meta_package()
     """
     KEEP_FILES = ("_logger", "_root_logger", "_console", "formatter", "_PACKAGE_ROOT", "_PROJECT_ROOT")
     pkg_name = os.path.basename(package_dir)
@@ -177,10 +176,3 @@ def _create_meta_package(package_dir: str, folder: str = _PROJECT_ROOT, new_pkg:
         os.makedirs(os.path.dirname(new_file), exist_ok=True)
         with open(new_file, "w") as fp:
             fp.writelines([ln + os.linesep for ln in body])
-
-        py_files = glob.glob(os.path.join(folder, new_pkg.replace(".", os.path.sep), "*.py"))
-        for py_file in py_files:
-            fname = os.path.basename(py_file)
-            if fname not in ("__init__.py", "__main__.py"):
-                continue
-            shutil.copy(py_file, os.path.join(folder, new_pkg.split(".")[0], fname))
