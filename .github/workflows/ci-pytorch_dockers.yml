@@ -106,8 +106,8 @@ jobs:
         include:
           # see: https://pytorch.org/get-started/previous-versions/
           - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1"}
-          - {python_version: "3.8", pytorch_version: "1.10", cuda_version: "11.1"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
+          - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.3.1"}
     steps:
       - name: Checkout
         uses: actions/checkout@v2

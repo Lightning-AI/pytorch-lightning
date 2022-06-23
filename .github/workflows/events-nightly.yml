@@ -3,6 +3,7 @@ name: Nightly
 # https://jasonet.co/posts/scheduled-actions/
 # https://github.community/t/distinct-job-for-each-schedule/17811/2
 on:
+  push: {} # fixme
   schedule:
     # At the end of every day
     - cron: "0 0 * * *"
@@ -121,6 +122,7 @@ jobs:
           - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1", ubuntu_version: "20.04"}
           - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.1", ubuntu_version: "20.04"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1", ubuntu_version: "20.04"}
+          - {python_version: "3.9", pytorch_version: "1.12", cuda_version: "11.3.1", ubuntu_version: "20.04"}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
