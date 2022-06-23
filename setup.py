@@ -59,7 +59,7 @@ _PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app"}
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 _PATH_ROOT = os.path.dirname(__file__)
 _PATH_REQUIREMENTS = os.path.join(_PATH_ROOT, "requirements", "pytorch")
-_PATH_ABOUT = os.path.join(_PATH_ROOT, "src", _PACKAGE_MAPPING[_PACKAGE_NAME], "__about__.py")
+_PATH_SETUP = os.path.join(_PATH_ROOT, "src", _PACKAGE_MAPPING[_PACKAGE_NAME], "__setup__.py")
 
 
 # Hardcode the env variable from time of package creation, otherwise it fails during installation
@@ -85,6 +85,6 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 # the goal of the project is simplicity for researchers, don't want to add too much
 # engineer specific practices
 if __name__ == "__main__":
-    _ABOUT_MODULE = _load_py_module(name="about", location=_PATH_ABOUT)
-    _ABOUT_MODULE._adjust_manifest()
-    setup(**_ABOUT_MODULE._setup_args())
+    _SETUP_MODULE = _load_py_module(name="pkg_setup", location=_PATH_SETUP)
+    _SETUP_MODULE._adjust_manifest()
+    setup(**_SETUP_MODULE._setup_args())
