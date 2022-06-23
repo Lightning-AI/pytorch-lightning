@@ -43,6 +43,8 @@ jobs:
           python setup.py sdist bdist_wheel
 
       - name: Check package
+        env:
+          PACKAGE_NAME: ${{ matrix.pkg }}
         run: |
           ls -l dist/
           twine check dist/*
@@ -56,7 +58,8 @@ jobs:
       #    pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
 
       - name: Package name
-        run: python -c "import os, glob ; ls = glob.glob('*.tar.gz') ; name = '_'.join(ls[0].split('-')[:-1]) ; print(f'PKG_NAME={name}')" >> $GITHUB_ENV
+        working-directory: ./dist
+        run: python -c "import glob ; ls = glob.glob('*.tar.gz') ; name = '_'.join(ls[0].split('-')[:-1]) ; print(f'PKG_NAME={name}')" >> $GITHUB_ENV
 
       - name: Install | Uninstall package - archive
         working-directory: ./dist
