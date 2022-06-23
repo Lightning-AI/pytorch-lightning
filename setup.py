@@ -63,6 +63,16 @@ _PATH_REQUIREMENTS = os.path.join(_PATH_ROOT, "requirements", "pytorch")
 _PATH_ABOUT = os.path.join(_PATH_ROOT, "src", _PACKAGE_MAPPING[_PACKAGE_NAME], "__about__.py")
 
 
+# Hardcode the env variable from time of package creation, otherwise it fails during installation
+with open(__file__) as fp:
+    lines = fp.readlines()
+for i, ln in enumerate(lines):
+    if ln.startswith("_PACKAGE_NAME = "):
+        lines[i] = f'_PACKAGE_NAME = "{_PACKAGE_NAME}"{os.linesep}'
+with open(__file__, "w") as fp:
+    fp.writelines(lines)
+
+
 def _load_py_module(name: str, location: str) -> ModuleType:
     spec = spec_from_file_location(name, location)
     py = module_from_spec(spec)

@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import os.path
+import shutil
 import time
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
@@ -78,7 +79,10 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-_setup_tools = _load_py_module("setup_tools", os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py"))
+_setup_tools_path = os.path.join(_PACKAGE_ROOT, "_setup_tools.py")
+if not os.path.isfile(_setup_tools_path):
+    shutil.copy(os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py"), _setup_tools_path)
+_setup_tools = _load_py_module("setup_tools", _setup_tools_path)
 __version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))
 
 

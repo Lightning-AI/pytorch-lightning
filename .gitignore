@@ -18,6 +18,8 @@ docs/source-pytorch/notebooks
 docs/source-pytorch/_static/images/course_UvA-DL
 docs/source-pytorch/_static/images/lightning_examples
 
+# C extensions
+*.so
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -25,11 +27,6 @@ __pycache__/
 timit_data/
 grid_generated*
 grid_ori*
-
-
-
-# C extensions
-*.so
 
 # PyCharm
 .idea/
@@ -52,6 +49,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+src/*/_setup_tools.py
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -148,7 +146,6 @@ ml-runs/
 mlruns/
 *.zip
 *.ckpt
-pytorch\ lightning
 test-reports/
 wandb
 .forked/
