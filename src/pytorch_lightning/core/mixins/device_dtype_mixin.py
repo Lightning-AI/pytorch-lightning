@@ -189,14 +189,16 @@ class DeviceDtypeModuleMixin(Module):
     def __update_properties(
         self, device: Optional[torch.device] = None, dtype: Optional[Union[str, torch.dtype]] = None
     ) -> None:
-        def apply_fn(module: Union["DeviceDtypeModuleMixin", Module]) -> None:
-            # TODO: Find why `isinstance(module, DeviceDtypeModuleMixin)` doesn't
-            # work when using `init_meta_context`.
-            if not isinstance(module, (DeviceDtypeModuleMixin, pl.LightningModule)):
-                return
+        def apply_fn(module: Union["DeviceDtypeModuleMixin", pl.LightningModule]) -> None:
             if device is not None:
                 module._device = device
             if dtype is not None:
                 module._dtype = dtype
 
-        self.apply(apply_fn)
+        # TODO: Find why `isinstance(module, DeviceDtypeModuleMixin)` doesn't
+        # work when using `init_meta_context`.
+        for m in self.modules():
+            if isinstance(m, (DeviceDtypeModuleMixin, pl.LightningModule)):
+                apply_fn(m)
+
+        apply_fn(self)
