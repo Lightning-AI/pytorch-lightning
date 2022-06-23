@@ -47,7 +47,6 @@ There are considered three main scenarios for installing this project:
 * shown version while calling `pip list | grep lightning`
 ** shown version in python `from <pytorch_lightning|lightning_app> import __version__`
 """
-import glob
 import os
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
@@ -72,9 +71,6 @@ for i, ln in enumerate(lines):
 with open(__file__, "w") as fp:
     fp.writelines(lines)
 
-ls = glob.glob(os.path.join(_PATH_ROOT, "src", "*", "_setup_tools.py"))
-_ = [os.remove(p) for p in ls]
-
 
 def _load_py_module(name: str, location: str) -> ModuleType:
     spec = spec_from_file_location(name, location)
@@ -83,13 +79,12 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-_ABOUT_MODULE = _load_py_module(name="about", location=_PATH_ABOUT)
-
 # https://packaging.python.org/discussions/install-requires-vs-requirements /
 # keep the meta-data here for simplicity in reading this file... it's not obvious
 # what happens and to non-engineers they won't know to look in init ...
 # the goal of the project is simplicity for researchers, don't want to add too much
 # engineer specific practices
 if __name__ == "__main__":
+    _ABOUT_MODULE = _load_py_module(name="about", location=_PATH_ABOUT)
     _ABOUT_MODULE._adjust_manifest()
     setup(**_ABOUT_MODULE._setup_args())

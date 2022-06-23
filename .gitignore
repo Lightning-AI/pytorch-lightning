@@ -2,7 +2,6 @@
 .DS_Store
 run_configs/
 model_weights/
-app/models/
 pip-wheel-metadata/
 lightning_logs/
 .vscode/

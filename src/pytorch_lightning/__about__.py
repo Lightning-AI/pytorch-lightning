@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import os.path
-import shutil
 import time
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
@@ -66,11 +65,10 @@ __all__ = [
     "__license__",
 ]
 
-_PACKAGE_ROOT = os.path.dirname(__file__)
-_SOURCE_ROOT = os.path.dirname(_PACKAGE_ROOT)
-_PROJECT_ROOT = os.path.dirname(_SOURCE_ROOT)
-_PATH_REQUIREMENTS = os.path.join(_PROJECT_ROOT, "requirements", "pytorch")
-_PKG_BUILD_EVENT = False
+_PROJECT_ROOT = "."
+_SOURCE_ROOT = os.path.join(_PROJECT_ROOT, "src")
+_PACKAGE_ROOT = os.path.join(_SOURCE_ROOT, "pytorch_lightning")
+_PATH_REQUIREMENTS = os.path.join("requirements", "pytorch")
 
 
 def _load_py_module(name: str, location: str) -> ModuleType:
@@ -80,11 +78,7 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-_setup_tools_path = os.path.join(_PACKAGE_ROOT, "_setup_tools.py")
-if not os.path.isfile(_setup_tools_path):
-    _PKG_BUILD_EVENT = True
-    shutil.copy(os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py"), _setup_tools_path)
-_setup_tools = _load_py_module("setup_tools", _setup_tools_path)
+_setup_tools = _load_py_module("setup_tools", os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py"))
 __version = _load_py_module("version", os.path.join(_PACKAGE_ROOT, "__version__.py"))
 
 
@@ -114,8 +108,6 @@ def _prepare_extras():
 
 
 def _adjust_manifest():
-    if not _PKG_BUILD_EVENT:
-        return
     manifest_path = os.path.join(_PROJECT_ROOT, "MANIFEST.in")
     assert os.path.isfile(manifest_path)
     with open(manifest_path) as fp:
