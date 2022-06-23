@@ -69,11 +69,11 @@ class HivemindStrategy(Strategy):
                 corresponding :meth:`hivemind.Optimizer.step` call.
 
             delay_optimizer_step: Run optimizer in background, apply results in future .step. requires
-                :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.offload_optimizer`.
+                :paramref:`~pytorch_lightning.strategies.hivemind.HivemindStrategy.offload_optimizer`.
 
             delay_grad_averaging: Average gradients in background; requires
-                :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.offload_optimizer` and
-                :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.delay_optimizer_step`.
+                :paramref:`~pytorch_lightning.strategies.hivemind.HivemindStrategy.offload_optimizer` and
+                :paramref:`~pytorch_lightning.strategies.hivemind.HivemindStrategy.delay_optimizer_step`.
 
             offload_optimizer: Offload the optimizer to host memory, saving GPU memory for parameters and gradients.
 
@@ -105,26 +105,6 @@ class HivemindStrategy(Strategy):
 
             initial_peers: If connecting to a running process, a list of initial peers needs to be passed in.
                 This can also be set via the env variable ``INITIAL_PEERS``.
-
-            endpoint: Enable if a side-car endpoint server is required on the process to server initial peers.
-                This is useful when using some form of orchestration such as torchelastic.
-
-            peer_endpoint: The endpoint to request initial peers from.
-
-            persistent: When using an endpoint, this controls whether other processes that are not the endpoint
-                server log/checkpoint. If ``persistent`` is True, we do not log/checkpoint from other processes.
-
-            host: When creating the endpoint, the host IP to use.
-
-            port: When creating the endpoint, the host port to use.
-
-            retry_endpoint_attempts: When connecting to the
-                :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.peer_endpoint`,
-                how many time to retry before raising an exception.
-
-            retry_endpoint_sleep_duration: When connecting to the
-                :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.peer_endpoint`,
-                how long to wait between retries.
 
             **optimizer_kwargs: kwargs are passed to the :class:`hivemind.Optimizer` class.
         """
