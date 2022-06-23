@@ -72,7 +72,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added `teardown()` method to `Accelerator` ([#11935](https://github.com/PyTorchLightning/pytorch-lightning/pull/11935))
 
 
-- Added a `timeout` argument to `DDPStrategy` and `DDPSpawnStrategy`. ([#13244](https://github.com/PyTorchLightning/pytorch-lightning/pull/13244)[#13383](https://github.com/Lightning-AI/lightning/pull/13383))
+- Added a `timeout` argument to `DDPStrategy` and `DDPSpawnStrategy`. ([#13244](https://github.com/PyTorchLightning/pytorch-lightning/pull/13244), [#13383](https://github.com/Lightning-AI/lightning/pull/13383))
 
 
 - Added `XLAEnvironment` cluster environment plugin ([#11330](https://github.com/PyTorchLightning/pytorch-lightning/pull/11330))
