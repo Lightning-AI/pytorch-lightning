@@ -69,7 +69,7 @@ RUN \
     rm -rf /root/.cache && \
     rm -rf /var/lib/apt/lists/*
 
-COPY ./requirements/ ./requirements/
+COPY ./requirements/pytorch/ ./requirements/pytorch/
 COPY ./.actions/assistant.py assistant.py
 
 ENV PYTHONPATH=/usr/lib/python${PYTHON_VERSION}/site-packages
@@ -84,11 +84,11 @@ RUN \
     CUDA_VERSION_MM=$(python -c "print(''.join('$CUDA_VERSION'.split('.')[:2]))") && \
     pip config set global.cache-dir false && \
     # set particular PyTorch version
-    python ./requirements/adjust-versions.py requirements/base.txt ${PYTORCH_VERSION} && \
-    python ./requirements/adjust-versions.py requirements/extra.txt ${PYTORCH_VERSION} && \
-    python ./requirements/adjust-versions.py requirements/examples.txt ${PYTORCH_VERSION} && \
+    python ./requirements/pytorch/adjust-versions.py requirements/pytorch/base.txt ${PYTORCH_VERSION} && \
+    python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt ${PYTORCH_VERSION} && \
+    python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt ${PYTORCH_VERSION} && \
     # Install all requirements \
-    pip install -r requirements/devel.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
+    pip install -r requirements/pytorch/devel.txt --no-cache-dir --find-links https://download.pytorch.org/whl/cu${CUDA_VERSION_MM}/torch_stable.html && \
     rm assistant.py
 
 RUN \
@@ -117,7 +117,7 @@ RUN \
     export HOROVOD_BUILD_CUDA_CC_LIST=${HOROVOD_BUILD_CUDA_CC_LIST//"."/""} && \
     echo $HOROVOD_BUILD_CUDA_CC_LIST && \
     cmake --version && \
-    pip install --no-cache-dir -r ./requirements/strategies.txt && \
+    pip install --no-cache-dir -r ./requirements/pytorch/strategies.txt && \
     horovodrun --check-build
 
 RUN \
@@ -144,8 +144,8 @@ RUN \
     python -c "import bagua_core; bagua_core.install_deps()" && \
     python -c "import bagua; print(bagua.__version__)"
 
-COPY requirements/check-avail-extras.py check-avail-extras.py
-COPY requirements/check-avail-strategies.py check-avail-strategies.py
+COPY requirements/pytorch/check-avail-extras.py check-avail-extras.py
+COPY requirements/pytorch/check-avail-strategies.py check-avail-strategies.py
 
 RUN \
     # Show what we have
@@ -153,6 +153,6 @@ RUN \
     pip list && \
     python -c "import sys; ver = sys.version_info ; assert f'{ver.major}.{ver.minor}' == '$PYTHON_VERSION', ver" && \
     python -c "import torch; assert torch.__version__.startswith('$PYTORCH_VERSION'), torch.__version__" && \
-    python requirements/check-avail-extras.py && \
-    python requirements/check-avail-strategies.py && \
+    python requirements/pytorch/check-avail-extras.py && \
+    python requirements/pytorch/check-avail-strategies.py && \
     rm -rf requirements/

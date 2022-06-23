@@ -33,8 +33,8 @@
 /src/pytorch_lightning/loops                @tchaton @awaelchli @justusschock @carmocca
 /src/pytorch_lightning/overrides            @tchaton @SeanNaren @borda
 /src/pytorch_lightning/plugins              @tchaton @SeanNaren @awaelchli @justusschock
-/src/pytorch_lightning/profiler             @williamfalcon @tchaton @borda @carmocca
-/src/pytorch_lightning/profiler/pytorch.py  @nbcsm @guotuofeng
+/src/pytorch_lightning/profilers            @williamfalcon @tchaton @borda @carmocca
+/src/pytorch_lightning/profilers/pytorch.py @nbcsm @guotuofeng
 /src/pytorch_lightning/strategies           @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
 /src/pytorch_lightning/trainer              @williamfalcon @borda @tchaton @SeanNaren @carmocca @awaelchli @justusschock @kaushikb11
 /src/pytorch_lightning/trainer/connectors   @tchaton @SeanNaren @carmocca @borda
