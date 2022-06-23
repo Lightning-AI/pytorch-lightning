@@ -36,7 +36,6 @@ from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.loggers import _COMET_AVAILABLE, _NEPTUNE_AVAILABLE, _WANDB_AVAILABLE, TensorBoardLogger
 from pytorch_lightning.plugins.environments import SLURMEnvironment
-from pytorch_lightning.profiler import PyTorchProfiler
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
@@ -1497,6 +1496,8 @@ def test_unresolvable_import_paths():
 
 
 def test_pytorch_profiler_init_args():
+    from pytorch_lightning.profilers import Profiler, PyTorchProfiler
+
     init = {
         "dirpath": "profiler",
         "row_limit": 10,
@@ -1510,7 +1511,7 @@ def test_pytorch_profiler_init_args():
     cli_args += [f"--trainer.profiler.{k}={v}" for k, v in init.items()]
     cli_args += [f"--trainer.profiler.dict_kwargs.{k}={v}" for k, v in unresolved.items()]
 
-    with mock.patch("sys.argv", ["any.py"] + cli_args):
+    with mock.patch("sys.argv", ["any.py"] + cli_args), mock_subclasses(Profiler, PyTorchProfiler):
         cli = LightningCLI(TestModel, run=False)
 
     assert isinstance(cli.config_init.trainer.profiler, PyTorchProfiler)

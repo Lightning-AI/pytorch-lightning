@@ -54,6 +54,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added class name prefix to metrics logged by `DeviceStatsMonitor` ([#12228](https://github.com/PyTorchLightning/pytorch-lightning/pull/12228))
 
 
+- Automatically wrap custom samplers under a distributed environment by using `DistributedSamplerWrapper` ([#12959](https://github.com/PyTorchLightning/pytorch-lightning/pull/12959))
+
+
 - Added profiling of `LightningDataModule` hooks ([#12971](https://github.com/PyTorchLightning/pytorch-lightning/pull/12971))
 
 
@@ -67,12 +70,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Added `teardown()` method to `Accelerator` ([#11935](https://github.com/PyTorchLightning/pytorch-lightning/pull/11935))
--
 
 
 - Added a `timeout` argument to `DDPStrategy`. ([#13244](https://github.com/PyTorchLightning/pytorch-lightning/pull/13244))
--
 
+
+- Added `XLAEnvironment` cluster environment plugin ([#11330](https://github.com/PyTorchLightning/pytorch-lightning/pull/11330))
+
+
+
+
+- Added support for calling unknown methods with `DummyLogger` ([#13224](https://github.com/PyTorchLightning/pytorch-lightning/pull/13224))
 
 ### Changed
 
@@ -136,6 +144,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Deprecated LightningCLI's registries in favor of importing the respective package ([#13221](https://github.com/PyTorchLightning/pytorch-lightning/pull/13221))
+
+
+
+- Deprecated `pytorch_lightning.profiler` in favor of `pytorch_lightning.profilers` ([#12308](https://github.com/PyTorchLightning/pytorch-lightning/pull/12308))
 
 
 ### Removed

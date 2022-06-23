@@ -43,7 +43,7 @@ from pytorch_lightning.utilities.distributed import (
 )
 from pytorch_lightning.utilities.enums import AMPType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
+from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
@@ -53,6 +53,7 @@ from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
 warning_cache = WarningCache()
 
+_DEEPSPEED_AVAILABLE: bool = _RequirementAvailable("deepspeed")
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
 

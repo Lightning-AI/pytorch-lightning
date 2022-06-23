@@ -117,3 +117,4 @@ You can define the interface of your own cluster environment based on the requir
     LSFEnvironment
     SLURMEnvironment
     TorchElasticEnvironment
+    XLAEnvironment

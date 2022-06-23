@@ -30,14 +30,11 @@ from pytorch_lightning import LightningDataModule, LightningModule, seed_everyth
 from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
+from pytorch_lightning.plugins.precision.deepspeed import _DEEPSPEED_GREATER_EQUAL_0_6
 from pytorch_lightning.strategies import DeepSpeedStrategy
-from pytorch_lightning.strategies.deepspeed import LightningDeepSpeedModule
+from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE, LightningDeepSpeedModule
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import (
-    _DEEPSPEED_AVAILABLE,
-    _DEEPSPEED_GREATER_EQUAL_0_5_9,
-    _DEEPSPEED_GREATER_EQUAL_0_6,
-)
+from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.meta import init_meta_context
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.datasets import RandomIterableDataset
@@ -47,6 +44,7 @@ if _DEEPSPEED_AVAILABLE:
     import deepspeed
     from deepspeed.utils.zero_to_fp32 import convert_zero_checkpoint_to_fp32_state_dict
 
+    _DEEPSPEED_GREATER_EQUAL_0_5_9 = _RequirementAvailable("deepspeed>=0.5.9")
     if _DEEPSPEED_GREATER_EQUAL_0_5_9:
         from deepspeed.runtime.zero.stage_1_and_2 import DeepSpeedZeroOptimizer
     else:
