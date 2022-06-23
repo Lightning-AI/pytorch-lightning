@@ -55,10 +55,11 @@ from setuptools import setup
 
 _PACKAGE_NAME = os.environ.get("PACKAGE_NAME", "")
 _PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app"}
+_REAL_PKG_NAME = _PACKAGE_MAPPING.get(_PACKAGE_NAME, _PACKAGE_NAME)
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 _PATH_ROOT = os.path.dirname(__file__)
-_PATH_SETUP = os.path.join(_PATH_ROOT, "src", _PACKAGE_MAPPING.get(_PACKAGE_NAME, _PACKAGE_NAME), "__setup__.py")
+_PATH_SETUP = os.path.join(_PATH_ROOT, "src", _REAL_PKG_NAME or "lightning", "__setup__.py")
 
 
 # Hardcode the env variable from time of package creation, otherwise it fails during installation
@@ -88,5 +89,5 @@ if __name__ == "__main__":
     for lit_name, pkg_name in _PACKAGE_MAPPING.items():
         _SETUP_TOOLS.create_meta_package(os.path.join(_PATH_ROOT, "src"), pkg_name, lit_name)
     _SETUP_MODULE = _load_py_module(name="pkg_setup", location=_PATH_SETUP)
-    _SETUP_MODULE._adjust_manifest()
-    setup(**_SETUP_MODULE._setup_args())
+    _SETUP_MODULE._adjust_manifest(pkg_name=_REAL_PKG_NAME)
+    setup(**_SETUP_MODULE._setup_args(pkg_name=_REAL_PKG_NAME))

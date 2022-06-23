@@ -1,6 +1,7 @@
 import os.path
 from importlib.util import module_from_spec, spec_from_file_location
 from types import ModuleType
+from typing import Dict, Any
 
 from setuptools import find_packages
 
@@ -16,12 +17,23 @@ def _load_py_module(name: str, location: str) -> ModuleType:
     return py
 
 
-def _adjust_manifest():
-    # todo
-    pass
+def _adjust_manifest(**kwargs: Any) -> None:
+    if kwargs["pkg_name"]:
+        return
+    # todo: consider rather aggregation of particular manifest adjustments
+    manifest_path = os.path.join(_PROJECT_ROOT, "MANIFEST.in")
+    assert os.path.isfile(manifest_path)
+    with open(manifest_path) as fp:
+        lines = fp.readlines()
+    lines += [
+        "recursive-include src *.md" + os.linesep,
+        "recursive-include requirements *.txt" + os.linesep,
+    ]
+    with open(manifest_path, "w") as fp:
+        fp.writelines(lines)
 
 
-def _setup_args():
+def _setup_args(**kwargs: Any) -> Dict[str, Any]:
     _path_setup_tools = os.path.join(_PROJECT_ROOT, ".actions", "setup_tools.py")
     _setup_tools = _load_py_module("setup_tools", _path_setup_tools)
     _about = _load_py_module("about", os.path.join(_PACKAGE_ROOT, "__about__.py"))
@@ -40,7 +52,7 @@ def _setup_args():
         download_url="https://github.com/Lightning-AI/lightning",
         license=_about.__license__,
         packages=find_packages(
-            where="src", include=["lightning", "lightning.*"]
+            where="src", include=["lightning", "lightning.*"] if kwargs["pkg_name"] else ['*']
         ),  # todo: if install from source include all package and remove them from requirements
         package_dir={"": "src"},
         long_description=_long_description,
@@ -48,7 +60,9 @@ def _setup_args():
         keywords=["deep learning", "pytorch", "AI"],  # todo: aggregate tags from all packages
         python_requires=">=3.7",  # todo: take the lowes based on all packages
         setup_requires=[],
-        install_requires=["pytorch-lightning==1.6.*", "lightning-app==0.5.*"],  # todo: generate this list automatically
+        # todo: generate this list automatically with parsing feature pkg versions,
+        #  otherwise pull/aggregate dependencies from particular packages
+        install_requires=["pytorch-lightning==1.6.*", "lightning-app==0.5.*"] if kwargs["pkg_name"] else [],
         extras_require={},  # todo: consider porting all other packages extras with prefix
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
