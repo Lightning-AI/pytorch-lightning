@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from datetime import timedelta
 from pathlib import Path
+from unittest import mock
 from unittest.mock import Mock
 
 import pytest
@@ -176,3 +178,28 @@ def test_ddp_spawn_transfer_weights(tmpdir, trainer_fn):
     strategy._launcher._recover_results_in_main_process(spawn_output, trainer)
     assert model.load_state_dict.call_count == int(spawn_output.weights_path is not None)
     assert not temp_file.exists()
+
+
+@RunIf(min_cuda_gpus=1)
+@mock.patch("torch.distributed.init_process_group")
+def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
+    """Tests with ddp strategy."""
+    test_timedelta = timedelta(seconds=30)
+    model = BoringModel()
+    ddp_spawn_strategy = DDPSpawnStrategy(timeout=test_timedelta)
+    trainer = Trainer(
+        max_epochs=1,
+        strategy=ddp_spawn_strategy,
+    )
+    # test wrap the model if fitting
+    trainer.state.fn = TrainerFn.FITTING
+    trainer.strategy.connect(model)
+    trainer.lightning_module.trainer = trainer
+    trainer.strategy.setup_environment()
+
+    process_group_backend = trainer.strategy._get_process_group_backend()
+    global_rank = trainer.strategy.cluster_environment.global_rank()
+    world_size = trainer.strategy.cluster_environment.world_size()
+    mock_init_process_group.assert_called_with(
+        process_group_backend, rank=global_rank, world_size=world_size, timeout=test_timedelta
+    )

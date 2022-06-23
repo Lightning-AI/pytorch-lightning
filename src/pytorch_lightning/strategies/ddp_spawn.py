@@ -14,9 +14,11 @@
 import logging
 import os
 from typing import Any, Dict, List, Optional, Union
+from datetime import timedelta
 
 import torch
 import torch.distributed
+from torch.distributed.constants import default_pg_timeout
 from torch import Tensor
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
@@ -68,6 +70,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
         process_group_backend: Optional[str] = None,
+        timeout: Optional[timedelta] = default_pg_timeout,
         **kwargs: Any,
     ):
         super().__init__(
@@ -84,6 +87,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._local_rank = 0
         self._process_group_backend: Optional[str] = process_group_backend
+        self._timeout: Optional[timedelta] = timeout
 
     @property
     def num_nodes(self) -> int:
@@ -158,7 +162,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         self.set_world_ranks(process_idx)
         rank_zero_only.rank = self.global_rank
         self._process_group_backend = self._get_process_group_backend()
-        init_dist_connection(self.cluster_environment, self._process_group_backend, self.global_rank, self.world_size)
+        init_dist_connection(self.cluster_environment, self._process_group_backend, self.global_rank, self.world_size, timeout=self._timeout)
 
     def _get_process_group_backend(self) -> str:
         return (
