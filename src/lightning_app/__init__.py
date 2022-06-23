@@ -21,7 +21,7 @@ if not _root_logger.hasHandlers():
 
 from lightning_app import components  # noqa: E402, F401
 from lightning_app.__about__ import *  # noqa: E402, F401, F403
-from lightning_app.__version__ import version as __version__  # noqa: F401
+from lightning_app.__version__ import version as __version__  # noqa: E402, F401
 from lightning_app.core.app import LightningApp  # noqa: E402
 from lightning_app.core.flow import LightningFlow  # noqa: E402
 from lightning_app.core.work import LightningWork  # noqa: E402

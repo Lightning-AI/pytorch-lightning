@@ -16,7 +16,6 @@ import glob
 import logging
 import os
 import re
-import shutil
 from typing import List
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
@@ -99,7 +98,7 @@ def create_meta_package(src_folder: str, pkg_name: str = "lightning_app", lit_na
     """
     KEEP_FILES = ("_logger", "_root_logger", "_console", "formatter", "_DETAIL")
     package_dir = os.path.join(src_folder, pkg_name)
-    shutil.rmtree(os.path.join(src_folder, "lightning", lit_name))
+    # shutil.rmtree(os.path.join(src_folder, "lightning", lit_name))
     py_files = glob.glob(os.path.join(src_folder, pkg_name, "**", "*.py"), recursive=True)
     for py_file in py_files:
         local_path = py_file.replace(package_dir + os.path.sep, "")
