@@ -8,6 +8,12 @@ Here are 5 MNIST examples showing you how to gradually convert from pure PyTorch
 
 The transition through [LightningLite](https://pytorch-lightning.readthedocs.io/en/stable/starter/lightning_lite.html) from pure PyTorch is optional but it might be helpful to learn about it.
 
+Please add `PYTHONPATH` as follows before executing the following command.
+
+```bash
+export PYTHONPATH="../../../lightning/src:$PYTHONPATH"
+```
+
 #### 1. Image Classifier with Vanilla PyTorch
 
 Trains a simple CNN over MNIST using vanilla PyTorch.
