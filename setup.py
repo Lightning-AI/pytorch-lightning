@@ -58,8 +58,7 @@ _PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app"}
 # https://packaging.python.org/guides/single-sourcing-package-version/
 # http://blog.ionelmc.ro/2014/05/25/python-packaging/
 _PATH_ROOT = os.path.dirname(__file__)
-_PATH_REQUIREMENTS = os.path.join(_PATH_ROOT, "requirements", "pytorch")
-_PATH_SETUP = os.path.join(_PATH_ROOT, "src", _PACKAGE_MAPPING[_PACKAGE_NAME], "__setup__.py")
+_PATH_SETUP = os.path.join(_PATH_ROOT, "src", _PACKAGE_MAPPING.get(_PACKAGE_NAME, _PACKAGE_NAME), "__setup__.py")
 
 
 # Hardcode the env variable from time of package creation, otherwise it fails during installation
