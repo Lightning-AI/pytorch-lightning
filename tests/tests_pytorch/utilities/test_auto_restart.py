@@ -30,8 +30,6 @@ import pytest
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-from tests.helpers.boring_model import BoringModel, RandomDataset
-from tests.helpers.runif import RunIf
 from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler, SequentialSampler
 from torch.utils.data._utils.worker import _generate_state, get_worker_info
 from torch.utils.data.dataloader import DataLoader, default_collate
@@ -62,6 +60,8 @@ from pytorch_lightning.utilities.enums import _FaultTolerantMode, AutoRestartBat
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _TORCH_GREATER_EQUAL_1_12
+from tests_pytorch.helpers.boring_model import BoringModel, RandomDataset
+from tests_pytorch.helpers.runif import RunIf
 
 if _TORCH_GREATER_EQUAL_1_12:
     torch_test_assert_close = torch.testing.assert_close

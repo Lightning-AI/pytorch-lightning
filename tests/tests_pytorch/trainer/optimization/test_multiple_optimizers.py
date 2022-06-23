@@ -14,11 +14,11 @@
 """Tests to ensure that the behaviours related to multiple optimizers works."""
 import pytest
 import torch
-from tests.helpers.boring_model import BoringModel
 
 import pytorch_lightning as pl
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
+from tests_pytorch.helpers.boring_model import BoringModel
 
 if _TORCH_GREATER_EQUAL_1_12:
     torch_test_assert_close = torch.testing.assert_close
