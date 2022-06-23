@@ -20,10 +20,10 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
+from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.imports import (
     _APEX_AVAILABLE,
     _BAGUA_AVAILABLE,
-    _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,
     _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
     _HIVEMIND_AVAILABLE,
