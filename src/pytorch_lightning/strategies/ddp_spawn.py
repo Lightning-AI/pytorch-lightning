@@ -60,7 +60,7 @@ class DDPSpawnStrategy(ParallelStrategy):
     def __init__(
         self,
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
-        parallel_devices: Optional[List[torch.device]] = None,
+        # parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
@@ -72,7 +72,7 @@ class DDPSpawnStrategy(ParallelStrategy):
     ):
         super().__init__(
             accelerator=accelerator,
-            parallel_devices=parallel_devices,
+            # parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
@@ -100,11 +100,11 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     @property
     def root_device(self):
-        return self.parallel_devices[self.local_rank]
+        return torch.device("cuda", self.local_rank)
 
     @property
     def num_processes(self):
-        return len(self.parallel_devices) if self.parallel_devices is not None else 0
+        return 2
 
     @property
     def distributed_sampler_kwargs(self):
