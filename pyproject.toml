@@ -7,10 +7,9 @@ requires = [
 
 [tool.isort]
 known_first_party = [
-    "docs",
     "pl_examples",
     "pytorch_lightning",
-    "tests",
+    "tests_pytorch",
 ]
 profile = "black"
 line_length = 120
@@ -53,6 +52,7 @@ module = [
     "pytorch_lightning.core.mixins.device_dtype_mixin",
     "pytorch_lightning.core.saving",
     "pytorch_lightning.demos.boring_classes",
+    "pytorch_lightning.demos.mnist_datamodule",
     "pytorch_lightning.distributed.dist",
     "pytorch_lightning.loggers.base",
     "pytorch_lightning.loggers.logger",
@@ -78,10 +78,10 @@ module = [
     "pytorch_lightning.strategies.single_tpu",
     "pytorch_lightning.strategies.tpu_spawn",
     "pytorch_lightning.strategies.strategy",
-    "pytorch_lightning.profiler.advanced",
-    "pytorch_lightning.profiler.base",
-    "pytorch_lightning.profiler.pytorch",
-    "pytorch_lightning.profiler.simple",
+    "pytorch_lightning.profilers.advanced",
+    "pytorch_lightning.profilers.base",
+    "pytorch_lightning.profilers.pytorch",
+    "pytorch_lightning.profilers.simple",
     "pytorch_lightning.trainer.callback_hook",
     "pytorch_lightning.trainer.connectors.callback_connector",
     "pytorch_lightning.trainer.connectors.data_connector",

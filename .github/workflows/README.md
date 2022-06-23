@@ -16,19 +16,18 @@
 | test-on-tpus                | .circleci/config.yml                | Run only TPU-specific tests.                                                                                                                                               | TPU           | (3.7, 1.9)                                       | linux               |
 
 - \*Accelerators used in CI
-  - GPU: 2 x NVIDIA P100
+  - GPU: 2 x NVIDIA Tesla V100
   - TPU: Google GKE TPUv3
   - IPU: [Colossus MK1 IPU](https://www.graphcore.ai/products/ipu)
   - HPU: [Intel Habana Gaudi SYS-420GH-TNGR](https://www.supermicro.com/en/products/system/AI/4U/SYS-420GH-TNGR) which has 8 Gaudi accelerators
 
 ## Documentation
 
-| workflow file                      | action                                                                                       |
-| ---------------------------------- | -------------------------------------------------------------------------------------------- |
-| .github/workflows/ci_test-base.yml | Validate code examples in docstrings in the package with pytest’s doctest.                   |
-| .github/workflows/docs-checks.yml  | Run doctest, build documentation, and upload built docs to make them available as artifacts. |
-| .circleci/config.yml (build-docs)  | Build docs and host them on output.circleci-artifacts.com for easy access to the built docs. |
-| .github/workflows/docs-link.yml    | Provide a direct link to built docs on output.circleci-artifacts.com.                        |
+| workflow file                     | action                                                                                       |
+| --------------------------------- | -------------------------------------------------------------------------------------------- |
+| .github/workflows/docs-checks.yml | Run doctest, build documentation, and upload built docs to make them available as artifacts. |
+| .circleci/config.yml (build-docs) | Build docs and host them on output.circleci-artifacts.com for easy access to the built docs. |
+| .github/workflows/docs-link.yml   | Provide a direct link to built docs on output.circleci-artifacts.com.                        |
 
 ## Code Quality
 
@@ -40,11 +39,11 @@
 
 ## Others
 
-| workflow file                          | action                                                                                                                                                                                                                                           |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| .github/workflows/ci_dockers.yml       | Build docker images used for testing in CI without pushing to the [Docker Hub](https://hub.docker.com/r/pytorchlightning/pytorch_lightning). Publishing these built images takes place in `.github/release-docker.yml` which only runs in mater. |
-| .github/workflows/ci_pkg-install.yml   | Test if pytorch-lightning is successfully installed using pip.                                                                                                                                                                                   |
-| .github/workflows/events-recurrent.yml | Terminate TPU jobs that live more than one hour to avoid possible resource exhaustion due to hangs.                                                                                                                                              |
+| workflow file                          | action                                                                                                                                                                                                                                                      |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| .github/workflows/ci_dockers.yml       | Build docker images used for testing in CI without pushing to the [Docker Hub](https://hub.docker.com/r/pytorchlightning/pytorch_lightning). Publishing these built images takes place in `.github/workflows/release-docker.yml` which only runs in master. |
+| .github/workflows/ci_pkg-install.yml   | Test if pytorch-lightning is successfully installed using pip.                                                                                                                                                                                              |
+| .github/workflows/events-recurrent.yml | Terminate TPU jobs that live more than one hour to avoid possible resource exhaustion due to hangs.                                                                                                                                                         |
 
 ## Deployment
 
