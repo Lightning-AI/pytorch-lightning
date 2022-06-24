@@ -12,11 +12,11 @@ Find bottlenecks in your code (intermediate)
 **************************
 Profile pytorch operations
 **************************
-To understand the cost of each PyTorch operation, use the :class:`~pytorch_lightning.profiler.pytorch.PyTorchProfiler` built on top of the `PyTorch profiler <https://pytorch.org/docs/master/profiler.html>`__.
+To understand the cost of each PyTorch operation, use the :class:`~pytorch_lightning.profilers.pytorch.PyTorchProfiler` built on top of the `PyTorch profiler <https://pytorch.org/docs/master/profiler.html>`__.
 
 .. code-block:: python
 
-    from pytorch_lightning.profiler import PyTorchProfiler
+    from pytorch_lightning.profilers import PyTorchProfiler
 
     profiler = PyTorchProfiler()
     trainer = Trainer(profiler=profiler)
@@ -65,11 +65,11 @@ The profiler will generate an output like this:
 ***************************
 Profile a distributed model
 ***************************
-To profile a distributed model, use the :class:`~pytorch_lightning.profiler.pytorch.PyTorchProfiler` with the *filename* argument which will save a report per rank.
+To profile a distributed model, use the :class:`~pytorch_lightning.profilers.pytorch.PyTorchProfiler` with the *filename* argument which will save a report per rank.
 
 .. code-block:: python
 
-    from pytorch_lightning.profiler import PyTorchProfiler
+    from pytorch_lightning.profilers import PyTorchProfiler
 
     profiler = PyTorchProfiler(filename="perf-logs")
     trainer = Trainer(profiler=profiler)
@@ -153,11 +153,11 @@ to extend the scope of profiled functions.
 *****************************
 Visualize profiled operations
 *****************************
-To visualize the profiled operations, enable **emit_nvtx** in the :class:`~pytorch_lightning.profiler.pytorch.PyTorchProfiler`.
+To visualize the profiled operations, enable **emit_nvtx** in the :class:`~pytorch_lightning.profilers.pytorch.PyTorchProfiler`.
 
 .. code-block:: python
 
-    from pytorch_lightning.profiler import PyTorchProfiler
+    from pytorch_lightning.profilers import PyTorchProfiler
 
     profiler = PyTorchProfiler(emit_nvtx=True)
     trainer = Trainer(profiler=profiler)
