@@ -210,6 +210,7 @@ Current Lightning Users
    Train on single or multiple HPUs <accelerators/hpu>
    Train on single or multiple IPUs <accelerators/ipu>
    Train on single or multiple TPUs <accelerators/tpu>
+   Train on MPS <accelerators/mps>
    Use a pretrained model <advanced/pretrained>
    model/own_your_loop
 
