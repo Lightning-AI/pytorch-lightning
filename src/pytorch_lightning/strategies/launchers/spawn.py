@@ -46,17 +46,16 @@ class _SpawnLauncher(_Launcher):
         strategy: A reference to the strategy that is used together with this launcher.
     """
 
-    def __init__(self, strategy: Strategy) -> None:
+    def __init__(self, strategy: Strategy, start_method: str = "spawn") -> None:
         self._strategy = strategy
-        self._start_method = "fork"
+        self._start_method = start_method
 
     @property
     def is_interactive_compatible(self) -> bool:
-        # The start method 'spawn' is currently the only one that works with DDP and CUDA support
-        # The start method 'fork' is the only one supported in Jupyter environments but not compatible with CUDA
-        # For more context, see https://github.com/Lightning-AI/lightning/issues/7550
-        # return self._start_method == "fork" and self._strategy.root_device.type != "cuda"
-        return True
+        # The start method 'spawn' is not supporrted in interactive environments
+        # The start method 'fork' is the only one supported in Jupyter environments, with constraints around CUDA
+        # initialization. For more context, see https://github.com/Lightning-AI/lightning/issues/7550
+        return self._start_method == "fork"
 
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
         """Spawns processes that run the given function in parallel.
@@ -81,7 +80,7 @@ class _SpawnLauncher(_Launcher):
             self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
             nprocs=self._strategy.num_processes,
-            start_method="fork",
+            start_method=self._start_method,
         )
         spawn_output = return_queue.get()
         if trainer is None:

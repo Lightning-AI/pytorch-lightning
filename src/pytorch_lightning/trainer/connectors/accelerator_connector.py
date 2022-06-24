@@ -352,23 +352,23 @@ class AcceleratorConnector:
                 else:
                     self._cluster_environment_flag = getattr(self._strategy_flag, "cluster_environment")
 
-            # if hasattr(self._strategy_flag, "parallel_devices"):
-            #     if self._strategy_flag.parallel_devices:
-            #         if self._strategy_flag.parallel_devices[0].type == "cpu":
-            #             if self._accelerator_flag and self._accelerator_flag not in ("auto", "cpu"):
-            #                 raise MisconfigurationException(
-            #                     f"CPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
-            #                     f" but accelerator set to {self._accelerator_flag}, please choose one device type"
-            #                 )
-            #             self._accelerator_flag = "cpu"
-            #         if self._strategy_flag.parallel_devices[0].type == "cuda":
-            #             if self._accelerator_flag and self._accelerator_flag not in ("auto", "gpu"):
-            #                 raise MisconfigurationException(
-            #                     f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
-            #                     f" but accelerator set to {self._accelerator_flag}, please choose one device type"
-            #                 )
-            #             self._accelerator_flag = "gpu"
-            #         self._parallel_devices = self._strategy_flag.parallel_devices
+            if hasattr(self._strategy_flag, "parallel_devices"):
+                if self._strategy_flag.parallel_devices:
+                    if self._strategy_flag.parallel_devices[0].type == "cpu":
+                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "cpu"):
+                            raise MisconfigurationException(
+                                f"CPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                            )
+                        self._accelerator_flag = "cpu"
+                    if self._strategy_flag.parallel_devices[0].type == "cuda":
+                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "gpu"):
+                            raise MisconfigurationException(
+                                f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
+                                f" but accelerator set to {self._accelerator_flag}, please choose one device type"
+                            )
+                        self._accelerator_flag = "gpu"
+                    self._parallel_devices = self._strategy_flag.parallel_devices
 
         amp_type = amp_type if isinstance(amp_type, str) else None
         self._amp_type_flag = AMPType.from_str(amp_type)
@@ -524,8 +524,8 @@ class AcceleratorConnector:
         self._set_devices_flag_if_auto_select_gpus_passed()
 
         self._devices_flag = self.accelerator.parse_devices(self._devices_flag)
-        # if not self._parallel_devices:
-        #     self._parallel_devices = self.accelerator.get_parallel_devices(self._devices_flag)
+        if not self._parallel_devices:
+            self._parallel_devices = self.accelerator.get_parallel_devices(self._devices_flag)
 
     def _set_devices_flag_if_auto_passed(self) -> None:
         if self._devices_flag == "auto" or self._devices_flag is None:
@@ -763,11 +763,11 @@ class AcceleratorConnector:
             self.strategy.checkpoint_io = self.checkpoint_io
         if hasattr(self.strategy, "cluster_environment"):
             self.strategy.cluster_environment = self.cluster_environment
-        # if hasattr(self.strategy, "parallel_devices"):
-        #     if self.strategy.parallel_devices:
-        #         self._parallel_devices = self.strategy.parallel_devices
-        #     else:
-        #         self.strategy.parallel_devices = self._parallel_devices
+        if hasattr(self.strategy, "parallel_devices"):
+            if self.strategy.parallel_devices:
+                self._parallel_devices = self.strategy.parallel_devices
+            else:
+                self.strategy.parallel_devices = self._parallel_devices
         if hasattr(self.strategy, "num_nodes"):
             self.strategy._num_nodes = self._num_nodes_flag
         if hasattr(self.strategy, "_layer_sync"):

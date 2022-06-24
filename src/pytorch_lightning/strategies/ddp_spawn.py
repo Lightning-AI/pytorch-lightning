@@ -60,7 +60,7 @@ class DDPSpawnStrategy(ParallelStrategy):
     def __init__(
         self,
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
-        # parallel_devices: Optional[List[torch.device]] = None,
+        parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
@@ -68,11 +68,12 @@ class DDPSpawnStrategy(ParallelStrategy):
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
         process_group_backend: Optional[str] = None,
+        start_method: str = "spawn",
         **kwargs: Any,
     ):
         super().__init__(
             accelerator=accelerator,
-            # parallel_devices=parallel_devices,
+            parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
@@ -84,6 +85,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._local_rank = 0
         self._process_group_backend: Optional[str] = process_group_backend
+        self._start_method = start_method
 
     @property
     def num_nodes(self) -> int:
@@ -100,11 +102,11 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     @property
     def root_device(self):
-        return torch.device("cuda", self.local_rank)
+        return self.parallel_devices[self.local_rank]
 
     @property
     def num_processes(self):
-        return 2
+        return len(self.parallel_devices)
 
     @property
     def distributed_sampler_kwargs(self):
@@ -120,7 +122,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         return self._process_group_backend
 
     def _configure_launcher(self):
-        self._launcher = _SpawnLauncher(self)
+        self._launcher = _SpawnLauncher(self, start_method=self._start_method)
 
     def setup(self, trainer: "pl.Trainer") -> None:
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
@@ -270,17 +272,20 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register(
-            "ddp_spawn_find_unused_parameters_false",
-            cls,
-            description="DDPSpawn Strategy with `find_unused_parameters` as False",
-            find_unused_parameters=False,
-        )
-        strategy_registry.register(
-            cls.strategy_name,
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )
+        for start_method in ("spawn", "fork"):
+            strategy_registry.register(
+                f"ddp_{start_method}_find_unused_parameters_false",
+                cls,
+                description="DDPSpawn Strategy with `find_unused_parameters` as False",
+                find_unused_parameters=False,
+                start_method=start_method,
+            )
+            strategy_registry.register(
+                f"ddp_{start_method}",
+                cls,
+                description=f"{cls.__class__.__name__}",
+                start_method=start_method,
+            )
 
     def teardown(self) -> None:
         log.detail(f"{self.__class__.__name__}: tearing down strategy")
