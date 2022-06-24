@@ -8,8 +8,8 @@ MPS training (basic)
 
 .. warning::
 
-   The MPS accelerator as well as the PyTorch backend are still very experimental.
-   So far not all operations are supported, but more ops are coming every day due to development from the PyTorch Team.
+   Both the MPS accelerator and the PyTorch backend are still experimental.
+   As such, not all operations are currently supported. However, with ongoing development from the PyTorch team, an increasingly large number of operations are becoming available.
    You can use ``PYTORCH_ENABLE_MPS_FALLBACK=1 python your_script.py`` to fall back to cpu for unsupported operations.
 
 
