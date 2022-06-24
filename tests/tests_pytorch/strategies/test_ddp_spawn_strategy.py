@@ -196,6 +196,7 @@ def test_ddp_spawn_strategy_set_timeout(mock_init_process_group):
     trainer.strategy.connect(model)
     trainer.lightning_module.trainer = trainer
     trainer.strategy.setup_environment()
+    trainer.strategy._worker_setup(0)
 
     process_group_backend = trainer.strategy._get_process_group_backend()
     global_rank = trainer.strategy.cluster_environment.global_rank()
