@@ -1407,15 +1407,11 @@ class Trainer(
                     f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'
                 )
             # load best weights
-            ckpt_path = (
-                self.checkpoint_callback.best_model_path
-                if hasattr(self.checkpoint_callback, "best_model_path")
-                else None
-            )
+            ckpt_path = getattr(self.checkpoint_callback, "best_model_path", None)
 
         if ckpt_path == "last":
-            candidates = [ft.ckpt_path if hasattr(ft, "ckpt_path") else None for ft in ft_checkpoints] + [
-                cb.last_model_path if hasattr(cb, "last_model_path") else None for cb in self.checkpoint_callbacks
+            candidates = [getattr(ft, "ckpt_path", None) for ft in ft_checkpoints] + [
+                getattr(cb, "last_model_path", None) for cb in self.checkpoint_callbacks
             ]
             candidates_fs = {path: get_filesystem(path) for path in candidates if path}
             candidates_ts = {path: fs.modified(path) for path, fs in candidates_fs.items() if fs.exists(path)}
