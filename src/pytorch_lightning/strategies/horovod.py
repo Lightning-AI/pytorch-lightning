@@ -74,7 +74,7 @@ class HorovodStrategy(ParallelStrategy):
         return self.parallel_devices[self.local_rank]
 
     @property
-    def distributed_sampler_kwargs(self):
+    def distributed_sampler_kwargs(self) -> Dict[str, int]:
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 

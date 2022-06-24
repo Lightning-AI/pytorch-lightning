@@ -591,7 +591,7 @@ class DeepSpeedStrategy(DDPStrategy):
         return module.module if isinstance(module, LightningDeepSpeedModule) else module
 
     @property
-    def distributed_sampler_kwargs(self):
+    def distributed_sampler_kwargs(self) -> Dict[str, int]:
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs
 

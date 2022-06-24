@@ -13,7 +13,7 @@
 # limitations under the License.
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 
 import torch
 from torch import Tensor
@@ -47,8 +47,8 @@ class ParallelStrategy(Strategy, ABC):
         precision_plugin: Optional[PrecisionPlugin] = None,
     ):
         super().__init__(accelerator=accelerator, checkpoint_io=checkpoint_io, precision_plugin=precision_plugin)
-        self.parallel_devices = parallel_devices
-        self.cluster_environment = cluster_environment
+        self._parallel_devices = parallel_devices
+        self._cluster_environment = cluster_environment
         self._layer_sync: Optional[LayerSync] = None
 
     @property
@@ -81,15 +81,15 @@ class ParallelStrategy(Strategy, ABC):
         return self.global_rank == 0
 
     @property
-    def parallel_devices(self):
+    def parallel_devices(self) -> Optional[List[torch.device]]:
         return self._parallel_devices
 
-    @parallel_devices.setter
-    def parallel_devices(self, parallel_devices):
-        self._parallel_devices = parallel_devices
+    @property
+    def cluster_environment(self) -> Optional[ClusterEnvironment]:
+        return self._cluster_environment
 
     @property
-    def distributed_sampler_kwargs(self):
+    def distributed_sampler_kwargs(self) -> Dict[str, int]:
         distributed_sampler_kwargs = dict(num_replicas=len(self.parallel_devices), rank=self.global_rank)
         return distributed_sampler_kwargs
 
@@ -103,6 +103,12 @@ class ParallelStrategy(Strategy, ABC):
         if pg_backend:
             return pg_backend
         return get_default_process_group_backend_for_device(self.root_device)
+
+    def _lazy_init(self, **kwargs: Any) -> None:
+        super()._lazy_init(**kwargs)
+        self._parallel_devices = kwargs.get("parallel_devices", self.parallel_devices)
+        self._cluster_environment = kwargs.get("cluster_environment", self.cluster_environment)
+        self._layer_sync = kwargs.get("layer_sync", self._layer_sync)
 
     def reconciliate_processes(self, trace: str):
         """Function to re-conciliate processes on failure."""

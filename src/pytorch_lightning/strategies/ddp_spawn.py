@@ -89,11 +89,6 @@ class DDPSpawnStrategy(ParallelStrategy):
     def num_nodes(self) -> int:
         return self._num_nodes
 
-    @num_nodes.setter
-    def num_nodes(self, num_nodes: int) -> None:
-        # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
-        self._num_nodes = num_nodes
-
     @property
     def local_rank(self) -> int:
         return self._local_rank
@@ -107,7 +102,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
-    def distributed_sampler_kwargs(self):
+    def distributed_sampler_kwargs(self) -> Dict[str, int]:
         distributed_sampler_kwargs = dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
         return distributed_sampler_kwargs
 
@@ -118,6 +113,12 @@ class DDPSpawnStrategy(ParallelStrategy):
     @property
     def process_group_backend(self) -> Optional[str]:
         return self._process_group_backend
+
+    def _lazy_init(self, **kwargs: Any) -> None:
+        super()._lazy_init(**kwargs)
+        self._num_nodes = kwargs.get("num_nodes", self._num_nodes)
+        self.set_world_ranks()
+        self._configure_launcher()
 
     def _configure_launcher(self):
         self._launcher = _SpawnLauncher(self)
