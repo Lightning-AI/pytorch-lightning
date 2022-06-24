@@ -643,7 +643,7 @@ def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock
     assert trainer.strategy.local_rank == 0
 
 
-@RunIf(min_torch="1.11")
+@RunIf(min_torch="1.12")
 def test_check_native_fsdp_strategy_and_fallback():
     with pytest.raises(
         MisconfigurationException,
@@ -656,7 +656,7 @@ def test_check_native_fsdp_strategy_and_fallback():
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
 @mock.patch("torch.cuda.device_count", return_value=1)
 @mock.patch("torch.cuda.is_available", return_value=True)
-@RunIf(min_torch="1.11")
+@RunIf(min_torch="1.12")
 def test_mixed_precision_support_with_native_fsdp_strategy(device_count_mock, mock_cuda_available, tmpdir):
     with pytest.raises(
         MisconfigurationException, match="DDPFullyShardedNativeStrategy currently doesn't support Mixed Precision"
