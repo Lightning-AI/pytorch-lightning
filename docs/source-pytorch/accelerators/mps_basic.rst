@@ -18,13 +18,13 @@ MPS training (basic)
 What is Apple silicon?
 ----------------------
 Apple silicon chips are a unified system on a chip (SoC) developed by Apple based on the ARM design.
-Among other things, they feature a CPU-cores, GPU-cores, a neural engine and shared memory between all of those.
+Among other things, they feature CPU-cores, GPU-cores, a neural engine and shared memory between all of these features.
 
 ----
 
 So it's a CPU?
 --------------
-Among other things yes, it includes CPU-cores. However, when running on the ``CPUAccelerator``, not the full potential of hardware acceleration the M-Socs are capable of, is used because they also feature a GPU and a neural engine.
+Apple silicon includes CPU-cores among several other features. However, the full potential for the hardware acceleration of which the M-Socs are capable is unavailable when running on the ``CPUAccelerator``. This is because they also feature a GPU and a neural engine.
 
 To use them, Lightning supports the ``MPSAccelerator``.
 
