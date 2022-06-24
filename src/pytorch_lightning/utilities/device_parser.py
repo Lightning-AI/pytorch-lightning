@@ -337,3 +337,8 @@ def parse_hpus(devices: Optional[Union[int, str, List[int]]]) -> Optional[int]:
 def num_cuda_devices() -> int:
     with multiprocessing.Pool(1) as pool:
         return pool.apply(torch.cuda.device_count)
+
+
+def is_cuda_available() -> bool:
+    with multiprocessing.Pool(1) as pool:
+        return pool.apply(torch.cuda.is_available)

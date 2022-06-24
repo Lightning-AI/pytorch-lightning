@@ -106,6 +106,7 @@ from pytorch_lightning.utilities.argparse import (
 from pytorch_lightning.utilities.auto_restart import _add_capture_metadata_collate
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.data import _auto_add_worker_init_fn, has_len_all_ranks
+from pytorch_lightning.utilities.device_parser import is_cuda_available
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import ExitGracefullyException, MisconfigurationException
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
@@ -1762,7 +1763,7 @@ class Trainer(
         rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
 
         # TODO: Integrate MPS Accelerator here, once gpu maps to both
-        if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
+        if is_cuda_available() and not isinstance(self.accelerator, GPUAccelerator):
             rank_zero_warn(
                 "GPU available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='gpu', devices={GPUAccelerator.auto_device_count()})`.",
