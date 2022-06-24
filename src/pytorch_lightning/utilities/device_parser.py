@@ -14,6 +14,8 @@
 from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
+import torch.cuda
+import multiprocessing
 
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
@@ -330,3 +332,8 @@ def parse_hpus(devices: Optional[Union[int, str, List[int]]]) -> Optional[int]:
         raise MisconfigurationException("`devices` for `HPUAccelerator` must be int, string or None.")
 
     return int(devices) if isinstance(devices, str) else devices
+
+
+def num_cuda_devices() -> int:
+    with multiprocessing.Pool(1) as pool:
+        return pool.apply(torch.cuda.device_count)
