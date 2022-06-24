@@ -94,7 +94,7 @@ class Strategy(ABC):
         }
 
     def _lazy_init(self, **kwargs: Any) -> None:
-        """Docstring"""
+        """Docstring."""
         self._accelerator = kwargs.get("accelerator", self.accelerator)
         self._checkpoint_io = kwargs.get("checkpoint_io", self.checkpoint_io)
         self._precision_plugin = kwargs.get("precision_plugin", self.precision_plugin)
