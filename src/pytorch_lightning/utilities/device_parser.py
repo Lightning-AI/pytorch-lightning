@@ -252,7 +252,7 @@ def _get_all_available_cuda_gpus() -> List[int]:
     Returns:
          a list of all available CUDA gpus
     """
-    return list(range(torch.cuda.device_count()))
+    return list(range(num_cuda_devices()))
 
 
 def _check_unique(device_ids: List[int]) -> None:
