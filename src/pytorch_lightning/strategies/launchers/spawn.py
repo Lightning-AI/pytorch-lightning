@@ -48,7 +48,7 @@ class _SpawnLauncher(_Launcher):
 
     def __init__(self, strategy: Strategy) -> None:
         self._strategy = strategy
-        self._start_method = "spawn"
+        self._start_method = "fork"
 
     @property
     def is_interactive_compatible(self) -> bool:
