@@ -49,7 +49,7 @@ class HivemindStrategy(Strategy):
     ):
         """Provides capabilities to train using the Hivemind Library, training collaboratively across the internet
         with unreliable machines. For more information, `refer to the docs <https://pytorch-
-        lightning.readthedocs.io/en/latest/strategies/collaborative_training.html>`__.
+        lightning.readthedocs.io/en/latest/strategies/hivemind.html>`__.
 
         .. warning:: ``HivemindStrategy`` is experimental and subject to change.
 

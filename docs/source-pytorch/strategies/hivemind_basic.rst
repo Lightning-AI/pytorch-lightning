@@ -1,6 +1,6 @@
 :orphan:
 
-.. _collaborative_training_basic:
+.. _hivemind_basic:
 
 Training on unreliable mixed GPUs across the internet (Basic)
 =============================================================

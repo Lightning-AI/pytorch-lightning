@@ -1,4 +1,4 @@
-.. _collaborative_training:
+.. _hivemind:
 
 #####################################################
 Training on unreliable mixed GPUs across the internet
@@ -17,7 +17,7 @@ Training on unreliable mixed GPUs across the internet
    :header: 1: Training across multiple machines over the internet
    :description: Quick setup to start training on multiple machines.
    :col_css: col-md-4
-   :button_link: collaborative_training_basic.html
+   :button_link: hivemind_basic.html
    :height: 200
    :tag: basic
 
@@ -25,7 +25,7 @@ Training on unreliable mixed GPUs across the internet
    :header: 2: Speed up training by enabling under-the-hood optimizations
    :description: Learn which flags to use with the HivemindStrategy to speed up training.
    :col_css: col-md-4
-   :button_link: collaborative_training_intermediate.html
+   :button_link: hivemind_intermediate.html
    :height: 200
    :tag: intermediate
 
@@ -33,7 +33,7 @@ Training on unreliable mixed GPUs across the internet
    :header: 3: Optimize Memory and Communication using compression hooks
    :description: Enable gradient buffer optimizations and communication improvements to reduce bottlenecks in communication.
    :col_css: col-md-4
-   :button_link: collaborative_training_expert.html
+   :button_link: hivemind_expert.html
    :height: 200
    :tag: expert
 
