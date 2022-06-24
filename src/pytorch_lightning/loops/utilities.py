@@ -232,5 +232,5 @@ def _set_sampler_epoch(dataloader: DataLoader, epoch: int) -> None:
     """
     for sampler_name in ("sampler", "batch_sampler"):
         sampler = getattr(dataloader, sampler_name, None)
-        if sampler and callable(getattr(sampler, "set_epoch", None)):
+        if sampler is not None and callable(getattr(sampler, "set_epoch", None)):
             sampler.set_epoch(epoch)
