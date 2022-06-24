@@ -99,7 +99,7 @@ class LoggerConnector:
         if step is None:
             # added metrics for convenience
             scalar_metrics.setdefault("epoch", self.trainer.current_epoch)
-            step = self.trainer.global_step
+            step = self.trainer.global_step - 1
 
         # log actual metrics
         for logger in self.trainer.loggers:
