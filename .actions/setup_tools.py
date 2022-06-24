@@ -16,6 +16,7 @@ import glob
 import logging
 import os
 import re
+from itertools import groupby
 from typing import List
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
@@ -92,11 +93,45 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     return text
 
 
-def create_meta_package(src_folder: str, pkg_name: str = "lightning_app", lit_name: str = "app"):
+def replace_with_imports(lines: List[str], import_path: str, kword: str = "class") -> List[str]:
+    """Parse a file and replace implementtaions bodies of func or function.
+
+    >>> py_file = os.path.join(_PROJECT_ROOT, "src", "pytorch_lightning", "loggers", "logger.py")
+    >>> import_path = ".".join(["pytorch_lightning", "loggers", "logger"])
+    >>> with open(py_file, encoding="utf-8") as fp:
+    ...     lines = [ln.rstrip() for ln in fp.readlines()]
+    >>> lines = replace_with_imports(lines, import_path, "class")
+    >>> lines = replace_with_imports(lines, import_path, "def")
     """
+    body = []
+    tracking = False
+    skip_offset = 0
+    for i, ln in enumerate(lines):
+        offset = len(ln) - len(ln.lstrip())
+        # in case of mating the class args are multi-line
+        if tracking and ln and offset <= skip_offset and not any(ln.lstrip().startswith(c) for c in ")]"):
+            tracking = False
+        if ln.lstrip().startswith(f"{kword} ") and not tracking:
+            name = ln.replace(f"{kword} ", "").strip()
+            idxs = [name.index(c) for c in ":(" if c in name]
+            name = name[: min(idxs)]
+            # skip private, TODO: consider skip even protected
+            if not name.startswith("__"):
+                body.append(f"from {import_path} import {name}  # noqa: F401")
+            tracking = True
+            skip_offset = offset
+            continue
+        if not tracking:
+            body.append(ln)
+    return body
+
+
+def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", lit_name: str = "pytorch"):
+    """Parse the real python package and for each module create a mirroe version with repalcing all function and
+    class implementations by cross-imports to the true package.
+
     >>> create_meta_package(os.path.join(_PROJECT_ROOT, "src"))
     """
-    KEEP_FILES = ("_logger", "_root_logger", "_console", "formatter", "_DETAIL")
     package_dir = os.path.join(src_folder, pkg_name)
     # shutil.rmtree(os.path.join(src_folder, "lightning", lit_name))
     py_files = glob.glob(os.path.join(src_folder, pkg_name, "**", "*.py"), recursive=True)
@@ -105,76 +140,29 @@ def create_meta_package(src_folder: str, pkg_name: str = "lightning_app", lit_na
         fname = os.path.basename(py_file)
         if "-" in fname:
             continue
+        with open(py_file, encoding="utf-8") as fp:
+            lines = [ln.rstrip() for ln in fp.readlines()]
+        lines = list(map(lambda ln: ln[: ln.index("#")] if "#" in ln else ln, lines))
+        import_path = pkg_name + "." + local_path.replace(".py", "").replace(os.path.sep, ".")
 
         if fname in ("__about__.py", "__version__.py"):
-            with open(py_file, encoding="utf-8") as fp:
-                body = [ln.rstrip() for ln in fp.readlines()]
+            body = lines
 
         elif fname in ("__init__.py", "__main__.py"):
-            with open(py_file, encoding="utf-8") as fp:
-                lines = fp.readlines()
-            body = []
-            # ToDo: consider some more aggressive pruning
-            for i, ln in enumerate(lines):
-                ln = ln[: ln.index("#")] if "#" in ln else ln
-                ln = ln.rstrip()
-                var = re.match(r"^([\w+_]+) =", ln)
-                if var:
-                    name = var.groups()[0]
-                    if name not in KEEP_FILES:
-                        continue
-                    if name.startswith("__") and name != "__all__":
-                        continue
-                    dirs = [d for d in os.path.dirname(local_path).split(os.path.sep) if d]
-                    import_path = ".".join([pkg_name] + dirs)
-                    body.append(f"from {import_path} import {name}  # noqa: F401")
-                elif "import " in ln and "-" in ln:
-                    continue
+            body = replace_with_imports(lines, import_path, "class")
+            body = replace_with_imports(body, import_path, "def")
         else:
-            if fname.startswith("_") and fname not in ("__main__.py",):
+            if fname.startswith("_"):
                 logging.warning(f"unsupported file: {local_path}")
                 continue
             # ToDO: perform some smarter parsing - preserve Constants, lambdas, etc
-            # spec = spec_from_file_location(os.path.join(pkg_name, local_path), py_file)
-            # py = module_from_spec(spec)
-            # spec.loader.exec_module(py)
-            with open(py_file, encoding="utf-8") as fp:
-                lines = fp.readlines()
-            body = []
-            skip_offset = 0
-            for i, ln in enumerate(lines):
-                ln = ln[: ln.index("#")] if "#" in ln else ln
-                ln = ln.rstrip()
-                if skip_offset and ln:
-                    offset = len(ln) - len(ln.lstrip())
-                    if offset >= skip_offset:
-                        continue
-                    skip_offset = offset
-                import_path = pkg_name + "." + local_path.replace(".py", "").replace(os.path.sep, ".")
-                if "-" in import_path:
-                    continue
-                var = re.match(r"^([\w+_]+) =", ln)
-                if var:
+            body = [ln for ln in lines if not ln.startswith("import ")]
+            body = [ln for ln in body if not (ln.startswith("from ") and " import " in ln)]
+            body = replace_with_imports([ln.rstrip() for ln in body], import_path, "class")
+            body = replace_with_imports(body, import_path, "def")
 
-                    name = var.groups()[0]
-                    if name not in KEEP_FILES:
-                        continue
-                    body.append(f"from {import_path} import {name}  # noqa: F401")
-                if "import " in ln and "-" in ln:
-                    continue
-                if any(ln.lstrip().startswith(k) for k in ["def", "class"]):
-                    name = ln.replace("def ", "").replace("class ", "").strip()
-                    if "on_before_run" in name:
-                        # fixme
-                        continue
-                    idx = [name.index(s) if s in name else len(name) for s in "():"]
-                    name = name[: min(idx)]
-                    # skip private, TODO: consider skip even protected
-                    if name.startswith("__") or "=" in name:
-                        continue
-                    body.append(f"from {import_path} import {name}  # noqa: F401")
-                    skip_offset = len(ln) - len(ln.lstrip()) + 4
-
+        # todo: apply pre-commit formatting
+        body = [ln for ln, _group in groupby(body)]
         new_file = os.path.join(src_folder, "lightning", lit_name, local_path)
         os.makedirs(os.path.dirname(new_file), exist_ok=True)
         with open(new_file, "w", encoding="utf-8") as fp:
