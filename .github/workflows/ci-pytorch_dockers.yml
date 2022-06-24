@@ -177,7 +177,7 @@ jobs:
           build-args: |
             DIST=latest
             GAUDI_VERSION=${{ matrix.gaudi_version }}
-            PYTORCH_VERSION=${{ matrix.pytorch_version }}
+            PYTORCH_INSTALLER_VERSION=${{ matrix.pytorch_version }}
           file: dockers/ci-runner-hpu/Dockerfile
           push: false
         timeout-minutes: 60
