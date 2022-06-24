@@ -47,8 +47,8 @@ jobs:
           python setup.py sdist bdist_wheel
 
       - name: Check package
-        env:
-          PACKAGE_NAME: ${{ matrix.pkg }}
+        #env:
+        #  PACKAGE_NAME: ${{ matrix.pkg }}
         run: |
           ls -l dist/
           twine check dist/*
