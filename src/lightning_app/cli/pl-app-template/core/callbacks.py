@@ -291,11 +291,7 @@ class PLAppArtifactsTracker(Callback):
         self._collect_logger_metadata(trainer)
 
     def on_train_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if (
-            trainer.checkpoint_callback
-            and hasattr(trainer.checkpoint_callback, "dirpath")
-            and trainer.checkpoint_callback.dirpath is not None
-        ):
+        if trainer.checkpoint_callback and trainer.checkpoint_callback.dirpath is not None:
             self.work.checkpoint_dir = Path(trainer.checkpoint_callback.dirpath)
 
     def _collect_logger_metadata(self, trainer: "pl.Trainer") -> None:
