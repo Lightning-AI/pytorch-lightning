@@ -44,7 +44,7 @@ jobs:
           PACKAGE_NAME: ${{ matrix.pkg }}
         run: |
           python setup.py check --metadata --strict
-          flake8 src/lightning/ --ignore E402,F401,E501,W391
+          flake8 src/lightning/ --ignore E402,F401,E501,W391,E303
           python setup.py sdist bdist_wheel
 
       - name: Check package
