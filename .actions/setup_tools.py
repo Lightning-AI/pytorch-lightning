@@ -201,10 +201,13 @@ def prune_empty_statements(lines: List[str]) -> List[str]:
     body, tracking, skip_offset, last_count = [], False, 0, 0
     # todo: consider some more complex logic as for example only some leaves of if/else tree are empty
     for i, ln in enumerate(lines):
-        # skipp all decorators, Todo: consider also multi-line decorators
-        if ln.lstrip().startswith("@"):
-            continue
         offset = len(ln) - len(ln.lstrip())
+        # skipp all decorators
+        if ln.lstrip().startswith("@"):
+            # consider also multi-line decorators
+            if "(" in ln and ")" not in ln:
+                tracking, skip_offset = True, offset
+            continue
         # in case of mating the class args are multi-line
         if tracking and ln and offset <= skip_offset and not any(ln.lstrip().startswith(c) for c in ")]}"):
             tracking = False
