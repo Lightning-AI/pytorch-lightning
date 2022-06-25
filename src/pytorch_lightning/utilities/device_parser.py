@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import multiprocessing
 from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
 import torch.cuda
-import multiprocessing
 
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus

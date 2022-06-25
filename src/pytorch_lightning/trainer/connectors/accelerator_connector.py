@@ -82,7 +82,7 @@ from pytorch_lightning.utilities import (
     rank_zero_info,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.device_parser import num_cuda_devices, is_cuda_available
+from pytorch_lightning.utilities.device_parser import is_cuda_available, num_cuda_devices
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,

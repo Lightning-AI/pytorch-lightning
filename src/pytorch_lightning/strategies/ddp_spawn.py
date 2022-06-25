@@ -106,7 +106,7 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     @property
     def num_processes(self):
-        return len(self.parallel_devices)
+        return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
     def distributed_sampler_kwargs(self):
