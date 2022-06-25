@@ -15,9 +15,10 @@ import torch.nn as nn
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, unwrap_lightning_module
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
+from pytorch_lightning.utilities import _IS_WINDOWS, _module_available
 
-LightningShardedDataParallel = None
+_FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
+
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
 
@@ -31,3 +32,7 @@ if _FAIRSCALE_AVAILABLE:
             model = model.module
 
         return unwrap_lightning_module(model)
+
+else:
+    LightningShardedDataParallel = None
+    unwrap_lightning_module_sharded = None

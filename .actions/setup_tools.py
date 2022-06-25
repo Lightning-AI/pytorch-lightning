@@ -271,7 +271,7 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
     for py_file in py_files:
         local_path = py_file.replace(package_dir + os.path.sep, "")
         fname = os.path.basename(py_file)
-        if "-" in fname:
+        if "-" in local_path:
             continue
         with open(py_file, encoding="utf-8") as fp:
             lines = [ln.rstrip() for ln in fp.readlines()]
@@ -280,37 +280,32 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
 
         if fname in ("__about__.py", "__version__.py"):
             body = lines
-
-        elif fname in ("__init__.py", "__main__.py"):
-            body = prune_comments_docstrings(lines)
-            body = replace_block_with_imports(body, import_path, "class")
-            body = replace_block_with_imports(body, import_path, "def")
-            body = replace_vars_with_imports(body, import_path)
-            body = prune_empty_statements(body)
-            # in case of several in-depth statements, Todo: consider loop to prune until it changes
-            body = prune_empty_statements(body)
         else:
-            if fname.startswith("_"):
+            if fname.startswith("_") and fname not in ("__init__.py", "__main__.py"):
                 logging.warning(f"unsupported file: {local_path}")
                 continue
             # ToDO: perform some smarter parsing - preserve Constants, lambdas, etc
+            body = lines
             body = prune_comments_docstrings(lines)
-            body = prune_imports_callables(body)
+            if fname not in ("__init__.py", "__main__.py"):
+                body = prune_imports_callables(body)
             body = replace_block_with_imports([ln.rstrip() for ln in body], import_path, "class")
             body = replace_block_with_imports(body, import_path, "def")
+            body = replace_block_with_imports(body, import_path, "async def")
             body = replace_vars_with_imports(body, import_path)
-            body = prune_empty_statements(body)
-            # in case of several in-depth statements, Todo: consider loop to prune until it changes
-            body = prune_empty_statements(body)
+            body_len = -1
+            # in case of several in-depth statements
+            while body_len != len(body):
+                body_len = len(body)
+                body = prune_empty_statements(body)
 
         # todo: apply pre-commit formatting
         body = [ln for ln, _group in groupby(body)]
         lines = []
         # drop duplicated lines
         for ln in body:
-            ln = ln + os.linesep
-            if ln not in lines:
-                lines.append(ln)
+            if ln + os.linesep not in lines or ln in (")", ""):
+                lines.append(ln + os.linesep)
         # compose the target file name
         new_file = os.path.join(src_folder, "lightning", lit_name, local_path)
         os.makedirs(os.path.dirname(new_file), exist_ok=True)

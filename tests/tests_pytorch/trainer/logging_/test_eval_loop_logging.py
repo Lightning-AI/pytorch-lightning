@@ -25,12 +25,13 @@ import pytest
 import torch
 
 from pytorch_lightning import callbacks, Trainer
+from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.loops.dataloader import EvaluationLoop
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0, _RICH_AVAILABLE
+from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
 from tests_pytorch.helpers.runif import RunIf
 
 if _RICH_AVAILABLE:
