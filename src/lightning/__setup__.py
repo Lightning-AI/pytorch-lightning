@@ -20,17 +20,23 @@ def _load_py_module(name: str, location: str) -> ModuleType:
 
 
 def _adjust_manifest(**kwargs: Any) -> None:
-    if kwargs["pkg_name"]:
-        return
     # todo: consider rather aggregation of particular manifest adjustments
     manifest_path = os.path.join(_PROJECT_ROOT, "MANIFEST.in")
     assert os.path.isfile(manifest_path)
     with open(manifest_path) as fp:
         lines = fp.readlines()
-    lines += [
-        "recursive-include src *.md" + os.linesep,
-        "recursive-include requirements *.txt" + os.linesep,
-    ]
+    if kwargs["pkg_name"] == "lightning":
+        lines += [
+            "recursive-include src/lightning *.md" + os.linesep,
+            # fixme: this is strange, this shall work with setup find package - include
+            "prune src/lightning_app" + os.linesep,
+            "prune src/pytorch_lightning" + os.linesep,
+        ]
+    else:
+        lines += [
+            "recursive-include src *.md" + os.linesep,
+            "recursive-include requirements *.txt" + os.linesep,
+        ]
     with open(manifest_path, "w") as fp:
         fp.writelines(lines)
 
@@ -43,7 +49,7 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
     _long_description = _setup_tools.load_readme_description(
         _PROJECT_ROOT, homepage=_about.__homepage__, version=_version.version
     )
-    if kwargs["pkg_name"]:
+    if kwargs["pkg_name"] == "lightning":
         _include_pkgs = ["lightning", "lightning.*"]
         # todo: generate this list automatically with parsing feature pkg versions
         _requires = ["pytorch-lightning==1.6.*", "lightning-app==0.5.*"]
@@ -67,6 +73,7 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
         package_dir={"": "src"},
         long_description=_long_description,
         long_description_content_type="text/markdown",
+        zip_safe=False,
         keywords=["deep learning", "pytorch", "AI"],  # todo: aggregate tags from all packages
         python_requires=">=3.7",  # todo: take the lowes based on all packages
         setup_requires=[],

@@ -214,6 +214,7 @@ def prune_empty_statements(lines: List[str]) -> List[str]:
         starts = [k for k in kwords_pairs if ln.lstrip().startswith(k)]
         if starts:
             start, count = starts[0], -1
+            # look forward if this statement has a body
             for ln_ in lines[i:]:
                 offset_ = len(ln_) - len(ln_.lstrip())
                 if count == -1 and ln_.rstrip().endswith(":"):
