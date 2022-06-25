@@ -124,7 +124,7 @@ def replace_block_with_imports(lines: List[str], import_path: str, kword: str = 
             name = name[: min(idxs)]
             # skip private, TODO: consider skip even protected
             if not name.startswith("__"):
-                body.append(f"from {import_path} import {name}  # noqa: F401")
+                body.append(f"{' ' * offset}from {import_path} import {name}  # noqa: F401")
             tracking, skip_offset = True, offset
             continue
         if not tracking:
@@ -135,8 +135,8 @@ def replace_block_with_imports(lines: List[str], import_path: str, kword: str = 
 def replace_vars_with_imports(lines: List[str], import_path: str) -> List[str]:
     """Parse a file and replace variable filling with import.
 
-    >>> py_file = os.path.join(_PROJECT_ROOT, "src", "pytorch_lightning", "utilities", "cli.py")
-    >>> import_path = ".".join(["pytorch_lightning", "utilities", "cli"])
+    >>> py_file = os.path.join(_PROJECT_ROOT, "src", "pytorch_lightning", "utilities", "imports.py")
+    >>> import_path = ".".join(["pytorch_lightning", "utilities", "imports"])
     >>> with open(py_file, encoding="utf-8") as fp:
     ...     lines = [ln.rstrip() for ln in fp.readlines()]
     >>> lines = replace_vars_with_imports(lines, import_path)
@@ -147,12 +147,12 @@ def replace_vars_with_imports(lines: List[str], import_path: str) -> List[str]:
         # in case of mating the class args are multi-line
         if tracking and ln and offset <= skip_offset and not any(ln.lstrip().startswith(c) for c in ")]}"):
             tracking = False
-        var = re.match(r"^([\w_\d]+) = ", ln.lstrip())
+        var = re.match(r"^([\w_\d]+)[: [\w\., \[\]]*]? = ", ln.lstrip())
         if var:
             name = var.groups()[0]
             # skip private or apply white-list for allowed vars
             if not name.startswith("__") or name in ("__all__",):
-                body.append(f"from {import_path} import {name}  # noqa: F401")
+                body.append(f"{' ' * offset}from {import_path} import {name}  # noqa: F401")
             tracking, skip_offset = True, offset
             continue
         if not tracking:
@@ -178,7 +178,7 @@ def prune_imports_callables(lines: List[str]) -> List[str]:
         if tracking and ln and offset <= skip_offset and not any(ln.lstrip().startswith(c) for c in ")]}"):
             tracking = False
         # catching callable
-        call = re.match(r"^[\w_\d]+\(", ln.lstrip())
+        call = re.match(r"^[\w_\d\.]+\(", ln.lstrip())
         if (ln.lstrip().startswith("from ") and " import " in ln) or call:
             tracking, skip_offset = True, offset
             continue
@@ -197,51 +197,59 @@ def prune_empty_statements(lines: List[str]) -> List[str]:
     >>> lines = prune_imports_callables(lines)
     >>> lines = prune_empty_statements(lines)
     """
-    kwords_pairs = ("if ", "elif ", "else", "try", "except")
-    body, tracking, skip_offset = [], False, 0
+    kwords_pairs = ("with", "if ", "elif ", "else", "try", "except")
+    body, tracking, skip_offset, last_count = [], False, 0, 0
     # todo: consider some more complex logic as for example only some leaves of if/else tree are empty
     for i, ln in enumerate(lines):
+        # skipp all decorators, Todo: consider also multi-line decorators
+        if ln.lstrip().startswith("@"):
+            continue
         offset = len(ln) - len(ln.lstrip())
         # in case of mating the class args are multi-line
         if tracking and ln and offset <= skip_offset and not any(ln.lstrip().startswith(c) for c in ")]}"):
             tracking = False
         starts = [k for k in kwords_pairs if ln.lstrip().startswith(k)]
         if starts:
-            count = -1
-            skip_offset = offset
+            start, count = starts[0], -1
             for ln_ in lines[i:]:
                 offset_ = len(ln_) - len(ln_.lstrip())
                 if count == -1 and ln_.rstrip().endswith(":"):
                     count = 0
-                elif ln_ and offset_ <= skip_offset:
+                elif ln_ and offset_ <= offset:
                     break
                 # skipp all til end of statement
                 elif ln_.lstrip():
                     # count non-zero body lines
                     count += 1
-            if count <= 0:
+            # cache the last key body as the supplement canot be without
+            if start in ("if", "elif", "try"):
+                last_count = count
+            if count <= 0 or (start in ("else", "except") and last_count <= 0):
                 tracking, skip_offset = True, offset
         if not tracking:
             body.append(ln)
     return body
 
 
-def prune_docstrings(lines: List[str]) -> List[str]:
+def prune_comments_docstrings(lines: List[str]) -> List[str]:
     """Prune all doctsrings with triple " notation.
 
-    >>> py_file = os.path.join(_PROJECT_ROOT, "src", "pytorch_lightning", "utilities", "cli.py")
-    >>> import_path = ".".join(["pytorch_lightning", "utilities", "cli"])
+    >>> py_file = os.path.join(_PROJECT_ROOT, "src", "pytorch_lightning", "loggers", "csv_logs.py")
+    >>> import_path = ".".join(["pytorch_lightning", "loggers", "csv_logs"])
     >>> with open(py_file, encoding="utf-8") as fp:
     ...     lines = [ln.rstrip() for ln in fp.readlines()]
-    >>> lines = prune_docstrings(lines)
+    >>> lines = prune_comments_docstrings(lines)
     """
     body, tracking = [], False
     for ln in lines:
         if "#" in ln and "noqa:" not in ln:
             ln = ln[: ln.index("#")]
-        if ln.lstrip().startswith('"""'):
+        if not tracking and any(ln.lstrip().startswith(s) for s in ['"""', 'r"""']):
+            # oneliners skip directly
+            if len(ln.strip()) > 6 and ln.rstrip().endswith('"""'):
+                continue
             tracking = True
-        if ln.rstrip().endswith('"""'):
+        elif ln.rstrip().endswith('"""'):
             tracking = False
             continue
         if not tracking:
@@ -252,6 +260,8 @@ def prune_docstrings(lines: List[str]) -> List[str]:
 def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", lit_name: str = "pytorch"):
     """Parse the real python package and for each module create a mirroe version with repalcing all function and
     class implementations by cross-imports to the true package.
+
+    As validation run in termnal: `flake8 src/lightning/ --ignore E402,F401,E501`
 
     >>> create_meta_package(os.path.join(_PROJECT_ROOT, "src"))
     """
@@ -265,7 +275,6 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
             continue
         with open(py_file, encoding="utf-8") as fp:
             lines = [ln.rstrip() for ln in fp.readlines()]
-        lines = prune_docstrings(lines)
         import_path = pkg_name + "." + local_path.replace(".py", "").replace(os.path.sep, ".")
         import_path = import_path.replace(".__init__", "")
 
@@ -273,24 +282,37 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
             body = lines
 
         elif fname in ("__init__.py", "__main__.py"):
-            body = replace_block_with_imports(lines, import_path, "class")
+            body = prune_comments_docstrings(lines)
+            body = replace_block_with_imports(body, import_path, "class")
             body = replace_block_with_imports(body, import_path, "def")
             body = replace_vars_with_imports(body, import_path)
+            body = prune_empty_statements(body)
+            # in case of several in-depth statements, Todo: consider loop to prune until it changes
             body = prune_empty_statements(body)
         else:
             if fname.startswith("_"):
                 logging.warning(f"unsupported file: {local_path}")
                 continue
             # ToDO: perform some smarter parsing - preserve Constants, lambdas, etc
-            body = prune_imports_callables(lines)
+            body = prune_comments_docstrings(lines)
+            body = prune_imports_callables(body)
             body = replace_block_with_imports([ln.rstrip() for ln in body], import_path, "class")
             body = replace_block_with_imports(body, import_path, "def")
             body = replace_vars_with_imports(body, import_path)
             body = prune_empty_statements(body)
+            # in case of several in-depth statements, Todo: consider loop to prune until it changes
+            body = prune_empty_statements(body)
 
         # todo: apply pre-commit formatting
         body = [ln for ln, _group in groupby(body)]
+        lines = []
+        # drop duplicated lines
+        for ln in body:
+            ln = ln + os.linesep
+            if ln not in lines:
+                lines.append(ln)
+        # compose the target file name
         new_file = os.path.join(src_folder, "lightning", lit_name, local_path)
         os.makedirs(os.path.dirname(new_file), exist_ok=True)
         with open(new_file, "w", encoding="utf-8") as fp:
-            fp.writelines([ln + os.linesep for ln in body])
+            fp.writelines(lines)

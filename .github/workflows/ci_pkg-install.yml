@@ -37,13 +37,14 @@ jobs:
 
       - name: Prepare env
         run: |
-          pip install "twine==3.2" setuptools wheel
+          pip install "twine==4.0.1" setuptools wheel flake8
 
       - name: Create package
         env:
           PACKAGE_NAME: ${{ matrix.pkg }}
         run: |
           python setup.py check --metadata --strict
+          flake8 src/lightning/ --ignore E402,F401,E501,W391
           python setup.py sdist bdist_wheel
 
       - name: Check package
