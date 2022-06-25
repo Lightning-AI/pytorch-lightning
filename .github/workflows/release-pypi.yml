@@ -29,6 +29,10 @@ jobs:
       run: pip install --upgrade setuptools wheel
 
     - name: Build packages
+      # TODO: this would be big challenge as at the release time (especially from master)
+      #  all packages from meta is generated wont be in stable mode,
+      #  so the meta will be for one as release and other as dev
+      # todo: for meta pkg generation we need to install the unstable pkg from PyPI and overwrite source
       env:
         PACKAGE_NAME: pytorch
       run: |

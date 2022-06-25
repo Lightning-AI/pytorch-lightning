@@ -250,7 +250,7 @@ def prune_comments_docstrings(lines: List[str]) -> List[str]:
             ln = ln[: ln.index("#")]
         if not tracking and any(ln.lstrip().startswith(s) for s in ['"""', 'r"""']):
             # oneliners skip directly
-            if len(ln.strip()) > 6 and ln.rstrip().endswith('"""'):
+            if len(ln.strip()) >= 6 and ln.rstrip().endswith('"""'):
                 continue
             tracking = True
         elif ln.rstrip().endswith('"""'):
@@ -289,7 +289,6 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
                 logging.warning(f"unsupported file: {local_path}")
                 continue
             # ToDO: perform some smarter parsing - preserve Constants, lambdas, etc
-            body = lines
             body = prune_comments_docstrings(lines)
             if fname not in ("__init__.py", "__main__.py"):
                 body = prune_imports_callables(body)
@@ -302,6 +301,8 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
             while body_len != len(body):
                 body_len = len(body)
                 body = prune_empty_statements(body)
+            # TODO: add try/catch wrapper for whole body,
+            #  so when import fails it tells you what is the package version this meta package was generated for...
 
         # todo: apply pre-commit formatting
         body = [ln for ln, _group in groupby(body)]
