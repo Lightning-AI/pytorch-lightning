@@ -16,11 +16,20 @@ import glob
 import logging
 import os
 import re
+from importlib.util import module_from_spec, spec_from_file_location
 from itertools import groupby
+from types import ModuleType
 from typing import List
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
 _PACKAGE_MAPPING = {"pytorch": "pytorch_lightning", "app": "lightning_app"}
+
+
+def _load_py_module(name: str, location: str) -> ModuleType:
+    spec = spec_from_file_location(name, location)
+    py = module_from_spec(spec)
+    spec.loader.exec_module(py)
+    return py
 
 
 def load_requirements(
@@ -93,20 +102,20 @@ def load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     return text
 
 
-def replace_with_imports(lines: List[str], import_path: str, kword: str = "class") -> List[str]:
-    """Parse a file and replace implementtaions bodies of func or function.
+def replace_block_with_imports(lines: List[str], import_path: str, kword: str = "class") -> List[str]:
+    """Parse a file and replace implementtaions bodies of function or class.
 
     >>> py_file = os.path.join(_PROJECT_ROOT, "src", "pytorch_lightning", "loggers", "logger.py")
     >>> import_path = ".".join(["pytorch_lightning", "loggers", "logger"])
     >>> with open(py_file, encoding="utf-8") as fp:
     ...     lines = [ln.rstrip() for ln in fp.readlines()]
-    >>> lines = replace_with_imports(lines, import_path, "class")
-    >>> lines = replace_with_imports(lines, import_path, "def")
+    >>> lines = replace_block_with_imports(lines, import_path, "class")
+    >>> lines = replace_block_with_imports(lines, import_path, "def")
     """
     body = []
     tracking = False
     skip_offset = 0
-    for i, ln in enumerate(lines):
+    for ln in lines:
         offset = len(ln) - len(ln.lstrip())
         # in case of mating the class args are multi-line
         if tracking and ln and offset <= skip_offset and not any(ln.lstrip().startswith(c) for c in ")]"):
@@ -118,6 +127,67 @@ def replace_with_imports(lines: List[str], import_path: str, kword: str = "class
             # skip private, TODO: consider skip even protected
             if not name.startswith("__"):
                 body.append(f"from {import_path} import {name}  # noqa: F401")
+            tracking = True
+            skip_offset = offset
+            continue
+        if not tracking:
+            body.append(ln)
+    return body
+
+
+def replace_vars_with_imports(lines: List[str], import_path: str) -> List[str]:
+    """Parse a file and replace variable filling with import.
+
+    >>> py_file = os.path.join(_PROJECT_ROOT, "src", "pytorch_lightning", "utilities", "cli.py")
+    >>> import_path = ".".join(["pytorch_lightning", "utilities", "cli"])
+    >>> with open(py_file, encoding="utf-8") as fp:
+    ...     lines = [ln.rstrip() for ln in fp.readlines()]
+    >>> lines = replace_vars_with_imports(lines, import_path)
+    """
+    body = []
+    tracking = False
+    skip_offset = 0
+    for ln in lines:
+        offset = len(ln) - len(ln.lstrip())
+        # in case of mating the class args are multi-line
+        if tracking and ln and offset <= skip_offset and not any(ln.lstrip().startswith(c) for c in ")]}"):
+            tracking = False
+        var = re.match(r"^([\w_\d]+) = ", ln.lstrip())
+        if var:
+            name = var.groups()[0]
+            # skip private or apply white-list for allowed vars
+            if not name.startswith("__") or name in ("__all__",):
+                body.append(f"from {import_path} import {name}  # noqa: F401")
+            tracking = True
+            skip_offset = offset
+            continue
+        if not tracking:
+            body.append(ln)
+    return body
+
+
+def prune_imports_callables(lines: List[str]) -> List[str]:
+    """Prune imports and calling functions from a file, even multi-line.
+
+    >>> py_file = os.path.join(_PROJECT_ROOT, "src", "pytorch_lightning", "utilities", "cli.py")
+    >>> import_path = ".".join(["pytorch_lightning", "utilities", "cli"])
+    >>> with open(py_file, encoding="utf-8") as fp:
+    ...     lines = [ln.rstrip() for ln in fp.readlines()]
+    >>> lines = prune_imports_callables(lines)
+    """
+    body = []
+    tracking = False
+    skip_offset = 0
+    for ln in lines:
+        if ln.lstrip().startswith("import "):
+            continue
+        offset = len(ln) - len(ln.lstrip())
+        # in case of mating the class args are multi-line
+        if tracking and ln and offset <= skip_offset and not any(ln.lstrip().startswith(c) for c in ")]}"):
+            tracking = False
+        # catching callable
+        call = re.match(r"^[\w_\d]+\(", ln.lstrip())
+        if (ln.lstrip().startswith("from ") and " import " in ln) or call:
             tracking = True
             skip_offset = offset
             continue
@@ -149,17 +219,20 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
             body = lines
 
         elif fname in ("__init__.py", "__main__.py"):
-            body = replace_with_imports(lines, import_path, "class")
-            body = replace_with_imports(body, import_path, "def")
+            body = replace_block_with_imports(lines, import_path, "class")
+            body = replace_block_with_imports(body, import_path, "def")
+            body = replace_vars_with_imports(body, import_path)
         else:
             if fname.startswith("_"):
                 logging.warning(f"unsupported file: {local_path}")
                 continue
             # ToDO: perform some smarter parsing - preserve Constants, lambdas, etc
-            body = [ln for ln in lines if not ln.startswith("import ")]
-            body = [ln for ln in body if not (ln.startswith("from ") and " import " in ln)]
-            body = replace_with_imports([ln.rstrip() for ln in body], import_path, "class")
-            body = replace_with_imports(body, import_path, "def")
+            body = prune_imports_callables(lines)
+            body = replace_block_with_imports([ln.rstrip() for ln in body], import_path, "class")
+            body = replace_block_with_imports(body, import_path, "def")
+            body = replace_vars_with_imports(body, import_path)
+            # todo: prune empty if/else
+            # todo: prune empty try/expect
 
         # todo: apply pre-commit formatting
         body = [ln for ln, _group in groupby(body)]
