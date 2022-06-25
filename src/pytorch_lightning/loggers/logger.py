@@ -388,7 +388,7 @@ def merge_dicts(
         >>> agg_funcs = {'a': np.mean, 'v': max, 'd': {'d1': sum}}
         >>> pprint.pprint(merge_dicts([d1, d2, d3], agg_funcs, dflt_func))
         {'a': 1.3,
-         'b': 2.0,
+         'b': 2.1,
          'c': 1,
          'd': {'d1': 3, 'd2': 3, 'd3': 3, 'd4': {'d5': 1}},
          'v': 2.3}
