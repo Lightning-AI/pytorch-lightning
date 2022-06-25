@@ -63,7 +63,7 @@ class ClusterEnvironment(ABC):
 
     @abstractmethod
     def local_rank(self) -> int:
-        """The rank (index) of the currently running process inside of the current node."""
+        """The rank (index) of the currently running process of the current node."""
 
     @abstractmethod
     def node_rank(self) -> int:
