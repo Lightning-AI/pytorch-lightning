@@ -101,7 +101,7 @@ def parse_gpu_ids(
     if gpus is None or (isinstance(gpus, int) and gpus == 0) or str(gpus).strip() in ("0", "[]"):
         return None
 
-    # We know user requested GPUs 
+    # We know user requested GPUs
     # therefore if the requested GPUs are not available an exception is thrown.
     gpus = _normalize_parse_gpu_string_input(gpus)
     gpus = _normalize_parse_gpu_input_to_list(gpus, include_cuda=include_cuda, include_mps=include_mps)
