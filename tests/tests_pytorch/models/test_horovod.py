@@ -25,10 +25,9 @@ from sklearn.metrics import accuracy_score
 from torch import optim
 from torchmetrics.classification.accuracy import Accuracy
 
+import pytorch_lightning.strategies.horovod
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
-
-import pytorch_lightning.strategies.horovod
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
