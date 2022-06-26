@@ -23,7 +23,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks.progress.base import ProgressBarBase
 from pytorch_lightning.utilities.imports import _package_available
 
-_RICH_AVAILABLE = _package_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
+_RICH_AVAILABLE: bool = _package_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
 
 Task, Style = None, None
 if _RICH_AVAILABLE:

@@ -26,7 +26,7 @@ jobs:
       # max-parallel: 6
       matrix:
         os: [ubuntu-20.04, macOS-10.15, windows-2019]
-        pkg: ["", "lightning", "app", "pytorch"]
+        pkg: ["", "app", "pytorch"]  # todo: add following use-case "lightning" after resowing pulling sources
         python-version: [3.7]  # , 3.9
 
     steps:

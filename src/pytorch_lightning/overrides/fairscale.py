@@ -22,7 +22,7 @@ _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
 
-    class LightningShardedDataParallel(_LightningModuleWrapperBase):  # type: ignore[no-redef]
+    class LightningShardedDataParallel(_LightningModuleWrapperBase):
         # Just do this for later docstrings
         pass
 
@@ -34,5 +34,5 @@ if _FAIRSCALE_AVAILABLE:
         return unwrap_lightning_module(model)
 
 else:
-    LightningShardedDataParallel = None
-    unwrap_lightning_module_sharded = None
+    LightningShardedDataParallel = ...
+    unwrap_lightning_module_sharded = ...
