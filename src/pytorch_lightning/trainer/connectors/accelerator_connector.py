@@ -92,9 +92,6 @@ from pytorch_lightning.utilities.imports import (
 
 log = logging.getLogger(__name__)
 
-if _HOROVOD_AVAILABLE:
-    import horovod.torch as hvd
-
 _LITERAL_WARN = Literal["warn"]
 
 
@@ -609,32 +606,8 @@ class AcceleratorConnector:
         if strategy_flag:
             self._strategy_flag = strategy_flag
 
-    def _handle_horovod(self) -> None:
-        if self._num_nodes_flag > 1:
-            raise MisconfigurationException(
-                "Horovod does not support setting num_nodes / num_gpus explicitly. Use "
-                "horovodrun / mpirun to configure the number of processes."
-            )
-
-        if not _HOROVOD_AVAILABLE:
-            raise MisconfigurationException(
-                'Requested `strategy="horovod"`, but Horovod is not installed.'
-                "Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]"
-            )
-
-        hvd.init()
-        if isinstance(self.accelerator, GPUAccelerator):
-            # Horovod assigns one local GPU per process
-            self._parallel_devices = [torch.device(f"cuda:{i}") for i in range(hvd.local_size())]
-        else:
-            self._parallel_devices = [torch.device("cpu")] * hvd.local_size()
-
     def _init_strategy(self) -> None:
         """Instantiate the Strategy given depending on the setting of ``_strategy_flag``."""
-        if isinstance(self._strategy_flag, HorovodStrategy) or self._strategy_flag == "horovod":
-            # handle horovod has to happen before initialize strategy because HorovodStrategy needs hvd.init() first.
-            # TODO lazy initialized and setup horovod strategy `global_rank`
-            self._handle_horovod()
         if isinstance(self._strategy_flag, str):
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         elif isinstance(self._strategy_flag, Strategy):

@@ -27,9 +27,12 @@ from torchmetrics.classification.accuracy import Accuracy
 
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
+
+import pytorch_lightning.strategies.horovod
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import CPUAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.strategies import HorovodStrategy
 from pytorch_lightning.utilities import _HOROVOD_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.advanced_models import BasicGAN
@@ -74,6 +77,26 @@ def _run_horovod(trainer_options):
         cmdline += ["--check-size"]
     exit_code = subprocess.call(" ".join(cmdline), shell=True, env=os.environ.copy())
     assert exit_code == 0
+
+
+def test_horovod_not_installed(monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.strategies.horovod, "_HOROVOD_AVAILABLE", False)
+
+    with pytest.raises(ImportError, match='Requested `strategy="horovod"`, but Horovod is not installed'):
+        Trainer(accelerator="cpu", strategy="horovod")
+
+    strategy = HorovodStrategy()
+    with pytest.raises(ImportError, match='Requested `strategy="horovod"`, but Horovod is not installed'):
+        strategy._lazy_init()
+
+
+def test_horovod_invalid_num_nodes():
+    with pytest.raises(ValueError, match="Horovod does not support setting num_nodes / devices explicitly"):
+        Trainer(accelerator="cpu", strategy="horovod", num_nodes=2)
+
+    strategy = HorovodStrategy()
+    with pytest.raises(ValueError, match="Horovod does not support setting num_nodes / devices explicitly"):
+        strategy._lazy_init(num_nodes=2)
 
 
 @RunIf(horovod=True, skip_windows=True)

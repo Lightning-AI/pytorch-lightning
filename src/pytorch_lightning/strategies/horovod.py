@@ -54,7 +54,7 @@ class HorovodStrategy(ParallelStrategy):
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
-        rank_zero_only.rank = self.global_rank
+        rank_zero_only.rank = self.global_rank if _HOROVOD_AVAILABLE else 0
         self._exit_stack: Optional[ExitStack] = None
 
     @property
@@ -82,6 +82,24 @@ class HorovodStrategy(ParallelStrategy):
     def handles_gradient_accumulation(self) -> bool:
         """Whether the plugin handles gradient accumulation internally."""
         return True
+
+    def _lazy_init(self, **kwargs: Any) -> None:
+        if kwargs.get("num_nodes", 1) > 1:
+            raise ValueError(
+                "Horovod does not support setting num_nodes / devices explicitly. Use"
+                " horovodrun / mpirun to configure the number of processes."
+            )
+        if not _HOROVOD_AVAILABLE:
+            raise ImportError(
+                'Requested `strategy="horovod"`, but Horovod is not installed.'
+                " Install with \n $HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]"
+            )
+        hvd.init()
+        if isinstance(self.accelerator, pl.accelerators.accelerator.GPUAccelerator):
+            # Horovod assigns one local GPU per process
+            self._parallel_devices = [torch.device("cuda", i) for i in range(hvd.local_size())]
+        else:
+            self._parallel_devices = [torch.device("cpu")] * hvd.local_size()
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.model_to_device()
