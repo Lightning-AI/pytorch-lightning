@@ -804,22 +804,27 @@ class AcceleratorConnector:
                 f" found {self.strategy.__class__.__name__}."
             )
 
-    """The following properties are here for backward-compatibility and will be deprecated and removed in favor
-    of accessing this information through the strategy/accelerator directly."""
-    # TODO: deprecate all properties below
-
     @property
     def tpu_cores(self) -> Optional[Union[List[int], int]]:
+        rank_zero_deprecation(
+            "`AcceleratorConnector.tpu_cores` is deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.num_devices` instead."
+        )
         if isinstance(self.accelerator, TPUAccelerator):
             return self._tpu_cores  # type: ignore
         return 0
 
     @property
     def gpus(self) -> Optional[Union[List[int], str, int]]:
+        rank_zero_deprecation(
+            "`AcceleratorConnector.gpus` was deprecated in v1.6 and will be removed in v1.8."
+            " Please use `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
+        )
         return self._gpus
 
     @property
     def is_distributed(self) -> bool:
+        # TODO: deprecate this property
         # Used for custom plugins.
         # Custom plugins should implement is_distributed property.
         if hasattr(self.strategy, "is_distributed") and not isinstance(self.accelerator, TPUAccelerator):
