@@ -759,7 +759,7 @@ class AcceleratorConnector:
             num_nodes=self._num_nodes_flag,
             layer_sync=self._layer_sync,
         )
-        self._parallel_devices = self.strategy.parallel_devices
+        self._parallel_devices = getattr(self.strategy, "parallel_devices", self._parallel_devices)
 
         from pytorch_lightning.utilities import _IS_INTERACTIVE
 
