@@ -27,6 +27,9 @@ jobs:
       matrix:
         os: [ubuntu-20.04, macOS-10.15, windows-2019]
         pkg: ["", "app", "pytorch"]  # todo: add following use-case "lightning" after resowing pulling sources
+        # in fact, lest make this se depending jobs, at fist build app and pytorch, and save these packages as artefact
+        # then, in the following job pull artefacts and install these packages and build and test lightning
+        # todo: in such case abstract this pkg testing as actions to reduce variation in testing
         python-version: [3.7]  # , 3.9
 
     steps:

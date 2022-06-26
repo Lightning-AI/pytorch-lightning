@@ -105,11 +105,6 @@ jobs:
       with:
         python-version: 3.9
 
-    - name: Install dependencies
-      run: |
-        pip install -e . --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --quiet
-        pip install awscli
-
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -125,6 +120,7 @@ jobs:
     - name: Pull files from S3
       working-directory: ./tests/legacy
       run: |
+        pip install awscli --quiet
         aws s3 cp --recursive s3://pl-public-data/legacy/checkpoints/ checkpoints/ #  --acl public-read
         ls -l checkpoints/
 

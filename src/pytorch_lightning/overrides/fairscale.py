@@ -34,5 +34,5 @@ if _FAIRSCALE_AVAILABLE:
         return unwrap_lightning_module(model)
 
 else:
-    LightningShardedDataParallel = ...
-    unwrap_lightning_module_sharded = ...
+    LightningShardedDataParallel = ...  # type: ignore[assignment,misc]
+    unwrap_lightning_module_sharded = ...  # type: ignore[assignment]
