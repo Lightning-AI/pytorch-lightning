@@ -155,6 +155,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `pytorch_lightning.profiler` in favor of `pytorch_lightning.profilers` ([#12308](https://github.com/PyTorchLightning/pytorch-lightning/pull/12308))
 
 
+- Deprecated `AcceleratorConnector.{gpus,tpu_cores}` in favor of `Trainer.num_devices` ([#13412](https://github.com/PyTorchLightning/pytorch-lightning/pull/13412))
+
+
+
 ### Removed
 
 - Removed the deprecated `Logger.close` method ([#13149](https://github.com/PyTorchLightning/pytorch-lightning/pull/13149))
