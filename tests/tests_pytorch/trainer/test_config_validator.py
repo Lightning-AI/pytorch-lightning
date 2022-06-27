@@ -54,7 +54,7 @@ def test_fit_val_loop_config(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
 
     # no val data has val loop
-    with pytest.warns(PossibleUserWarning, match=r"You passed in a `val_dataloader` but have no `validation_step`"):
+    with pytest.warns(UserWarning, match=r"You passed in a `val_dataloader` but have no `validation_step`"):
         model = BoringModel()
         model.validation_step = None
         trainer.fit(model)
