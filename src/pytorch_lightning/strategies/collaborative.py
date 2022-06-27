@@ -32,7 +32,7 @@ else:
 log = logging.getLogger(__name__)
 
 
-class CollaborativeStrategy(Strategy):
+class HivemindStrategy(Strategy):
     def __init__(
         self,
         target_batch_size: int,
@@ -63,7 +63,7 @@ class CollaborativeStrategy(Strategy):
         with unreliable machines. For more information, `refer to the docs <https://pytorch-
         lightning.readthedocs.io/en/latest/strategies/collaborative_training.html>`__.
 
-        .. warning:: ``CollaborativeStrategy`` is experimental and subject to change.
+        .. warning:: ``HivemindStrategy`` is experimental and subject to change.
 
         Arguments:
 
@@ -81,11 +81,11 @@ class CollaborativeStrategy(Strategy):
                 corresponding :meth:`hivemind.Optimizer.step` call.
 
             delay_optimizer_step: Run optimizer in background, apply results in future .step. requires
-                :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.offload_optimizer`.
+                :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.offload_optimizer`.
 
             delay_grad_averaging: Average gradients in background; requires
-                :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.offload_optimizer` and
-                :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.delay_optimizer_step`.
+                :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.offload_optimizer` and
+                :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.delay_optimizer_step`.
 
             offload_optimizer: Offload the optimizer to host memory, saving GPU memory for parameters and gradients.
 
@@ -95,7 +95,7 @@ class CollaborativeStrategy(Strategy):
 
             scheduler_fn: callable(optimizer) -> PyTorch LRScheduler or a pre-initialized PyTorch scheduler.
                 When using `offload_optimizer`/`delay_optimizer_step`/`delay_state_averaging` ``scheduler_fn``
-                is required to be passed to the ``CollaborativeStrategy``. This is because the optimizer
+                is required to be passed to the ``HivemindStrategy``. This is because the optimizer
                 is re-created and the scheduler needs to be re-created as well.
 
             matchmaking_time: When looking for group, wait for peers to join for up to this many seconds.
@@ -131,18 +131,18 @@ class CollaborativeStrategy(Strategy):
             port: When creating the endpoint, the host port to use.
 
             retry_endpoint_attempts: When connecting to the
-                :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.peer_endpoint`,
+                :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.peer_endpoint`,
                 how many time to retry before raising an exception.
 
             retry_endpoint_sleep_duration: When connecting to the
-                :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.peer_endpoint`,
+                :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.peer_endpoint`,
                 how long to wait between retries.
 
             **optimizer_kwargs: kwargs are passed to the :class:`hivemind.Optimizer` class.
         """
         if not _HIVEMIND_AVAILABLE or platform.system() != "Linux":
             raise MisconfigurationException(
-                "To use the `CollaborativeStrategy`, you must have Hivemind installed and be running on Linux."
+                "To use the `HivemindStrategy`, you must have Hivemind installed and be running on Linux."
                 " Install it by running `pip install -U hivemind`."
             )
 
@@ -271,7 +271,7 @@ class CollaborativeStrategy(Strategy):
             assert lightning_module is not None  # `is_overridden` returns False otherwise
             rank_zero_warn(
                 "You have overridden `optimizer_zero_grad` which will be disabled."
-                " When `CollaborativeStrategy(reuse_grad_buffers=True)`, the optimizer cannot call zero grad,"
+                " When `HivemindStrategy(reuse_grad_buffers=True)`, the optimizer cannot call zero grad,"
                 " as this would delete the gradients before they are averaged."
             )
         assert lightning_module is not None
@@ -303,7 +303,7 @@ class CollaborativeStrategy(Strategy):
                     raise MisconfigurationException(
                         "We tried to infer the batch size from the first batch of data. "
                         "Please provide the batch size to the Strategy by "
-                        "``Trainer(strategy=CollaborativeStrategy(batch_size=x))``. "
+                        "``Trainer(strategy=HivemindStrategy(batch_size=x))``. "
                     ) from e
             self._initialize_hivemind()
 
@@ -388,26 +388,26 @@ class DHTManager:
 
         Arguments:
 
-            host_maddrs: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.host_maddrs`
+            host_maddrs: :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.host_maddrs`
 
-            initial_peers: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.initial_peers`
+            initial_peers: :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.initial_peers`
 
-            persistent: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.persistent`
+            persistent: :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.persistent`
 
-            endpoint: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.endpoint`
+            endpoint: :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.endpoint`
 
-            peer_endpoint: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.peer_endpoint`
+            peer_endpoint: :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.peer_endpoint`
 
-            host: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.host`
+            host: :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.host`
 
-            port: :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.port`
+            port: :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.port`
 
             retry_endpoint_attempts:
-                :paramref:`~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.retry_endpoint_attempts`
+                :paramref:`~pytorch_lightning.strategies.collaborative.HivemindStrategy.retry_endpoint_attempts`
 
             retry_endpoint_sleep_duration:
                 :paramref:
-                `~pytorch_lightning.strategies.collaborative.CollaborativeStrategy.retry_endpoint_sleep_duration`
+                `~pytorch_lightning.strategies.collaborative.HivemindStrategy.retry_endpoint_sleep_duration`
         """
         self._persistent = persistent
         self._endpoint = endpoint
@@ -445,7 +445,7 @@ class DHTManager:
                 "\nOther machines can connect running the same command:\n"
                 f"INITIAL_PEERS={','.join(visible_addresses)} python ...\n"
                 "or passing the peers to the strategy:\n"
-                f"CollaborativeStrategy(initial_peers='{','.join(visible_addresses)}')"
+                f"HivemindStrategy(initial_peers='{','.join(visible_addresses)}')"
             )
 
     def _log_endpoint_helper_message(self, visible_addresses: List[str]) -> None:
@@ -462,7 +462,7 @@ class DHTManager:
             "Other peers can connect via:\n"
             f"PEER_ENDPOINT={resolved_host}:{self._port} python ...\n"
             "or pass the peer endpoint address to the strategy:\n"
-            f"CollaborativeStrategy(peer_endpoint='{resolved_host}:{self._port}')"
+            f"HivemindStrategy(peer_endpoint='{resolved_host}:{self._port}')"
         )
 
     def _start_server_process(self, host: str, port: int) -> None:
@@ -499,7 +499,7 @@ class DHTManager:
             raise MisconfigurationException(
                 f"Unable to get peers. Tried {retry_initial_peers} times waiting {retry_peer_sleep_duration}s."
                 f"These parameters can be extended by passing "
-                "to the strategy (CollaborativeStrategy(retry_connection=x, retry_sleep_duration=y))."
+                "to the strategy (HivemindStrategy(retry_connection=x, retry_sleep_duration=y))."
             )
         log.info(f"Received initial peers from collaborative server: {peers}")
         return peers

@@ -254,6 +254,7 @@ class _AcceleratorType(LightningEnum):
     IPU = "IPU"
     TPU = "TPU"
     HPU = "HPU"
+    MPS = "MPS"
 
 
 class _FaultTolerantMode(LightningEnum):
