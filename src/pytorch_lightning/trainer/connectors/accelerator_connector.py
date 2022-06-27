@@ -267,7 +267,7 @@ class AcceleratorConnector:
             if strategy == "ddp_cpu":
                 raise MisconfigurationException(
                     "`Trainer(strategy='ddp_cpu')` is not a valid strategy,"
-                    " you can use `Trainer(strategy='ddp'|'ddp_spawn', accelerator='cpu')` instead."
+                    " you can use `Trainer(strategy='ddp'|'ddp_spawn'|'ddp_fork', accelerator='cpu')` instead."
                 )
             if strategy == "tpu_spawn":
                 raise MisconfigurationException(
