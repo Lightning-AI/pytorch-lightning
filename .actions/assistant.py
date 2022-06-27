@@ -43,6 +43,13 @@ class AssistantCLI:
             AssistantCLI._prune_packages(req, packages)
 
     @staticmethod
+    def _req_name(line: str) -> str:
+        idxs = [line.index(c) for c in "<=>,@" if c in line]
+        if idxs:
+            line = line[: min(idxs)]
+        return line.strip()
+
+    @staticmethod
     def _prune_packages(req_file: str, packages: Sequence[str]) -> None:
         """Remove some packages from given requirement files."""
         with open(req_file) as fp:
@@ -51,7 +58,7 @@ class AssistantCLI:
         if isinstance(packages, str):
             packages = [packages]
         for pkg in packages:
-            lines = [ln for ln in lines if not ln.startswith(pkg)]
+            lines = [ln for ln in lines if AssistantCLI._req_name(ln) != pkg]
         pprint(lines)
 
         with open(req_file, "w") as fp:

@@ -97,12 +97,11 @@ RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
     pip install -q fire && \
-    python requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt && \
-    python requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt && \
+    python .actions/assistant.py requirements_prune_pkgs torch,torchvision,torchtext && \
     # Install remaining requirements
-    pip install -r requirements/pytorch/base.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
-    pip install -r requirements/pytorch/extra.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
-    pip install -r requirements/pytorch/examples.txt --no-cache-dir --find-links https://download.pytorch.org/whl/test/torch_test.html && \
+    pip install --no-cache-dir -r requirements/pytorch/base.txt \
+        -r requirements/pytorch/extra.txt \
+        -r requirements/pytorch/examples.txt && \
     rm assistant.py
 
 ENV \
