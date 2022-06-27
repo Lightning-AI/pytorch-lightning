@@ -97,7 +97,7 @@ RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
     pip install -q fire && \
-    python .actions/assistant.py requirements_prune_pkgs torch,torchvision,torchtext && \
+    python assistant.py requirements_prune_pkgs torch,torchvision,torchtext && \
     # Install remaining requirements
     pip install --no-cache-dir -r requirements/pytorch/base.txt \
         -r requirements/pytorch/extra.txt \
