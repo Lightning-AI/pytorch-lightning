@@ -41,9 +41,15 @@ class _SpawnLauncher(_Launcher):
     Note:
         - This launcher requires all objects to be pickleable.
         - It is important that the entry point to the program/script is guarded by ``if __name__ == "__main__"``.
+        - With start method 'fork' the user must ensure that no CUDA context gets created in the main process before
+          the launcher is invoked. E.g., one should avoid creating cuda tensors or calling ``torch.cuda.*`` functions
+          before calling ``Trainer.fit``.
 
     Args:
         strategy: A reference to the strategy that is used together with this launcher.
+        start_method: The method how to start the processes.
+            - 'spawn': The default start method. Requires all objects to be pickleable.
+            - 'fork': Preferrable for IPython/Jupyter environments where 'spawn' is not available.
     """
 
     def __init__(self, strategy: Strategy, start_method: str = "spawn") -> None:
