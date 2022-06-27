@@ -22,7 +22,7 @@ to overlap communication with computation.
     Enabling overlapping communication means convergence will slightly be affected.
 
 .. note::
-    Enabling these flags means that you must pass in a ``scheduler_fn`` to the ``CollaborativeStrategy`` instead of relying on a scheduler from ``configure_optimizers``.
+    Enabling these flags means that you must pass in a ``scheduler_fn`` to the ``HivemindStrategy`` instead of relying on a scheduler from ``configure_optimizers``.
     The optimizer is re-created by Hivemind, and as a result, the scheduler has to be re-created.
 
 .. code-block:: python
@@ -30,10 +30,10 @@ to overlap communication with computation.
     import torch
     from functools import partial
     import pytorch_lightning as pl
-    from pytorch_lightning.strategies import CollaborativeStrategy
+    from pytorch_lightning.strategies import HivemindStrategy
 
     trainer = pl.Trainer(
-        strategy=CollaborativeStrategy(
+        strategy=HivemindStrategy(
             target_batch_size=8192,
             delay_state_averaging=True,
             delay_grad_averaging=True,
@@ -57,7 +57,7 @@ Offloading Optimizer State to the CPU
 Offloading the Optimizer state to the CPU works the same as :ref:`deepspeed-zero-stage-2-offload`, where we save GPU memory by keeping all optimizer states on the CPU.
 
 .. note::
-    Enabling these flags means that you must pass in a ``scheduler_fn`` to the ``CollaborativeStrategy`` instead of relying on a scheduler from ``configure_optimizers``.
+    Enabling these flags means that you must pass in a ``scheduler_fn`` to the ``HivemindStrategy`` instead of relying on a scheduler from ``configure_optimizers``.
     The optimizer is re-created by Hivemind, and as a result, the scheduler has to be re-created.
 
     We suggest enabling offloading and overlapping communication to hide the additional overhead from having to communicate with the CPU.
@@ -67,10 +67,10 @@ Offloading the Optimizer state to the CPU works the same as :ref:`deepspeed-zero
     import torch
     from functools import partial
     import pytorch_lightning as pl
-    from pytorch_lightning.strategies import CollaborativeStrategy
+    from pytorch_lightning.strategies import HivemindStrategy
 
     trainer = pl.Trainer(
-        strategy=CollaborativeStrategy(
+        strategy=HivemindStrategy(
             target_batch_size=8192,
             offload_optimizer=True,
             scheduler_fn=partial(torch.optim.lr_scheduler.ExponentialLR, gamma=...),
@@ -83,17 +83,17 @@ Offloading the Optimizer state to the CPU works the same as :ref:`deepspeed-zero
 Re-using Gradient Buffers
 """""""""""""""""""""""""
 
-By default, Hivemind accumulates gradients in a separate buffer. This means additional GPU memory is required to store gradients. You can enable re-using the model parameter gradient buffers by passing ``reuse_grad_buffers=True`` to the ``CollaborativeStrategy``.
+By default, Hivemind accumulates gradients in a separate buffer. This means additional GPU memory is required to store gradients. You can enable re-using the model parameter gradient buffers by passing ``reuse_grad_buffers=True`` to the ``HivemindStrategy``.
 
 .. warning::
-    The ``CollaborativeStrategy`` will override ``zero_grad`` in your ``LightningModule`` to have no effect. This is because gradients are accumulated in the model
+    The ``HivemindStrategy`` will override ``zero_grad`` in your ``LightningModule`` to have no effect. This is because gradients are accumulated in the model
     and Hivemind manages when they need to be cleared.
 
 .. code-block:: python
 
     import pytorch_lightning as pl
-    from pytorch_lightning.strategies import CollaborativeStrategy
+    from pytorch_lightning.strategies import HivemindStrategy
 
     trainer = pl.Trainer(
-        strategy=CollaborativeStrategy(target_batch_size=8192, reuse_grad_buffers=True), accelerator="gpu", devices=1
+        strategy=HivemindStrategy(target_batch_size=8192, reuse_grad_buffers=True), accelerator="gpu", devices=1
     )
