@@ -20,7 +20,7 @@ import os
 
 import torch
 
-from pytorch_lightning.utilities import _DEEPSPEED_AVAILABLE
+from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.types import _PATH
 
 if _DEEPSPEED_AVAILABLE:

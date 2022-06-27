@@ -36,6 +36,8 @@ jobs:
             ${{ runner.os }}-docs-test-pip-td${{ env.TIME_PERIOD }}-
 
       - name: Install dependencies
+        env:
+          PACKAGE_NAME: pytorch
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
@@ -78,6 +80,8 @@ jobs:
             ${{ runner.os }}-docs-make-pip-
 
       - name: Install dependencies
+        env:
+          PACKAGE_NAME: pytorch
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc

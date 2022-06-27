@@ -232,7 +232,7 @@ class StreamLitStatePlugin(BaseStatePlugin):
 
 
 # Adapted from
-# https://github.com/PyTorchLightning/pytorch-lightning/blob/master/pytorch_lightning/utilities/model_helpers.py#L21
+# https://github.com/Lightning-AI/lightning/blob/master/pytorch_lightning/utilities/model_helpers.py#L21
 def is_overridden(method_name: str, instance: Optional[object] = None, parent: Optional[Type[object]] = None) -> bool:
     if instance is None:
         return False

@@ -24,10 +24,10 @@ Below, we enable Float16 compression, which compresses gradients and states to F
 
     from hivemind import Float16Compression
     import pytorch_lightning as pl
-    from pytorch_lightning.strategies import CollaborativeStrategy
+    from pytorch_lightning.strategies import HivemindStrategy
 
     trainer = pl.Trainer(
-        strategy=CollaborativeStrategy(
+        strategy=HivemindStrategy(
             target_batch_size=target_batch_size,
             grad_compression=Float16Compression(),
             state_averaging_compression=Float16Compression(),
@@ -44,14 +44,14 @@ Size Adaptive Compression has been used in a variety of Hivemind applications an
 
     from hivemind import Float16Compression, Uniform8BitQuantization
     import pytorch_lightning as pl
-    from pytorch_lightning.strategies import CollaborativeStrategy
+    from pytorch_lightning.strategies import HivemindStrategy
 
     # compresses values above threshold with 8bit Quantization, lower with Float16
     compression = SizeAdaptiveCompression(
         threshold=2 ** 16 + 1, less=Float16Compression(), greater_equal=Uniform8BitQuantization()
     )
     trainer = pl.Trainer(
-        strategy=CollaborativeStrategy(
+        strategy=HivemindStrategy(
             target_batch_size=target_batch_size,
             grad_compression=compression,
             state_averaging_compression=compression,
@@ -73,12 +73,12 @@ In short, PowerSGD uses a low-rank approximation to compress gradients before ru
 .. code-block:: python
 
     import pytorch_lightning as pl
-    from pytorch_lightning.strategies import CollaborativeStrategy
+    from pytorch_lightning.strategies import HivemindStrategy
     from functools import partial
     from hivemind.optim.power_sgd_averager import PowerSGDGradientAverager
 
     trainer = pl.Trainer(
-        strategy=CollaborativeStrategy(
+        strategy=HivemindStrategy(
             target_batch_size=8192,
             grad_averager_factory=partial(PowerSGDGradientAverager, averager_rank=32, min_compression_ratio=0.5),
         ),
