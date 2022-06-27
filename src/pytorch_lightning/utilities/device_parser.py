@@ -338,7 +338,8 @@ def parse_hpus(devices: Optional[Union[int, str, List[int]]]) -> Optional[int]:
 def num_cuda_devices() -> int:
     """Returns the number of GPUs available.
 
-    Unlike :func:`torch.cuda.device_count`, calling this function will not create a new CUDA context.
+    Unlike :func:`torch.cuda.device_count`, this function will do its best not to create a CUDA context to for fork
+    support, if the platform allows it.
     """
     if not hasattr(os, "fork"):
         return torch.cuda.device_count()
@@ -349,7 +350,8 @@ def num_cuda_devices() -> int:
 def is_cuda_available() -> bool:
     """Returns a bool indicating if CUDA is currently available.
 
-    Unlike :func:`torch.cuda.is_available`, calling this function will not create a new CUDA context.
+    Unlike :func:`torch.cuda.is_available`, this function will do its best not to create a CUDA context to for fork
+    support, if the platform allows it.
     """
     if not hasattr(os, "fork"):
         return torch.cuda.is_available()
