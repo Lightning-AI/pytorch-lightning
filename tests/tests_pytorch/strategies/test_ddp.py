@@ -84,7 +84,9 @@ def test_multi_gpu_model_ddp_fit_test(tmpdir, as_module):
 def test_torch_distributed_backend_env_variables(tmpdir):
     """This test set `undefined` as torch backend and should raise an `Backend.UNDEFINED` ValueError."""
     _environ = {"PL_TORCH_DISTRIBUTED_BACKEND": "undefined", "CUDA_VISIBLE_DEVICES": "0,1", "WORLD_SIZE": "2"}
-    with patch.dict(os.environ, _environ), patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=2):
+    with patch.dict(os.environ, _environ), patch(
+        "pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=2
+    ):
         with pytest.deprecated_call(match="Environment variable `PL_TORCH_DISTRIBUTED_BACKEND` was deprecated in v1.6"):
             with pytest.raises(ValueError, match="Invalid backend: 'undefined'"):
                 model = BoringModel()
