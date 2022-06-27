@@ -15,13 +15,14 @@ import torch.nn as nn
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, unwrap_lightning_module
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
+from pytorch_lightning.utilities import _IS_WINDOWS, _module_available
 
-LightningShardedDataParallel = None
+_FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
+
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
 
-    class LightningShardedDataParallel(_LightningModuleWrapperBase):  # type: ignore[no-redef]
+    class LightningShardedDataParallel(_LightningModuleWrapperBase):
         # Just do this for later docstrings
         pass
 
@@ -31,3 +32,7 @@ if _FAIRSCALE_AVAILABLE:
             model = model.module
 
         return unwrap_lightning_module(model)
+
+else:
+    LightningShardedDataParallel = ...  # type: ignore[assignment,misc]
+    unwrap_lightning_module_sharded = ...  # type: ignore[assignment]

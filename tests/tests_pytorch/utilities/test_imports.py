@@ -13,11 +13,11 @@
 # limitations under the License.
 import operator
 
+from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
+from pytorch_lightning.strategies.bagua import _BAGUA_AVAILABLE
 from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
-    _BAGUA_AVAILABLE,
-    _FAIRSCALE_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _module_available,
     _OMEGACONF_AVAILABLE,
