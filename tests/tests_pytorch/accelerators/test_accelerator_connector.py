@@ -423,11 +423,21 @@ def test_amp_level_raises_error_with_native():
         _ = Trainer(amp_level="O2", amp_backend="native", precision=16)
 
 
-def test_strategy_choice_ddp_spawn_cpu(tmpdir):
-    trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", accelerator="cpu", devices=2)
+def test_strategy_choice_ddp_spawn_cpu():
+    trainer = Trainer(strategy="ddp_spawn", accelerator="cpu", devices=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
     assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
+    assert trainer.strategy.launcher._start_method == "spawn"
+
+
+@RunIf(skip_windows=True)
+def test_strategy_choice_ddp_fork_cpu():
+    trainer = Trainer(strategy="ddp_fork", accelerator="cpu", devices=2)
+    assert isinstance(trainer.accelerator, CPUAccelerator)
+    assert isinstance(trainer.strategy, DDPSpawnStrategy)
+    assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
+    assert trainer.strategy.launcher._start_method == "fork"
 
 
 @mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0,1"})
