@@ -214,6 +214,7 @@ class _StrategyType(LightningEnum):
     DDP = "ddp"
     DDP2 = "ddp2"
     DDP_SPAWN = "ddp_spawn"
+    DDP_FORK = "ddp_fork"
     TPU_SPAWN = "tpu_spawn"
     DEEPSPEED = "deepspeed"
     HOROVOD = "horovod"
@@ -229,6 +230,7 @@ class _StrategyType(LightningEnum):
         return [
             _StrategyType.DP,
             _StrategyType.TPU_SPAWN,
+            _StrategyType.DDP_FORK,
         ]
 
     def is_interactive_compatible(self) -> bool:
