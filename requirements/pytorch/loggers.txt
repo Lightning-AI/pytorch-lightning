@@ -1,6 +1,6 @@
 # all supported loggers
 
-neptune-client>=0.10.0, <0.16.3
+neptune-client>=0.10.0, <0.16.4
 comet-ml>=3.1.12, <=3.28.2
 mlflow>=1.0.0, <1.27.0
 test_tube>=0.7.5, <=0.7.5
