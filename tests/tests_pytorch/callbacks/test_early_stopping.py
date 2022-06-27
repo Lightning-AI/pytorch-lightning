@@ -59,8 +59,8 @@ class EarlyStoppingTestRestore(EarlyStopping):
 def test_resume_early_stopping_from_checkpoint(tmpdir):
     """Prevent regressions to bugs:
 
-    https://github.com/PyTorchLightning/pytorch-lightning/issues/1464
-    https://github.com/PyTorchLightning/pytorch-lightning/issues/1463
+    https://github.com/Lightning-AI/lightning/issues/1464
+    https://github.com/Lightning-AI/lightning/issues/1463
     """
     seed_everything(42)
     model = ClassificationModel()

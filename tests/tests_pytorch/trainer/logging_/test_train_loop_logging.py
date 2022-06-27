@@ -564,7 +564,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
     assert trainer.callback_metrics == expected
 
 
-# mps not yet supported by torchmetrics, see https://github.com/PyTorchLightning/metrics/issues/1044
+# mps not yet supported by torchmetrics, see https://github.com/Lightning-AI/metrics/issues/1044
 @pytest.mark.parametrize(
     "accelerator",
     [
