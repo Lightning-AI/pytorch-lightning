@@ -275,9 +275,13 @@ class AcceleratorConnector:
                     " you can use `Trainer(strategy='ddp_spawn', accelerator='tpu')` instead."
                 )
 
-        if accelerator is not None:
-            if accelerator in self._accelerator_types or accelerator == "auto" or isinstance(accelerator, Accelerator):
-                self._accelerator_flag = accelerator
+        if accelerator is None or accelerator in self._accelerator_types or accelerator == "auto" or isinstance(accelerator, Accelerator):
+            self._accelerator_flag = accelerator
+        else:
+            raise ValueError(
+                f"You selected an invalid accelerator name: `accelerator='{accelerator}'`."
+                f" Available names are: {', '.join(self._accelerator_types)}."
+            )
 
         if precision is not None:
             if str(precision) not in self._precision_types:
@@ -496,12 +500,6 @@ class AcceleratorConnector:
             self.accelerator: Accelerator = self._accelerator_flag
         else:
             assert self._accelerator_flag is not None
-            self._accelerator_flag = self._accelerator_flag.lower()
-            if self._accelerator_flag not in AcceleratorRegistry:
-                raise MisconfigurationException(
-                    "When passing string value for the `accelerator` argument of `Trainer`,"
-                    f" it can only be one of {self._accelerator_types}."
-                )
             self.accelerator = AcceleratorRegistry.get(self._accelerator_flag)
 
         if not self.accelerator.is_available():

@@ -55,12 +55,8 @@ def test_accelerator_choice_cpu(tmpdir):
     assert isinstance(trainer.strategy, SingleDeviceStrategy)
 
 
-@pytest.mark.xfail(reason="Should be fixed by #12698")
 def test_accelerator_invalid_choice():
-    with pytest.raises(
-        MisconfigurationException,
-        match="When passing string value for the `accelerator` argument of `Trainer`, it can only be one of",
-    ):
+    with pytest.raises(ValueError, match="You selected an invalid accelerator name: `accelerator='invalid'`"):
         Trainer(accelerator="invalid")
 
 
@@ -328,12 +324,6 @@ def test_accelerator_auto_with_devices_gpu():
     trainer = Trainer(accelerator="auto", devices=1)
     assert isinstance(trainer.accelerator, GPUAccelerator)
     assert trainer.num_devices == 1
-
-
-def test_validate_accelerator_and_devices():
-    trainer = Trainer(accelerator="ddp_cpu", devices=2)
-    assert isinstance(trainer.accelerator, CPUAccelerator)
-    assert trainer.num_devices == 2
 
 
 def test_set_devices_if_none_cpu():
