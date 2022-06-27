@@ -275,7 +275,12 @@ class AcceleratorConnector:
                     " you can use `Trainer(strategy='ddp_spawn', accelerator='tpu')` instead."
                 )
 
-        if accelerator is None or accelerator in self._accelerator_types or accelerator == "auto" or isinstance(accelerator, Accelerator):
+        if (
+            accelerator is None
+            or accelerator in self._accelerator_types
+            or accelerator == "auto"
+            or isinstance(accelerator, Accelerator)
+        ):
             self._accelerator_flag = accelerator
         else:
             raise ValueError(
