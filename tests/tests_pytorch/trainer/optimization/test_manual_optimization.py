@@ -24,7 +24,13 @@ import torch.nn.functional as F
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import Strategy
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 from tests_pytorch.helpers.runif import RunIf
+
+if _TORCH_GREATER_EQUAL_1_12:
+    torch_test_assert_close = torch.testing.assert_close
+else:
+    torch_test_assert_close = torch.testing.assert_allclose
 
 
 class ManualOptModel(BoringModel):
@@ -198,8 +204,9 @@ def test_multiple_optimizers_manual_log(tmpdir):
     assert set(trainer.logged_metrics) == {"a_step", "a_epoch"}
 
 
-@RunIf(min_cuda_gpus=1)
-def test_multiple_optimizers_manual_native_amp(tmpdir):
+# precision = 16 not yet working properly with mps backend
+@pytest.mark.parametrize("accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1))])
+def test_multiple_optimizers_manual_native_amp(tmpdir, accelerator):
     model = ManualOptModel()
     model.val_dataloader = None
 
@@ -212,7 +219,7 @@ def test_multiple_optimizers_manual_native_amp(tmpdir):
         log_every_n_steps=1,
         enable_model_summary=False,
         precision=16,
-        accelerator="gpu",
+        accelerator=accelerator,
         devices=1,
     )
 

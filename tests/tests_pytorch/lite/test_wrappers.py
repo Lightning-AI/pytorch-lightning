@@ -69,26 +69,47 @@ def test_lite_module_attribute_lookup():
         _ = lite_module.not_exists
 
 
-@RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize(
-    "precision, input_type, expected_type",
+    "precision, input_type, expected_type, accelerator, device_str",
     [
-        (32, torch.float16, torch.float32),
-        (32, torch.float32, torch.float32),
-        (32, torch.float64, torch.float32),
-        (32, torch.int, torch.int),
-        (16, torch.float32, torch.float16),
-        (16, torch.float64, torch.float16),
-        (16, torch.long, torch.long),
-        pytest.param("bf16", torch.float32, torch.bfloat16, marks=RunIf(min_torch="1.10", bf16_cuda=True)),
-        pytest.param("bf16", torch.float64, torch.bfloat16, marks=RunIf(min_torch="1.10", bf16_cuda=True)),
-        pytest.param("bf16", torch.bool, torch.bool, marks=RunIf(min_torch="1.10", bf16_cuda=True)),
+        pytest.param(32, torch.float16, torch.float32, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(32, torch.float32, torch.float32, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(32, torch.float64, torch.float32, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(32, torch.int, torch.int, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(16, torch.float32, torch.float16, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(16, torch.float64, torch.float16, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(16, torch.long, torch.long, "gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param(
+            "bf16",
+            torch.float32,
+            torch.bfloat16,
+            "gpu",
+            "cuda:0",
+            marks=RunIf(min_cuda_gpus=1, min_torch="1.10", bf16_cuda=True),
+        ),
+        pytest.param(
+            "bf16",
+            torch.float64,
+            torch.bfloat16,
+            "gpu",
+            "cuda:0",
+            marks=RunIf(min_cuda_gpus=1, min_torch="1.10", bf16_cuda=True),
+        ),
+        pytest.param(
+            "bf16",
+            torch.bool,
+            torch.bool,
+            "gpu",
+            "cuda:0",
+            marks=RunIf(min_cuda_gpus=1, min_torch="1.10", bf16_cuda=True),
+        ),
+        pytest.param(32, torch.float32, torch.float32, "mps", "mps:0", marks=RunIf(mps=True)),
     ],
 )
-def test_lite_module_forward_conversion(precision, input_type, expected_type):
+def test_lite_module_forward_conversion(precision, input_type, expected_type, accelerator, device_str):
     """Test that the LiteModule performs autocasting on the input tensors and during forward()."""
-    lite = EmptyLite(precision=precision, accelerator="gpu", devices=1)
-    device = torch.device("cuda", 0)
+    lite = EmptyLite(precision=precision, accelerator=accelerator, devices=1)
+    device = torch.device(device_str)
 
     def check_autocast(forward_input):
         assert precision != 16 or torch.is_autocast_enabled()
@@ -102,11 +123,18 @@ def test_lite_module_forward_conversion(precision, input_type, expected_type):
 
 
 @pytest.mark.parametrize(
-    "device", [torch.device("cpu"), pytest.param(torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1))]
+    "device_str",
+    [
+        "cpu",
+        pytest.param("cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", marks=RunIf(mps=True)),
+    ],
 )
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float16])
-def test_lite_module_device_dtype_propagation(device, dtype):
+def test_lite_module_device_dtype_propagation(device_str, dtype):
     """Test that the LiteModule propagates device and dtype properties to its submodules (e.g. torchmetrics)."""
+
+    device = torch.device(device_str)
 
     class DeviceModule(DeviceDtypeModuleMixin):
         pass
@@ -144,15 +172,20 @@ def test_lite_dataloader_iterator():
 
 
 @pytest.mark.parametrize(
-    "src_device, dest_device",
+    "src_device_str, dest_device_str",
     [
-        (torch.device("cpu"), torch.device("cpu")),
-        pytest.param(torch.device("cpu"), torch.device("cuda", 0), marks=RunIf(min_cuda_gpus=1)),
-        pytest.param(torch.device("cuda", 0), torch.device("cpu"), marks=RunIf(min_cuda_gpus=1)),
+        ("cpu", "cpu"),
+        pytest.param("cpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("cuda:0", "cpu", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("cpu", "mps", marks=RunIf(mps=True)),
+        pytest.param("mps", "cpu", marks=RunIf(mps=True)),
     ],
 )
-def test_lite_dataloader_device_placement(src_device, dest_device):
+def test_lite_dataloader_device_placement(src_device_str, dest_device_str):
     """Test that the LiteDataLoader moves data to the device in its iterator."""
+    src_device = torch.device(src_device_str)
+    dest_device = torch.device(dest_device_str)
+
     sample0 = torch.tensor(0, device=src_device)
     sample1 = torch.tensor(1, device=src_device)
     sample2 = {"data": torch.tensor(2, device=src_device)}
