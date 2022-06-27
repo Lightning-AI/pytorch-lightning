@@ -24,7 +24,7 @@ import torch
 from pytorch_lightning import LightningDataModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.profiler.simple import SimpleProfiler
+from pytorch_lightning.profilers.simple import SimpleProfiler
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, AttributeDict
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -100,7 +100,7 @@ def test_can_prepare_data(local_rank, node_rank):
 
 def test_hooks_no_recursion_error():
     # hooks were appended in cascade every tine a new data module was instantiated leading to a recursion error.
-    # See https://github.com/PyTorchLightning/pytorch-lightning/issues/3652
+    # See https://github.com/Lightning-AI/lightning/issues/3652
     class DummyDM(LightningDataModule):
         def setup(self, *args, **kwargs):
             pass
@@ -265,13 +265,19 @@ def test_full_loop(tmpdir):
     assert result[0]["test_acc"] > 0.6
 
 
-@RunIf(min_cuda_gpus=1)
+@pytest.mark.parametrize(
+    "accelerator,device",
+    [
+        pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
+    ],
+)
 @mock.patch(
     "pytorch_lightning.strategies.Strategy.lightning_module",
     new_callable=PropertyMock,
 )
-def test_dm_apply_batch_transfer_handler(get_module_mock):
-    expected_device = torch.device("cuda", 0)
+def test_dm_apply_batch_transfer_handler(get_module_mock, accelerator, device):
+    expected_device = torch.device(device)
 
     class CustomBatch:
         def __init__(self, data):
@@ -312,7 +318,7 @@ def test_dm_apply_batch_transfer_handler(get_module_mock):
 
     batch = CustomBatch((torch.zeros(5, 32), torch.ones(5, 1, dtype=torch.long)))
 
-    trainer = Trainer(accelerator="gpu", devices=1)
+    trainer = Trainer(accelerator=accelerator, devices=1)
     model.trainer = trainer
     # running .fit() would require us to implement custom data loaders, we mock the model reference instead
     get_module_mock.return_value = model

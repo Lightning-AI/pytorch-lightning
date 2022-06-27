@@ -1,0 +1,14 @@
+coverage>=5.0
+codecov>=2.1
+pytest>=5.0
+pytest-timeout
+pytest-cov
+playwright==1.22.0
+# pytest-flake8
+flake8>=3.0
+check-manifest
+twine>=3.2
+isort>=5.0
+mypy>=0.720
+httpx
+trio

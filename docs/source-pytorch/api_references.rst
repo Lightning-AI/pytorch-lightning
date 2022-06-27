@@ -232,7 +232,7 @@ others
 profiler
 --------
 
-.. currentmodule:: pytorch_lightning.profiler
+.. currentmodule:: pytorch_lightning.profilers
 
 .. autosummary::
     :toctree: api
@@ -269,7 +269,7 @@ strategies
     :template: classtemplate.rst
 
     BaguaStrategy
-    CollaborativeStrategy
+    HivemindStrategy
     DDP2Strategy
     DDPFullyShardedStrategy
     DDPShardedStrategy
