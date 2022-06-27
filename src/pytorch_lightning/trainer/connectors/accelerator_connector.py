@@ -276,17 +276,17 @@ class AcceleratorConnector:
                 )
 
         if (
-            accelerator is None
-            or accelerator in self._accelerator_types
-            or accelerator == "auto"
-            or isinstance(accelerator, Accelerator)
+            accelerator is not None
+            and accelerator not in self._accelerator_types
+            and accelerator != "auto"
+            and not isinstance(accelerator, Accelerator)
         ):
-            self._accelerator_flag = accelerator
-        else:
             raise ValueError(
                 f"You selected an invalid accelerator name: `accelerator='{accelerator}'`."
                 f" Available names are: {', '.join(self._accelerator_types)}."
             )
+
+        self._accelerator_flag = accelerator
 
         if precision is not None:
             if str(precision) not in self._precision_types:
