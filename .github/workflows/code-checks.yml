@@ -13,6 +13,7 @@ concurrency:
 jobs:
   mypy:
     runs-on: ubuntu-20.04
+    # todo: checking also lightning_app
     steps:
     - uses: actions/checkout@master
     - uses: actions/setup-python@v2
@@ -33,9 +34,9 @@ jobs:
       run: |
         pip install torch==1.11 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
-        pip install '.[dev]'
+        pip install -r requirements/pytorch/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         pip list
 
     - name: Type check PyTorch
-      working-directory: src/pytorch_lightning
-      run: mypy . --install-types --non-interactive --config-file ../../pyproject.toml
+      working-directory: src
+      run: mypy pytorch_lightning --install-types --non-interactive --config-file ../pyproject.toml

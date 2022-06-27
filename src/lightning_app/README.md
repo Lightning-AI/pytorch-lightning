@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/source/_static/images/brandmark.png" width="400px">
+<img src="https://pl-flash-data.s3.amazonaws.com/brandmark.png" width="400px">
 
 **With Lightning Apps, you build exactly what you need: from production-ready, multi-cloud ML systems to simple research demos.**
 

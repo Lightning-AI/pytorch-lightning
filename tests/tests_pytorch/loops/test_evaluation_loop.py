@@ -132,7 +132,11 @@ def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mo
 
 @RunIf(min_cuda_gpus=1)
 def test_memory_consumption_validation(tmpdir):
-    """Test that the training batch is no longer in GPU memory when running validation."""
+    """Test that the training batch is no longer in GPU memory when running validation.
+
+    Cannot run with MPS, since there we can only measure shared memory and not dedicated, which device has how much
+    memory allocated.
+    """
 
     initial_memory = torch.cuda.memory_allocated(0)
 

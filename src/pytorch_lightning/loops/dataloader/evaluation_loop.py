@@ -24,6 +24,7 @@ from torch.utils.data.dataloader import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import GPUAccelerator
+from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from pytorch_lightning.loops.dataloader import DataLoaderLoop
 from pytorch_lightning.loops.epoch import EvaluationEpochLoop
 from pytorch_lightning.loops.utilities import _set_sampler_epoch
@@ -37,7 +38,6 @@ from pytorch_lightning.utilities.fetching import (
     DataLoaderIterDataFetcher,
     InterBatchParallelDataFetcher,
 )
-from pytorch_lightning.utilities.imports import _RICH_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT
