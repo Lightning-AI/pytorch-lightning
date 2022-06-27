@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import multiprocessing
+import os
 from typing import Any, List, MutableSequence, Optional, Tuple, Union
 
 import torch
@@ -339,7 +340,9 @@ def num_cuda_devices() -> int:
 
     Unlike :func:`torch.cuda.device_count`, calling this function will not create a new CUDA context.
     """
-    with multiprocessing.Pool(1) as pool:
+    if not hasattr(os, "fork"):
+        return torch.cuda.device_count()
+    with multiprocessing.get_context("fork").Pool(1) as pool:
         return pool.apply(torch.cuda.device_count)
 
 
@@ -348,5 +351,7 @@ def is_cuda_available() -> bool:
 
     Unlike :func:`torch.cuda.is_available`, calling this function will not create a new CUDA context.
     """
-    with multiprocessing.Pool(1) as pool:
+    if not hasattr(os, "fork"):
+        return torch.cuda.is_available()
+    with multiprocessing.get_context("fork").Pool(1) as pool:
         return pool.apply(torch.cuda.is_available)
