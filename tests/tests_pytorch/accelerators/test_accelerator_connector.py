@@ -230,14 +230,21 @@ def test_ipython_incompatible_backend_error(_, monkeypatch):
 def test_ipython_compatible_dp_strategy_gpu(_, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     trainer = Trainer(strategy="dp", accelerator="gpu")
-    assert trainer.strategy.launcher is None or trainer.strategy.launcher.is_interactive_compatible
+    assert trainer.strategy.launcher is None
 
 
 @mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
-def test_ipython_compatible_strategy_tpu(mock_tpu_acc_avail, monkeypatch):
+def test_ipython_compatible_strategy_tpu(_, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     trainer = Trainer(accelerator="tpu")
-    assert trainer.strategy.launcher is None or trainer.strategy.launcher.is_interactive_compatible
+    assert trainer.strategy.launcher.is_interactive_compatible
+
+
+@RunIf(skip_windows=True)
+def test_ipython_compatible_strategy_ddp_fork(monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
+    trainer = Trainer(strategy="ddp_fork", accelerator="cpu")
+    assert trainer.strategy.launcher.is_interactive_compatible
 
 
 @pytest.mark.parametrize(
