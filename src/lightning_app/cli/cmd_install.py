@@ -110,7 +110,7 @@ def _show_non_gallery_install_component_prompt(gh_url, yes_arg):
         git+https://github.com/OrgName/repo-name.git@ALongCommitSHAString
 
         Example:
-        git+https://github.com/PyTorchLightning/LAI-slack-messenger.git@14f333456ffb6758bd19458e6fa0bf12cf5575e1
+        git+https://github.com/Lightning-AI/LAI-slack-messenger.git@14f333456ffb6758bd19458e6fa0bf12cf5575e1
         """
         raise SystemExit(m)
 
@@ -221,7 +221,7 @@ def _show_non_gallery_install_app_prompt(gh_url, yes_arg):
         https://github.com/YourOrgName/your-repo-name
 
         Example:
-        https://github.com/PyTorchLightning/lightning
+        https://github.com/Lightning-AI/lightning
         """
         raise SystemExit("")
 
