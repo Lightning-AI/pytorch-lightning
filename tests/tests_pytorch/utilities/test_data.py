@@ -9,7 +9,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.data import (
-    _get_dataloader_init_kwargs,
+    _get_dataloader_init_args_and_kwargs,
     _replace_dataloader_init_method,
     _update_dataloader,
     extract_batch_size,
@@ -134,23 +134,28 @@ def test_has_len_all_rank():
 
 
 def test_update_dataloader_typerror_custom_exception():
-    class BadImpl(DataLoader):
+    class BadStandaloneGoodHookImpl(DataLoader):
         def __init__(self, foo, *args, **kwargs):
             self.foo = foo
             # positional conflict with `dataset`
             super().__init__(foo, *args, **kwargs)
 
-    dataloader = BadImpl([1, 2, 3])
+    dataloader = BadStandaloneGoodHookImpl([1, 2, 3])
     with pytest.raises(MisconfigurationException, match="`DataLoader` implementation has an error.*`dataset`"):
         _update_dataloader(dataloader, dataloader.sampler)
 
-    class BadImpl2(DataLoader):
+    with _replace_dataloader_init_method():
+        dataloader = BadStandaloneGoodHookImpl([1, 2, 3])
+    new_dataloader = _update_dataloader(dataloader, dataloader.sampler)
+    assert isinstance(new_dataloader, BadStandaloneGoodHookImpl)
+
+    class BadImpl(DataLoader):
         def __init__(self, randomize, *args, **kwargs):
             self.randomize = randomize
             # keyword conflict with `shuffle`
             super().__init__(*args, shuffle=randomize, **kwargs)
 
-    dataloader = BadImpl2(False, [])
+    dataloader = BadImpl(False, [])
     with pytest.raises(MisconfigurationException, match="`DataLoader` implementation has an error.*`shuffle`"):
         _update_dataloader(dataloader, dataloader.sampler)
 
@@ -165,69 +170,165 @@ def test_update_dataloader_typerror_custom_exception():
     assert isinstance(new_dataloader, GoodImpl)
 
 
-def test_replace_dataloader_init_method():
-    """Test that context manager intercepts arguments passed to custom subclasses of torch.utils.DataLoader and
-    sets them as attributes."""
+class DataLoaderSubclass1(DataLoader):
+    def __init__(self, attribute1, *args, **kwargs):
+        self.at1 = attribute1
+        super().__init__(*args, **kwargs)
 
-    class DataLoaderSubclass1(DataLoader):
-        def __init__(self, attribute1, *args, **kwargs):
-            # intentionally not setting this attribute, calling super with different args
-            # self.attribute1 = attribute1
-            super().__init__(*args, **kwargs)
 
-    class DataLoaderSubclass2(DataLoaderSubclass1):
-        def __init__(self, attribute2, *args, **kwargs):
-            # intentionally not setting this attribute, calling super with different args
-            # self.attribute2 = attribute2
-            super().__init__(attribute2 + "-2", *args, **kwargs)
+class DataLoaderSubclass2(DataLoaderSubclass1):
+    def __init__(self, attribute2, *args, **kwargs):
+        self.at2 = attribute2
+        super().__init__(attribute2 + "-2", *args, **kwargs)
 
+
+class MyBaseDataLoader(DataLoader):
+    pass
+
+
+class MyDataLoader(MyBaseDataLoader):
+    def __init__(self, data: torch.Tensor, *args, **kwargs):
+        self.data = data
+        super().__init__(range(data.size(0)), *args, **kwargs)
+
+
+test3_data = torch.randn((10, 20))
+
+
+class PoptorchDataLoader(DataLoader):
+    def __init__(self, options, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._options = options
+
+    @property
+    def options(self):
+        return self._options
+
+
+class IncompleteDataLoader(DataLoader):
+    def __init__(self, dataset, batch_size, **kwargs):
+        batch_size = max(batch_size - 5, 0)
+        super().__init__(dataset, batch_size=batch_size, **kwargs)
+
+
+class WeirdDataLoader1(DataLoader):
+    def __init__(self, arg1, arg2, **kwargs):
+        self.arg1 = arg1
+        super().__init__(arg2, **kwargs)
+
+
+class WeirdDataLoader2(DataLoader):
+    def __init__(self, data_part1, data_part2, **kwargs):
+        data = list(data_part1) + list(data_part2)
+        super().__init__(data, **kwargs)
+
+
+class NoneDataLoader(DataLoader):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class ChangingDataLoader(DataLoader):
+    def __init__(self, dataset, **kwargs):
+        super().__init__(list(dataset) + list(range(5, 10)), **kwargs)
+
+
+@pytest.mark.parametrize(
+    ["cls", "args", "kwargs", "arg_names", "dataset", "checked_values"],
+    [
+        pytest.param(
+            DataLoaderSubclass1,
+            ("attribute1",),
+            dict(dataset=range(4), batch_size=2),
+            ("attribute1",),
+            range(4),
+            dict(batch_size=2, at1="attribute1"),
+            id="test1",
+        ),
+        pytest.param(
+            DataLoaderSubclass2,
+            ("attribute2",),
+            dict(dataset=range(4), batch_size=2),
+            ("attribute2",),
+            range(4),
+            dict(batch_size=2, at1="attribute2-2", at2="attribute2"),
+            id="test2",
+        ),
+        pytest.param(
+            MyDataLoader,
+            (test3_data,),
+            dict(batch_size=2),
+            ("data",),
+            range(10),
+            dict(batch_size=2, data=test3_data),
+            id="test3",
+        ),
+        pytest.param(PoptorchDataLoader, (123, [1]), dict(), ("options",), [1], dict(options=123), id="test4"),
+        pytest.param(
+            IncompleteDataLoader,
+            (range(10),),
+            dict(batch_size=10),
+            ("dataset",),
+            range(10),
+            dict(batch_size=5),
+            id="test5",
+        ),
+        pytest.param(
+            WeirdDataLoader1,
+            (10, range(10)),
+            dict(batch_size=10),
+            ("arg1", "arg2"),
+            range(10),
+            dict(arg1=10, batch_size=10),
+            id="test6",
+        ),
+        pytest.param(
+            WeirdDataLoader2,
+            (range(10), range(10, 20)),
+            dict(batch_size=10),
+            ("data_part1", "data_part2"),
+            list(range(20)),
+            dict(batch_size=10),
+            id="test7",
+        ),
+        pytest.param(NoneDataLoader, (None,), dict(), (), None, dict(), id="test8"),
+        pytest.param(ChangingDataLoader, (range(5),), dict(), ("dataset",), list(range(10)), dict(), id="test9"),
+    ],
+)
+def test_replace_dataloader_init_method(cls, args, kwargs, arg_names, dataset, checked_values):
     with _replace_dataloader_init_method():
-        dataloader = DataLoaderSubclass1("attribute1", dataset=range(4), batch_size=2)
+        dataloader = cls(*args, **kwargs)
 
-    assert dataloader.attribute1 == "attribute1"
+    assert dataloader.__pl_dl_args == args
+    assert dataloader.__pl_dl_kwargs == kwargs
+    assert dataloader.__pl_dl_arg_names == arg_names
+    assert dataloader.__dataset == dataset
 
-    with _replace_dataloader_init_method():
-        dataloader = DataLoaderSubclass2("attribute2", dataset=range(4), batch_size=2)
+    assert dataloader.dataset == dataset
 
-    assert dataloader.attribute1 == "attribute2-2"
-    assert dataloader.attribute2 == "attribute2"
+    for key, value in checked_values.items():
+        dataloader_value = getattr(dataloader, key)
+        if isinstance(dataloader_value, torch.Tensor):
+            assert dataloader_value is value
+        else:
+            assert getattr(dataloader, key) == value
 
-    # Failing test case from issue 12564
-    class MyBaseDataLoader(DataLoader):
-        pass
+    dataloader = _update_dataloader(dataloader, dataloader.sampler)
 
-    class MyDataLoader(MyBaseDataLoader):
-        def __init__(self, data: torch.Tensor, *args, **kwargs):
-            self.data = data
-            super().__init__(range(data.size(0)), *args, **kwargs)
+    assert isinstance(dataloader, cls)
+    assert not hasattr(dataloader, "__pl_dl_kwargs")
+    assert not hasattr(dataloader, "__pl_dl_arg_names")
+    assert not hasattr(dataloader, "__pl_dl_args")
+    assert not hasattr(dataloader, "__dataset")
 
-    data = torch.randn((10, 20))
+    assert dataloader.dataset == dataset
 
-    with _replace_dataloader_init_method():
-        dataloader = MyDataLoader(data, batch_size=2)
-
-    assert dataloader.data is data
-    assert dataloader.dataset == range(10)
-
-    # `poptorch.DataLoader` uses this pattern, simulate it
-    class PoptorchDataLoader(DataLoader):
-        def __init__(self, options, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self._options = options
-
-        @property
-        def options(self):
-            return self._options
-
-    # †his read-only property pattern is fine
-    dataloader = PoptorchDataLoader(123, [1])
-    assert dataloader.options == 123
-
-    # still works with the init replacement
-    with _replace_dataloader_init_method():
-        dataloader = PoptorchDataLoader(123, [1])
-
-    assert dataloader.options == 123
+    for key, value in checked_values.items():
+        dataloader_value = getattr(dataloader, key)
+        if isinstance(dataloader_value, torch.Tensor):
+            assert dataloader_value is value
+        else:
+            assert getattr(dataloader, key) == value
 
 
 @pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])
@@ -235,7 +336,7 @@ def test_dataloader_kwargs_replacement_with_iterable_dataset(mode):
     """Test that DataLoader kwargs are not replaced when using Iterable Dataset."""
     dataset = RandomIterableDataset(7, 100)
     dataloader = DataLoader(dataset, batch_size=32)
-    dl_kwargs = _get_dataloader_init_kwargs(dataloader, dataloader.sampler, mode=mode)
+    _, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, dataloader.sampler, mode=mode)
     assert dl_kwargs["sampler"] is None
     assert dl_kwargs["batch_sampler"] is None
     assert dl_kwargs["batch_size"] is dataloader.batch_size

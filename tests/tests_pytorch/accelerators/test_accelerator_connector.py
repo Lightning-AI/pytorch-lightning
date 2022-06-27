@@ -25,6 +25,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
+from pytorch_lightning.accelerators.mps import MPSAccelerator
 from pytorch_lightning.plugins import DoublePrecisionPlugin, LayerSync, NativeSyncBatchNorm, PrecisionPlugin
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
@@ -654,10 +655,19 @@ def test_devices_auto_choice_cpu(
 
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
+@RunIf(mps=False)
 def test_devices_auto_choice_gpu(is_gpu_available_mock, device_count_mock):
+
     trainer = Trainer(accelerator="auto", devices="auto")
     assert isinstance(trainer.accelerator, GPUAccelerator)
     assert trainer.num_devices == 2
+
+
+@RunIf(mps=True)
+def test_devices_auto_choice_mps():
+    trainer = Trainer(accelerator="auto", devices="auto")
+    assert isinstance(trainer.accelerator, MPSAccelerator)
+    assert trainer.num_devices == 1
 
 
 @pytest.mark.parametrize(

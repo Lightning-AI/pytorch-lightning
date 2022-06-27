@@ -36,7 +36,14 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators import Accelerator, GPUAccelerator, HPUAccelerator, IPUAccelerator, TPUAccelerator
+from pytorch_lightning.accelerators import (
+    Accelerator,
+    GPUAccelerator,
+    HPUAccelerator,
+    IPUAccelerator,
+    MPSAccelerator,
+    TPUAccelerator,
+)
 from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
@@ -55,7 +62,7 @@ from pytorch_lightning.plugins import (
     PrecisionPlugin,
 )
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
-from pytorch_lightning.profiler import (
+from pytorch_lightning.profilers import (
     AdvancedProfiler,
     PassThroughProfiler,
     Profiler,
@@ -188,7 +195,7 @@ class Trainer(
 
         Args:
 
-            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "auto")
+            accelerator: Supports passing different accelerator types ("cpu", "gpu", "tpu", "ipu", "hpu", "mps, "auto")
                 as well as custom accelerator instances.
 
                 .. deprecated:: v1.5
@@ -589,7 +596,10 @@ class Trainer(
             self.check_val_every_n_epoch = 1
             self.loggers = [DummyLogger()] if self.loggers else []
 
-            rank_zero_info(f"Running in fast_dev_run mode: will run the requested loop using {num_batches} batch(es).")
+            rank_zero_info(
+                f"Running in `fast_dev_run` mode: will run the requested loop using {num_batches} batch(es). "
+                "Logging and checkpointing is suppressed."
+            )
 
         self.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
         self.limit_val_batches = _determine_batch_limits(limit_val_batches, "limit_val_batches")
@@ -1728,9 +1738,19 @@ class Trainer(
         self.profiler.setup(stage=self.state.fn._setup_fn, local_rank=local_rank, log_dir=self.log_dir)
 
     def _log_device_info(self) -> None:
-        rank_zero_info(
-            f"GPU available: {torch.cuda.is_available()}, used: {isinstance(self.accelerator, GPUAccelerator)}"
-        )
+
+        if GPUAccelerator.is_available():
+            gpu_available = True
+            gpu_type = " (cuda)"
+        elif MPSAccelerator.is_available():
+            gpu_available = True
+            gpu_type = " (mps)"
+        else:
+            gpu_available = False
+            gpu_type = ""
+
+        gpu_used = isinstance(self.accelerator, (GPUAccelerator, MPSAccelerator))
+        rank_zero_info(f"GPU available: {gpu_available}{gpu_type}, used: {gpu_used}")
 
         num_tpu_cores = self.num_devices if isinstance(self.accelerator, TPUAccelerator) else 0
         rank_zero_info(f"TPU available: {_TPU_AVAILABLE}, using: {num_tpu_cores} TPU cores")
@@ -1741,6 +1761,7 @@ class Trainer(
         num_hpus = self.num_devices if isinstance(self.accelerator, HPUAccelerator) else 0
         rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
 
+        # TODO: Integrate MPS Accelerator here, once gpu maps to both
         if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
             rank_zero_warn(
                 "GPU available but not used. Set `accelerator` and `devices` using"
@@ -1764,6 +1785,12 @@ class Trainer(
             rank_zero_warn(
                 "HPU available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='hpu', devices={HPUAccelerator.auto_device_count()})`."
+            )
+
+        if MPSAccelerator.is_available() and not isinstance(self.accelerator, MPSAccelerator):
+            rank_zero_warn(
+                "MPS available but not used. Set `accelerator` and `devices` using"
+                f" `Trainer(accelerator='mps', devices={MPSAccelerator.auto_device_count()})`."
             )
 
     """

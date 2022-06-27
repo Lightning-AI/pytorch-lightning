@@ -198,6 +198,7 @@ environments
     LSFEnvironment
     SLURMEnvironment
     TorchElasticEnvironment
+    XLAEnvironment
 
 io
 ""
@@ -231,7 +232,7 @@ others
 profiler
 --------
 
-.. currentmodule:: pytorch_lightning.profiler
+.. currentmodule:: pytorch_lightning.profilers
 
 .. autosummary::
     :toctree: api
@@ -268,7 +269,7 @@ strategies
     :template: classtemplate.rst
 
     BaguaStrategy
-    CollaborativeStrategy
+    HivemindStrategy
     DDPFullyShardedStrategy
     DDPShardedStrategy
     DDPSpawnShardedStrategy
