@@ -270,7 +270,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed `estimated_stepping_batches` requiring distributed comms in `configure_optimizers` for the `DeepSpeedStrategy` ([#13350](https://github.com/PyTorchLightning/pytorch-lightning/pull/13350))
 
 
-- Fixed bug with Python version check that prevented use with development versions of Python (#13347)
+- Fixed bug with Python version check that prevented use with development versions of Python ([#13347](https://github.com/PyTorchLightning/pytorch-lightning/pull/13347))
 
 
 ## [1.6.4] - 2022-06-01
