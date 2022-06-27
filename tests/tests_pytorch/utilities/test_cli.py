@@ -609,7 +609,8 @@ class EarlyExitTestModel(BoringModel):
         raise MisconfigurationException("Error on fit start")
 
 
-@RunIf(skip_windows=True)
+# mps not yet supported by distributed
+@RunIf(skip_windows=True, mps=False)
 @pytest.mark.parametrize("logger", (False, True))
 @pytest.mark.parametrize("strategy", ("ddp_spawn", "ddp"))
 def test_cli_distributed_save_config_callback(tmpdir, logger, strategy):
