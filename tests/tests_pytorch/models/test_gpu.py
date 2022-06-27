@@ -83,8 +83,8 @@ def mocked_device_count(monkeypatch):
     def is_available():
         return True
 
-    monkeypatch.setattr(torch.cuda, "is_available", is_available)
-    monkeypatch.setattr(torch.cuda, "device_count", device_count)
+    monkeypatch.setattr(device_parser, "is_cuda_available", is_available)
+    monkeypatch.setattr(device_parser, "num_cuda_devices", device_count)
 
 
 @pytest.fixture
@@ -92,7 +92,7 @@ def mocked_device_count_0(monkeypatch):
     def device_count():
         return 0
 
-    monkeypatch.setattr(torch.cuda, "device_count", device_count)
+    monkeypatch.setattr(device_parser, "num_cuda_devices", device_count)
 
 
 # Asking for a gpu when non are available will result in a MisconfigurationException

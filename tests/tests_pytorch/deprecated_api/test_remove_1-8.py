@@ -45,6 +45,7 @@ from pytorch_lightning.profilers import AdvancedProfiler, Profiler, SimpleProfil
 from pytorch_lightning.strategies import ParallelStrategy
 from pytorch_lightning.trainer.configuration_validator import _check_datamodule_checkpoint_hooks
 from pytorch_lightning.trainer.states import RunningStage
+from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
@@ -903,8 +904,8 @@ def test_trainer_config_device_ids():
     ],
 )
 def test_root_gpu_property(monkeypatch, gpus, expected_root_gpu, strategy):
-    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-    monkeypatch.setattr(torch.cuda, "device_count", lambda: 16)
+    monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
+    monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 16)
     with pytest.deprecated_call(
         match="`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
         "Please use `Trainer.strategy.root_device.index` instead."
@@ -921,7 +922,7 @@ def test_root_gpu_property(monkeypatch, gpus, expected_root_gpu, strategy):
     ],
 )
 def test_root_gpu_property_0_passing(monkeypatch, gpus, expected_root_gpu, strategy):
-    monkeypatch.setattr(torch.cuda, "device_count", lambda: 0)
+    monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 0)
     with pytest.deprecated_call(
         match="`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
         "Please use `Trainer.strategy.root_device.index` instead."
@@ -941,8 +942,8 @@ def test_root_gpu_property_0_passing(monkeypatch, gpus, expected_root_gpu, strat
     ],
 )
 def test_trainer_gpu_parse(monkeypatch, gpus, expected_num_gpus, strategy):
-    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-    monkeypatch.setattr(torch.cuda, "device_count", lambda: 16)
+    monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
+    monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 16)
     with pytest.deprecated_call(
         match="`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
         " Please use `Trainer.num_devices` instead."
@@ -958,7 +959,7 @@ def test_trainer_gpu_parse(monkeypatch, gpus, expected_num_gpus, strategy):
     ],
 )
 def test_trainer_num_gpu_0(monkeypatch, gpus, expected_num_gpus, strategy):
-    monkeypatch.setattr(torch.cuda, "device_count", lambda: 0)
+    monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 0)
     with pytest.deprecated_call(
         match="`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
         " Please use `Trainer.num_devices` instead."
@@ -1020,8 +1021,8 @@ def test_trainer_config_ipus(monkeypatch, trainer_kwargs, expected_ipus):
 )
 def test_trainer_num_processes(monkeypatch, trainer_kwargs, expected_num_processes):
     if trainer_kwargs.get("accelerator") == "gpu":
-        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-        monkeypatch.setattr(torch.cuda, "device_count", lambda: 16)
+        monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
+        monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 16)
     trainer = Trainer(**trainer_kwargs)
     with pytest.deprecated_call(
         match="`Trainer.num_processes` is deprecated in v1.6 and will be removed in v1.8. "
@@ -1045,8 +1046,8 @@ def test_trainer_num_processes(monkeypatch, trainer_kwargs, expected_num_process
 def test_trainer_data_parallel_device_ids(monkeypatch, trainer_kwargs, expected_data_parallel_device_ids):
     """Test multi type argument with bool."""
     if trainer_kwargs.get("accelerator") == "gpu":
-        monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-        monkeypatch.setattr(torch.cuda, "device_count", lambda: 2)
+        monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
+        monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 2)
 
     trainer = Trainer(**trainer_kwargs)
     with pytest.deprecated_call(
@@ -1128,8 +1129,8 @@ def test_v1_8_0_callback_on_save_checkpoint_hook(tmpdir):
     ],
 )
 def test_trainer_gpus(monkeypatch, trainer_kwargs):
-    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-    monkeypatch.setattr(torch.cuda, "device_count", lambda: 4)
+    monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
+    monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 4)
     trainer = Trainer(**trainer_kwargs)
     with pytest.deprecated_call(
         match="`Trainer.gpus` was deprecated in v1.6 and will be removed in v1.8."
