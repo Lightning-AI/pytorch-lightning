@@ -304,22 +304,22 @@ def test_accelerator_gpu():
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
 
-@pytest.mark.parametrize(["devices", "plugin"], [(1, SingleDeviceStrategy), (5, DDPSpawnStrategy)])
-def test_accelerator_cpu_with_devices(devices, plugin):
+@pytest.mark.parametrize(["devices", "strategy_class"], [(1, SingleDeviceStrategy), (5, DDPSpawnStrategy)])
+def test_accelerator_cpu_with_devices(devices, strategy_class):
     trainer = Trainer(accelerator="cpu", devices=devices)
     assert trainer.num_devices == devices
-    assert isinstance(trainer.strategy, plugin)
+    assert isinstance(trainer.strategy, strategy_class)
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
 
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
-    ["devices", "plugin"], [(1, SingleDeviceStrategy), ([1], SingleDeviceStrategy), (2, DDPSpawnStrategy)]
+    ["devices", "strategy_class"], [(1, SingleDeviceStrategy), ([1], SingleDeviceStrategy), (2, DDPSpawnStrategy)]
 )
-def test_accelerator_gpu_with_devices(devices, plugin):
+def test_accelerator_gpu_with_devices(devices, strategy_class):
     trainer = Trainer(accelerator="gpu", devices=devices)
     assert trainer.num_devices == len(devices) if isinstance(devices, list) else devices
-    assert isinstance(trainer.strategy, plugin)
+    assert isinstance(trainer.strategy, strategy_class)
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
 
@@ -356,7 +356,7 @@ def test_exception_invalid_strategy():
 
 
 @pytest.mark.parametrize(
-    ["strategy", "plugin"],
+    ["strategy", "strategy_class"],
     [
         ("ddp_spawn", DDPSpawnStrategy),
         ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
@@ -364,20 +364,20 @@ def test_exception_invalid_strategy():
         ("ddp_find_unused_parameters_false", DDPStrategy),
     ],
 )
-def test_strategy_choice_cpu_str(tmpdir, strategy, plugin):
+def test_strategy_choice_cpu_str(strategy, strategy_class):
     trainer = Trainer(strategy=strategy, accelerator="cpu", devices=2)
-    assert isinstance(trainer.strategy, plugin)
+    assert isinstance(trainer.strategy, strategy_class)
 
 
-@pytest.mark.parametrize("plugin", [DDPSpawnStrategy, DDPStrategy])
-def test_strategy_choice_cpu_plugin(tmpdir, plugin):
-    trainer = Trainer(strategy=plugin(), accelerator="cpu", devices=2)
-    assert isinstance(trainer.strategy, plugin)
+@pytest.mark.parametrize("strategy_class", [DDPSpawnStrategy, DDPStrategy])
+def test_strategy_choice_cpu_instance(strategy_class):
+    trainer = Trainer(strategy=strategy_class(), accelerator="cpu", devices=2)
+    assert isinstance(trainer.strategy, strategy_class)
 
 
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
-    ["strategy", "plugin"],
+    ["strategy", "strategy_class"],
     [
         ("ddp_spawn", DDPSpawnStrategy),
         ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
@@ -390,29 +390,29 @@ def test_strategy_choice_cpu_plugin(tmpdir, plugin):
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
-def test_strategy_choice_gpu_str(tmpdir, strategy, plugin):
+def test_strategy_choice_gpu_str(strategy, strategy_class):
     trainer = Trainer(strategy=strategy, accelerator="gpu", devices=2)
-    assert isinstance(trainer.strategy, plugin)
+    assert isinstance(trainer.strategy, strategy_class)
 
 
 @RunIf(min_cuda_gpus=2)
-@pytest.mark.parametrize("plugin", [DDPSpawnStrategy, DDPStrategy])
-def test_strategy_choice_gpu_plugin(tmpdir, plugin):
-    trainer = Trainer(strategy=plugin(), accelerator="gpu", devices=2)
-    assert isinstance(trainer.strategy, plugin)
+@pytest.mark.parametrize("strategy_class", [DDPSpawnStrategy, DDPStrategy])
+def test_strategy_choice_gpu_instance(strategy_class):
+    trainer = Trainer(strategy=strategy_class(), accelerator="gpu", devices=2)
+    assert isinstance(trainer.strategy, strategy_class)
 
 
 @RunIf(min_cuda_gpus=2)
-@pytest.mark.parametrize("plugin", [DDPSpawnStrategy, DDPStrategy])
-def test_device_type_when_training_plugin_gpu_passed(tmpdir, plugin):
+@pytest.mark.parametrize("strategy_class", [DDPSpawnStrategy, DDPStrategy])
+def test_device_type_when_strategy_instance_gpu_passed(strategy_class):
 
-    trainer = Trainer(strategy=plugin(), accelerator="gpu", devices=2)
-    assert isinstance(trainer.strategy, plugin)
+    trainer = Trainer(strategy=strategy_class(), accelerator="gpu", devices=2)
+    assert isinstance(trainer.strategy, strategy_class)
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
 
 @pytest.mark.parametrize("precision", [1, 12, "invalid"])
-def test_validate_precision_type(tmpdir, precision):
+def test_validate_precision_type(precision):
 
     with pytest.raises(MisconfigurationException, match=f"Precision {repr(precision)} is invalid"):
         Trainer(precision=precision)
@@ -423,7 +423,7 @@ def test_amp_level_raises_error_with_native():
         _ = Trainer(amp_level="O2", amp_backend="native", precision=16)
 
 
-def test_strategy_choice_ddp_spawn_cpu(tmpdir):
+def test_strategy_choice_ddp_spawn_cpu():
     trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", accelerator="cpu", devices=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
