@@ -120,7 +120,7 @@ def test_fsdp_strategy_registry(tmpdir):
         (
             "ddp_fork_find_unused_parameters_false",
             DDPSpawnStrategy,
-            {"find_unused_parameters": False, "start_method ": "fork"},
+            {"find_unused_parameters": False, "start_method": "fork"},
         ),
         (
             "ddp_sharded_spawn_find_unused_parameters_false",
