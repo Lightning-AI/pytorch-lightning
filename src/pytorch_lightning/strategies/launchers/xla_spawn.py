@@ -51,8 +51,7 @@ class _XLASpawnLauncher(_SpawnLauncher):
     """
 
     def __init__(self, strategy: "Strategy") -> None:
-        super().__init__(strategy)
-        self._start_method = "fork"
+        super().__init__(strategy=strategy, start_method="fork")
 
     @property
     def is_interactive_compatible(self) -> bool:
