@@ -610,7 +610,11 @@ class AcceleratorConnector:
                 f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
                 "but GPU accelerator is not used."
             )
-
+        if strategy_flag in ("ddp_fork", "ddp_fork_find_unused_parameters_false") and not hasattr(os, "fork"):
+            raise ValueError(
+                f"You selected `Trainer(strategy='{strategy_flag}')` but process forking is not supported on this"
+                f" platform. We recommed to choose `Trainer(strategy='ddp_spawn')` instead."
+            )
         if strategy_flag:
             self._strategy_flag = strategy_flag
 

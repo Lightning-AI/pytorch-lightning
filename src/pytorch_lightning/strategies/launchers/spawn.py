@@ -49,12 +49,15 @@ class _SpawnLauncher(_Launcher):
         strategy: A reference to the strategy that is used together with this launcher.
         start_method: The method how to start the processes.
             - 'spawn': The default start method. Requires all objects to be pickleable.
-            - 'fork': Preferrable for IPython/Jupyter environments where 'spawn' is not available.
+            - 'fork': Preferrable for IPython/Jupyter environments where 'spawn' is not available. Not available on
+              the Windows platform.
     """
 
     def __init__(self, strategy: Strategy, start_method: str = "spawn") -> None:
         self._strategy = strategy
         self._start_method = start_method
+        if start_method == "fork" and not hasattr(os, "fork"):
+            raise ValueError("The start method 'fork' is not available on this platform. Choose 'spawn' instead.")
 
     @property
     def is_interactive_compatible(self) -> bool:

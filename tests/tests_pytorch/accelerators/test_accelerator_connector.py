@@ -811,3 +811,10 @@ def test_plugin_only_one_instance_for_one_type(plugins, expected):
 def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
     with pytest.raises(MisconfigurationException, match="value is not a valid input using"):
         Trainer(accelerator=accelerator, devices=devices)
+
+
+@pytest.mark.parametrize("strategy", ["ddp_fork", "ddp_fork_find_unused_parameters_false"])
+def test_ddp_fork_on_unsupported_platform(strategy, monkeypatch):
+    monkeypatch.delattr(os, "fork")
+    with pytest.raises(ValueError, match="process forking is not supported on this platform"):
+        Trainer(strategy=strategy)
