@@ -36,7 +36,7 @@ local tputests = base.BaseTest {
       # TODO (@kaushikb11): Add device stats tests here
       coverage run --source=pytorch_lightning -m pytest -v --capture=no \
           strategies/test_tpu_spawn.py \
-          profiler/test_xla_profiler.py \
+          profilers/test_xla_profiler.py \
           accelerators/test_tpu.py \
           models/test_tpu.py \
           plugins/environments/test_xla_environment.py
