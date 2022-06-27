@@ -44,7 +44,7 @@ release = about.__version__
 
 # Options for the linkcode extension
 # ----------------------------------
-github_user = "PyTorchLightning"
+github_user = "Lightning-AI"
 github_repo = project
 
 # -- Project documents -------------------------------------------------------
