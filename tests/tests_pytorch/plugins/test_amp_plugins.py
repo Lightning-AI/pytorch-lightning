@@ -45,8 +45,8 @@ class MyApexPlugin(ApexMixedPrecisionPlugin):
         "SLURM_LOCALID": "0",
     },
 )
-@mock.patch("torch.cuda.is_available", return_value=True)
-@mock.patch("torch.cuda.device_count", return_value=2)
+@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True)
+@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=2)
 @pytest.mark.parametrize("strategy,devices", [("ddp", 2), ("ddp2", 2), ("ddp_spawn", 2)])
 @pytest.mark.parametrize(
     "amp,custom_plugin,plugin_cls",
@@ -272,16 +272,16 @@ def test_precision_selection_raises(monkeypatch):
     with pytest.raises(MisconfigurationException, match=r"amp_type='apex', precision='bf16'\)` but it's not supported"):
         Trainer(amp_backend="apex", precision="bf16")
 
-    with mock.patch("torch.cuda.device_count", return_value=1), pytest.raises(
+    with mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1), pytest.raises(
         MisconfigurationException, match="Sharded plugins are not supported with apex"
     ):
-        with mock.patch("torch.cuda.is_available", return_value=True):
+        with mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True):
             Trainer(amp_backend="apex", precision=16, accelerator="gpu", devices=1, strategy="ddp_fully_sharded")
 
     import pytorch_lightning.plugins.precision.apex_amp as apex
 
     monkeypatch.setattr(apex, "_APEX_AVAILABLE", False)
-    with mock.patch("torch.cuda.device_count", return_value=1), mock.patch(
-        "torch.cuda.is_available", return_value=True
+    with mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1), mock.patch(
+        "pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True
     ), pytest.raises(MisconfigurationException, match="asked for Apex AMP but you have not installed it"):
         Trainer(amp_backend="apex", precision=16, accelerator="gpu", devices=1)

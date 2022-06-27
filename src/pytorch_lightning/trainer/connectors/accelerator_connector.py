@@ -82,7 +82,6 @@ from pytorch_lightning.utilities import (
     rank_zero_info,
     rank_zero_warn,
 )
-from pytorch_lightning.utilities.device_parser import num_cuda_devices
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
@@ -488,7 +487,7 @@ class AcceleratorConnector:
                 return "hpu"
             if MPSAccelerator.is_available():
                 return "mps"
-            if num_cuda_devices() > 0:
+            if GPUAccelerator.is_available():
                 return "gpu"
         return "cpu"
 

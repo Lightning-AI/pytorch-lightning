@@ -185,8 +185,8 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
         "TORCHELASTIC_RUN_ID": "1",
     },
 )
-@mock.patch("torch.cuda.device_count", return_value=1)
-@mock.patch("torch.cuda.is_available", return_value=True)
+@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1)
+@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True)
 @pytest.mark.parametrize("gpus", [[0, 1, 2], 2, "0", [0, 2]])
 def test_torchelastic_gpu_parsing(mocked_device_count, mocked_is_available, gpus):
     """Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device That we omit

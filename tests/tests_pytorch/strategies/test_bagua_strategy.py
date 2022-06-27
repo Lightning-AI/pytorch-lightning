@@ -118,6 +118,6 @@ def test_bagua_not_available(monkeypatch):
     import pytorch_lightning.strategies.bagua as imports
 
     monkeypatch.setattr(imports, "_BAGUA_AVAILABLE", False)
-    with mock.patch("torch.cuda.device_count", return_value=1):
+    with mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1):
         with pytest.raises(MisconfigurationException, match="you must have `Bagua` installed"):
             Trainer(strategy="bagua", accelerator="gpu", devices=1)
