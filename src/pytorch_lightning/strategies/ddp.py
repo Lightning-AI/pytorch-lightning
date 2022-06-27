@@ -17,12 +17,14 @@ import shutil
 import signal
 import tempfile
 import time
+from datetime import timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 import torch.distributed
 from torch import Tensor
+from torch.distributed.constants import default_pg_timeout
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
@@ -31,6 +33,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
+from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -50,12 +53,7 @@ from pytorch_lightning.utilities.distributed import (
     sync_ddp_if_available,
 )
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
-from pytorch_lightning.utilities.imports import (
-    _FAIRSCALE_AVAILABLE,
-    _IS_WINDOWS,
-    _TORCH_GREATER_EQUAL_1_10,
-    _TORCH_GREATER_EQUAL_1_11,
-)
+from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
@@ -89,6 +87,7 @@ class DDPStrategy(ParallelStrategy):
         ddp_comm_wrapper: Optional[callable] = None,
         model_averaging_period: Optional[int] = None,
         process_group_backend: Optional[str] = None,
+        timeout: Optional[timedelta] = default_pg_timeout,
         **kwargs: Union[Any, Dict[str, Any]],
     ) -> None:
         super().__init__(
@@ -110,6 +109,7 @@ class DDPStrategy(ParallelStrategy):
         self._sync_dir: Optional[str] = None
         self._rank_0_will_call_children_scripts: bool = False
         self._process_group_backend: Optional[str] = process_group_backend
+        self._timeout: Optional[timedelta] = timeout
 
     @property
     def is_distributed(self) -> bool:
@@ -204,7 +204,7 @@ class DDPStrategy(ParallelStrategy):
         rank_zero_only.rank = self.global_rank
 
         self._process_group_backend = self._get_process_group_backend()
-        init_dist_connection(self.cluster_environment, self._process_group_backend)
+        init_dist_connection(self.cluster_environment, self._process_group_backend, timeout=self._timeout)
 
     def _get_process_group_backend(self) -> str:
         return (

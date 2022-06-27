@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader, Dataset, IterableDataset
 
 from pytorch_lightning import Callback, LightningDataModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
-from pytorch_lightning.profiler import SimpleProfiler
+from pytorch_lightning.profilers import SimpleProfiler
 from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher, DataLoaderIterDataFetcher, InterBatchParallelDataFetcher
@@ -194,8 +194,10 @@ class RecommenderModel(BoringModel):
 
 
 @pytest.mark.flaky(reruns=3)
-@RunIf(min_cuda_gpus=1)
-def test_trainer_num_prefetch_batches(tmpdir):
+@pytest.mark.parametrize(
+    "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
+)
+def test_trainer_num_prefetch_batches(tmpdir, accelerator):
 
     model = RecommenderModel()
 
@@ -211,7 +213,7 @@ def test_trainer_num_prefetch_batches(tmpdir):
     trainer_kwargs = dict(
         default_root_dir=tmpdir,
         max_epochs=1,
-        accelerator="gpu",
+        accelerator=accelerator,
         devices=1,
         limit_train_batches=4,
         limit_val_batches=0,
