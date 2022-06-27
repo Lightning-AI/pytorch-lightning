@@ -5,7 +5,7 @@ from dataclasses import asdict, dataclass
 from types import FrameType
 from typing import cast, List, Optional, TYPE_CHECKING, Union
 
-from lightning_app._setup_tools import _load_requirements
+from pkg_resources import parse_requirements
 
 if TYPE_CHECKING:
     from lightning_app import LightningWork
@@ -84,9 +84,8 @@ class BuildConfig:
         requirement_files = [os.path.join(dirname, f) for f in os.listdir(dirname) if f == "requirements.txt"]
         if not requirement_files:
             return []
-        dirname, basename = os.path.dirname(requirement_files[0]), os.path.basename(requirement_files[0])
         try:
-            requirements = _load_requirements(dirname, basename)
+            requirements = list(map(str, parse_requirements(open(requirement_files[0]).readlines())))
         except NotADirectoryError:
             requirements = []
         return [r for r in requirements if r != "lightning"]
@@ -117,9 +116,7 @@ class BuildConfig:
             path = os.path.join(self._call_dir, req)
             if os.path.exists(path):
                 try:
-                    requirements.extend(
-                        _load_requirements(os.path.dirname(path), os.path.basename(path)),
-                    )
+                    requirements.extend(list(map(str, parse_requirements(open(path).readlines()))))
                 except NotADirectoryError:
                     pass
             else:

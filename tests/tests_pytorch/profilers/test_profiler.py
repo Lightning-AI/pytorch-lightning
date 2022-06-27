@@ -62,7 +62,7 @@ def test_simple_profiler_durations(simple_profiler, action: str, expected: list)
             time.sleep(duration)
 
     # different environments have different precision when it comes to time.sleep()
-    # see: https://github.com/PyTorchLightning/pytorch-lightning/issues/796
+    # see: https://github.com/Lightning-AI/lightning/issues/796
     np.testing.assert_allclose(simple_profiler.recorded_durations[action], expected, rtol=0.2)
 
 
@@ -269,7 +269,7 @@ def test_advanced_profiler_durations(advanced_profiler, action: str, expected: l
             time.sleep(duration)
 
     # different environments have different precision when it comes to time.sleep()
-    # see: https://github.com/PyTorchLightning/pytorch-lightning/issues/796
+    # see: https://github.com/Lightning-AI/lightning/issues/796
     recorded_total_duration = _get_python_cprofile_total_duration(advanced_profiler.profiled_actions[action])
     expected_total_duration = np.sum(expected)
     np.testing.assert_allclose(recorded_total_duration, expected_total_duration, rtol=0.2)
