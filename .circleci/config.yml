@@ -26,7 +26,7 @@ references:
       name: Make Documentation
       command: |
         # the image uses python 2.7 by default, force a different version
-        pyenv global 3.8
+        pyenv global 3.9
         python --version
         pip install -e . -r requirements/pytorch/docs.txt
         pip list
@@ -113,10 +113,10 @@ jobs:
     #  10. Upload coverage results
     #  11. Upload coverage to Codecov
     docker:
-      - image: circleci/python:3.7
+      - image: circleci/python:3.9
     environment:
       - XLA_VER: 1.9
-      - PYTHON_VER: 3.8
+      - PYTHON_VER: 3.9
       - MAX_CHECKS: 240
       - CHECK_SPEEP: 5
     steps:
