@@ -14,10 +14,9 @@
 
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, Trainer
-from pytorch_lightning.callbacks import DeepSpeedModelSummary
-from pytorch_lightning.callbacks.deepspeed_model_summary import DeepSpeedSummary
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import DeepSpeedStrategy
+from pytorch_lightning.utilities.deepspeed_model_summary import DeepSpeedSummary
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -50,7 +49,5 @@ def test_deepspeed_summary(tmpdir):
         enable_model_summary=True,
         callbacks=[TestCallback()],
     )
-
-    assert DeepSpeedModelSummary in [type(cb) for cb in trainer.callbacks]
 
     trainer.fit(model)

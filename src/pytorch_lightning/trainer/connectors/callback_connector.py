@@ -19,7 +19,6 @@ from typing import Dict, List, Optional, Sequence, Union
 
 from pytorch_lightning.callbacks import (
     Callback,
-    DeepSpeedModelSummary,
     GradientAccumulationScheduler,
     ModelCheckpoint,
     ModelSummary,
@@ -29,7 +28,6 @@ from pytorch_lightning.callbacks import (
 )
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
-from pytorch_lightning.strategies import DeepSpeedStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _PYTHON_GREATER_EQUAL_3_8_0
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_info
@@ -148,12 +146,9 @@ class CallbackConnector:
 
         progress_bar_callback = self.trainer.progress_bar_callback
         is_progress_bar_rich = isinstance(progress_bar_callback, RichProgressBar)
-        is_deepspeed_enabled = isinstance(self.trainer.strategy, DeepSpeedStrategy)
 
         if progress_bar_callback is not None and is_progress_bar_rich:
             model_summary = RichModelSummary()
-        elif is_deepspeed_enabled:
-            model_summary = DeepSpeedModelSummary()
         else:
             model_summary = ModelSummary()
         self.trainer.callbacks.append(model_summary)

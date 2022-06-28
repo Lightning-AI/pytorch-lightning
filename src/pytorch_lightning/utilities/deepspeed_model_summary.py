@@ -12,14 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Utilities that can be used with Deepspeed."""
 
 from collections import OrderedDict
 from typing import Dict, List, Tuple
 
 import torch
 
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks.model_summary import ModelSummary as ModelSummaryCallback
 from pytorch_lightning.utilities.model_summary import (
     _is_lazy_weight_tensor,
     get_human_readable_count,
@@ -93,22 +92,3 @@ class DeepSpeedSummary(ModelSummary):
             arrays.append(("Out sizes", [str(x) for x in self.out_sizes]))
 
         return arrays
-
-
-class DeepSpeedModelSummary(ModelSummaryCallback):
-    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if not self._max_depth:
-            return None
-        from pytorch_lightning.strategies.deepspeed import DeepSpeedStrategy
-
-        if isinstance(trainer.strategy, DeepSpeedStrategy) and trainer.strategy.zero_stage_3:
-            model_summary = DeepSpeedSummary(pl_module, max_depth=self._max_depth)
-            summary_data = model_summary._get_summary_data()
-            total_parameters = model_summary.total_parameters
-            trainable_parameters = model_summary.trainable_parameters
-            model_size = model_summary.model_size
-
-            if trainer.is_global_zero:
-                self.summarize(summary_data, total_parameters, trainable_parameters, model_size)
-            return
-        return super().on_fit_start(trainer, pl_module)
