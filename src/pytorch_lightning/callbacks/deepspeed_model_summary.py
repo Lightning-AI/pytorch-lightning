@@ -14,6 +14,7 @@
 # limitations under the License.
 
 from collections import OrderedDict
+from typing import Dict, List
 
 import torch
 
@@ -45,7 +46,7 @@ class DeepSpeedLayerSummary(LayerSummary):
 
 
 class DeepSpeedSummary(ModelSummary):
-    def summarize(self):  # type: ignore[override]
+    def summarize(self) -> Dict[str, DeepSpeedLayerSummary]:  # type: ignore[override]
         summary = OrderedDict((name, DeepSpeedLayerSummary(module)) for name, module in self.named_modules)
         if self._model.example_input_array is not None:
             self._forward_example_input()
@@ -72,10 +73,10 @@ class DeepSpeedSummary(ModelSummary):
         )
 
     @property
-    def parameters_per_layer(self) -> list[int]:
+    def parameters_per_layer(self) -> List[int]:
         return [layer.average_shard_parameters for layer in self._layer_summary.values()]
 
-    def _get_summary_data(self) -> list[tuple[str, list[str]]]:
+    def _get_summary_data(self) -> List[tuple[str, List[str]]]:
         """Makes a summary listing with:
 
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
