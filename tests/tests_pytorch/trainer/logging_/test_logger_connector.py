@@ -92,7 +92,6 @@ def test_fx_validator():
         "on_configure_sharded_model",
         "on_init_end",
         "on_init_start",
-        "on_keyboard_interrupt",
         "on_exception",
         "on_load_checkpoint",
         "load_state_dict",

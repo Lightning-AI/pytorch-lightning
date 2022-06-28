@@ -20,7 +20,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from pytorch_lightning import Callback, Trainer
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.lr_monitor import LearningRateMonitor
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
@@ -34,25 +34,6 @@ from pytorch_lightning.plugins.environments import (
 from pytorch_lightning.strategies import SingleDeviceStrategy
 from tests_pytorch.deprecated_api import _soft_unimport_module
 from tests_pytorch.plugins.environments.test_lsf_environment import _make_rankfile
-
-
-# def test_v1_7_0_on_interrupt(tmpdir):
-#     class HandleInterruptCallback(Callback):
-#         def on_keyboard_interrupt(self, trainer, pl_module):
-#             print("keyboard interrupt")
-
-#     model = BoringModel()
-#     handle_interrupt_callback = HandleInterruptCallback()
-
-#     trainer = Trainer(
-#         callbacks=[handle_interrupt_callback],
-#         max_epochs=1,
-#         limit_val_batches=0.1,
-#         limit_train_batches=0.2,
-#         enable_progress_bar=False,
-#         logger=False,
-#         default_root_dir=tmpdir,
-#     )
 
 
 class BoringCallbackDDPSpawnModel(BoringModel):
