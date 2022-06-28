@@ -23,8 +23,6 @@ ARG LIGHTNING_VERSION=""
 
 COPY ./ /home/lightning/
 
-ENV PACKAGE_NAME=pytorch
-
 # install dependencies
 RUN \
     cd /home && \
@@ -38,6 +36,7 @@ RUN \
         mv lightning-*/ lightning ; \
         rm *.zip ; \
     fi && \
+    export PACKAGE_NAME=pytorch && \
     pip install lightning["extra","loggers","strategies"] --no-cache-dir && \
     rm -rf lightning
 
