@@ -61,6 +61,7 @@ jobs:
         HOROVOD_WITHOUT_TENSORFLOW: 1
       run: |
         set -e
+        pip list
         # adjust versions according installed Torch version
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt

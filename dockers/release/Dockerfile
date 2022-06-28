@@ -21,7 +21,9 @@ LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
 ARG LIGHTNING_VERSION=""
 
-COPY ./ /home/pytorch-lightning/
+COPY ./ /home/lightning/
+
+ENV PACKAGE_NAME=pytorch
 
 # install dependencies
 RUN \
@@ -36,9 +38,8 @@ RUN \
         mv lightning-*/ lightning ; \
         rm *.zip ; \
     fi && \
-    export PACKAGE_NAME=pytorch && \
     pip install .["extra","loggers","strategies"] --no-cache-dir && \
-    rm -rf pytorch-lightning
+    rm -rf lightning
 
 RUN python --version && \
     pip --version && \
