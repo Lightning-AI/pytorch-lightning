@@ -21,27 +21,10 @@ from pytorch_lightning.strategies import DeepSpeedStrategy
 from tests_pytorch.helpers.runif import RunIf
 
 
-@RunIf(min_cuda_gpus=1, deepspeed=True)
-def test_deepspeed_default_summary(tmpdir):
-    """Test to ensure that the trainer enables the DeepSpeedSummary when DeepSpeed is used."""
-
-    trainer = Trainer(
-        strategy=DeepSpeedStrategy(),
-        default_root_dir=tmpdir,
-        accelerator="gpu",
-        fast_dev_run=True,
-        devices=1,
-        max_epochs=2,
-        precision=16,
-        enable_model_summary=True,
-    )
-
-    assert DeepSpeedModelSummary in [type(cb) for cb in trainer.callbacks]
-
-
 @RunIf(min_cuda_gpus=2, deepspeed=True, standalone=True)
-def test_deepspeed_summary_values(tmpdir):
-    """Test to ensure that the summary contains the correct values when stage 3 is enabled."""
+def test_deepspeed_summary(tmpdir):
+    """Test to ensure that the summary contains the correct values when stage 3 is enabled and that the trainer
+    enables the `DeepSpeedSummary` when DeepSpeed is used."""
 
     model = BoringModel()
     total_parameters = sum(x.numel() for x in model.parameters())
@@ -67,5 +50,7 @@ def test_deepspeed_summary_values(tmpdir):
         enable_model_summary=True,
         callbacks=[TestCallback()],
     )
+
+    assert DeepSpeedModelSummary in [type(cb) for cb in trainer.callbacks]
 
     trainer.fit(model)
