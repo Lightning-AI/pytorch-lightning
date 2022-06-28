@@ -13,7 +13,7 @@
 # limitations under the License.
 
 ARG PYTHON_VERSION=3.9
-ARG PYTORCH_VERSION=1.11
+ARG PYTORCH_VERSION=1.9
 
 FROM pytorchlightning/pytorch_lightning:base-cuda-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
@@ -21,28 +21,23 @@ LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
 ARG LIGHTNING_VERSION=""
 
-COPY ./ /home/lightning/
-
-ENV PACKAGE_NAME=pytorch
+COPY ./ /home/pytorch-lightning/
 
 # install dependencies
 RUN \
     cd /home && \
-    mv lightning/_notebooks notebooks && \
-    mv lightning/examples . && \
+    mv pytorch-lightning/_notebooks notebooks && \
+    mv pytorch-lightning/examples . && \
     # replace by specific version if asked
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \
-        rm -rf lightning ; \
+        rm -rf pytorch-lightning ; \
         wget https://github.com/Lightning-AI/lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \
         unzip ${LIGHTNING_VERSION}.zip ; \
-        mv lightning-*/ lightning ; \
+        mv pytorch-lightning-*/ pytorch-lightning ; \
         rm *.zip ; \
     fi && \
-    # otherwise there is collision with folder name ans pkg name on Pypi
-    cd lightning && \
-    pip install .["extra","loggers","strategies"] --no-cache-dir && \
-    cd .. && \
-    rm -rf lightning
+    pip install ./pytorch-lightning["extra","loggers","strategies"] --no-cache-dir && \
+    rm -rf pytorch-lightning
 
 RUN python --version && \
     pip --version && \
