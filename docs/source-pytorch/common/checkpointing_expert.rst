@@ -6,8 +6,6 @@
 Checkpointing (expert)
 ######################
 
-TODO: I don't understand this...
-
 *********************************
 Writing your own Checkpoint class
 *********************************
@@ -29,6 +27,8 @@ that is managed by the ``Strategy``. ``CheckpointIO`` is different from :meth:`~
 and :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint` methods as it determines how the checkpoint is saved/loaded to storage rather than
 what's saved in the checkpoint.
 
+
+TODO: I don't understand this...
 
 ******************************
 Built-in Checkpoint IO Plugins
