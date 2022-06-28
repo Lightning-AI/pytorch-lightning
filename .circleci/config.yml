@@ -24,6 +24,8 @@ references:
   make_docs: &make_docs
     run:
       name: Make Documentation
+      env:
+        PACKAGE_NAME: pytorch
       command: |
         # the image uses python 2.7 by default, force a different version
         pyenv global 3.8.0
@@ -31,7 +33,7 @@ references:
         pip install -e . -r requirements/pytorch/docs.txt
         pip list
         cd docs
-        make html --jobs 2 SPHINXOPTS="-W"
+        make html SPHINXOPTS="-W"
 
   checkout_ml_testing: &checkout_ml_testing
    run:
