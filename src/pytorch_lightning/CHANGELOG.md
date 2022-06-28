@@ -122,6 +122,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The `WandbLogger` will now use the run name in the logs folder if it is provided, and otherwise the project name  ([#12604](https://github.com/PyTorchLightning/pytorch-lightning/pull/12604))
 
 
+- Updated hpus's auto_device_count, device available & name usage based on the updated torch habana package ([#13423](https://github.com/PyTorchLightning/pytorch-lightning/pull/13423))
+
+
 -
 
 
