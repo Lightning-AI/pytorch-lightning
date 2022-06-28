@@ -27,7 +27,7 @@ references:
       command: |
         # the image uses python 2.7 by default, force a different version
         # pyenv global 3.9.13
-        python --version
+        python3 --version
         pip install -e . -r requirements/pytorch/docs.txt
         pip list
         cd docs
@@ -55,7 +55,7 @@ references:
       command: |
        export PR_NUMBER=$(git ls-remote origin "pull/*/head" | grep -F -f <(git rev-parse HEAD) | awk -F'/' '{print $3}')
        export SHA=$(git rev-parse --short HEAD)
-       python -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; data = open(fname).read().replace('{PYTORCH_VERSION}', '$XLA_VER')
+       python3 -c "fname = 'dockers/tpu-tests/tpu_test_cases.jsonnet' ; data = open(fname).read().replace('{PYTORCH_VERSION}', '$XLA_VER')
        data = data.replace('{PYTHON_VERSION}', '$PYTHON_VER').replace('{PR_NUMBER}', '$PR_NUMBER').replace('{SHA}', '$SHA') ; open(fname, 'w').write(data)"
        cat dockers/tpu-tests/tpu_test_cases.jsonnet
 
