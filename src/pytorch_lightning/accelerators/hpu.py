@@ -24,6 +24,7 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 if _HPU_AVAILABLE:
     import habana_frameworks.torch.hpu as torch_hpu
 
+
 class HPUAccelerator(Accelerator):
     """Accelerator for HPU devices."""
 
