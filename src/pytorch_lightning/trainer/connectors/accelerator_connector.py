@@ -282,7 +282,7 @@ class AcceleratorConnector:
             and not isinstance(accelerator, Accelerator)
         ):
             raise ValueError(
-                f"You selected an invalid accelerator name: `accelerator='{accelerator}'`."
+                f"You selected an invalid accelerator name: `accelerator={accelerator!r}`."
                 f" Available names are: {', '.join(self._accelerator_types)}."
             )
 
