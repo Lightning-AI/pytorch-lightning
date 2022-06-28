@@ -83,6 +83,7 @@ RUN \
     rm prune.py && \
     cat environment.yml && \
     conda env update --name $CONDA_ENV --file environment.yml && \
+    conda install "Pillow<9.0" && \
     conda clean -ya && \
     rm environment.yml
 

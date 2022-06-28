@@ -46,6 +46,10 @@ jobs:
         conda list
         pip install -e .[test]
 
+    - name: Freeze PIL (hotfix)
+      # import of PILLOW_VERSION which they recently removed in v9.0 in favor of __version__
+      run: pip install "Pillow<9.0"  # It messes with torchvision
+
     - name: DocTests
       working-directory: ./src
       run: pytest pytorch_lightning --cov=pytorch_lightning
