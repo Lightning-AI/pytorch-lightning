@@ -35,7 +35,6 @@ from pytorch_lightning.strategies import SingleDeviceStrategy
 from tests_pytorch.deprecated_api import _soft_unimport_module
 from tests_pytorch.plugins.environments.test_lsf_environment import _make_rankfile
 
-
 # def test_v1_7_0_on_interrupt(tmpdir):
 #     class HandleInterruptCallback(Callback):
 #         def on_keyboard_interrupt(self, trainer, pl_module):
