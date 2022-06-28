@@ -149,8 +149,6 @@ class CallbackConnector:
         progress_bar_callback = self.trainer.progress_bar_callback
         is_progress_bar_rich = isinstance(progress_bar_callback, RichProgressBar)
         is_deepspeed_enabled = isinstance(self.trainer.strategy, DeepSpeedStrategy)
-        print(self.trainer.strategy)
-        print(is_deepspeed_enabled)
 
         if progress_bar_callback is not None and is_progress_bar_rich:
             model_summary = RichModelSummary()
