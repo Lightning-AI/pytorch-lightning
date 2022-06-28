@@ -355,7 +355,6 @@ DP caveats
 In DP each GPU within a machine sees a portion of a batch.
 It does roughly the following:
 
-
 .. testcode::
 
     def distributed_forward(batch, model):
@@ -381,9 +380,8 @@ you will only be operating on one of those pieces.
     def training_step(self, batch, batch_idx):
         y_0 = batch
 
-For most metrics, this doesn't really matter. However, if you want
-to add something to your computational graph (like softmax)
-using all batch parts you can use the `training_step_end` step.
+For most metrics, this doesn't really matter. However, if you want to add something to your computational graph using
+all batch parts you can use the `training_step_end` step.
 
 .. testcode::
 
@@ -415,29 +413,6 @@ In pseudocode, the full sequence is:
 
     # use the full batch for something like softmax
     full_out = model.training_step_end(all_results)
-
-To illustrate why this is needed, let's look at DataParallel
-
-.. testcode::
-
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(batch)
-
-        # on dp if we did softmax now it would be wrong
-        # because batch is actually a piece of the full batch
-        return y_hat
-
-
-    def training_step_end(self, step_output):
-        # step_output has outputs of each part of the batch
-
-        # do softmax here
-        outputs = torch.cat(outputs, dim=1)
-        softmax = softmax(outputs, dim=1)
-        out = softmax.mean()
-
-        return out
 
 If `training_step_end` is defined it will be called regardless of TPU, DP, DDP, etc... which means
 it will behave the same regardless of the backend.
