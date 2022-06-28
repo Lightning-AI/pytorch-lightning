@@ -26,17 +26,18 @@ COPY ./ /home/pytorch-lightning/
 # install dependencies
 RUN \
     cd /home && \
-    mv pytorch-lightning/_notebooks notebooks && \
-    mv pytorch-lightning/examples . && \
+    mv lightning/_notebooks notebooks && \
+    mv lightning/examples . && \
     # replace by specific version if asked
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \
-        rm -rf pytorch-lightning ; \
+        rm -rf lightning ; \
         wget https://github.com/Lightning-AI/lightning/archive/${LIGHTNING_VERSION}.zip --progress=bar:force:noscroll ; \
         unzip ${LIGHTNING_VERSION}.zip ; \
-        mv pytorch-lightning-*/ pytorch-lightning ; \
+        mv lightning-*/ lightning ; \
         rm *.zip ; \
     fi && \
-    pip install ./pytorch-lightning["extra","loggers","strategies"] --no-cache-dir && \
+    export PACKAGE_NAME=pytorch && \
+    pip install .["extra","loggers","strategies"] --no-cache-dir && \
     rm -rf pytorch-lightning
 
 RUN python --version && \
