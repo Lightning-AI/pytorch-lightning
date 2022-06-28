@@ -13,7 +13,7 @@
 # limitations under the License.
 
 ARG PYTHON_VERSION=3.9
-ARG PYTORCH_VERSION=1.9
+ARG PYTORCH_VERSION=1.11
 
 FROM pytorchlightning/pytorch_lightning:base-cuda-py${PYTHON_VERSION}-torch${PYTORCH_VERSION}
 
@@ -22,6 +22,8 @@ LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 ARG LIGHTNING_VERSION=""
 
 COPY ./ /home/lightning/
+
+ENV PACKAGE_NAME=pytorch
 
 # install dependencies
 RUN \
@@ -36,8 +38,10 @@ RUN \
         mv lightning-*/ lightning ; \
         rm *.zip ; \
     fi && \
-    export PACKAGE_NAME=pytorch && \
-    pip install lightning["extra","loggers","strategies"] --no-cache-dir && \
+    # otherwise there is collision with folder name ans pkg name on Pypi
+    cd lightning && \
+    pip install .["extra","loggers","strategies"] --no-cache-dir && \
+    cd .. && \
     rm -rf lightning
 
 RUN python --version && \
