@@ -21,8 +21,10 @@ Lightning supports multiple ways of doing distributed training.
 |
 
 - Data Parallel (``strategy='dp'``) (multiple-gpus, 1 machine)
-- DistributedDataParallel (``strategy='ddp'``) (multiple-gpus across many machines (python script based)).
-- DistributedDataParallel (``strategy='ddp_spawn'``) (multiple-gpus across many machines (spawn based)).
+- DistributedDataParallel (multiple-gpus across many machines)
+    - Regular (``strategy='ddp'``)
+    - Spawn (``strategy='ddp_spawn'``)
+    - Fork (``strategy='ddp_fork'``)
 - DistributedDataParallel 2 (``strategy='ddp2'``) (DP in a machine, DDP across machines).
 - Horovod (``strategy='horovod'``) (multi-machine, multi-gpu, configured at runtime)
 - Bagua (``strategy='bagua'``) (multiple-gpus across many machines with advanced training algorithms)
@@ -192,6 +194,53 @@ You can then call your scripts anywhere
 
     cd /project/src
     python some_file.py --accelerator 'gpu' --devices 8 --strategy 'ddp'
+
+
+Distributed Data Parallel Fork
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+TODO
+
+
+Comparison of DDP variants and tradeoffs
+****************************************
+
+.. list-table:: DDP variants and their tradeoffs
+   :widths: 40 20 20 20
+   :header-rows: 1
+
+   * -
+     - DDP
+     - DDP Spawn
+     - DDP Fork
+   * - Works in Jupyter notebooks / IPython environments
+     - No
+     - Yes
+     - No
+   * - Supports multi-node
+     - Yes
+     - Yes
+     - Yes
+   * - Supported platforms
+     - Linux, Mac, Win
+     - Linux, Mac, Win
+     - Linux, Mac
+   * - Requires all objects to be picklable
+     - No
+     - Yes
+     - No
+   * - Is the guard ``if "__name__"=="__main__"`` required?
+     - Yes
+     - Yes
+     - No
+   * - Limitations in the main process
+     - None
+     - None
+     - GPU operations such as moving tensors to the GPU or calling ``torch.cuda`` functions before invoking ``Trainer.fit`` is not allowed.
+   * - Process creation time
+     - Slow
+     - Slow
+     - Fast
 
 
 Horovod
