@@ -1,0 +1,5 @@
+starsessions
+redis==4.1.0
+docker==5.0.3
+setuptools == 59.5.0
+s3fs==2022.1.0
