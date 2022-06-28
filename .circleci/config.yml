@@ -26,7 +26,7 @@ references:
       name: Make Documentation
       command: |
         # the image uses python 2.7 by default, force a different version
-        pyenv global 3.9.13
+#        pyenv global 3.9.13
         python --version
         pip install -e . -r requirements/pytorch/docs.txt
         pip list
