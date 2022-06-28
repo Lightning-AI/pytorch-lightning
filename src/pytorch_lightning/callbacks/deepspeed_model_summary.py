@@ -14,7 +14,7 @@
 # limitations under the License.
 
 from collections import OrderedDict
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import torch
 
@@ -76,7 +76,7 @@ class DeepSpeedSummary(ModelSummary):
     def parameters_per_layer(self) -> List[int]:
         return [layer.average_shard_parameters for layer in self._layer_summary.values()]
 
-    def _get_summary_data(self) -> List[tuple[str, List[str]]]:
+    def _get_summary_data(self) -> List[Tuple[str, List[str]]]:
         """Makes a summary listing with:
 
         Layer Name, Layer Type, Number of Parameters, Input Sizes, Output Sizes, Model Size
@@ -96,7 +96,7 @@ class DeepSpeedSummary(ModelSummary):
 
 
 class DeepSpeedModelSummary(ModelSummaryCallback):
-    def on_fit_start(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
+    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         if not self._max_depth:
             return None
         from pytorch_lightning.strategies.deepspeed import DeepSpeedStrategy
