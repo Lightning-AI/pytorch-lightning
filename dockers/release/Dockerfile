@@ -38,7 +38,7 @@ RUN \
         mv lightning-*/ lightning ; \
         rm *.zip ; \
     fi && \
-    pip install .["extra","loggers","strategies"] --no-cache-dir && \
+    pip install lightning["extra","loggers","strategies"] --no-cache-dir && \
     rm -rf lightning
 
 RUN python --version && \
