@@ -6,15 +6,13 @@ from unittest import mock
 from unittest.mock import PropertyMock
 
 import pytest
-import requests
 import torch
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins.environments.lightning_environment import find_free_network_port
 from pytorch_lightning.strategies import HivemindStrategy
-from pytorch_lightning.strategies.collaborative import HiveMindScheduler
+from pytorch_lightning.strategies.hivemind import HiveMindScheduler
 from pytorch_lightning.utilities import _HIVEMIND_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -24,7 +22,7 @@ if _HIVEMIND_AVAILABLE:
     import hivemind
 
 
-@mock.patch("pytorch_lightning.strategies.collaborative._HIVEMIND_AVAILABLE", False)
+@mock.patch("pytorch_lightning.strategies.hivemind._HIVEMIND_AVAILABLE", False)
 def test_raise_exception_if_hivemind_unavailable():
     """Test that we raise an exception when Hivemind is not available."""
     with pytest.raises(MisconfigurationException, match="you must have Hivemind installed"):
@@ -37,37 +35,6 @@ def test_strategy(mock_dht):
     strategy = HivemindStrategy(target_batch_size=1)
     trainer = pl.Trainer(strategy=strategy)
     assert trainer.strategy == strategy
-
-
-@RunIf(hivemind=True)
-@mock.patch("hivemind.DHT", autospec=True)
-@mock.patch("pytorch_lightning.strategies.collaborative.DHTManager._get_peers", autospec=True)
-@pytest.mark.parametrize(
-    "initial_peers,peer_endpoint",
-    [(["TEST"], None), (None, "localhost:153")],
-)
-def test_logging_disabled_when_second_peer(mock_dht, mock_http, initial_peers, peer_endpoint):
-    """Test when we are a second peer (passing initial peers or peer endpoint) we warn the user that
-    logging/checkpointing will be disabled."""
-    with pytest.warns(UserWarning, match="This machine is not a persistent machine"):
-        HivemindStrategy(target_batch_size=1, initial_peers=initial_peers, peer_endpoint=peer_endpoint)
-
-
-@RunIf(hivemind=True)
-@mock.patch.dict(
-    os.environ,
-    {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor", "PL_PORT": str(find_free_network_port())},
-    clear=True,
-)
-@pytest.mark.parametrize(
-    "endpoint,expected_message",
-    [(False, "INITIAL_PEERS"), (True, "Sidecar endpoint enabled to serve peers.")],
-)
-def test_initial_peer_message(caplog, endpoint, expected_message):
-    model = BoringModel()
-    trainer = pl.Trainer(strategy=HivemindStrategy(target_batch_size=1, endpoint=endpoint), fast_dev_run=True)
-    trainer.fit(model)
-    assert expected_message in caplog.text
 
 
 @RunIf(hivemind=True)
@@ -109,24 +76,14 @@ def test_scheduler_wrapped():
     {
         "HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor",
         "PL_INITIAL_PEERS": "TEST_PEERS",
-        "PL_HOST": "TEST_HOST",
-        "PL_PORT": "1300",
-        "PL_ENDPOINT": "1",
-        "PL_PEER_ENDPOINT": "TEST_PEER_ENDPOINT",
     },
     clear=True,
 )
 @mock.patch("hivemind.DHT", autospec=True)
-@mock.patch("pytorch_lightning.strategies.collaborative.DHTManager._get_peers", autospec=True)
-@mock.patch("http.server.ThreadingHTTPServer", autospec=True)
-def test_env_variables_parsed(mock_dht, mock_peers, mock_server):
+def test_env_variables_parsed(mock_dht):
     """Test that env variables are parsed correctly."""
     strategy = HivemindStrategy(target_batch_size=1)
-    assert strategy.dht_manager._initial_peers == ["TEST_PEERS"]
-    assert strategy.dht_manager._host == "TEST_HOST"
-    assert strategy.dht_manager._port == 1300
-    assert strategy.dht_manager._endpoint
-    assert strategy.dht_manager._peer_endpoint == "TEST_PEER_ENDPOINT"
+    assert strategy._initial_peers == ["TEST_PEERS"]
 
 
 @RunIf(hivemind=True)
@@ -204,9 +161,8 @@ def test_warn_if_argument_passed(delay_grad_averaging, delay_state_averaging, de
 
 @RunIf(hivemind=True)
 @mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
-@mock.patch("http.server.ThreadingHTTPServer", autospec=True)
-@mock.patch("pytorch_lightning.strategies.collaborative.HivemindStrategy.num_peers", new_callable=PropertyMock)
-def test_args_passed_to_optimizer(mock_peers, mock_server):
+@mock.patch("pytorch_lightning.strategies.hivemind.HivemindStrategy.num_peers", new_callable=PropertyMock)
+def test_args_passed_to_optimizer(mock_peers):
     """Test to ensure arguments are correctly passed to the hivemind optimizer wrapper."""
     mock_peers.return_value = 1
     compression = hivemind.ScaledFloat16Compression()
@@ -353,18 +309,3 @@ def test_scaler_updated_precision_16():
     )
     with pytest.raises(SystemExit):
         trainer.fit(model)
-
-
-@RunIf(hivemind=True)
-def test_raise_when_peer_endpoint_unsuccessful(caplog):
-    port = find_free_network_port()
-    with pytest.raises(MisconfigurationException, match="Unable to get peers"):
-        with mock.patch("requests.get", wraps=requests.get) as requests_mock:
-            HivemindStrategy(
-                target_batch_size=1,
-                peer_endpoint=f"localhost:{port}",
-                retry_endpoint_attempts=10,
-                retry_endpoint_sleep_duration=0,
-            )
-    assert "Failed to get peers, retrying" in caplog.text
-    assert requests_mock.call_count == 10
