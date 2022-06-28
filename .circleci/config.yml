@@ -4,6 +4,7 @@ orbs:
   gcp-gke: circleci/gcp-gke@1.0.4
   go: circleci/go@1.3.0
   codecov: codecov/codecov@1.1.0
+  python: circleci/python@2.0.3
 
 trigger:
   tags:
@@ -25,7 +26,7 @@ references:
       name: Make Documentation
       command: |
         # the image uses python 2.7 by default, force a different version
-        pyenv global 3.9.11
+        pyenv global 3.8
         python --version
         pip install -e . -r requirements/pytorch/docs.txt
         pip list
@@ -115,7 +116,7 @@ jobs:
       - image: circleci/python:3.7
     environment:
       - XLA_VER: 1.9
-      - PYTHON_VER: 3.9
+      - PYTHON_VER: 3.8
       - MAX_CHECKS: 240
       - CHECK_SPEEP: 5
     steps:
