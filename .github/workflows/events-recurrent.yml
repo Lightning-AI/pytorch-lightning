@@ -20,7 +20,7 @@ jobs:
 
     steps:
       - name: Setup gcloud CLI
-        uses: google-github-actions/setup-gcloud@v0
+        uses: google-github-actions/setup-gcloud@v0.6.0
         with:
           version: '318.0.0'
           service_account_key: ${{ secrets.GKE_SA_KEY_BASE64 }}
