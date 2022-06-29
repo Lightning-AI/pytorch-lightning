@@ -207,12 +207,3 @@ def test_v1_7_0_index_batch_sampler_wrapper_batch_indices():
 
     with pytest.deprecated_call(match="was deprecated in v1.5 and will be removed in v1.7"):
         sampler.batch_indices = []
-
-
-def test_v1_7_0_post_dispatch_hook():
-    class CustomPlugin(SingleDeviceStrategy):
-        def post_dispatch(self, trainer):
-            pass
-
-    with pytest.deprecated_call(match=escape("`CustomPlugin.post_dispatch()` has been deprecated in v1.6")):
-        CustomPlugin(torch.device("cpu"))
