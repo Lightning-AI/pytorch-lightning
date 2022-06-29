@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import pytorch_lightning.loggers.logger as logger
-from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
 
 def rank_zero_experiment(*args, **kwargs) -> None:  # type: ignore[no-untyped-def]

@@ -1070,17 +1070,6 @@ class Trainer(
                 method=method,
             )
 
-        result = self.tuner._tune(
-            model,
-            train_dataloaders,
-            val_dataloaders,
-            dataloaders,
-            datamodule,
-            scale_batch_size_kwargs=scale_batch_size_kwargs,
-            lr_find_kwargs=lr_find_kwargs,
-            method=method,
-        )
-
         return result
 
     def _restore_modules_and_callbacks(self, checkpoint_path: Optional[_PATH] = None) -> None:
