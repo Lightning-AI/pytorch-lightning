@@ -52,6 +52,7 @@ jobs:
     - name: Install dependencies
       env:
         PACKAGE_NAME: pytorch
+        FREEZE_REQUIREMENTS: 1
       run: |
         # adjust versions according installed Torch version
         python ./requirements/pytorch/adjust-versions.py requirements.txt ${{ matrix.pytorch-version }}
