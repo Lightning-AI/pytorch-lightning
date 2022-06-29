@@ -110,7 +110,7 @@ class TensorRunningAccum:
 
 @dataclass
 class SharedCycleIteratorState:
-    """A state shared between all CylceIterators in a CombinedLoader.
+    """A state shared between all CycleIterators in a CombinedLoader.
 
     With a shared state, the iterators can decide to terminate based on the state of all others. If the mode is
     *max_size_cycle*, all iterators need to have finished before the combined loading is considered finished, and
