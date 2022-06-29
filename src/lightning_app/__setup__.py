@@ -9,6 +9,7 @@ _PROJECT_ROOT = "."
 _SOURCE_ROOT = os.path.join(_PROJECT_ROOT, "src")
 _PACKAGE_ROOT = os.path.join(_SOURCE_ROOT, "lightning_app")
 _PATH_REQUIREMENTS = os.path.join("requirements", "app")
+_FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
 
 
 def _load_py_module(name: str, location: str) -> ModuleType:
@@ -25,11 +26,12 @@ def _prepare_extras(**kwargs: Any) -> Dict[str, Any]:
     # Define package extras. These are only installed if you specify them.
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
     # From local copy of repo, use like `pip install ".[dev, docs]"`
+    common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze=not _FREEZE_REQUIREMENTS)
     extras = {
         # 'docs': load_requirements(file_name='docs.txt'),
-        "cloud": _setup_tools.load_requirements(path_dir=_PATH_REQUIREMENTS, file_name="cloud.txt"),
-        "ui": _setup_tools.load_requirements(path_dir=_PATH_REQUIREMENTS, file_name="ui.txt"),
-        "test": _setup_tools.load_requirements(path_dir=_PATH_REQUIREMENTS, file_name="test.txt"),
+        "cloud": _setup_tools.load_requirements(file_name="cloud.txt", **common_args),
+        "ui": _setup_tools.load_requirements(file_name="ui.txt", **common_args),
+        "test": _setup_tools.load_requirements(file_name="test.txt", **common_args),
     }
     extras["dev"] = extras["cloud"] + extras["ui"] + extras["test"]  # + extras['docs']
     extras["all"] = extras["cloud"] + extras["ui"]
@@ -83,7 +85,7 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
             ],
         },
         setup_requires=["wheel"],
-        install_requires=_setup_tools.load_requirements(_PATH_REQUIREMENTS),
+        install_requires=_setup_tools.load_requirements(_PATH_REQUIREMENTS, unfreeze=not _FREEZE_REQUIREMENTS),
         extras_require=_prepare_extras(),
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",

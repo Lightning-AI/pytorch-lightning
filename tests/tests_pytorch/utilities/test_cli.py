@@ -1483,6 +1483,22 @@ def test_cli_auto_seeding():
     assert cli.config["seed_everything"] == 123  # the original seed is kept
 
 
+def test_cli_trainer_no_callbacks():
+    class MyTrainer(Trainer):
+        def __init__(self):
+            super().__init__()
+
+    class MyCallback(Callback):
+        ...
+
+    match = "MyTrainer` class does not expose the `callbacks"
+    with mock.patch("sys.argv", ["any.py"]), pytest.warns(UserWarning, match=match):
+        cli = LightningCLI(
+            BoringModel, run=False, trainer_class=MyTrainer, trainer_defaults={"callbacks": MyCallback()}
+        )
+    assert not any(isinstance(cb, MyCallback) for cb in cli.trainer.callbacks)
+
+
 def test_unresolvable_import_paths():
     class TestModel(BoringModel):
         def __init__(self, a_func: Callable = torch.softmax):
