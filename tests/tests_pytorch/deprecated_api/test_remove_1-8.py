@@ -1139,14 +1139,6 @@ def test_trainer_gpus(monkeypatch, trainer_kwargs):
     ):
         assert trainer.gpus == trainer_kwargs["devices"]
 
-    with pytest.deprecated_call(
-        match=(
-            "`AcceleratorConnector.gpus` was deprecated in v1.6 and will be removed in v1.8. Please use"
-            " `Trainer.num_devices` or `Trainer.device_ids` to get device information instead."
-        )
-    ):
-        assert trainer._accelerator_connector.gpus == trainer_kwargs["devices"]
-
 
 def test_trainer_tpu_cores(monkeypatch):
     monkeypatch.setattr(pytorch_lightning.accelerators.tpu.TPUAccelerator, "is_available", lambda _: True)
@@ -1157,12 +1149,4 @@ def test_trainer_tpu_cores(monkeypatch):
             "Please use `Trainer.num_devices` instead."
         )
     ):
-        trainer.tpu_cores == 8
-
-    with pytest.deprecated_call(
-        match=(
-            "`AcceleratorConnector.tpu_cores` is deprecated in v1.6 and will be removed in v1.8. Please use"
-            " `Trainer.num_devices` instead."
-        )
-    ):
-        trainer._accelerator_connector.tpu_cores == 8
+        assert trainer.tpu_cores == 8
