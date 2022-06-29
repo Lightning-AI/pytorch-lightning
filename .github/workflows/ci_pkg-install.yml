@@ -19,14 +19,14 @@ defaults:
 
 jobs:
 
-  install:
+  install-standalone:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       # max-parallel: 6
       matrix:
         os: [ubuntu-20.04, macOS-10.15, windows-2019]
-        pkg: ["", "app", "pytorch"]  # todo: add following use-case "lightning" after resowing pulling sources
+        pkg: ["app", "pytorch"]  # todo: add following use-case "lightning" after resowing pulling sources
         # in fact, lest make this se depending jobs, at fist build app and pytorch, and save these packages as artefact
         # then, in the following job pull artefacts and install these packages and build and test lightning
         # todo: in such case abstract this pkg testing as actions to reduce variation in testing
@@ -38,51 +38,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Prepare env
-        run: |
-          pip install "twine==4.0.1" setuptools wheel flake8
-
-      - name: Create package
-        env:
-          PACKAGE_NAME: ${{ matrix.pkg }}
-        run: |
-          python setup.py check --metadata --strict
-          flake8 src/lightning/ --ignore E402,F401,E501,W391,E303
-          python setup.py sdist bdist_wheel
-
-      - name: Check package
-        #env:
-        #  PACKAGE_NAME: ${{ matrix.pkg }}
-        run: |
-          ls -l dist/
-          twine check dist/*
-          python setup.py clean
-
-      # ToDo
-      #- name: Setup Windows
-      #  if: runner.os == 'windows'
-      #  run: |
-      #    # this is just a hotfix because of Win cannot install it directly
-      #    pip install -r requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-
-      - name: Package name
-        working-directory: ./dist
-        run: python -c "import glob ; ls = glob.glob('*.tar.gz') ; name = '_'.join(ls[0].split('-')[:-1]) ; print(f'PKG_NAME={name}')" >> $GITHUB_ENV
-
-      - name: Install | Uninstall package - archive
-        working-directory: ./dist
-        run: |
-          # install as archive
-          pip install *.tar.gz
-          pip list | grep lightning
-          python -c "import ${PKG_NAME} ; print(${PKG_NAME}.__version__)"
-          pip uninstall -y ${PKG_NAME}
-
-      - name: Install | Uninstall package - wheel
-        working-directory: ./dist
-        run: |
-          # install as wheel
-          pip install *.whl
-          pip list | grep lightning
-          python -c "import ${PKG_NAME} ; print(${PKG_NAME}.__version__)"
-          pip uninstall -y ${PKG_NAME}
+      - uses: ./.github/actions/caching
+        with:
+          pkg-name: ${{ runner.pkg }}
