@@ -22,7 +22,7 @@ jobs:
   init-dist:
     runs-on: ubuntu-20.04
     steps:
-    - run: mkdir dist
+    - run: mkdir dist && touch dist/.placeholder
     - uses: actions/upload-artifact@v3
       with:
         name: ci-packages-${{ github.sha }}
