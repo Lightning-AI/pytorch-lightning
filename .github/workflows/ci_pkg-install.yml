@@ -56,7 +56,7 @@ jobs:
 
       - uses: ./.github/actions/pkg-check
         with:
-          pkg-name: ${{ runner.pkg }}
+          pkg-name: ${{ matrix.pkg }}
 
       - uses: actions/upload-artifact@v3
         with:
