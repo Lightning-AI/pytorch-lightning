@@ -73,7 +73,7 @@ jobs:
     needs: install-standalone
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: true
+      fail-fast: false
       # max-parallel: 1
       matrix:
         os: [ubuntu-20.04, macOS-10.15, windows-2019]
@@ -91,6 +91,8 @@ jobs:
         with:
           name: ci-packages-${{ github.sha }}
           path: pypi
+      - run: mkdir pypi
+        if: ${{ matrix.pkg == '' }}
       - run: ls -lh pypi/
 
       - uses: ./.github/actions/pkg-check
