@@ -21,7 +21,7 @@ from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.loops.epoch.training_epoch_loop import _OUTPUTS_TYPE as _EPOCH_OUTPUTS_TYPE
-from pytorch_lightning.loops.utilities import _is_max_limit_reached
+from pytorch_lightning.loops.utilities import _is_max_limit_reached, _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
@@ -232,11 +232,8 @@ class FitLoop(Loop[None]):
         # reset outputs here instead of in `reset` as they are not accumulated between epochs
         self._outputs = []
 
-        if self.trainer.train_dataloader is not None and callable(
-            getattr(self.trainer.train_dataloader.sampler, "set_epoch", None)
-        ):
-            # set seed for distributed sampler (enables shuffling for each epoch)
-            self.trainer.train_dataloader.sampler.set_epoch(self.epoch_progress.current.processed)
+        if self.trainer.train_dataloader is not None:
+            _set_sampler_epoch(self.trainer.train_dataloader, self.epoch_progress.current.processed)
 
         # changing gradient according accumulation_scheduler
         self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
