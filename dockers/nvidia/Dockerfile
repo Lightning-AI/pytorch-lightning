@@ -58,6 +58,7 @@ ENV PYTHONPATH="/workspace"
 RUN \
     TORCH_VERSION=$(cat torch_version.info) && \
     rm torch_version.info && \
+    ls -lh . && \
     python --version && \
     pip --version && \
     pip list | grep torch && \
