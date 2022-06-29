@@ -631,7 +631,16 @@ def test_logging_raises(tmpdir):
         def training_step(self, batch, batch_idx):
             self.log("foo/dataloader_idx_0", -1)
 
-    trainer = Trainer(default_root_dir=tmpdir)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
+        enable_model_summary=False,
+    )
     model = TestModel()
     with pytest.raises(MisconfigurationException, match="`self.log` with the key `foo/dataloader_idx_0`"):
         trainer.fit(model)
@@ -640,7 +649,6 @@ def test_logging_raises(tmpdir):
         def training_step(self, batch, batch_idx):
             self.log("foo", Accuracy())
 
-    trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
     with pytest.raises(MisconfigurationException, match="fix this by setting an attribute for the metric in your"):
         trainer.fit(model)
@@ -653,7 +661,6 @@ def test_logging_raises(tmpdir):
         def training_step(self, batch, batch_idx):
             self.log("foo", Accuracy())
 
-    trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
     with pytest.raises(
         MisconfigurationException,
@@ -667,7 +674,6 @@ def test_logging_raises(tmpdir):
             self.log("foo", -1, prog_bar=True)
             return super().training_step(*args)
 
-    trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
     with pytest.raises(MisconfigurationException, match=r"self.log\(foo, ...\)` twice in `training_step`"):
         trainer.fit(model)
@@ -677,9 +683,16 @@ def test_logging_raises(tmpdir):
             self.log("foo", -1, reduce_fx=torch.argmax)
             return super().training_step(*args)
 
-    trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
     with pytest.raises(MisconfigurationException, match=r"reduce_fx={min,max,mean,sum}\)` are supported"):
+        trainer.fit(model)
+
+    class TestModel(BoringModel):
+        def on_train_start(self):
+            self.log("foo", torch.tensor([1.0, 2.0]))
+
+    model = TestModel()
+    with pytest.raises(ValueError, match="tensor must have a single element"):
         trainer.fit(model)
 
 
