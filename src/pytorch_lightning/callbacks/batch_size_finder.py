@@ -404,7 +404,7 @@ class BatchSizeFinder(Callback):
         return not has_len_all_ranks(dataloader, trainer.strategy, module) or batch_size <= len(dataloader)
 
 
-def _collect_garbage(trainer):
+def _collect_garbage(trainer: "pl.Trainer"):
     from pytorch_lightning.accelerators.gpu import GPUAccelerator
 
     if isinstance(trainer.accelerator, GPUAccelerator):

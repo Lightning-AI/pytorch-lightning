@@ -1054,7 +1054,7 @@ class Trainer(
 
             lr_find_kwargs: Arguments for :func:`~pytorch_lightning.tuner.lr_finder.lr_find`
 
-            method: Method to run tuner on. It can be ``'fit', 'validate', 'test', 'predict'``
+            method: Method to run tuner on. It can be any of ``("fit", "validate", "test", "predict")``.
         """
         Trainer._log_api_event("tune")
 

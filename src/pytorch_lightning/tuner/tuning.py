@@ -134,7 +134,7 @@ class Tuner:
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
 
-            method: Method to run tuner on. It can be ``'fit', 'validate', 'test', 'predict'``
+            method: Method to run tuner on. It can be any of ``("fit", "validate", "test", "predict")``.
 
             mode: Search strategy to update the batch size:
 

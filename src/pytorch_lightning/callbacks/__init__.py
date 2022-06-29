@@ -43,7 +43,6 @@ __all__ = [
     "ModelCheckpoint",
     "ModelPruning",
     "ModelSummary",
-    "ProgressBar",
     "ProgressBarBase",
     "QuantizationAwareTraining",
     "RichModelSummary",
