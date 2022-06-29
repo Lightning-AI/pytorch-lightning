@@ -25,7 +25,6 @@ Lightning supports multiple ways of doing distributed training.
     - Regular (``strategy='ddp'``)
     - Spawn (``strategy='ddp_spawn'``)
     - Fork (``strategy='ddp_fork'``)
-- DistributedDataParallel 2 (``strategy='ddp2'``) (DP in a machine, DDP across machines).
 - Horovod (``strategy='horovod'``) (multi-machine, multi-gpu, configured at runtime)
 - Bagua (``strategy='bagua'``) (multiple-gpus across many machines with advanced training algorithms)
 
@@ -106,6 +105,12 @@ In these situations you should use `dp` or `ddp_spawn` instead.
 
 Distributed Data Parallel 2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. warning::
+    The DDP2 strategy is no longer supported. For single-node use, we recommend ``strategy='ddp'`` or
+    ``strategy='dp'`` as a replacement. If you need DDP2, you will need ``torch < 1.9``,
+    ``pytorch-lightning < 1.5``, and set it as ``accelerator='ddp2'``.
+
 In certain cases, it's advantageous to use all batches on the same machine instead of a subset.
 For instance, you might want to compute a NCE loss where it pays to have more negative samples.
 
@@ -402,10 +407,10 @@ is described as an ip address followed by a ssh port.
 See `Bagua Tutorials <https://tutorials.baguasys.com/>`_ for more details on installation and advanced features.
 
 
-DP/DDP2 caveats
-^^^^^^^^^^^^^^^
-In DP and DDP2 each GPU within a machine sees a portion of a batch.
-DP and ddp2 roughly do the following:
+DP caveats
+^^^^^^^^^^
+In DP each GPU within a machine sees a portion of a batch.
+It does roughly the following:
 
 .. testcode::
 
@@ -432,9 +437,8 @@ you will only be operating on one of those pieces.
     def training_step(self, batch, batch_idx):
         y_0 = batch
 
-For most metrics, this doesn't really matter. However, if you want
-to add something to your computational graph (like softmax)
-using all batch parts you can use the `training_step_end` step.
+For most metrics, this doesn't really matter. However, if you want to add something to your computational graph using
+all batch parts you can use the `training_step_end` step.
 
 .. testcode::
 
@@ -466,29 +470,6 @@ In pseudocode, the full sequence is:
 
     # use the full batch for something like softmax
     full_out = model.training_step_end(all_results)
-
-To illustrate why this is needed, let's look at DataParallel
-
-.. testcode::
-
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(batch)
-
-        # on dp or ddp2 if we did softmax now it would be wrong
-        # because batch is actually a piece of the full batch
-        return y_hat
-
-
-    def training_step_end(self, step_output):
-        # step_output has outputs of each part of the batch
-
-        # do softmax here
-        outputs = torch.cat(outputs, dim=1)
-        softmax = softmax(outputs, dim=1)
-        out = softmax.mean()
-
-        return out
 
 If `training_step_end` is defined it will be called regardless of TPU, DP, DDP, etc... which means
 it will behave the same regardless of the backend.
@@ -538,7 +519,7 @@ If you also need to use your own DDP implementation, override :meth:`pytorch_lig
 
 Torch Distributed Elastic
 -------------------------
-Lightning supports the use of Torch Distributed Elastic to enable fault-tolerant and elastic distributed job scheduling. To use it, specify the 'ddp' or 'ddp2' backend and the number of GPUs you want to use in the trainer.
+Lightning supports the use of Torch Distributed Elastic to enable fault-tolerant and elastic distributed job scheduling. To use it, specify the 'ddp' backend and the number of GPUs you want to use in the trainer.
 
 .. code-block:: python
 
