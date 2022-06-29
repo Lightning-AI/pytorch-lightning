@@ -203,7 +203,7 @@ Current Lightning Users
    clouds/cluster
    Save and load model progress <common/checkpointing>
    Save memory with half-precision <common/precision>
-   Training over the internet <strategies/collaborative_training>
+   Training over the internet <strategies/hivemind>
    advanced/model_parallel
    clouds/cloud_training
    Train on single or multiple GPUs <accelerators/gpu>
@@ -248,7 +248,7 @@ Current Lightning Users
    Metrics <https://torchmetrics.readthedocs.io/en/stable/>
    Model <model/build_model.rst>
    Model Parallel <advanced/model_parallel>
-   Collaborative Training <strategies/collaborative_training>
+   Collaborative Training <strategies/hivemind>
    Plugins <extensions/plugins>
    Progress bar <common/progress_bar>
    Production <deploy/production_advanced>

@@ -396,6 +396,7 @@ class LightningModule(
             )
 
         value = apply_to_collection(value, numbers.Number, self.__to_tensor)
+        apply_to_collection(value, torch.Tensor, self.__check_numel_1, name)
 
         if self.trainer._logger_connector.should_reset_tensors(self._current_fx_name):
             # if we started a new epoch (running its first batch) the hook name has changed
@@ -518,11 +519,10 @@ class LightningModule(
             )
 
     @staticmethod
-    def __check_not_nested(value: dict, name: str) -> dict:
+    def __check_not_nested(value: dict, name: str) -> None:
         # self-imposed restriction. for simplicity
         if any(isinstance(v, dict) for v in value.values()):
             raise ValueError(f"`self.log({name}, {value})` was called, but nested dictionaries cannot be logged")
-        return value
 
     @staticmethod
     def __check_allowed(v: Any, name: str, value: Any) -> None:
@@ -530,6 +530,14 @@ class LightningModule(
 
     def __to_tensor(self, value: numbers.Number) -> Tensor:
         return torch.tensor(value, device=self.device)
+
+    @staticmethod
+    def __check_numel_1(value: torch.Tensor, name: str) -> None:
+        if not torch.numel(value) == 1:
+            raise ValueError(
+                f"`self.log({name}, {value})` was called, but the tensor must have a single element."
+                f" You can try doing `self.log({name}, {value}.mean())`"
+            )
 
     def log_grad_norm(self, grad_norm_dict: Dict[str, float]) -> None:
         """Override this method to change the default behaviour of ``log_grad_norm``.
@@ -1329,7 +1337,10 @@ class LightningModule(
         Note:
             Some things to know:
 
-            - Lightning calls ``.backward()`` and ``.step()`` on each optimizer and learning rate scheduler as needed.
+            - Lightning calls ``.backward()`` and ``.step()`` on each optimizer as needed.
+            - If learning rate scheduler is specified in ``configure_optimizers()`` with key
+              ``"interval"`` (default "epoch") in the scheduler configuration, Lightning will call
+              the scheduler's ``.step()`` method automatically in case of automatic optimization.
             - If you use 16-bit precision (``precision=16``), Lightning will automatically handle the optimizers.
             - If you use multiple optimizers, :meth:`training_step` will have an additional ``optimizer_idx`` parameter.
             - If you use :class:`torch.optim.LBFGS`, Lightning handles the closure function automatically for you.
