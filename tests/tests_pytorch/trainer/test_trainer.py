@@ -16,7 +16,6 @@ import logging
 import math
 import os
 import pickle
-import sys
 from argparse import Namespace
 from contextlib import nullcontext
 from copy import deepcopy
@@ -1013,7 +1012,6 @@ def test_on_exception_hook(tmpdir):
         def __init__(self):
             super().__init__()
             self.exception = None
-            self.exc_info = None
 
         def on_exception(self, trainer, pl_module, exception):
             self.exception = exception
@@ -1032,11 +1030,11 @@ def test_on_exception_hook(tmpdir):
     )
     assert not trainer.interrupted
     assert handle_interrupt_callback.exception is None
-    assert handle_interrupt_callback.exc_info is None
+    trainer.fit(model)
     assert trainer.interrupted
     assert isinstance(handle_interrupt_callback.exception, KeyboardInterrupt)
-    assert isinstance(handle_interrupt_callback.exc_info[1], KeyboardInterrupt)
-
+    with pytest.raises(MisconfigurationException):
+        trainer.test(model)
     assert trainer.interrupted
     assert isinstance(handle_interrupt_callback.exception, MisconfigurationException)
 
