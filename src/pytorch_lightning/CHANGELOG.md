@@ -262,6 +262,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed support for the `DDP2Strategy` ([#12705](https://github.com/PyTorchLightning/pytorch-lightning/pull/12705))
 
 
+- Removed deprecated `Callback.on_keyboard_interrupt` ([#13438](https://github.com/Lightning-AI/lightning/pull/13438))
+
+
 ### Fixed
 
 
@@ -3720,7 +3723,3 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.2.x] - 2019-07-09
 
 ## [0.1.x] - 2019-06-DD
-
-### Removed
-
-- Removed the `on_keyboard_interrupt` method from `Callback`
