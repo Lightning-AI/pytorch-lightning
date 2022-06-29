@@ -18,6 +18,7 @@ from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel, RandomDataset
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 
 def test_wrong_train_setting(tmpdir):
@@ -59,7 +60,7 @@ def test_fit_val_loop_config(tmpdir):
         trainer.fit(model)
 
     # has val loop but no val data
-    with pytest.warns(UserWarning, match=r"You defined a `validation_step` but have no `val_dataloader`"):
+    with pytest.warns(PossibleUserWarning, match=r"You defined a `validation_step` but have no `val_dataloader`"):
         model = BoringModel()
         model.val_dataloader = None
         trainer.fit(model)
