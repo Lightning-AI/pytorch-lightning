@@ -100,7 +100,7 @@ def test_can_prepare_data(local_rank, node_rank):
 
 def test_hooks_no_recursion_error():
     # hooks were appended in cascade every tine a new data module was instantiated leading to a recursion error.
-    # See https://github.com/PyTorchLightning/pytorch-lightning/issues/3652
+    # See https://github.com/Lightning-AI/lightning/issues/3652
     class DummyDM(LightningDataModule):
         def setup(self, *args, **kwargs):
             pass
