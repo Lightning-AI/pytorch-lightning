@@ -629,3 +629,33 @@ def test_result_metric_max_min(reduce_fx, expected):
     rm = _ResultMetric(metadata, is_tensor=True)
     rm.update(torch.tensor(expected), 1)
     assert rm.compute() == expected
+
+
+def test_compute_not_a_tensor_raises():
+    class RandomMetric(Metric):
+        def update(self):
+            pass
+
+        def compute(self):
+            return torch.tensor(1.0), torch.tensor(2.0)
+
+    class MyModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.metric = RandomMetric()
+
+        def on_train_start(self):
+            self.log("foo", self.metric)
+
+    model = MyModel()
+    trainer = Trainer(
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
+        enable_model_summary=False,
+    )
+    with pytest.raises(ValueError, match=r"compute\(\)` return of.*foo' must be a tensor"):
+        trainer.fit(model)

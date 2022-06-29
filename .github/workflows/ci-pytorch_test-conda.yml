@@ -40,6 +40,7 @@ jobs:
     - name: Update base dependencies
       env:
         PACKAGE_NAME: pytorch
+        FREEZE_REQUIREMENTS: 1
       run: |
         conda info
         conda list
