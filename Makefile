@@ -24,6 +24,7 @@ clean:
 	rm -rf dist
 	rm -rf *.egg-info
 	rm -rf src/*.egg-info
+	rm -rf src/lightning/*/
 
 test: clean
 	# Review the CONTRIBUTING documentation for other ways to test.

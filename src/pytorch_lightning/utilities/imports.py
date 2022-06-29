@@ -131,7 +131,6 @@ _TORCH_GREATER_EQUAL_1_11 = _compare_version("torch", operator.ge, "1.11.0")
 _TORCH_GREATER_EQUAL_1_12 = _compare_version("torch", operator.ge, "1.12.0", use_base_version=True)
 
 _APEX_AVAILABLE = _module_available("apex.amp")
-_BAGUA_AVAILABLE = _package_available("bagua")
 _DALI_AVAILABLE = _module_available("nvidia.dali")
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
 _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")

@@ -79,6 +79,8 @@ jobs:
       run: bash .actions/pull_legacy_checkpoints.sh
 
     - name: Install dependencies
+      env:
+        PACKAGE_NAME: pytorch
       run: |
         flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
         url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)

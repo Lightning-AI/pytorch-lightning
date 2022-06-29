@@ -50,6 +50,8 @@ jobs:
           ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-
 
     - name: Install dependencies
+      env:
+        PACKAGE_NAME: pytorch
       run: |
         # adjust versions according installed Torch version
         python ./requirements/pytorch/adjust-versions.py requirements.txt ${{ matrix.pytorch-version }}

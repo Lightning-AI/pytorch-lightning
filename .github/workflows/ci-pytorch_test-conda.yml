@@ -38,6 +38,8 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Update base dependencies
+      env:
+        PACKAGE_NAME: pytorch
       run: |
         conda info
         conda list
