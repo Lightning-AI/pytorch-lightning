@@ -602,30 +602,36 @@ class LightningCLI:
             kwargs: Any custom trainer arguments.
         """
         extra_callbacks = [self._get(self.config_init, c) for c in self._parser(self.subcommand).callback_keys]
-        trainer_config = {**self._get(self.config_init, "trainer"), **kwargs}
+        trainer_config = {**self._get(self.config_init, "trainer", default={}), **kwargs}
         return self._instantiate_trainer(trainer_config, extra_callbacks)
 
     def _instantiate_trainer(self, config: Dict[str, Any], callbacks: List[Callback]) -> Trainer:
-        if config["callbacks"] is None:
-            config["callbacks"] = []
-        elif not isinstance(config["callbacks"], list):
-            config["callbacks"] = [config["callbacks"]]
-        assert isinstance(config["callbacks"], list)  # to handle mypy false positive
-        config["callbacks"].extend(callbacks)
-        if "callbacks" in self.trainer_defaults:
-            if isinstance(self.trainer_defaults["callbacks"], list):
-                config["callbacks"].extend(self.trainer_defaults["callbacks"])
-            else:
-                config["callbacks"].append(self.trainer_defaults["callbacks"])
-        if self.save_config_callback and not config["fast_dev_run"]:
-            config_callback = self.save_config_callback(
-                self._parser(self.subcommand),
-                self.config.get(str(self.subcommand), self.config),
-                self.save_config_filename,
-                overwrite=self.save_config_overwrite,
-                multifile=self.save_config_multifile,
+        key = "callbacks"
+        if key in config:
+            if config[key] is None:
+                config[key] = []
+            elif not isinstance(config[key], list):
+                config[key] = [config[key]]
+            config[key].extend(callbacks)
+            if key in self.trainer_defaults:
+                if isinstance(self.trainer_defaults[key], list):
+                    config[key].extend(self.trainer_defaults[key])
+                else:
+                    config[key].append(self.trainer_defaults[key])
+            if self.save_config_callback and not config.get("fast_dev_run", False):
+                config_callback = self.save_config_callback(
+                    self._parser(self.subcommand),
+                    self.config.get(str(self.subcommand), self.config),
+                    self.save_config_filename,
+                    overwrite=self.save_config_overwrite,
+                    multifile=self.save_config_multifile,
+                )
+                config[key].append(config_callback)
+        else:
+            rank_zero_warn(
+                f"The `{self.trainer_class.__qualname__}` class does not expose the `{key}` argument so they will"
+                " not be included."
             )
-            config["callbacks"].append(config_callback)
         return self.trainer_class(**config)
 
     def _parser(self, subcommand: Optional[str]) -> LightningArgumentParser:
