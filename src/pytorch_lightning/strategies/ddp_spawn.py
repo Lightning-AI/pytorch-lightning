@@ -13,7 +13,7 @@
 # limitations under the License.
 import logging
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Literal
 
 import torch
 import torch.distributed
@@ -68,7 +68,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
         process_group_backend: Optional[str] = None,
-        start_method: str = "spawn",
+        start_method: Literal["spawn", "fork"] = "spawn",
         **kwargs: Any,
     ):
         super().__init__(

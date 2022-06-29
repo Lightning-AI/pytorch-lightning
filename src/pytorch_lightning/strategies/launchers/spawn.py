@@ -14,7 +14,7 @@
 import os
 from collections import UserList
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, NamedTuple, Optional
+from typing import Any, Callable, NamedTuple, Optional, Literal
 
 import numpy as np
 import torch
@@ -53,7 +53,7 @@ class _SpawnLauncher(_Launcher):
               the Windows platform.
     """
 
-    def __init__(self, strategy: Strategy, start_method: str = "spawn") -> None:
+    def __init__(self, strategy: Strategy, start_method: Literal["spawn", "fork"] = "spawn") -> None:
         self._strategy = strategy
         self._start_method = start_method
         if start_method == "fork" and not hasattr(os, "fork"):

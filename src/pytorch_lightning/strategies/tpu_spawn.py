@@ -71,11 +71,11 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             cluster_environment=XLAEnvironment(),
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
+            start_method="fork",
         )
         self.debug = debug
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
-        self.start_method = "fork"
 
     @property
     def root_device(self) -> torch.device:
@@ -116,7 +116,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self._launcher = _XLASpawnLauncher(self)
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        self.start_method = "fork"
         self.accelerator.setup(trainer)
 
         if self.debug:
