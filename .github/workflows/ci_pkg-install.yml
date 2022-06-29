@@ -22,8 +22,8 @@ jobs:
   install-standalone:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
-      # max-parallel: 6
+      fail-fast: true
+      max-parallel: 1
       matrix:
         os: [ubuntu-20.04, macOS-10.15, windows-2019]
         pkg: ["app", "pytorch"]  # todo: add following use-case "lightning" after resowing pulling sources
@@ -38,6 +38,17 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - uses: actions/download-artifact@v2
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: dist
+      - run: ls -lh dist/
+
       - uses: ./.github/actions/package
         with:
           pkg-name: ${{ runner.pkg }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ci-packages-${{ github.sha }}
+          path: dist
