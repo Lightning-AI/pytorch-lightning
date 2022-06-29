@@ -3720,3 +3720,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.2.x] - 2019-07-09
 
 ## [0.1.x] - 2019-06-DD
+
+### Removed
+
+- Removed the `on_keyboard_interrupt` method from `Callback`
