@@ -1,0 +1,14 @@
+jinja2==3.0.3
+lightning-cloud==0.5.0
+packaging
+fastapi[all]
+deepdiff >= 5.7.0
+click
+py
+starsessions
+requests
+urllib3
+fsspec==2022.01.0
+s3fs==2022.1.0
+croniter # for now until we found something more robust.
+traitlets < 5.2.0 # Traitlets 5.2.X fails: https://github.com/ipython/traitlets/issues/741

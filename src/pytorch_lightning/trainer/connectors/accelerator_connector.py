@@ -25,6 +25,7 @@ from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
 from pytorch_lightning.accelerators.hpu import HPUAccelerator
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
+from pytorch_lightning.accelerators.mps import MPSAccelerator
 from pytorch_lightning.accelerators.registry import AcceleratorRegistry
 from pytorch_lightning.accelerators.tpu import TPUAccelerator
 from pytorch_lightning.plugins import (
@@ -178,7 +179,7 @@ class AcceleratorConnector:
         self._precision_flag: Optional[Union[int, str]] = None
         self._precision_plugin_flag: Optional[PrecisionPlugin] = None
         self._cluster_environment_flag: Optional[Union[ClusterEnvironment, str]] = None
-        self._parallel_devices: List[Union[int, torch.device]] = []
+        self._parallel_devices: List[Union[int, torch.device, str]] = []
         self._layer_sync: Optional[LayerSync] = NativeSyncBatchNorm() if sync_batchnorm else None
         self.checkpoint_io: Optional[CheckpointIO] = None
         self._amp_type_flag: Optional[LightningEnum] = None
@@ -407,7 +408,7 @@ class AcceleratorConnector:
         if self._devices_flag == "auto" and self._accelerator_flag is None:
             raise MisconfigurationException(
                 f"You passed `devices={devices}` but haven't specified"
-                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu'|'hpu)` for the devices mapping."
+                " `accelerator=('auto'|'tpu'|'gpu'|'ipu'|'cpu'|'hpu'|'mps')` for the devices mapping."
             )
 
     def _map_deprecated_devices_specific_info_to_accelerator_and_device_flag(
@@ -484,6 +485,8 @@ class AcceleratorConnector:
                 return "ipu"
             if _HPU_AVAILABLE:
                 return "hpu"
+            if MPSAccelerator.is_available():
+                return "mps"
             if torch.cuda.is_available() and torch.cuda.device_count() > 0:
                 return "gpu"
         return "cpu"
@@ -571,11 +574,13 @@ class AcceleratorConnector:
         if self._num_nodes_flag > 1:
             return DDPStrategy.strategy_name
         if len(self._parallel_devices) <= 1:
-            device = (
-                device_parser.determine_root_gpu_device(self._parallel_devices)  # type: ignore
-                if self._accelerator_flag == "gpu"
-                else "cpu"
-            )
+            # TODO: Change this once gpu accelerator was renamed to cuda accelerator
+            if isinstance(self._accelerator_flag, (GPUAccelerator, MPSAccelerator)) or (
+                isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("gpu", "mps")
+            ):
+                device = device_parser.determine_root_gpu_device(self._parallel_devices)
+            else:
+                device = "cpu"
             # TODO: lazy initialized device, then here could be self._strategy_flag = "single_device"
             return SingleDeviceStrategy(device=device)  # type: ignore
         if len(self._parallel_devices) > 1:
@@ -594,7 +599,7 @@ class AcceleratorConnector:
             TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or self._is_slurm_managing_tasks()
         ):
             strategy_flag = "ddp"
-        if strategy_flag in ("dp", "ddp2") and self._accelerator_flag == "cpu":
+        if strategy_flag == "dp" and self._accelerator_flag == "cpu":
             rank_zero_warn(f"{strategy_flag!r} is not supported on CPUs, hence setting `strategy='ddp'`.")
             strategy_flag = "ddp"
         if (
@@ -636,6 +641,13 @@ class AcceleratorConnector:
             # TODO lazy initialized and setup horovod strategy `global_rank`
             self._handle_horovod()
         if isinstance(self._strategy_flag, str):
+            if self._strategy_flag == "ddp2":
+                # TODO: remove this error in v1.8
+                raise ValueError(
+                    "The DDP2 strategy is no longer supported. For single-node use, we recommend `strategy='ddp'` or"
+                    " `strategy='dp'` as a replacement. If you need DDP2, you will need `torch < 1.9`,"
+                    " `pytorch-lightning < 1.5`, and set it as `accelerator='ddp2'`."
+                )
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         elif isinstance(self._strategy_flag, Strategy):
             self.strategy = self._strategy_flag

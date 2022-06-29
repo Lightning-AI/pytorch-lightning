@@ -38,6 +38,9 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Update base dependencies
+      env:
+        PACKAGE_NAME: pytorch
+        FREEZE_REQUIREMENTS: 1
       run: |
         conda info
         conda list

@@ -25,6 +25,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
+from pytorch_lightning.accelerators.mps import MPSAccelerator
 from pytorch_lightning.plugins import DoublePrecisionPlugin, LayerSync, NativeSyncBatchNorm, PrecisionPlugin
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
@@ -35,7 +36,6 @@ from pytorch_lightning.plugins.environments import (
 from pytorch_lightning.plugins.io import TorchCheckpointIO
 from pytorch_lightning.strategies import (
     DataParallelStrategy,
-    DDP2Strategy,
     DDPFullyShardedNativeStrategy,
     DDPShardedStrategy,
     DDPSpawnShardedStrategy,
@@ -211,9 +211,6 @@ def test_ipython_incompatible_backend_error(_, monkeypatch):
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp'\)`.*is not compatible"):
         Trainer(strategy="ddp", accelerator="gpu", devices=2)
 
-    with pytest.raises(MisconfigurationException, match=r"strategy='ddp2'\)`.*is not compatible"):
-        Trainer(strategy="ddp2", accelerator="gpu", devices=2)
-
     with pytest.raises(MisconfigurationException, match=r"strategy='ddp_spawn'\)`.*is not compatible"):
         Trainer(strategy="ddp_spawn", accelerator="gpu", devices=2)
 
@@ -303,22 +300,22 @@ def test_accelerator_gpu():
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
 
-@pytest.mark.parametrize(["devices", "plugin"], [(1, SingleDeviceStrategy), (5, DDPSpawnStrategy)])
-def test_accelerator_cpu_with_devices(devices, plugin):
+@pytest.mark.parametrize(["devices", "strategy_class"], [(1, SingleDeviceStrategy), (5, DDPSpawnStrategy)])
+def test_accelerator_cpu_with_devices(devices, strategy_class):
     trainer = Trainer(accelerator="cpu", devices=devices)
     assert trainer.num_devices == devices
-    assert isinstance(trainer.strategy, plugin)
+    assert isinstance(trainer.strategy, strategy_class)
     assert isinstance(trainer.accelerator, CPUAccelerator)
 
 
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
-    ["devices", "plugin"], [(1, SingleDeviceStrategy), ([1], SingleDeviceStrategy), (2, DDPSpawnStrategy)]
+    ["devices", "strategy_class"], [(1, SingleDeviceStrategy), ([1], SingleDeviceStrategy), (2, DDPSpawnStrategy)]
 )
-def test_accelerator_gpu_with_devices(devices, plugin):
+def test_accelerator_gpu_with_devices(devices, strategy_class):
     trainer = Trainer(accelerator="gpu", devices=devices)
     assert trainer.num_devices == len(devices) if isinstance(devices, list) else devices
-    assert isinstance(trainer.strategy, plugin)
+    assert isinstance(trainer.strategy, strategy_class)
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
 
@@ -340,10 +337,9 @@ def test_set_devices_if_none_cpu():
     assert trainer.num_devices == 3
 
 
-@pytest.mark.parametrize("strategy", ["ddp2", "dp"])
-def test_unsupported_strategy_types_on_cpu(strategy):
+def test_unsupported_strategy_types_on_cpu_and_fallback():
     with pytest.warns(UserWarning, match="is not supported on CPUs, hence setting `strategy='ddp"):
-        trainer = Trainer(strategy=strategy, num_processes=2)
+        trainer = Trainer(strategy="dp", num_processes=2)
     assert isinstance(trainer.strategy, DDPStrategy)
 
 
@@ -355,7 +351,7 @@ def test_exception_invalid_strategy():
 
 
 @pytest.mark.parametrize(
-    ["strategy", "plugin"],
+    ["strategy", "strategy_class"],
     [
         ("ddp_spawn", DDPSpawnStrategy),
         ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
@@ -363,55 +359,54 @@ def test_exception_invalid_strategy():
         ("ddp_find_unused_parameters_false", DDPStrategy),
     ],
 )
-def test_strategy_choice_cpu_str(tmpdir, strategy, plugin):
+def test_strategy_choice_cpu_str(strategy, strategy_class):
     trainer = Trainer(strategy=strategy, accelerator="cpu", devices=2)
-    assert isinstance(trainer.strategy, plugin)
+    assert isinstance(trainer.strategy, strategy_class)
 
 
-@pytest.mark.parametrize("plugin", [DDPSpawnStrategy, DDPStrategy])
-def test_strategy_choice_cpu_plugin(tmpdir, plugin):
-    trainer = Trainer(strategy=plugin(), accelerator="cpu", devices=2)
-    assert isinstance(trainer.strategy, plugin)
+@pytest.mark.parametrize("strategy_class", [DDPSpawnStrategy, DDPStrategy])
+def test_strategy_choice_cpu_instance(strategy_class):
+    trainer = Trainer(strategy=strategy_class(), accelerator="cpu", devices=2)
+    assert isinstance(trainer.strategy, strategy_class)
 
 
 @RunIf(min_cuda_gpus=2)
 @pytest.mark.parametrize(
-    ["strategy", "plugin"],
+    ["strategy", "strategy_class"],
     [
         ("ddp_spawn", DDPSpawnStrategy),
         ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
         ("ddp", DDPStrategy),
         ("ddp_find_unused_parameters_false", DDPStrategy),
-        ("ddp2", DDP2Strategy),
         ("dp", DataParallelStrategy),
         ("ddp_sharded", DDPShardedStrategy),
         ("ddp_sharded_spawn", DDPSpawnShardedStrategy),
         pytest.param("deepspeed", DeepSpeedStrategy, marks=RunIf(deepspeed=True)),
     ],
 )
-def test_strategy_choice_gpu_str(tmpdir, strategy, plugin):
+def test_strategy_choice_gpu_str(strategy, strategy_class):
     trainer = Trainer(strategy=strategy, accelerator="gpu", devices=2)
-    assert isinstance(trainer.strategy, plugin)
+    assert isinstance(trainer.strategy, strategy_class)
 
 
 @RunIf(min_cuda_gpus=2)
-@pytest.mark.parametrize("plugin", [DDPSpawnStrategy, DDPStrategy])
-def test_strategy_choice_gpu_plugin(tmpdir, plugin):
-    trainer = Trainer(strategy=plugin(), accelerator="gpu", devices=2)
-    assert isinstance(trainer.strategy, plugin)
+@pytest.mark.parametrize("strategy_class", [DDPSpawnStrategy, DDPStrategy])
+def test_strategy_choice_gpu_instance(strategy_class):
+    trainer = Trainer(strategy=strategy_class(), accelerator="gpu", devices=2)
+    assert isinstance(trainer.strategy, strategy_class)
 
 
 @RunIf(min_cuda_gpus=2)
-@pytest.mark.parametrize("plugin", [DDPSpawnStrategy, DDPStrategy])
-def test_device_type_when_training_plugin_gpu_passed(tmpdir, plugin):
+@pytest.mark.parametrize("strategy_class", [DDPSpawnStrategy, DDPStrategy])
+def test_device_type_when_strategy_instance_gpu_passed(strategy_class):
 
-    trainer = Trainer(strategy=plugin(), accelerator="gpu", devices=2)
-    assert isinstance(trainer.strategy, plugin)
+    trainer = Trainer(strategy=strategy_class(), accelerator="gpu", devices=2)
+    assert isinstance(trainer.strategy, strategy_class)
     assert isinstance(trainer.accelerator, GPUAccelerator)
 
 
 @pytest.mark.parametrize("precision", [1, 12, "invalid"])
-def test_validate_precision_type(tmpdir, precision):
+def test_validate_precision_type(precision):
 
     with pytest.raises(MisconfigurationException, match=f"Precision {repr(precision)} is invalid"):
         Trainer(precision=precision)
@@ -422,7 +417,7 @@ def test_amp_level_raises_error_with_native():
         _ = Trainer(amp_level="O2", amp_backend="native", precision=16)
 
 
-def test_strategy_choice_ddp_spawn_cpu(tmpdir):
+def test_strategy_choice_ddp_spawn_cpu():
     trainer = Trainer(fast_dev_run=True, strategy="ddp_spawn", accelerator="cpu", devices=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
@@ -477,34 +472,6 @@ def test_strategy_choice_ddp_slurm(setup_distributed_mock, strategy):
     os.environ,
     {
         "CUDA_VISIBLE_DEVICES": "0,1",
-        "SLURM_NTASKS": "2",
-        "SLURM_JOB_NAME": "SOME_NAME",
-        "SLURM_NODEID": "0",
-        "SLURM_PROCID": "1",
-        "SLURM_LOCALID": "1",
-    },
-)
-@mock.patch("torch.cuda.set_device")
-@mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
-@mock.patch("torch.cuda.is_available", return_value=True)
-@pytest.mark.parametrize("strategy", ["ddp2", DDP2Strategy()])
-def test_strategy_choice_ddp2_slurm(
-    set_device_mock, device_count_mock, setup_distributed_mock, is_available_mock, strategy
-):
-    trainer = Trainer(fast_dev_run=True, strategy=strategy, accelerator="gpu", devices=2)
-    assert trainer._accelerator_connector._is_slurm_managing_tasks()
-    assert isinstance(trainer.accelerator, GPUAccelerator)
-    assert isinstance(trainer.strategy, DDP2Strategy)
-    assert isinstance(trainer.strategy.cluster_environment, SLURMEnvironment)
-    assert trainer.strategy.cluster_environment.local_rank() == 1
-    assert trainer.strategy.local_rank == 1
-
-
-@mock.patch.dict(
-    os.environ,
-    {
-        "CUDA_VISIBLE_DEVICES": "0,1",
         "WORLD_SIZE": "2",
         "LOCAL_WORLD_SIZE": "2",
         "RANK": "1",
@@ -522,32 +489,6 @@ def test_strategy_choice_ddp_te(*_):
     trainer = Trainer(fast_dev_run=True, strategy="ddp", accelerator="gpu", devices=2)
     assert isinstance(trainer.accelerator, GPUAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
-    assert isinstance(trainer.strategy.cluster_environment, TorchElasticEnvironment)
-    assert trainer.strategy.cluster_environment.local_rank() == 1
-    assert trainer.strategy.local_rank == 1
-
-
-@mock.patch.dict(
-    os.environ,
-    {
-        "CUDA_VISIBLE_DEVICES": "0,1",
-        "WORLD_SIZE": "2",
-        "LOCAL_WORLD_SIZE": "2",
-        "RANK": "1",
-        "LOCAL_RANK": "1",
-        "GROUP_RANK": "0",
-        "TORCHELASTIC_RUN_ID": "1",
-    },
-)
-@mock.patch("torch.cuda.set_device")
-@mock.patch("torch.cuda.device_count", return_value=2)
-@mock.patch("torch.cuda.is_available", return_value=True)
-@mock.patch("pytorch_lightning.strategies.DDPStrategy.setup_distributed", autospec=True)
-@mock.patch("torch.cuda.is_available", return_value=True)
-def test_strategy_choice_ddp2_te(*_):
-    trainer = Trainer(fast_dev_run=True, strategy="ddp2", accelerator="gpu", devices=2)
-    assert isinstance(trainer.accelerator, GPUAccelerator)
-    assert isinstance(trainer.strategy, DDP2Strategy)
     assert isinstance(trainer.strategy.cluster_environment, TorchElasticEnvironment)
     assert trainer.strategy.cluster_environment.local_rank() == 1
     assert trainer.strategy.local_rank == 1
@@ -714,10 +655,19 @@ def test_devices_auto_choice_cpu(
 
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=2)
+@RunIf(mps=False)
 def test_devices_auto_choice_gpu(is_gpu_available_mock, device_count_mock):
+
     trainer = Trainer(accelerator="auto", devices="auto")
     assert isinstance(trainer.accelerator, GPUAccelerator)
     assert trainer.num_devices == 2
+
+
+@RunIf(mps=True)
+def test_devices_auto_choice_mps():
+    trainer = Trainer(accelerator="auto", devices="auto")
+    assert isinstance(trainer.accelerator, MPSAccelerator)
+    assert trainer.num_devices == 1
 
 
 @pytest.mark.parametrize(
