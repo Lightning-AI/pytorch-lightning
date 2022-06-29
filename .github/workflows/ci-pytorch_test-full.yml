@@ -88,8 +88,8 @@ jobs:
       env:
         PACKAGE_NAME: pytorch
       run: |
-        flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
-        url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
+        flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')")
+        url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')")
         pip install -e .[test] $PIP_FLAG --find-links "$TORCH_URL" -U --upgrade-strategy eager
         pip list
       shell: bash
