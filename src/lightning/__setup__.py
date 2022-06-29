@@ -10,6 +10,7 @@ from setuptools import find_packages
 _PROJECT_ROOT = "."
 _SOURCE_ROOT = os.path.join(_PROJECT_ROOT, "src")
 _PACKAGE_ROOT = os.path.join(_SOURCE_ROOT, "lightning")
+_FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
 
 
 def _load_py_module(name: str, location: str) -> ModuleType:
@@ -56,7 +57,9 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
     else:
         _include_pkgs = ["*"]
         _requires = [
-            _setup_tools.load_requirements(d) for d in glob.glob(os.path.join("requirements", "*")) if os.path.isdir(d)
+            _setup_tools.load_requirements(d, unfreeze=not _FREEZE_REQUIREMENTS)
+            for d in glob.glob(os.path.join("requirements", "*"))
+            if os.path.isdir(d)
         ]
         _requires = list(chain(*_requires))
     # todo: consider invaliding some additional arguments from packages, for example if include data or safe to zip
