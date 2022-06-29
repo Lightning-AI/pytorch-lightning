@@ -19,17 +19,17 @@ defaults:
 
 jobs:
 
-  init-dist:
+  init-temp:
     runs-on: ubuntu-20.04
     steps:
-    - run: mkdir dist && touch dist/.placeholder
+    - run: mkdir pypi && touch pypi/.placeholder
     - uses: actions/upload-artifact@v3
       with:
         name: ci-packages-${{ github.sha }}
-        path: dist
+        path: pypi
 
   install-standalone:
-    needs: init-dist
+    needs: init-temp
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -51,8 +51,8 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: ci-packages-${{ github.sha }}
-          path: dist
-      - run: ls -lh dist/
+          path: pypi
+      - run: ls -lh pypi/
 
       - uses: ./.github/actions/pkg-check
         with:
@@ -61,7 +61,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: ci-packages-${{ github.sha }}
-          path: dist
+          path: pypi
 
       - name: Determine package name
         if: ${{ inputs.pkg-import == '' }}

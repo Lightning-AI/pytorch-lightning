@@ -16,7 +16,7 @@ runs:
 
   - name: Create package
     env:
-      PACKAGE_NAME: ${{ inputs.pkg-short }}
+      PACKAGE_NAME: ${{ inputs.pkg-name }}
     run: |
       python setup.py check --metadata --strict
       flake8 src/lightning/ --ignore E402,F401,E501,W391,E303
@@ -28,4 +28,8 @@ runs:
       ls -l dist/
       twine check dist/*
       # python setup.py clean
+    shell: bash
+
+  - name: copy/export pkg
+    run: cp dist/* pypi/
     shell: bash
