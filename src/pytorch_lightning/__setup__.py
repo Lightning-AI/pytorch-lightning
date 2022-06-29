@@ -10,6 +10,7 @@ _PROJECT_ROOT = "."
 _SOURCE_ROOT = os.path.join(_PROJECT_ROOT, "src")
 _PACKAGE_ROOT = os.path.join(_SOURCE_ROOT, "pytorch_lightning")
 _PATH_REQUIREMENTS = os.path.join("requirements", "pytorch")
+_FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
 
 
 def _load_py_module(name: str, location: str) -> ModuleType:
@@ -26,13 +27,14 @@ def _prepare_extras(**kwargs: Any) -> Dict[str, Any]:
     # Define package extras. These are only installed if you specify them.
     # From remote, use like `pip install pytorch-lightning[dev, docs]`
     # From local copy of repo, use like `pip install ".[dev, docs]"`
+    common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze=not _FREEZE_REQUIREMENTS)
     extras = {
         # 'docs': load_requirements(file_name='docs.txt'),
-        "examples": _setup_tools.load_requirements(path_dir=_PATH_REQUIREMENTS, file_name="examples.txt"),
-        "loggers": _setup_tools.load_requirements(path_dir=_PATH_REQUIREMENTS, file_name="loggers.txt"),
-        "extra": _setup_tools.load_requirements(path_dir=_PATH_REQUIREMENTS, file_name="extra.txt"),
-        "strategies": _setup_tools.load_requirements(path_dir=_PATH_REQUIREMENTS, file_name="strategies.txt"),
-        "test": _setup_tools.load_requirements(path_dir=_PATH_REQUIREMENTS, file_name="test.txt"),
+        "examples": _setup_tools.load_requirements(file_name="examples.txt", **common_args),
+        "loggers": _setup_tools.load_requirements(file_name="loggers.txt", **common_args),
+        "extra": _setup_tools.load_requirements(file_name="extra.txt", **common_args),
+        "strategies": _setup_tools.load_requirements(file_name="strategies.txt", **common_args),
+        "test": _setup_tools.load_requirements(file_name="test.txt", **common_args),
     }
     for req in parse_requirements(extras["strategies"]):
         extras[req.key] = [str(req)]
@@ -83,7 +85,7 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
         keywords=["deep learning", "pytorch", "AI"],
         python_requires=">=3.7",
         setup_requires=[],
-        install_requires=_setup_tools.load_requirements(_PATH_REQUIREMENTS),
+        install_requires=_setup_tools.load_requirements(_PATH_REQUIREMENTS, unfreeze=not _FREEZE_REQUIREMENTS),
         extras_require=_prepare_extras(),
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
