@@ -38,6 +38,7 @@ jobs:
       - name: Install dependencies
         env:
           PACKAGE_NAME: pytorch
+          FREEZE_REQUIREMENTS: 1
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
@@ -82,6 +83,7 @@ jobs:
       - name: Install dependencies
         env:
           PACKAGE_NAME: pytorch
+          FREEZE_REQUIREMENTS: 1
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake pandoc
