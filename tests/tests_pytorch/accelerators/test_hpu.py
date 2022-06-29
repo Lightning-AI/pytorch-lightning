@@ -42,7 +42,7 @@ def test_availability():
 
 @RunIf(hpu=True)
 def test_device_name():
-    assert HPUAccelerator.get_device_name() in ["GAUDI"]
+    assert HPUAccelerator.get_device_name() == "GAUDI"
 
 
 @pytest.mark.skipif(_HPU_AVAILABLE, reason="test requires non-HPU machine")
