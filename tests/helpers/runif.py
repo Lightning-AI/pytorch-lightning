@@ -20,6 +20,7 @@ import torch
 from packaging.version import Version
 from pkg_resources import get_distribution
 
+from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _BAGUA_AVAILABLE,
@@ -30,7 +31,6 @@ from pytorch_lightning.utilities import (
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
     _OMEGACONF_AVAILABLE,
-    _RICH_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_10,
     _TORCH_QUANTIZE_AVAILABLE,
     _TPU_AVAILABLE,
