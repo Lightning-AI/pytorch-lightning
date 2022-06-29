@@ -79,10 +79,8 @@ jobs:
       run: bash .actions/pull_legacy_checkpoints.sh
 
     - run: |
-        flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else ' ')")
-        url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')")
-        echo "PIP_FLAG=$flag" >> $GITHUB_ENV
-        echo "TORCH_URL=https://download.pytorch.org/whl/${url}" >> $GITHUB_ENV
+        python -c "flag = '--pre' if '${{matrix.release}}' == 'pre' else ' ' ; print('PIP_FLAG=' + flag)" >> $GITHUB_ENV
+        python -c "url = 'test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html' ; print('TORCH_URL=' + url)" >> $GITHUB_ENV
 
     - name: Install dependencies
       env:
