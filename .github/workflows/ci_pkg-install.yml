@@ -38,6 +38,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: ./.github/actions/caching
+      - uses: ./.github/actions/package
         with:
           pkg-name: ${{ runner.pkg }}
