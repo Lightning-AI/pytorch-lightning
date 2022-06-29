@@ -24,7 +24,7 @@ local tputests = base.BaseTest {
       conda activate lightning
       mkdir -p /home/runner/work/pytorch-lightning && cd /home/runner/work/pytorch-lightning
       git clone https://github.com/Lightning-AI/lightning.git
-      cd pytorch-lightning
+      cd lightning
       echo $PWD
       git ls-remote --refs origin
       git fetch origin "refs/pull/{PR_NUMBER}/head:pr/{PR_NUMBER}" && git checkout "pr/{PR_NUMBER}"
