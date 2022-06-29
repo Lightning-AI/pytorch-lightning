@@ -97,7 +97,7 @@ def reset_seed() -> None:
 
 
 def pl_worker_init_function(worker_id: int, rank: Optional[int] = None) -> None:  # pragma: no cover
-    """The worker_init_fn that Lightning automatically adds to your dataloader if you previously set set the seed
+    """The worker_init_fn that Lightning automatically adds to your dataloader if you previously set the seed
     with ``seed_everything(seed, workers=True)``.
 
     See also the PyTorch documentation on
