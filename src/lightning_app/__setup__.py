@@ -29,7 +29,7 @@ def _prepare_extras(**kwargs: Any) -> Dict[str, Any]:
     common_args = dict(path_dir=_PATH_REQUIREMENTS, unfreeze=not _FREEZE_REQUIREMENTS)
     extras = {
         # 'docs': load_requirements(file_name='docs.txt'),
-        "cloud": _setup_tools.load_requirements(file_name="cloud.txt", ** common_args),
+        "cloud": _setup_tools.load_requirements(file_name="cloud.txt", **common_args),
         "ui": _setup_tools.load_requirements(file_name="ui.txt", **common_args),
         "test": _setup_tools.load_requirements(file_name="test.txt", **common_args),
     }
