@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest.mock import MagicMock, Mock
+from unittest.mock import Mock
 
 import pytest
 import torch
-from torch.utils.data import DataLoader
 
 from pytorch_lightning.loops.utilities import _extract_hiddens, _set_sampler_epoch, _v1_8_output_format
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
