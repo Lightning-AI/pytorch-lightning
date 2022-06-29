@@ -59,7 +59,8 @@ class HPUAccelerator(Accelerator):
         try:
             return torch_hpu.device_count()
         except AttributeError:
-            return 0
+            rank_zero_debug("HPU auto_device_count failed, returning default count of 8.")
+            return 8
 
     @staticmethod
     def is_available() -> bool:
