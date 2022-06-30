@@ -31,8 +31,6 @@ def test_wandb_logger_init(wandb, monkeypatch):
 
     Wandb doesn't work well with pytest so we have to mock it out here.
     """
-    import pytorch_lightning.loggers.wandb as imports
-
     # test wandb.init called when there is no W&B run
     wandb.run = None
     logger = WandbLogger(
@@ -137,8 +135,6 @@ def test_wandb_pickle(wandb, tmpdir):
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
-    import pytorch_lightning.loggers.wandb as imports
-
     monkeypatch.setattr(pytorch_lightning.loggers.wandb, "_WANDB_GREATER_EQUAL_0_12_10", True)
     wandb.run = None
     logger = WandbLogger(save_dir=str(tmpdir), offline=True)
@@ -173,8 +169,6 @@ def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
-    import pytorch_lightning.loggers.wandb as imports
-
     monkeypatch.setattr(pytorch_lightning.loggers.wandb, "_WANDB_GREATER_EQUAL_0_10_22", True)
 
     wandb.run = None
