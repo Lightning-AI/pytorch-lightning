@@ -1,0 +1,46 @@
+name: Cache
+
+description: some more complex caching - pip & conda
+
+inputs:
+  python-version:
+    description: Python version
+    required: true
+  requires:
+    description: define oldest or latest
+    required: false
+    default: ""
+  offset:
+    description: some extra hash for pip cache
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+  - name: Set TIME_PERIOD for cache reset interval
+    shell: bash
+    run: python -c "import time; days = time.time() / 60 / 60 / 24; print(f'TIME_PERIOD={int(days / 7)}')" >> $GITHUB_ENV
+    if: inputs.requires == 'latest'
+
+  # Note: This requires pip 20.1+
+  # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
+  - name: Get pip cache dir
+    id: pip-cache
+    shell: bash
+    run: echo "::set-output name=dir::$(pip cache dir)"
+
+  - name: Cache pip
+    uses: actions/cache@v3
+    with:
+      path: ${{ steps.pip-cache.outputs.dir }}
+      key: asdf-${{ runner.os }}-py${{ inputs.python-version }}-pip-td${{ env.TIME_PERIOD }}-${{ inputs.offset }}-${{ hashFiles('requirements.txt') }}
+      restore-keys: asdf-${{ runner.os }}-py${{ inputs.python-version }}-pip-td${{ env.TIME_PERIOD }}-${{ inputs.offset }}-
+
+  - name: Cache conda
+    uses: actions/cache@v3
+    if: runner.os == 'Linux'
+    with:
+      path: ~/conda_pkgs_dir
+      key: asdf-py${{ inputs.python-version }}-conda-td${{ env.TIME_PERIOD }}-${{ inputs.offset }}
+      restore-keys: asdf-py${{ inputs.python-version }}-conda-td${{ env.TIME_PERIOD }}-${{ inputs.offset }}
