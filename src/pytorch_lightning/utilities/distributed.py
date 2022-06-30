@@ -393,7 +393,6 @@ def _collect_states_on_rank_zero(state: Dict[str, Any]) -> Dict[int, Any]:
 
     Args:
         state: Dictionary containing the state of the current process
-        device: Current process device.
 
     Returns:
         states: On global rank 0, a dictionary where the primary keys are
