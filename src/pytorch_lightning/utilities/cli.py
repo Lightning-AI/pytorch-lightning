@@ -614,10 +614,8 @@ class LightningCLI:
                 config[key] = [config[key]]
             config[key].extend(callbacks)
             if key in self.trainer_defaults:
-                if isinstance(self.trainer_defaults[key], list):
-                    config[key].extend(self.trainer_defaults[key])
-                else:
-                    config[key].append(self.trainer_defaults[key])
+                value = self.trainer_defaults[key]
+                config[key] += value if isinstance(value, list) else [value]
             if self.save_config_callback and not config.get("fast_dev_run", False):
                 config_callback = self.save_config_callback(
                     self._parser(self.subcommand),
