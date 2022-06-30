@@ -471,49 +471,6 @@ class Trainer(
         self._loggers: List[Logger]
         self._logger_connector.on_trainer_init(logger, log_every_n_steps, move_metrics_to_cpu)
 
-        # init debugging flags
-        if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
-            raise MisconfigurationException(
-                f"fast_dev_run={fast_dev_run!r} is not a valid configuration. It should be >= 0."
-            )
-        self.fast_dev_run = fast_dev_run
-
-        # set fast_dev_run=True when it is 1, used while logging
-        if fast_dev_run == 1:
-            self.fast_dev_run = True
-
-        self.overfit_batches = _determine_batch_limits(overfit_batches, "overfit_batches")
-        overfit_batches_enabled = overfit_batches > 0
-
-        if fast_dev_run:
-            num_batches = int(fast_dev_run)
-            if not overfit_batches_enabled:
-                self.limit_train_batches = num_batches
-                self.limit_val_batches = num_batches
-            self.limit_test_batches = num_batches
-            self.limit_predict_batches = num_batches
-            max_steps = num_batches
-            self.num_sanity_val_steps = 0
-            max_epochs = 1
-            self.val_check_interval = 1.0
-            self.check_val_every_n_epoch = 1
-            self.loggers = [DummyLogger()] if self.loggers else []
-            rank_zero_info(f"Running in fast_dev_run mode: will run the requested loop using {num_batches} batch(es).")
-        else:
-            if not overfit_batches_enabled:
-                self.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
-                self.limit_val_batches = _determine_batch_limits(limit_val_batches, "limit_val_batches")
-            self.limit_test_batches = _determine_batch_limits(limit_test_batches, "limit_test_batches")
-            self.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
-            self.num_sanity_val_steps = float("inf") if num_sanity_val_steps == -1 else num_sanity_val_steps
-            self.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
-        if overfit_batches_enabled:
-            self.limit_train_batches = overfit_batches
-            self.limit_val_batches = overfit_batches
-
-        min_steps, max_steps, min_epochs, max_epochs, max_time = _parse_loop_limits(
-            min_steps, max_steps, min_epochs, max_epochs, max_time
-        )
         fit_loop = FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
         training_epoch_loop = TrainingEpochLoop(min_steps=min_steps, max_steps=max_steps)
         fit_loop.connect(epoch_loop=training_epoch_loop)
@@ -530,6 +487,17 @@ class Trainer(
         # default .predict() loop
         self.predict_loop = PredictionLoop()
 
+        self._init_debugging_flags(
+            fast_dev_run,
+            overfit_batches,
+            val_check_interval,
+            num_sanity_val_steps,
+            limit_train_batches,
+            limit_val_batches,
+            limit_test_batches,
+            limit_predict_batches,
+        )
+
         # set when a checkpoint is loaded via `Trainer.{fit,validate,test,predict}`.
         self._ckpt_path: Optional[str] = None
 
@@ -545,7 +513,7 @@ class Trainer(
         # init data flags
         self.check_val_every_n_epoch: int
         self._data_connector.on_trainer_init(
-            val_check_interval,
+            self.val_check_interval,
             reload_dataloaders_every_n_epochs,
             check_val_every_n_epoch,
         )
@@ -587,6 +555,62 @@ class Trainer(
 
         # Callback system
         self._call_callback_hooks("on_init_end")
+
+    def _init_debugging_flags(
+        self,
+        fast_dev_run,
+        overfit_batches,
+        val_check_interval,
+        num_sanity_val_steps,
+        limit_train_batches,
+        limit_val_batches,
+        limit_test_batches,
+        limit_predict_batches,
+    ):
+        # init debugging flags
+        if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
+            raise MisconfigurationException(
+                f"fast_dev_run={fast_dev_run!r} is not a valid configuration. It should be >= 0."
+            )
+        self.fast_dev_run = fast_dev_run
+
+        # set fast_dev_run=True when it is 1, used while logging
+        if fast_dev_run == 1:
+            self.fast_dev_run = True
+
+        self.overfit_batches = _determine_batch_limits(overfit_batches, "overfit_batches")
+        overfit_batches_enabled = overfit_batches > 0
+
+        if fast_dev_run:
+            num_batches = int(fast_dev_run)
+            if not overfit_batches_enabled:
+                self.limit_train_batches = num_batches
+                self.limit_val_batches = num_batches
+
+            self.limit_test_batches = num_batches
+            self.limit_predict_batches = num_batches
+            self.fit_loop.max_steps = num_batches
+            self.num_sanity_val_steps = 0
+            self.fit_loop.max_epochs = 1
+            self.val_check_interval = 1.0
+            self.check_val_every_n_epoch = 1
+            self.loggers = [DummyLogger()] if self.loggers else []
+            rank_zero_info(
+                f"Running in `fast_dev_run` mode: will run the requested loop using {num_batches} batch(es). "
+                "Logging and checkpointing is suppressed."
+            )
+        else:
+            if not overfit_batches_enabled:
+                self.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
+                self.limit_val_batches = _determine_batch_limits(limit_val_batches, "limit_val_batches")
+            self.limit_test_batches = _determine_batch_limits(limit_test_batches, "limit_test_batches")
+            self.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")
+            self.num_sanity_val_steps = float("inf") if num_sanity_val_steps == -1 else num_sanity_val_steps
+            self.val_check_interval = _determine_batch_limits(val_check_interval, "val_check_interval")
+
+        if overfit_batches_enabled:
+            self.limit_train_batches = overfit_batches
+            self.limit_val_batches = overfit_batches
 
     def _setup_on_init(self) -> None:
         self._log_device_info()
@@ -1247,6 +1271,13 @@ class Trainer(
         torch.set_grad_enabled(True)
 
         self.fit_loop.trainer = self
+
+        min_epochs, max_epochs = _parse_loop_limits(
+            self.min_steps, self.max_steps, self.min_epochs, self.max_epochs, self
+        )
+        self.fit_loop.min_epochs = min_epochs
+        self.fit_loop.max_epochs = max_epochs
+
         with torch.autograd.set_detect_anomaly(self._detect_anomaly):
             self.fit_loop.run()
 
