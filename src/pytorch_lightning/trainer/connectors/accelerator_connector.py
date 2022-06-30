@@ -275,9 +275,18 @@ class AcceleratorConnector:
                     " you can use `Trainer(strategy='ddp_spawn', accelerator='tpu')` instead."
                 )
 
-        if accelerator is not None:
-            if accelerator in self._accelerator_types or accelerator == "auto" or isinstance(accelerator, Accelerator):
-                self._accelerator_flag = accelerator
+        if (
+            accelerator is not None
+            and accelerator not in self._accelerator_types
+            and accelerator != "auto"
+            and not isinstance(accelerator, Accelerator)
+        ):
+            raise ValueError(
+                f"You selected an invalid accelerator name: `accelerator={accelerator!r}`."
+                f" Available names are: {', '.join(self._accelerator_types)}."
+            )
+
+        self._accelerator_flag = accelerator
 
         if precision is not None:
             if str(precision) not in self._precision_types:
@@ -496,12 +505,6 @@ class AcceleratorConnector:
             self.accelerator: Accelerator = self._accelerator_flag
         else:
             assert self._accelerator_flag is not None
-            self._accelerator_flag = self._accelerator_flag.lower()
-            if self._accelerator_flag not in AcceleratorRegistry:
-                raise MisconfigurationException(
-                    "When passing string value for the `accelerator` argument of `Trainer`,"
-                    f" it can only be one of {self._accelerator_types}."
-                )
             self.accelerator = AcceleratorRegistry.get(self._accelerator_flag)
 
         if not self.accelerator.is_available():
@@ -599,7 +602,7 @@ class AcceleratorConnector:
             TorchElasticEnvironment.detect() or KubeflowEnvironment.detect() or self._is_slurm_managing_tasks()
         ):
             strategy_flag = "ddp"
-        if strategy_flag in ("dp", "ddp2") and self._accelerator_flag == "cpu":
+        if strategy_flag == "dp" and self._accelerator_flag == "cpu":
             rank_zero_warn(f"{strategy_flag!r} is not supported on CPUs, hence setting `strategy='ddp'`.")
             strategy_flag = "ddp"
         if (
@@ -641,6 +644,13 @@ class AcceleratorConnector:
             # TODO lazy initialized and setup horovod strategy `global_rank`
             self._handle_horovod()
         if isinstance(self._strategy_flag, str):
+            if self._strategy_flag == "ddp2":
+                # TODO: remove this error in v1.8
+                raise ValueError(
+                    "The DDP2 strategy is no longer supported. For single-node use, we recommend `strategy='ddp'` or"
+                    " `strategy='dp'` as a replacement. If you need DDP2, you will need `torch < 1.9`,"
+                    " `pytorch-lightning < 1.5`, and set it as `accelerator='ddp2'`."
+                )
             self.strategy = StrategyRegistry.get(self._strategy_flag)
         elif isinstance(self._strategy_flag, Strategy):
             self.strategy = self._strategy_flag
@@ -804,22 +814,9 @@ class AcceleratorConnector:
                 f" found {self.strategy.__class__.__name__}."
             )
 
-    """The following properties are here for backward-compatibility and will be deprecated and removed in favor
-    of accessing this information through the strategy/accelerator directly."""
-    # TODO: deprecate all properties below
-
-    @property
-    def tpu_cores(self) -> Optional[Union[List[int], int]]:
-        if isinstance(self.accelerator, TPUAccelerator):
-            return self._tpu_cores  # type: ignore
-        return 0
-
-    @property
-    def gpus(self) -> Optional[Union[List[int], str, int]]:
-        return self._gpus
-
     @property
     def is_distributed(self) -> bool:
+        # TODO: deprecate this property
         # Used for custom plugins.
         # Custom plugins should implement is_distributed property.
         if hasattr(self.strategy, "is_distributed") and not isinstance(self.accelerator, TPUAccelerator):
