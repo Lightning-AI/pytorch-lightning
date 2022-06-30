@@ -1,0 +1,5 @@
+app:
+- any: ['src/lightning*/**/*', 'tests/tests_app*/**/*']
+
+pl:
+- any: ['src/pytorch_lightning/**/*', 'tests/tests_pytorch/**/*']
