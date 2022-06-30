@@ -523,11 +523,11 @@ def test_trainer_max_steps_and_epochs_validation(max_epochs, max_steps, incorrec
 @pytest.mark.parametrize(
     "max_epochs,max_steps,is_done,correct_trainer_epochs",
     [
-        (None, -1, False, 1000),
+        (None, -1, False, None),
         (-1, -1, False, -1),
         (5, -1, False, 5),
         (-1, 10, False, -1),
-        (None, 0, True, -1),
+        (None, 0, True, None),
         (0, -1, True, 0),
         (-1, 0, True, -1),
         (0, -1, True, 0),
@@ -538,7 +538,9 @@ def test_trainer_max_steps_and_epochs_fit_loop_done(max_epochs, max_steps, is_do
 
     assert trainer.max_epochs == correct_trainer_epochs
     assert trainer.max_steps == max_steps
-    assert trainer.fit_loop.done is is_done
+
+    if isinstance(correct_trainer_epochs, int):
+        assert trainer.fit_loop.done is is_done
 
     # Make sure there is no timer
     timer_callbacks = [c for c in trainer.callbacks if isinstance(c, Timer)]

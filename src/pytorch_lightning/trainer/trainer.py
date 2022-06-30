@@ -705,6 +705,12 @@ class Trainer(
         Trainer._log_api_event("fit")
         log.detail(f"{self.__class__.__name__}: trainer fit stage")
 
+        min_epochs, max_epochs = _parse_loop_limits(
+            self.min_steps, self.max_steps, self.min_epochs, self.max_epochs, self
+        )
+        self.fit_loop.min_epochs = min_epochs
+        self.fit_loop.max_epochs = max_epochs
+
         self.state.fn = TrainerFn.FITTING
         self.state.status = TrainerStatus.RUNNING
         self.training = True
@@ -1271,12 +1277,6 @@ class Trainer(
         torch.set_grad_enabled(True)
 
         self.fit_loop.trainer = self
-
-        min_epochs, max_epochs = _parse_loop_limits(
-            self.min_steps, self.max_steps, self.min_epochs, self.max_epochs, self
-        )
-        self.fit_loop.min_epochs = min_epochs
-        self.fit_loop.max_epochs = max_epochs
 
         with torch.autograd.set_detect_anomaly(self._detect_anomaly):
             self.fit_loop.run()
