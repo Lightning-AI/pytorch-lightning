@@ -36,7 +36,7 @@ test-pytorch: clean
 	python -m coverage run --source pytorch_lightning -m pytest tests_pytorch -v
 	python -m coverage report
 
-docs: clean
+docs: clean update
 	pip install -e . --quiet -r requirements/pytorch/docs.txt
 	python -m sphinx -b html -W --keep-going docs/source-pytorch docs/build
 
