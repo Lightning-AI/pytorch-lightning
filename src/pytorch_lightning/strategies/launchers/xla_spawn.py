@@ -95,7 +95,7 @@ class _XLASpawnLauncher(_SpawnLauncher):
         kwargs: Any,
         return_queue: SimpleQueue,
     ) -> None:
-        self._strategy._worker_setup(process_idx)
+        self._local_rank = process_idx
         results = function(*args, **kwargs)
 
         if trainer is not None:

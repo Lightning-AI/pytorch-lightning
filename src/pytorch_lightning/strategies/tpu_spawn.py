@@ -157,10 +157,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
     def configure_ddp(self) -> None:
         pass
 
-    def init_dist_connection(self, global_rank: int, world_size: int) -> None:
-        pass
-
-    def set_world_ranks(self, process_idx: int = 0) -> None:
+    def set_world_ranks(self) -> None:
         pass
 
     def model_to_device(self) -> None:
@@ -206,7 +203,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
         return output
 
-    def _worker_setup(self, process_idx: int):
+    def setup_distributed(self):
         reset_seed()
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()

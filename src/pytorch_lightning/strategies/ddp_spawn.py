@@ -126,6 +126,10 @@ class DDPSpawnStrategy(ParallelStrategy):
     def _configure_launcher(self):
         self._launcher = _SpawnLauncher(self)
 
+    def setup_environment(self) -> None:
+        self.setup_distributed()
+        super().setup_environment()
+
     def setup(self, trainer: "pl.Trainer") -> None:
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
 
@@ -149,17 +153,10 @@ class DDPSpawnStrategy(ParallelStrategy):
         """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
         return DistributedDataParallel(module=model, device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs)
 
-    def set_world_ranks(self, process_idx: int = 0) -> None:
-        self._local_rank = process_idx
-        if self.cluster_environment is None:
-            return
-        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
-        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
-        rank_zero_only.rank = self.cluster_environment.global_rank()
-
-    def _worker_setup(self, process_idx: int):
+    def setup_distributed(self):
+        log.detail(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
-        self.set_world_ranks(process_idx)
+        self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
         self._process_group_backend = self._get_process_group_backend()
         init_dist_connection(
@@ -169,6 +166,13 @@ class DDPSpawnStrategy(ParallelStrategy):
             self.world_size,
             timeout=self._timeout,
         )
+
+    def set_world_ranks(self) -> None:
+        if self.cluster_environment is None:
+            return
+        self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+        self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+        rank_zero_only.rank = self.cluster_environment.global_rank()
 
     def _get_process_group_backend(self) -> str:
         return (

@@ -46,7 +46,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.rank_zero import rank_zero_info
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, LRSchedulerTypeUnion, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
@@ -346,12 +346,9 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def setup_distributed(self):
         reset_seed()
-
-        # determine which process we are and world size
         self.set_world_ranks()
-
+        rank_zero_only.rank = self.global_rank
         self._init_deepspeed_distributed()
-
         if not self._config_initialized:
             self._format_config()
             self._config_initialized = True

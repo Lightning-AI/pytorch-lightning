@@ -98,7 +98,7 @@ class _SpawnLauncher(_Launcher):
         kwargs: Any,
         return_queue: SimpleQueue,
     ) -> None:
-        self._strategy._worker_setup(process_idx)
+        self._strategy._local_rank = process_idx
         results = function(*args, **kwargs)
 
         if trainer is not None:
