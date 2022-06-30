@@ -5,8 +5,9 @@ from unittest import mock
 
 import pytest
 from click.testing import CliRunner
+from tests_app import _PROJECT_ROOT
 
-from lightning_app import _PROJECT_ROOT, LightningApp
+from lightning_app import LightningApp
 from lightning_app.cli.lightning_cli import _run_app, run_app
 from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.testing.helpers import RunIf
@@ -36,7 +37,7 @@ def test_lightning_run_app(lauch_mock: mock.MagicMock, open_ui, caplog, monkeypa
             result = runner.invoke(
                 run_app,
                 [
-                    os.path.join(_PROJECT_ROOT, "tests/core/scripts/app_metadata.py"),
+                    os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
                     "--blocking",
                     "False",
                     "--open-ui",
@@ -67,7 +68,7 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
 
     with caplog.at_level(logging.INFO):
         _run_app(
-            file=os.path.join(_PROJECT_ROOT, "tests/core/scripts/app_metadata.py"),
+            file=os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py"),
             cloud=True,
             without_server=False,
             name="",
@@ -80,7 +81,7 @@ def test_lightning_run_app_cloud(mock_dispatch: mock.MagicMock, open_ui, caplog,
     # TODO(yurij): refactor the test, check if the actual HTTP request is being sent and that the proper admin
     #  page is being opened
     mock_dispatch.assert_called_with(
-        Path(os.path.join(_PROJECT_ROOT, "tests/core/scripts/app_metadata.py")),
+        Path(os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/app_metadata.py")),
         RuntimeType.CLOUD,
         start_server=True,
         blocking=False,

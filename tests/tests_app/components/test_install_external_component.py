@@ -3,11 +3,11 @@ import shutil
 import subprocess
 
 import pytest
+from tests_app import _PROJECT_ROOT
 
-from lightning_app import _PROJECT_ROOT
 from lightning_app.utilities.install_components import _pip_uninstall_component_package, install_external_component
 
-_PACKAGE_PATH = os.path.join(_PROJECT_ROOT, "tests", "components", "sample_package_repo")
+_PACKAGE_PATH = os.path.join(_PROJECT_ROOT, "tests", "tests_app", "components", "sample_package_repo")
 _EXTERNAL_COMPONENT_PACKAGE = "external_lightning_component_package"
 _COMPONENT_PACKAGE_TAR_PATH = os.path.join(_PACKAGE_PATH, "dist", f"{_EXTERNAL_COMPONENT_PACKAGE}-0.0.1.tar.gz")
 

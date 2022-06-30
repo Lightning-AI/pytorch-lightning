@@ -24,7 +24,7 @@ setup(
     author="manskx",
     author_email="mansy@grid.ai",
     url="grid.ai",
-    download_url="https://github.com/PyTorchLightning/lightning",
+    download_url="https://github.com/Lightning-AI/lightning",
     license="TBD",
     packages=find_packages(exclude=["tests", "docs"]),
     long_description="example of an external lightning package that contains lightning components",

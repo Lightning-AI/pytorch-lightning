@@ -11,6 +11,7 @@ from lightning_app.cli.cmd_install import _install_app
 from lightning_app.testing.helpers import RunIf
 
 
+@mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
 def test_valid_org_app_name():
     runner = CliRunner()
 
@@ -36,7 +37,7 @@ def test_valid_unpublished_app_name():
     runner = CliRunner()
 
     # assert warning of non official app given
-    real_app = "https://github.com/PyTorchLightning/install-app"
+    real_app = "https://github.com/Lightning-AI/install-app"
     try:
         subprocess.check_output(f"lightning install app {real_app}", shell=True, stderr=subprocess.STDOUT)
         # this condition should never be hit
@@ -49,7 +50,7 @@ def test_valid_unpublished_app_name():
     assert "Installation aborted!" in result.output
 
     # assert a bad app name should fail
-    fake_app = "https://github.com/PyTorchLightning/install-appdd"
+    fake_app = "https://github.com/Lightning-AI/install-appdd"
     result = runner.invoke(lightning_cli.install_app, [fake_app, "--yes"])
     assert "Looks like the github url was not found" in result.output
 
@@ -65,7 +66,7 @@ def test_app_install(tmpdir):
     cwd = os.getcwd()
     os.chdir(tmpdir)
 
-    real_app = "https://github.com/PyTorchLightning/install-app"
+    real_app = "https://github.com/Lightning-AI/install-app"
     test_app_pip_name = "install-app"
 
     # install app and verify it's in the env
@@ -76,6 +77,7 @@ def test_app_install(tmpdir):
     os.chdir(cwd)
 
 
+@mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
 def test_valid_org_component_name():
     runner = CliRunner()
 
@@ -99,13 +101,13 @@ def test_unpublished_component_url_parsing():
     runner = CliRunner()
 
     # assert a bad name should fail (no git@)
-    fake_component = "https://github.com/PyTorchLightning/LAI-slack-messenger"
+    fake_component = "https://github.com/Lightning-AI/LAI-slack-messenger"
     result = runner.invoke(lightning_cli.install_component, [fake_component])
     assert "Error, your github url must be in the following format" in result.output
 
     # assert a good (and availablea name) works
     sha = "14f333456ffb6758bd19458e6fa0bf12cf5575e1"
-    real_component = f"git+https://github.com/PyTorchLightning/LAI-slack-messenger.git@{sha}"
+    real_component = f"git+https://github.com/Lightning-AI/LAI-slack-messenger.git@{sha}"
     result = runner.invoke(lightning_cli.install_component, [real_component])
     assert "Press enter to continue:" in result.output
 
@@ -116,7 +118,7 @@ def test_unpublished_component_url_parsing():
     [
         ("lightning/lit-slack-messenger", "lit-slack"),
         (
-            "git+https://github.com/PyTorchLightning/LAI-slack-messenger.git@14f333456ffb6758bd19458e6fa0bf12cf5575e1",
+            "git+https://github.com/Lightning-AI/LAI-slack-messenger.git@14f333456ffb6758bd19458e6fa0bf12cf5575e1",
             "lit-slack",
         ),
     ],
@@ -170,6 +172,7 @@ def test_prompt_actions():
     # result = runner.invoke(lightning_cli.install_app, [app_to_use], input='')
 
 
+@mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
 def test_version_arg_component(tmpdir, monkeypatch):
     monkeypatch.chdir(tmpdir)
     runner = CliRunner()
@@ -189,8 +192,9 @@ def test_version_arg_component(tmpdir, monkeypatch):
     assert result.exit_code == 0
 
 
-def test_version_arg_app(tmpdir, monkeypatch):
-    monkeypatch.chdir(tmpdir)
+@mock.patch("lightning_app.cli.cmd_install.subprocess", mock.MagicMock())
+@mock.patch("lightning_app.cli.cmd_install.os.chdir", mock.MagicMock())
+def test_version_arg_app(tmpdir):
 
     # Version does not exist
     app_name = "lightning/hackernews-app"
@@ -223,13 +227,15 @@ def test_proper_url_parsing():
     # load the component resource
     component_entry = cmd_install._resolve_resource(registry_url, name=name, version_arg="latest", resource_type="app")
 
-    source_url, git_url, folder_name = cmd_install._show_install_app_prompt(
+    source_url, git_url, folder_name, git_sha = cmd_install._show_install_app_prompt(
         component_entry, app, org, True, resource_type="app"
     )
     assert folder_name == "install-app"
+    # FixMe: this need to be updated after release with updated org rename
     assert source_url == "https://github.com/PyTorchLightning/install-app"
     assert git_url.find("@") > 10  # TODO: this will be removed once the apps repos will be public
     assert "#ref" not in git_url
+    assert git_sha
 
 
 @RunIf(skip_windows=True)
@@ -300,3 +306,32 @@ def test_public_component_registry():
 def test_private_component_registry():
     registry = cmd_install._resolve_component_registry()
     assert registry == "https://TODO/other_non_PL_registry"
+
+
+@mock.patch("lightning_app.cli.cmd_install.subprocess")
+@mock.patch("lightning_app.cli.cmd_install.os.chdir", mock.MagicMock())
+@pytest.mark.parametrize(
+    "source_url, git_url, git_sha",
+    [
+        (
+            "https://github.com/PyTorchLightning/lightning-quick-start",
+            "https://<github_token>@github.com/PyTorchLightning/lightning-quick-start",
+            None,
+        ),
+        (
+            "https://github.com/PyTorchLightning/lightning-quick-start",
+            "https://<github_token>@github.com/PyTorchLightning/lightning-quick-start",
+            "git_sha",
+        ),
+    ],
+)
+def test_install_app_process(subprocess_mock, source_url, git_url, git_sha, tmpdir):
+    app_folder_dir = Path(tmpdir / "some_random_directory").absolute()
+    app_folder_dir.mkdir()
+
+    _install_app(source_url, git_url, folder_name=str(app_folder_dir), overwrite=True, git_sha=git_sha)
+    assert subprocess_mock.check_output.call_args_list[0].args == (["git", "clone", git_url],)
+    if git_sha:
+        assert subprocess_mock.check_output.call_args_list[1].args == (["git", "checkout", git_sha],)
+    assert subprocess_mock.call.call_args_list[0].args == ("pip install -r requirements.txt",)
+    assert subprocess_mock.call.call_args_list[1].args == ("pip install -e .",)

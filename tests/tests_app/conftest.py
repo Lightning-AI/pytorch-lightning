@@ -7,15 +7,15 @@ from subprocess import Popen
 import psutil
 import py
 import pytest
+from tests_app import _PROJECT_ROOT
 
-from lightning_app import _PROJECT_ROOT
 from lightning_app.storage.path import storage_root_dir
 from lightning_app.utilities.component import _set_context
 from lightning_app.utilities.packaging.app_config import _APP_CONFIG_FILENAME
 from lightning_app.utilities.state import AppState
 
 GITHUB_APP_URLS = {
-    "template_react_ui": "https://github.com/PyTorchLightning/lightning-template-react.git",
+    "template_react_ui": "https://github.com/Lightning-AI/lightning-template-react.git",
 }
 
 
@@ -24,7 +24,13 @@ def pytest_sessionstart(*_):
     entering the run test loop."""
     for name, url in GITHUB_APP_URLS.items():
         if not os.path.exists(os.path.join(_PROJECT_ROOT, "examples", name)):
-            Popen(["git", "clone", url, name], cwd=os.path.join(_PROJECT_ROOT, "examples")).wait(timeout=90)
+            Popen(
+                ["git", "clone", url, name],
+                cwd=os.path.join(
+                    _PROJECT_ROOT,
+                    "examples",
+                ),
+            ).wait(timeout=90)
         else:
             Popen(["git", "pull", "main"], cwd=os.path.join(_PROJECT_ROOT, "examples", name)).wait(timeout=90)
 

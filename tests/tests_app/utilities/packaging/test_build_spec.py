@@ -1,7 +1,9 @@
 import os
 import sys
 
-from lightning_app import _PROJECT_ROOT, BuildConfig
+from tests_app import _PROJECT_ROOT
+
+from lightning_app import BuildConfig
 from lightning_app.testing import application_testing, LightningTestApp
 
 EXTRAS_ARGS = ["--blocking", "False", "--multiprocess", "--open-ui", "False"]

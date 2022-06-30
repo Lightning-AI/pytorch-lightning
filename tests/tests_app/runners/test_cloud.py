@@ -77,7 +77,7 @@ class TestAppCreationClient:
         # setting is_file to True so requirements.txt existence check will return True
         monkeypatch.setattr(Path, "is_file", lambda *args, **kwargs: True)
         monkeypatch.setattr(cloud, "Path", Path)
-        cloud_runtime.dispatch()
+        cloud_runtime.dispatch(no_cache=True)
         body.image_spec = Gridv1ImageSpec(
             dependency_file_info=V1DependencyFileInfo(
                 package_manager=V1PackageManager.PIP,

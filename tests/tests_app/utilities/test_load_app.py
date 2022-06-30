@@ -3,14 +3,15 @@ from unittest.mock import ANY
 
 import pytest
 import tests_app.core.scripts
+from tests_app import _PROJECT_ROOT
 
-from lightning_app import _PROJECT_ROOT, LightningApp
+from lightning_app import LightningApp
 from lightning_app.utilities.exceptions import MisconfigurationException
 from lightning_app.utilities.load_app import extract_metadata_from_app, load_app_from_file
 
 
 def test_load_app_from_file():
-    app = load_app_from_file(os.path.join(_PROJECT_ROOT, "examples", "v0_app", "app.py"))
+    app = load_app_from_file(os.path.join(_PROJECT_ROOT, "examples", "app_v0", "app.py"))
     assert isinstance(app, LightningApp)
 
     test_script_dir = os.path.join(os.path.dirname(tests_app.core.__file__), "scripts")

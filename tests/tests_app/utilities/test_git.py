@@ -20,9 +20,9 @@ def test_execute_git_command():
     assert check_github_repository()
 
     if sys.platform == "win32":
-        assert get_git_relative_path(__file__) == "tests\\utilities\\test_git.py"
+        assert get_git_relative_path(__file__) == "tests\\tests_app\\utilities\\test_git.py"
     else:
-        assert get_git_relative_path(__file__) == "tests/utilities/test_git.py"
+        assert get_git_relative_path(__file__) == "tests/tests_app/utilities/test_git.py"
 
     # this commands can be either True or False based on dev.
     check_if_remote_head_is_different()

@@ -6,6 +6,7 @@ from unittest.mock import ANY
 
 import pytest
 from deepdiff import Delta
+from tests_app import _PROJECT_ROOT
 
 from lightning_app import LightningApp, LightningFlow, LightningWork  # F401
 from lightning_app.core.constants import (
@@ -397,8 +398,8 @@ class EmptyFlow(LightningFlow):
 )
 def test_lightning_app_aggregation_speed(default_timeout, queue_type_cls: BaseQueue, sleep_time, expect):
 
-    """This test validates the `_collect_deltas_from_ui_and_work_queues` can aggregate multiple delta together in a
-    time window."""
+    """This test validates the `_collect_deltas_from_ui_and_work_queues` can aggregate multiple delta together in a time
+    window."""
 
     class SlowQueue(queue_type_cls):
         def get(self, timeout):
@@ -626,7 +627,7 @@ def test_load_state_dict_from_checkpoint_dir(tmpdir):
         app.load_state_dict_from_checkpoint_dir("./random_folder/")
 
     with pytest.raises(Exception, match="No checkpoints where found"):
-        app.load_state_dict_from_checkpoint_dir("./tests")
+        app.load_state_dict_from_checkpoint_dir(str(os.path.join(_PROJECT_ROOT, "tests/tests_app/")))
 
     # delete 2 checkpoints
     os.remove(os.path.join(checkpoints[4]))
