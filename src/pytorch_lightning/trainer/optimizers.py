@@ -28,7 +28,7 @@ class TrainerOptimizersMixin(ABC):
         The `TrainerOptimizersMixin` was deprecated in v1.6 and will be removed in v1.8.
     """
 
-    def init_optimizers(self, model: "pl.LightningModule") -> Tuple[List, List, List]:
+    def init_optimizers(self, model: Optional["pl.LightningModule"]) -> Tuple[List, List, List]:
         r"""
         .. deprecated:: v1.6
             `TrainerOptimizersMixin.init_optimizers` was deprecated in v1.6 and will be removed in v1.8.
@@ -37,6 +37,7 @@ class TrainerOptimizersMixin(ABC):
             "`TrainerOptimizersMixin.init_optimizers` was deprecated in v1.6 and will be removed in v1.8."
         )
         pl_module = self.lightning_module or model
+        assert isinstance(pl_module, pl.LightningModule)
         return _init_optimizers_and_lr_schedulers(pl_module)
 
     def convert_to_lightning_optimizers(self) -> None:
