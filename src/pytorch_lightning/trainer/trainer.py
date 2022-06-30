@@ -44,7 +44,7 @@ from pytorch_lightning.accelerators import (
     MPSAccelerator,
     TPUAccelerator,
 )
-from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
+from pytorch_lightning.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -1406,7 +1406,7 @@ class Trainer(
                     f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured.'
                 )
 
-            if not self.checkpoint_callback.best_model_path:
+            if hasattr(self.checkpoint_callback, "best_model_path") and not self.checkpoint_callback.best_model_path:
                 if self.fast_dev_run:
                     raise MisconfigurationException(
                         f'You cannot execute `.{fn}(ckpt_path="best")` with `fast_dev_run=True`.'
@@ -1416,11 +1416,11 @@ class Trainer(
                     f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'
                 )
             # load best weights
-            ckpt_path = self.checkpoint_callback.best_model_path
+            ckpt_path = getattr(self.checkpoint_callback, "best_model_path", None)
 
         if ckpt_path == "last":
-            candidates = [ft.ckpt_path for ft in ft_checkpoints] + [
-                cb.last_model_path for cb in self.checkpoint_callbacks
+            candidates = [getattr(ft, "ckpt_path", None) for ft in ft_checkpoints] + [
+                getattr(cb, "last_model_path", None) for cb in self.checkpoint_callbacks
             ]
             candidates_fs = {path: get_filesystem(path) for path in candidates if path}
             candidates_ts = {path: fs.modified(path) for path, fs in candidates_fs.items() if fs.exists(path)}
@@ -2308,17 +2308,17 @@ class Trainer(
         return [cb for cb in self.callbacks if isinstance(cb, BasePredictionWriter)]
 
     @property
-    def checkpoint_callback(self) -> Optional[ModelCheckpoint]:
+    def checkpoint_callback(self) -> Optional[Checkpoint]:
         """The first :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callback in the
         Trainer.callbacks list, or ``None`` if it doesn't exist."""
         callbacks = self.checkpoint_callbacks
         return callbacks[0] if len(callbacks) > 0 else None
 
     @property
-    def checkpoint_callbacks(self) -> List[ModelCheckpoint]:
+    def checkpoint_callbacks(self) -> List[Checkpoint]:
         """A list of all instances of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` found
         in the Trainer.callbacks list."""
-        return [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+        return [c for c in self.callbacks if isinstance(c, Checkpoint)]
 
     @property
     def progress_bar_callback(self) -> Optional[ProgressBarBase]:
