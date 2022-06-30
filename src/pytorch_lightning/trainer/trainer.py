@@ -487,6 +487,7 @@ class Trainer(
         # default .predict() loop
         self.predict_loop = PredictionLoop()
 
+        self.val_check_interval: Union[int, float]
         self._init_debugging_flags(
             limit_train_batches,
             limit_val_batches,
