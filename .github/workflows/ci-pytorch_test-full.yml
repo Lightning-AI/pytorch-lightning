@@ -61,19 +61,12 @@ jobs:
       run: |
         python .actions/assistant.py replace_oldest_ver
 
-    # Note: This uses an internal pip API and may not always work
-    # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
-    - name: Get pip cache dir
-      id: pip-cache
-      run: echo "::set-output name=dir::$(pip cache dir)"
-
-    - name: pip cache
-      uses: actions/cache@v2
+    - uses: ./.github/actions/caching
       with:
-        path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-${{ hashFiles('requirements/pytorch/*.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ matrix.release }}-${{ matrix.requires }}-
+        os: ${{ runner.os }}
+        requires: ${{ matrix.requires }}
+        python-version: ${{ matrix.python-version }}
+        offset: ${{ matrix.release }}
 
     - name: Pull legacy checkpoints
       run: bash .actions/pull_legacy_checkpoints.sh

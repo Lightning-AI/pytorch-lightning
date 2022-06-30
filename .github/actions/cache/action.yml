@@ -34,7 +34,7 @@ runs:
     uses: actions/cache@v3
     with:
       path: ${{ steps.pip-cache.outputs.dir }}
-      key: asdf-${{ runner.os }}-py${{ inputs.python-version }}-pip-td${{ env.TIME_PERIOD }}-${{ inputs.offset }}-${{ hashFiles('requirements.txt') }}
+      key: asdf-${{ runner.os }}-py${{ inputs.python-version }}-pip-td${{ env.TIME_PERIOD }}-${{ inputs.offset }}-${{ hashFiles('requirements/**/*.txt') }}
       restore-keys: asdf-${{ runner.os }}-py${{ inputs.python-version }}-pip-td${{ env.TIME_PERIOD }}-${{ inputs.offset }}-
 
   - name: Cache conda
