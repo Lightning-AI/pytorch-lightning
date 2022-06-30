@@ -27,8 +27,7 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     Checks that the model is configured correctly before the run is started.
 
     Args:
-        trainer: Lightning Trainer
-        model: The model to check the configuration.
+        trainer: Lightning Trainer. Its `lightning_module` (the model) to check the configuration.
 
     """
     model = trainer.lightning_module
