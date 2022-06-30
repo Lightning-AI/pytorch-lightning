@@ -488,14 +488,14 @@ class Trainer(
         self.predict_loop = PredictionLoop()
 
         self._init_debugging_flags(
-            fast_dev_run,
-            overfit_batches,
-            val_check_interval,
-            num_sanity_val_steps,
             limit_train_batches,
             limit_val_batches,
             limit_test_batches,
             limit_predict_batches,
+            fast_dev_run,
+            overfit_batches,
+            val_check_interval,
+            num_sanity_val_steps,
         )
 
         # set when a checkpoint is loaded via `Trainer.{fit,validate,test,predict}`.
@@ -558,14 +558,14 @@ class Trainer(
 
     def _init_debugging_flags(
         self,
-        fast_dev_run,
-        overfit_batches,
-        val_check_interval,
-        num_sanity_val_steps,
-        limit_train_batches,
-        limit_val_batches,
-        limit_test_batches,
-        limit_predict_batches,
+        limit_train_batches: Optional[Union[int, float]],
+        limit_val_batches: Optional[Union[int, float]],
+        limit_test_batches: Optional[Union[int, float]],
+        limit_predict_batches: Optional[Union[int, float]],
+        fast_dev_run: Union[int, bool],
+        overfit_batches: Union[int, float],
+        val_check_interval: Optional[Union[int, float]],
+        num_sanity_val_steps: int,
     ):
         # init debugging flags
         if isinstance(fast_dev_run, int) and (fast_dev_run < 0):
