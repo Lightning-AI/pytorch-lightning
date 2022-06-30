@@ -19,6 +19,7 @@ from typing import Dict, List, Optional, Sequence, Union
 
 from pytorch_lightning.callbacks import (
     Callback,
+    Checkpoint,
     GradientAccumulationScheduler,
     ModelCheckpoint,
     ModelSummary,

@@ -13,6 +13,7 @@
 # limitations under the License.
 from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.callbacks.callback import Callback
+from pytorch_lightning.callbacks.checkpoint import Checkpoint
 from pytorch_lightning.callbacks.device_stats_monitor import DeviceStatsMonitor
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.finetuning import BackboneFinetuning, BaseFinetuning
@@ -35,6 +36,7 @@ __all__ = [
     "BasePredictionWriter",
     "BatchSizeFinder",
     "Callback",
+    "Checkpoint",
     "DeviceStatsMonitor",
     "EarlyStopping",
     "GradientAccumulationScheduler",

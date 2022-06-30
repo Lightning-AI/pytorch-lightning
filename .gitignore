@@ -136,7 +136,7 @@ ENV/
 Datasets/
 mnist/
 MNIST/
-legacy/checkpoints/
+tests/legacy/checkpoints/
 *.gz
 *ubyte
 
