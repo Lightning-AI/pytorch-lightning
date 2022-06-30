@@ -14,7 +14,7 @@
 import logging
 import os
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Union, Literal
+from typing import Any, Dict, List, Literal, Optional, Union
 
 import torch
 import torch.distributed

@@ -14,7 +14,7 @@
 import os
 from collections import UserList
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, NamedTuple, Optional, Literal
+from typing import Any, Callable, Literal, NamedTuple, Optional
 
 import numpy as np
 import torch
