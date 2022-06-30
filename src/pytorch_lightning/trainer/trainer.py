@@ -1131,11 +1131,12 @@ class Trainer(
         # ----------------------------
         # TRAIN
         # ----------------------------
-        min_epochs, max_epochs = _parse_loop_limits(
-            self.min_steps, self.max_steps, self.min_epochs, self.max_epochs, self
-        )
-        self.fit_loop.min_epochs = min_epochs
-        self.fit_loop.max_epochs = max_epochs
+        if self.state.fn in (TrainerFn.FITTING, TrainerFn.TUNING):
+            min_epochs, max_epochs = _parse_loop_limits(
+                self.min_steps, self.max_steps, self.min_epochs, self.max_epochs, self
+            )
+            self.fit_loop.min_epochs = min_epochs
+            self.fit_loop.max_epochs = max_epochs
 
         # reset logger connector
         self._logger_connector.reset_results()
