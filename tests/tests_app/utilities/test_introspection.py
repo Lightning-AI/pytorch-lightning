@@ -40,8 +40,8 @@ def test_introspection_lightning():
 
 @pytest.mark.skipif(not _is_pytorch_lightning_available(), reason="pytorch_lightning isn't installed.")
 def test_introspection_lightning_overrides():
-    """This test validates the scanner can find all the subclasses from primitives classes from PyTorch Lightning in the
-    provided files."""
+    """This test validates the scanner can find all the subclasses from primitives classes from PyTorch Lightning
+    in the provided files."""
     scanner = Scanner(str(os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/lightning_cli.py")))
     scanner = Scanner(str(os.path.join(_PROJECT_ROOT, "tests/tests_app/core/scripts/lightning_overrides.py")))
     scan = scanner.scan()
