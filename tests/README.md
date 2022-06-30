@@ -30,7 +30,7 @@ Note: These checkpoints are generated to set baselines for maintaining backward 
 You can run the full test suite in your terminal via this make script:
 
 ```bash
-make test
+make test-pytorch
 ```
 
 Note: if your computer does not have multi-GPU or TPU these tests are skipped.

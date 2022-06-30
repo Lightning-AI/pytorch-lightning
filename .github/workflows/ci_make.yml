@@ -1,0 +1,22 @@
+name: Makefile
+
+on: ["pull_request"]
+
+jobs:
+
+  make:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        cmd: ["clean", "update", "docs", "test-pytorch"]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: execute make
+        run: make ${{ matrix.cmd }}
+        shell: bash

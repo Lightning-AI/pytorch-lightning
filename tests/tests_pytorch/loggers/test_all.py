@@ -169,8 +169,8 @@ def test_loggers_save_dir_and_weights_save_path_all(tmpdir, monkeypatch, logger_
 
 def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
     class TestLogger(logger_class):
-        # for this test it does not matter what these attributes are
-        # so we standardize them to make testing easier
+        # for this test it does not matter what these attributes are so,
+        # we standardize them to make testing easier
         @property
         def version(self):
             return "version"

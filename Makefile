@@ -26,12 +26,14 @@ clean:
 	rm -rf src/*.egg-info
 	rm -rf src/lightning/*/
 
-test: clean
+test-pytorch: clean
 	# Review the CONTRIBUTING documentation for other ways to test.
-	pip install -e . -r requirements/pytorch/devel.txt
-	pip install -r requirements/pytorch/strategies.txt
+	export PACKAGE_NAME=pytorch ; \
+	export FREEZE_REQUIREMENTS=1 ; \
+	pip install -e .[strategies] -r requirements/pytorch/devel.txt
 	# run tests with coverage
-	python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v
+	cd tests
+	python -m coverage run --source pytorch_lightning -m pytest tests_pytorch -v
 	python -m coverage report
 
 docs: clean
