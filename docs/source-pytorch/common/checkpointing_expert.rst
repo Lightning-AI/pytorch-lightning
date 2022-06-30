@@ -6,7 +6,12 @@
 Checkpointing (expert)
 ######################
 
-TODO: I don't understand this...
+*********************************
+Writing your own Checkpoint class
+*********************************
+
+We provide ``Checkpoint`` class, for easier subclassing. Users may want to subclass this class in case of writing custom ``ModelCheckpoint`` callback, so that the ``Trainer`` recognizes the custom class as a checkpointing callback.
+
 
 ***********************
 Customize Checkpointing
@@ -22,6 +27,8 @@ that is managed by the ``Strategy``. ``CheckpointIO`` is different from :meth:`~
 and :meth:`~pytorch_lightning.core.hooks.CheckpointHooks.on_load_checkpoint` methods as it determines how the checkpoint is saved/loaded to storage rather than
 what's saved in the checkpoint.
 
+
+TODO: I don't understand this...
 
 ******************************
 Built-in Checkpoint IO Plugins
