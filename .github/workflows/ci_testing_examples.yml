@@ -1,4 +1,4 @@
-name: CI testing examples
+name: CI testing app examples
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on: # Trigger the workflow on push or pull request, but only for the master branch
@@ -34,7 +34,7 @@ jobs:
       - name: Set min. dependencies
         if: matrix.requires == 'oldest'
         run: |
-          for fpath in ('requirements.txt', 'requirements/test.txt'):
+          for fpath in ('requirements/app/base.txt', 'requirements/app/test.txt'):
               req = open(fpath).read().replace('>=', '==')
               open(fpath, 'w').write(req)
         shell: python
@@ -54,13 +54,13 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-td${{ steps.times.outputs.period }}-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-td${{ steps.times.outputs.period }}-${{ hashFiles('requirements/app/base.txt') }}
           restore-keys: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.requires }}-td${{ steps.times.outputs.period }}-
 
       - name: Install dependencies
         run: |
           pip --version
-          pip install -r requirements/devel.txt --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -r requirements/app/devel.txt --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           pip list
         shell: bash
 
@@ -80,7 +80,7 @@ jobs:
         run: npm install -g yarn
 
       - name: Install Lightning as top-level
-        run: pip install -e . -r requirements.txt
+        run: pip install -e . -r requirements/app/base.txt
         shell: bash
 
       - name: Tests
