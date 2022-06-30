@@ -28,7 +28,7 @@ class TrainerOptimizersMixin(ABC):
         The `TrainerOptimizersMixin` was deprecated in v1.6 and will be removed in v1.8.
     """
 
-    def init_optimizers(self, model: Optional["pl.LightningModule"]) -> Tuple[List, List, List]:
+    def init_optimizers(self, model: "pl.LightningModule") -> Tuple[List, List, List]:
         r"""
         .. deprecated:: v1.6
             `TrainerOptimizersMixin.init_optimizers` was deprecated in v1.6 and will be removed in v1.8.
@@ -39,7 +39,7 @@ class TrainerOptimizersMixin(ABC):
         pl_module = self.lightning_module or model
         return _init_optimizers_and_lr_schedulers(pl_module)
 
-    def convert_to_lightning_optimizers(self):
+    def convert_to_lightning_optimizers(self)->None:
         r"""
         .. deprecated:: v1.6
             `TrainerOptimizersMixin.convert_to_lightning_optimizers` was deprecated in v1.6 and will be removed in v1.8.
@@ -59,6 +59,6 @@ class TrainerOptimizersMixin(ABC):
                     break
             return optimizer  # type: ignore [return-value]
 
-        self.strategy._cached_lightning_optimizers = {  # type: ignore [assignment]
+        self.strategy._cached_lightning_optimizers = {
             idx: _convert_to_lightning_optimizer(opt) for idx, opt in enumerate(self.optimizers)
         }
