@@ -22,13 +22,13 @@ import logging
 import os
 import uuid
 from copy import deepcopy
-from typing import List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
 from torch.utils.data.dataloader import DataLoader
 from typing_extensions import TypedDict
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.utilities.exceptions import _TunerExitException, MisconfigurationException
 from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
 from pytorch_lightning.utilities.parsing import lightning_getattr, lightning_hasattr, lightning_setattr
@@ -43,6 +43,8 @@ if TYPE_CHECKING:
         max_steps: int
         limit_val_batches: Union[int, float]
         limit_eval_batches: Union[int, float]
+        loop_verbose: bool
+        loop_state_dict: Dict
 
 
 log = logging.getLogger(__name__)
@@ -109,6 +111,7 @@ class BatchSizeFinder(Callback):
             raise MisconfigurationException("Batch size finder is not supported with distributed strategies.")
 
         running_stage = trainer.state.stage
+        assert running_stage is not None
         dl_source = getattr(trainer._data_connector, f"_{running_stage.dataloader_prefix}_dataloader_source")
 
         # TODO: check if this can be enabled (#4040)
@@ -281,10 +284,10 @@ class BatchSizeFinder(Callback):
             trainer.reset_val_dataloader(pl_module)
         else:
             stage = trainer.state.stage
+            assert stage is not None
             getattr(trainer, f"reset_{stage.dataloader_prefix}_dataloader")(pl_module)
 
     def _dump_params(self, trainer: "pl.Trainer") -> None:
-
         self._dumped_params = {
             "logger": trainer.logger,
             "callbacks": trainer.callbacks,
@@ -297,6 +300,7 @@ class BatchSizeFinder(Callback):
         else:
             stage = trainer.state.stage
             loop = getattr(trainer, f"{stage}_loop")
+            assert stage is not None
             self._dumped_params["limit_eval_batches"] = getattr(trainer, f"limit_{stage.dataloader_prefix}_batches")
 
             if hasattr(loop, "verbose"):
@@ -316,6 +320,7 @@ class BatchSizeFinder(Callback):
         else:
             stage = trainer.state.stage
             loop = getattr(trainer, f"{stage}_loop")
+            assert stage is not None
             setattr(trainer, f"limit_{stage.dataloader_prefix}_batches", self.steps_per_trial)
 
             if hasattr(loop, "verbose"):
@@ -333,6 +338,7 @@ class BatchSizeFinder(Callback):
         else:
             stage = trainer.state.stage
             loop = getattr(trainer, f"{stage}_loop")
+            assert stage is not None
             setattr(trainer, f"limit_{stage.dataloader_prefix}_batches", self._dumped_params["limit_eval_batches"])
 
         loop.load_state_dict(deepcopy(self._dumped_params["loop_state_dict"]))
@@ -378,16 +384,19 @@ class BatchSizeFinder(Callback):
         """
         model = trainer.lightning_module
         batch_size = lightning_getattr(model, self.batch_arg_name)
+        assert batch_size is not None
         new_size = value if value is not None else int(batch_size * factor)
         if desc:
             rank_zero_info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
         # TODO improve this for multi eval dataloaders
         if trainer.state.fn == "fit":
+            assert trainer.train_dataloader is not None
             if not self._is_valid_batch_size(new_size, trainer.train_dataloader, trainer):
                 new_size = min(new_size, len(trainer.train_dataloader.dataset))
         else:
             stage = trainer.state.stage
+            assert stage is not None
             dataloaders = getattr(trainer, f"{stage.dataloader_prefix}_dataloaders")
             if not self._is_valid_batch_size(new_size, dataloaders[0], trainer):
                 new_size = min(new_size, len(dataloaders[0].dataset))
@@ -404,7 +413,7 @@ class BatchSizeFinder(Callback):
         return not has_len_all_ranks(dataloader, trainer.strategy, module) or batch_size <= len(dataloader)
 
 
-def _collect_garbage(trainer: "pl.Trainer"):
+def _collect_garbage(trainer: "pl.Trainer") -> None:
     from pytorch_lightning.accelerators.gpu import GPUAccelerator
 
     if isinstance(trainer.accelerator, GPUAccelerator):
