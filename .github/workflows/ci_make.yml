@@ -7,8 +7,7 @@ jobs:
   make:
     runs-on: ubuntu-20.04
     strategy:
-      fail-fast: true
-      max-parallel: 1
+      fail-fast: false
       matrix:
         cmd: ["clean", "update", "docs", "test-pytorch"]
 
