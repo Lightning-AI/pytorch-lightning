@@ -12,7 +12,7 @@ def test_layout_example():
     result = runner.invoke(
         run_app,
         [
-            os.path.join(_PROJECT_ROOT, "examples/app_examples/layout/app.py"),
+            os.path.join(_PROJECT_ROOT, "examples/app_layout/app.py"),
             "--blocking",
             "False",
             "--open-ui",

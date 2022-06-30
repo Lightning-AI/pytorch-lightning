@@ -9,7 +9,7 @@ from lightning_app.testing.testing import run_app_in_cloud
 
 @pytest.mark.cloud
 def test_drive_example_cloud() -> None:
-    with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "examples/app_examples/drive")) as (
+    with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "examples/app_drive")) as (
         _,
         view_page,
         fetch_logs,

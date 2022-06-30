@@ -20,7 +20,7 @@ class LightningAppTestInt(LightningTestApp):
 
 def test_v0_app_example():
     command_line = [
-        os.path.join(_PROJECT_ROOT, "examples/app_examples/v0_app/app.py"),
+        os.path.join(_PROJECT_ROOT, "examples/app_v0/app.py"),
         "--blocking",
         "False",
         "--open-ui",
@@ -32,7 +32,7 @@ def test_v0_app_example():
 
 @pytest.mark.cloud
 def test_v0_app_example_cloud() -> None:
-    with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "examples/app_examples/v0_app")) as (
+    with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "examples/app_v0")) as (
         _,
         view_page,
         fetch_logs,

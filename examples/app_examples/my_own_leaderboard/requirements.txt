@@ -1,4 +1,0 @@
-torchmetrics
-torch
-pandas
-streamlit_autorefresh

@@ -12,7 +12,7 @@ def test_pickle_or_not_example():
     result = runner.invoke(
         run_app,
         [
-            os.path.join(_PROJECT_ROOT, "examples/app_examples/pickle_or_not/app.py"),
+            os.path.join(_PROJECT_ROOT, "examples/app_pickle_or_not/app.py"),
             "--blocking",
             "False",
             "--open-ui",

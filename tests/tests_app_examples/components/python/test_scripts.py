@@ -17,7 +17,7 @@ from lightning_app.testing.helpers import run_script, RunIf
     ],
 )
 def test_scripts(file):
-    run_script(str(os.path.join(_PROJECT_ROOT, f"examples/app_examples/components/python/{file}")))
+    run_script(str(os.path.join(_PROJECT_ROOT, f"examples/app_components/python/{file}")))
 
 
 @pytest.mark.skip(reason="causing some issues with CI, not sure if the test is actually needed")
@@ -28,7 +28,7 @@ def test_components_app_example():
     result = runner.invoke(
         run_app,
         [
-            os.path.join(_PROJECT_ROOT, "examples/app_examples/components/python/app.py"),
+            os.path.join(_PROJECT_ROOT, "examples/app_components/python/app.py"),
             "--blocking",
             "False",
             "--open-ui",
