@@ -13,12 +13,10 @@
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.7.0."""
 import os
-from re import escape
 from unittest import mock
 from unittest.mock import Mock
 
 import pytest
-import torch
 
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
@@ -30,7 +28,6 @@ from pytorch_lightning.plugins.environments import (
     SLURMEnvironment,
     TorchElasticEnvironment,
 )
-from pytorch_lightning.strategies import SingleDeviceStrategy
 from tests_pytorch.deprecated_api import _soft_unimport_module
 from tests_pytorch.plugins.environments.test_lsf_environment import _make_rankfile
 
