@@ -45,7 +45,8 @@ class PythonScript(L.LightningWork):
 
 class LeaderBoard(L.LightningFlow):
 
-    """The LeaderBoard would keep track of a queue of requested Work. Work gets requested by the user through the UI.
+    """The LeaderBoard would keep track of a queue of requested Work. Work gets requested by the user through the
+    UI.
 
     Once a work is finished, the submission file is compared to the ground truth and the associated metric is computed.
     Its metadata moves from the Queue Work to completed Work.
