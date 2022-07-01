@@ -110,7 +110,7 @@ jobs:
 
   # based on https://github.com/pypa/gh-action-pypi-publish
   build-meta-pkg:
-    needs: build-package,pull-package
+    needs: [build-package, pull-package]
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
