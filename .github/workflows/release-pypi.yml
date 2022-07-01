@@ -129,7 +129,7 @@ jobs:
         python-version: 3.9
 
     - name: Install dependencies
-      run: pip install -U setuptools wheel
+      run: pip install -U setuptools wheel "twine==4.0.*"
 
     - name: Unzip packages
       working-directory: pypi
@@ -151,6 +151,7 @@ jobs:
         PACKAGE_NAME: "lightning"
       run: |
         python setup.py sdist bdist_wheel
+        twine check dist/*
         ls -lh dist/
 
     - uses: actions/upload-artifact@v3
