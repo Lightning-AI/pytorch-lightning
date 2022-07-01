@@ -131,6 +131,13 @@ jobs:
     - name: Install dependencies
       run: pip install -U setuptools wheel
 
+    - name: Unzip packages
+      working-directory: pypi
+      run: |
+        sudo apt install -y tree
+        tar -zxvf *.tar.gz
+        tree . -L 2
+
     # todo: replace codebase from release if needed
 
     - name: Build packages
