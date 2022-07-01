@@ -55,8 +55,6 @@ def _prepare_wheel(path):
             ["rm", "-r", "dist"], stdout=logfile, stderr=logfile, bufsize=0, close_fds=True, cwd=path
         ) as proc:
             proc.wait()
-        env_vars = os.environ.copy()
-        env_vars["PACKAGE_NAME"] = "app"
         with subprocess.Popen(
             ["python", "setup.py", "sdist"],
             stdout=logfile,
@@ -64,7 +62,6 @@ def _prepare_wheel(path):
             bufsize=0,
             close_fds=True,
             cwd=path,
-            env=env_vars,
         ) as proc:
             proc.wait()
 
