@@ -21,7 +21,7 @@ jobs:
       with:
         python-version: 3.9
     - run: |
-        pip install fire requests
+        pip install -q fire requests
         mkdir dist && touch dist/.placeholder
         mkdir pypi && touch pypi/.placeholder
     - uses: actions/upload-artifact@v3
@@ -41,7 +41,7 @@ jobs:
     - name: Inverse packages to pull
       id: download
       run: echo "::set-output name=pkgs::$(python .actions/assistant.py determine-releasing-pkgs --inverse 2>&1)"
-    - run: echo "${{ steps.candidate.download.pkgs }}"
+    - run: echo "${{ steps.download.outputs.pkgs }}"
 
   # based on https://github.com/pypa/gh-action-pypi-publish
   build-package:
@@ -51,8 +51,7 @@ jobs:
       fail-fast: true
       # run sequential
       max-parallel: 1
-      matrix:
-        pkg: ${{ needs.releasing.outputs.build-pkgs }}
+      matrix: ${{ fromJSON(needs.releasing.outputs.build-pkgs) }}
     steps:
     - uses: actions/checkout@v2
     - uses: actions/download-artifact@v3
@@ -86,8 +85,7 @@ jobs:
       fail-fast: true
       # run sequential
       max-parallel: 1
-      matrix:
-        pkg: ${{ needs.releasing.outputs.pull-pkgs }}
+      matrix: ${{ fromJSON(needs.releasing.outputs.pull-pkgs) }}
     steps:
     - uses: actions/checkout@v2
     - uses: actions/download-artifact@v3

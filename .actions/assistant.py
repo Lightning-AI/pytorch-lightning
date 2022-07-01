@@ -113,7 +113,7 @@ class AssistantCLI:
         releasing = [pkg for pkg in packages if AssistantCLI._release_pkg(PACKAGE_MAPPING[pkg], src_folder=src_folder)]
         if inverse:
             releasing = list(filter(lambda pkg: pkg not in releasing, packages))
-        return releasing
+        return json.dumps([{"pkg": pkg for pkg in releasing}])
 
 
 if __name__ == "__main__":
