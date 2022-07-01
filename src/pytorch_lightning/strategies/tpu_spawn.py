@@ -77,17 +77,17 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self.tpu_global_core_rank = 0
         self.start_method = "fork"
 
-    @property
-    def global_rank(self) -> int:
-        return self.tpu_global_core_rank
-
-    @property
-    def local_rank(self) -> int:
-        return self.tpu_local_core_rank
-
-    @property
-    def world_size(self) -> int:
-        return xm.xrt_world_size()
+    # @property
+    # def global_rank(self) -> int:
+    #     return self.tpu_global_core_rank
+    #
+    # @property
+    # def local_rank(self) -> int:
+    #     return self.tpu_local_core_rank
+    #
+    # @property
+    # def world_size(self) -> int:
+    #     return xm.xrt_world_size()
 
     @property
     def root_device(self) -> torch.device:
@@ -220,6 +220,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     def _worker_setup(self, process_idx: int):
         reset_seed()
+        self._local_rank = xm.get_local_ordinal()
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()
         rank_zero_only.rank = self.global_rank
