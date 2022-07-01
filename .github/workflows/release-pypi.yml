@@ -16,6 +16,10 @@ jobs:
       build-pkgs: ${{ steps.candidate.outputs.pkgs }}
       pull-pkgs: ${{ steps.download.outputs.pkgs }}
     steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
     - run: |
         pip install fire requests
         mkdir dist && touch dist/.placeholder
