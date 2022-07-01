@@ -9,6 +9,7 @@ from pathlib import Path
 from pprint import pprint
 from types import ModuleType
 from typing import List, Optional, Sequence
+from urllib import request
 from urllib.request import Request, urlopen
 
 import fire
@@ -107,13 +108,31 @@ class AssistantCLI:
     @staticmethod
     def determine_releasing_pkgs(
         src_folder: str = _PATH_SRC, packages: Sequence[str] = ("pytorch", "app"), inverse: bool = False
-    ) -> Optional[Sequence[str]]:
+    ) -> Sequence[str]:
+        """Determine version of package where the mane is `lightning.<name>`."""
         if isinstance(packages, str):
             packages = [packages]
         releasing = [pkg for pkg in packages if AssistantCLI._release_pkg(PACKAGE_MAPPING[pkg], src_folder=src_folder)]
         if inverse:
             releasing = list(filter(lambda pkg: pkg not in releasing, packages))
         return json.dumps([{"pkg": pkg for pkg in releasing}])
+
+    @staticmethod
+    def download_package(package: str, folder: str = ".", version: Optional[str] = None) -> None:
+        """Download specific or latest package from PyPI where the mane is `lightning.<name>`."""
+        url = f"https://pypi.org/pypi/{PACKAGE_MAPPING[package]}/json"
+        data = json.load(urlopen(Request(url)))
+        if not version:
+            versions = list(data["releases"].keys())
+            version = sorted(versions, key=LooseVersion)[-1]
+        releases = list(filter(lambda r: r["packagetype"] == "sdist", data["releases"][version]))
+        assert releases, f"Missing 'sdist' for this package/version aka {package}/{version}"
+        release = releases[0]
+        pkg_url = release["url"]
+        pkg_file = os.path.basename(pkg_url)
+        pkg_path = os.path.join(folder, pkg_file)
+        os.makedirs(folder, exist_ok=True)
+        request.urlretrieve(pkg_url, pkg_path)
 
 
 if __name__ == "__main__":

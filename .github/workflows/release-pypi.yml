@@ -35,12 +35,14 @@ jobs:
 
     - name: Find chnaged packages
       id: candidate
-      run: echo "::set-output name=pkgs::$(python .actions/assistant.py determine-releasing-pkgs 2>&1)"
+      run: |
+        echo "::set-output name=pkgs::{include: $(python .actions/assistant.py determine-releasing-pkgs 2>&1)}"
     - run: echo "${{ steps.candidate.outputs.pkgs }}"
 
     - name: Inverse packages to pull
       id: download
-      run: echo "::set-output name=pkgs::$(python .actions/assistant.py determine-releasing-pkgs --inverse 2>&1)"
+      run: |
+        echo "::set-output name=pkgs::{include: $(python .actions/assistant.py determine-releasing-pkgs --inverse 2>&1)}"
     - run: echo "${{ steps.download.outputs.pkgs }}"
 
   # based on https://github.com/pypa/gh-action-pypi-publish
@@ -96,7 +98,10 @@ jobs:
       with:
         python-version: 3.9
 
-    # Todo: if not building download package
+    - name: Dowload package
+      run: |
+        pip install -q fire requests
+        python .actions/assistant.py download-package ${{ matrix.pkg }} --folder pypi
 
     - uses: actions/upload-artifact@v3
       with:
@@ -113,6 +118,12 @@ jobs:
       with:
         name: dist-packages-${{ github.sha }}
         path: dist
+    - run: ls -lh dist/
+    - uses: actions/download-artifact@v3
+      with:
+        name: pypi-packages-${{ github.sha }}
+        path: pypi
+    - run: ls -lh pypi/
     - uses: actions/setup-python@v2
       with:
         python-version: 3.9
