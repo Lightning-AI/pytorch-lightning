@@ -56,4 +56,4 @@ def test_copy_and_setup_react_ui(tmpdir):
 def test_correct_num_react_template_files():
     template_dir = os.path.join(la.__path__[0], "cli/react-ui-template")
     files = cmd_init._ls_recursively(template_dir)
-    assert len(files) == 15, "react-ui template files must be minimal... do not add nice to haves"
+    assert len(files) == 16, "react-ui template files must be minimal... do not add nice to haves"
