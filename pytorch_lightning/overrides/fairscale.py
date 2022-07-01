@@ -24,11 +24,10 @@ _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
 _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
 _FAIRSCALE_FULLY_SHARDED_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.4")
 
-LightningShardedDataParallel = None
 if _FAIRSCALE_AVAILABLE:
     from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
 
-    class LightningShardedDataParallel(_LightningModuleWrapperBase):  # type: ignore[no-redef]
+    class LightningShardedDataParallel(_LightningModuleWrapperBase):
         # Just do this for later docstrings
         pass
 
@@ -38,3 +37,7 @@ if _FAIRSCALE_AVAILABLE:
             model = model.module
 
         return unwrap_lightning_module(model)
+
+else:
+    LightningShardedDataParallel = ...  # type: ignore[assignment,misc]
+    unwrap_lightning_module_sharded = ...  # type: ignore[assignment]
