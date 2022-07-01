@@ -76,20 +76,29 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
         package_dir={"": "src"},
         long_description=_long_description,
         long_description_content_type="text/markdown",
+        include_package_data=True,
         zip_safe=False,
         keywords=["deep learning", "pytorch", "AI"],  # todo: aggregate tags from all packages
         python_requires=">=3.7",  # todo: take the lowes based on all packages
+        entry_points={
+            "console_scripts": [
+                "lightning = lightning_app.cli.lightning_cli:main",
+            ],
+        },
         setup_requires=[],
         install_requires=_requires,
         extras_require={},  # todo: consider porting all other packages extras with prefix
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
+            "Documentation": "https://lightning.ai/lightning-docs",
             "Source Code": "https://github.com/Lightning-AI/lightning",
         },
         classifiers=[
             "Environment :: Console",
             "Natural Language :: English",
-            "Development Status :: 5 - Production/Stable",
+            # How mature is this project? Common values are
+            #   3 - Alpha, 4 - Beta, 5 - Production/Stable
+            "Development Status :: 4 - Beta",
             # Indicate who your project is intended for
             "Intended Audience :: Developers",
             "Topic :: Scientific/Engineering :: Artificial Intelligence",
