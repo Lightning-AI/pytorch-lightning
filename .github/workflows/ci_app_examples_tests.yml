@@ -1,4 +1,4 @@
-name: CI App Examples Tests
+name: Test App - examples
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on: # Trigger the workflow on push or pull request, but only for the master branch
@@ -69,13 +69,6 @@ jobs:
           pip install -r requirements/app/devel.txt --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
           pip list
         shell: bash
-
-#      - name: Start Redis
-#        if: runner.os == 'Linux'
-#        uses: supercharge/redis-github-action@1.4.0
-#        with:
-#          redis-version: 6
-#          redis-port: 6379
 
       - name: Setup Node.js
         uses: actions/setup-node@v2
