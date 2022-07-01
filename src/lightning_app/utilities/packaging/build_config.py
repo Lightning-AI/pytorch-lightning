@@ -81,7 +81,7 @@ class BuildConfig:
 
         # 2. Try to find a requirement file associated the file.
         dirname = os.path.dirname(file)
-        requirement_files = [os.path.join(dirname, f) for f in os.listdir(dirname) if f == "requirements.txt"]
+        requirement_files = [os.path.join(dirname, f) for f in os.listdir(dirname) if f == "requirements/app/base.txt"]
         if not requirement_files:
             return []
         dirname, basename = os.path.dirname(requirement_files[0]), os.path.basename(requirement_files[0])
