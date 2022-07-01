@@ -5,7 +5,7 @@ from dataclasses import asdict, dataclass
 from types import FrameType
 from typing import cast, List, Optional, TYPE_CHECKING, Union
 
-from pkg_resources import parse_requirements
+from lightning_app._setup_tools import _load_requirements
 
 if TYPE_CHECKING:
     from lightning_app import LightningWork
@@ -61,7 +61,7 @@ class BuildConfig:
             class MyOwnBuildConfig(BuildConfig):
 
                 def build_commands(self):
-                    return ["sudo apt-get install libsparsehash-dev"]
+                    return ["apt-get install libsparsehash-dev"]
 
             BuildConfig(requirements=["git+https://github.com/mit-han-lab/torchsparse.git@v1.4.0"])
         """
@@ -84,8 +84,9 @@ class BuildConfig:
         requirement_files = [os.path.join(dirname, f) for f in os.listdir(dirname) if f == "requirements.txt"]
         if not requirement_files:
             return []
+        dirname, basename = os.path.dirname(requirement_files[0]), os.path.basename(requirement_files[0])
         try:
-            requirements = list(map(str, parse_requirements(open(requirement_files[0]).readlines())))
+            requirements = _load_requirements(dirname, basename)
         except NotADirectoryError:
             requirements = []
         return [r for r in requirements if r != "lightning"]
@@ -116,7 +117,9 @@ class BuildConfig:
             path = os.path.join(self._call_dir, req)
             if os.path.exists(path):
                 try:
-                    requirements.extend(list(map(str, parse_requirements(open(path).readlines()))))
+                    requirements.extend(
+                        _load_requirements(os.path.dirname(path), os.path.basename(path)),
+                    )
                 except NotADirectoryError:
                     pass
             else:

@@ -48,7 +48,7 @@ def _configure_session() -> Session:
     return http
 
 
-def _check_service_url_is_ready(url: str, timeout: float = 0.1) -> bool:
+def _check_service_url_is_ready(url: str, timeout: float = 0.5) -> bool:
     try:
         response = requests.get(url, timeout=timeout)
         return response.status_code in (200, 404)
@@ -62,8 +62,7 @@ def _get_next_backoff_time(num_retries: int, backoff_value: float = 0.5) -> floa
 
 
 def _retry_wrapper(func: Callable) -> Callable:
-    """Returns the function decorated by a wrapper that retries the call several times if a connection error
-    occurs.
+    """Returns the function decorated by a wrapper that retries the call several times if a connection error occurs.
 
     The retries follow an exponential backoff.
     """

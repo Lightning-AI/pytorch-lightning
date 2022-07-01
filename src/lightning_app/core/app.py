@@ -37,26 +37,35 @@ class LightningApp:
         root: "lightning_app.LightningFlow",
         debug: bool = False,
     ):
-        """LightningApp, or App in short, alternatively run its root
-        :class:`~lightning_app.core.flow.LightningFlow` component and collects state changes from external
-        sources to maintain the application state up-to-date or performs checkpointing. All those operations
-        are executed within an infinite loop.
+        """The Lightning App, or App in short runs a tree of one or more components that interact to create end-to-end
+        applications. There are two kinds of components: :class:`~lightning_app.core.flow.LightningFlow` and
+        :class:`~lightning_app.core.work.LightningWork`. This modular design enables you to reuse components
+        created by other users.
+
+        The Lightning App alternatively run an event loop triggered by delta changes sent from
+        either :class:`~lightning.app.core.work.LightningWork` or from the Lightning UI.
+        Once deltas are received, the Lightning App runs
+        the :class:`~lightning.app.core.flow.LightningFlow` provided.
 
         Arguments:
-            root: The root LightningFlow component, that defined all the app's nested components, running infinitely.
-            debug: Whether to run the application in debug model.
+            root: The root LightningFlow component, that defined all
+                the app's nested components, running infinitely.
+            debug: Whether to activate the Lightning Logger debug mode.
+                This can be helpful when reporting bugs on Lightning repo.
 
         .. doctest::
 
-            >>> from lightning_app import LightningFlow, LightningApp
-            >>> from lightning_app.runners import SingleProcessRuntime
+            >>> from lightning import LightningFlow, LightningApp
+            >>> from lightning.app.runners import MultiProcessRuntime
+            ...
             >>> class RootFlow(LightningFlow):
             ...     def run(self):
             ...         print("Hello World!")
             ...         self._exit()
             ...
-            >>> app = LightningApp(RootFlow())  # application can be dispatched using the `runners`.
-            >>> SingleProcessRuntime(app).dispatch()
+            >>> app = LightningApp(RootFlow()) # application can be dispatched using the `runners`.
+            ...
+            >>> MultiProcessRuntime(app).dispatch()
             Hello World!
         """
 
@@ -287,8 +296,7 @@ class LightningApp:
         return deltas
 
     def maybe_apply_changes(self) -> bool:
-        """Get the deltas from both the flow queue and the work queue, merge the two deltas and update the
-        state."""
+        """Get the deltas from both the flow queue and the work queue, merge the two deltas and update the state."""
 
         deltas = self._collect_deltas_from_ui_and_work_queues()
 

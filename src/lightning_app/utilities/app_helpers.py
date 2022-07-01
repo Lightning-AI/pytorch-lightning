@@ -40,8 +40,7 @@ class StateEntry:
 
 
 class StateStore(ABC):
-    """Base class of State store that provides simple key, value store to keep track of app state, served app
-    state."""
+    """Base class of State store that provides simple key, value store to keep track of app state, served app state."""
 
     @abstractmethod
     def __init__(self):
@@ -232,7 +231,7 @@ class StreamLitStatePlugin(BaseStatePlugin):
 
 
 # Adapted from
-# https://github.com/Lightning-AI/lightning/blob/master/pytorch_lightning/utilities/model_helpers.py#L21
+# https://github.com/Lightning-AI/pytorch-lightning/blob/master/pytorch_lightning/utilities/model_helpers.py#L21
 def is_overridden(method_name: str, instance: Optional[object] = None, parent: Optional[Type[object]] = None) -> bool:
     if instance is None:
         return False

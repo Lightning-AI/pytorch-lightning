@@ -25,10 +25,10 @@ class LightningFlow:
     }
 
     def __init__(self):
-        """The LightningFlow is a building block to coordinate and manage long running-tasks contained within
-        :class:`~lightning_app.core.work.LightningWork` or nested LightningFlow.
+        """The LightningFlow is used by the :class:`~lightning_app.core.app.LightningApp` to coordinate and manage long-
+        running jobs contained, the :class:`~lightning_app.core.work.LightningWork`.
 
-        At a minimum, a LightningFlow is characterized by:
+        A LightningFlow is characterized by:
 
         * A set of state variables.
         * Long-running jobs (:class:`~lightning_app.core.work.LightningWork`).
@@ -40,11 +40,6 @@ class LightningFlow:
         json-serializable (e.g., int, float, bool, list, dict, ...).
 
         They also may not reach into global variables unless they are constant.
-
-        .. note ::
-            The limitation to primitive types will be lifted in time for
-            certain aggregate types, and will be made extensible so that component
-            developers will be able to add custom state-compatible types.
 
         The attributes need to be all defined in `__init__` method,
         and eventually assigned to different values throughout the lifetime of the object.
@@ -83,16 +78,20 @@ class LightningFlow:
 
         .. doctest::
 
-            >>> from lightning_app import LightningFlow
+            >>> from lightning import LightningFlow
+            ...
             >>> class RootFlow(LightningFlow):
+            ...
             ...     def __init__(self):
             ...         super().__init__()
             ...         self.counter = 0
+            ...
             ...     def run(self):
             ...         self.counter += 1
             ...
             >>> flow = RootFlow()
             >>> flow.run()
+            ...
             >>> assert flow.counter == 1
             >>> assert flow.state["vars"]["counter"] == 1
         """
@@ -345,6 +344,7 @@ class LightningFlow:
         return name in LightningFlow._INTERNAL_STATE_VARS or not name.startswith("_")
 
     def run(self, *args, **kwargs) -> None:
+        """Override with your own logic."""
         pass
 
     def schedule(
@@ -352,7 +352,7 @@ class LightningFlow:
     ) -> bool:
         """The schedule method is used to run a part of the flow logic on timely manner.
 
-        .. code-block::
+        .. code-block:: python
 
             from lightning_app import LightningFlow
 
@@ -370,23 +370,52 @@ class LightningFlow:
         A best practice is to avoid running a dynamic flow or work under the self.schedule method.
         Instead, instantiate them within the condition, but run them outside.
 
-         .. code-block:: python
+        .. code-block:: python
 
             from lightning_app import LightningFlow
             from lightning_app.structures import List
 
-
             class SchedulerDAG(LightningFlow):
+
                 def __init__(self):
                     super().__init__()
                     self.dags = List()
 
                 def run(self):
-                    if self.schedule("@hourly"):
+                    if self.schedule("hourly"):
                         self.dags.append(DAG(...))
 
                     for dag in self.dags:
                         payload = dag.run()
+
+        **Learn more about Scheduling**
+
+        .. raw:: html
+
+            <div class="display-card-container">
+                <div class="row">
+
+        .. displayitem::
+            :header: Schedule your components
+            :description: Learn more scheduling.
+            :col_css: col-md-4
+            :button_link: ../../../glossary/scheduling.html
+            :height: 180
+            :tag: Basic
+
+        .. displayitem::
+            :header: Build your own DAG
+            :description: Learn more DAG scheduling with examples.
+            :col_css: col-md-4
+            :button_link: ../../../examples/app_dag/dag.html
+            :height: 180
+            :tag: Basic
+
+        .. raw:: html
+
+                </div>
+            </div>
+            <br />
         """
         if not user_key:
             frame = cast(FrameType, inspect.currentframe()).f_back
@@ -454,7 +483,7 @@ class LightningFlow:
 
         **Example:** Serve a static directory (with at least a file index.html inside).
 
-        .. code-block::
+        .. code-block:: python
 
             from lightning_app.frontend import StaticWebFrontend
 
@@ -465,7 +494,7 @@ class LightningFlow:
 
         **Example:** Serve a streamlit UI (needs the streamlit package to be installed).
 
-        .. code-block::
+        .. code-block:: python
 
             from lightning_app.frontend import StaticWebFrontend
 
@@ -479,7 +508,7 @@ class LightningFlow:
 
         **Example:** Arrange the UI of my children in tabs (default UI by Lightning).
 
-        .. code-block::
+        .. code-block:: python
 
             class Flow(LightningFlow):
                 ...
@@ -500,6 +529,27 @@ class LightningFlow:
             returned layout configuration can depend on the state. The only exception are the flows that return a
             :class:`~lightning_app.frontend.frontend.Frontend`. These need to be provided at the time of app creation
             in order for the runtime to start the server.
+
+        **Learn more about adding UI**
+
+        .. raw:: html
+
+            <div class="display-card-container">
+                <div class="row">
+
+        .. displayitem::
+            :header: Add a web user interface (UI)
+            :description: Learn more how to integrate several UIs.
+            :col_css: col-md-4
+            :button_link: ../../../workflows/add_web_ui/index.html
+            :height: 180
+            :tag: Basic
+
+        .. raw:: html
+
+                </div>
+            </div>
+            <br />
         """
         return [dict(name=name, content=component) for (name, component) in self.flows.items()]
 
