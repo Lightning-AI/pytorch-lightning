@@ -31,6 +31,7 @@ DISABLE_DEPENDENCY_CACHE = bool(int(os.getenv("DISABLE_DEPENDENCY_CACHE", "0")))
 LIGHTNING_CLOUD_PROJECT_ID = os.getenv("LIGHTNING_CLOUD_PROJECT_ID")
 LIGHTNING_CREDENTIAL_PATH = os.getenv("LIGHTNING_CREDENTIAL_PATH", str(Path.home() / ".lightning" / "credentials.json"))
 DOT_IGNORE_FILENAME = ".lightningignore"
+SSL_CA_CERT = os.getenv("REQUESTS_CA_BUNDLE", default=os.getenv("SSL_CERT_FILE", default=None))
 
 
 def get_lightning_cloud_url() -> str:

@@ -22,7 +22,8 @@ from lightning_app.runners.multiprocess import MultiProcessRuntime
 from lightning_app.testing.config import Config
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.imports import _is_playwright_available, requires
-from lightning_app.utilities.network import _configure_session, LightningClient
+from lightning_app.utilities.network import _configure_session
+from lightning_app.utilities.rest_client import LightningClient
 
 if _is_playwright_available():
     import playwright

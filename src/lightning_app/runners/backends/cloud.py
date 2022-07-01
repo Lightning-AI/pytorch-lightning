@@ -3,7 +3,7 @@ from typing import List, Optional
 import lightning_app
 from lightning_app.core.queues import QueuingSystem
 from lightning_app.runners.backends import Backend
-from lightning_app.utilities.network import LightningClient
+from lightning_app.utilities.rest_client import LightningClient
 
 
 class CloudBackend(Backend):
