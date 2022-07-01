@@ -6,7 +6,7 @@ from lightning.app.components.python import TracerPythonScript
 from lightning.app.storage import Path
 from lightning.app.utilities.packaging.build_config import BuildConfig
 from lightning.app.utilities.tracer import Tracer
-from lightning_app._setup_tools import _load_requirements
+from lightning_app.utilities.packaging.build_config import load_requirements
 
 
 class ScriptRunner(TracerPythonScript):
@@ -74,6 +74,6 @@ class ScriptRunner(TracerPythonScript):
         ]
         if Path(root_path, "requirements.txt").exists():
             # Requirements from the user's code folder
-            requirements.extend(_load_requirements(root_path, file_name="requirements.txt"))
+            requirements.extend(load_requirements(root_path, file_name="requirements.txt"))
 
         return BuildConfig(requirements=requirements)
