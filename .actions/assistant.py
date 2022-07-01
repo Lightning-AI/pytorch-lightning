@@ -1,10 +1,12 @@
 import datetime
 import os
 import re
+from pathlib import Path
 from pprint import pprint
 from typing import Sequence
 
 import fire
+import pkg_resources
 
 REQUIREMENT_FILES = (
     "requirements/pytorch/base.txt",
@@ -42,27 +44,14 @@ class AssistantCLI:
         for req in req_files:
             AssistantCLI._prune_packages(req, packages)
 
-    @staticmethod
-    def _req_name(line: str) -> str:
-        idxs = [line.index(c) for c in "<=>,@" if c in line]
-        if idxs:
-            line = line[: min(idxs)]
-        return line.strip()
-
-    @staticmethod
     def _prune_packages(req_file: str, packages: Sequence[str]) -> None:
         """Remove some packages from given requirement files."""
-        with open(req_file) as fp:
-            lines = fp.readlines()
-
-        if isinstance(packages, str):
-            packages = [packages]
-        for pkg in packages:
-            lines = [ln for ln in lines if AssistantCLI._req_name(ln) != pkg]
-        pprint(lines)
-
-        with open(req_file, "w") as fp:
-            fp.writelines(lines)
+        path = Path(req_file)
+        assert path.exists()
+        text = path.read_text()
+        final = [str(req) for req in pkg_resources.parse_requirements(text) if req.name not in packages]
+        pprint(final)
+        path.write_text("\n".join(final))
 
     @staticmethod
     def _replace_min(fname: str) -> None:
