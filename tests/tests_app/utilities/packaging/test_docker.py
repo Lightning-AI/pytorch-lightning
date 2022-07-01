@@ -17,8 +17,8 @@ from lightning_app.utilities.redis import check_if_redis_running
 @pytest.mark.skipif(not check_if_redis_running(), reason="redis is required for this test.")
 @RunIf(skip_windows=True)
 def test_docker_runner():
-    """This test validates that the lightning run work is executable within a container and deltas are sent back through
-    the Redis caller_queue."""
+    """This test validates that the lightning run work is executable within a container and deltas are sent back
+    through the Redis caller_queue."""
     queues = QueuingSystem.REDIS
     queue_id = f"test_docker_runner_{str(int(time()))}"
     app_file = os.path.join(os.path.dirname(__file__), "projects/dock/app.py")

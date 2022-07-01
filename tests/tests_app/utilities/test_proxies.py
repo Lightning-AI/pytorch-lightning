@@ -276,7 +276,8 @@ def test_proxy_timeout():
 
 @mock.patch("lightning_app.utilities.proxies.Copier")
 def test_path_argument_to_transfer(*_):
-    """Test that any Lightning Path objects passed to the run method get transferred automatically (if they exist)."""
+    """Test that any Lightning Path objects passed to the run method get transferred automatically (if they
+    exist)."""
 
     class TransferPathWork(LightningWork):
         def run(self, *args, **kwargs):
@@ -361,7 +362,8 @@ def test_path_argument_to_transfer(*_):
 )
 @mock.patch("lightning_app.utilities.proxies.Copier")
 def test_path_attributes_to_transfer(_, monkeypatch, origin, exists_remote, expected_get):
-    """Test that any Lightning Path objects passed to the run method get transferred automatically (if they exist)."""
+    """Test that any Lightning Path objects passed to the run method get transferred automatically (if they
+    exist)."""
     path_mock = Mock()
     path_mock.origin_name = origin
     path_mock.exists_remote = Mock(return_value=exists_remote)
@@ -509,8 +511,8 @@ def test_persist_artifacts(tmp_path):
 
 
 def test_work_state_observer():
-    """Tests that the WorkStateObserver sends deltas to the queue when state residuals remain that haven't been handled
-    by the setattr."""
+    """Tests that the WorkStateObserver sends deltas to the queue when state residuals remain that haven't been
+    handled by the setattr."""
 
     class WorkWithoutSetattr(LightningWork):
         def __init__(self):
