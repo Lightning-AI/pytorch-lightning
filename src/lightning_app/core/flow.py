@@ -25,8 +25,8 @@ class LightningFlow:
     }
 
     def __init__(self):
-        """The LightningFlow is used by the :class:`~lightning_app.core.app.LightningApp` to coordinate and manage long-
-        running jobs contained, the :class:`~lightning_app.core.work.LightningWork`.
+        """The LightningFlow is used by the :class:`~lightning_app.core.app.LightningApp` to coordinate and manage
+        long- running jobs contained, the :class:`~lightning_app.core.work.LightningWork`.
 
         A LightningFlow is characterized by:
 

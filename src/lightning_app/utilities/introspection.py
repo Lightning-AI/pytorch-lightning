@@ -392,5 +392,6 @@ def _is_init_context(component: Union["LightningFlow", "LightningWork"]) -> bool
 
 
 def _is_run_context(component: Union["LightningFlow", "LightningWork"]) -> bool:
-    """Checks whether the call to a component originates from within the context of the component's ``run`` method."""
+    """Checks whether the call to a component originates from within the context of the component's ``run``
+    method."""
     return _is_method_context(component, "run")

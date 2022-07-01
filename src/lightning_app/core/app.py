@@ -57,14 +57,12 @@ class LightningApp:
 
             >>> from lightning import LightningFlow, LightningApp
             >>> from lightning.app.runners import MultiProcessRuntime
-            ...
             >>> class RootFlow(LightningFlow):
             ...     def run(self):
             ...         print("Hello World!")
             ...         self._exit()
             ...
-            >>> app = LightningApp(RootFlow()) # application can be dispatched using the `runners`.
-            ...
+            >>> app = LightningApp(RootFlow())  # application can be dispatched using the `runners`.
             >>> MultiProcessRuntime(app).dispatch()
             Hello World!
         """
@@ -296,7 +294,8 @@ class LightningApp:
         return deltas
 
     def maybe_apply_changes(self) -> bool:
-        """Get the deltas from both the flow queue and the work queue, merge the two deltas and update the state."""
+        """Get the deltas from both the flow queue and the work queue, merge the two deltas and update the
+        state."""
 
         deltas = self._collect_deltas_from_ui_and_work_queues()
 
