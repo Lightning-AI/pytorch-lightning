@@ -4,7 +4,7 @@ This is a full react template ready to use in a component
 
 This UI was automatically generated with:
 
-```python
+```commandline
 lightning init react-ui
 ```
 
@@ -39,9 +39,7 @@ import lightning as L
 
 class YourComponent(L.LightningFlow):
     def configure_layout(self):
-        return Lapp.frontend.StaticWebFrontend(
-            Path(__file__).parent / "react-ui/src/dist"
-        )
+        return Lapp.frontend.StaticWebFrontend(Path(__file__).parent / "react-ui/src/dist")
 ```
 
 ### Set up interactions between React and the component

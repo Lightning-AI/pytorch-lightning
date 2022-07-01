@@ -79,19 +79,15 @@ class LightningFlow:
         .. doctest::
 
             >>> from lightning import LightningFlow
-            ...
             >>> class RootFlow(LightningFlow):
-            ...
             ...     def __init__(self):
             ...         super().__init__()
             ...         self.counter = 0
-            ...
             ...     def run(self):
             ...         self.counter += 1
             ...
             >>> flow = RootFlow()
             >>> flow.run()
-            ...
             >>> assert flow.counter == 1
             >>> assert flow.state["vars"]["counter"] == 1
         """
@@ -356,11 +352,12 @@ class LightningFlow:
 
             from lightning_app import LightningFlow
 
-            class Flow(LightningFlow):
 
+            class Flow(LightningFlow):
                 def run(self):
                     if self.schedule("hourly"):
                         # run some code once every hour.
+                        print("run this every hour")
 
         Arguments:
             cron_pattern: The cron pattern to provide. Learn more at https://crontab.guru/.
@@ -375,8 +372,8 @@ class LightningFlow:
             from lightning_app import LightningFlow
             from lightning_app.structures import List
 
-            class SchedulerDAG(LightningFlow):
 
+            class SchedulerDAG(LightningFlow):
                 def __init__(self):
                     super().__init__()
                     self.dags = List()
@@ -487,8 +484,10 @@ class LightningFlow:
 
             from lightning_app.frontend import StaticWebFrontend
 
+
             class Flow(LightningFlow):
                 ...
+
                 def configure_layout(self):
                     return StaticWebFrontend("path/to/folder/to/serve")
 
@@ -498,13 +497,19 @@ class LightningFlow:
 
             from lightning_app.frontend import StaticWebFrontend
 
+
             class Flow(LightningFlow):
                 ...
+
                 def configure_layout(self):
                     return StreamlitFrontend(render_fn=my_streamlit_ui)
 
+
             def my_streamlit_ui(state):
                 # add your streamlit code here!
+                import streamlit as st
+
+                st.button("Hello!")
 
         **Example:** Arrange the UI of my children in tabs (default UI by Lightning).
 
@@ -512,11 +517,11 @@ class LightningFlow:
 
             class Flow(LightningFlow):
                 ...
+
                 def configure_layout(self):
                     return [
                         dict(name="First Tab", content=self.child0),
                         dict(name="Second Tab", content=self.child1),
-                        ...
                         # You can include direct URLs too
                         dict(name="Lightning", content="https://lightning.ai"),
                     ]

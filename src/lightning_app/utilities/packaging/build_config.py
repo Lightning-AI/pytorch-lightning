@@ -19,9 +19,11 @@ def load_requirements(
 ) -> List[str]:
     """Load requirements from a file.
 
-    >>> path_req = os.path.join(_PROJECT_ROOT, "requirements")
-    >>> load_requirements(path_req)  # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-    ['numpy...', 'torch...', ...]
+    .. code-block:: python
+
+        path_req = os.path.join(_PROJECT_ROOT, "requirements")
+        requirements = load_requirements(path_req)
+        print(requirements)  # ['numpy...', 'torch...', ...]
     """
     with open(os.path.join(path_dir, file_name)) as file:
         lines = [ln.strip() for ln in file.readlines()]
