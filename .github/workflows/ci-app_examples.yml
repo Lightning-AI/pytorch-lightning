@@ -115,19 +115,3 @@ jobs:
           env_vars: OS,PYTHON
           name: codecov-umbrella
           fail_ci_if_error: false
-
-# TODO: figure out why we clone and install quick-start
-#      - name: Clone Quick Start Example Repo
-#        uses: actions/checkout@v3
-#        # TODO: this needs to be git submodule
-#        if: matrix.os == 'windows-2019'  # because the install doesn't work on windows
-#        with:
-#          repository: Lightning-AI/lightning-quick-start
-#          ref: 'main'
-#          path: lightning-quick-start
-#
-#      - name: Lightning Install quick-start
-#        shell: bash
-#        if: matrix.os != 'windows-2019'  # because the install doesn't work on windows
-#        run: |
-#          python -m lightning install app lightning/quick-start -y
