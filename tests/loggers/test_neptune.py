@@ -47,7 +47,7 @@ class Run:
 
     def __setitem__(self, key, value):
         # called once
-        assert key == "source_code/integrations/pytorch-lightning"
+        assert key == "source_code/integrations/lightning"
         assert value == __version__
 
     def wait(self):
@@ -89,7 +89,7 @@ class TestNeptuneLogger(unittest.TestCase):
         self.assertEqual(created_run_mock.__getitem__.call_count, 2)
         self.assertEqual(created_run_mock.__setitem__.call_count, 1)
         created_run_mock.__getitem__.assert_has_calls([call("sys/id"), call("sys/name")], any_order=True)
-        created_run_mock.__setitem__.assert_called_once_with("source_code/integrations/pytorch-lightning", __version__)
+        created_run_mock.__setitem__.assert_called_once_with("source_code/integrations/lightning", __version__)
 
     @patch("pytorch_lightning.loggers.neptune.Run", Run)
     def test_online_with_custom_run(self, neptune):

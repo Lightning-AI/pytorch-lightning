@@ -69,7 +69,7 @@ setup(
     author=about.__author__,
     author_email=about.__author_email__,
     url=about.__homepage__,
-    download_url="https://github.com/PyTorchLightning/pytorch-lightning",
+    download_url="https://github.com/Lightning-AI/lightning",
     license=about.__license__,
     packages=find_packages(exclude=["tests*", "pl_examples*", "legacy*"]),
     include_package_data=True,
@@ -82,9 +82,9 @@ setup(
     install_requires=setup_tools._load_requirements(_PATH_REQUIRE),
     extras_require=extras,
     project_urls={
-        "Bug Tracker": "https://github.com/PyTorchLightning/pytorch-lightning/issues",
-        "Documentation": "https://pytorch-lightning.rtfd.io/en/latest/",
-        "Source Code": "https://github.com/PyTorchLightning/pytorch-lightning",
+        "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
+        "Documentation": "https://lightning.rtfd.io/en/latest/",
+        "Source Code": "https://github.com/Lightning-AI/lightning",
     },
     classifiers=[
         "Environment :: Console",

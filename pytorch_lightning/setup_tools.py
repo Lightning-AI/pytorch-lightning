@@ -59,7 +59,7 @@ def _load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     # drop images from readme
     text = text.replace("![PT to PL](docs/source/_static/images/general/pl_quick_start_full_compressed.gif)", "")
 
-    # https://github.com/PyTorchLightning/pytorch-lightning/raw/master/docs/source/_static/images/lightning_module/pt_to_pl.png
+    # https://github.com/Lightning-AI/lightning/raw/master/docs/source/_static/images/lightning_module/pt_to_pl.png
     github_source_url = os.path.join(homepage, "raw", version)
     # replace relative repository path to absolute link to the release
     #  do not replace all "docs" as in the readme we reger some other sources with particular path to docs
@@ -81,7 +81,7 @@ def _load_readme_description(path_dir: str, homepage: str, version: str) -> str:
     # todo: wrap content as commented description
     text = re.sub(rf"{skip_begin}.+?{skip_end}", "<!--  -->", text, flags=re.IGNORECASE + re.DOTALL)
 
-    # # https://github.com/Borda/pytorch-lightning/releases/download/1.1.0a6/codecov_badge.png
+    # # https://github.com/Borda/lightning/releases/download/1.1.0a6/codecov_badge.png
     # github_release_url = os.path.join(homepage, "releases", "download", version)
     # # download badge and replace url with local file
     # text = _parse_for_badge(text, github_release_url)
