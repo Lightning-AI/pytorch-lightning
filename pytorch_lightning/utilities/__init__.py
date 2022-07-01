@@ -29,7 +29,6 @@ from pytorch_lightning.utilities.enums import (  # noqa: F401
 from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401
     _APEX_AVAILABLE,
-    _BAGUA_AVAILABLE,
     _DEEPSPEED_AVAILABLE,
     _GROUP_AVAILABLE,
     _HOROVOD_AVAILABLE,
