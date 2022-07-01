@@ -29,7 +29,7 @@ from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.data import _get_dataloader_init_kwargs
+from pytorch_lightning.utilities.data import _get_dataloader_init_args_and_kwargs
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
@@ -228,9 +228,9 @@ class IPUStrategy(ParallelStrategy):
             # the user is returning the `poptorch.DataLoader` directly, don't change anything.
             return dataloader
 
-        dl_kwargs = _get_dataloader_init_kwargs(dataloader, sampler)
+        dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler)
         opts = self.training_opts if mode == RunningStage.TRAINING else self.inference_opts
-        dataloader = poptorch.DataLoader(opts, **dl_kwargs)
+        dataloader = poptorch.DataLoader(opts, *dl_args, **dl_kwargs)
         return dataloader
 
     def _handle_gradient_accumulation_steps(self) -> None:

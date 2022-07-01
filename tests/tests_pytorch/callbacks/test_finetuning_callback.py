@@ -368,6 +368,7 @@ def test_callbacks_restore(tmpdir):
     }
     if _TORCH_GREATER_EQUAL_1_11:
         expected["maximize"] = False
+
     assert callback._internal_optimizer_metadata[0][0] == expected
 
     # new param group

@@ -257,6 +257,14 @@ def test_dummylogger_noop_method_calls():
     logger.log_metrics("1", 2, three="three")
 
 
+def test_dummlogger_arbitrary_method_calls():
+    """Test that the DummyLogger can be called with non existing methods."""
+    logger = DummyLogger()
+    # Example method from WandbLogger
+    assert hasattr(logger, "log_text")
+    assert callable(logger.log_text)
+
+
 def test_dummyexperiment_support_item_assignment():
     """Test that the DummyExperiment supports item assignment."""
     experiment = DummyExperiment()

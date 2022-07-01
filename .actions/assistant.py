@@ -7,11 +7,11 @@ from typing import Sequence
 import fire
 
 REQUIREMENT_FILES = (
-    "requirements/base.txt",
-    "requirements/extra.txt",
-    "requirements/loggers.txt",
-    "requirements/strategies.txt",
-    "requirements/examples.txt",
+    "requirements/pytorch/base.txt",
+    "requirements/pytorch/extra.txt",
+    "requirements/pytorch/loggers.txt",
+    "requirements/pytorch/strategies.txt",
+    "requirements/pytorch/examples.txt",
 )
 
 

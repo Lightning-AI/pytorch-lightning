@@ -124,7 +124,7 @@ class ActorContinuous(nn.Module):
 
 
 class ExperienceSourceDataset(IterableDataset):
-    """Implementation from PyTorch Lightning Bolts: https://github.com/PyTorchLightning/lightning-
+    """Implementation from PyTorch Lightning Bolts: https://github.com/Lightning-AI/lightning-
     bolts/blob/master/pl_bolts/datamodules/experience_source.py.
 
     Basic experience source dataset. Takes a generate_batch function that returns an iterator. The logic for the
