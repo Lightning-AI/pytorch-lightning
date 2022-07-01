@@ -55,7 +55,7 @@ if _TORCH_GREATER_EQUAL_1_11:
 
         return unwrap_lightning_module(model)
 else:
-    unwrap_lightning_module_sharded = ...  # type: ignore[assignment]
+    unwrap_lightning_module_fully_sharded_native = ...  # type: ignore[assignment]
 
 log = logging.getLogger(__name__)
 

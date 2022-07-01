@@ -41,7 +41,7 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
 
         return unwrap_lightning_module(model)
 else:
-    unwrap_lightning_module_sharded = ...  # type: ignore[assignment]
+    unwrap_lightning_module_fully_sharded = ...  # type: ignore[assignment]
 
 log = logging.getLogger(__name__)
 
