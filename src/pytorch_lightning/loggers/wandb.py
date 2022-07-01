@@ -292,7 +292,7 @@ class WandbLogger(Logger):
         self._logged_model_time: Dict[str, float] = {}
         self._checkpoint_callback: Optional["ReferenceType[Checkpoint]"] = None
         # set wandb init arguments
-        self._wandb_init: Dict[str, Any] = dict(
+        self._wandb_init = dict(
             name=name or project,
             project=project,
             id=version or id,
@@ -354,7 +354,7 @@ class WandbLogger(Logger):
                 self._experiment = wandb._attach(attach_id)
             else:
                 # create new wandb process
-                self._experiment = wandb.init(**self._wandb_init)
+                self._experiment = wandb.init(**self._wandb_init)  # type: ignore
 
                 # define default x-axis
                 if isinstance(self._experiment, Run) and getattr(self._experiment, "define_metric", None):
