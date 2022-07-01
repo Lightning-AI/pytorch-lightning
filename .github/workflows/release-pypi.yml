@@ -142,6 +142,7 @@ jobs:
 
     - name: Miror source
       run: |
+        pip install -q fire requests
         python .actions/assistant.py mirror-pkg2source pypi src
         tree src/ -L 3
 
