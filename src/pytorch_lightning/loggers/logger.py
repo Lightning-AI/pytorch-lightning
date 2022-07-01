@@ -25,7 +25,7 @@ from weakref import ReferenceType
 import numpy as np
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
 
 
@@ -86,7 +86,7 @@ class Logger(ABC):
         else:
             self._agg_default_func = np.mean
 
-    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
+    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
         """Called after model checkpoint callback saves a new checkpoint.
 
         Args:
@@ -221,7 +221,7 @@ class LoggerCollection(Logger):
     def __getitem__(self, index: int) -> Logger:
         return list(self._logger_iterable)[index]
 
-    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
+    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
         for logger in self._logger_iterable:
             logger.after_save_checkpoint(checkpoint_callback)
 
@@ -345,6 +345,14 @@ class DummyLogger(Logger):
     def __iter__(self):
         # if DummyLogger is substituting a logger collection, pretend it is empty
         yield from ()
+
+    def __getattr__(self, name: str) -> Callable:
+        """Allows the DummyLogger to be called with arbitrary methods, to avoid AttributeErrors."""
+
+        def method(*args, **kwargs):
+            return None
+
+        return method
 
 
 def merge_dicts(

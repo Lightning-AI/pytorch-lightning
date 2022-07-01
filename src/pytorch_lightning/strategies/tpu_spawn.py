@@ -22,6 +22,7 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
+from pytorch_lightning.plugins.environments import XLAEnvironment
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
@@ -67,6 +68,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
+            cluster_environment=XLAEnvironment(),
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
@@ -74,18 +76,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self.tpu_local_core_rank = 0
         self.tpu_global_core_rank = 0
         self.start_method = "fork"
-
-    @property
-    def global_rank(self) -> int:
-        return self.tpu_global_core_rank
-
-    @property
-    def local_rank(self) -> int:
-        return self.tpu_local_core_rank
-
-    @property
-    def world_size(self) -> int:
-        return xm.xrt_world_size()
 
     @property
     def root_device(self) -> torch.device:
@@ -150,7 +140,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
+        return dict(num_replicas=self.world_size, rank=self.global_rank)
 
     @property
     def is_distributed(self) -> bool:

@@ -179,7 +179,7 @@ class _FxValidator:
         if fx_name not in cls.functions:
             raise RuntimeError(
                 f"Logging inside `{fx_name}` is not implemented."
-                " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`."
+                " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`."
             )
 
         if cls.functions[fx_name] is None:

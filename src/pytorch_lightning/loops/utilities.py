@@ -22,6 +22,7 @@ import numpy as np
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
+from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.loops import Loop
@@ -152,7 +153,7 @@ def _build_training_step_kwargs(
 @contextmanager
 def _block_parallel_sync_behavior(strategy: Strategy, block: bool = True) -> Generator[None, None, None]:
     """Blocks synchronization in :class:`~pytorch_lightning.strategies.parallel.ParallelStrategy`. This is useful
-    for example when when accumulating gradients to reduce communication when it is not needed.
+    for example when accumulating gradients to reduce communication when it is not needed.
 
     Args:
         strategy: the strategy instance to use.
@@ -220,3 +221,16 @@ def _reset_progress(loop: Loop) -> None:
 def _v1_8_output_format(fx: Callable) -> bool:
     parameters = inspect.signature(fx).parameters
     return "new_format" in parameters and parameters["new_format"].default is True
+
+
+def _set_sampler_epoch(dataloader: DataLoader, epoch: int) -> None:
+    """Calls the ``set_epoch`` method on either the sampler or the batch sampler of the given dataloader.
+
+    Every PyTorch dataloader has either a sampler or a batch sampler, and if it is wrapped by a
+    :class:`~torch.utils.data.distributed.DistributedSampler`, ``set_epoch`` must be called at the beginning
+    of every epoch to ensure shuffling applies a new ordering. This has no effect if shuffling is off.
+    """
+    for sampler_name in ("sampler", "batch_sampler"):
+        sampler = getattr(dataloader, sampler_name, None)
+        if sampler is not None and callable(getattr(sampler, "set_epoch", None)):
+            sampler.set_epoch(epoch)

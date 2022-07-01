@@ -9,6 +9,9 @@ on: # Trigger the workflow on push or pull request, but only for the master bran
     branches: [master, "release/*"]
     paths:
       - "!src/lightning_app/**"  # todo: implement job skip
+      - "!tests/tests_app/**"  # todo: implement job skip
+      - "!tests/tests_app_examples/**"  # todo: implement job skip
+      - "!examples/app_*"  # todo: implement job skip
       - "dockers/**"
       - "!dockers/README.md"
       - "requirements/*"
@@ -162,8 +165,8 @@ jobs:
       fail-fast: false
       matrix:
         # the config used in 'dockers/ci-runner-hpu/Dockerfile'
-        gaudi_version: ["1.4.0"]
-        pytorch_version: ["1.10.2"]
+        gaudi_version: ["1.5.0"]
+        pytorch_version: ["1.11.0"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2

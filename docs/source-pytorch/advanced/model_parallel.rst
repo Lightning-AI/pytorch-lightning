@@ -97,7 +97,7 @@ Fully Sharded Training
 ^^^^^^^^^^^^^^^^^^^^^^
 
 .. warning::
-    Fully Sharded Training is in beta and the API is subject to change. Please create an `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues>`_ if you run into any issues.
+    Fully Sharded Training is in beta and the API is subject to change. Please create an `issue <https://github.com/Lightning-AI/lightning/issues>`_ if you run into any issues.
 
 `Fully Sharded <https://fairscale.readthedocs.io/en/latest/api/nn/fsdp.html>`__ shards optimizer state, gradients and parameters across data parallel workers. This allows you to fit much larger models onto multiple GPUs into memory.
 
@@ -190,7 +190,7 @@ This saves memory when training larger models however requires wrapping modules 
 
 .. warning::
 
-    Ensure to not wrap the entire model with activation checkpointing. This is not the intended usage of activation checkpointing, and will lead to failures as seen in `this discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/9144>`__.
+    Ensure to not wrap the entire model with activation checkpointing. This is not the intended usage of activation checkpointing, and will lead to failures as seen in `this discussion <https://github.com/Lightning-AI/lightning/discussions/9144>`__.
 
 .. code-block:: python
 
@@ -212,7 +212,7 @@ DeepSpeed
 ^^^^^^^^^
 
 .. note::
-    The DeepSpeed strategy is in beta and the API is subject to change. Please create an `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues>`_ if you run into any issues.
+    The DeepSpeed strategy is in beta and the API is subject to change. Please create an `issue <https://github.com/Lightning-AI/lightning/issues>`_ if you run into any issues.
 
 `DeepSpeed <https://github.com/microsoft/DeepSpeed>`__ is a deep learning training optimization library, providing the means to train massive billion parameter models at scale.
 Using the DeepSpeed strategy, we were able to **train model sizes of 10 Billion parameters and above**, with a lot of useful information in this `benchmark <https://github.com/huggingface/transformers/issues/9996>`_ and the `DeepSpeed docs <https://www.deepspeed.ai/tutorials/megatron/>`__.
@@ -539,7 +539,7 @@ This saves memory when training larger models, however requires using a checkpoi
 
 .. warning::
 
-    Ensure to not wrap the entire model with activation checkpointing. This is not the intended usage of activation checkpointing, and will lead to failures as seen in `this discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/9144>`__.
+    Ensure to not wrap the entire model with activation checkpointing. This is not the intended usage of activation checkpointing, and will lead to failures as seen in `this discussion <https://github.com/Lightning-AI/lightning/discussions/9144>`__.
 
 .. code-block:: python
 
@@ -715,7 +715,7 @@ DDP Optimizations
 When Using DDP Strategies, Set find_unused_parameters=False
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-By default, we have set ``find_unused_parameters=True`` for compatibility reasons that have been observed in the past (refer to the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
+By default, we have set ``find_unused_parameters=True`` for compatibility reasons that have been observed in the past (refer to the `discussion <https://github.com/Lightning-AI/lightning/discussions/6219>`_ for more details).
 When enabled, it can result in a performance hit and can be disabled in most cases. Read more about it `here <https://pytorch.org/docs/stable/notes/ddp.html#internal-design>`_.
 
 .. tip::
@@ -763,7 +763,7 @@ training and apply special optimizations during runtime.
 When Using DDP on a Multi-node Cluster, Set NCCL Parameters
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-`NCCL <https://developer.nvidia.com/nccl>`__ is the NVIDIA Collective Communications Library that is used by PyTorch to handle communication across nodes and GPUs. There are reported benefits in terms of speedups when adjusting NCCL parameters as seen in this `issue <https://github.com/PyTorchLightning/pytorch-lightning/issues/7179>`__. In the issue, we see a 30% speed improvement when training the Transformer XLM-RoBERTa and a 15% improvement in training with Detectron2.
+`NCCL <https://developer.nvidia.com/nccl>`__ is the NVIDIA Collective Communications Library that is used by PyTorch to handle communication across nodes and GPUs. There are reported benefits in terms of speedups when adjusting NCCL parameters as seen in this `issue <https://github.com/Lightning-AI/lightning/issues/7179>`__. In the issue, we see a 30% speed improvement when training the Transformer XLM-RoBERTa and a 15% improvement in training with Detectron2.
 
 NCCL parameters can be adjusted via environment variables.
 
