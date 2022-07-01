@@ -106,11 +106,13 @@ class AssistantCLI:
 
     @staticmethod
     def determine_releasing_pkgs(
-        src_folder: str = _PATH_SRC, packages: Sequence[str] = ("pytorch-lightning", "lightning-app")
+        src_folder: str = _PATH_SRC, packages: Sequence[str] = ("pytorch", "app"), inverse: bool = False
     ) -> Optional[Sequence[str]]:
         if isinstance(packages, str):
             packages = [packages]
         releasing = [pkg for pkg in packages if AssistantCLI._release_pkg(PACKAGE_MAPPING[pkg], src_folder=src_folder)]
+        if inverse:
+            releasing = list(filter(lambda pkg: pkg not in releasing, packages))
         return releasing
 
 

@@ -17,6 +17,7 @@ jobs:
       pull-pkgs: ${{ steps.download.outputs.pkgs }}
     steps:
     - run: |
+        pip install fire requests
         mkdir dist && touch dist/.placeholder
         mkdir pypi && touch pypi/.placeholder
     - uses: actions/upload-artifact@v3
@@ -30,19 +31,12 @@ jobs:
 
     - name: Find chnaged packages
       id: candidate
-      run: |
-        pip install fire requests
-        # python actions/assistant.py list-runtimes $PR_NUMBER
-        echo "::set-output name=pkgs::$(python .github/assistant.py determine-releasing-pkgs 2>&1)"
+      run: echo "::set-output name=pkgs::$(python .actions/assistant.py determine-releasing-pkgs 2>&1)"
     - run: echo "${{ steps.candidate.outputs.pkgs }}"
 
     - name: Inverse packages to pull
       id: download
-      run: |
-        pip install fire requests
-        # fixme
-        # python actions/assistant.py list-runtimes $PR_NUMBER
-        echo "::set-output name=pkgs::$(python .github/assistant.py determine-releasing-pkgs 2>&1)"
+      run: echo "::set-output name=pkgs::$(python .actions/assistant.py determine-releasing-pkgs --inverse 2>&1)"
     - run: echo "${{ steps.candidate.download.pkgs }}"
 
   # based on https://github.com/pypa/gh-action-pypi-publish
@@ -69,7 +63,6 @@ jobs:
       run: pip install -U setuptools wheel
 
     - name: Build packages
-      if: contains(, matrix.pkg)
       env:
         PACKAGE_NAME: ${{ matrix.pkg }}
       run: |
@@ -158,7 +151,7 @@ jobs:
 
   publish-package:
     runs-on: ubuntu-20.04
-    needs: build-package
+    needs: build-meta-pkg
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
     - uses: actions/checkout@v2
