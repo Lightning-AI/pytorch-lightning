@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from lightning import __about__
+from lightning_app.__version__ import version
 from lightning_app.testing.helpers import RunIf
 from lightning_app.utilities.packaging import lightning_utils
 from lightning_app.utilities.packaging.lightning_utils import (
@@ -15,7 +15,7 @@ def test_prepare_lightning_wheels_and_requirement(tmpdir):
     """This test ensures the lightning source gets packaged inside the lightning repo."""
 
     cleanup_handle = _prepare_lightning_wheels_and_requirements(tmpdir)
-    tar_name = f"lightning-{__about__.__version__}.tar.gz"
+    tar_name = f"lightning-{version}.tar.gz"
     assert sorted(os.listdir(tmpdir)) == [tar_name]
     cleanup_handle()
     assert os.listdir(tmpdir) == []

@@ -14,7 +14,7 @@ from typing import Any, Callable, Optional
 from packaging.version import Version
 
 from lightning_app import _logger, _PROJECT_ROOT, _root_logger
-from lightning_app.__about__ import __version__
+from lightning_app.__version__ import version
 from lightning_app.core.constants import PREPARE_LIGHTING
 from lightning_app.utilities.git import check_github_repository, get_dir_name
 
@@ -129,7 +129,7 @@ def _prepare_lightning_wheels_and_requirements(root: Path) -> Optional[Callable]
 
 
 def _enable_debugging():
-    tar_file = os.path.join(os.getcwd(), f"lightning-{__version__}.tar.gz")
+    tar_file = os.path.join(os.getcwd(), f"lightning-{version}.tar.gz")
 
     if not os.path.exists(tar_file):
         return
@@ -166,7 +166,7 @@ def _fetch_latest_version(package_name: str) -> str:
     if proc.stdout:
         logs = " ".join([line.decode("utf-8") for line in iter(proc.stdout.readline, b"")])
         return logs.split(")\n")[0].split(",")[-1].replace(" ", "")
-    return __version__
+    return version
 
 
 def _verify_lightning_version():
@@ -177,7 +177,7 @@ def _verify_lightning_version():
 
     lightning_latest_version = _fetch_latest_version("lightning")
 
-    if Version(lightning_latest_version) > Version(__version__):
+    if Version(lightning_latest_version) > Version(version):
         raise Exception(
             f"You need to use the latest version of Lightning ({lightning_latest_version}) to run in the cloud. "
             "Please, run `pip install -U lightning`"
