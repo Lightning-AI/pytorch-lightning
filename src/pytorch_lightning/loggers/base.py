@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any
+
 import pytorch_lightning.loggers.logger as logger
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
-def rank_zero_experiment(*args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+def rank_zero_experiment(*args, **kwargs) -> Any:  # type: ignore[no-untyped-def]
     rank_zero_deprecation(
         "The `pytorch_lightning.loggers.base.rank_zero_experiment` is deprecated in v1.7"
         " and will be removed in v1.9. Please use `pytorch_lightning.loggers.logger.rank_zero_experiment` instead."
@@ -77,7 +79,7 @@ class DummyLogger(logger.DummyLogger):
         super().__init__(*args, **kwargs)
 
 
-def merge_dicts(*args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+def merge_dicts(*args, **kwargs) -> Any:  # type: ignore[no-untyped-def]
     rank_zero_deprecation(
         "The `pytorch_lightning.loggers.base.merge_dicts` is deprecated in v1.7"
         " and will be removed in v1.9. Please use `pytorch_lightning.loggers.logger.merge_dicts` instead."
