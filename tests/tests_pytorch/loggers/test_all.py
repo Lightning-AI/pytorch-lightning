@@ -364,11 +364,12 @@ def test_logger_with_prefix_all(tmpdir, monkeypatch):
 
     # WandB
     with mock.patch("pytorch_lightning.loggers.wandb.wandb") as wandb:
-        logger = _instantiate_logger(WandbLogger, save_dir=tmpdir, prefix=prefix)
-        wandb.run = None
-        wandb.init().step = 0
-        logger.log_metrics({"test": 1.0}, step=0)
-        logger.experiment.log.assert_called_once_with({"tmp-test": 1.0, "trainer/global_step": 0})
+        with mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock):
+            logger = _instantiate_logger(WandbLogger, save_dir=tmpdir, prefix=prefix)
+            wandb.run = None
+            wandb.init().step = 0
+            logger.log_metrics({"test": 1.0}, step=0)
+            logger.experiment.log.assert_called_once_with({"tmp-test": 1.0, "trainer/global_step": 0})
 
 
 def test_logger_default_name(tmpdir):

@@ -23,7 +23,7 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.utils import no_warning_call
 
-
+@mock.patch("pytorch_lightning.loggers.wandb.Run",  new=mock.Mock)
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_wandb_logger_init(wandb, monkeypatch):
     """Verify that basic functionality of wandb logger works.
@@ -111,33 +111,35 @@ def test_wandb_pickle(wandb, tmpdir):
         def name(self):
             return "the_run_name"
 
-    wandb.run = None
-    wandb.init.return_value = Experiment()
-    logger = WandbLogger(id="the_id", offline=True)
+    with mock.patch("pytorch_lightning.loggers.wandb.Run", new=Experiment):
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=logger)
-    # Access the experiment to ensure it's created
-    assert trainer.logger.experiment, "missing experiment"
-    assert trainer.log_dir == logger.save_dir
-    pkl_bytes = pickle.dumps(trainer)
-    trainer2 = pickle.loads(pkl_bytes)
+        wandb.run = None
+        wandb.init.return_value = Experiment()
+        logger = WandbLogger(id="the_id", offline=True)
 
-    assert os.environ["WANDB_MODE"] == "dryrun"
-    assert trainer2.logger.__class__.__name__ == WandbLogger.__name__
-    assert trainer2.logger.experiment, "missing experiment"
+        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, logger=logger)
+        # Access the experiment to ensure it's created
+        assert trainer.logger.experiment, "missing experiment"
+        assert trainer.log_dir == logger.save_dir
+        pkl_bytes = pickle.dumps(trainer)
+        trainer2 = pickle.loads(pkl_bytes)
 
-    wandb.init.assert_called()
-    assert "id" in wandb.init.call_args[1]
-    assert wandb.init.call_args[1]["id"] == "the_id"
+        assert os.environ["WANDB_MODE"] == "dryrun"
+        assert trainer2.logger.__class__.__name__ == WandbLogger.__name__
+        assert trainer2.logger.experiment, "missing experiment"
 
-    del os.environ["WANDB_MODE"]
+        wandb.init.assert_called()
+        assert "id" in wandb.init.call_args[1]
+        assert wandb.init.call_args[1]["id"] == "the_id"
 
+        del os.environ["WANDB_MODE"]
 
+@mock.patch("pytorch_lightning.loggers.wandb.Run",  new=mock.Mock)
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
     import pytorch_lightning.loggers.wandb as imports
-
+    
     monkeypatch.setattr(imports, "_WANDB_GREATER_EQUAL_0_12_10", True)
     wandb.run = None
     logger = WandbLogger(save_dir=str(tmpdir), offline=True)
@@ -168,7 +170,7 @@ def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {"epoch=0-step=3.ckpt"}
     assert trainer.log_dir == logger.save_dir
 
-
+@mock.patch("pytorch_lightning.loggers.wandb.Run",  new=mock.Mock)
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
@@ -233,7 +235,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
         },
     )
 
-
+@mock.patch("pytorch_lightning.loggers.wandb.Run",  new=mock.Mock)
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_wandb_log_media(wandb, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
