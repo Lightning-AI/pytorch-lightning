@@ -21,12 +21,11 @@ from packaging.version import Version
 from pkg_resources import get_distribution
 
 from pytorch_lightning.callbacks.progress.rich_progress import _RICH_AVAILABLE
+from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE, _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities import (
     _APEX_AVAILABLE,
     _BAGUA_AVAILABLE,
     _DEEPSPEED_AVAILABLE,
-    _FAIRSCALE_AVAILABLE,
-    _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,

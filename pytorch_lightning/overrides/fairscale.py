@@ -11,11 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import operator
+
 import torch.nn as nn
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, unwrap_lightning_module
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
+from pytorch_lightning.utilities import _module_available
+from pytorch_lightning.utilities.imports import _compare_version, _IS_WINDOWS
+
+_FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
+_FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
+_FAIRSCALE_FULLY_SHARDED_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.4")
 
 LightningShardedDataParallel = None
 if _FAIRSCALE_AVAILABLE:
