@@ -263,7 +263,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         Args:
             filepath: Path to checkpoint
         """
-        if self.local_rank == 0:
+        if self.tpu_local_core_rank == 0:
             self.checkpoint_io.remove_checkpoint(filepath)
 
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
