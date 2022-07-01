@@ -19,9 +19,6 @@ from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 import pytorch_lightning as pl
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
-from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
 
 
 class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
@@ -109,6 +106,9 @@ def unwrap_lightning_module(wrapped_model: nn.Module) -> "pl.LightningModule":
         TypeError: If the unwrapping leads to a module that is not a LightningModule and that cannot be unwrapped
             further.
     """
+    from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
+    from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
+    from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
     model = wrapped_model
     if _TORCH_GREATER_EQUAL_1_11:
         from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel as NativeFullyShardedDataParallel
