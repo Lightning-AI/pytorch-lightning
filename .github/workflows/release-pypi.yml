@@ -133,8 +133,7 @@ jobs:
 
     - name: Unzip packages
       working-directory: pypi
-      run: tar -zxvf *.tar.gz
-
+      run: for file in `ls *.gz`; do tar -xzf $file; done
     - name: Show upacked pkgs
       run: |
         sudo apt install -y tree
