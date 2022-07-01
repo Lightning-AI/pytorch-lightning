@@ -380,8 +380,9 @@ class WandbLogger(Logger):
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
         if step is not None:
-            metrics["trainer/global_step"] = step
-        self.experiment.log(metrics)
+            self.experiment.log(dict(metrics, **{"trainer/global_step": step}))
+        else:
+            self.experiment.log(metrics)
 
     @rank_zero_only
     def log_table(
