@@ -45,7 +45,7 @@
 /src/pytorch_lightning/tuner                @SkafteNicki @borda @awaelchli
 /src/pytorch_lightning/utilities            @borda @tchaton @SeanNaren @carmocca
 
-/src/pytorch_app                           @tchaton @awaelchli @manskx @hhsecond
+/src/lightning_app                           @tchaton @awaelchli @manskx @hhsecond
 
 # Examples
 /examples/app_*                            @tchaton @awaelchli @manskx @hhsecond
