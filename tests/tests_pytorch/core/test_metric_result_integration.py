@@ -298,8 +298,15 @@ def test_result_collection_restoration(tmpdir):
         batch_idx = None
 
 
-@pytest.mark.parametrize("device", ("cpu", pytest.param("cuda", marks=RunIf(min_cuda_gpus=1))))
-def test_lightning_module_logging_result_collection(tmpdir, device):
+@pytest.mark.parametrize(
+    "accelerator,device",
+    (
+        ("cpu", "cpu"),
+        pytest.param("gpu", "cuda", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", "mps", marks=RunIf(mps=True)),
+    ),
+)
+def test_lightning_module_logging_result_collection(tmpdir, accelerator, device):
     class LoggingModel(BoringModel):
         def __init__(self):
             super().__init__()
@@ -348,7 +355,7 @@ def test_lightning_module_logging_result_collection(tmpdir, device):
         limit_train_batches=2,
         limit_val_batches=2,
         callbacks=[ckpt],
-        accelerator="gpu" if device == "cuda" else "cpu",
+        accelerator=accelerator,
         devices=1,
     )
     trainer.fit(model)
@@ -474,10 +481,15 @@ def test_result_collection_reload(tmpdir):
     result_collection_reload(default_root_dir=tmpdir)
 
 
-@RunIf(min_cuda_gpus=1)
+@pytest.mark.parametrize(
+    "accelerator",
+    [
+        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
+    ],
+)
 @mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
-def test_result_collection_reload_1_gpu_ddp(tmpdir):
-    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator="gpu")
+def test_result_collection_reload_1_gpu_ddp(tmpdir, accelerator):
+    result_collection_reload(default_root_dir=tmpdir, strategy="ddp", accelerator=accelerator)
 
 
 @RunIf(min_cuda_gpus=2, standalone=True)
@@ -617,3 +629,33 @@ def test_result_metric_max_min(reduce_fx, expected):
     rm = _ResultMetric(metadata, is_tensor=True)
     rm.update(torch.tensor(expected), 1)
     assert rm.compute() == expected
+
+
+def test_compute_not_a_tensor_raises():
+    class RandomMetric(Metric):
+        def update(self):
+            pass
+
+        def compute(self):
+            return torch.tensor(1.0), torch.tensor(2.0)
+
+    class MyModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.metric = RandomMetric()
+
+        def on_train_start(self):
+            self.log("foo", self.metric)
+
+    model = MyModel()
+    trainer = Trainer(
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
+        enable_model_summary=False,
+    )
+    with pytest.raises(ValueError, match=r"compute\(\)` return of.*foo' must be a tensor"):
+        trainer.fit(model)

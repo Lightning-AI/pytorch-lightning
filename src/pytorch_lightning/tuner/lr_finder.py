@@ -279,8 +279,8 @@ def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) ->
 
 
 class _LRCallback(Callback):
-    """Special callback used by the learning rate finder. This callbacks log the learning rate before each batch
-    and log the corresponding loss after each batch.
+    """Special callback used by the learning rate finder. This callback logs the learning rate before each batch
+    and logs the corresponding loss after each batch.
 
     Args:
         num_training: number of iterations done by the learning rate finder
