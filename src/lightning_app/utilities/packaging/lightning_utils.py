@@ -57,7 +57,7 @@ def _prepare_wheel(path):
             proc.wait()
 
         with subprocess.Popen(
-            ["python", "setup.py", "sdist"],
+            ["PACKAGE_NAME=app", "python", "setup.py", "sdist"],
             stdout=logfile,
             stderr=logfile,
             bufsize=0,
