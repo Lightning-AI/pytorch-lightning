@@ -54,6 +54,7 @@ if _TORCH_GREATER_EQUAL_1_11:
             model = model.module
 
         return unwrap_lightning_module(model)
+
 else:
     unwrap_lightning_module_fully_sharded_native = ...  # type: ignore[assignment]
 
@@ -245,11 +246,8 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         #  slow down training? Maybe this should go somewhere else.
         #  https://github.com/Lightning-AI/lightning/issues/13500
         if not _TORCH_GREATER_EQUAL_1_11:  # pragma: no cover
-            raise MisconfigurationException(
-                "`DDPFullyShardedNativeStrategy` requires `torch>=1.11.0` to be installed."
-            )
+            raise MisconfigurationException("`DDPFullyShardedNativeStrategy` requires `torch>=1.11.0` to be installed.")
         return unwrap_lightning_module_fully_sharded_native(self.model) if self.model is not None else None
-
 
     @classmethod
     def get_registered_strategies(cls) -> List[str]:

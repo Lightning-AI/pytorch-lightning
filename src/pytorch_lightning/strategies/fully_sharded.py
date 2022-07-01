@@ -40,6 +40,7 @@ if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
             model = model.module
 
         return unwrap_lightning_module(model)
+
 else:
     unwrap_lightning_module_fully_sharded = ...  # type: ignore[assignment]
 
