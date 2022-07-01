@@ -36,6 +36,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      # TODO: use replace_oldest_ver() instead
       - name: Set min. dependencies
         if: matrix.requires == 'oldest'
         run: |
