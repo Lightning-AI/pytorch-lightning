@@ -142,8 +142,8 @@ class ProxyWorkRun:
 
     @staticmethod
     def _process_call_args(args: Tuple[Any, ...], kwargs: Dict[str, Any]) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
-        """Processes all positional and keyword arguments before they get passed to the caller queue and sent to the
-        LightningWork.
+        """Processes all positional and keyword arguments before they get passed to the caller queue and sent to
+        the LightningWork.
 
         Currently, this method only applies sanitization to Lightning Path objects.
 
@@ -227,8 +227,8 @@ class WorkStateObserver(Thread):
 
 @dataclass
 class LightningWorkSetAttrProxy:
-    """This wrapper around the ``LightningWork.__setattr__`` ensures that state changes get sent to the delta queue to
-    be reflected in the Flow.
+    """This wrapper around the ``LightningWork.__setattr__`` ensures that state changes get sent to the delta queue
+    to be reflected in the Flow.
 
     Example:
 
@@ -507,7 +507,8 @@ class WorkRunner:
 
 
 def persist_artifacts(work: "LightningWork") -> None:
-    """Copies all :class:`~lightning_app.storage.path.Path` referenced by the given LightningWork to the shared storage.
+    """Copies all :class:`~lightning_app.storage.path.Path` referenced by the given LightningWork to the shared
+    storage.
 
     Files that don't exist or do not originate from the given Work will be skipped.
     """

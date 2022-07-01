@@ -10,8 +10,8 @@ from lightning_app._setup_tools import _load_requirements
 
 
 class ScriptRunner(TracerPythonScript):
-    """The ScriptRunner executes the script using ``runpy`` and also patches the Trainer methods to inject additional
-    code."""
+    """The ScriptRunner executes the script using ``runpy`` and also patches the Trainer methods to inject
+    additional code."""
 
     def __init__(self, root_path: str, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, cloud_build_config=self._get_build_config(root_path), **kwargs)

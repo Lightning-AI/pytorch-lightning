@@ -40,7 +40,8 @@ class StateEntry:
 
 
 class StateStore(ABC):
-    """Base class of State store that provides simple key, value store to keep track of app state, served app state."""
+    """Base class of State store that provides simple key, value store to keep track of app state, served app
+    state."""
 
     @abstractmethod
     def __init__(self):

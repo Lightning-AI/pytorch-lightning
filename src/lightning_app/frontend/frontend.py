@@ -30,9 +30,7 @@ class Frontend(ABC):
             .. code-block:: python
 
                 def start_server(self, host, port):
-                    self._process = subprocess.Popen(
-                        ["flask", "run" "--host", host, "--port", str(port)]
-                    )
+                    self._process = subprocess.Popen(["flask", "run" "--host", host, "--port", str(port)])
         """
 
     @abstractmethod
