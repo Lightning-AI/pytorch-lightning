@@ -271,6 +271,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed a bug where checkpoints were not properly saved with `FSDP` strategy models ([#13500](https://github.com/Lightning-AI/lightning/issues/13500))
+
 
 - Improved support for custom `DataLoader`s when instantiated in `*_dataloader` hook ([#12981](https://github.com/PyTorchLightning/pytorch-lightning/pull/12981))
 

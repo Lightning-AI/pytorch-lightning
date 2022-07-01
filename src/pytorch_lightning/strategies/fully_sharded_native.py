@@ -20,6 +20,7 @@ from torch import Tensor
 from torch.distributed.distributed_c10d import _get_default_group, ProcessGroup
 
 import pytorch_lightning as pl
+from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -47,6 +48,14 @@ if _TORCH_GREATER_EQUAL_1_11:
     )
     from torch.distributed.fsdp.wrap import enable_wrap
 
+    def unwrap_lightning_module_fully_sharded_native(wrapped_model: torch.nn.Module) -> "pl.LightningModule":
+        model = wrapped_model
+        if isinstance(model, FullyShardedDataParallel):
+            model = model.module
+
+        return unwrap_lightning_module(model)
+else:
+    unwrap_lightning_module_sharded = ...  # type: ignore[assignment]
 
 log = logging.getLogger(__name__)
 
@@ -229,6 +238,18 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             self.model = self._layer_sync.revert(self.model)
 
         super().teardown()
+
+    @property
+    def lightning_module(self) -> Optional["pl.LightningModule"]:
+        # TODO unwrapping is eventually needed for checkpointing, but does this
+        #  slow down training? Maybe this should go somewhere else.
+        #  https://github.com/Lightning-AI/lightning/issues/13500
+        if not _TORCH_GREATER_EQUAL_1_11:  # pragma: no cover
+            raise MisconfigurationException(
+                "`DDPFullyShardedNativeStrategy` requires `torch>=1.11.0` to be installed."
+            )
+        return unwrap_lightning_module_fully_sharded_native(self.model) if self.model is not None else None
+
 
     @classmethod
     def get_registered_strategies(cls) -> List[str]:

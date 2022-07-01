@@ -13,16 +13,26 @@
 # limitations under the License.
 import torch.nn as nn
 
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
+import pytorch_lightning as pl
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, unwrap_lightning_module
 from pytorch_lightning.utilities import _IS_WINDOWS, _module_available
 
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
 
 if _FAIRSCALE_AVAILABLE:
+    from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
 
     class LightningShardedDataParallel(_LightningModuleWrapperBase):
         # Just do this for later docstrings
         pass
 
+    def unwrap_lightning_module_sharded(wrapped_model: nn.Module) -> "pl.LightningModule":
+        model = wrapped_model
+        if isinstance(model, ShardedDataParallel):
+            model = model.module
+
+        return unwrap_lightning_module(model)
+
 else:
     LightningShardedDataParallel = ...  # type: ignore[assignment,misc]
+    unwrap_lightning_module_sharded = ...  # type: ignore[assignment]

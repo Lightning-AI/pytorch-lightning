@@ -18,6 +18,7 @@ from typing import Dict, Generator, List, Optional
 import torch
 
 import pytorch_lightning as pl
+from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -32,6 +33,15 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import default_auto_wrap_policy, enable_wrap
     from fairscale.nn.data_parallel import FullyShardedDataParallel
+
+    def unwrap_lightning_module_fully_sharded(wrapped_model: torch.nn.Module) -> "pl.LightningModule":
+        model = wrapped_model
+        if isinstance(model, FullyShardedDataParallel):
+            model = model.module
+
+        return unwrap_lightning_module(model)
+else:
+    unwrap_lightning_module_sharded = ...  # type: ignore[assignment]
 
 log = logging.getLogger(__name__)
 
@@ -208,6 +218,18 @@ class DDPFullyShardedStrategy(DDPStrategy):
     def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
         with self.precision_plugin.predict_step_context():
             return self.model.predict_step(*args, **kwargs)
+
+    @property
+    def lightning_module(self) -> Optional["pl.LightningModule"]:
+        # TODO unwrapping is eventually needed for checkpointing, but does this
+        #  slow down training? Maybe this should go somewhere else.
+        #  https://github.com/Lightning-AI/lightning/issues/13500
+        if not _FAIRSCALE_FULLY_SHARDED_AVAILABLE:  # pragma: no cover
+            raise MisconfigurationException(
+                "`DDPFullyShardedStrategy` requires `fairscale>=0.3.4` to be installed."
+                " Install it by running `pip install fairscale`."
+            )
+        return unwrap_lightning_module_fully_sharded(self.model) if self.model is not None else None
 
     def post_training_step(self):
         pass
