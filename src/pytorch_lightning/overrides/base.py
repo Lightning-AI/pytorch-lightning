@@ -17,6 +17,7 @@ import torch
 import torch.nn as nn
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
+
 import pytorch_lightning as pl
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
@@ -111,15 +112,20 @@ def unwrap_lightning_module(wrapped_model: nn.Module) -> "pl.LightningModule":
     """
     model = wrapped_model
     if _TORCH_GREATER_EQUAL_1_11:
-        from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel as NativeFullyShardedDataParallel
+        from torch.distributed.fsdp.fully_sharded_data_parallel import (
+            FullyShardedDataParallel as NativeFullyShardedDataParallel,
+        )
+
         if isinstance(model, NativeFullyShardedDataParallel):
             model = unwrap_lightning_module(model.module)
     if _FAIRSCALE_AVAILABLE:
         from fairscale.nn.data_parallel.sharded_ddp import ShardedDataParallel
+
         if isinstance(model, ShardedDataParallel):
             model = unwrap_lightning_module(model.module)
     if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
         from fairscale.nn.data_parallel import FullyShardedDataParallel
+
         if isinstance(model, FullyShardedDataParallel):
             model = unwrap_lightning_module(model.module)
     if isinstance(model, (DistributedDataParallel, DataParallel)):
@@ -127,7 +133,5 @@ def unwrap_lightning_module(wrapped_model: nn.Module) -> "pl.LightningModule":
     if isinstance(model, (_LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase)):
         model = unwrap_lightning_module(model.module)
     if not isinstance(model, pl.LightningModule):
-        raise TypeError(
-            f"Unwrapping the module did not yield a `LightningModule`, got {type(model)} instead.")
+        raise TypeError(f"Unwrapping the module did not yield a `LightningModule`, got {type(model)} instead.")
     return model
-
