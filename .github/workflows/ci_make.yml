@@ -9,13 +9,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cmd: ["clean", "update", "docs", "test-pytorch"]
+        cmd: ["clean", "update", "docs", "docs-pytorch", "test-pytorch"]
 
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
           python-version: 3.8
+
+      - name: Install dependencies
+        env:
+          PACKAGE_NAME: pytorch
+          FREEZE_REQUIREMENTS: 1
+        run: |
+          sudo apt-get update --fix-missing
+          sudo apt-get install -y cmake pandoc
+          pip --version
+          # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
+          sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
+          pip list
+        shell: bash
+
       - name: execute make
         run: make ${{ matrix.cmd }}
         shell: bash
