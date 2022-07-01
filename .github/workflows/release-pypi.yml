@@ -133,12 +133,17 @@ jobs:
 
     - name: Unzip packages
       working-directory: pypi
+      run: tar -zxvf *.tar.gz
+
+    - name: Show upacked pkgs
       run: |
         sudo apt install -y tree
-        tar -zxvf *.tar.gz
-        tree . -L 2
+        tree pypi/ -L 3
 
-    # todo: replace codebase from release if needed
+    - name: Miror source
+      run: |
+        python .actions/assistant.py mirror-pkg2source pypi src
+        tree src/ -L 3
 
     - name: Build packages
       env:
@@ -160,7 +165,8 @@ jobs:
     - uses: actions/checkout@v2
     - uses: actions/download-artifact@v3
       with:
-        name: pypi-packages-${{ github.sha }}
+        name: dist-packages-${{ github.sha }}
+        path: dist
     - run: ls -lh dist/
 
     - name: Upload to release
@@ -177,7 +183,8 @@ jobs:
     - uses: actions/checkout@v2
     - uses: actions/download-artifact@v3
       with:
-        name: pypi-packages-${{ github.sha }}
+        name: dist-packages-${{ github.sha }}
+        path: dist
     - run: ls -lh dist/
 
     - name: Delay releasing
@@ -202,7 +209,7 @@ jobs:
 #        password: ${{ secrets.pypi_password }}
 
   create-legacy-ckpt:
-    # todo skip if pytorch was not released
+    # Todo: skip if pytorch was not released
     runs-on: ubuntu-20.04
     needs: [build-package, publish-package]
     steps:

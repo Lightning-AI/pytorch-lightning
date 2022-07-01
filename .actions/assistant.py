@@ -1,7 +1,9 @@
 import datetime
+import glob
 import json
 import os
 import re
+import shutil
 from distutils.version import LooseVersion, StrictVersion
 from importlib.util import module_from_spec, spec_from_file_location
 from itertools import chain
@@ -133,6 +135,29 @@ class AssistantCLI:
         pkg_path = os.path.join(folder, pkg_file)
         os.makedirs(folder, exist_ok=True)
         request.urlretrieve(pkg_url, pkg_path)
+
+    @staticmethod
+    def _find_pkgs(folder: str, pkg_pattern: str = "lightning") -> List[str]:
+        """Find all python packages with spec.
+
+        patter in give folder, in case `src` exists dive there.
+        """
+        pkg_dirs = [d for d in glob.glob(os.path.join(folder, "*")) if os.path.isdir(d)]
+        if "src" in [os.path.basename(p) for p in pkg_dirs]:
+            return AssistantCLI._find_pkgs(os.path.join(folder, "src"), pkg_pattern)
+        pkg_dirs = list(filter(lambda p: pkg_pattern in os.path.basename(p)))
+        return pkg_dirs
+
+    @staticmethod
+    def mirror_pkg2source(pypi_folder: str, src_folder: str) -> None:
+        """From extracted sdist packages overwrite the python package with given pkg pattern."""
+        pypi_dirs = [d for d in glob.glob(os.path.join(pypi_folder, "*")) if os.path.isdir(d)]
+        for pkg_dir in pypi_dirs:
+            for py_dir in AssistantCLI._find_pkgs(pkg_dir):
+                dir_name = os.path.basename(py_dir)
+                py_dir2 = os.path.join(src_folder, dir_name)
+                shutil.rmtree(py_dir2, ignore_errors=True)
+                shutil.copytree(py_dir, py_dir2)
 
 
 if __name__ == "__main__":
