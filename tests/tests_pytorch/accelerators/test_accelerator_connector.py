@@ -259,7 +259,7 @@ def test_accelerator_choice_multi_node_gpu(
     assert isinstance(trainer.strategy, strategy_class)
 
 
-@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=False)
+@mock.patch("pytorch_lightning.accelerators.gpu.device_parser.num_cuda_devices", return_value=0)
 def test_accelerator_cpu(_):
     trainer = Trainer(accelerator="cpu")
     assert isinstance(trainer.accelerator, CPUAccelerator)
@@ -648,13 +648,11 @@ def test_unsupported_ipu_choice(mock_ipu_acc_avail, monkeypatch):
         Trainer(accelerator="ipu", precision=64)
 
 
-@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=False)
+@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=0)
 @mock.patch("pytorch_lightning.utilities.imports._TPU_AVAILABLE", return_value=False)
 @mock.patch("pytorch_lightning.utilities.imports._IPU_AVAILABLE", return_value=False)
 @mock.patch("pytorch_lightning.utilities.imports._HPU_AVAILABLE", return_value=False)
-def test_devices_auto_choice_cpu(
-    is_ipu_available_mock, is_tpu_available_mock, is_gpu_available_mock, is_hpu_available_mock
-):
+def test_devices_auto_choice_cpu(*_):
     trainer = Trainer(accelerator="auto", devices="auto")
     assert trainer.num_devices == 1
 

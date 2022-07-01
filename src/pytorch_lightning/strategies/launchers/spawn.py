@@ -14,12 +14,13 @@
 import os
 from collections import UserList
 from multiprocessing.queues import SimpleQueue
-from typing import Any, Callable, Literal, NamedTuple, Optional
+from typing import Any, Callable, NamedTuple, Optional
 
 import numpy as np
 import torch
 import torch.multiprocessing as mp
 from torch import Tensor
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.strategies.launchers.base import _Launcher

@@ -14,7 +14,7 @@
 import logging
 import os
 from datetime import timedelta
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.distributed
@@ -22,6 +22,7 @@ from torch import Tensor
 from torch.distributed.constants import default_pg_timeout
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
