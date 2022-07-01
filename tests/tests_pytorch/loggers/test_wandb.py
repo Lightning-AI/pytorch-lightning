@@ -113,7 +113,6 @@ def test_wandb_pickle(wandb, tmpdir):
             return "the_run_name"
 
     with mock.patch("pytorch_lightning.loggers.wandb.Run", new=Experiment):
-
         wandb.run = None
         wandb.init.return_value = Experiment()
         logger = WandbLogger(id="the_id", offline=True)
@@ -129,11 +128,11 @@ def test_wandb_pickle(wandb, tmpdir):
         assert trainer2.logger.__class__.__name__ == WandbLogger.__name__
         assert trainer2.logger.experiment, "missing experiment"
 
-        wandb.init.assert_called()
-        assert "id" in wandb.init.call_args[1]
-        assert wandb.init.call_args[1]["id"] == "the_id"
+    wandb.init.assert_called()
+    assert "id" in wandb.init.call_args[1]
+    assert wandb.init.call_args[1]["id"] == "the_id"
 
-        del os.environ["WANDB_MODE"]
+    del os.environ["WANDB_MODE"]
 
 
 @mock.patch("pytorch_lightning.loggers.wandb.Run", new=mock.Mock)
