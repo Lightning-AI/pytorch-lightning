@@ -110,6 +110,7 @@ def unwrap_lightning_module(wrapped_model: nn.Module) -> "pl.LightningModule":
     from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
     from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
     from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11
+
     model = wrapped_model
     if _TORCH_GREATER_EQUAL_1_11:
         from torch.distributed.fsdp.fully_sharded_data_parallel import (
