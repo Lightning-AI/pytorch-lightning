@@ -23,6 +23,7 @@ REQUIREMENT_FILES = {
     )
 }
 REQUIREMENT_FILES_ALL = tuple(chain(*REQUIREMENT_FILES.values()))
+PACKAGE_MAPPING = {"app": "lightning-app", "pytorch": "pytorch-lightning"}
 
 
 def pypi_versions(package_name: str) -> List[str]:
@@ -109,7 +110,7 @@ class AssistantCLI:
     ) -> Optional[Sequence[str]]:
         if isinstance(packages, str):
             packages = [packages]
-        releasing = [pkg for pkg in packages if AssistantCLI._release_pkg(pkg, src_folder=src_folder)]
+        releasing = [pkg for pkg in packages if AssistantCLI._release_pkg(PACKAGE_MAPPING[pkg], src_folder=src_folder)]
         return releasing
 
 

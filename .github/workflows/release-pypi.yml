@@ -3,53 +3,151 @@ name: PyPI
 # https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches: [master, "release/*"]
+    branches: [master, "release/*", "cd/pkg"]  # FIXME
   release:
     types: [published]
 
 
 jobs:
-  # Todo run job which determine changed versions
+  # run job which determine changed versions
+  releasing:
+    runs-on: ubuntu-20.04
+    outputs:
+      build-pkgs: ${{ steps.candidate.outputs.pkgs }}
+      pull-pkgs: ${{ steps.download.outputs.pkgs }}
+    steps:
+    - run: |
+        mkdir dist && touch dist/.placeholder
+        mkdir pypi && touch pypi/.placeholder
+    - uses: actions/upload-artifact@v3
+      with:
+        name: dist-packages-${{ github.sha }}
+        path: dist
+    - uses: actions/upload-artifact@v3
+      with:
+        name: pypi-packages-${{ github.sha }}
+        path: pypi
+
+    - name: Find chnaged packages
+      id: candidate
+      run: |
+        pip install fire requests
+        # python actions/assistant.py list-runtimes $PR_NUMBER
+        echo "::set-output name=pkgs::$(python .github/assistant.py determine-releasing-pkgs 2>&1)"
+    - run: echo "${{ steps.candidate.outputs.pkgs }}"
+
+    - name: Inverse packages to pull
+      id: download
+      run: |
+        pip install fire requests
+        # fixme
+        # python actions/assistant.py list-runtimes $PR_NUMBER
+        echo "::set-output name=pkgs::$(python .github/assistant.py determine-releasing-pkgs 2>&1)"
+    - run: echo "${{ steps.candidate.download.pkgs }}"
 
   # based on https://github.com/pypa/gh-action-pypi-publish
   build-package:
-    # todo run sequential
+    needs: releasing
     runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: true
+      # run sequential
+      max-parallel: 1
+      matrix:
+        pkg: ${{ needs.releasing.outputs.build-pkgs }}
     steps:
     - uses: actions/checkout@v2
+    - uses: actions/download-artifact@v3
+      with:
+        name: dist-packages-${{ github.sha }}
+        path: dist
     - uses: actions/setup-python@v2
       with:
         python-version: 3.9
 
     - name: Install dependencies
-      run: pip install --upgrade setuptools wheel
+      run: pip install -U setuptools wheel
 
     - name: Build packages
-      # TODO: this would be big challenge as at the release time (especially from master)
-      #  all packages from meta is generated wont be in stable mode,
-      #  so the meta will be for one as release and other as dev
-      # todo: for meta pkg generation we need to install the unstable pkg from PyPI and overwrite source
+      if: contains(, matrix.pkg)
       env:
-        PACKAGE_NAME: pytorch
+        PACKAGE_NAME: ${{ matrix.pkg }}
       run: |
         python setup.py sdist bdist_wheel
         ls -lh dist/
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
+      with:
+        name: dist-packages-${{ github.sha }}
+        path: dist
+
+  # based on https://github.com/pypa/gh-action-pypi-publish
+  pull-package:
+    needs: releasing
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: true
+      # run sequential
+      max-parallel: 1
+      matrix:
+        pkg: ${{ needs.releasing.outputs.pull-pkgs }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/download-artifact@v3
       with:
         name: pypi-packages-${{ github.sha }}
+        path: pypi
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+
+    # Todo: if not building download package
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: pypi-packages-${{ github.sha }}
+        path: pypi
+
+  # based on https://github.com/pypa/gh-action-pypi-publish
+  build-meta-pkg:
+    needs: build-package,pull-package
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/download-artifact@v3
+      with:
+        name: dist-packages-${{ github.sha }}
+        path: dist
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+
+    - name: Install dependencies
+      run: pip install -U setuptools wheel
+
+    # todo: replace codebase from release if needed
+
+    - name: Build packages
+      env:
+        PACKAGE_NAME: "lightning"
+      run: |
+        python setup.py sdist bdist_wheel
+        ls -lh dist/
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: dist-packages-${{ github.sha }}
         path: dist
 
   upload-package:
     runs-on: ubuntu-20.04
-    needs: build-package
+    needs: build-meta-pkg
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v3
       with:
         name: pypi-packages-${{ github.sha }}
-        path: dist
     - run: ls -lh dist/
 
     - name: Upload to release
@@ -64,10 +162,9 @@ jobs:
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v3
       with:
         name: pypi-packages-${{ github.sha }}
-        path: dist
     - run: ls -lh dist/
 
     - name: Delay releasing
@@ -84,11 +181,12 @@ jobs:
         repository_url: https://test.pypi.org/legacy/
         verbose: true
 
-    - name: Publish distribution 📦 to PyPI
-      uses: pypa/gh-action-pypi-publish@v1.4.1
-      with:
-        user: __token__
-        password: ${{ secrets.pypi_password }}
+# FIXME
+#    - name: Publish distribution 📦 to PyPI
+#      uses: pypa/gh-action-pypi-publish@v1.4.1
+#      with:
+#        user: __token__
+#        password: ${{ secrets.pypi_password }}
 
   create-legacy-ckpt:
     # todo skip if pytorch was not released
@@ -111,7 +209,6 @@ jobs:
     - uses: actions/download-artifact@v2
       with:
         name: pypi-packages-${{ github.sha }}
-        path: dist
 
     - name: Pull files from S3
       working-directory: ./tests/legacy
@@ -125,7 +222,6 @@ jobs:
       run: |
         ls -lh dist/
         pip install dist/*.whl
-
         pl_ver=$(python -c "import pytorch_lightning as pl ; print(pl.__version__)" 2>&1)
         # generate checkpoint to this version
         bash generate_checkpoints.sh $pl_ver
