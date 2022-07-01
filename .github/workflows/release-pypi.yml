@@ -7,6 +7,11 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
   release:
     types: [published]
 
+# there are several consecutive actions:
+# 1) determine which packages have been change at the time this event is processed
+# 2) build related packages - app/pytorch or download latest from pypi
+# 3) create the meta package - lightning
+# 4) publish all new creations tada
 
 jobs:
   # run job which determine changed versions
@@ -33,7 +38,7 @@ jobs:
         name: pypi-packages-${{ github.sha }}
         path: pypi
 
-    - name: Find chnaged packages
+    - name: Find changed packages
       id: candidate
       run: |
         echo "::set-output name=pkgs::{include: $(python .actions/assistant.py determine-releasing-pkgs 2>&1)}"
@@ -80,7 +85,7 @@ jobs:
         path: dist
 
   # based on https://github.com/pypa/gh-action-pypi-publish
-  pull-package:
+  download-package:
     needs: releasing
     runs-on: ubuntu-20.04
     strategy:
@@ -110,7 +115,7 @@ jobs:
 
   # based on https://github.com/pypa/gh-action-pypi-publish
   build-meta-pkg:
-    needs: [build-package, pull-package]
+    needs: [build-package, download-package]
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
@@ -202,12 +207,11 @@ jobs:
         repository_url: https://test.pypi.org/legacy/
         verbose: true
 
-# FIXME
-#    - name: Publish distribution 📦 to PyPI
-#      uses: pypa/gh-action-pypi-publish@v1.4.1
-#      with:
-#        user: __token__
-#        password: ${{ secrets.pypi_password }}
+    - name: Publish distribution 📦 to PyPI
+      uses: pypa/gh-action-pypi-publish@v1.4.1
+      with:
+        user: __token__
+        password: ${{ secrets.pypi_password }}
 
   create-legacy-ckpt:
     # Todo: skip if pytorch was not released

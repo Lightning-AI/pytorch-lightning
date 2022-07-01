@@ -30,6 +30,7 @@ PACKAGE_MAPPING = {"app": "lightning-app", "pytorch": "pytorch-lightning"}
 
 
 def pypi_versions(package_name: str) -> List[str]:
+    """Return a list of released versions of a provided pypi name."""
     # https://stackoverflow.com/a/27239645/4521646
     url = f"https://pypi.org/pypi/{package_name}/json"
     data = json.load(urlopen(Request(url)))
@@ -111,7 +112,7 @@ class AssistantCLI:
     def determine_releasing_pkgs(
         src_folder: str = _PATH_SRC, packages: Sequence[str] = ("pytorch", "app"), inverse: bool = False
     ) -> Sequence[str]:
-        """Determine version of package where the mane is `lightning.<name>`."""
+        """Determine version of package where the name is `lightning.<name>`."""
         if isinstance(packages, str):
             packages = [packages]
         releasing = [pkg for pkg in packages if AssistantCLI._release_pkg(PACKAGE_MAPPING[pkg], src_folder=src_folder)]
@@ -121,7 +122,7 @@ class AssistantCLI:
 
     @staticmethod
     def download_package(package: str, folder: str = ".", version: Optional[str] = None) -> None:
-        """Download specific or latest package from PyPI where the mane is `lightning.<name>`."""
+        """Download specific or latest package from PyPI where the name is `lightning.<name>`."""
         url = f"https://pypi.org/pypi/{PACKAGE_MAPPING[package]}/json"
         data = json.load(urlopen(Request(url)))
         if not version:
@@ -140,7 +141,7 @@ class AssistantCLI:
     def _find_pkgs(folder: str, pkg_pattern: str = "lightning") -> List[str]:
         """Find all python packages with spec.
 
-        patter in give folder, in case `src` exists dive there.
+        pattern in given folder, in case `src` exists dive there.
         """
         pkg_dirs = [d for d in glob.glob(os.path.join(folder, "*")) if os.path.isdir(d)]
         if "src" in [os.path.basename(p) for p in pkg_dirs]:
