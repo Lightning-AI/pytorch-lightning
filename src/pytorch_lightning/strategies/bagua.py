@@ -10,7 +10,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import (
     _LightningModuleWrapperBase,
     _LightningPrecisionModuleWrapperBase,
-    unwrap_lightning_module,
 )
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -109,13 +108,6 @@ class BaguaStrategy(DDPStrategy):
         self._bagua_flatten = flatten
         self._bagua_kwargs = bagua_kwargs
 
-    @property
-    def lightning_module(self) -> Optional["pl.LightningModule"]:
-        model = self.model
-        if isinstance(model, BaguaDistributedDataParallel):
-            model = model.module
-        return unwrap_lightning_module(model) if model is not None else None
-
     def setup_distributed(self) -> None:
         reset_seed()
 
@@ -189,7 +181,7 @@ class BaguaStrategy(DDPStrategy):
 
     def _configure_bagua_model(self, trainer: "pl.Trainer") -> None:
         model = LightningBaguaModule(self.model)  # type: ignore[arg-type]
-        self._model = self._setup_model(model)
+        self.model = self._setup_model(model)
 
         # start the background communication for async algorithm
         if trainer.training and self._bagua_algorithm == "async":

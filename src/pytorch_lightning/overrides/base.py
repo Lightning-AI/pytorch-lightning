@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Union
+from typing import Any, Optional
 
 import torch
 import torch.nn as nn
@@ -57,7 +57,7 @@ class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Modu
 
 
 class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
-    def __init__(self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]) -> None:
+    def __init__(self, forward_module: nn.Module, lightning_module: Optional["pl.LightningDataModule"] = None) -> None:
         """Wraps the user's LightningModule and redirects the forward call to the appropriate method, either
         ``training_step``, ``validation_step``, ``test_step``, or ``predict_step``.
 
@@ -67,15 +67,19 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
             pl_module: the model to wrap
         """
         super().__init__()
-        self.module = pl_module
+        self._forward_module = forward_module
+        self._lightning_module = lightning_module or forward_module
 
-        # set the parameters_to_ignore from LightningModule.
-        _ddp_params_and_buffers_to_ignore = getattr(pl_module, "_ddp_params_and_buffers_to_ignore", [])
+        # set the parameters_to_ignore from LightningModule
+        _ddp_params_and_buffers_to_ignore = getattr(self._lightning_module, "_ddp_params_and_buffers_to_ignore", [])
         self._ddp_params_and_buffers_to_ignore = [f"module.{p}" for p in _ddp_params_and_buffers_to_ignore]
 
+    @property
+    def module(self):
+        return self._forward_module
+
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        pl_module = unwrap_lightning_module(self.module)
-        trainer = pl_module.trainer
+        trainer = self._lightning_module.trainer
 
         if trainer is not None:
             if trainer.training:
@@ -84,7 +88,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
                 # it is done manually in `LightningModule.manual_backward`
                 # `require_backward_grad_sync` will be reset in the
                 # ddp_strategy `post_training_step` hook
-                if not pl_module.automatic_optimization:
+                if not self._lightning_module.automatic_optimization:
                     trainer.model.require_backward_grad_sync = False  # type: ignore[assignment]
                 return output
             if trainer.testing:
@@ -97,21 +101,3 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
 
     def on_post_move_to_device(self) -> None:
         pass
-
-
-def unwrap_lightning_module(wrapped_model: nn.Module) -> "pl.LightningModule":
-    """Recursively unwraps a :class:`~pytorch_lightning.core.module.LightningModule` by following the ``.module``
-    attributes on the wrapper.
-
-    Raises:
-        TypeError: If the unwrapping leads to a module that is not a LightningModule and that cannot be unwrapped
-            further.
-    """
-    model = wrapped_model
-    if isinstance(model, (DistributedDataParallel, DataParallel)):
-        model = unwrap_lightning_module(model.module)
-    if isinstance(model, (_LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase)):
-        model = unwrap_lightning_module(model.module)
-    if not isinstance(model, pl.LightningModule):
-        raise TypeError(f"Unwrapping the module did not yield a `LightningModule`, got {type(model)} instead.")
-    return model

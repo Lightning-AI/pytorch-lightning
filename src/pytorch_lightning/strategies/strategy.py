@@ -24,7 +24,6 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
-from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -52,14 +51,15 @@ class Strategy(ABC):
         precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
         self.accelerator = accelerator
-        self._launcher: Optional[_Launcher] = None
-        self._model: Optional[Module] = None
         self.checkpoint_io = checkpoint_io
         self.precision_plugin = precision_plugin
-        self._optimizers: List[Optimizer] = []
-        self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
         self.lr_scheduler_configs: List[LRSchedulerConfig] = []
         self.optimizer_frequencies: List[int] = []
+        self._lightning_module: Optional[pl.LightningModule] = None
+        self._model: Optional[Module] = None
+        self._launcher: Optional[_Launcher] = None
+        self._optimizers: List[Optimizer] = []
+        self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
         if is_overridden("post_dispatch", self, parent=Strategy):
             rank_zero_deprecation(
                 f"`{self.__class__.__name__}.post_dispatch()` has been deprecated in v1.6 and will be removed in v1.7."
@@ -105,9 +105,9 @@ class Strategy(ABC):
             idx: LightningOptimizer._to_lightning_optimizer(opt, self, idx) for idx, opt in enumerate(self.optimizers)
         }
 
-    def connect(self, model: Module) -> None:
+    def connect(self, model: pl.LightningModule) -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
-        self.model = model
+        self._lightning_module = model
 
     def _configure_launcher(self):
         """Attach the launcher based on Strategy."""
@@ -303,7 +303,7 @@ class Strategy(ABC):
     @property
     def model(self) -> Optional[Module]:
         """Returns the potentially wrapped LightningModule."""
-        return self._model
+        return self._model if self._model is not None else self._lightning_module
 
     @model.setter
     def model(self, new_model: Optional[Module]) -> None:
@@ -312,7 +312,7 @@ class Strategy(ABC):
     @property
     def lightning_module(self) -> Optional["pl.LightningModule"]:
         """Returns the pure LightningModule without potential wrappers."""
-        return unwrap_lightning_module(self.model) if self.model is not None else None
+        return self._lightning_module
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
         torch.cuda.empty_cache()
