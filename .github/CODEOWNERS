@@ -49,6 +49,9 @@
 
 # Examples
 /examples/app_*                            @tchaton @awaelchli @manskx @hhsecond
+# App tests
+/tests/tests_app                          @tchaton @awaelchli @manskx @hhsecond
+/tests/tests_app_examples                 @tchaton @awaelchli @manskx @hhsecond
 
 # Specifics
 /src/pytorch_lightning/trainer/connectors/logger_connector      @tchaton @carmocca
