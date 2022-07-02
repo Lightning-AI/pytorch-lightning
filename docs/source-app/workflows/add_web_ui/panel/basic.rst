@@ -131,7 +131,7 @@ First **create a file named app.py** with the app content:
     if __name__.startswith("bokeh"):
         LitPanel().view().servable()
 
-        
+
 
 
 Add `panel`, `lightning`, `pandas` and `plotly` to your requirements.txt file
@@ -207,7 +207,7 @@ First, find the Panel app you want to integrate. In this example, that app looks
 
         def get_plot(length=5):
             xseries = [index for index in range(length + 1)]
-            yseries = [x**2 for x in xseries]
+            yseries = [x ** 2 for x in xseries]
             fig = px.line(
                 x=xseries,
                 y=yseries,
@@ -224,10 +224,9 @@ First, find the Panel app you want to integrate. In this example, that app looks
             length = pn.widgets.IntSlider(value=5, start=1, end=10, name="Length")
             plot = pn.bind(get_plot, length=length)
             component = pn.Column(length, plot)
-            template = pn.template.FastListTemplate(
-                title="⚡ Hello Panel + Lightning ⚡", main=[component], accent=ACCENT
-            )
+            template = pn.template.FastListTemplate(title="⚡ Hello Panel + Lightning ⚡", main=[component], accent=ACCENT)
             return template
+
 
         get_view().servable()
 
@@ -301,6 +300,7 @@ In this case, we render the ``LitPanel`` UI in the ``Home`` tab of the applicati
             def configure_layout(self):
                 tab1 = {"name": "Home", "content": self.lit_panel}
                 return tab1
+
 
         app = lapp.LightningApp(LitApp())
 
