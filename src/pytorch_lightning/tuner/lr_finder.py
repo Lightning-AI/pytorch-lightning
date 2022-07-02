@@ -30,7 +30,7 @@ from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.utilities.types import LRSchedulerConfig, LRSchedulerTypeUnion, STEP_OUTPUT
+from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
 
 # check if ipywidgets is installed before importing tqdm.auto
 # to ensure it won't fail and a progress bar is displayed
