@@ -211,7 +211,6 @@ First, find the Panel app you want to integrate. In this example, that app looks
             return "plotly_dark"
         return "plotly_white"
 
-
         def get_plot(length=5):
             xseries = [index for index in range(length + 1)]
             yseries = [x ** 2 for x in xseries]
@@ -226,14 +225,12 @@ First, find the Panel app you want to integrate. In this example, that app looks
             fig.layout.autosize = True
             return fig
 
-
         def get_view():
             length = pn.widgets.IntSlider(value=5, start=1, end=10, name="Length")
             plot = pn.bind(get_plot, length=length)
             component = pn.Column(length, plot)
             template = pn.template.FastListTemplate(title="⚡ Hello Panel + Lightning ⚡", main=[component], accent=ACCENT)
             return template
-
 
         get_view().servable()
 
