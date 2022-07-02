@@ -4,6 +4,7 @@
 
    dash/index
    gradio/index
+   panel/index
    streamlit/index
 
 .. toctree::
@@ -50,6 +51,14 @@ Web UIs for non Javascript Developers
    :button_link: jupyter_basic.html
    :height: 150
    :tag: [docs coming soon]
+
+.. displayitem::
+   :header: Panel
+   :description: Learn how to add a web UI built in Python with Panel.
+   :col_css: col-md-4
+   :button_link: panel/index.html
+   :height: 150
+   :tag: basic
 
 .. displayitem::
    :header: Streamlit
