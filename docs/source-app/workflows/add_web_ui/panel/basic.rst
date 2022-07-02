@@ -25,12 +25,6 @@ Panel is **particularly well suited for lightning.ai apps** that needs to displa
 `LightningWork` as the Panel server can react to progress and asynchronously push messages from the server to the
 client via web socket communication.
 
-Install panel with:
-
-.. code:: bash
-
-    pip install panel
-
 ----
 
 *************************
@@ -39,7 +33,12 @@ Create the Panel demo app
 
 To explain how to use Panel with Lightning, let's build a simple app with Panel.
 
-In the next few sections we'll build an app step-by-step.
+In the next few sections we'll build the app shown below step-by-step.
+
+.. figure:: https://cdn.jsdelivr.net/gh/MarcSkovMadsen/panel-lightning-basic@main/assets/panel-lightning-basic.gif
+   :alt: Basic Panel Lightning App
+
+   Basic Panel Lightning App
 
 First **create a file named app.py** with the app content:
 
@@ -131,10 +130,13 @@ First **create a file named app.py** with the app content:
     if __name__.startswith("bokeh"):
         LitPanel().view().servable()
 
-        
+----
 
+************************
+Install the requirements
+************************
 
-Add `panel`, `lightning`, `pandas` and `plotly` to your requirements.txt file
+Add
 
 .. code:: bash
 
@@ -143,7 +145,13 @@ Add `panel`, `lightning`, `pandas` and `plotly` to your requirements.txt file
     pandas
     plotly
 
-this is a best practice to make apps reproducible.
+to your requirements.txt file. This is best practice to make apps reproducible.
+
+Now install the requirements via
+
+.. code:: bash
+
+    pip install -r requirements.txt
 
 ----
 
@@ -186,50 +194,50 @@ First, find the Panel app you want to integrate. In this example, that app looks
 
 .. code:: python
 
-        import panel as pn
-        import plotly.express as px
+    import panel as pn
+    import plotly.express as px
 
-        pn.extension("plotly", sizing_mode="stretch_width")
+    pn.extension("plotly", sizing_mode="stretch_width")
 
-        ACCENT = "#792EE5"
-
-
-        def get_panel_theme():
-            """Returns 'default' or 'dark'"""
-            return pn.state.session_args.get("theme", [b"default"])[0].decode()
+    ACCENT = "#792EE5"
 
 
-        def get_plotly_template():
-            if get_panel_theme() == "dark":
-                return "plotly_dark"
-            return "plotly_white"
+    def get_panel_theme():
+        """Returns 'default' or 'dark'"""
+        return pn.state.session_args.get("theme", [b"default"])[0].decode()
 
 
-        def get_plot(length=5):
-            xseries = [index for index in range(length + 1)]
-            yseries = [x**2 for x in xseries]
-            fig = px.line(
-                x=xseries,
-                y=yseries,
-                template=get_plotly_template(),
-                color_discrete_sequence=[ACCENT],
-                range_x=(0, 10),
-                markers=True,
-            )
-            fig.layout.autosize = True
-            return fig
+    def get_plotly_template():
+        if get_panel_theme() == "dark":
+            return "plotly_dark"
+        return "plotly_white"
 
 
-        def get_view():
-            length = pn.widgets.IntSlider(value=5, start=1, end=10, name="Length")
-            plot = pn.bind(get_plot, length=length)
-            component = pn.Column(length, plot)
-            template = pn.template.FastListTemplate(
-                title="⚡ Hello Panel + Lightning ⚡", main=[component], accent=ACCENT
-            )
-            return template
+    def get_plot(length=5):
+        xseries = [index for index in range(length + 1)]
+        yseries = [x**2 for x in xseries]
+        fig = px.line(
+            x=xseries,
+            y=yseries,
+            template=get_plotly_template(),
+            color_discrete_sequence=[ACCENT],
+            range_x=(0, 10),
+            markers=True,
+        )
+        fig.layout.autosize = True
+        return fig
 
-        get_view().servable()
+
+    def get_view():
+        length = pn.widgets.IntSlider(value=5, start=1, end=10, name="Length")
+        plot = pn.bind(get_plot, length=length)
+        component = pn.Column(length, plot)
+        template = pn.template.FastListTemplate(
+            title="⚡ Hello Panel + Lightning ⚡", main=[component], accent=ACCENT
+        )
+        return template
+
+    get_view().servable()
 
 You can serve the app by running
 
