@@ -601,7 +601,7 @@ class Trainer(
                 "Logging and checkpointing is suppressed."
             )
 
-        self.limit_train_batches = _determine_batch_limits(limit_train_batches, "limit_train_batches")
+        self.limit_train_batches: Union[int, float] = _determine_batch_limits(limit_train_batches, "limit_train_batches")
         self.limit_val_batches = _determine_batch_limits(limit_val_batches, "limit_val_batches")
         self.limit_test_batches = _determine_batch_limits(limit_test_batches, "limit_test_batches")
         self.limit_predict_batches = _determine_batch_limits(limit_predict_batches, "limit_predict_batches")

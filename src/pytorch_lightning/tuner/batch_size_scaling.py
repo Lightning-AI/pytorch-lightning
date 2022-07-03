@@ -14,12 +14,14 @@
 import logging
 import os
 import uuid
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Union, List, Optional, Tuple
 
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
-from pytorch_lightning.loggers.logger import DummyLogger
+from pytorch_lightning.callbacks.callback import Callback
+from pytorch_lightning.loggers.logger import DummyLogger, Logger
+
 from pytorch_lightning.utilities.data import has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
@@ -41,7 +43,7 @@ def scale_batch_size(
     """See :meth:`~pytorch_lightning.tuner.tuning.Tuner.scale_batch_size`"""
     if trainer.fast_dev_run:
         rank_zero_warn("Skipping batch size scaler since fast_dev_run is enabled.")
-        return
+        return None
 
     if not lightning_hasattr(model, batch_arg_name):
         raise MisconfigurationException(f"Field {batch_arg_name} not found in both `model` and `model.hparams`")
@@ -234,11 +236,19 @@ def _adjust_batch_size(
     """
     model = trainer.lightning_module
     batch_size = lightning_getattr(model, batch_arg_name)
-    new_size = value if value is not None else int(batch_size * factor)
+    if value is not None:
+        new_size = value
+    else:
+        if not isinstance(batch_size, int):
+            raise ValueError(f"value is None and batch_size is not int value: {batch_size}")
+        new_size = int(batch_size * factor)
+
     if desc:
         log.info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
     if not _is_valid_batch_size(new_size, trainer.train_dataloader, trainer):
+        if not isinstance(trainer.train_dataloader, DataLoader):
+            raise ValueError("train_dataloader is not a DataLoader")
         new_size = min(new_size, len(trainer.train_dataloader.dataset))
 
     changed = new_size != batch_size
@@ -246,6 +256,6 @@ def _adjust_batch_size(
     return new_size, changed
 
 
-def _is_valid_batch_size(batch_size: int, dataloader: DataLoader, trainer: "pl.Trainer"):
+def _is_valid_batch_size(batch_size: int, dataloader: DataLoader, trainer: "pl.Trainer") -> bool:
     module = trainer.lightning_module or trainer.datamodule
     return not has_len_all_ranks(dataloader, trainer.strategy, module) or batch_size <= len(dataloader)
