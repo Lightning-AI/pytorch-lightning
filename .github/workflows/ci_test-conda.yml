@@ -58,6 +58,7 @@ jobs:
         pip list
         # sanity check
         python requirements/check-avail-extras.py
+        pip install wandb -U
 
     - name: Pull legacy checkpoints
       run: bash .actions/pull_legacy_checkpoints.sh
