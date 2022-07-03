@@ -28,6 +28,7 @@ from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, _set_scheduler_opt_idx
 from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.parsing import lightning_hasattr, lightning_setattr
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import LRSchedulerConfig, STEP_OUTPUT
@@ -38,6 +39,10 @@ if importlib.util.find_spec("ipywidgets") is not None:
     from tqdm.auto import tqdm
 else:
     from tqdm import tqdm
+
+_MATPLOTLIB_AVAILABLE: bool = _RequirementAvailable("matplotlib")
+if _MATPLOTLIB_AVAILABLE:
+    import matplotlib.pyplot as plt
 
 log = logging.getLogger(__name__)
 
@@ -132,14 +137,19 @@ class _LRFinder:
 
         return func
 
-    def plot(self, suggest: bool = False, show: bool = False) -> plt.Figure:
+    def plot(self, suggest: bool = False, show: bool = False) -> Optional[plt.Figure]:
         """Plot results from lr_find run
         Args:
             suggest: if True, will mark suggested lr to use with a red point
 
             show: if True, will show figure
         """
-
+        if not _MATPLOTLIB_AVAILABLE:
+            raise MisconfigurationException(
+                "To use the `plot` method, you must have Matplotlib installed."
+                " Install it by running `pip install -U matplotlib`."
+            )
+        
         lrs = self.results["lr"]
         losses = self.results["loss"]
 
