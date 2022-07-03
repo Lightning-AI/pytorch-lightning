@@ -146,7 +146,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         )
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        assert self.accelerator, "self.accelerator must be set before self.accelerator.setup(trainer)"
+        assert self.accelerator, "self.accelerator must be set before self.accelerator.setup()"
         self.accelerator.setup(trainer)
 
         if trainer.state.fn == TrainerFn.FITTING and self._layer_sync:
