@@ -103,7 +103,7 @@ class PrecisionPlugin(CheckpointHooks):
         tensor.backward(*args, **kwargs)
 
     def _after_closure(
-        self, model: Union["pl.LightningModule", Module], optimizer: Optimizer, optimizer_idx: int
+        self, model: Optional[Union["pl.LightningModule", Module]], optimizer: Optimizer, optimizer_idx: int
     ) -> None:
         """Utility to share some code after the closure has been run."""
         if not isinstance(model, pl.LightningModule):
@@ -143,7 +143,7 @@ class PrecisionPlugin(CheckpointHooks):
 
     def optimizer_step(
         self,
-        model: Union["pl.LightningModule", Module],
+        model: Optional[Union["pl.LightningModule", Module]],
         optimizer: Optimizer,
         optimizer_idx: int,
         closure: Callable[[], Any],

@@ -24,7 +24,7 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
-from pytorch_lightning.overrides.base import unwrap_lightning_module
+from pytorch_lightning.overrides.base import unwrap_lightning_module, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -46,16 +46,16 @@ class Strategy(ABC):
     """Base class for all strategies that change the behaviour of the training, validation and test- loop."""
 
     def __init__(
-        self,
-        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
-        precision_plugin: Optional[PrecisionPlugin] = None,
+            self,
+            accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+            checkpoint_io: Optional[CheckpointIO] = None,
+            precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
-        self.accelerator = accelerator
+        self._accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = accelerator
         self._launcher: Optional[_Launcher] = None
         self._model: Optional[Module] = None
-        self.checkpoint_io = checkpoint_io
-        self.precision_plugin = precision_plugin
+        self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
+        self._precision_plugin: Optional[PrecisionPlugin] = precision_plugin
         self._optimizers: List[Optimizer] = []
         self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
         self.lr_scheduler_configs: List[LRSchedulerConfig] = []
@@ -71,7 +71,7 @@ class Strategy(ABC):
         return self._launcher
 
     @property
-    def accelerator(self) -> "pl.accelerators.accelerator.Accelerator":
+    def accelerator(self) -> Optional["pl.accelerators.accelerator.Accelerator"]:
         return self._accelerator
 
     @accelerator.setter
@@ -109,7 +109,7 @@ class Strategy(ABC):
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
         self.model = model
 
-    def _configure_launcher(self):
+    def _configure_launcher(self) -> None:
         """Attach the launcher based on Strategy."""
 
     def setup_environment(self) -> None:
@@ -118,6 +118,7 @@ class Strategy(ABC):
         This is called before the LightningModule/DataModule setup hook which allows the user to access the accelerator
         environment before setup is complete.
         """
+        assert self.accelerator, "self.accelerator must be set before self.accelerator.setup_environment()"
         self.accelerator.setup_environment(self.root_device)
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
@@ -128,6 +129,7 @@ class Strategy(ABC):
         """
         if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
             return
+        assert self.lightning_module, "self.lightning_module must be set before _init_optimizers_and_lr_schedulers()"
         self.optimizers, self.lr_scheduler_configs, self.optimizer_frequencies = _init_optimizers_and_lr_schedulers(
             self.lightning_module
         )
@@ -138,6 +140,7 @@ class Strategy(ABC):
         Args:
             trainer: the trainer instance
         """
+        assert self.accelerator, "self.accelerator must be set before self.accelerator.setup()"
         self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
@@ -145,6 +148,7 @@ class Strategy(ABC):
 
     def setup_precision_plugin(self) -> None:
         """Attaches the precision plugin to the accelerator."""
+        assert self.model, "self.model must be set before self.precision_plugin.connect()"
         model, optimizers, lr_scheduler_configs = self.precision_plugin.connect(
             self.model, self.optimizers, self.lr_scheduler_configs
         )
@@ -166,6 +170,7 @@ class Strategy(ABC):
             closure_loss: a tensor holding the loss value to backpropagate
         """
         self.pre_backward(closure_loss)
+        assert self.lightning_module, "self.lightning_module must be set before self.precision_plugin.pre_backward()"
         closure_loss = self.precision_plugin.pre_backward(self.lightning_module, closure_loss)
 
         self.precision_plugin.backward(self.lightning_module, closure_loss, *args, **kwargs)
@@ -176,12 +181,12 @@ class Strategy(ABC):
         return closure_loss
 
     def optimizer_step(
-        self,
-        optimizer: Optimizer,
-        opt_idx: int,
-        closure: Callable[[], Any],
-        model: Optional[Union["pl.LightningModule", Module]] = None,
-        **kwargs: Any,
+            self,
+            optimizer: Optimizer,
+            opt_idx: int,
+            closure: Callable[[], Any],
+            model: Optional[Union["pl.LightningModule", Module]] = None,
+            **kwargs: Any,
     ) -> Any:
         """Performs the actual optimizer step.
 
@@ -249,10 +254,10 @@ class Strategy(ABC):
 
     @abstractmethod
     def reduce(
-        self,
-        tensor: Union[Tensor, Any],
-        group: Optional[Any] = None,
-        reduce_op: Optional[Union[ReduceOp, str]] = "mean",
+            self,
+            tensor: Union[Tensor, Any],
+            group: Optional[Any] = None,
+            reduce_op: Optional[Union[ReduceOp, str]] = "mean",
     ) -> Union[Tensor, Any]:
         """Reduces the given tensor (e.g. across GPUs/processes).
 
@@ -319,6 +324,8 @@ class Strategy(ABC):
         return self.checkpoint_io.load_checkpoint(checkpoint_path)
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
+        assert self.lightning_module, "self.lightning_module must be set before " \
+                                      "self.lightning_module.load_model_state_dict() "
         self.lightning_module.load_state_dict(checkpoint["state_dict"])
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
@@ -327,48 +334,56 @@ class Strategy(ABC):
             optimizer.load_state_dict(opt_state)
             optimizer_to_device(optimizer, self.root_device)
 
-    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
+    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         """The actual training step.
 
         See :meth:`~pytorch_lightning.core.module.LightningModule.training_step` for more details
         """
         with self.precision_plugin.train_step_context():
+            assert isinstance(self.model, pl.LightningModule) or \
+                   isinstance(self.model, _LightningPrecisionModuleWrapperBase)
             return self.model.training_step(*args, **kwargs)
 
-    def post_training_step(self):
+    def post_training_step(self) -> None:
         pass
 
-    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         """The actual validation step.
 
         See :meth:`~pytorch_lightning.core.module.LightningModule.validation_step` for more details
         """
         with self.precision_plugin.val_step_context():
+            assert isinstance(self.model, pl.LightningModule) or \
+                   isinstance(self.model, _LightningPrecisionModuleWrapperBase)
             return self.model.validation_step(*args, **kwargs)
 
-    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         """The actual test step.
 
         See :meth:`~pytorch_lightning.core.module.LightningModule.test_step` for more details
         """
         with self.precision_plugin.test_step_context():
+            assert isinstance(self.model, pl.LightningModule) or \
+                   isinstance(self.model, _LightningPrecisionModuleWrapperBase)
             return self.model.test_step(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         """The actual predict step.
 
         See :meth:`~pytorch_lightning.core.module.LightningModule.predict_step` for more details
         """
         with self.precision_plugin.predict_step_context():
+            assert isinstance(self.model, pl.LightningModule) or \
+                   isinstance(self.model, _LightningPrecisionModuleWrapperBase)
             return self.model.predict_step(*args, **kwargs)
 
-    def training_step_end(self, output):
+    def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
+        return step_output
+
+    def validation_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
         return output
 
-    def validation_step_end(self, output):
-        return output
-
-    def test_step_end(self, output):
+    def test_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
         return output
 
     def process_dataloader(self, dataloader: DataLoader) -> DataLoader:
@@ -404,11 +419,11 @@ class Strategy(ABC):
 
     def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
         """Returns model state."""
-        model = self.lightning_module
-        return model.state_dict()
+        assert self.lightning_module, "self.lightning_module must be set before self.lightning_module.state_dict()"
+        return self.lightning_module.state_dict()
 
     def save_checkpoint(
-        self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
+            self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
     ) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
@@ -450,10 +465,11 @@ class Strategy(ABC):
             log.detail(f"{self.__class__.__name__}: moving model to CPU")
             self.lightning_module.cpu()
         self.precision_plugin.teardown()
+        assert self.accelerator, "self.accelerator must be set before self.accelerator.teardown()"
         self.accelerator.teardown()
 
     @classmethod
-    def register_strategies(cls, strategy_registry) -> None:
+    def register_strategies(cls, strategy_registry: Dict) -> None:
         pass
 
     def on_train_start(self) -> None:
@@ -484,7 +500,7 @@ class Strategy(ABC):
         """Called when test end."""
         pass
 
-    def on_predict_end(self):
+    def on_predict_end(self) -> None:
         """Called when predict ends."""
         pass
 

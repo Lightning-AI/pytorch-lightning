@@ -224,9 +224,9 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         with self.precision_plugin.predict_step_context():
             return self.model(*args, **kwargs)
 
-    def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
+    def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
         self._pod_progress_bar_force_stdout()
-        return output
+        return step_output
 
     def validation_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
         self._pod_progress_bar_force_stdout()

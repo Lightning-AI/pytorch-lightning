@@ -137,17 +137,17 @@ class DataParallelStrategy(ParallelStrategy):
         with self.precision_plugin.predict_step_context():
             return self.model(*args, **kwargs)
 
-    def training_step_end(self, output):
+    def training_step_end(self, step_output):
         if is_overridden("training_step_end", self.lightning_module):
-            return output
+            return step_output
 
-        if isinstance(output, dict) and "loss" in output:
-            output["loss"] = self.reduce(output["loss"])
+        if isinstance(step_output, dict) and "loss" in step_output:
+            step_output["loss"] = self.reduce(step_output["loss"])
 
-        elif isinstance(output, Tensor):
-            output = self.reduce(output)
+        elif isinstance(step_output, Tensor):
+            step_output = self.reduce(step_output)
 
-        return output
+        return step_output
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

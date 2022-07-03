@@ -157,6 +157,7 @@ class BaguaStrategy(DDPStrategy):
         if self._should_run_deadlock_detection():
             self._share_information_to_prevent_deadlock()
 
+        assert self.accelerator, "Accelerator is required for BaguaStrategy setup"
         self.accelerator.setup(trainer)
 
         # move the model to the correct device

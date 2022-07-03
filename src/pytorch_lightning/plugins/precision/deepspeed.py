@@ -89,7 +89,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def optimizer_step(
         self,
-        model: Union["pl.LightningModule", Module],
+        model: Optional[Union["pl.LightningModule", Module]],
         optimizer: Optimizer,
         optimizer_idx: int,
         closure: Callable[[], Any],
