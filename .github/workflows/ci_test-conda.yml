@@ -65,7 +65,7 @@ jobs:
 
     - name: UnitTests
       run: |
-        coverage run --source pytorch_lightning -m pytest --timeout 150 tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
+        coverage run --source pytorch_lightning -m pytest --timeout 150 tests/loggers/test_all.py -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
 
     - name: Upload pytest results
       uses: actions/upload-artifact@v2
