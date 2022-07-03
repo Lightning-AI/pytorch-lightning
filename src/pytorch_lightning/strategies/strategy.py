@@ -24,7 +24,7 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
-from pytorch_lightning.overrides.base import unwrap_lightning_module, _LightningPrecisionModuleWrapperBase
+from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase, unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -46,10 +46,10 @@ class Strategy(ABC):
     """Base class for all strategies that change the behaviour of the training, validation and test- loop."""
 
     def __init__(
-            self,
-            accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
-            checkpoint_io: Optional[CheckpointIO] = None,
-            precision_plugin: Optional[PrecisionPlugin] = None,
+        self,
+        accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
+        precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
         self._accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = accelerator
         self._launcher: Optional[_Launcher] = None
@@ -181,12 +181,12 @@ class Strategy(ABC):
         return closure_loss
 
     def optimizer_step(
-            self,
-            optimizer: Optimizer,
-            opt_idx: int,
-            closure: Callable[[], Any],
-            model: Optional[Union["pl.LightningModule", Module]] = None,
-            **kwargs: Any,
+        self,
+        optimizer: Optimizer,
+        opt_idx: int,
+        closure: Callable[[], Any],
+        model: Optional[Union["pl.LightningModule", Module]] = None,
+        **kwargs: Any,
     ) -> Any:
         """Performs the actual optimizer step.
 
@@ -254,10 +254,10 @@ class Strategy(ABC):
 
     @abstractmethod
     def reduce(
-            self,
-            tensor: Union[Tensor, Any],
-            group: Optional[Any] = None,
-            reduce_op: Optional[Union[ReduceOp, str]] = "mean",
+        self,
+        tensor: Union[Tensor, Any],
+        group: Optional[Any] = None,
+        reduce_op: Optional[Union[ReduceOp, str]] = "mean",
     ) -> Union[Tensor, Any]:
         """Reduces the given tensor (e.g. across GPUs/processes).
 
@@ -324,8 +324,9 @@ class Strategy(ABC):
         return self.checkpoint_io.load_checkpoint(checkpoint_path)
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        assert self.lightning_module, "self.lightning_module must be set before " \
-                                      "self.lightning_module.load_model_state_dict() "
+        assert self.lightning_module, (
+            "self.lightning_module must be set before " "self.lightning_module.load_model_state_dict() "
+        )
         self.lightning_module.load_state_dict(checkpoint["state_dict"])
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
@@ -340,8 +341,9 @@ class Strategy(ABC):
         See :meth:`~pytorch_lightning.core.module.LightningModule.training_step` for more details
         """
         with self.precision_plugin.train_step_context():
-            assert isinstance(self.model, pl.LightningModule) or \
-                   isinstance(self.model, _LightningPrecisionModuleWrapperBase)
+            assert isinstance(self.model, pl.LightningModule) or isinstance(
+                self.model, _LightningPrecisionModuleWrapperBase
+            )
             return self.model.training_step(*args, **kwargs)
 
     def post_training_step(self) -> None:
@@ -353,8 +355,9 @@ class Strategy(ABC):
         See :meth:`~pytorch_lightning.core.module.LightningModule.validation_step` for more details
         """
         with self.precision_plugin.val_step_context():
-            assert isinstance(self.model, pl.LightningModule) or \
-                   isinstance(self.model, _LightningPrecisionModuleWrapperBase)
+            assert isinstance(self.model, pl.LightningModule) or isinstance(
+                self.model, _LightningPrecisionModuleWrapperBase
+            )
             return self.model.validation_step(*args, **kwargs)
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
@@ -363,8 +366,9 @@ class Strategy(ABC):
         See :meth:`~pytorch_lightning.core.module.LightningModule.test_step` for more details
         """
         with self.precision_plugin.test_step_context():
-            assert isinstance(self.model, pl.LightningModule) or \
-                   isinstance(self.model, _LightningPrecisionModuleWrapperBase)
+            assert isinstance(self.model, pl.LightningModule) or isinstance(
+                self.model, _LightningPrecisionModuleWrapperBase
+            )
             return self.model.test_step(*args, **kwargs)
 
     def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
@@ -373,8 +377,9 @@ class Strategy(ABC):
         See :meth:`~pytorch_lightning.core.module.LightningModule.predict_step` for more details
         """
         with self.precision_plugin.predict_step_context():
-            assert isinstance(self.model, pl.LightningModule) or \
-                   isinstance(self.model, _LightningPrecisionModuleWrapperBase)
+            assert isinstance(self.model, pl.LightningModule) or isinstance(
+                self.model, _LightningPrecisionModuleWrapperBase
+            )
             return self.model.predict_step(*args, **kwargs)
 
     def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
@@ -423,7 +428,7 @@ class Strategy(ABC):
         return self.lightning_module.state_dict()
 
     def save_checkpoint(
-            self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
+        self, checkpoint: Dict[str, Any], filepath: _PATH, storage_options: Optional[Any] = None
     ) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
 
