@@ -247,8 +247,6 @@ def _adjust_batch_size(
         log.info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
     if not _is_valid_batch_size(new_size, trainer.train_dataloader, trainer):
-        if not isinstance(trainer.train_dataloader, DataLoader):
-            raise ValueError("train_dataloader is not a DataLoader")
         new_size = min(new_size, len(trainer.train_dataloader.dataset))
 
     changed = new_size != batch_size
@@ -256,6 +254,6 @@ def _adjust_batch_size(
     return new_size, changed
 
 
-def _is_valid_batch_size(batch_size: int, dataloader: DataLoader, trainer: "pl.Trainer") -> bool:
+def _is_valid_batch_size(batch_size: int, dataloader: Any, trainer: "pl.Trainer") -> bool:
     module = trainer.lightning_module or trainer.datamodule
     return not has_len_all_ranks(dataloader, trainer.strategy, module) or batch_size <= len(dataloader)
