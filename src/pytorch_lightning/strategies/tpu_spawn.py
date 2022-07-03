@@ -228,13 +228,13 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self._pod_progress_bar_force_stdout()
         return step_output
 
-    def validation_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
+    def validation_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
         self._pod_progress_bar_force_stdout()
-        return output
+        return step_output
 
-    def test_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
+    def test_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
         self._pod_progress_bar_force_stdout()
-        return output
+        return step_output
 
     def _pod_progress_bar_force_stdout(self) -> None:
         # Why is it required? The way `pytorch_xla.distributed` streams logs

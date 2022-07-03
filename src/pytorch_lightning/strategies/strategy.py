@@ -385,11 +385,11 @@ class Strategy(ABC):
     def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
         return step_output
 
-    def validation_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
+    def validation_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
+        return step_output
 
-    def test_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:
-        return output
+    def test_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
+        return step_output
 
     def process_dataloader(self, dataloader: DataLoader) -> DataLoader:
         """Wraps the dataloader if necessary.
