@@ -229,7 +229,7 @@ Comparison of DDP variants and tradeoffs
    * - Works in Jupyter notebooks / IPython environments
      - No
      - Yes
-     - No
+     - Yes
    * - Supports multi-node
      - Yes
      - Yes
