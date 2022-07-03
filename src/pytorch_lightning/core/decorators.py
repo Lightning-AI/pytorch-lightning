@@ -11,10 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from functools import wraps
+from typing import Callable
 
-from functools import wraps  # noqa: E402
-from typing import Callable  # noqa: E402
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 
 def parameter_validation(fn: Callable) -> Callable:
