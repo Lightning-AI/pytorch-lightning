@@ -18,7 +18,6 @@ import uuid
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
