@@ -101,7 +101,7 @@ class _LRFinder:
         self.lr_max = lr_max
         self.num_training = num_training
 
-        self.results = {}  # type: Dict[str, Any]
+        self.results: Dict[str, Any] = {}
         self._total_batch_idx = 0  # for debug purpose
 
     def _exchange_scheduler(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> Callable[["pl.Trainer"], None]:
