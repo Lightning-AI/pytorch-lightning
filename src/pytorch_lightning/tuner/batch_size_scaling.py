@@ -17,6 +17,7 @@ import uuid
 from typing import Any, Dict, Optional, Tuple
 
 import pytorch_lightning as pl
+from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.utilities.data import has_len_all_ranks
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import garbage_collection_cuda, is_oom_error
