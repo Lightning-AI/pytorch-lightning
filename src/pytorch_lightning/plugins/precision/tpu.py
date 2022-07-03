@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from functools import partial
-from typing import Any, Callable, Union, Optional
+from typing import Any, Callable, Optional, Union
 
 from torch.nn import Module
 from torch.optim import Optimizer
