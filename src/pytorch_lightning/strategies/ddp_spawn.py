@@ -287,14 +287,14 @@ class DDPSpawnStrategy(ParallelStrategy):
             strategy_registry.register(
                 f"ddp_{start_method}_find_unused_parameters_false",
                 cls,
-                description="DDPSpawn Strategy with `find_unused_parameters` as False",
+                description=f"DDP {start_method.title()} strategy with `find_unused_parameters` as False",
                 find_unused_parameters=False,
                 start_method=start_method,
             )
             strategy_registry.register(
                 f"ddp_{start_method}",
                 cls,
-                description=f"{cls.__class__.__name__}",
+                description=f"DDP {start_method.title()} strategy",
                 start_method=start_method,
             )
 

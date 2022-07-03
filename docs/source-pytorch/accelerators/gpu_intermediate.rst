@@ -204,7 +204,7 @@ You can then call your scripts anywhere
 Distributed Data Parallel Fork
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-DDP Fork is an alternative to Spawn that can be used in interactive Python and Jupyter notebooks, Google Colab, Kaggle and so on:
+DDP Fork is an alternative to Spawn that can be used in interactive Python and Jupyter notebooks, Google Colab, Kaggle notebooks and so on:
 
 .. code-block:: python
 
@@ -228,8 +228,8 @@ Comparison of DDP variants and tradeoffs
      - DDP Fork
    * - Works in Jupyter notebooks / IPython environments
      - No
-     - Yes
      - No
+     - Yes
    * - Supports multi-node
      - Yes
      - Yes

@@ -58,7 +58,7 @@ class _SpawnLauncher(_Launcher):
         self._strategy = strategy
         self._start_method = start_method
         if start_method == "fork" and not hasattr(os, "fork"):
-            raise ValueError("The start method 'fork' is not available on this platform. Choose 'spawn' instead.")
+            raise ValueError("The start method 'fork' is not available on this platform. Use 'spawn' instead.")
 
     @property
     def is_interactive_compatible(self) -> bool:
