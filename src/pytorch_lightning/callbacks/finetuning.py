@@ -122,10 +122,11 @@ class BaseFinetuning(Callback):
             modules = modules.values()
 
         if isinstance(modules, Iterable):
-            _modules = []
+            _flatten_modules = []
             for m in modules:
-                _modules.extend(BaseFinetuning.flatten_modules(m))
+                _flatten_modules.extend(BaseFinetuning.flatten_modules(m))
 
+            _modules = iter(_flatten_modules)
         else:
             _modules = modules.modules()
 
