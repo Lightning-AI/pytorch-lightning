@@ -204,7 +204,7 @@ You can then call your scripts anywhere
 Distributed Data Parallel Fork
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-DDP Fork is an alternative to Spawn that can be used in interactive Python and Jupyter notebooks, Google Colab, Kaggle notebooks and so on:
+DDP Fork is an alternative to Spawn that can be used in interactive Python and Jupyter notebooks, Google Colab, Kaggle notebooks, and so on:
 
 .. code-block:: python
 
@@ -212,7 +212,7 @@ DDP Fork is an alternative to Spawn that can be used in interactive Python and J
     trainer = Trainer(accelerator="gpu", devices=8, strategy="ddp_fork")
 
 Data Parallel (``strategy="dp"``) is the only other strategy supported in interactive environments but is slower, is discouraged by PyTorch and has other limitations.
-Among the native distributed strategies, regular DDP (``strategy="ddp"``) is still recommended as the go-to strategy over Spawn and Fork for its speed and stability.
+Among the native distributed strategies, regular DDP (``strategy="ddp"``) is still recommended as the go-to strategy over Spawn and Fork for its speed and stability but it can only be used with scripts.
 
 
 Comparison of DDP variants and tradeoffs
