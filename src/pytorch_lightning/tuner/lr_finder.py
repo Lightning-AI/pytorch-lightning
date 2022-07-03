@@ -16,7 +16,7 @@ import logging
 import os
 import uuid
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Sequence, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Sequence, Union
 
 import numpy as np
 import torch
@@ -39,7 +39,7 @@ if importlib.util.find_spec("ipywidgets") is not None:
 else:
     from tqdm import tqdm
 
-_MATPLOTLIB_AVAILABLE: bool = _RequirementAvailable("matplotlib")
+_MATPLOTLIB_AVAILABLE: bool = _RequirementAvailable("matplotlib")  # type: ignore[assignment]
 if _MATPLOTLIB_AVAILABLE:
     import matplotlib.pyplot as plt
 
@@ -127,16 +127,17 @@ class _LRFinder:
                 param_group["initial_lr"] = new_lr
 
             args = (optimizer, self.lr_max, self.num_training)
-            scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)  # type: _LRScheduler
+            scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)
+            scheduler = cast(pl.utilities.types._LRScheduler, scheduler)
 
             trainer.strategy.optimizers = [optimizer]
-            trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]  # type: ignore
+            trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
             trainer.strategy.optimizer_frequencies = []
             _set_scheduler_opt_idx(trainer.optimizers, trainer.lr_scheduler_configs)
 
         return func
 
-    def plot(self, suggest: bool = False, show: bool = False) -> Optional[plt.Figure]:
+    def plot(self, suggest: bool = False, show: bool = False) -> Optional["plt.Figure"]:
         """Plot results from lr_find run
         Args:
             suggest: if True, will mark suggested lr to use with a red point
@@ -227,7 +228,7 @@ def lr_find(
         trainer.progress_bar_callback.disable()
 
     # Configure optimizer and scheduler
-    trainer.strategy.setup_optimizers = lr_finder._exchange_scheduler(trainer, model)  # type: ignore
+    trainer.strategy.setup_optimizers = lr_finder._exchange_scheduler(trainer, model)  # type: ignore[assignment]
 
     # Fit, lr & loss logged in callback
     trainer.tuner._run(model)
@@ -330,7 +331,7 @@ class _LRCallback(Callback):
         if self.progress_bar_refresh_rate and self.progress_bar is None:
             self.progress_bar = tqdm(desc="Finding best initial lr", total=self.num_training)
 
-        self.lrs.append(trainer.lr_scheduler_configs[0].scheduler.lr[0])  # type: ignore
+        self.lrs.append(trainer.lr_scheduler_configs[0].scheduler.lr[0])  # type: ignore[union-attr]
 
     def on_train_batch_end(
         self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", outputs: STEP_OUTPUT, batch: Any, batch_idx: int
