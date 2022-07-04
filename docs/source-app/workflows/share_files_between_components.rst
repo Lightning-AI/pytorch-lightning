@@ -34,8 +34,8 @@ To write a file, first create a reference to the file with the :class:`~lightnin
     boring_file_reference = Path("boring_file.txt")
 
     # write to that file
-    with open(self.boring_file_reference, 'w') as f:
-        f.write('yolo')
+    with open(self.boring_file_reference, "w") as f:
+        f.write("yolo")
 
 
 ----
@@ -106,6 +106,7 @@ For example, here we save a file on one component and use it in another componen
 .. code:: python
 
     from lightning_app.storage.path import Path
+
 
     class ComponentA(LightningWork):
         def __init__(self):

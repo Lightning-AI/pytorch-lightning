@@ -24,10 +24,10 @@ As explained in the `Event Loop guide <../glossary/event_loop.html>`_, the Light
     from datetime import datetime
 
     # Lightning code
-    while True: # This is the Lightning Event Loop
+    while True:  # This is the Lightning Event Loop
 
         # Your code
-        today = datetime.now().strftime("%D") # '05/25/22'
+        today = datetime.now().strftime("%D")  # '05/25/22'
         data_processor.run(today)
         train_model.run(data_processor.data)
 
@@ -47,9 +47,11 @@ Here's an example of this behavior with LightningWork:
 
     import lightning as L
 
-    class ExampleWork( L.LightningWork):
+
+    class ExampleWork(L.LightningWork):
         def run(self, *args, **kwargs):
             print(f"I received the following props: args: {args} kwargs: {kwargs}")
+
 
     work = ExampleWork()
     work.run(value=1)
@@ -86,9 +88,11 @@ By setting ``cache_calls=False``, Lightning won't cache the return value and re-
 
     from lightning_app import LightningWork
 
+
     class ExampleWork(LightningWork):
         def run(self, *args, **kwargs):
             print(f"I received the following props: args: {args} kwargs: {kwargs}")
+
 
     work = ExampleWork(cache_calls=False)
     work.run(value=1)
@@ -122,20 +126,18 @@ as the work continuously execute in a blocking way.
 
     from lightning_app import LightningApp, LightningFlow, LightningWork
 
-    class Flow(LightningFlow):
 
+    class Flow(LightningFlow):
         def __init__(self):
             super().__init__()
 
-            self.work = Work(
-                cache_calls=False,
-                parallel=False
-            )
+            self.work = Work(cache_calls=False, parallel=False)
 
         def run(self):
             print("HERE BEFORE")
             self.work.run()
             print("HERE AFTER")
+
 
     app = LightningApp(Flow())
 
