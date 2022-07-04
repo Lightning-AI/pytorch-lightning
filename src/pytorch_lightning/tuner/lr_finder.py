@@ -16,7 +16,7 @@ import logging
 import os
 import uuid
 from functools import wraps
-from typing import Any, Callable, cast, Dict, List, Optional, Sequence, Union, TYPE_CHECKING
+from typing import Any, Callable, cast, Dict, List, Optional, Sequence, TYPE_CHECKING, Union
 
 import numpy as np
 import torch
