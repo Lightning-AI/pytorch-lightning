@@ -35,6 +35,7 @@ As the Work is running its own process, its state changes are sent to the Flow w
 
     import lightning as L
 
+
     class WorkCounter(L.LightningWork):
         def __init__(self):
             super().__init__(parallel=True)
@@ -44,8 +45,8 @@ As the Work is running its own process, its state changes are sent to the Flow w
             for _ in range(int(10e6)):
                 self.counter += 1
 
-    class Flow(L.LightningFlow):
 
+    class Flow(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.w = WorkCounter()
@@ -54,6 +55,7 @@ As the Work is running its own process, its state changes are sent to the Flow w
             self.w.run()
             print(self.w.counter)
 
+
     app = L.LightningApp(Flow())
 
 
@@ -61,7 +63,7 @@ A delta sent from the Work to the Flow looks like this:
 
 .. code-block:: python
 
-    {'values_changed': {"root['works']['w']['vars']['counter']": {'new_value': 425}}}
+    {"values_changed": {"root['works']['w']['vars']['counter']": {"new_value": 425}}}
 
 Here is the associated illustration:
 
@@ -122,6 +124,7 @@ Here's an example of what would happen if you try to have the Flow communicate w
     import lightning as L
     from time import sleep
 
+
     class WorkCounter(L.LightningWork):
         def __init__(self):
             super().__init__(parallel=True)
@@ -132,8 +135,8 @@ Here's an example of what would happen if you try to have the Flow communicate w
                 sleep(1)
                 print(f"Work {self.counter}")
 
-    class Flow(L.LightningFlow):
 
+    class Flow(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.w = WorkCounter()
@@ -143,6 +146,7 @@ Here's an example of what would happen if you try to have the Flow communicate w
             sleep(1)
             print(f"Flow {self.w.counter}")
             self.w.counter += 1
+
 
     app = L.LightningApp(Flow())
 
