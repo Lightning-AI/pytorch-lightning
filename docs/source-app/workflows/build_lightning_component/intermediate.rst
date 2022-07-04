@@ -29,13 +29,12 @@ To *connect* this user interface to the component, define the configure_layout m
 .. code:: python
     :emphasize-lines: 5, 6
 
-    import lightning_app as la
+    import lightning as L
     from lightning_app.frontend.web import StaticWebFrontend
 
-
-    class LitHTMLComponent(lapp.LightningFlow):
+    class LitHTMLComponent(L.LightningFlow):
         def configure_layout(self):
-            return StaticWebFrontend(serve_dir="path/to/folder/with/index.html/inside")
+            return StaticWebFrontend(serve_dir='path/to/folder/with/index.html/inside')
 
 Finally, route the component's UI through the root component's **configure_layout** method:
 
@@ -43,15 +42,13 @@ Finally, route the component's UI through the root component's **configure_layou
     :emphasize-lines: 14
 
     # app.py
-    import lightning_app as la
+    import lightning as L
 
-
-    class LitHTMLComponent(lapp.LightningFlow):
+    class LitHTMLComponent(L.LightningFlow):
         def configure_layout(self):
-            return lapp.frontend.web.StaticWebFrontend(serve_dir="path/to/folder/with/index.html/inside")
+            return L.frontend.web.StaticWebFrontend(serve_dir='path/to/folder/with/index.html/inside')
 
-
-    class LitApp(lapp.LightningFlow):
+    class LitApp(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.lit_html_component = LitHTMLComponent()
@@ -60,8 +57,7 @@ Finally, route the component's UI through the root component's **configure_layou
             tab1 = {"name": "home", "content": self.lit_html_component}
             return tab1
 
-
-    app = lapp.LightningApp(LitApp())
+    app = L.LightningApp(LitApp())
 
 Run your app and you'll see the UI on the Lightning App view:
 
