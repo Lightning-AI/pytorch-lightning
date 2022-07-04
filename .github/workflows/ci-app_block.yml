@@ -13,6 +13,7 @@ jobs:
       - name: Get changed files using defaults
         id: changed-files
         uses: tj-actions/changed-files@v23
+
       - name: List all added files
         run: |
           for file in ${{ steps.changed-files.outputs.all_changed_and_modified_files }}; do
