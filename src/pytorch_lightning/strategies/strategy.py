@@ -129,7 +129,7 @@ class Strategy(ABC):
         """
         if trainer.state.fn not in (TrainerFn.FITTING, TrainerFn.TUNING):
             return
-        assert self.lightning_module, "self.lightning_module must be set before _init_optimizers_and_lr_schedulers()"
+        assert self.lightning_module is not None
         self.optimizers, self.lr_scheduler_configs, self.optimizer_frequencies = _init_optimizers_and_lr_schedulers(
             self.lightning_module
         )
