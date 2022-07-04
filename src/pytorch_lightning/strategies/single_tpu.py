@@ -55,13 +55,10 @@ class SingleTPUStrategy(SingleDeviceStrategy):
         return False
 
     def setup(self, trainer: "pl.Trainer") -> None:
+        assert self.model, "self.model must be set before find_shared_parameters(self.model)"
         shared_params = find_shared_parameters(self.model)
         self.model_to_device()
-        if is_overridden("on_post_move_to_device", self.lightning_module):
-            self.model.on_post_move_to_device()
-        else:
-            set_shared_parameters(self.model, shared_params)
-
+        set_shared_parameters(self.model, shared_params)
         super().setup(trainer)
 
         if self.debug:
@@ -69,9 +66,6 @@ class SingleTPUStrategy(SingleDeviceStrategy):
 
         self.tpu_local_core_rank = xm.get_local_ordinal()
         self.tpu_global_core_rank = xm.get_ordinal()
-
-    def model_to_device(self) -> None:
-        self.model.to(self.root_device)
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
