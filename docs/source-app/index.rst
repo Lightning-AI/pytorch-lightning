@@ -40,16 +40,15 @@ Welcome to ⚡ Lightning Apps
 Install Lightning
 ******************
 
-
 .. code-block:: bash
 
    pip install lightning
 
 ----
 
-******************
+***********
 Get Started
-******************
+***********
 
 .. raw:: html
 
@@ -112,15 +111,15 @@ Get Started
 
 .. toctree::
    :maxdepth: 1
-   :caption: App development workflows
+   :caption: How to...
 
-   Access the app state </workflows/access_app_state/access_app_state.rst>
    Add a web user interface (UI) <workflows/add_web_ui/index>
    Add a web link  <workflows/add_web_link>
    Arrange app tabs <workflows/arrange_tabs/index>
    Build a Lightning app <workflows/build_lightning_app/index>
    Build a Lightning component <workflows/build_lightning_component/index>
    Cache Work run calls  <workflows/run_work_once>
+   Customize your cloud compute <core_api/lightning_work/compute>
    Extend an existing app <workflows/extend_app>
    Publish a Lightning component <workflows/build_lightning_component/publish_a_component>
    Run a server within a Lightning App <workflows/add_server/index>

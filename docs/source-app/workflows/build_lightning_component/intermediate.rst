@@ -32,10 +32,9 @@ To *connect* this user interface to the component, define the configure_layout m
     import lightning as L
     from lightning_app.frontend.web import StaticWebFrontend
 
-
     class LitHTMLComponent(L.LightningFlow):
         def configure_layout(self):
-            return StaticWebFrontend(serve_dir="path/to/folder/with/index.html/inside")
+            return StaticWebFrontend(serve_dir='path/to/folder/with/index.html/inside')
 
 Finally, route the component's UI through the root component's **configure_layout** method:
 
@@ -45,11 +44,9 @@ Finally, route the component's UI through the root component's **configure_layou
     # app.py
     import lightning as L
 
-
     class LitHTMLComponent(L.LightningFlow):
         def configure_layout(self):
-            return L.frontend.web.StaticWebFrontend(serve_dir="path/to/folder/with/index.html/inside")
-
+            return L.frontend.web.StaticWebFrontend(serve_dir='path/to/folder/with/index.html/inside')
 
     class LitApp(L.LightningFlow):
         def __init__(self):
@@ -59,7 +56,6 @@ Finally, route the component's UI through the root component's **configure_layou
         def configure_layout(self):
             tab1 = {"name": "home", "content": self.lit_html_component}
             return tab1
-
 
     app = L.LightningApp(LitApp())
 

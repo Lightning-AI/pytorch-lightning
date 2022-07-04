@@ -20,7 +20,6 @@ Here is an example:
     import lightning as L
     import pandas as pd
 
-
     class SourceWork(L.LightningWork):
         def __init__(self):
             super().__init__()
@@ -29,7 +28,7 @@ Here is an example:
         def run(self):
             # do some processing
 
-            df = pd.DataFrame(data={"col1": [1, 2], "col2": [3, 4]})
+            df = pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]})
 
             # The object you care about needs to be wrapped into a Payload object.
             self.df = L.storage.Payload(df)
@@ -47,17 +46,17 @@ Once the Payload object is attached to your Work's state, it can be passed to an
     import lightning as L
     import pandas as pd
 
-
     class DestinationWork(L.LightningWork):
-        def run(self, df: L.storage.Payload):
+
+        def run(self, df:L.storage.Payload):
             # You can access the original object from the payload using its value property.
             print("dst", df.value)
             # dst  col1  col2
             # 0     1     3
             # 1     2     4
 
-
     class Flow(L.LightningFlow):
+
         def __init__(self):
             super().__init__()
             self.src = SourceWork()
@@ -70,6 +69,5 @@ Once the Payload object is attached to your Work's state, it can be passed to an
             # Internally, Lightning pickles and un-pickle the python object,
             # so you receive a copy of the original object.
             self.dst.run(df=self.src.df)
-
 
     app = L.LightningApp(Flow())

@@ -1,11 +1,11 @@
-#########################################
-Level 20: Handle Lightning App exceptions
-#########################################
+#######################################
+Level 20: Enable dynamic LightningWorks
+#######################################
 
-**Audience:** Users who want to make Lightning Apps more robust to potential issues.
+**Audience:** Users who want to create/run/stop multiple LightningWorks not defined at app instantiation.
 
 **Prereqs:** Level 16+
 
 ----
 
-.. include:: ../../core_api/lightning_work/handling_app_exception_content.rst
+.. include:: ../../core_api/lightning_app/dynamic_work_content.rst

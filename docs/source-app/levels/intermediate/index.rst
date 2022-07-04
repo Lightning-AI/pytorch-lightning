@@ -12,7 +12,6 @@
    level_13
    level_14
    level_15
-   level_16
 
 ###################
 Intermediate skills
@@ -72,33 +71,25 @@ Learn to build your own Lightning Apps from scratch and the basics of the framew
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 13: Communicate with the Lightning App
-   :description: Learn to communicate across the Lightning App with the app state.
+   :header: Level 13: Communicate between Lightning components
+   :description: Learn about how LightningFlows communicate with LightningWorks.
    :button_link: level_13.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 14: Communicate between LightningFlow and LightningWork
-   :description: Learn about how LightningFlows communicate with LightningWorks.
+   :header: Level 14: Share files between components
+   :description: Learn how Drives share files between components
    :button_link: level_14.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate
 
 .. displayitem::
-   :header: Level 15: Share files between components
-   :description: Learn how Drives share files between components
-   :button_link: level_15.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: intermediate
-
-.. displayitem::
-   :header: Level 16: Run LightningWorks in parallel
+   :header: Level 15: Run LightningWorks in parallel
    :description: Learn when to run LightningWorks in parallel
-   :button_link: level_16.html
+   :button_link: level_15.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate

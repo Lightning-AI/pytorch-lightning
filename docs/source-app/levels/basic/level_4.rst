@@ -109,14 +109,15 @@ To use the component, simply import it and attach it to your Lightning App.
     import lightning as L
     from lit_slack import SlackMessenger
 
-
     class YourComponent(L.LightningFlow):
         def __init__(self):
             super().__init__()
-            self.slack_messenger = SlackMessenger(token="a-long-token", channel_id="A03CB4A6AK7")
+            self.slack_messenger = SlackMessenger(
+                token='a-long-token',
+                channel_id='A03CB4A6AK7'
+            )
 
         def run(self):
-            self.slack_messenger.send_message("hello from ⚡ lit slack ⚡")
-
+            self.slack_messenger.send_message('hello from ⚡ lit slack ⚡')
 
     app = L.LightningApp(YourComponent())

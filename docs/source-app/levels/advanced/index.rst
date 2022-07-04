@@ -4,11 +4,11 @@
    :maxdepth: 1
    :hidden:
 
+   level_16
    level_17
    level_18
    level_19
    level_20
-   level_21
 
 ###############
 Advanced skills
@@ -29,41 +29,41 @@ Learn to build Lightning Apps for enterprise workloads or advanced research.
 .. Add callout items below this line
 
 .. displayitem::
-   :header: Level 17: Check work status
+   :header: Level 16: Check work status
    :description: Learn to use work status to coordinate complex apps.
+   :button_link: level_16.html
+   :col_css: col-md-6
+   :height: 150
+   :tag: advanced
+
+.. displayitem::
+   :header: Level 17: Cache calls into run
+   :description: Learn about caching calls in work.run.
    :button_link: level_17.html
    :col_css: col-md-6
    :height: 150
    :tag: advanced
 
 .. displayitem::
-   :header: Level 18: Cache calls into run
-   :description: Learn about caching calls in work.run.
+   :header: Level 18: Share objects between works
+   :description: Learn to build things like DAGs where values return from Work.
    :button_link: level_18.html
    :col_css: col-md-6
    :height: 150
    :tag: advanced
 
 .. displayitem::
-   :header: Level 19: Share objects between works
-   :description: Learn to build things like DAGs where values return from Work.
+   :header: Level 19: Handle Lightning App exceptions
+   :description: Learn to handle Lightning App exceptions.
    :button_link: level_19.html
    :col_css: col-md-6
    :height: 150
    :tag: advanced
 
 .. displayitem::
-   :header: Level 20: Handle Lightning App exceptions
-   :description: Learn to handle Lightning App exceptions.
-   :button_link: level_20.html
-   :col_css: col-md-6
-   :height: 150
-   :tag: advanced
-
-.. displayitem::
-   :header: Level 21: Enable dynamic Works
+   :header: Level 20: Enable dynamic Works
    :description: Learn to enable dynamic works for complex systems.
-   :button_link: level_21.html
+   :button_link: level_20.html
    :col_css: col-md-6
    :height: 150
    :tag: advanced

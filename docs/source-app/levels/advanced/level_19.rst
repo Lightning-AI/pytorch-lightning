@@ -1,10 +1,11 @@
-##############################################
-Level 19: Share objects between LightningWorks
-##############################################
-**Audience:** Users moving DataFrames or outputs, between Lightning Works (usually data engineers).
+#########################################
+Level 19: Handle Lightning App exceptions
+#########################################
 
-**Prereqs:** Level 16+ and know about the Pandas library and read the `Access app state guide <../../access_app_state.html>`_.
+**Audience:** Users who want to make Lightning Apps more robust to potential issues.
+
+**Prereqs:** Level 16+
 
 ----
 
-.. include:: ../../core_api/lightning_work/payload_content.rst
+.. include:: ../../core_api/lightning_work/handling_app_exception_content.rst

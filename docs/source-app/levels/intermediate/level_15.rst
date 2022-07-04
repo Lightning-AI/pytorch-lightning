@@ -1,10 +1,10 @@
 ########################################
-Level 15: Share files between components
+Level 15: Run LightningWorks in parallel
 ########################################
-**Audience:** Users who are moving large files such as artifacts or datasets.
+**Audience:** Users who want to run multiple LightningWorks at once.
 
 **Prereqs:** Level 8+
 
 ----
 
-.. include:: ../../glossary/storage/drive_content.rst
+.. include:: ../../workflows/run_work_in_parallel_content.rst

@@ -38,16 +38,16 @@ the Work transitions from ``is_pending`` to ``is_running`` and then to ``has_suc
     from time import sleep
     import lightning as L
 
-
     class Work(L.LightningWork):
+
         def run(self, value: int):
             sleep(1)
             if value == 0:
                 return
             raise Exception(f"The provided value was {value}")
 
-
     class Flow(L.LightningFlow):
+
         def __init__(self):
             super().__init__()
             self.work = Work(raise_exception=False)
@@ -76,7 +76,6 @@ the Work transitions from ``is_pending`` to ``is_running`` and then to ``has_suc
             print(self.work.status)
             self.work.run(self.counter)
             self.counter += 1
-
 
     app = L.LightningApp(Flow())
 
@@ -136,16 +135,16 @@ In order to access all statuses:
     from time import sleep
     import lightning as L
 
-
     class Work(L.LightningWork):
+
         def run(self, value: int):
             sleep(1)
             if value == 0:
                 return
             raise Exception(f"The provided value was {value}")
 
-
     class Flow(L.LightningFlow):
+
         def __init__(self):
             super().__init__()
             self.work = Work(raise_exception=False)
@@ -155,7 +154,6 @@ In order to access all statuses:
             print(self.statuses)
             self.work.run(self.counter)
             self.counter += 1
-
 
     app = L.LightningApp(Flow())
 

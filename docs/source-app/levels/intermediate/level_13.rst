@@ -1,10 +1,10 @@
-########################################
-Level 13: Communication in Lighting Apps
-########################################
-**Audience:** Users that want to create complex reactive apps.
+####################################################
+Level 13: Communication between Lightning Components
+####################################################
+**Audience:** Users who have multiple LightningWorks communicating with LightningFlows.
 
 **Prereqs:** Level 8+
 
 ----
 
-.. include:: ../../workflows/access_app_state/access_app_state_content.rst
+.. include:: ../../core_api/lightning_app/communication_content.rst

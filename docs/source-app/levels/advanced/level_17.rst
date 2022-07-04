@@ -1,10 +1,10 @@
-###########################
-Level 17: Check Work status
-###########################
-**Audience:** Users who want to stop/start Lightning Work based on a status.
+##############################
+Level 17: Cache calls into run
+##############################
+**Audience:** Users who want Work.run() to activate multiple times in an app.
 
-**Prereqs:** Level 16+
+**Prereqs:** Level 16+ and read the `Event Loop guide <../glossary/event_loop.html>`_.
 
 ----
 
-.. include:: ../../core_api/lightning_work/status_content.rst
+.. include:: ../../workflows/run_work_once_content.rst

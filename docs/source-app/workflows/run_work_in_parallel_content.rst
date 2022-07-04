@@ -13,14 +13,13 @@ The default behavior of the ``LightningWork`` is to wait for the ``run`` method 
 
     import lightning as L
 
-
     class Root(L.LightningFlow):
         def __init__(self):
             self.work_component_a = L.demo.InfinteWorkComponent()
 
         def run(self):
             self.work_component_a.run()
-            print("this will never print")
+            print('this will never print')
 
 Since this LightningWork component we created loops forever, the print statement will never execute. In practice
 ``LightningWork`` workloads are finite and don't run forever.
@@ -40,14 +39,13 @@ To run LightningWorks in parallel, while the rest of the app executes without de
 
     import lightning as L
 
-
     class Root(L.LightningFlow):
         def __init__(self):
             self.work_component_a = L.demo.InfinteWorkComponent(parallel=True)
 
         def run(self):
             self.work_component_a.run()
-            print("repeats while the infinite work runs ONCE (and forever) in parallel")
+            print('repeats while the infinite work runs ONCE (and forever) in parallel')
 
 Any LightningWorks that will take more than **1 second** should be run in parallel
 unless the rest of your Lightning App depends on the output of this work (for example, downloading a dataset).
