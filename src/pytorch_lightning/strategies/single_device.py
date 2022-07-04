@@ -66,7 +66,7 @@ class SingleDeviceStrategy(Strategy):
         return self._root_device
 
     def model_to_device(self) -> None:
-        assert self.model, "self.model must be set before self.model.to()"
+        assert self.model is not None, "self.model must be set before self.model.to()"
         self.model.to(self.root_device)
 
     def setup(self, trainer: pl.Trainer) -> None:
