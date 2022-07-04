@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import annotations
 
 from typing import Any
 
@@ -28,7 +27,7 @@ class DDP2Strategy:
 
     strategy_name = "ddp2"
 
-    def __new__(cls, *args: Any, **kwargs: Any) -> DDP2Strategy:  # in this case "-> DDP2Strategy" is for mypy only
+    def __new__(cls, *args: Any, **kwargs: Any) -> "DDP2Strategy":
         raise TypeError(
             "The `DDP2Strategy`/`DDP2Plugin` is no longer supported in v1.7 and will be removed completely in v1.8."
             " For single-node execution, we recommend the `DDPStrategy` or the `DPStrategy`. If you rely on DDP2, you"
