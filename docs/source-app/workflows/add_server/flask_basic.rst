@@ -26,11 +26,13 @@ First, define your flask app as you normally would without Lightning:
 
     flask_app = Flask(__name__)
 
-    @flask_app.route('/')
-    def hello():
-        return 'Hello, World!'
 
-    flask_app.run(host='0.0.0.0', port=80)
+    @flask_app.route("/")
+    def hello():
+        return "Hello, World!"
+
+
+    flask_app.run(host="0.0.0.0", port=80)
 
 To enable the server inside the component, start the Flask server in the run method and use the ``self.host`` and ``self.port`` properties:
 
@@ -40,13 +42,14 @@ To enable the server inside the component, start the Flask server in the run met
     import lightning as L
     from flask import Flask
 
+
     class LitFlask(L.LightningWork):
         def run(self):
             flask_app = Flask(__name__)
 
-            @flask_app.route('/')
+            @flask_app.route("/")
             def hello():
-                return 'Hello, World!'
+                return "Hello, World!"
 
             flask_app.run(host=self.host, port=self.port)
 
@@ -64,15 +67,17 @@ In this case, we render the ``LitFlask`` output in the ``home`` tab of the appli
     import lightning as L
     from flask import Flask
 
+
     class LitFlask(L.LightningWork):
         def run(self):
             flask_app = Flask(__name__)
 
-            @flask_app.route('/')
+            @flask_app.route("/")
             def hello():
-                return 'Hello, World!'
+                return "Hello, World!"
 
             flask_app.run(host=self.host, port=self.port)
+
 
     class Root(L.LightningFlow):
         def __init__(self):
@@ -83,8 +88,9 @@ In this case, we render the ``LitFlask`` output in the ``home`` tab of the appli
             self.lit_flask.run()
 
         def configure_layout(self):
-            tab1 = {'name': 'home', 'content': self.lit_flask}
+            tab1 = {"name": "home", "content": self.lit_flask}
             return tab1
+
 
     app = L.LightningApp(Root())
 
