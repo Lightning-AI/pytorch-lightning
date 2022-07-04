@@ -22,7 +22,7 @@ import csv
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Pathlike, Union
 
 from torch import Tensor
 
@@ -49,8 +49,8 @@ class ExperimentWriter:
     NAME_METRICS_FILE = "metrics.csv"
 
     def __init__(self, log_dir: str) -> None:
-        self.hparams = {}
-        self.metrics = []
+        self.hparams: dict = {}
+        self.metrics: list = []
 
         self.log_dir = log_dir
         if os.path.exists(self.log_dir) and os.listdir(self.log_dir):
@@ -69,7 +69,7 @@ class ExperimentWriter:
     def log_metrics(self, metrics_dict: Dict[str, float], step: Optional[int] = None) -> None:
         """Record metrics."""
 
-        def _handle_value(value):
+        def _handle_value(value: Union[Tensor, Any]) -> Union[Tensor, Any]:
             if isinstance(value, Tensor):
                 return value.item()
             return value
@@ -125,8 +125,8 @@ class CSVLogger(Logger):
 
     def __init__(
         self,
-        save_dir: str,
-        name: Optional[str] = "lightning_logs",
+        save_dir: Union[str, Pathlike[str]],
+        name: Union[str, Pathlike[str]] = "lightning_logs",
         version: Optional[Union[int, str]] = None,
         prefix: str = "",
         flush_logs_every_n_steps: int = 100,
@@ -146,7 +146,7 @@ class CSVLogger(Logger):
         If the experiment name parameter is an empty string, no experiment subdirectory is used and the checkpoint will
         be saved in "save_dir/version"
         """
-        return os.path.join(self.save_dir, self.name)
+        return os.path.join(str(self.save_dir), str(self.name))
 
     @property
     def log_dir(self) -> str:
@@ -169,7 +169,7 @@ class CSVLogger(Logger):
         """
         return self._save_dir
 
-    @property
+    @property  # type: ignore
     @rank_zero_experiment
     def experiment(self) -> ExperimentWriter:
         r"""
@@ -220,7 +220,7 @@ class CSVLogger(Logger):
         return self._name
 
     @property
-    def version(self) -> int:
+    def version(self) -> Union[int, str]:
         """Gets the version of the experiment.
 
         Returns:
@@ -230,7 +230,7 @@ class CSVLogger(Logger):
             self._version = self._get_next_version()
         return self._version
 
-    def _get_next_version(self):
+    def _get_next_version(self) -> int:
         root_dir = self.root_dir
 
         if not os.path.isdir(root_dir):
