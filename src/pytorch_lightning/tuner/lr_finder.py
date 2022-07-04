@@ -149,6 +149,7 @@ class _LRFinder:
                 "To use the `plot` method, you must have Matplotlib installed."
                 " Install it by running `pip install -U matplotlib`."
             )
+        import matplotlib.pyplot as plt
 
         lrs = self.results["lr"]
         losses = self.results["loss"]
