@@ -236,7 +236,7 @@ def _adjust_batch_size(
         new_size = value
     else:
         if not isinstance(batch_size, int):
-            raise ValueError(f"value is None and batch_size is not int value: {batch_size}")
+            raise ValueError(f"Batch size attribute in LightningModule must be an integer, got: {batch_size!r}")
         new_size = int(batch_size * factor)
 
     if desc:
