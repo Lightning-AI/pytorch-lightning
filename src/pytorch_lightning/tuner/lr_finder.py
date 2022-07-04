@@ -40,7 +40,7 @@ else:
     from tqdm import tqdm
 
 _MATPLOTLIB_AVAILABLE: bool = _RequirementAvailable("matplotlib")  # type: ignore[assignment]
-if _MATPLOTLIB_AVAILABLE:
+if _MATPLOTLIB_AVAILABLE and TYPE_CHECKING:
     import matplotlib.pyplot as plt
 
 log = logging.getLogger(__name__)
