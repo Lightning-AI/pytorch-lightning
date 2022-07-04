@@ -1,20 +1,21 @@
 import logging
 import sys
 
-import lightning_app as lapp
 import panel as pn
+
+import lightning_app as lapp
 from lightning_app.utilities.imports import requires
 
 logger = logging.getLogger("PanelFrontend")
 logger.setLevel(logging.DEBUG)
 
 handler = logging.StreamHandler(sys.stdout)
-formatter = logging.Formatter('%(asctime)s - %(message)s')
+formatter = logging.Formatter("%(asctime)s - %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+
 class PanelFrontend(lapp.LightningWork):
-    
     @requires("panel")
     def __init__(self, render_fn, parallel=True, **kwargs):
         super().__init__(parallel=parallel, **kwargs)
@@ -46,7 +47,7 @@ class PanelFrontend(lapp.LightningWork):
         logger.info("run end")
 
     def stop(self):
-        """Stops the server"""
+        """Stops the server."""
         if self._server:
             self._server.stop()
         logger.info("stop end")
