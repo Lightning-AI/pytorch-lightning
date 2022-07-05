@@ -41,7 +41,6 @@ warn_no_return = "False"
 # the list can be generated with:
 # mypy | tr ':' ' ' |  awk '{print $1}' | sort | uniq | sed 's/\.py//g' | sed 's|\/|\.|g' | xargs -I {} echo '"{}",'
 module = [
-    "pytorch_lightning.callbacks.finetuning",
     "pytorch_lightning.callbacks.model_checkpoint",
     "pytorch_lightning.callbacks.progress.rich_progress",
     "pytorch_lightning.callbacks.quantization",
@@ -64,7 +63,6 @@ module = [
     "pytorch_lightning.loggers.wandb",
     "pytorch_lightning.loops.epoch.training_epoch_loop",
     "pytorch_lightning.strategies.ddp",
-    "pytorch_lightning.strategies.ddp2",
     "pytorch_lightning.strategies.ddp_spawn",
     "pytorch_lightning.strategies.deepspeed",
     "pytorch_lightning.strategies.dp",
