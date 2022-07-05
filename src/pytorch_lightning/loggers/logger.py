@@ -255,7 +255,7 @@ class LoggerCollection(Logger):
         for logger in self._logger_iterable:
             logger.log_graph(model, input_array)
 
-    def log_text(self, *args, **kwargs) -> None:
+    def log_text(self, *args: Any, **kwargs: Any) -> None:
         for logger in self._logger_iterable:
             logger.log_text(*args, **kwargs)
 
@@ -294,17 +294,17 @@ class LoggerCollection(Logger):
 class DummyExperiment:
     """Dummy experiment."""
 
-    def nop(self, *args, **kw):
+    def nop(self, *args: Any, **kw: Any) -> None:
         pass
 
-    def __getattr__(self, _):
+    def __getattr__(self, _: Any) -> Callable:
         return self.nop
 
-    def __getitem__(self, idx) -> "DummyExperiment":
+    def __getitem__(self, idx: int) -> "DummyExperiment":
         # enables self.logger.experiment[0].add_image(...)
         return self
 
-    def __setitem__(self, *args, **kwargs) -> None:
+    def __setitem__(self, *args: Any, **kwargs: Any) -> None:
         pass
 
 
