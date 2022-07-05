@@ -23,6 +23,7 @@ from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Seque
 from weakref import ReferenceType
 
 import numpy as np
+from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Checkpoint
@@ -157,7 +158,7 @@ class Logger(ABC):
             kwargs: Optional keyword arguments, depends on the specific logger being used
         """
 
-    def log_graph(self, model: "pl.LightningModule", input_array=None) -> None:
+    def log_graph(self, model: "pl.LightningModule", input_array: Tensor = None) -> None:
         """Record model graph.
 
         Args:
