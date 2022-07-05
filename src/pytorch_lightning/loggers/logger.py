@@ -251,9 +251,9 @@ class LoggerCollection(Logger):
         for logger in self._logger_iterable:
             logger.log_metrics(metrics=metrics, step=step)
 
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace], *args: Any, **kwargs: Any) -> None:
         for logger in self._logger_iterable:
-            logger.log_hyperparams(params)
+            logger.log_hyperparams(params, *args, **kwargs)
 
     def log_graph(self, model: "pl.LightningModule", input_array: Tensor = None) -> None:
         for logger in self._logger_iterable:
