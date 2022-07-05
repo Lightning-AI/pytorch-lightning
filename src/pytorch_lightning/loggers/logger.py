@@ -19,6 +19,7 @@ import operator
 import typing as t
 from abc import ABC, abstractmethod
 from argparse import Namespace
+from collections import defaultdict
 from functools import wraps
 from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Sequence, Union
 from weakref import ReferenceType
@@ -362,7 +363,7 @@ class DummyLogger(Logger):
 
 def merge_dicts(
     dicts: Sequence[Mapping],
-    agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+    agg_key_funcs: Optional[Mapping] = None,
     default_func: Callable[[Sequence[float]], float] = np.mean,
 ) -> Dict:
     """Merge a sequence with dictionaries into one dictionary by aggregating the same keys with some given
@@ -400,7 +401,7 @@ def merge_dicts(
     """
     agg_key_funcs = agg_key_funcs or {}
     keys = list(functools.reduce(operator.or_, [set(d.keys()) for d in dicts]))
-    d_out = {}
+    d_out: Dict = defaultdict(dict)
     for k in keys:
         fn = agg_key_funcs.get(k)
         values_to_agg = [v for v in [d_in.get(k) for d_in in dicts] if v is not None]
