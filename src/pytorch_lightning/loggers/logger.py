@@ -119,7 +119,7 @@ class Logger(ABC):
             self._agg_default_func = agg_default_func
         rank_zero_deprecation("`Logger.update_agg_funcs` was deprecated in v1.6 and will be removed in v1.8.")
 
-    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         """Aggregates and records metrics. This method doesn't log the passed metrics instantaneously, but instead
         it aggregates them and logs only if metrics are ready to be logged.
 
@@ -134,7 +134,7 @@ class Logger(ABC):
         self.log_metrics(metrics=metrics, step=step)
 
     @abstractmethod
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         """
         Records metrics.
         This method logs metrics as as soon as it received them. If you want to aggregate
