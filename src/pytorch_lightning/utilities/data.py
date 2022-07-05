@@ -126,7 +126,7 @@ def has_len(dataloader: Union[DataLoader, Iterable]) -> bool:
 
 
 def has_len_all_ranks(
-    dataloader: Any,
+    dataloader: DataLoader,
     training_type: "pl.Strategy",
     model: Union["pl.LightningModule", "pl.LightningDataModule"],
 ) -> bool:
