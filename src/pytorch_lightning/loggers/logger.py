@@ -20,7 +20,7 @@ import typing as t
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Union
+from typing import Any, Callable, Collection, Dict, Iterable, List, Mapping, Optional, Sequence, Union
 from weakref import ReferenceType
 
 import numpy as np
@@ -318,7 +318,7 @@ class DummyLogger(Logger):
     It is useful if we want to disable user's logger for a feature, but still ensure that user code can run
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._experiment = DummyExperiment()
 
@@ -347,7 +347,7 @@ class DummyLogger(Logger):
         # enables self.logger[0].experiment.add_image(...)
         return self
 
-    def __iter__(self):
+    def __iter__(self) -> Iterable[Collection]:
         # if DummyLogger is substituting a logger collection, pretend it is empty
         yield from ()
 
