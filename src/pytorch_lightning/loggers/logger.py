@@ -98,7 +98,7 @@ class Logger(ABC):
         self,
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
         agg_default_func: Callable[[Sequence[float]], float] = np.mean,
-    ):
+    ) -> None:
         """Update aggregation methods.
 
         .. deprecated:: v1.6
