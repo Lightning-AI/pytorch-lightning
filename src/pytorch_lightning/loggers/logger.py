@@ -13,7 +13,7 @@
 # limitations under the License.
 """Abstract base class used to build new loggers."""
 
-import argparse
+
 import functools
 import operator
 import typing as t
@@ -153,11 +153,11 @@ class Logger(ABC):
         pass
 
     @abstractmethod
-    def log_hyperparams(self, params: argparse.Namespace, *args: Any, **kwargs: Any) -> None:
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace], *args: Any, **kwargs: Any) -> None:
         """Record hyperparameters.
 
         Args:
-            params: :class:`~argparse.Namespace` containing the hyperparameters
+            params: :class:`~argparse.Namespace` or `Dict` containing the hyperparameters
             args: Optional positional arguments, depends on the specific logger being used
             kwargs: Optional keyword arguments, depends on the specific logger being used
         """
