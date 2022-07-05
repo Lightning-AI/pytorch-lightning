@@ -47,7 +47,7 @@ class HyperparametersMixin:
             frame: a frame object. Default is None
             logger: Whether to send the hyperparameters to the logger. Default: True
 
-        Raises::
+        Raises:
             ValueError:
                 Raises ValueError if method is not called from the ``__init__`` method.
 
