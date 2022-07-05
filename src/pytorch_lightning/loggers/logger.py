@@ -323,10 +323,10 @@ class DummyLogger(Logger):
         """Return the experiment object associated with this logger."""
         return self._experiment
 
-    def log_metrics(self, *args, **kwargs) -> None:
+    def log_metrics(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    def log_hyperparams(self, *args, **kwargs) -> None:
+    def log_hyperparams(self, *args: Any, **kwargs: Any) -> None:
         pass
 
     @property
@@ -339,7 +339,7 @@ class DummyLogger(Logger):
         """Return the experiment version."""
         return ""
 
-    def __getitem__(self, idx) -> "DummyLogger":
+    def __getitem__(self, idx: int) -> "DummyLogger":
         # enables self.logger[0].experiment.add_image(...)
         return self
 
@@ -350,7 +350,7 @@ class DummyLogger(Logger):
     def __getattr__(self, name: str) -> Callable:
         """Allows the DummyLogger to be called with arbitrary methods, to avoid AttributeErrors."""
 
-        def method(*args, **kwargs):
+        def method(*args: Any, **kwargs: Any) -> None:
             return None
 
         return method
