@@ -41,8 +41,7 @@ references:
         python --version
         pip install -e . -r requirements/pytorch/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         apt-get update
-        apt-get upgrade -y
-        apt-get install -y texlive-latex-extra dvipng texlive-pictures
+        apt-get install -y texlive-latex-extra dvipng texlive-pictures pandoc
         pip list
         cd docs
         make clean
