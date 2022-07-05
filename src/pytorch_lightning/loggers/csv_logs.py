@@ -22,7 +22,7 @@ import csv
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from torch import Tensor
 
@@ -49,8 +49,8 @@ class ExperimentWriter:
     NAME_METRICS_FILE = "metrics.csv"
 
     def __init__(self, log_dir: str) -> None:
-        self.hparams: dict = {}
-        self.metrics: list = []
+        self.hparams: Dict[str, Any] = {}
+        self.metrics: List[Dict[str, float]] = []
 
         self.log_dir = log_dir
         if os.path.exists(self.log_dir) and os.listdir(self.log_dir):
@@ -69,7 +69,7 @@ class ExperimentWriter:
     def log_metrics(self, metrics_dict: Dict[str, float], step: Optional[int] = None) -> None:
         """Record metrics."""
 
-        def _handle_value(value: Union[Tensor, Any]) -> Union[Tensor, Any]:
+        def _handle_value(value: Union[Tensor, Any]) -> Any:
             if isinstance(value, Tensor):
                 return value.item()
             return value
