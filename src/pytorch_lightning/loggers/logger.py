@@ -16,6 +16,7 @@
 import argparse
 import functools
 import operator
+import typing as t
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from functools import wraps
@@ -29,12 +30,15 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
 
+if t.TYPE_CHECKING:
+    from pytorch_lightning.loggers.csv_logs import ExperimentWriter
+
 
 def rank_zero_experiment(fn: Callable) -> Callable:
     """Returns the real experiment on rank 0 and otherwise the DummyExperiment."""
 
     @wraps(fn)
-    def experiment(self: type) -> Union[Any, DummyExperiment]:
+    def experiment(self: Callable) -> Union[ExperimentWriter, DummyExperiment]:
         @rank_zero_only
         def get_experiment() -> Callable:
             return fn(self)
