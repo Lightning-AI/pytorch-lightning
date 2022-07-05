@@ -137,6 +137,7 @@ class CSVLogger(Logger):
         self._version = version
         self._prefix = prefix
         self._flush_logs_every_n_steps = flush_logs_every_n_steps
+        self._experiment: ExperimentWriter
 
     @property
     def root_dir(self) -> str:
@@ -181,7 +182,7 @@ class CSVLogger(Logger):
             self.logger.experiment.some_experiment_writer_function()
 
         """
-        if self._experiment:
+        if hasattr(self, "_experiment"):
             return self._experiment
 
         os.makedirs(self.root_dir, exist_ok=True)
