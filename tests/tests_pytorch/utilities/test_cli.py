@@ -609,7 +609,8 @@ class EarlyExitTestModel(BoringModel):
         raise MisconfigurationException("Error on fit start")
 
 
-@RunIf(skip_windows=True)
+# mps not yet supported by distributed
+@RunIf(skip_windows=True, mps=False)
 @pytest.mark.parametrize("logger", (False, True))
 @pytest.mark.parametrize("strategy", ("ddp_spawn", "ddp"))
 def test_cli_distributed_save_config_callback(tmpdir, logger, strategy):
@@ -1480,6 +1481,22 @@ def test_cli_auto_seeding():
         cli = LightningCLI(TestModel, run=False)
     assert cli.seed_everything_default is True
     assert cli.config["seed_everything"] == 123  # the original seed is kept
+
+
+def test_cli_trainer_no_callbacks():
+    class MyTrainer(Trainer):
+        def __init__(self):
+            super().__init__()
+
+    class MyCallback(Callback):
+        ...
+
+    match = "MyTrainer` class does not expose the `callbacks"
+    with mock.patch("sys.argv", ["any.py"]), pytest.warns(UserWarning, match=match):
+        cli = LightningCLI(
+            BoringModel, run=False, trainer_class=MyTrainer, trainer_defaults={"callbacks": MyCallback()}
+        )
+    assert not any(isinstance(cb, MyCallback) for cb in cli.trainer.callbacks)
 
 
 def test_unresolvable_import_paths():

@@ -1,4 +1,4 @@
-name: Test full
+name: Test  PyTorch full
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
@@ -9,6 +9,9 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     types: [opened, reopened, ready_for_review, synchronize]
     paths-ignore:
       - "src/lightning_app/**"  # todo: implement job skip
+      - "tests/tests_app/**"  # todo: implement job skip
+      - "tests/tests_app_examples/**"  # todo: implement job skip
+      - "examples/app_*"  # todo: implement job skip
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -79,6 +82,9 @@ jobs:
       run: bash .actions/pull_legacy_checkpoints.sh
 
     - name: Install dependencies
+      env:
+        PACKAGE_NAME: pytorch
+        FREEZE_REQUIREMENTS: 1
       run: |
         flag=$(python -c "print('--pre' if '${{matrix.release}}' == 'pre' else '')" 2>&1)
         url=$(python -c "print('test/cpu/torch_test.html' if '${{matrix.release}}' == 'pre' else 'cpu/torch_stable.html')" 2>&1)
