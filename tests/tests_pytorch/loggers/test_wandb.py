@@ -43,6 +43,14 @@ def test_wandb_logger_init(wandb, monkeypatch):
     )
     wandb.init().log.assert_called_once_with({"acc": 1.0})
 
+    # test wandb.init called with project as name if name not provided
+    wandb.run = None
+    wandb.init.reset_mock()
+    WandbLogger(project="test_project").experiment
+    wandb.init.assert_called_once_with(
+        name="test_project", dir=None, id=None, project="test_project", resume="allow", anonymous=None
+    )
+
     # test wandb.init and setting logger experiment externally
     wandb.run = None
     run = wandb.init()
@@ -83,7 +91,7 @@ def test_wandb_logger_init(wandb, monkeypatch):
     logger.watch("model", "log", 10, False)
     wandb.init().watch.assert_called_once_with("model", log="log", log_freq=10, log_graph=False)
 
-    assert logger.name == wandb.init().project_name()
+    assert logger.name == wandb.init().name
     assert logger.version == wandb.init().id
 
 
@@ -99,8 +107,9 @@ def test_wandb_pickle(wandb, tmpdir):
         step = 0
         dir = "wandb"
 
-        def project_name(self):
-            return "the_project_name"
+        @property
+        def name(self):
+            return "the_run_name"
 
     wandb.run = None
     wandb.init.return_value = Experiment()
@@ -134,18 +143,18 @@ def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
     logger = WandbLogger(save_dir=str(tmpdir), offline=True)
     # the logger get initialized
     assert logger.version == wandb.init().id
-    assert logger.name == wandb.init().project_name()
+    assert logger.name == wandb.init().name
 
     # mock return values of experiment
     wandb.run = None
     logger.experiment.id = "1"
-    logger.experiment.project_name.return_value = "project"
+    logger.experiment.name = "run_name"
 
     for _ in range(2):
         _ = logger.experiment
 
     assert logger.version == "1"
-    assert logger.name == "project"
+    assert logger.name == "run_name"
     assert str(tmpdir) == logger.save_dir
     assert not os.listdir(tmpdir)
 
@@ -155,7 +164,7 @@ def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
     assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
 
-    assert trainer.checkpoint_callback.dirpath == str(tmpdir / "project" / version / "checkpoints")
+    assert trainer.checkpoint_callback.dirpath == str(tmpdir / "run_name" / version / "checkpoints")
     assert set(os.listdir(trainer.checkpoint_callback.dirpath)) == {"epoch=0-step=3.ckpt"}
     assert trainer.log_dir == logger.save_dir
 
@@ -173,7 +182,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     # test log_model=True
     logger = WandbLogger(log_model=True)
     logger.experiment.id = "1"
-    logger.experiment.project_name.return_value = "project"
+    logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
     wandb.init().log_artifact.assert_called_once()
@@ -183,7 +192,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     wandb.init.reset_mock()
     logger = WandbLogger(log_model="all")
     logger.experiment.id = "1"
-    logger.experiment.project_name.return_value = "project"
+    logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
     assert wandb.init().log_artifact.call_count == 2
@@ -193,7 +202,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     wandb.init.reset_mock()
     logger = WandbLogger(log_model=False)
     logger.experiment.id = "1"
-    logger.experiment.project_name.return_value = "project"
+    logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
     assert not wandb.init().log_artifact.called
@@ -204,7 +213,7 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     wandb.Artifact.reset_mock()
     logger = WandbLogger(log_model=True)
     logger.experiment.id = "1"
-    logger.experiment.project_name.return_value = "project"
+    logger.experiment.name = "run_name"
     trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
     trainer.fit(model)
     wandb.Artifact.assert_called_once_with(

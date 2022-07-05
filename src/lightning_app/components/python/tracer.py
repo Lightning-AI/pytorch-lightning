@@ -33,9 +33,12 @@ class TracerPythonScript(LightningWork):
         env: Optional[Dict] = None,
         **kwargs,
     ):
-        """The TracerPythonScript Class enables to easily run a Python Script with Lightning
-        :class:`~lightning_app.utilities.tracer.Tracer`. Simply overrides the
-        :meth:`~lightning_app.components.python.tracer.TracerPythonScript.configure_tracer` method.
+        """The TracerPythonScript class enables to easily run a python script.
+
+        When subclassing this class, you can configure your own :class:`~lightning_app.utilities.tracer.Tracer`
+        by :meth:`~lightning_app.components.python.tracer.TracerPythonScript.configure_tracer` method
+
+        The tracer is quite a magical class. It enables you to inject core into a script execution without changing it.
 
         Arguments:
             script_path: Path of the python script to run.
@@ -46,6 +49,13 @@ class TracerPythonScript(LightningWork):
 
         Raises:
             FileNotFoundError: If the provided `script_path` doesn't exists.
+
+        **How does it works ?**
+
+        It works by executing the python script with python built-in `runpy
+        <https://docs.python.org/3/library/runpy.html>`_ run_path method.
+        This method takes any python globals before executing the script,
+        e.g you can modify classes or function from the script.
 
         .. doctest::
 
@@ -59,17 +69,27 @@ class TracerPythonScript(LightningWork):
             Hello World !
             >>> os.remove("a.py")
 
-        In this example, you would be able to implement your own :class:`~lightning_app.utilities.tracer.Tracer`
-        and intercept / modify elements while the script is being executed.
+        In the example below, we subclass the  :class:`~lightning_app.components.python.TracerPythonScript`
+        component and override its configure_tracer method.
 
-        .. literalinclude:: ../../../../examples/components/python/component_tracer.py
+        Using the Tracer, we are patching the ``__init__`` method of the PyTorch Lightning Trainer.
+        Once the script starts running and if a Trainer is instantiated, the provided ``pre_fn`` is
+        called and we inject a Lightning callback.
+
+        This callback has a reference to the work and on every batch end, we are capturing the
+        trainer ``global_step`` and ``best_model_path``.
+
+        Even more interesting, this component works for ANY Pytorch Lightning script and
+        its state can be used in real time in a UI.
+
+        .. literalinclude:: ../../../../examples/app_components/python/component_tracer.py
             :language: python
 
 
         Once implemented, this component can easily be integrated within a larger app
         to execute a specific python script.
 
-        .. literalinclude:: ../../../../examples/components/python/app.py
+        .. literalinclude:: ../../../../examples/app_components/python/app.py
             :language: python
         """
         super().__init__(**kwargs)

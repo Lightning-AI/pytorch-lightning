@@ -29,6 +29,8 @@ local tputests = base.BaseTest {
       git ls-remote --refs origin
       git fetch origin "refs/pull/{PR_NUMBER}/head:pr/{PR_NUMBER}" && git checkout "pr/{PR_NUMBER}"
       git checkout {SHA}
+      export PACKAGE_NAME=pytorch
+      export FREEZE_REQUIREMENTS=1
       pip install -e .
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
       export XRT_TPU_CONFIG="tpu_worker;0;${KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS:7}"
@@ -36,9 +38,10 @@ local tputests = base.BaseTest {
       # TODO (@kaushikb11): Add device stats tests here
       coverage run --source=pytorch_lightning -m pytest -v --capture=no \
           strategies/test_tpu_spawn.py \
-          profiler/test_xla_profiler.py \
+          profilers/test_xla_profiler.py \
           accelerators/test_tpu.py \
-          models/test_tpu.py
+          models/test_tpu.py \
+          plugins/environments/test_xla_environment.py
       test_exit_code=$?
       echo "\n||| END PYTEST LOGS |||\n"
       coverage xml

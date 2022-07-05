@@ -46,9 +46,9 @@ This is what the Lightning CLI enables. Otherwise, this kind of configuration re
 ----
 
 *************************
-Register LightningModules
+Multiple LightningModules
 *************************
-Connect models across different files with the ``MODEL_REGISTRY`` to make them available from the CLI:
+To support multiple models, when instantiating ``LightningCLI`` omit the ``model_class`` parameter:
 
 .. code:: python
 
@@ -58,14 +58,12 @@ Connect models across different files with the ``MODEL_REGISTRY`` to make them a
     from pytorch_lightning.utilities import cli as pl_cli
 
 
-    @pl_cli.MODEL_REGISTRY
     class Model1(DemoModel):
         def configure_optimizers(self):
             print("⚡", "using Model1", "⚡")
             return super().configure_optimizers()
 
 
-    @pl_cli.MODEL_REGISTRY
     class Model2(DemoModel):
         def configure_optimizers(self):
             print("⚡", "using Model2", "⚡")
@@ -87,9 +85,9 @@ Now you can choose between any model from the CLI:
 ----
 
 ********************
-Register DataModules
+Multiple DataModules
 ********************
-Connect DataModules across different files with the ``DATAMODULE_REGISTRY`` to make them available from the CLI:
+To support multiple data modules, when instantiating ``LightningCLI`` omit the ``datamodule_class`` parameter:
 
 .. code:: python
 
@@ -99,14 +97,12 @@ Connect DataModules across different files with the ``DATAMODULE_REGISTRY`` to m
     from pytorch_lightning import demos
 
 
-    @pl_cli.DATAMODULE_REGISTRY
     class FakeDataset1(BoringDataModule):
         def train_dataloader(self):
             print("⚡", "using FakeDataset1", "⚡")
             return torch.utils.data.DataLoader(self.random_train)
 
 
-    @pl_cli.DATAMODULE_REGISTRY
     class FakeDataset2(BoringDataModule):
         def train_dataloader(self):
             print("⚡", "using FakeDataset2", "⚡")
@@ -127,10 +123,10 @@ Now you can choose between any dataset at runtime:
 
 ----
 
-*******************
-Register optimizers
-*******************
-Connect optimizers with the ``OPTIMIZER_REGISTRY`` to make them available from the CLI:
+*****************
+Custom optimizers
+*****************
+Any subclass of ``torch.optim.Optimizer`` can be used as an optimizer:
 
 .. code:: python
 
@@ -140,14 +136,12 @@ Connect optimizers with the ``OPTIMIZER_REGISTRY`` to make them available from t
     from pytorch_lightning import demos
 
 
-    @pl_cli.OPTIMIZER_REGISTRY
     class LitAdam(torch.optim.Adam):
         def step(self, closure):
             print("⚡", "using LitAdam", "⚡")
             super().step(closure)
 
 
-    @pl_cli.OPTIMIZER_REGISTRY
     class FancyAdam(torch.optim.Adam):
         def step(self, closure):
             print("⚡", "using FancyAdam", "⚡")
@@ -166,7 +160,8 @@ Now you can choose between any optimizer at runtime:
     # use FancyAdam
     python main.py fit --optimizer FancyAdam
 
-Bonus: If you need only 1 optimizer, the Lightning CLI already works out of the box with any Optimizer from ``torch.optim.optim``:
+Bonus: If you need only 1 optimizer, the Lightning CLI already works out of the box with any Optimizer from
+``torch.optim``:
 
 .. code:: bash
 
@@ -180,10 +175,10 @@ If the optimizer you want needs other arguments, add them via the CLI (no need t
 
 ----
 
-**********************
-Register LR schedulers
-**********************
-Connect learning rate schedulers with the ``LR_SCHEDULER_REGISTRY`` to make them available from the CLI:
+********************
+Custom LR schedulers
+********************
+Any subclass of ``torch.optim.lr_scheduler._LRScheduler`` can be used as learning rate scheduler:
 
 .. code:: python
 
@@ -193,7 +188,6 @@ Connect learning rate schedulers with the ``LR_SCHEDULER_REGISTRY`` to make them
     from pytorch_lightning import demos
 
 
-    @pl_cli.LR_SCHEDULER_REGISTRY
     class LitLRScheduler(torch.optim.lr_scheduler.CosineAnnealingLR):
         def step(self):
             print("⚡", "using LitLRScheduler", "⚡")
@@ -210,7 +204,8 @@ Now you can choose between any learning rate scheduler at runtime:
     python main.py fit --lr_scheduler LitLRScheduler
 
 
-Bonus: If you need only 1 LRScheduler, the Lightning CLI already works out of the box with any LRScheduler from ``torch.optim``:
+Bonus: If you need only 1 LRScheduler, the Lightning CLI already works out of the box with any LRScheduler from
+``torch.optim``:
 
 .. code:: bash
 
@@ -226,26 +221,31 @@ If the scheduler you want needs other arguments, add them via the CLI (no need t
 
 ----
 
-*************************
-Register from any package
-*************************
-A shortcut to register many classes from a package is to use the ``register_classes`` method. Here we register all optimizers from the ``torch.optim`` library:
+************************
+Classes from any package
+************************
+In the previous sections the classes to select were defined in the same python file where the ``LightningCLI`` class is
+run. To select classes from any package by using only the class name, import the respective package:
 
 .. code:: python
 
     import torch
     from pytorch_lightning.utilities import cli as pl_cli
-    from pytorch_lightning import demos
+    import my_code.models  # noqa: F401
+    import my_code.data_modules  # noqa: F401
+    import my_code.optimizers  # noqa: F401
 
-    # add all PyTorch optimizers!
-    pl_cli.OPTIMIZER_REGISTRY.register_classes(module=torch.optim, base_cls=torch.optim.Optimizer)
+    cli = pl_cli.LightningCLI()
 
-    cli = pl_cli.LightningCLI(DemoModel, BoringDataModule)
-
-Now use any of the optimizers in the ``torch.optim`` library:
+Now use any of the classes:
 
 .. code:: bash
 
-    python main.py fit --optimizer AdamW
+    python main.py fit --model Model1 --data FakeDataset1 --optimizer LitAdam --lr_scheduler LitLRScheduler
 
-This method is supported by all the registry classes.
+The ``# noqa: F401`` comment avoids a linter warning that the import is unused. It is also possible to select subclasses
+that have not been imported by giving the full import path:
+
+.. code:: bash
+
+    python main.py fit --model my_code.models.Model1

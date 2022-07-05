@@ -50,7 +50,7 @@ build:
 # Optionally set the version of Python and requirements required to build your docs
 python:
   install:
-    - requirements: requirements/docs.txt
+    - requirements: requirements/pytorch/docs.txt
     #- requirements: requirements.txt
     - method: pip
       path: .
