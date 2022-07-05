@@ -242,15 +242,17 @@ def _adjust_batch_size(
     if desc:
         log.info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
-    train_dataloader: Any = trainer.train_dataloader
-    if not _is_valid_batch_size(new_size, train_dataloader, trainer):
-        new_size = min(new_size, len(train_dataloader.dataset))
+    if not _is_valid_batch_size(new_size, trainer.train_dataloader, trainer):
+        assert trainer.train_dataloader is not None
+        new_size = min(new_size, len(trainer.train_dataloader.dataset))
 
     changed = new_size != batch_size
     lightning_setattr(model, batch_arg_name, new_size)
     return new_size, changed
 
-
-def _is_valid_batch_size(batch_size: int, dataloader: Any, trainer: "pl.Trainer") -> bool:
+def _is_valid_batch_size(batch_size: int, dataloader: Optional[Any], trainer: "pl.Trainer") -> bool:
     module = trainer.lightning_module or trainer.datamodule
-    return not has_len_all_ranks(dataloader, trainer.strategy, module) or batch_size <= len(dataloader)
+    if not has_len_all_ranks(dataloader, trainer.strategy, module):
+        return True
+    assert dataloader is not None
+    return batch_size <= len(dataloader)
