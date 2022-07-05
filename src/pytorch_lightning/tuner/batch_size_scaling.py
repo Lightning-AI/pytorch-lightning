@@ -252,8 +252,7 @@ def _adjust_batch_size(
 
 
 def _is_valid_batch_size(batch_size: int, dataloader: Optional[Any], trainer: "pl.Trainer") -> bool:
-    module = trainer.lightning_module or trainer.datamodule
-    if not has_len_all_ranks(dataloader, trainer.strategy, module):
+    if dataloader is None:
         return True
-    assert dataloader is not None
-    return batch_size <= len(dataloader)
+    module = trainer.lightning_module or trainer.datamodule
+    return not has_len_all_ranks(dataloader, trainer.strategy, module) or batch_size <= len(dataloader)
