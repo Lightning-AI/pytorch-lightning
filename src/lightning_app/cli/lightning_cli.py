@@ -68,6 +68,7 @@ def _run_app(
             )
 
     env_vars = _format_input_env_variables(env)
+    os.environ.update(env_vars)
 
     def on_before_run(*args):
         if open_ui and not without_server:
