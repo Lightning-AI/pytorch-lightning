@@ -185,7 +185,7 @@ class Logger(ABC):
         return None
 
     @property
-    def group_separator(self):
+    def group_separator(self) -> str:
         """Return the default separator used by the logger to group the data into subfolders."""
         return "/"
 
@@ -230,7 +230,7 @@ class LoggerCollection(Logger):
         self,
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
         agg_default_func: Callable[[Sequence[float]], float] = np.mean,
-    ):
+    ) -> None:
         for logger in self._logger_iterable:
             logger.update_agg_funcs(agg_key_funcs, agg_default_func)
 
@@ -239,7 +239,7 @@ class LoggerCollection(Logger):
         """Returns a list of experiment objects for all the loggers in the logger collection."""
         return [logger.experiment for logger in self._logger_iterable]
 
-    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         for logger in self._logger_iterable:
             logger.agg_and_log_metrics(metrics=metrics, step=step)
 
@@ -251,7 +251,7 @@ class LoggerCollection(Logger):
         for logger in self._logger_iterable:
             logger.log_hyperparams(params)
 
-    def log_graph(self, model: "pl.LightningModule", input_array=None) -> None:
+    def log_graph(self, model: "pl.LightningModule", input_array: Tensor = None) -> None:
         for logger in self._logger_iterable:
             logger.log_graph(model, input_array)
 
@@ -259,7 +259,7 @@ class LoggerCollection(Logger):
         for logger in self._logger_iterable:
             logger.log_text(*args, **kwargs)
 
-    def log_image(self, *args, **kwargs) -> None:
+    def log_image(self, *args: Any, **kwargs: Any) -> None:
         for logger in self._logger_iterable:
             logger.log_image(*args, **kwargs)
 
