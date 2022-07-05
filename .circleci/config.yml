@@ -38,13 +38,11 @@ references:
     run:
       name: Make Documentation
       command: |
-        # the image uses python 2.7 by default, force a different version
-        pyenv install --list
-        pyenv global 3.8.0
-        pyenv versions
         python --version
         pip install -e . -r requirements/pytorch/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-        sudo apt-get update && sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
+        apt-get update
+        apt-get upgrade -y
+        apt-get install -y texlive-latex-extra dvipng texlive-pictures
         pip list
         cd docs
         make clean
@@ -53,7 +51,7 @@ references:
 jobs:
   build-Docs:
     docker:
-      - image: readthedocs/build:latest
+      - image: python:3.8-bullseye
     steps:
       - checkout
       - run:
