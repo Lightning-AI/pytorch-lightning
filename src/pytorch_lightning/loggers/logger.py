@@ -411,4 +411,4 @@ def merge_dicts(
         else:
             d_out[k] = (fn or default_func)(values_to_agg)
 
-    return d_out
+    return dict(d_out)
