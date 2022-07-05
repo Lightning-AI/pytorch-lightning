@@ -148,7 +148,7 @@ class Logger(ABC):
         pass
 
     @abstractmethod
-    def log_hyperparams(self, params: argparse.Namespace, *args, **kwargs):
+    def log_hyperparams(self, params: argparse.Namespace, *args: Any, **kwargs: Any) -> None:
         """Record hyperparameters.
 
         Args:
