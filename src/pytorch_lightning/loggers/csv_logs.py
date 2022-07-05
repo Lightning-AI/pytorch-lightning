@@ -22,7 +22,7 @@ import csv
 import logging
 import os
 from argparse import Namespace
-from typing import Any, Dict, Optional, Pathlike, Union
+from typing import Any, Dict, Optional, Union
 
 from torch import Tensor
 
@@ -125,8 +125,8 @@ class CSVLogger(Logger):
 
     def __init__(
         self,
-        save_dir: Union[str, Pathlike[str]],
-        name: Union[str, Pathlike[str]] = "lightning_logs",
+        save_dir: str,
+        name: str = "lightning_logs",
         version: Optional[Union[int, str]] = None,
         prefix: str = "",
         flush_logs_every_n_steps: int = 100,
@@ -136,7 +136,6 @@ class CSVLogger(Logger):
         self._name = name or ""
         self._version = version
         self._prefix = prefix
-        self._experiment = None
         self._flush_logs_every_n_steps = flush_logs_every_n_steps
 
     @property
