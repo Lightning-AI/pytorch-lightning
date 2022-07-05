@@ -250,6 +250,7 @@ def _adjust_batch_size(
     lightning_setattr(model, batch_arg_name, new_size)
     return new_size, changed
 
+
 def _is_valid_batch_size(batch_size: int, dataloader: Optional[Any], trainer: "pl.Trainer") -> bool:
     module = trainer.lightning_module or trainer.datamodule
     if not has_len_all_ranks(dataloader, trainer.strategy, module):
