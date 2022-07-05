@@ -33,9 +33,9 @@ def rank_zero_experiment(fn: Callable) -> Callable:
     """Returns the real experiment on rank 0 and otherwise the DummyExperiment."""
 
     @wraps(fn)
-    def experiment(self):
+    def experiment(self: type) -> Union[Any, DummyExperiment]:
         @rank_zero_only
-        def get_experiment():
+        def get_experiment() -> Callable:
             return fn(self)
 
         return get_experiment() or DummyExperiment()
