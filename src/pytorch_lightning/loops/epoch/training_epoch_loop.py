@@ -535,7 +535,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def _reload_dataloader_state_dict(self, data_fetcher: AbstractDataFetcher) -> None:
         if self._dataloader_state_dict:
             data_fetcher.dataloader.load_state_dict(self._dataloader_state_dict)
-            self._dataloader_state_dict = None
+            self._dataloader_state_dict = {}
 
     def _build_kwargs(self, kwargs: OrderedDict, batch: Any, batch_idx: int) -> OrderedDict:
         """Helper method to build the arguments for the current step.
