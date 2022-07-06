@@ -291,7 +291,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         # cache the dataloader state dict until the dataloader objects are available
-        self._dataloader_state_dict = state_dict.get("dataloader_state_dict")
+        self._dataloader_state_dict = state_dict["dataloader_state_dict"]
 
     def _run_validation(self) -> None:
         # reload dataloaders
