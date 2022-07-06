@@ -496,7 +496,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                 )
                 self.scheduler_progress.increment_completed()
 
-    def _get_monitor_value(self, key: str) -> Any:
+    def _get_monitor_value(self, key: str) -> Optional[Any]:
         # this is a separate method to aid in testing
         return self.trainer.callback_metrics.get(key)
 
