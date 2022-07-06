@@ -13,7 +13,7 @@
 # limitations under the License.
 import math
 from collections import defaultdict, OrderedDict
-from typing import Any, Dict, Generator, List, Optional, overload, Tuple, Union
+from typing import Any, DefaultDict, Dict, Generator, List, Optional, overload, Tuple, Union
 
 import numpy as np
 import torch
