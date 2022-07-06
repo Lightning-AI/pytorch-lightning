@@ -16,12 +16,11 @@
 
 import functools
 import operator
-import typing as t
 from abc import ABC, abstractmethod
 from argparse import Namespace
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Sequence, TYPE_CHECKING, Union
 from weakref import ReferenceType
 
 import numpy as np
@@ -39,7 +38,7 @@ def rank_zero_experiment(fn: Callable) -> Callable:
     """Returns the real experiment on rank 0 and otherwise the DummyExperiment."""
 
     @wraps(fn)
-    def experiment(self: Callable) -> Union[ExperimentWriter, DummyExperiment]:
+    def experiment(self) -> Union[ExperimentWriter, DummyExperiment]:  # type: ignore[no-untyped-def]
         @rank_zero_only
         def get_experiment() -> Callable:
             return fn(self)
