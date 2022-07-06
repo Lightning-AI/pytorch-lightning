@@ -2574,6 +2574,7 @@ class Trainer(
 
     @property
     def is_last_batch(self) -> bool:
+        """Whether trainer is executing last batch."""
         return self.fit_loop.epoch_loop.batch_progress.is_last_batch
 
     @property
