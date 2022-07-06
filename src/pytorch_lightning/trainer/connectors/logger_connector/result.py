@@ -516,14 +516,16 @@ class _ResultCollection(dict):
         apply_to_collections(self[key], value, _ResultMetric, fn)
 
     @staticmethod
-    def _get_cache(result_metric: _ResultMetric, on_step: bool, result_key: str) -> Optional[Tensor]:
+    def _get_cache(result_metric: _ResultMetric,  result_key: str, on_step: bool) -> Optional[Tensor]:
         cache = None
         if on_step and result_metric.meta.on_step:
             cache = result_metric._forward_cache
         elif not on_step and result_metric.meta.on_epoch:
             if result_metric._computed is None:
                 # always reduce on epoch end
-                warning_cache.warn(f"Please set sync_dist to True {result_key}")
+                print(f"ABBABAB {result_metric.meta.sync.should}")
+                if not result_metric.meta.sync.should:
+                    warning_cache.warn(f"Please set sync_dist to True {result_key}")
                 result_metric.compute()
 
             cache = result_metric._computed
@@ -557,7 +559,7 @@ class _ResultCollection(dict):
 
             # extract forward_cache or computed from the _ResultMetric. ignore when the output is None
             value = apply_to_collection(
-                result_metric, _ResultMetric, self._get_cache, on_step, result_key, include_none=False
+                result_metric, _ResultMetric, self._get_cache, result_key, on_step, include_none=False
             )
 
             # convert metric collection to dict container.

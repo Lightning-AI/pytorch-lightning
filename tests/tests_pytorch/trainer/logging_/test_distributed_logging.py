@@ -20,6 +20,7 @@ from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers.logger import Logger
 from tests_pytorch.helpers.runif import RunIf
+import pytest
 
 
 class AllRankLogger(Logger):
@@ -194,3 +195,19 @@ def test_logger_after_fit_predict_test_calls(tmpdir):
     assert trainer.logger.logs == {"fit": 1, "validate": 1, "test": 1}
     trainer.predict(model)
     assert trainer.logger.logs == {"fit": 1, "validate": 1, "test": 1, "predict": 1}
+
+def test_logger_sync_dist():
+    # Suggestions
+    # Imporve warning
+    class CustomBoringModel(BoringModel):
+        def training_epoch_end(self, *args, **kwargs):
+            super().training_epoch_end(*args, **kwargs)
+            self.log("global_rank", self.global_rank, sync_dist=False)
+
+    model = CustomBoringModel()
+    trainer = Trainer(fast_dev_run = 1, accelerator="cpu", strategy="ddp", devices=2)
+
+    with pytest.warns(UserWarning, match="Please set sync_dist to True global_rank"):
+        trainer.fit(model)
+
+    assert trainer.callback_metrics["global_rank"] == 0
