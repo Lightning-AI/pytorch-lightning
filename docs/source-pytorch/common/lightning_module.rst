@@ -1501,12 +1501,6 @@ on_validation_epoch_end
 .. automethod:: pytorch_lightning.core.module.LightningModule.on_validation_epoch_end
     :noindex:
 
-on_post_move_to_device
-~~~~~~~~~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.on_post_move_to_device
-    :noindex:
-
 configure_sharded_model
 ~~~~~~~~~~~~~~~~~~~~~~~
 
