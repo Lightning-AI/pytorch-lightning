@@ -516,7 +516,7 @@ class _ResultCollection(dict):
         apply_to_collections(self[key], value, _ResultMetric, fn)
 
     @staticmethod
-    def _get_cache(result_metric: _ResultMetric,  result_key: str, on_step: bool) -> Optional[Tensor]:
+    def _get_cache(result_metric: _ResultMetric, result_key: str, on_step: bool) -> Optional[Tensor]:
         cache = None
         if on_step and result_metric.meta.on_step:
             cache = result_metric._forward_cache

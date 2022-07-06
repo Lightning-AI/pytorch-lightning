@@ -15,12 +15,13 @@ import os
 from typing import Any, Dict, Optional, Union
 from unittest.mock import Mock
 
+import pytest
+
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers.logger import Logger
 from tests_pytorch.helpers.runif import RunIf
-import pytest
 
 
 class AllRankLogger(Logger):
@@ -196,6 +197,7 @@ def test_logger_after_fit_predict_test_calls(tmpdir):
     trainer.predict(model)
     assert trainer.logger.logs == {"fit": 1, "validate": 1, "test": 1, "predict": 1}
 
+
 def test_logger_sync_dist():
     # Suggestions
     # Imporve warning
@@ -205,7 +207,7 @@ def test_logger_sync_dist():
             self.log("global_rank", self.global_rank, sync_dist=False)
 
     model = CustomBoringModel()
-    trainer = Trainer(fast_dev_run = 1, accelerator="cpu", strategy="ddp", devices=2)
+    trainer = Trainer(fast_dev_run=1, accelerator="cpu", strategy="ddp", devices=2)
 
     with pytest.warns(UserWarning, match="Please set sync_dist to True global_rank"):
         trainer.fit(model)
