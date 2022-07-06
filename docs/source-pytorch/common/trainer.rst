@@ -1648,9 +1648,9 @@ Whether trainer is executing last batch.
 
 .. code-block:: python
 
-    if trainer.is_last_batch :
+    if trainer.is_last_batch:
         ...
-        
+
 global_step
 ***********
 
