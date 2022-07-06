@@ -13,7 +13,7 @@
 # limitations under the License.
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import Any, List, Optional, Dict, Generator
+from typing import Any, Dict, Generator, List, Optional
 
 import torch
 from torch import Tensor
@@ -90,8 +90,7 @@ class ParallelStrategy(Strategy, ABC):
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
         distributed_sampler_kwargs = dict(
-            num_replicas=len(self.parallel_devices) if self.parallel_devices is not None else 0,
-            rank=self.global_rank
+            num_replicas=len(self.parallel_devices) if self.parallel_devices is not None else 0, rank=self.global_rank
         )
         return distributed_sampler_kwargs
 
@@ -126,8 +125,9 @@ class ParallelStrategy(Strategy, ABC):
         This is useful for skipping sync when accumulating gradients, reducing communication overhead
         Returns: context manager with sync behaviour off
         """
-        if isinstance(self.model, torch.nn.parallel.DistributedDataParallel) and \
-                isinstance(self.model, pl.utilities.types.DistributedDataParallel):
+        if isinstance(self.model, torch.nn.parallel.DistributedDataParallel) and isinstance(
+            self.model, pl.utilities.types.DistributedDataParallel
+        ):
             with self.model.no_sync():
                 yield None
         else:
