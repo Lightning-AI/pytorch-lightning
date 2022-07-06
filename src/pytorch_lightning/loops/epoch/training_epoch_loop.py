@@ -568,12 +568,12 @@ def _convert_optim_dict(outs: Dict[int, Dict[str, Any]], num_optimizers: int) ->
 
 
 @overload
-def _recursive_unpad(nested: Any, value: Optional[Any] = None) -> Any:
+def _recursive_unpad(nested: List[Any], value: Optional[Any] = None) -> List[Any]:
     ...
 
 
 @overload
-def _recursive_unpad(nested: List[Any], value: Optional[Any] = None) -> List[Any]:
+def _recursive_unpad(nested: Any, value: Optional[Any] = None) -> Any:
     ...
 
 
