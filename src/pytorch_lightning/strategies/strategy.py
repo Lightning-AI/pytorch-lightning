@@ -35,7 +35,8 @@ from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
-from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, STEP_OUTPUT, Trainable
+from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, STEP_OUTPUT, TrainingStep, \
+    ValidationStep, TestStep, PredictStep
 
 TBroadcast = TypeVar("TBroadcast")
 
@@ -341,7 +342,7 @@ class Strategy(ABC):
         See :meth:`~pytorch_lightning.core.module.LightningModule.training_step` for more details
         """
         with self.precision_plugin.train_step_context():
-            assert isinstance(self.model, Trainable)
+            assert isinstance(self.model, TrainingStep)
             return self.model.training_step(*args, **kwargs)
 
     def post_training_step(self) -> None:
@@ -353,7 +354,7 @@ class Strategy(ABC):
         See :meth:`~pytorch_lightning.core.module.LightningModule.validation_step` for more details
         """
         with self.precision_plugin.val_step_context():
-            assert isinstance(self.model, Trainable)
+            assert isinstance(self.model, ValidationStep)
             return self.model.validation_step(*args, **kwargs)
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
@@ -362,7 +363,7 @@ class Strategy(ABC):
         See :meth:`~pytorch_lightning.core.module.LightningModule.test_step` for more details
         """
         with self.precision_plugin.test_step_context():
-            assert isinstance(self.model, Trainable)
+            assert isinstance(self.model, TestStep)
             return self.model.test_step(*args, **kwargs)
 
     def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
@@ -371,7 +372,7 @@ class Strategy(ABC):
         See :meth:`~pytorch_lightning.core.module.LightningModule.predict_step` for more details
         """
         with self.precision_plugin.predict_step_context():
-            assert isinstance(self.model, Trainable)
+            assert isinstance(self.model, PredictStep)
             return self.model.predict_step(*args, **kwargs)
 
     def training_step_end(self, output: STEP_OUTPUT) -> STEP_OUTPUT:

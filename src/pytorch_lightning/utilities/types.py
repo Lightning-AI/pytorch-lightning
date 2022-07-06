@@ -50,17 +50,32 @@ _DEVICE = Union[torch.device, str, int]
 
 
 @runtime_checkable
-class Trainable(Protocol):
-    """Trainable protocol requires all ``*_step`` so that it can safely be used by ``Strategy`` classes."""
+class TrainingStep(Protocol):
+    """Trainable protocol requires all ``training_step`` so that it can safely be used by ``Strategy`` classes."""
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         ...
 
+
+@runtime_checkable
+class ValidationStep(Protocol):
+    """Trainable protocol requires all ``validation_step`` so that it can safely be used by ``Strategy`` classes."""
+
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         ...
 
+
+@runtime_checkable
+class TestStep(Protocol):
+    """Trainable protocol requires all ``test_step`` so that it can safely be used by ``Strategy`` classes."""
+
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         ...
+
+
+@runtime_checkable
+class PredictStep(Protocol):
+    """Trainable protocol requires all ``predict_step`` so that it can safely be used by ``Strategy`` classes."""
 
     def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         ...
