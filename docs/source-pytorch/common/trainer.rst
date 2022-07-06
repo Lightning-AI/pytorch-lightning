@@ -1644,7 +1644,7 @@ The number of epochs run.
 is_last_batch
 *************
 
-Whether trainer is executing last batch.
+Whether trainer is executing last batch
 
 .. code-block:: python
 
