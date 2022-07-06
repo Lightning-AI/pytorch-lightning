@@ -12,5 +12,5 @@ class HelloWorld(LightningFlow):
         print("Hello World!")
 
 
-# Step 3: Initalize a LightningApp with the LightningFlow you defined (in step 1)
+# Step 3: Initialize a LightningApp with the LightningFlow you defined (in step 1)
 app = LightningApp(HelloWorld())
