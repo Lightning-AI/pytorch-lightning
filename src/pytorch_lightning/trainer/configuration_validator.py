@@ -47,8 +47,6 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
 
     __verify_dp_batch_transfer_support(trainer, model)
     _check_add_get_queue(model)
-    # TODO: Delete _check_on_post_move_to_device in v1.7
-    _check_on_post_move_to_device(model)
     _check_deprecated_callback_hooks(trainer)
     # TODO: Delete _check_on_hpc_hooks in v1.8
     _check_on_hpc_hooks(model)
@@ -120,20 +118,6 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
         rank_zero_warn(
             "You defined a `validation_step` but have no `val_dataloader`. Skipping val loop.",
             category=PossibleUserWarning,
-        )
-
-
-def _check_on_post_move_to_device(model: "pl.LightningModule") -> None:
-    r"""
-    Checks if `on_post_move_to_device` method is overridden and sends a deprecation warning.
-
-    Args:
-        model: The model to check the `on_post_move_to_device` method.
-    """
-    if is_overridden("on_post_move_to_device", model):
-        rank_zero_deprecation(
-            "Method `on_post_move_to_device` has been deprecated in v1.5 and will be removed in v1.7. "
-            "We perform automatic parameters tying without the need of implementing `on_post_move_to_device`."
         )
 
 

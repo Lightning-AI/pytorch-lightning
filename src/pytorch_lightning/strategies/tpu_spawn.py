@@ -124,11 +124,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
         shared_params = find_shared_parameters(self.model)
         self.model_to_device()
-        if is_overridden("on_post_move_to_device", self.lightning_module):
-            self.model.module.on_post_move_to_device()
-        else:
-            set_shared_parameters(self.model.module, shared_params)
-
+        set_shared_parameters(self.model.module, shared_params)
         self.setup_precision_plugin()
 
         if trainer.state.fn == TrainerFn.FITTING:
