@@ -35,8 +35,15 @@ from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
-from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, STEP_OUTPUT, TrainingStep, \
-    ValidationStep, TestStep, PredictStep
+from pytorch_lightning.utilities.types import (
+    _PATH,
+    LRSchedulerConfig,
+    PredictStep,
+    STEP_OUTPUT,
+    TestStep,
+    TrainingStep,
+    ValidationStep,
+)
 
 TBroadcast = TypeVar("TBroadcast")
 
