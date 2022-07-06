@@ -59,7 +59,8 @@ class TrainingStep(Protocol):
 
 @runtime_checkable
 class ValidationStep(Protocol):
-    """Protocol that requires ``validation_step`` function so that it can safely be used by ``Strategy`` classes."""
+    """Protocol that requires ``validation_step`` function so that it can safely be used by ``Strategy``
+    classes."""
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         ...
