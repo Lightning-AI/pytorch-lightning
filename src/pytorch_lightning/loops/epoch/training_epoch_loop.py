@@ -13,7 +13,7 @@
 # limitations under the License.
 import math
 from collections import defaultdict, OrderedDict
-from typing import Any, DefaultDict, Dict, Generator, List, Optional, overload, Tuple, Union
+from typing import Any, DefaultDict, Dict, Generator, List, Optional, cast, overload, Tuple, Union
 
 import numpy as np
 import torch
@@ -335,7 +335,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     ) -> Union[List[List[Dict[str, Any]]], List[Dict[str, Any]]]:
         """Processes the outputs from the batch loop into the format passed to the ``on_train_batch_end`` hook."""
         if not batch_output:
-            return []
+            return cast(List[Dict[str, Any]], [])
 
         # convert optimizer dicts to list
         if lightning_module.automatic_optimization:
@@ -377,7 +377,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         """Processes the outputs from the batch loop into the format passed to the ``training_epoch_end`` hook."""
         # `batch_outputs` (plural) is the same as `epoch_end_output` (singular)
         if not batch_outputs:
-            return []
+            return cast(List[Dict[str, Any]], [])
 
         # convert optimizer dicts to list
         if lightning_module.automatic_optimization:
