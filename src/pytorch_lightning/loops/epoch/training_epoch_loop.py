@@ -598,7 +598,7 @@ def _recursive_unpad(nested: Union[Any, List[Any]], value: Optional[Any] = None)
     return [_recursive_unpad(item, value) for item in nested if item != value]
 
 
-def _recursive_pad(nested: List[Any], fill_value: Optional[Any] = None) -> np.array:
+def _recursive_pad(nested: List[Any], fill_value: Optional[Any] = None) -> Any:
     """Pads a jagged nested list of lists with the given value such that a proper multi-dimensional array can be
     formed with rectangular shape. The padding appends to the incomplete lists.
 
