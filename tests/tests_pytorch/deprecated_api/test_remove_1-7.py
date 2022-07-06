@@ -54,13 +54,6 @@ def test_v1_7_0_deprecate_add_get_queue(tmpdir):
         trainer.fit(model)
 
 
-def test_v1_7_0_deprecate_lightning_distributed(tmpdir):
-    with pytest.deprecated_call(match="LightningDistributed is deprecated in v1.5 and will be removed in v1.7."):
-        from pytorch_lightning.distributed.dist import LightningDistributed
-
-        _ = LightningDistributed()
-
-
 def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
     class TestModel(BoringModel):
         def on_post_move_to_device(self):
