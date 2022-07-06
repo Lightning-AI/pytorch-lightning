@@ -493,7 +493,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # this is a separate method to aid in testing
         return self.trainer.callback_metrics.get(key)
 
-    def _should_check_val_epoch(self):
+    def _should_check_val_epoch(self) -> bool:
         return self.trainer.enable_validation and (
             self.trainer.check_val_every_n_epoch is None
             or (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
@@ -622,7 +622,7 @@ def _get_max_shape(array: List[Any]) -> List[int]:
         >>> _get_max_shape([[], [[1], [2]], []])
         [3, 2, 1]
     """
-    dimensions = defaultdict(int)
+    dimensions: DefaultDict[Any, int] = defaultdict(int)
     for level, length in _get_dimensions(array):
         dimensions[level] = max(dimensions[level], length)
     return [value for _, value in sorted(dimensions.items())]
