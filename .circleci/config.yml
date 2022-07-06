@@ -38,7 +38,7 @@ references:
       name: Make Documentation
       command: |
         python --version
-        pip install -e . -r requirements/pytorch/docs.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install -e . -r requirements/pytorch/docs.txt
         apt-get update
         apt-get install -y texlive-latex-extra dvipng texlive-pictures pandoc
         pip list
