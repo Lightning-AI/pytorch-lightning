@@ -31,7 +31,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
 
-if t.TYPE_CHECKING:
+if TYPE_CHECKING:
     from pytorch_lightning.loggers.csv_logs import ExperimentWriter
 
 
