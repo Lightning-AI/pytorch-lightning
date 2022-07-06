@@ -69,7 +69,6 @@ module = [
     "pytorch_lightning.strategies.fully_sharded",
     "pytorch_lightning.strategies.horovod",
     "pytorch_lightning.strategies.ipu",
-    "pytorch_lightning.strategies.parallel",
     "pytorch_lightning.strategies.sharded",
     "pytorch_lightning.strategies.sharded_spawn",
     "pytorch_lightning.strategies.tpu_spawn",
