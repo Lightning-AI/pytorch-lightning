@@ -558,7 +558,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     new_trainer.test(pretrained_model)
 
 
-@RunIf(min_cuda_gpus=2)
+@RunIf(min_cuda_gpus=2, standalone=True)
 def test_dp_resume(tmpdir):
     """Make sure DP continues training correctly."""
     model = CustomClassificationModelDP(lr=0.1)
