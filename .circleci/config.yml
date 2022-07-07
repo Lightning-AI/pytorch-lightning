@@ -39,8 +39,11 @@ references:
       command: |
         asdf install python latest:3.9
         asdf global python $(asdf latest python 3.9)
-        python --version
+        PATH="$(asdf where python)/bin:$PATH"
+        which python pip
         python -m pip install -U pip
+        python --version
+        pip --version
         pip install -e . -r requirements/pytorch/docs.txt
         pip list
         cd docs
