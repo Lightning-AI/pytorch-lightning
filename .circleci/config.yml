@@ -47,7 +47,6 @@ references:
         pip install -e . -r requirements/pytorch/docs.txt
         pip list
         cd docs
-        find / -name "sphinx-build"
         make clean
         make html --jobs 2 SPHINXOPTS="-W"
 
