@@ -39,8 +39,6 @@ references:
       command: |
         python --version
         pip install -e . -r requirements/pytorch/docs.txt
-        apt-get update
-        apt-get install -y texlive-latex-extra dvipng texlive-pictures pandoc
         pip list
         cd docs
         make clean
@@ -142,7 +140,7 @@ jobs:
 
   build-Docs:
     docker:
-      - image: python:3.8-bullseye
+      - image: readthedocs/build:ubuntu-22.04-2022.03.15
     steps:
       - checkout
       - run:
