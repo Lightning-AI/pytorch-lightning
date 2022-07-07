@@ -1,4 +1,4 @@
-name: Reusable Schema
+name: Reusable Check Schema
 
 on:
   workflow_call:
