@@ -37,6 +37,7 @@ references:
     run:
       name: Make Documentation
       command: |
+        asdf global python 3.9.13
         python --version
         pip install -e . -r requirements/pytorch/docs.txt
         pip list
