@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Optional, Union, TypeVar
+from typing import Any, Dict, List, Optional, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -28,7 +28,6 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION, STEP_OUTPUT
-
 
 T = TypeVar("T")  # Both input and return type of DataParallelStrategy.reduce()
 
@@ -97,10 +96,7 @@ class DataParallelStrategy(ParallelStrategy):
         return DataParallel(module=model, device_ids=self.parallel_devices)
 
     def reduce(
-            self,
-            collection: T,
-            group: Optional[Any] = None,
-            reduce_op: Optional[Union[ReduceOp, str]] = "mean"
+        self, collection: T, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
     ) -> T:
         """Reduces a collection of tensors from all processes. It can be applied to just a single tensor.
 
