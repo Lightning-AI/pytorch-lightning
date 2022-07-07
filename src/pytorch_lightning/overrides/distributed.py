@@ -178,8 +178,6 @@ class IndexBatchSamplerWrapper:
         self._sampler = sampler
         self._batch_indices: List[int] = []
 
-
-
     def __iter__(self) -> Iterator[List[int]]:
         self.seen_batch_indices = []
         for batch in self._sampler:

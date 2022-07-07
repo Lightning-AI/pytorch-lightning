@@ -175,6 +175,7 @@ def test_v1_7_0_cluster_environment_detection(cls, method_name, tmp_path):
             ):
                 MyClusterEnvironment()
 
+
 def test_v1_7_0_post_dispatch_hook():
     class CustomPlugin(SingleDeviceStrategy):
         def post_dispatch(self, trainer):
