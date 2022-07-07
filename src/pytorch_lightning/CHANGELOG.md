@@ -174,7 +174,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
-- Removed the deprecated  `IndexBatchSamplerWrapper.batch_indices` method ([])
+- Removed deprecated `IndexBatchSamplerWrapper.batch_indices` ([#13565](https://github.com/PyTorchLightning/pytorch-lightning/pull/13565))
 
 - Removed the deprecated `Logger.close` method ([#13149](https://github.com/PyTorchLightning/pytorch-lightning/pull/13149))
 
