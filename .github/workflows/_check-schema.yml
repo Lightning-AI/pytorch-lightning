@@ -23,10 +23,15 @@ jobs:
         run: check-jsonschema $(find .github/workflows -name '*.yml' -a ! -name '_*.yml') --builtin-schema "github-workflows"
 
       - name: GitHub Actions - action
-        run: check-jsonschema .github/actions/*/*.yml --builtin-schema "github-actions"
+        run: |
+          if [ -d ".github/actions" ]; then
+            check-jsonschema .github/actions/*/*.yml --builtin-schema "github-actions"
+          fi
 
       - name: Azure Pipelines
-        if: ${{ inputs.azure-dir != '' }}
         env:
           SCHEMA_FILE: https://raw.githubusercontent.com/microsoft/azure-pipelines-vscode/v1.204.0/service-schema.json
-        run: check-jsonschema ${{ inputs.azure-dir }}/*.yml --schemafile "$SCHEMA_FILE"
+        run: |
+          if [ -d ${{ inputs.azure-dir }} ]; then
+            check-jsonschema ${{ inputs.azure-dir }}/*.yml --schemafile "$SCHEMA_FILE"
+          fi
