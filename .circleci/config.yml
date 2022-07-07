@@ -37,8 +37,8 @@ references:
     run:
       name: Make Documentation
       command: |
-        asdf install python 3.9.13
-        asdf global python 3.9.13
+        asdf install python latest:3.9
+        asdf global python $(asdf latest python 3.9)
         python --version
         pip install -e . -r requirements/pytorch/docs.txt
         pip list
