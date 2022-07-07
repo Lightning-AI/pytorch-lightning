@@ -315,6 +315,7 @@ class HiveMindScheduler:
         # implemented custom logic which we would not want to call on destruction of the `HiveMindScheduler`
         self.__dict__ = {k: v for k, v in scheduler.__dict__.items() if k not in ("step", "__del__")}
 
+        self.base_lrs = scheduler.base_lrs
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.current_step = -1
