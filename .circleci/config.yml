@@ -141,7 +141,7 @@ jobs:
 
   build-Docs:
     docker:
-      - image: readthedocs/build:ubuntu-22.04-2022.03.15
+      - image: readthedocs/build:ubuntu-20.04-2022.02.16
     steps:
       - checkout
       - run:
