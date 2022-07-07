@@ -154,8 +154,12 @@ class HorovodStrategy(ParallelStrategy):
         else:
             hvd.join()
 
-    def reduce(self, tensor: Union[Any, Tensor], group: Optional[Any] = None,
-               reduce_op: Optional[Union[ReduceOp, str]] = "mean") -> Union[Any, Tensor]:
+    def reduce(
+        self,
+        tensor: Union[Any, Tensor],
+        group: Optional[Any] = None,
+        reduce_op: Optional[Union[ReduceOp, str]] = "mean",
+    ) -> Union[Any, Tensor]:
         """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
