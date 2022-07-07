@@ -38,7 +38,7 @@ def render_fn(self):
     pn.state.add_periodic_callback(update, period=1000)
     # Todo: Refactor the Panel app implementation to a more reactive api
     # Todo: Giver the Panel app a nicer UX
-    return pn.Column(last_local_update_pane, global_app_state_pane)
+    return pn.Column(last_local_update_pane, "## Global App State", global_app_state_pane)
 
 class Flow(L.LightningFlow):
     def __init__(self):

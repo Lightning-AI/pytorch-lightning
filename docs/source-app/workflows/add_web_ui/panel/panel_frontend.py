@@ -1,9 +1,14 @@
+import inspect
 import logging
+import os
+import subprocess
 import sys
+from typing import Callable
 
-import lightning_app as lapp
-import panel as pn
+from lightning_app.frontend.frontend import Frontend
 from lightning_app.utilities.imports import requires
+from lightning_app.utilities.log import get_frontend_logfile
+import pathlib
 
 logger = logging.getLogger("PanelFrontend")
 logger.setLevel(logging.DEBUG)
@@ -13,40 +18,42 @@ formatter = logging.Formatter('%(asctime)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-class PanelFrontend(lapp.LightningWork):
+class PanelFrontend(Frontend):
     
     @requires("panel")
-    def __init__(self, render_fn, parallel=True, **kwargs):
-        super().__init__(parallel=parallel, **kwargs)
-        self._render_fn = render_fn
-        self._server = None
-        self.requests = 0
+    def __init__(self, render_fn: Callable): # Would like to accept a `render_file` arguemnt too in the future
+        super().__init__()
+
+        if inspect.ismethod(render_fn):
+            raise TypeError(
+                "The `PanelFrontend` doesn't support `render_fn` being a method. Please, use a pure function."
+            )
+
+        self.render_fn = render_fn
         logger.info("init finished")
 
-    def _fast_initial_view(self):
-        self.requests += 1
-        logger.info("Session %s started", self.requests)
-        if self.requests == 1:
-            return pn.pane.HTML("<h1>Please refresh the browser to see the app.</h1>")
-        else:
-            return self._render_fn(self)
-
-    def run(self):
-        logger.info("run start")
-        if not self._server:
-            logger.info("LitPanel Starting Server")
-            self._server = pn.serve(
-                {"/": self._fast_initial_view},
-                port=self.port,
-                address=self.host,
-                websocket_origin="*",
-                show=False,
-                # threaded=True,
+    def start_server(self, host: str, port: int) -> None:
+        logger.info("starting server %s %s", host, port)
+        env = os.environ.copy()
+        env["LIGHTNING_FLOW_NAME"] = self.flow.name
+        env["LIGHTNING_RENDER_FUNCTION"] = self.render_fn.__name__
+        env["LIGHTNING_RENDER_MODULE_FILE"] = inspect.getmodule(self.render_fn).__file__
+        env["LIGHTNING_RENDER_PORT"] = str(port)
+        env["LIGHTNING_RENDER_ADDRESS"] = str(host)  
+        std_err_out = get_frontend_logfile("error.log")
+        std_out_out = get_frontend_logfile("output.log")
+        with open(std_err_out, "wb") as stderr, open(std_out_out, "wb") as stdout:
+            self._process = subprocess.Popen(
+                [
+                    sys.executable,
+                    pathlib.Path(__file__).parent / "panel_serve_render_fn.py",
+                ],
+                env=env,
+                # stdout=stdout,
+                # stderr=stderr,
             )
-        logger.info("run end")
 
-    def stop(self):
-        """Stops the server"""
-        if self._server:
-            self._server.stop()
-        logger.info("stop end")
+    def stop_server(self) -> None:
+        if self._process is None:
+            raise RuntimeError("Server is not running. Call `PanelFrontend.start_server()` first.")
+        self._process.kill()
