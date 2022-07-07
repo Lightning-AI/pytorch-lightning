@@ -40,9 +40,11 @@ references:
         asdf install python latest:3.9
         asdf global python $(asdf latest python 3.9)
         python --version
+        python -m pip install -U pip
         pip install -e . -r requirements/pytorch/docs.txt
         pip list
         cd docs
+        find / -name "sphinx-build"
         make clean
         make html --jobs 2 SPHINXOPTS="-W"
 
@@ -140,6 +142,8 @@ jobs:
       - store_artifacts:
           path: coverage.xml
 
+  # Try to immitate commands executed by the readthedocs build
+  # https://readthedocs.org/projects/pytorch-lightning/builds/
   build-Docs:
     docker:
       - image: readthedocs/build:ubuntu-20.04-2022.02.16
