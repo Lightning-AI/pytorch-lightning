@@ -1,35 +1,39 @@
-"""This app demonstrates how the PanelFrontend can read/ pull the global app
-state and display it"""
+"""This app demonstrates how the PanelFrontend can read/ pull the global app state and display it."""
 import datetime
+import json
+from pathlib import Path
 
-import lightning as L
 import panel as pn
 from panel_frontend import PanelFrontend
-from pathlib import Path
-import json
+
+import lightning as L
 
 DATETIME_FORMAT = "%Y-%m-%d, %H:%M:%S.%f"
 
 APP_STATE = Path(__file__).parent / "app_state.json"
 
+
 def read_app_state():
     with open(APP_STATE) as json_file:
         return json.load(json_file)
 
+
 def save_app_state(state):
-    with open(APP_STATE, 'w') as outfile:
+    with open(APP_STATE, "w") as outfile:
         json.dump(state, outfile)
 
-def to_string(value: datetime.datetime)->str:
+
+def to_string(value: datetime.datetime) -> str:
     return value.strftime(DATETIME_FORMAT)
+
 
 def render_fn(self):
     global_app_state_pane = pn.pane.JSON(depth=2)
     last_local_update_pane = pn.pane.Str()
-    
+
     def update():
-        last_local_update_pane.object= "last local update: " + to_string(datetime.datetime.now())
-        
+        last_local_update_pane.object = "last local update: " + to_string(datetime.datetime.now())
+
         # Todo: Figure out the right way to read/ pull the app state
         global_app_state_pane.object = read_app_state()
 
@@ -40,10 +44,11 @@ def render_fn(self):
     # Todo: Giver the Panel app a nicer UX
     return pn.Column(last_local_update_pane, "## Global App State", global_app_state_pane)
 
+
 class Flow(L.LightningFlow):
     def __init__(self):
         super().__init__()
-        
+
         self.panel_frontend = PanelFrontend(render_fn=render_fn)
         self._last_global_update = datetime.datetime.now()
         self.last_global_update = to_string(self._last_global_update)
@@ -51,14 +56,15 @@ class Flow(L.LightningFlow):
     def run(self):
         self.panel_frontend.run()
         now = datetime.datetime.now()
-        if (now-self._last_global_update).microseconds>=100:
+        if (now - self._last_global_update).microseconds >= 100:
             save_app_state(self.state)
-            self._last_global_update=now
+            self._last_global_update = now
             self.last_global_update = to_string(now)
 
     def configure_layout(self):
         tab1 = {"name": "Home", "content": self.panel_frontend}
         return tab1
+
 
 app = L.LightningApp(Flow())
 
