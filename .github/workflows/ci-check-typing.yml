@@ -2,7 +2,7 @@ name: Check typing
 
 on:
   push:
-    branches: [master, "release/*", "ci/decouple-lint"]
+    branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
 
