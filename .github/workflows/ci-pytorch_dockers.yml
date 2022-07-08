@@ -1,10 +1,8 @@
 name: Docker - PyTorch
-# https://www.docker.com/blog/first-docker-github-action-is-here
-# https://github.com/docker/build-push-action
-# see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on: # Trigger the workflow on push or pull request, but only for the master branch
+
+on:
   push:
-    branches: [master, "release/*"] # include release branches like release/1.0.x
+    branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
     paths:
@@ -26,7 +24,7 @@ concurrency:
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 jobs:
-  build-PL:
+  pl:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -35,12 +33,8 @@ jobs:
         python_version: ["3.9"]
         pytorch_version: ["1.10", "1.11"]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Build PL Docker
-        # publish master/release
-        uses: docker/build-push-action@v2
+      - uses: actions/checkout@v2
+      - uses: docker/build-push-action@v2
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
@@ -49,7 +43,7 @@ jobs:
           push: false
         timeout-minutes: 50
 
-  build-XLA:
+  xla:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -58,12 +52,8 @@ jobs:
         python_version: ["3.7"]
         xla_version: ["1.11"]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Build XLA Docker
-        # publish master/release
-        uses: docker/build-push-action@v2
+      - uses: actions/checkout@v2
+      - uses: docker/build-push-action@v2
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
@@ -72,7 +62,7 @@ jobs:
           push: false
         timeout-minutes: 60
 
-  build-CUDA:
+  cuda:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -86,11 +76,8 @@ jobs:
           - {python_version: "3.9", pytorch_version: "1.10", cuda_version: "11.1", ubuntu_version: "20.04"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1", ubuntu_version: "20.04"}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Build CUDA Docker
-        # publish master/release
-        uses: docker/build-push-action@v2
+      - uses: actions/checkout@v2
+      - uses: docker/build-push-action@v2
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
@@ -101,22 +88,18 @@ jobs:
           push: false
         timeout-minutes: 95
 
-  build-Conda:
+  conda:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
         include:
-          # see: https://pytorch.org/get-started/previous-versions/
           - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1"}
           - {python_version: "3.8", pytorch_version: "1.10", cuda_version: "11.1"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Build Conda Docker
-        # publish master/release
-        uses: docker/build-push-action@v2
+      - uses: actions/checkout@v2
+      - uses: docker/build-push-action@v2
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
@@ -126,7 +109,7 @@ jobs:
           push: false
         timeout-minutes: 95
 
-  build-ipu:
+  ipu:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -135,11 +118,8 @@ jobs:
         python_version: ["3.9"]  # latest
         pytorch_version: ["1.9"]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Build IPU Docker
-        uses: docker/build-push-action@v2
+      - uses: actions/checkout@v2
+      - uses: docker/build-push-action@v2
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
@@ -148,9 +128,7 @@ jobs:
           push: false
           tags: pytorchlightning/pytorch_lightning:base-ipu-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 50
-
-      - name: Build IPU CI runner Docker
-        uses: docker/build-push-action@v2
+      - uses: docker/build-push-action@v2
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
@@ -159,7 +137,7 @@ jobs:
           push: false
         timeout-minutes: 60
 
-  build-hpu:
+  hpu:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -168,11 +146,8 @@ jobs:
         gaudi_version: ["1.5.0"]
         pytorch_version: ["1.11.0"]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Build HPU CI runner Docker
-        uses: docker/build-push-action@v2
+      - uses: actions/checkout@v2
+      - uses: docker/build-push-action@v2
         with:
           build-args: |
             DIST=latest
