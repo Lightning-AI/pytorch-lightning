@@ -25,6 +25,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.event_name }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
+env:
+  PUSH_TO_HUB: ${{ github.event_name == 'schedule' }}
+
 jobs:
   pl:
     runs-on: ubuntu-20.04
@@ -57,7 +60,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: docker/setup-buildx-action@v1
       - uses: docker/login-action@v1
-        if: github.event_name == 'schedule'
+        if: ${{ env.PUSH_TO_HUB }}
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -67,11 +70,11 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             XLA_VERSION=${{ matrix.xla_version }}
           file: dockers/base-xla/Dockerfile
-          push: ${{ github.event_name == 'schedule' }}
+          push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
         timeout-minutes: 60
       - uses: ravsamhq/notify-slack-action@v1
-        if: failure() && github.event_name == 'schedule'
+        if: failure() && ${{ env.PUSH_TO_HUB }}
         with:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -97,7 +100,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: docker/setup-buildx-action@v1
       - uses: docker/login-action@v1
-        if: github.event_name == 'schedule'
+        if: ${{ env.PUSH_TO_HUB }}
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -109,11 +112,11 @@ jobs:
             CUDA_VERSION=${{ matrix.cuda_version }}
             UBUNTU_VERSION=${{ matrix.ubuntu_version }}
           file: dockers/base-cuda/Dockerfile
-          push: ${{ github.event_name == 'schedule' }}
+          push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 95
       - uses: ravsamhq/notify-slack-action@v1
-        if: failure() && github.event_name == 'schedule'
+        if: failure() && ${{ env.PUSH_TO_HUB }}
         with:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -137,7 +140,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: docker/setup-buildx-action@v1
       - uses: docker/login-action@v1
-        if: github.event_name == 'schedule'
+        if: ${{ env.PUSH_TO_HUB }}
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -148,11 +151,11 @@ jobs:
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             CUDA_VERSION=${{ matrix.cuda_version }}
           file: dockers/base-conda/Dockerfile
-          push: ${{ github.event_name == 'schedule' }}
+          push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 95
       - uses: ravsamhq/notify-slack-action@v1
-        if: failure() && github.event_name == 'schedule'
+        if: failure() && ${{ env.PUSH_TO_HUB }}
         with:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -173,6 +176,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: docker/setup-buildx-action@v1
       - uses: docker/login-action@v1
+        if: ${{ env.PUSH_TO_HUB }}
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -182,7 +186,7 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/base-ipu/Dockerfile
-          push: ${{ github.event_name == 'schedule' }}
+          push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-ipu-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 120
       - uses: docker/build-push-action@v2
@@ -191,11 +195,11 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/ci-runner-ipu/Dockerfile
-          push: ${{ github.event_name == 'schedule' }}
+          push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:ipu-ci-runner-py${{ matrix.python_version }}
         timeout-minutes: 120
       - uses: ravsamhq/notify-slack-action@v1
-        if: failure() && github.event_name == 'schedule'
+        if: failure() && ${{ env.PUSH_TO_HUB }}
         with:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -215,8 +219,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: docker/setup-buildx-action@v1
-      - name: Login to DockerHub
-        uses: docker/login-action@v1
+      - uses: docker/login-action@v1
+        if: ${{ env.PUSH_TO_HUB }}
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -227,11 +231,11 @@ jobs:
             GAUDI_VERSION=${{ matrix.gaudi_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/ci-runner-hpu/Dockerfile
-          push: ${{ github.event_name == 'schedule' }}
+          push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:hpu-ci-runner-gaudi${{ matrix.gaudi_version }}
         timeout-minutes: 55
       - uses: ravsamhq/notify-slack-action@v1
-        if: failure() && github.event_name == 'schedule'
+        if: failure() && ${{ env.PUSH_TO_HUB }}
         with:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
