@@ -67,7 +67,7 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             XLA_VERSION=${{ matrix.xla_version }}
           file: dockers/base-xla/Dockerfile
-          push: github.event_name == 'schedule'
+          push: ${{ github.event_name == 'schedule' }}
           tags: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
         timeout-minutes: 60
       - uses: ravsamhq/notify-slack-action@v1
@@ -109,7 +109,7 @@ jobs:
             CUDA_VERSION=${{ matrix.cuda_version }}
             UBUNTU_VERSION=${{ matrix.ubuntu_version }}
           file: dockers/base-cuda/Dockerfile
-          push: github.event_name == 'schedule'
+          push: ${{ github.event_name == 'schedule' }}
           tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 95
       - uses: ravsamhq/notify-slack-action@v1
@@ -148,7 +148,7 @@ jobs:
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             CUDA_VERSION=${{ matrix.cuda_version }}
           file: dockers/base-conda/Dockerfile
-          push: github.event_name == 'schedule'
+          push: ${{ github.event_name == 'schedule' }}
           tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 95
       - uses: ravsamhq/notify-slack-action@v1
@@ -182,7 +182,7 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/base-ipu/Dockerfile
-          push: github.event_name == 'schedule'
+          push: ${{ github.event_name == 'schedule' }}
           tags: pytorchlightning/pytorch_lightning:base-ipu-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 50
       - uses: docker/build-push-action@v2
@@ -191,7 +191,7 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/ci-runner-ipu/Dockerfile
-          push: github.event_name == 'schedule'
+          push: ${{ github.event_name == 'schedule' }}
           tags: pytorchlightning/pytorch_lightning:ipu-ci-runner-py${{ matrix.python_version }}
         timeout-minutes: 55
       - uses: ravsamhq/notify-slack-action@v1
@@ -227,7 +227,7 @@ jobs:
             GAUDI_VERSION=${{ matrix.gaudi_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/ci-runner-hpu/Dockerfile
-          push: false
+          push: ${{ github.event_name == 'schedule' }}
           tags: pytorchlightning/pytorch_lightning:hpu-ci-runner-gaudi${{ matrix.gaudi_version }}
         timeout-minutes: 55
       - uses: ravsamhq/notify-slack-action@v1
