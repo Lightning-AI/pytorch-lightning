@@ -11,12 +11,6 @@ from lightning_app.utilities.log import get_frontend_logfile
 import pathlib
 
 logger = logging.getLogger("PanelFrontend")
-logger.setLevel(logging.DEBUG)
-
-handler = logging.StreamHandler(sys.stdout)
-formatter = logging.Formatter("%(asctime)s - %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
 class PanelFrontend(Frontend):
     
@@ -30,10 +24,10 @@ class PanelFrontend(Frontend):
             )
 
         self.render_fn = render_fn
-        logger.info("init finished")
+        logger.debug("initialized")
 
     def start_server(self, host: str, port: int) -> None:
-        logger.info("starting server %s %s", host, port)
+        logger.debug("starting server %s %s", host, port)
         env = os.environ.copy()
         env["LIGHTNING_FLOW_NAME"] = self.flow.name
         env["LIGHTNING_RENDER_FUNCTION"] = self.render_fn.__name__
@@ -46,7 +40,7 @@ class PanelFrontend(Frontend):
             self._process = subprocess.Popen(
                 [
                     sys.executable,
-                    pathlib.Path(__file__).parent / "panel_serve_render_fn.py",
+                    pathlib.Path(__file__).parent / "panel_serve.py",
                 ],
                 env=env,
                 # stdout=stdout,

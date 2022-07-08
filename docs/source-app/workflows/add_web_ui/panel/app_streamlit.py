@@ -1,10 +1,15 @@
 # app.py
+from typing import Union
 import lightning as L
 from lightning.app.frontend.stream_lit import StreamlitFrontend
 import streamlit as st
+from lightning_app.core.flow import LightningFlow
+from lightning_app.utilities.state import AppState
+import os
 
 def your_streamlit_app(lightning_app_state):
     st.write('hello world')
+    st.write(lightning_app_state)
 
 class LitStreamlit(L.LightningFlow):
     def configure_layout(self):
