@@ -22,7 +22,7 @@ on:
     - cron: "0 0 * * *"  # at the end of every day
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.event_name }}
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 jobs:
