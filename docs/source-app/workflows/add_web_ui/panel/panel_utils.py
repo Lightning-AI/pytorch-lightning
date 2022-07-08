@@ -18,6 +18,7 @@ logger = logging.getLogger("PanelFrontend")
 _CALLBACKS = []
 _THREAD: None | threading.Thread = None
 
+
 def _target_fn():
     async def update_fn():
         url = "localhost:8080" if "LIGHTNING_APP_STATE_URL" in os.environ else f"localhost:{APP_SERVER_PORT}"
@@ -31,9 +32,9 @@ def _target_fn():
                 logger.debug("App State Changed. Running callbacks")
                 for callback in _CALLBACKS:
                     callback()
-                
 
     asyncio.run(update_fn())
+
 
 def _start_websocket():
     global _THREAD
@@ -44,10 +45,12 @@ def _start_websocket():
         _THREAD.start()
         logger.debug("thread started")
 
+
 def watch_app_state(callback: Callable):
     _CALLBACKS.append(callback)
-    
+
     _start_websocket()
+
 
 def get_flow_state():
     app_state = AppState()
@@ -56,9 +59,10 @@ def get_flow_state():
     flow_state = _app_state_to_flow_scope(app_state, flow)
     return flow_state
 
+
 class AppStateWatcher(param.Parameterized):
     state: AppState = param.ClassSelector(class_=AppState)
-    
+
     def __init__(self):
         app_state = self._get_flow_state()
         super().__init__(state=app_state)
