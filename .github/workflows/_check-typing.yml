@@ -1,0 +1,37 @@
+name: Reusable Check Typing
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python version to use'
+        default: '3.9'
+        required: false
+        type: string
+
+jobs:
+  mypy:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions/setup-python@v3
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Cache pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/pytorch/base.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        pip install '.[dev,test]' --extra-index-url https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install mypy  # don't use --upgrade to respect the version installed via setup.py
+        pip list
+
+    - name: Check typing
+      run: mypy

@@ -1,6 +1,6 @@
-name: Code check
+name: Check typing
 
-on:  # Trigger the workflow on push or pull request, but only for the master branch
+on:
   push:
     branches: [master, "release/*"]
   pull_request:
@@ -11,31 +11,5 @@ concurrency:
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 jobs:
-  mypy:
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v3
-
-    - uses: actions/setup-python@v3
-      with:
-        python-version: 3.9
-
-    # Note: This uses an internal pip API and may not always work
-    # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
-    - name: Cache pip
-      uses: actions/cache@v2
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements/pytorch/base.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-
-    - name: Install dependencies
-      run: |
-        pip install torch==1.11 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-        python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
-        pip install -r requirements/pytorch/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-        pip list
-
-    - name: Check typing
-      run: mypy
+  check:
+    uses: ./.github/workflows/_check-typing.yml
