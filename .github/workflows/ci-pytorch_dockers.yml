@@ -184,7 +184,7 @@ jobs:
           file: dockers/base-ipu/Dockerfile
           push: ${{ github.event_name == 'schedule' }}
           tags: pytorchlightning/pytorch_lightning:base-ipu-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
-        timeout-minutes: 50
+        timeout-minutes: 120
       - uses: docker/build-push-action@v2
         with:
           build-args: |
@@ -193,7 +193,7 @@ jobs:
           file: dockers/ci-runner-ipu/Dockerfile
           push: ${{ github.event_name == 'schedule' }}
           tags: pytorchlightning/pytorch_lightning:ipu-ci-runner-py${{ matrix.python_version }}
-        timeout-minutes: 55
+        timeout-minutes: 120
       - uses: ravsamhq/notify-slack-action@v1
         if: failure() && github.event_name == 'schedule'
         with:
