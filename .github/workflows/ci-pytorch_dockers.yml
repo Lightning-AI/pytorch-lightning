@@ -18,6 +18,8 @@ on:
       - ".github/workflows/*docker*.yml"
       - ".github/workflows/events-nightly.yml"
       - "setup.py"
+  schedule:
+    - cron: "0 0 * * *"  # at the end of every day
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -40,7 +42,7 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/release/Dockerfile
-          push: false
+          push: false  # pushed in release-docker.yml only when PL is released
         timeout-minutes: 50
 
   xla:
@@ -53,14 +55,30 @@ jobs:
         xla_version: ["1.11"]
     steps:
       - uses: actions/checkout@v2
+      - uses: docker/setup-buildx-action@v1
+      - uses: docker/login-action@v1
+        if: github.event_name == 'schedule'
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
       - uses: docker/build-push-action@v2
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             XLA_VERSION=${{ matrix.xla_version }}
           file: dockers/base-xla/Dockerfile
-          push: false
+          push: github.event_name == 'schedule'
+          tags: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
         timeout-minutes: 60
+      - uses: ravsamhq/notify-slack-action@v1
+        if: failure() && github.event_name == 'schedule'
+        with:
+          status: ${{ job.status }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          notification_title: ${{ format('XLA; {0} py{1} for *{2}*', runner.os, matrix.python_version, matrix.xla_version) }}
+          message_format: '{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@U01GD29QCAV>'  # kaushikb11
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   cuda:
     runs-on: ubuntu-20.04
@@ -77,6 +95,12 @@ jobs:
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1", ubuntu_version: "20.04"}
     steps:
       - uses: actions/checkout@v2
+      - uses: docker/setup-buildx-action@v1
+      - uses: docker/login-action@v1
+        if: github.event_name == 'schedule'
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
       - uses: docker/build-push-action@v2
         with:
           build-args: |
@@ -85,8 +109,18 @@ jobs:
             CUDA_VERSION=${{ matrix.cuda_version }}
             UBUNTU_VERSION=${{ matrix.ubuntu_version }}
           file: dockers/base-cuda/Dockerfile
-          push: false
+          push: github.event_name == 'schedule'
+          tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 95
+      - uses: ravsamhq/notify-slack-action@v1
+        if: failure() && github.event_name == 'schedule'
+        with:
+          status: ${{ job.status }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          notification_title: ${{ format('CUDA; {0} py{1} for *{2}*', runner.os, matrix.python_version, matrix.pytorch_version) }}
+          message_format: '{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@U01A5T7EY9M>'  # akihironitta
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   conda:
     runs-on: ubuntu-20.04
@@ -97,8 +131,16 @@ jobs:
           - {python_version: "3.8", pytorch_version: "1.9", cuda_version: "11.1"}
           - {python_version: "3.8", pytorch_version: "1.10", cuda_version: "11.1"}
           - {python_version: "3.9", pytorch_version: "1.11", cuda_version: "11.3.1"}
+          #  nightly: add when there's a release candidate
+          #  - {python_version: "3.9", pytorch_version: "1.12"}
     steps:
       - uses: actions/checkout@v2
+      - uses: docker/setup-buildx-action@v1
+      - uses: docker/login-action@v1
+        if: github.event_name == 'schedule'
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
       - uses: docker/build-push-action@v2
         with:
           build-args: |
@@ -106,26 +148,41 @@ jobs:
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
             CUDA_VERSION=${{ matrix.cuda_version }}
           file: dockers/base-conda/Dockerfile
-          push: false
+          push: github.event_name == 'schedule'
+          tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 95
+      - uses: ravsamhq/notify-slack-action@v1
+        if: failure() && github.event_name == 'schedule'
+        with:
+          status: ${{ job.status }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          notification_title: ${{ format('Conda; {0} py{1} for *{2}*', runner.os, matrix.python_version, matrix.pytorch_version) }}
+          message_format: '{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@U01A5T7EY9M>'  # akihironitta
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   ipu:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
-        # the config used in 'dockers/ci-runner-ipu/Dockerfile'
-        python_version: ["3.9"]  # latest
-        pytorch_version: ["1.9"]
+        include:
+          # the config used in 'dockers/ci-runner-ipu/Dockerfile'
+          - {python_version: "3.9", pytorch_version: "1.9"}
     steps:
       - uses: actions/checkout@v2
+      - uses: docker/setup-buildx-action@v1
+      - uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
       - uses: docker/build-push-action@v2
         with:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/base-ipu/Dockerfile
-          push: false
+          push: github.event_name == 'schedule'
           tags: pytorchlightning/pytorch_lightning:base-ipu-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 50
       - uses: docker/build-push-action@v2
@@ -134,19 +191,35 @@ jobs:
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/ci-runner-ipu/Dockerfile
-          push: false
-        timeout-minutes: 60
+          push: github.event_name == 'schedule'
+          tags: pytorchlightning/pytorch_lightning:ipu-ci-runner-py${{ matrix.python_version }}
+        timeout-minutes: 55
+      - uses: ravsamhq/notify-slack-action@v1
+        if: failure() && github.event_name == 'schedule'
+        with:
+          status: ${{ job.status }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          notification_title: ${{ format('IPU; {0} py{1} for *{2}*', runner.os, matrix.python_version, matrix.pytorch_version) }}
+          message_format: '{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@U01BULUS2BG>'  # SeanNaren
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   hpu:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
-        # the config used in 'dockers/ci-runner-hpu/Dockerfile'
-        gaudi_version: ["1.5.0"]
-        pytorch_version: ["1.11.0"]
+        include:
+          # the config used in 'dockers/ci-runner-hpu/Dockerfile'
+          - {gaudi_version: "1.5.0", pytorch_version: "1.11.0"}
     steps:
       - uses: actions/checkout@v2
+      - uses: docker/setup-buildx-action@v1
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
       - uses: docker/build-push-action@v2
         with:
           build-args: |
@@ -155,4 +228,14 @@ jobs:
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
           file: dockers/ci-runner-hpu/Dockerfile
           push: false
-        timeout-minutes: 60
+          tags: pytorchlightning/pytorch_lightning:hpu-ci-runner-gaudi${{ matrix.gaudi_version }}
+        timeout-minutes: 55
+      - uses: ravsamhq/notify-slack-action@v1
+        if: failure() && github.event_name == 'schedule'
+        with:
+          status: ${{ job.status }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          notification_title: ${{ format('HPU; {0} py{1} for *{2}*', runner.os, matrix.gaudi_version, matrix.pytorch_version) }}
+          message_format: '{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@U02PV6CL144> <@U0355SJN6HK>'  # arao & Mythravarun N R
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
