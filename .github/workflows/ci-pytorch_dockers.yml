@@ -39,6 +39,7 @@ jobs:
         pytorch_version: ["1.10", "1.11"]
     steps:
       - uses: actions/checkout@v2
+      - uses: docker/setup-buildx-action@v1
       - uses: docker/build-push-action@v2
         with:
           build-args: |
@@ -60,7 +61,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: docker/setup-buildx-action@v1
       - uses: docker/login-action@v1
-        if: ${{ env.PUSH_TO_HUB }}
+        if: env.PUSH_TO_HUB == 'true'
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -74,7 +75,7 @@ jobs:
           tags: pytorchlightning/pytorch_lightning:base-xla-py${{ matrix.python_version }}-torch${{ matrix.xla_version }}
         timeout-minutes: 60
       - uses: ravsamhq/notify-slack-action@v1
-        if: failure() && ${{ env.PUSH_TO_HUB }}
+        if: failure() && env.PUSH_TO_HUB == 'true'
         with:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -100,7 +101,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: docker/setup-buildx-action@v1
       - uses: docker/login-action@v1
-        if: ${{ env.PUSH_TO_HUB }}
+        if: env.PUSH_TO_HUB == 'true'
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -116,7 +117,7 @@ jobs:
           tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 95
       - uses: ravsamhq/notify-slack-action@v1
-        if: failure() && ${{ env.PUSH_TO_HUB }}
+        if: failure() && env.PUSH_TO_HUB == 'true'
         with:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -140,7 +141,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: docker/setup-buildx-action@v1
       - uses: docker/login-action@v1
-        if: ${{ env.PUSH_TO_HUB }}
+        if: env.PUSH_TO_HUB == 'true'
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -155,7 +156,7 @@ jobs:
           tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
         timeout-minutes: 95
       - uses: ravsamhq/notify-slack-action@v1
-        if: failure() && ${{ env.PUSH_TO_HUB }}
+        if: failure() && env.PUSH_TO_HUB == 'true'
         with:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -176,7 +177,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: docker/setup-buildx-action@v1
       - uses: docker/login-action@v1
-        if: ${{ env.PUSH_TO_HUB }}
+        if: env.PUSH_TO_HUB == 'true'
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -199,7 +200,7 @@ jobs:
           tags: pytorchlightning/pytorch_lightning:ipu-ci-runner-py${{ matrix.python_version }}
         timeout-minutes: 120
       - uses: ravsamhq/notify-slack-action@v1
-        if: failure() && ${{ env.PUSH_TO_HUB }}
+        if: failure() && env.PUSH_TO_HUB == 'true'
         with:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -220,7 +221,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: docker/setup-buildx-action@v1
       - uses: docker/login-action@v1
-        if: ${{ env.PUSH_TO_HUB }}
+        if: env.PUSH_TO_HUB == 'true'
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -235,7 +236,7 @@ jobs:
           tags: pytorchlightning/pytorch_lightning:hpu-ci-runner-gaudi${{ matrix.gaudi_version }}
         timeout-minutes: 55
       - uses: ravsamhq/notify-slack-action@v1
-        if: failure() && ${{ env.PUSH_TO_HUB }}
+        if: failure() && env.PUSH_TO_HUB == 'true'
         with:
           status: ${{ job.status }}
           token: ${{ secrets.GITHUB_TOKEN }}
