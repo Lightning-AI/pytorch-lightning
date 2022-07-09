@@ -158,3 +158,6 @@ cifar-10-batches-py
 # ctags
 tags
 .tags
+
+# Lightning StreamlitFrontend or PanelFrontend
+.storage
