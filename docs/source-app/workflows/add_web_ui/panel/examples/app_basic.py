@@ -2,7 +2,9 @@
 import panel as pn
 
 import lightning as L
-from lightning_app.frontend.panel import PanelFrontend
+# Todo: change import
+# from lightning_app.frontend.panel import PanelFrontend
+from panel_frontend import PanelFrontend
 
 
 def your_panel_app(app):
