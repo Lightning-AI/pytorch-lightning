@@ -26,7 +26,6 @@
 | workflow file                     | action                                                                                       |
 | --------------------------------- | -------------------------------------------------------------------------------------------- |
 | .github/workflows/docs-checks.yml | Run doctest, build documentation, and upload built docs to make them available as artifacts. |
-| .github/workflows/docs-link.yml   | Provide a direct link to built docs on output.circleci-artifacts.com.                        |
 
 ## Code Quality
 
