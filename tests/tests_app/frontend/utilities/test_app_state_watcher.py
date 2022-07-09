@@ -22,7 +22,10 @@ def test_init(flow_state_state: dict):
 
 
 def test_handle_state_changed(flow_state_state: dict):
-    """We can handle state changes by updating the state."""
+    """We can handle state changes by updating the state.
+    
+    - the .state is scoped to the flow state
+    """
     app = AppStateWatcher()
     org_state = app.state
     app._handle_state_changed()
@@ -31,7 +34,23 @@ def test_handle_state_changed(flow_state_state: dict):
 
 
 def test_is_singleton():
-    """The AppStateWatcher is a singleton for efficiency reasons."""
-    watcher1 = AppStateWatcher()
-    watcher2 = AppStateWatcher()
-    assert watcher1 is watcher2
+    """The AppStateWatcher is a singleton for efficiency reasons.
+
+    Its key that __new__ and __init__ of AppStateWatcher is only called once.
+    See https://github.com/holoviz/param/issues/643
+    """
+    # When
+    app1 = AppStateWatcher()
+    name1 = app1.name
+    state1 = app1.state
+
+    app2 = AppStateWatcher()
+    name2 = app2.name
+    state2 = app2.state
+
+    # Then
+    assert app1 is app2
+    assert name1 == name2
+    assert app1.name == name2
+    assert state1 is state2
+    assert app1.state is state2

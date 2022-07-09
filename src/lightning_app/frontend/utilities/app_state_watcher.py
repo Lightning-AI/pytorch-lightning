@@ -50,6 +50,8 @@ class AppStateWatcher(param.Parameterized):
 
     The AppStateWatcher is build on top of Param which is a framework like dataclass, attrs and
     Pydantic which additionally provides powerful and unique features for building reactive apps.
+
+    Please note the AppStateWatcher is a singleton, i.e. only one instance is instantiated
     """
 
     state: AppState = param.ClassSelector(
@@ -61,14 +63,18 @@ class AppStateWatcher(param.Parameterized):
     def __new__(cls):
         # This makes the AppStateWatcher a *singleton*.
         # The AppStateWatcher is a singleton to minimize the number of requests etc..
-        if not hasattr(cls, "instance"):
-            cls.instance = super().__new__(cls)
-        return cls.instance
+        if not hasattr(cls, "_instance"):
+            cls._instance = super().__new__(cls)
+        return cls._instance
 
     @requires("param")
     def __init__(self):
-        super().__init__()
-        self._start_watching()
+        # Its critical to initialize only once
+        # See https://github.com/holoviz/param/issues/643
+        if not hasattr(self, "_initilized"):
+            super().__init__()
+            self._start_watching()
+            self._initilized = True
 
     def _start_watching(self):
         watch_app_state(self._handle_state_changed)
