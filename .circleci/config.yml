@@ -32,24 +32,6 @@ pr:
 #  11. Upload coverage to Codecov
 
 references:
-
-  make_docs: &make_docs
-    run:
-      name: Make Documentation
-      command: |
-        asdf install python latest:3.9
-        asdf global python $(asdf latest python 3.9)
-        PATH="$(asdf where python)/bin:$PATH"
-        which python pip
-        python -m pip install -U pip
-        python --version
-        pip --version
-        pip install -e . -r requirements/pytorch/docs.txt
-        pip list
-        cd docs
-        make clean
-        make html --jobs 2 SPHINXOPTS="-W"
-
   checkout_ml_testing: &checkout_ml_testing
    run:
      name: Checkout ml-testing-accelerators
@@ -144,28 +126,8 @@ jobs:
       - store_artifacts:
           path: coverage.xml
 
-  # Try to immitate commands executed by the readthedocs build
-  # https://readthedocs.org/projects/pytorch-lightning/builds/
-  build-Docs:
-    docker:
-      - image: readthedocs/build:ubuntu-20.04-2022.02.16
-    steps:
-      - checkout
-      - run:
-          command: |
-            git submodule update --init --recursive
-          name: Init git submodule
-      - *make_docs
-      - store_artifacts:
-          # allows us to preview the generated html pages
-          path: docs/build/html/
-          destination: html
-
 workflows:
   version: 2
-  build-docs:
-    jobs:
-      - build-Docs
   test-on-tpus:
     jobs:
       - TPU-tests
