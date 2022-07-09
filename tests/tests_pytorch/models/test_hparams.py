@@ -887,3 +887,38 @@ def test_nn_modules_warning_when_saved_as_hparams():
         model = CustomBoringModelNoWarn(encoder=TorchModule(), decoder=TorchModule())
 
     assert list(model.hparams) == ["other_hparam"]
+
+
+class TestSaveHyperparametersCallStackRaisesError:
+    def get_model(self):
+        class CustomBoringModel(BoringModel):
+            def __init__(self, hparam=7):
+                super().__init__()
+            
+            def setup(self, stage) -> None:
+                self.save_hyperparameters()
+                return super().setup(stage)
+        return CustomBoringModel()
+    
+    def test_different_method(self):
+        with pytest.raises(RuntimeError, match="The `save_hyperparameters` method must be called from the `LightningModule.__init__` method,"):
+            model = self.get_model()
+            model.setup("fit")
+    
+    def test_different_class(self):
+        class OtherClass:
+            def __init__(self, model):
+                model.save_hyperparameters()
+
+        with pytest.raises(RuntimeError, match="The `save_hyperparameters` method must be called from the `LightningModule.__init__` method,"):
+            model = self.get_model()
+            OtherClass(model)
+    
+    def test_function(self):
+        def save_hparams(model):
+            model.save_hyperparameters()
+
+        with pytest.raises(RuntimeError, match="The `save_hyperparameters` method must be called from the `LightningModule.__init__` method,"):
+            model = self.get_model()
+            save_hparams(model)
+        
