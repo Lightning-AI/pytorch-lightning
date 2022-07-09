@@ -6,10 +6,6 @@ on:
   pull_request:
     branches: [master, "release/*"]
     paths:
-      - "!src/lightning_app/**"  # todo: implement job skip
-      - "!tests/tests_app/**"  # todo: implement job skip
-      - "!tests/tests_app_examples/**"  # todo: implement job skip
-      - "!examples/app_*"  # todo: implement job skip
       - "dockers/**"
       - "!dockers/README.md"
       - "requirements/*"
