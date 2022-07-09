@@ -9,22 +9,25 @@ inputs:
   requires:
     description: define oldest or latest
     required: false
-    default: ""
+    default: ''
   offset:
     description: some extra hash for pip cache
     required: false
-    default: ""
+    default: ''
+  interval-days:
+    description: Cache reset interval
+    required: false
+    default: '7'
+
 
 runs:
   using: composite
   steps:
   - name: Set TIME_PERIOD for cache reset interval
     shell: bash
-    run: python -c "import time; days = time.time() / 60 / 60 / 24; print(f'TIME_PERIOD={int(days / 7)}')" >> $GITHUB_ENV
+    run: python -c "import time; days = time.time() / 60 / 60 / 24; print(f'TIME_PERIOD={int(days / int(${{ inputs.interval-days }}))}')" >> $GITHUB_ENV
     if: inputs.requires == 'latest'
 
-  # Note: This requires pip 20.1+
-  # https://github.com/actions/cache/blob/master/examples.md#multiple-oss-in-a-workflow
   - name: Get pip cache dir
     id: pip-cache
     shell: bash
