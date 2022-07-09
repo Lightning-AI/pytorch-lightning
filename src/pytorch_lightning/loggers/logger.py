@@ -160,7 +160,7 @@ class Logger(ABC):
             kwargs: Optional keyword arguments, depends on the specific logger being used
         """
 
-    def log_graph(self, model: "pl.LightningModule", input_array: Tensor = None) -> None:
+    def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
         """Record model graph.
 
         Args:
@@ -253,7 +253,7 @@ class LoggerCollection(Logger):
         for logger in self._logger_iterable:
             logger.log_hyperparams(params, *args, **kwargs)
 
-    def log_graph(self, model: "pl.LightningModule", input_array: Tensor = None) -> None:
+    def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
         for logger in self._logger_iterable:
             logger.log_graph(model, input_array)
 
