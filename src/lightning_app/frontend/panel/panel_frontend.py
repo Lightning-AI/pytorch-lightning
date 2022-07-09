@@ -1,4 +1,4 @@
-"""The PanelFrontend wraps your Panel code in your LightningFlow"""
+"""The PanelFrontend wraps your Panel code in your LightningFlow."""
 from __future__ import annotations
 
 import inspect
@@ -17,7 +17,7 @@ _logger = logging.getLogger("PanelFrontend")
 
 
 class PanelFrontend(Frontend):
-    """The PanelFrontend enables you to serve Panel code as a Frontend for your LightningFlow
+    """The PanelFrontend enables you to serve Panel code as a Frontend for your LightningFlow.
 
     To use this frontend, you must first install the `panel` package:
 
@@ -48,8 +48,7 @@ class PanelFrontend(Frontend):
 
         if inspect.ismethod(render_fn):
             raise TypeError(
-                "The `PanelFrontend` doesn't support `render_fn` being a method. Please, use a "
-                "pure function."
+                "The `PanelFrontend` doesn't support `render_fn` being a method. Please, use a " "pure function."
             )
 
         self.render_fn = render_fn
@@ -67,7 +66,7 @@ class PanelFrontend(Frontend):
         std_err_out = get_frontend_logfile("error.log")
         std_out_out = get_frontend_logfile("output.log")
         with open(std_err_out, "wb") as stderr, open(std_out_out, "wb") as stdout:
-            self._process = subprocess.Popen( # pylint: disable=consider-using-with
+            self._process = subprocess.Popen(  # pylint: disable=consider-using-with
                 [
                     sys.executable,
                     pathlib.Path(__file__).parent / "panel_serve_render_fn.py",
