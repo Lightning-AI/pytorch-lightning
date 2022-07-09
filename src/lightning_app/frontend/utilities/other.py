@@ -6,7 +6,7 @@ from __future__ import annotations
 import inspect
 import os
 import pydoc
-from typing import Callable, Union
+from typing import Callable
 
 from lightning_app.core.flow import LightningFlow
 from lightning_app.utilities.state import AppState
