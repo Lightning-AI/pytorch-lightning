@@ -1,4 +1,4 @@
-"""Utility functions for lightning Frontends"""
+"""Utility functions for lightning Frontends."""
 # Todo: Refactor stream_lit and streamlit_base to use this functionality
 
 from __future__ import annotations
@@ -13,15 +13,15 @@ from lightning_app.utilities.state import AppState
 
 
 def get_render_fn_from_environment() -> Callable:
-    """Returns the render_fn function to serve in the Frontend"""
+    """Returns the render_fn function to serve in the Frontend."""
     render_fn_name = os.environ["LIGHTNING_RENDER_FUNCTION"]
     render_fn_module_file = os.environ["LIGHTNING_RENDER_MODULE_FILE"]
     module = pydoc.importfile(render_fn_module_file)
     return getattr(module, render_fn_name)
 
 
-def _reduce_to_flow_scope(state: AppState, flow: Union[str, LightningFlow]) -> AppState:
-    """Returns a new AppState with the scope reduced to the given flow"""
+def _reduce_to_flow_scope(state: AppState, flow: str | LightningFlow) -> AppState:
+    """Returns a new AppState with the scope reduced to the given flow."""
     flow_name = flow.name if isinstance(flow, LightningFlow) else flow
     flow_name_parts = flow_name.split(".")[1:]  # exclude root
     flow_state = state
@@ -31,13 +31,13 @@ def _reduce_to_flow_scope(state: AppState, flow: Union[str, LightningFlow]) -> A
 
 
 def get_flow_state() -> AppState:
-    """Returns an AppState scoped to the current Flow
+    """Returns an AppState scoped to the current Flow.
 
     Returns:
         AppState: An AppState scoped to the current Flow.
     """
     app_state = AppState()
-    app_state._request_state() # pylint: disable=protected-access
+    app_state._request_state()  # pylint: disable=protected-access
     flow = os.environ["LIGHTNING_FLOW_NAME"]
     flow_state = _reduce_to_flow_scope(app_state, flow)
     return flow_state

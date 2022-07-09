@@ -12,8 +12,7 @@ from lightning_app.utilities.state import AppState
 
 
 def test_stop_server_not_running():
-    """If the server is not running but stopped an Exception should be
-    raised"""
+    """If the server is not running but stopped an Exception should be raised."""
     frontend = PanelFrontend(render_fn=Mock())
     with pytest.raises(RuntimeError, match="Server is not running."):
         frontend.stop_server()
@@ -48,8 +47,8 @@ def test_streamlit_frontend_start_stop_server(subprocess_mock):
     assert call_args[0] == sys.executable
     assert call_args[1].exists()
     assert str(call_args[1]).endswith("panel_serve_render_fn.py")
-    assert len(call_args)==2
-    
+    assert len(call_args) == 2
+
     assert env_variables["LIGHTNING_FLOW_NAME"] == "root.my.flow"
     assert env_variables["LIGHTNING_RENDER_ADDRESS"] == "hostname"
     assert env_variables["LIGHTNING_RENDER_FUNCTION"] == "_noop_render_fn"
@@ -65,6 +64,7 @@ def test_streamlit_frontend_start_stop_server(subprocess_mock):
     frontend.stop_server()
     # Then
     subprocess_mock.Popen().kill.assert_called_once()
+
 
 def _call_me(state):
     assert isinstance(state, AppState)

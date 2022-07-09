@@ -1,4 +1,4 @@
-"""The AppStateWatcher enables a Frontend to
+"""The AppStateWatcher enables a Frontend to.
 
 - subscribe to app state changes
 - to access and change the app state.
@@ -20,7 +20,7 @@ _logger = logging.getLogger(__name__)
 
 
 class AppStateWatcher(param.Parameterized):
-    """The AppStateWatcher enables a Frontend to
+    """The AppStateWatcher enables a Frontend to.
 
     - subscribe to app state changes
     - to access and change the app state.
@@ -33,13 +33,16 @@ class AppStateWatcher(param.Parameterized):
     .. code-block:: python
 
         import param
+
         app = AppStateWatcher()
 
         app.state.counter = 1
 
+
         @param.depends(app.param.state, watch=True)
         def update(state):
             print(f"The counter was updated to {state.counter}")
+
 
         app.state.counter += 1
 
@@ -59,9 +62,9 @@ class AppStateWatcher(param.Parameterized):
         # This makes the AppStateWatcher a *singleton*.
         # The AppStateWatcher is a singleton to minimize the number of requests etc..
         if not hasattr(cls, "instance"):
-            cls.instance = super(AppStateWatcher, cls).__new__(cls)
+            cls.instance = super().__new__(cls)
         return cls.instance
-    
+
     @requires("param")
     def __init__(self):
         super().__init__()

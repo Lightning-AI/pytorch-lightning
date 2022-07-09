@@ -15,7 +15,6 @@ Example:
 .. code-block:: bash
 
         python panel_serve_render_fn
-
 """
 from __future__ import annotations
 
@@ -48,9 +47,7 @@ def _serve():
     url = os.environ["LIGHTNING_FLOW_NAME"]
     websocket_origin = _get_websocket_origin()
 
-    pn.serve(
-        {url: _view}, address=address, port=port, websocket_origin=websocket_origin, show=False
-    )
+    pn.serve({url: _view}, address=address, port=port, websocket_origin=websocket_origin, show=False)
     _logger.debug("Panel server started on port http://%s:%s/%s", address, port, url)
 
 
