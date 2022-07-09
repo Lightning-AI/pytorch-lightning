@@ -48,8 +48,8 @@ class HyperparametersMixin:
             logger: Whether to send the hyperparameters to the logger. Default: True
 
         Raises:
-            ValueError:
-                Raises ValueError if method is not called from the ``__init__`` method.
+            RuntimeError:
+                Raises RuntimeError if this method is not called from the ``__init__`` method.
 
         Example::
             >>> class ManuallyArgsModel(HyperparametersMixin):
