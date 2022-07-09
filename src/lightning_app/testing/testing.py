@@ -81,7 +81,7 @@ def application_testing(lightning_app_cls: Type[LightningTestApp], command_line:
 
     from click.testing import CliRunner
 
-    with mock.patch("lightning_app.LightningApp", lightning_app_cls):
+    with mock.patch("lightning.LightningApp", lightning_app_cls):
         runner = CliRunner()
         return runner.invoke(run_app, command_line, catch_exceptions=False)
 
@@ -208,22 +208,14 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
             """,
                 [LIGHTNING_CLOUD_PROJECT_ID],
             )
-        admin_page.reload()
+        admin_page.goto(f"{Config.url}/{Config.username}/apps")
         try:
             # Closing the Create Project modal
             button = admin_page.locator('button:has-text("Cancel")')
-            button.wait_for(timeout=1 * 1000)
+            button.wait_for(timeout=3 * 1000)
             button.click()
         except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
             pass
-        try:
-            # Skipping the Hubspot form
-            button = admin_page.locator('button:has-text("Skip for now")')
-            button.wait_for(timeout=1 * 1000)
-            button.click()
-        except (playwright._impl._api_types.Error, playwright._impl._api_types.TimeoutError):
-            pass
-        admin_page.goto(f"{Config.url}/{Config.username}/apps")
         admin_page.locator(f"text={name}").click()
         admin_page.evaluate(
             """data => {
