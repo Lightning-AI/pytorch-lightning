@@ -275,6 +275,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated ClusterEnvironment methods `KubeflowEnvironment.is_using_kubelfow()`, `LSFEnvironment.is_using_lsf()` and `TorchElasticEnvironment.is_using_torchelastic()` in favor of the `detect()` method ([#13458](https://github.com/PyTorchLightning/pytorch-lightning/pull/13458))
 
 
+- Removed deprecated `Callback.on_keyboard_interrupt` ([#13438](https://github.com/Lightning-AI/lightning/pull/13438))
+
 
 ### Fixed
 
