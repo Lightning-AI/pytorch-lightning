@@ -20,7 +20,7 @@ from abc import ABC, abstractmethod
 from argparse import Namespace
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Sequence, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Sequence, Union
 from weakref import ReferenceType
 
 import numpy as np
@@ -28,10 +28,8 @@ from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Checkpoint
+from pytorch_lightning.loggers.csv_logs import ExperimentWriter
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
-
-if TYPE_CHECKING:
-    from pytorch_lightning.loggers.csv_logs import ExperimentWriter
 
 
 def rank_zero_experiment(fn: Callable) -> Callable:
