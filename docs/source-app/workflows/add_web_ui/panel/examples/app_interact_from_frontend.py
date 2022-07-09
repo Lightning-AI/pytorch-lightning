@@ -1,8 +1,8 @@
 # app.py
-import lightning as L
 import panel as pn
-from panel_frontend import PanelFrontend
-from app_state_watcher import AppStateWatcher
+
+import lightning as L
+from lightning_app.frontend.panel import AppStateWatcher, PanelFrontend
 
 pn.extension(sizing_mode="stretch_width")
 
