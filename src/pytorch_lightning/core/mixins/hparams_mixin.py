@@ -108,6 +108,7 @@ class HyperparametersMixin:
             current_frame = inspect.currentframe()
             if current_frame:
                 frame = current_frame.f_back
+                # enforce that save_hyperparameters method is called from init of LightningModule.
                 if not (
                     frame.f_code.co_name == "__init__"
                     and "self" in frame.f_locals
@@ -116,8 +117,8 @@ class HyperparametersMixin:
                     called_from_fn = (
                         f"{frame.f_locals['self'].__class__.__name__}." if "self" in frame.f_locals else ""
                     ) + f"{frame.f_code.co_name}"
-                    raise ValueError(
-                        "The `save_hyperparameter` method must be called from the `LightningModule.__init__` method, "
+                    raise RuntimeError(
+                        "The `save_hyperparameters` method must be called from the `LightningModule.__init__` method, "
                         + f"but was called from `{called_from_fn}` instead."
                     )
         save_hyperparameters(self, *args, ignore=ignore, frame=frame)
