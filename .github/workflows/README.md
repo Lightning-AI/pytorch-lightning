@@ -23,9 +23,9 @@
 
 ## Documentation
 
-| workflow file                     | action                                                                                       |
-| --------------------------------- | -------------------------------------------------------------------------------------------- |
-| .github/workflows/docs-checks.yml | Run doctest, build documentation, and upload built docs to make them available as artifacts. |
+| workflow file                     | action       |
+| --------------------------------- | ------------ |
+| .github/workflows/docs-checks.yml | Run doctest. |
 
 ## Code Quality
 
