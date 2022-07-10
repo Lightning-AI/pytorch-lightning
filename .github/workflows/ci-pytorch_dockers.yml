@@ -25,7 +25,7 @@ env:
   PUSH_TO_HUB: ${{ github.event_name == 'schedule' }}
 
 jobs:
-  pl:
+  build-pl:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -45,7 +45,7 @@ jobs:
           push: false  # pushed in release-docker.yml only when PL is released
         timeout-minutes: 50
 
-  xla:
+  build-xla:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -80,7 +80,7 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-  cuda:
+  build-cuda:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -122,7 +122,7 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-  conda:
+  build-conda:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -161,7 +161,7 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-  ipu:
+  build-ipu:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -205,7 +205,7 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-  hpu:
+  build-hpu:
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
