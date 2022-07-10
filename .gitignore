@@ -161,3 +161,6 @@ tags
 
 # Lightning StreamlitFrontend or PanelFrontend
 .storage
+
+# Personal scripts
+script.*

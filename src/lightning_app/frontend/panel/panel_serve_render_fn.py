@@ -29,7 +29,7 @@ from lightning_app.frontend.utilities.other import get_render_fn_from_environmen
 _logger = logging.getLogger(__name__)
 
 
-def _view():
+def _view_fn():
     render_fn = get_render_fn_from_environment()
     app = AppStateWatcher()
     return render_fn(app)
@@ -47,7 +47,7 @@ def _serve():
     url = os.environ["LIGHTNING_FLOW_NAME"]
     websocket_origin = _get_websocket_origin()
 
-    pn.serve({url: _view}, address=address, port=port, websocket_origin=websocket_origin, show=False)
+    pn.serve({url: _view_fn}, address=address, port=port, websocket_origin=websocket_origin, show=False)
     _logger.debug("Panel server started on port http://%s:%s/%s", address, port, url)
 
 

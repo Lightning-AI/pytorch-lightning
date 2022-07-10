@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-from lightning_app.frontend.panel.panel_serve_render_fn import _serve, _view
+from lightning_app.frontend.panel.panel_serve_render_fn import _serve, _view_fn
 from lightning_app.frontend.utilities.app_state_watcher import AppStateWatcher
 
 
@@ -23,21 +23,6 @@ def mock_settings_env_vars():
     ):
         yield
 
-
-def do_nothing(_):
-    """Be lazy!"""
-
-
-@pytest.fixture(autouse=True, scope="module")
-def mock_request_state():
-    """Avoid requests to the api."""
-    with mock.patch(
-        "lightning_app.frontend.utilities.app_state_watcher.AppStateWatcher._start_watching",
-        do_nothing,
-    ):
-        yield
-
-
 def render_fn(app):
     """Test function that just passes through the app."""
     return app
@@ -46,7 +31,7 @@ def render_fn(app):
 def test_view():
     """We have a helper _view function that provides the AppStateWatcher as argument to render_fn and returns the
     result."""
-    result = _view()
+    result = _view_fn()
     assert isinstance(result, AppStateWatcher)
 
 
@@ -55,5 +40,5 @@ def test_serve(pn_serve: mock.MagicMock):
     """We can run python panel_serve_render_fn to serve the render_fn."""
     _serve()
     pn_serve.assert_called_once_with(
-        {"root.lit_panel": _view}, address="localhost", port=61896, websocket_origin="*", show=False
+        {"root.lit_panel": _view_fn}, address="localhost", port=61896, websocket_origin="*", show=False
     )

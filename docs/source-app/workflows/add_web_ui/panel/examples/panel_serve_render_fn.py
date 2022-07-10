@@ -32,13 +32,16 @@ _logger.setLevel(logging.DEBUG)
 def _view():
     render_fn = get_render_fn_from_environment()
     app = AppStateWatcher()
-    print("_view", app)
     return render_fn(app)
 
 
 def _get_websocket_origin() -> str:
-    # Todo: Improve this. I don't know how to find the specific host(s).
+    # Todo: Improve this to remove WARNING
+    # I don't know how to find the specific host(s).
     # I tried but it did not work in cloud
+    # 
+    # WARNING:bokeh.server.util:Host wildcard '*' will allow connections originating from multiple
+    # (or possibly all) hostnames or IPs. Use non-wildcard values to restrict access explicitly
     return "*"
 
 

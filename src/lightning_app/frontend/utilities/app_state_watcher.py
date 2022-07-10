@@ -55,7 +55,7 @@ class AppStateWatcher(param.Parameterized):
     """
 
     state: AppState = param.ClassSelector(
-        class_=AppState,
+        class_=AppState, constant=True,
         doc="""
     The AppState holds the state of the app reduced to the scope of the Flow""",
     )
@@ -72,9 +72,16 @@ class AppStateWatcher(param.Parameterized):
         # Its critical to initialize only once
         # See https://github.com/holoviz/param/issues/643
         if not hasattr(self, "_initilized"):
-            super().__init__()
+            super().__init__(name="singleton")
             self._start_watching()
+            self.param.state.allow_None=False
             self._initilized = True
+
+        # The below was observed when using mocking during testing
+        if not self.state:
+            raise Exception(".state has not been set.")
+        if not self.state._state:
+            raise Exception(".state._state has not been set.")
 
     def _start_watching(self):
         watch_app_state(self._handle_state_changed)
@@ -84,7 +91,8 @@ class AppStateWatcher(param.Parameterized):
         return get_flow_state()
 
     def _request_state(self):
-        self.state = self._get_flow_state()
+        with param.edit_constant(self):
+            self.state = self._get_flow_state()
         _logger.debug("Request app state")
 
     def _handle_state_changed(self):

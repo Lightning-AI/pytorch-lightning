@@ -43,26 +43,6 @@ def mock_request_state():
     with mock.patch("lightning_app.utilities.state.AppState._request_state", _request_state):
         yield
 
-
-@pytest.fixture(autouse=True, scope="module")
-def mock_settings_env_vars():
-    """Set the LIGHTNING environment variables."""
-    with mock.patch.dict(
-        os.environ,
-        {
-            "LIGHTNING_FLOW_NAME": FLOW,
-            "LIGHTNING_RENDER_ADDRESS": "localhost",
-            "LIGHTNING_RENDER_FUNCTION": "render_fn",
-            "LIGHTNING_RENDER_MODULE_FILE": __file__,
-            "LIGHTNING_RENDER_PORT": f"{PORT}",
-        },
-    ):
-        yield
-
-def render_fn(app):
-    """Test function that just passes through the app."""
-    return app
-
 def do_nothing():
     """Be lazy!"""
 
@@ -72,13 +52,3 @@ def mock_start_websocket():
     """Avoid starting the websocket."""
     with mock.patch("lightning_app.frontend.utilities.app_state_comm._start_websocket", do_nothing):
         yield
-
-
-@pytest.fixture
-def app_state_state():
-    return APP_STATE.copy()
-
-
-@pytest.fixture
-def flow_state_state():
-    return FLOW_STATE.copy()
