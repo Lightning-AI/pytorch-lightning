@@ -185,7 +185,7 @@ jobs:
           file: dockers/base-ipu/Dockerfile
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:base-ipu-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
-        timeout-minutes: 120
+        timeout-minutes: 100
       - uses: docker/build-push-action@v2
         with:
           build-args: |
@@ -194,7 +194,7 @@ jobs:
           file: dockers/ci-runner-ipu/Dockerfile
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:ipu-ci-runner-py${{ matrix.python_version }}
-        timeout-minutes: 120
+        timeout-minutes: 10
       - uses: ravsamhq/notify-slack-action@v1
         if: failure() && env.PUSH_TO_HUB == 'true'
         with:
@@ -230,7 +230,7 @@ jobs:
           file: dockers/ci-runner-hpu/Dockerfile
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:hpu-ci-runner-gaudi${{ matrix.gaudi_version }}
-        timeout-minutes: 55
+        timeout-minutes: 10
       - uses: ravsamhq/notify-slack-action@v1
         if: failure() && env.PUSH_TO_HUB == 'true'
         with:
