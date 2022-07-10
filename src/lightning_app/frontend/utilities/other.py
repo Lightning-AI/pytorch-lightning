@@ -12,10 +12,8 @@ from lightning_app.core.flow import LightningFlow
 from lightning_app.utilities.state import AppState
 
 
-def get_render_fn_from_environment() -> Callable:
+def get_render_fn_from_environment(render_fn_name: str, render_fn_module_file: str) -> Callable:
     """Returns the render_fn function to serve in the Frontend."""
-    render_fn_name = os.environ["LIGHTNING_RENDER_FUNCTION"]
-    render_fn_module_file = os.environ["LIGHTNING_RENDER_MODULE_FILE"]
     module = pydoc.importfile(render_fn_module_file)
     return getattr(module, render_fn_name)
 
@@ -30,7 +28,7 @@ def _reduce_to_flow_scope(state: AppState, flow: str | LightningFlow) -> AppStat
     return flow_state
 
 
-def get_flow_state() -> AppState:
+def get_flow_state(flow: str) -> AppState:
     """Returns an AppState scoped to the current Flow.
 
     Returns:
@@ -38,12 +36,13 @@ def get_flow_state() -> AppState:
     """
     app_state = AppState()
     app_state._request_state()  # pylint: disable=protected-access
-    flow = os.environ["LIGHTNING_FLOW_NAME"]
     flow_state = _reduce_to_flow_scope(app_state, flow)
     return flow_state
 
 
-def get_frontend_environment(flow: str, render_fn: Callable, port: int, host: str) -> os._Environ:
+def get_frontend_environment(
+    flow: str, render_fn_or_file: Callable | str, port: int, host: str
+) -> os._Environ:
     """Returns an _Environ with the environment variables for serving a Frontend app set.
 
     Args:
@@ -57,8 +56,13 @@ def get_frontend_environment(flow: str, render_fn: Callable, port: int, host: st
     """
     env = os.environ.copy()
     env["LIGHTNING_FLOW_NAME"] = flow
-    env["LIGHTNING_RENDER_FUNCTION"] = render_fn.__name__
-    env["LIGHTNING_RENDER_MODULE_FILE"] = inspect.getmodule(render_fn).__file__
     env["LIGHTNING_RENDER_PORT"] = str(port)
     env["LIGHTNING_RENDER_ADDRESS"] = str(host)
+
+    if isinstance(render_fn_or_file, str):
+        env["LIGHTNING_RENDER_FILE"] = render_fn_or_file
+    else:
+        env["LIGHTNING_RENDER_FUNCTION"] = render_fn_or_file.__name__
+        env["LIGHTNING_RENDER_MODULE_FILE"] = inspect.getmodule(render_fn_or_file).__file__
+
     return env

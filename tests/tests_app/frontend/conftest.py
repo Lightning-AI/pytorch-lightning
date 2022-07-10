@@ -1,9 +1,11 @@
+"""Test configuration"""
+# pylint: disable=protected-access
 import os
 from unittest import mock
 
 import pytest
 
-FLOW_SUB = "lit_panel"
+FLOW_SUB = "lit_flow"
 FLOW = f"root.{FLOW_SUB}"
 PORT = 61896
 
@@ -36,32 +38,15 @@ def _request_state(self):
     _state = APP_STATE
     self._store_state(_state)
 
+@pytest.fixture()
+def flow():
+    return FLOW
 
 @pytest.fixture(autouse=True, scope="module")
 def mock_request_state():
     """Avoid requests to the api."""
     with mock.patch("lightning_app.utilities.state.AppState._request_state", _request_state):
         yield
-
-
-@pytest.fixture(autouse=True, scope="module")
-def mock_settings_env_vars():
-    """Set the LIGHTNING environment variables."""
-    with mock.patch.dict(
-        os.environ,
-        {
-            "LIGHTNING_FLOW_NAME": FLOW,
-            "LIGHTNING_RENDER_ADDRESS": "localhost",
-            "LIGHTNING_RENDER_FUNCTION": "render_fn",
-            "LIGHTNING_RENDER_MODULE_FILE": __file__,
-            "LIGHTNING_RENDER_PORT": f"{PORT}",
-        },
-    ):
-        yield
-
-def render_fn(app):
-    """Test function that just passes through the app."""
-    return app
 
 def do_nothing():
     """Be lazy!"""
@@ -76,9 +61,27 @@ def mock_start_websocket():
 
 @pytest.fixture
 def app_state_state():
+    """Returns an AppState dict"""
     return APP_STATE.copy()
 
 
 @pytest.fixture
 def flow_state_state():
+    """Returns an AppState dict scoped to the flow"""
     return FLOW_STATE.copy()
+
+
+# @pytest.fixture()
+# def mock_settings_env_vars_fn():
+#     """Set the LIGHTNING environment variables."""
+#     with mock.patch.dict(
+#         os.environ,
+#         {
+#             "LIGHTNING_FLOW_NAME": FLOW,
+#             "LIGHTNING_RENDER_ADDRESS": "localhost",
+#             "LIGHTNING_RENDER_FUNCTION": "render_fn",
+#             "LIGHTNING_RENDER_MODULE_FILE": __file__,
+#             "LIGHTNING_RENDER_PORT": f"{PORT}",
+#         },
+#     ):
+#         yield

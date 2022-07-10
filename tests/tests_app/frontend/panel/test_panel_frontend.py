@@ -1,3 +1,5 @@
+"""The PanelFrontend wraps your Panel code in your LightningFlow."""
+# pylint: disable=protected-access, too-few-public-methods
 import os
 import runpy
 import sys
@@ -13,7 +15,7 @@ from lightning_app.utilities.state import AppState
 
 def test_stop_server_not_running():
     """If the server is not running but stopped an Exception should be raised."""
-    frontend = PanelFrontend(render_fn=Mock())
+    frontend = PanelFrontend(render_fn_or_file=Mock())
     with pytest.raises(RuntimeError, match="Server is not running."):
         frontend.stop_server()
 
@@ -23,19 +25,23 @@ def _noop_render_fn(_):
 
 
 class MockFlow(LightningFlow):
+    """Test Flow"""
+
     @property
     def name(self):
+        """Return name"""
         return "root.my.flow"
 
-    def run(self):
-        pass
+    def run(self):  # pylint: disable=arguments-differ
+        "Be lazy!"
 
 
 @mock.patch("lightning_app.frontend.panel.panel_frontend.subprocess")
-def test_streamlit_frontend_start_stop_server(subprocess_mock):
-    """Test that `PanelFrontend.start_server()` invokes subprocess.Popen with the right parameters."""
+def test_panel_frontend_start_stop_server(subprocess_mock):
+    """Test that `PanelFrontend.start_server()` invokes subprocess.Popen with the right
+    parameters."""
     # Given
-    frontend = PanelFrontend(render_fn=_noop_render_fn)
+    frontend = PanelFrontend(render_fn_or_file=_noop_render_fn)
     frontend.flow = MockFlow()
     # When
     frontend.start_server(host="hostname", port=1111)
@@ -46,7 +52,7 @@ def test_streamlit_frontend_start_stop_server(subprocess_mock):
     call_args = subprocess_mock.method_calls[0].args[0]
     assert call_args[0] == sys.executable
     assert call_args[1].exists()
-    assert str(call_args[1]).endswith("panel_serve_render_fn.py")
+    assert str(call_args[1]).endswith("panel_serve_render_fn_or_file.py")
     assert len(call_args) == 2
 
     assert env_variables["LIGHTNING_FLOW_NAME"] == "root.my.flow"
@@ -80,15 +86,19 @@ def _call_me(state):
         "LIGHTNING_RENDER_PORT": "61896",
     },
 )
-def test_panel_wrapper_calls_render_fn(*_):
-    runpy.run_module("lightning_app.frontend.panel.panel_serve_render_fn")
+def test_panel_wrapper_calls_render_fn_or_file(*_):
+    """Run the panel_serve_render_fn_or_file"""
+    runpy.run_module("lightning_app.frontend.panel.panel_serve_render_fn_or_file")
     # TODO: find a way to assert that _call_me got called
 
 
 def test_method_exception():
-    class A:
-        def render_fn(self):
+    """The PanelFrontend does not support render_fn_or_file being a method
+    and should raise an Exception"""
+
+    class _DummyClass:
+        def _render_fn(self):
             pass
 
     with pytest.raises(TypeError, match="being a method"):
-        PanelFrontend(render_fn=A().render_fn)
+        PanelFrontend(render_fn_or_file=_DummyClass()._render_fn)

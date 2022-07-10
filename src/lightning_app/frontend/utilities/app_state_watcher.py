@@ -8,6 +8,7 @@ This is particularly useful for the PanelFrontend but can be used by other Front
 from __future__ import annotations
 
 import logging
+import os
 
 import param
 
@@ -55,7 +56,8 @@ class AppStateWatcher(param.Parameterized):
     """
 
     state: AppState = param.ClassSelector(
-        class_=AppState, constant=True,
+        class_=AppState,
+        constant=True,
         doc="""
     The AppState holds the state of the app reduced to the scope of the Flow""",
     )
@@ -74,7 +76,7 @@ class AppStateWatcher(param.Parameterized):
         if not hasattr(self, "_initilized"):
             super().__init__(name="singleton")
             self._start_watching()
-            self.param.state.allow_None=False
+            self.param.state.allow_None = False
             self._initilized = True
 
         # The below was observed when using mocking during testing
@@ -84,17 +86,14 @@ class AppStateWatcher(param.Parameterized):
             raise Exception(".state._state has not been set.")
 
     def _start_watching(self):
-        watch_app_state(self._handle_state_changed)
-        self._request_state()
+        watch_app_state(self._update_flow_state)
+        self._update_flow_state()
 
-    def _get_flow_state(self):
-        return get_flow_state()
+    def _get_flow_state(self) -> AppState:
+        flow = os.environ["LIGHTNING_FLOW_NAME"]
+        return get_flow_state(flow)
 
-    def _request_state(self):
+    def _update_flow_state(self):
         with param.edit_constant(self):
             self.state = self._get_flow_state()
         _logger.debug("Request app state")
-
-    def _handle_state_changed(self):
-        _logger.debug("Handle app state changed")
-        self._request_state()

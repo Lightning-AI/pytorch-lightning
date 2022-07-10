@@ -6,18 +6,26 @@ It requires the below environment variables to be set
 
 - LIGHTNING_FLOW_NAME
 - LIGHTNING_RENDER_ADDRESS
-- LIGHTNING_RENDER_FUNCTION
-- LIGHTNING_RENDER_MODULE_FILE
 - LIGHTNING_RENDER_PORT
+
+As well as either
+
+- LIGHTNING_RENDER_FUNCTION + LIGHTNING_RENDER_MODULE_FILE
+
+or
+
+- LIGHTNING_RENDER_FILE
+
 
 Example:
 
 .. code-block:: bash
 
-        python panel_serve_render_fn
+        python panel_serve_render_fn_or_file
 """
 from __future__ import annotations
 
+import inspect
 import logging
 import os
 
@@ -28,17 +36,32 @@ from lightning_app.frontend.utilities.other import get_render_fn_from_environmen
 
 _logger = logging.getLogger(__name__)
 
+def _get_render_fn():
+    render_fn_name = os.environ["LIGHTNING_RENDER_FUNCTION"]
+    render_fn_module_file = os.environ["LIGHTNING_RENDER_MODULE_FILE"]
+    return get_render_fn_from_environment(render_fn_name, render_fn_module_file)
 
-def _view_fn():
-    render_fn = get_render_fn_from_environment()
+def _render_fn_wrapper():
+    render_fn = _get_render_fn()
     app = AppStateWatcher()
     return render_fn(app)
 
+def _get_view_fn():
+    render_fn = _get_render_fn()
+    if inspect.signature(render_fn).parameters:
+        return _render_fn_wrapper
+    return render_fn
 
 def _get_websocket_origin() -> str:
     # Todo: Improve this. I don't know how to find the specific host(s).
     # I tried but it did not work in cloud
     return "*"
+
+
+def _get_view():
+    if "LIGHTNING_RENDER_FILE" in os.environ:
+        return os.environ["LIGHTNING_RENDER_FILE"]
+    return _get_view_fn()
 
 
 def _serve():
@@ -47,7 +70,9 @@ def _serve():
     url = os.environ["LIGHTNING_FLOW_NAME"]
     websocket_origin = _get_websocket_origin()
 
-    pn.serve({url: _view_fn}, address=address, port=port, websocket_origin=websocket_origin, show=False)
+    view = _get_view()
+
+    pn.serve({url: view}, address=address, port=port, websocket_origin=websocket_origin, show=False)
     _logger.debug("Panel server started on port http://%s:%s/%s", address, port, url)
 
 

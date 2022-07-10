@@ -6,8 +6,31 @@
 This is particularly useful for the PanelFrontend but can be used by other Frontends too.
 """
 # pylint: disable=protected-access
+import os
+from unittest import mock
+
+import pytest
+
 from lightning_app.frontend.utilities.app_state_watcher import AppStateWatcher
 from lightning_app.utilities.state import AppState
+
+FLOW_SUB = "lit_flow"
+FLOW = f"root.{FLOW_SUB}"
+PORT = 61896
+
+
+@pytest.fixture(autouse=True)
+def mock_settings_env_vars():
+    """Set the LIGHTNING environment variables."""
+    with mock.patch.dict(
+        os.environ,
+        {
+            "LIGHTNING_FLOW_NAME": FLOW,
+            "LIGHTNING_RENDER_ADDRESS": "localhost",
+            "LIGHTNING_RENDER_PORT": f"{PORT}",
+        },
+    ):
+        yield
 
 
 def test_init(flow_state_state: dict):
@@ -16,19 +39,25 @@ def test_init(flow_state_state: dict):
     - the .state is set
     - the .state is scoped to the flow state
     """
+    # When
     app = AppStateWatcher()
+    # Needed as AppStateWatcher is singleton and might have been
+    # instantiated and the state changed in other tests
+    app._update_flow_state()
+
+    # Then
     assert isinstance(app.state, AppState)
     assert app.state._state == flow_state_state
 
 
-def test_handle_state_changed(flow_state_state: dict):
-    """We can handle state changes by updating the state.
-    
+def test_update_flow_state(flow_state_state: dict):
+    """We can update the state.
+
     - the .state is scoped to the flow state
     """
     app = AppStateWatcher()
     org_state = app.state
-    app._handle_state_changed()
+    app._update_flow_state()
     assert app.state is not org_state
     assert app.state._state == flow_state_state
 
