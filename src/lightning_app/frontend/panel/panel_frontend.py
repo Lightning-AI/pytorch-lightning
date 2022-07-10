@@ -17,6 +17,7 @@ _logger = logging.getLogger("PanelFrontend")
 
 
 class PanelFrontend(Frontend):
+    # Todo: Add Example to docstring
     """The PanelFrontend enables you to serve Panel code as a Frontend for your LightningFlow.
 
     To use this frontend, you must first install the `panel` package:
@@ -28,7 +29,8 @@ class PanelFrontend(Frontend):
     Please note the Panel server will be logging output to error.log and output.log files
     respectively.
 
-    # Todo: Add Example
+    You can start the lightning server with Panel autoreload by setting the `PANEL_AUTORELOAD`
+    environment variable to 'yes': `AUTORELOAD=yes lightning run app my_app.py`.
 
     Args:
         render_fn_or_file: A pure function or the path to a .py or .ipynb file.
@@ -42,6 +44,8 @@ class PanelFrontend(Frontend):
 
     @requires("panel")
     def __init__(self, render_fn_or_file: Callable | str):
+        # Todo: consider renaming back to render_fn or something else short.
+        # Its a hazzle reading and writing such a long name
         super().__init__()
 
         if inspect.ismethod(render_fn_or_file):
@@ -62,6 +66,7 @@ class PanelFrontend(Frontend):
             port,
             host,
         )
+        # Todo: Don't log to file when developing locally. Makes it harder to debug.
         std_err_out = get_frontend_logfile("error.log")
         std_out_out = get_frontend_logfile("output.log")
         with open(std_err_out, "wb") as stderr, open(std_out_out, "wb") as stdout:

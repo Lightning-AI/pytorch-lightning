@@ -25,7 +25,7 @@ class LitPanel(L.LightningFlow):
     def __init__(self):
         super().__init__()
 
-        self._frontend = PanelFrontend(render_fn=your_panel_app)
+        self._frontend = PanelFrontend(your_panel_app)
         self._last_update = dt.datetime.now()
         self.last_update = self._last_update.isoformat()
 

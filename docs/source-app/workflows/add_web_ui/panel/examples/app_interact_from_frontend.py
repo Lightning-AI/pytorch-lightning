@@ -28,7 +28,7 @@ def your_panel_app(app: AppStateWatcher):
 class LitPanel(L.LightningFlow):
     def __init__(self):
         super().__init__()
-        self._frontend = PanelFrontend(render_fn=your_panel_app)
+        self._frontend = PanelFrontend(your_panel_app)
         self.count = 0
 
     def configure_layout(self):

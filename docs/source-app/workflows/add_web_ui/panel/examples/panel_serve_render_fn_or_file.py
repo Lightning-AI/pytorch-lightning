@@ -31,8 +31,8 @@ import os
 
 import panel as pn
 
-from lightning_app.frontend.utilities.app_state_watcher import AppStateWatcher
-from lightning_app.frontend.utilities.other import get_render_fn_from_environment
+from app_state_watcher import AppStateWatcher
+from other import get_render_fn_from_environment
 
 _logger = logging.getLogger(__name__)
 
@@ -69,9 +69,6 @@ def _serve():
     address = os.environ["LIGHTNING_RENDER_ADDRESS"]
     url = os.environ["LIGHTNING_FLOW_NAME"]
     websocket_origin = _get_websocket_origin()
-
-    # PANEL_AUTORELOAD not yet supported by Panel. See https://github.com/holoviz/panel/issues/3681
-    # Todo: With lightning, the server autoreloads but the browser does not. Fix this.
     autoreload = os.environ.get("PANEL_AUTORELOAD", "no")=="yes"
 
     view = _get_view()

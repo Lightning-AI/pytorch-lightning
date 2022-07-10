@@ -7,14 +7,10 @@ import lightning as L
 from panel_frontend import PanelFrontend
 
 
-def your_panel_app(app):
-    return pn.pane.Markdown("hello")
-
-
 class LitPanel(L.LightningFlow):
     def __init__(self):
         super().__init__()
-        self._frontend = PanelFrontend(your_panel_app)
+        self._frontend = PanelFrontend("panel_script.py")
 
     def configure_layout(self):
         return self._frontend

@@ -31,27 +31,26 @@ class PanelFrontend(Frontend):
     # Todo: Add Example
 
     Args:
-        render_fn: A pure function that contains your Panel code. This function must accept
-            exactly one argument, the `AppStateWatcher` object which you can use to get and
-            set variables in your flow (see example below). This function must return a
-            Panel Viewable.
+        render_fn_or_file: A pure function or the path to a .py or .ipynb file.
+        The function must be a pure function that contains your Panel code.
+        The function can optionally accept an `AppStateWatcher` argument.
+        The function must return a Panel Viewable.
 
     Raises:
-        TypeError: Raised if the render_fn is a class method
+        TypeError: Raised if the render_fn_or_file is a class method
     """
 
     @requires("panel")
-    def __init__(self, render_fn: Callable):
-        # Todo: enable the render_fn to be a .py or .ipynb file
-        # Todo: enable the render_fn to not accept an AppStateWatcher as argument
+    def __init__(self, render_fn_or_file: Callable | str):
         super().__init__()
 
-        if inspect.ismethod(render_fn):
+        if inspect.ismethod(render_fn_or_file):
             raise TypeError(
-                "The `PanelFrontend` doesn't support `render_fn` being a method. Please, use a " "pure function."
+                "The `PanelFrontend` doesn't support `render_fn_or_file` being a method. "
+                "Please, use a pure function."
             )
 
-        self.render_fn = render_fn
+        self.render_fn_or_file = render_fn_or_file
         self._process: None | subprocess.Popen = None
         _logger.debug("initialized")
 
@@ -59,7 +58,7 @@ class PanelFrontend(Frontend):
         _logger.debug("starting server %s %s", host, port)
         env = get_frontend_environment(
             self.flow.name,
-            self.render_fn,
+            self.render_fn_or_file,
             port,
             host,
         )
@@ -69,7 +68,7 @@ class PanelFrontend(Frontend):
             self._process = subprocess.Popen(  # pylint: disable=consider-using-with
                 [
                     sys.executable,
-                    pathlib.Path(__file__).parent / "panel_serve_render_fn.py",
+                    pathlib.Path(__file__).parent / "panel_serve_render_fn_or_file.py",
                 ],
                 env=env,
                 # stdout=stdout,

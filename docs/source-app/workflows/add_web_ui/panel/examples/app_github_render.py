@@ -10,10 +10,9 @@ from typing import Dict, List, Optional
 from lightning import BuildConfig, CloudCompute, LightningApp, LightningFlow
 from lightning.app import structures
 from lightning.app.components.python import TracerPythonScript
-from lightning.app.frontend import StreamlitFrontend
+from panel_frontend import PanelFrontend
 from lightning.app.storage.path import Path
-from lightning.app.utilities.state import AppState
-
+from app_state_watcher import AppStateWatcher
 
 class GithubRepoRunner(TracerPythonScript):
     def __init__(
@@ -184,81 +183,7 @@ class Flow(LightningFlow):
 
     def configure_layout(self):
         # Create a StreamLit UI for the user to run his Github Repo.
-        return StreamlitFrontend(render_fn=render_fn)
-
-
-def render_fn(state: AppState):
-    import json
-    with open("state.json", "w") as fp:
-        json.dump(state._state,fp) 
-    import streamlit as st
-
-    def page_create_new_run():
-        st.markdown("# Create a new Run 🎈")
-        id = st.text_input("Name your run", value="my_first_run")
-        github_repo = st.text_input(
-            "Enter a Github Repo URL", value="https://github.com/Lightning-AI/lightning-quick-start.git"
-        )
-
-        default_script_args = "--trainer.max_epochs=5 --trainer.limit_train_batches=4 --trainer.limit_val_batches=4 --trainer.callbacks=ModelCheckpoint --trainer.callbacks.monitor=val_acc"
-        default_requirements = "torchvision, pytorch_lightning, jsonargparse[signatures]"
-
-        script_path = st.text_input("Enter your script to run", value="train_script.py")
-        script_args = st.text_input("Enter your base script arguments", value=default_script_args)
-        requirements = st.text_input("Enter your requirements", value=default_requirements)
-        ml_framework = st.radio(
-            "Select your ML Training Frameworks", options=["PyTorch Lightning", "Keras", "Tensorflow"]
-        )
-
-        if ml_framework not in ("PyTorch Lightning"):
-            st.write(f"{ml_framework} isn't supported yet.")
-            return
-
-        clicked = st.button("Submit")
-        if clicked:
-            new_request = {
-                "id": id,
-                "train": {
-                    "github_repo": github_repo,
-                    "script_path": script_path,
-                    "script_args": script_args.split(" "),
-                    "requirements": requirements.split(" "),
-                    "ml_framework": ml_framework,
-                },
-            }
-            state.requests = state.requests + [new_request]
-
-    def page_view_run_lists():
-        st.markdown("# Run Lists 🎈")
-        for idx, request in enumerate(state.requests):
-            work = state._state["structures"]["ws"]["works"][f"w_{idx}"]
-            with st.expander(f"Expand to view Run {idx}", expanded=False):
-                if st.checkbox(f"Expand to view your configuration", key=str(idx)):
-                    st.json(request)
-                if st.checkbox(f"Expand to view logs", key=str(idx)):
-                    st.code(body=work["vars"]["logs"])
-                if st.checkbox(f"Expand to view your work state", key=str(idx)):
-                    work["vars"].pop("logs")
-                    st.json(work)
-                best_model_score = request.get("best_model_score", None)
-                if best_model_score:
-                    if st.checkbox(f"Expand to view your run performance", key=str(idx)):
-                        st.json(
-                            {"best_model_score": best_model_score, "best_model_path": request.get("best_model_path")}
-                        )
-
-    def page_view_app_state():
-        st.markdown("# App State 🎈")
-        st.write(state._state)
-
-    page_names_to_funcs = {
-        "Create a new Run": page_create_new_run,
-        "View your Runs": page_view_run_lists,
-        "View the App state": page_view_app_state,
-    }
-
-    selected_page = st.sidebar.selectbox("Select a page", page_names_to_funcs.keys())
-    page_names_to_funcs[selected_page]()
+        return PanelFrontend("panel_github_render.py")
 
 
 class RootFlow(LightningFlow):
