@@ -1,16 +1,6 @@
 name: Block app edits
 
-on:  # Trigger the workflow on push or pull request, but only for the master branch
-  pull_request:
-    branches: [master, "release/*"]
-    types: [opened, reopened, ready_for_review, synchronize]
-    paths-ignore:
-      - "src/lightning_app/**"  # todo: implement job skip
-      - "tests/tests_app/**"  # todo: implement job skip
-      - "tests/tests_app_examples/**"  # todo: implement job skip
-      - "examples/app_*"  # todo: implement job skip
-      - "docs/source-app/**"  # todo: implement job skip
-
+on: ["pull_request"]
 
 jobs:
   block:
@@ -23,7 +13,6 @@ jobs:
       - name: Get changed files using defaults
         id: changed-files
         uses: tj-actions/changed-files@v23
-
       - name: List all added files
         run: |
           for file in ${{ steps.changed-files.outputs.all_changed_and_modified_files }}; do
