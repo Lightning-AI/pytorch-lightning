@@ -52,7 +52,7 @@ jobs:
     - name: Clone Template React UI Repo
       uses: actions/checkout@v3
       with:
-        repository: PyTorchLightning/lightning
+        repository: Lightning-AI/lightning
         token: ${{ secrets.PAT_GHOST }}
         ref: 'master'
         path: lightning
