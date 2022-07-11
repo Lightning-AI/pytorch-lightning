@@ -83,7 +83,7 @@ class DummyLogger(logger.DummyLogger):
 
 def merge_dicts(
     dicts: Sequence[Mapping],
-    agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+    agg_key_funcs: Optional[Mapping] = None,
     default_func: Callable[[Sequence[float]], float] = np.mean,
 ) -> Any:
     rank_zero_deprecation(
