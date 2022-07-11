@@ -42,6 +42,7 @@ model and then starts a demo with `Gradio <https://gradio.app/>`_.
     import lightning as L
     from quick_start.components import PyTorchLightningScript, ImageServeGradio
 
+
     class TrainDeploy(L.LightningFlow):
         def __init__(self):
             super().__init__()
@@ -65,6 +66,7 @@ model and then starts a demo with `Gradio <https://gradio.app/>`_.
             tab_2 = {"name": "Interactive demo", "content": self.serve_work}
             return [tab_1, tab_2]
 
+
     app = L.LightningApp(TrainDeploy())
 
 However, someone who wants to use this Aop (maybe you) found `Lightning HPO <https://lightning.ai/component/BA2slXI093-Lightning%20HPO>`_
@@ -86,8 +88,8 @@ This is the power of `lightning.ai <https://lightning.ai/>`_ ecosystem 🔥⚡�
     from optuna.distributions import LogUniformDistribution
     from lightning_hpo import Optimizer, BaseObjective
 
-    class HPOPyTorchLightningScript(PyTorchLightningScript, BaseObjective):
 
+    class HPOPyTorchLightningScript(PyTorchLightningScript, BaseObjective):
         @staticmethod
         def distributions():
             return {"model.lr": LogUniformDistribution(0.0001, 0.1)}
@@ -100,7 +102,7 @@ This is the power of `lightning.ai <https://lightning.ai/>`_ ecosystem 🔥⚡�
                 script_path=ops.join(ops.dirname(__file__), "./train_script.py"),
                 script_args=["--trainer.max_epochs=5"],
                 objective_cls=HPOPyTorchLightningScript,
-                n_trials=4
+                n_trials=4,
             )
 
             self.serve_work = ImageServeGradio(L.CloudCompute("cpu"))
@@ -117,6 +119,7 @@ This is the power of `lightning.ai <https://lightning.ai/>`_ ecosystem 🔥⚡�
             tab_1 = {"name": "Model training", "content": self.train_work.hi_plot}
             tab_2 = {"name": "Interactive demo", "content": self.serve_work}
             return [tab_1, tab_2]
+
 
     app = L.LightningApp(TrainDeploy())
 
