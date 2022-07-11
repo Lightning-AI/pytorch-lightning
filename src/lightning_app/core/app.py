@@ -16,7 +16,7 @@ from lightning_app.core.constants import FLOW_DURATION_SAMPLES, FLOW_DURATION_TH
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.frontend import Frontend
 from lightning_app.storage.path import storage_root_dir
-from lightning_app.utilities.app_helpers import _delta_to_appstate_delta, _LightningAppRef
+from lightning_app.utilities.app_helpers import _delta_to_appstate_delta, _LightningAppRef, is_overridden
 from lightning_app.utilities.component import _convert_paths_after_init
 from lightning_app.utilities.enum import AppStage
 from lightning_app.utilities.exceptions import CacheMissException, ExitAppException
@@ -325,6 +325,10 @@ class LightningApp:
         self._has_updated = True
 
     def apply_commands(self):
+        if not is_overridden("configure_commands", self.root):
+            return
+
+        # Populate commands metadata
         commands = self.root.configure_commands()
         commands_metadata = []
         command_names = set()
@@ -344,6 +348,7 @@ class LightningApp:
 
         self.commands_metadata_queue.put(commands_metadata)
 
+        # Collect requests metadata
         command_query = self.get_state_changed_from_queue(self.commands_requests_queue)
         if command_query:
             for command in commands:
