@@ -7,8 +7,8 @@ REM Command file for Sphinx documentation
 if "%SPHINXBUILD%" == "" (
 	set SPHINXBUILD=sphinx-build
 )
-set SOURCEDIR=source-pytorch
-set BUILDDIR=build
+set SOURCEDIR=.
+set BUILDDIR=../build
 
 if "%1" == "" goto help
 
