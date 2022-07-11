@@ -18,7 +18,3 @@ jobs:
           for file in ${{ steps.changed-files.outputs.all_changed_and_modified_files }}; do
             echo "$file"
           done
-
-      - name: Block edits in docs/source-app
-        if: contains(steps.changed-files.outputs.all_changed_and_modified_files, 'docs/source-app')
-        run:  exit 1
