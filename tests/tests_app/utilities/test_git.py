@@ -15,7 +15,7 @@ def test_execute_git_command():
     res = execute_git_command(["pull"])
     assert res
 
-    assert get_dir_name() == "lightning-app"
+    assert get_dir_name() == "lightning"
 
     assert check_github_repository()
 
