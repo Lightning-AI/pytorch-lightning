@@ -91,15 +91,6 @@ def test_v1_7_0_deprecated_slurm_job_id():
         trainer.slurm_job_id
 
 
-def test_v1_7_0_deprecated_max_steps_none(tmpdir):
-    with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
-        _ = Trainer(max_steps=None)
-
-    trainer = Trainer()
-    with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
-        trainer.fit_loop.max_steps = None
-
-
 @pytest.mark.parametrize(
     "cls",
     [
