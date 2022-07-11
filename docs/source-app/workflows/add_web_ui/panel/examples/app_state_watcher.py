@@ -79,7 +79,7 @@ class AppStateWatcher(param.Parameterized):
             self.param.state.allow_None = False
             self._initilized = True
 
-        # The below was observed when using mocking during testing
+        # The below was observed when using mocks during testing
         if not self.state:
             raise Exception(".state has not been set.")
         if not self.state._state:
@@ -94,6 +94,8 @@ class AppStateWatcher(param.Parameterized):
         return get_flow_state(flow)
 
     def _update_flow_state(self):
+        # Todo: Consider whether to only update if ._state changed
+        # this might be much more performent
         with param.edit_constant(self):
             self.state = self._get_flow_state()
         _logger.debug("Request app state")

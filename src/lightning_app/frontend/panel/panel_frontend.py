@@ -6,10 +6,14 @@ import logging
 import pathlib
 import subprocess
 import sys
-from typing import Callable
+from typing import Callable, List
 
 from lightning_app.frontend.frontend import Frontend
-from lightning_app.frontend.utilities.other import get_frontend_environment
+from lightning_app.frontend.utilities.other import (
+    get_allowed_hosts,
+    get_frontend_environment,
+    has_panel_autoreload,
+)
 from lightning_app.utilities.imports import requires
 from lightning_app.utilities.log import get_frontend_logfile
 
@@ -58,6 +62,38 @@ class PanelFrontend(Frontend):
         self._process: None | subprocess.Popen = None
         _logger.debug("initialized")
 
+    def _get_popen_args(self, host: str, port: int) -> List:
+        if isinstance(self.render_fn_or_file, str):
+            path = pathlib.Path(self.render_fn_or_file)
+            abs_path = str(path)
+            # The app is served at http://localhost:{port}/{flow}/{render_fn_or_file}
+            # Lightning embeds http://localhost:{port}/{flow} but this redirects to the above and
+            # seems to work fine.
+            command = [
+                sys.executable,
+                "-m",
+                "panel",
+                "serve",
+                abs_path,
+                "--port",
+                str(port),
+                "--address",
+                host,
+                "--prefix",
+                self.flow.name,
+                "--allow-websocket-origin",
+                get_allowed_hosts(),
+            ]
+            if has_panel_autoreload():
+                command.append("--autoreload")
+            _logger.debug("%s", command)
+            return command
+
+        return [
+            sys.executable,
+            pathlib.Path(__file__).parent / "panel_serve_render_fn_or_file.py",
+        ]
+
     def start_server(self, host: str, port: int) -> None:
         _logger.debug("starting server %s %s", host, port)
         env = get_frontend_environment(
@@ -66,15 +102,13 @@ class PanelFrontend(Frontend):
             port,
             host,
         )
+        command = self._get_popen_args(host, port)
         # Todo: Don't log to file when developing locally. Makes it harder to debug.
         std_err_out = get_frontend_logfile("error.log")
         std_out_out = get_frontend_logfile("output.log")
         with open(std_err_out, "wb") as stderr, open(std_out_out, "wb") as stdout:
             self._process = subprocess.Popen(  # pylint: disable=consider-using-with
-                [
-                    sys.executable,
-                    pathlib.Path(__file__).parent / "panel_serve_render_fn_or_file.py",
-                ],
+                command,
                 env=env,
                 stdout=stdout,
                 stderr=stderr,

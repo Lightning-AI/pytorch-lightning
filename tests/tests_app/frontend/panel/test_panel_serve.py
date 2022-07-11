@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest
 
-from lightning_app.frontend.panel.panel_serve_render_fn_or_file import _has_autoreload
+from lightning_app.frontend.panel.panel_serve_render_fn_or_file import has_panel_autoreload
 
 
 @pytest.mark.parametrize(
@@ -29,7 +29,7 @@ from lightning_app.frontend.panel.panel_serve_render_fn_or_file import _has_auto
         ("FALSE", False),
     ),
 )
-def test_autoreload(value, expected):
+def test_has_panel_autoreload(value, expected):
     """We can get and set autoreload via the environment variable PANEL_AUTORELOAD"""
     with mock.patch.dict(os.environ, {"PANEL_AUTORELOAD": value}):
-        assert _has_autoreload() == expected
+        assert has_panel_autoreload() == expected

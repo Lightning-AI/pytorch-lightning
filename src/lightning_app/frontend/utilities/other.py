@@ -40,6 +40,21 @@ def get_flow_state(flow: str) -> AppState:
     return flow_state
 
 
+def get_allowed_hosts() -> str:
+    """Returns a comma separated list of host[:port] that should be allowed to connect"""
+    # Todo: Improve this. I don't know how to find the specific host(s).
+    # I tried but it did not work in cloud
+    return "*"
+
+
+def has_panel_autoreload() -> bool:
+    """Returns True if the PANEL_AUTORELOAD environment variable is set to 'yes' or 'true'.
+
+    Please note the casing of value does not matter
+    """
+    return os.environ.get("PANEL_AUTORELOAD", "no").lower() in ["yes", "y", "true"]
+
+
 def get_frontend_environment(
     flow: str, render_fn_or_file: Callable | str, port: int, host: str
 ) -> os._Environ:

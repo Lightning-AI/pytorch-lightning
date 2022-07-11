@@ -44,9 +44,15 @@ def _target_fn():
             while True:
                 await websocket.recv()
                 # Note: I have not seen use cases where the two lines below are needed
-                # Note: Changing '< 0.2' to '< 1' makes the app very sluggish to the end user
+                # Changing '< 0.2' to '< 1' makes the app very sluggish to the end user
+                # Also the implementation can make the app state get behind because only 1 update
+                # is received per 0.2 second (or 1 second).
                 # while (time.time() - last_updated) < 0.2:
                 #     time.sleep(0.05)
+
+                # Todo: Add some kind of throttling. If 10 messages are received within 100ms then
+                # there is no need to trigger the app state changed, request state and update
+                # 10 times.
                 _logger.debug("App State Changed. Running callbacks")
                 _run_callbacks()
 

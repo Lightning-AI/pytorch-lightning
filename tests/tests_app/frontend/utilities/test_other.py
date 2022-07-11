@@ -1,10 +1,15 @@
 """We have some utility functions that can be used across frontends."""
 import inspect
+import os
+from unittest import mock
+
+import pytest
 
 from lightning_app.frontend.utilities.other import (
     get_flow_state,
     get_frontend_environment,
     get_render_fn_from_environment,
+    has_panel_autoreload,
 )
 from lightning_app.utilities.state import AppState
 
@@ -60,3 +65,30 @@ def test_get_frontend_environment_file():
     assert env["LIGHTNING_RENDER_ADDRESS"] == "myhost"
     assert env["LIGHTNING_RENDER_FILE"] == "app_panel.py"
     assert env["LIGHTNING_RENDER_PORT"] == "1234"
+
+
+@pytest.mark.parametrize(
+    ["value", "expected"],
+    (
+        ("Yes", True),
+        ("yes", True),
+        ("YES", True),
+        ("Y", True),
+        ("y", True),
+        ("True", True),
+        ("true", True),
+        ("TRUE", True),
+        ("No", False),
+        ("no", False),
+        ("NO", False),
+        ("N", False),
+        ("n", False),
+        ("False", False),
+        ("false", False),
+        ("FALSE", False),
+    ),
+)
+def test_has_panel_autoreload(value, expected):
+    """We can get and set autoreload via the environment variable PANEL_AUTORELOAD"""
+    with mock.patch.dict(os.environ, {"PANEL_AUTORELOAD": value}):
+        assert has_panel_autoreload() == expected

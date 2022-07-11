@@ -6,10 +6,14 @@ import logging
 import pathlib
 import subprocess
 import sys
-from typing import Callable
+from typing import Callable, List
 
 from lightning_app.frontend.frontend import Frontend
-from other import get_frontend_environment
+from other import (
+    get_allowed_hosts,
+    get_frontend_environment,
+    has_panel_autoreload,
+)
 from lightning_app.utilities.imports import requires
 from lightning_app.utilities.log import get_frontend_logfile
 
@@ -17,6 +21,7 @@ _logger = logging.getLogger("PanelFrontend")
 
 
 class PanelFrontend(Frontend):
+    # Todo: Add Example to docstring
     """The PanelFrontend enables you to serve Panel code as a Frontend for your LightningFlow.
 
     To use this frontend, you must first install the `panel` package:
@@ -28,7 +33,8 @@ class PanelFrontend(Frontend):
     Please note the Panel server will be logging output to error.log and output.log files
     respectively.
 
-    # Todo: Add Example
+    You can start the lightning server with Panel autoreload by setting the `PANEL_AUTORELOAD`
+    environment variable to 'yes': `AUTORELOAD=yes lightning run app my_app.py`.
 
     Args:
         render_fn_or_file: A pure function or the path to a .py or .ipynb file.
@@ -42,6 +48,8 @@ class PanelFrontend(Frontend):
 
     @requires("panel")
     def __init__(self, render_fn_or_file: Callable | str):
+        # Todo: consider renaming back to render_fn or something else short.
+        # Its a hazzle reading and writing such a long name
         super().__init__()
 
         if inspect.ismethod(render_fn_or_file):
@@ -54,6 +62,38 @@ class PanelFrontend(Frontend):
         self._process: None | subprocess.Popen = None
         _logger.debug("initialized")
 
+    def _get_popen_args(self, host: str, port: int) -> List:
+        if isinstance(self.render_fn_or_file, str):
+            path=pathlib.Path(self.render_fn_or_file)
+            abs_path = str(path)
+            # The app is served at http://localhost:{port}/{flow}/{render_fn_or_file}
+            # Lightning embeds http://localhost:{port}/{flow} but this redirects to the above and
+            # seems to work fine.
+            command = [
+                sys.executable,
+                "-m",
+                "panel",
+                "serve",
+                abs_path,
+                "--port",
+                str(port),
+                "--address",
+                host,
+                "--prefix",
+                self.flow.name,
+                "--allow-websocket-origin",
+                get_allowed_hosts(),
+            ]
+            if has_panel_autoreload():
+                command.append("--autoreload")
+            _logger.debug("%s", command)
+            return command
+
+        return [
+            sys.executable,
+            pathlib.Path(__file__).parent / "panel_serve_render_fn_or_file.py",
+        ]
+
     def start_server(self, host: str, port: int) -> None:
         _logger.debug("starting server %s %s", host, port)
         env = get_frontend_environment(
@@ -62,14 +102,13 @@ class PanelFrontend(Frontend):
             port,
             host,
         )
+        command = self._get_popen_args(host, port)
+        # Todo: Don't log to file when developing locally. Makes it harder to debug.
         std_err_out = get_frontend_logfile("error.log")
         std_out_out = get_frontend_logfile("output.log")
         with open(std_err_out, "wb") as stderr, open(std_out_out, "wb") as stdout:
             self._process = subprocess.Popen(  # pylint: disable=consider-using-with
-                [
-                    sys.executable,
-                    pathlib.Path(__file__).parent / "panel_serve_render_fn_or_file.py",
-                ],
+                command,
                 env=env,
                 # stdout=stdout,
                 # stderr=stderr,
