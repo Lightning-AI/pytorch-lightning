@@ -60,9 +60,6 @@ class SingleTPUStrategy(SingleDeviceStrategy):
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
 
-    def model_to_device(self) -> None:
-        self.model.to(self.root_device)
-
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
