@@ -85,7 +85,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-docs-make-pip${{ matrix.pkg }}
+          key: ${{ runner.os }}-docs-make-pip-${{ hashFiles('requirements/${{ matrix.pkg }}/base.txt') }}
           restore-keys: |
             ${{ runner.os }}-docs-make-pip-
 
