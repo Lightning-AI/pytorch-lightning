@@ -63,36 +63,34 @@ class PanelFrontend(Frontend):
         _logger.debug("initialized")
 
     def _get_popen_args(self, host: str, port: int) -> List:
-        if isinstance(self.render_fn_or_file, str):
-            path=pathlib.Path(self.render_fn_or_file)
-            abs_path = str(path)
-            # The app is served at http://localhost:{port}/{flow}/{render_fn_or_file}
-            # Lightning embeds http://localhost:{port}/{flow} but this redirects to the above and
-            # seems to work fine.
-            command = [
-                sys.executable,
-                "-m",
-                "panel",
-                "serve",
-                abs_path,
-                "--port",
-                str(port),
-                "--address",
-                host,
-                "--prefix",
-                self.flow.name,
-                "--allow-websocket-origin",
-                get_allowed_hosts(),
-            ]
-            if has_panel_autoreload():
-                command.append("--autoreload")
-            _logger.debug("%s", command)
-            return command
+        if callable(self.render_fn_or_file):
+            path = str(pathlib.Path(__file__).parent / "panel_serve_render_fn.py")
+        else:
+            path = pathlib.Path(self.render_fn_or_file)
 
-        return [
+        abs_path = str(path)
+        # The app is served at http://localhost:{port}/{flow}/{render_fn_or_file}
+        # Lightning embeds http://localhost:{port}/{flow} but this redirects to the above and
+        # seems to work fine.
+        command = [
             sys.executable,
-            pathlib.Path(__file__).parent / "panel_serve_render_fn_or_file.py",
+            "-m",
+            "panel",
+            "serve",
+            abs_path,
+            "--port",
+            str(port),
+            "--address",
+            host,
+            "--prefix",
+            self.flow.name,
+            "--allow-websocket-origin",
+            get_allowed_hosts(),
         ]
+        if has_panel_autoreload():
+            command.append("--autoreload")
+        _logger.debug("%s", command)
+        return command
 
     def start_server(self, host: str, port: int) -> None:
         _logger.debug("starting server %s %s", host, port)
@@ -110,8 +108,8 @@ class PanelFrontend(Frontend):
             self._process = subprocess.Popen(  # pylint: disable=consider-using-with
                 command,
                 env=env,
-                # stdout=stdout,
-                # stderr=stderr,
+                stdout=stdout,
+                stderr=stderr,
             )
 
     def stop_server(self) -> None:

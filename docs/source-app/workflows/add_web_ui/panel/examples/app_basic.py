@@ -8,8 +8,7 @@ from panel_frontend import PanelFrontend
 
 
 def your_panel_app(app):
-    return pn.pane.Markdown("hello")
-
+    pn.pane.Markdown("hello").servable()
 
 class LitPanel(L.LightningFlow):
     def __init__(self):
