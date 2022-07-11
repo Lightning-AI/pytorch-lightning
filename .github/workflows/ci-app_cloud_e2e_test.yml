@@ -130,9 +130,9 @@ jobs:
           LAI_USER: ${{ secrets.LAI_USER }}
           LAI_PASS: ${{ secrets.LAI_PASS }}
           LIGHTNING_USER_ID: ${{ secrets.GRID_USER_ID }}
-          LIGHTNING_API_KEY: ${{ secrets.GRID_USER_KEY }}
-          LIGHTNING_USERNAME: ${{ secrets._GRID_USERNAME }}
-          LIGHTNING_CLOUD_URL: ${{ secrets.GRID_URL }}
+          LIGHTNING_API_KEY: ${{ secrets.LIGHTNING_API_KEY }}
+          LIGHTNING_USERNAME: ${{ secrets.LIGHTNING_USERNAME }}
+          LIGHTNING_CLOUD_URL: ${{ secrets.LIGHTNING_CLOUD_URL }}
           CLOUD: "1"
           VIDEO_LOCATION: ./artifacts/videos
           PR_NUMBER: ${{ steps.PR.outputs.ID }}
@@ -158,17 +158,17 @@ jobs:
         env:
           LAI_USER: ${{ secrets.LAI_USER }}
           LAI_PASS: ${{ secrets.LAI_PASS }}
-          LIGHTNING_USER_ID: ${{ secrets.GRID_USER_ID }}
-          LIGHTNING_API_KEY: ${{ secrets.GRID_USER_KEY }}
-          LIGHTNING_USERNAME: ${{ secrets._GRID_USERNAME }}
-          LIGHTNING_CLOUD_URL: ${{ secrets.GRID_URL }}
+          LIGHTNING_USER_ID: ${{ secrets.LIGHTNING_USER_ID }}
+          LIGHTNING_API_KEY: ${{ secrets.LIGHTNING_API_KEY }}
+          LIGHTNING_USERNAME: ${{ secrets.LIGHTNING_USERNAME }}
+          LIGHTNING_CLOUD_URL: ${{ secrets.LIGHTNING_CLOUD_URL }}
           PR_NUMBER: ${{ steps.PR.outputs.ID }}
           TEST_APP_NAME: ${{ matrix.app_name }}
-          GRID_USER_ID: ${{ secrets.GRID_USER_ID }}
-          GRID_USER_KEY: ${{ secrets.GRID_USER_KEY }}
-          GRID_URL: ${{ secrets.GRID_URL }}
-          _GRID_USERNAME: ${{ secrets._GRID_USERNAME }}
+          GRID_USER_ID: ${{ secrets.LIGHTNING_USER_ID }}
+          GRID_USER_KEY: ${{ secrets.LIGHTNING_API_KEY }}
+          GRID_URL: ${{ secrets.LIGHTNING_CLOUD_URL }}
+          _GRID_USERNAME: ${{ secrets.LIGHTNING_USERNAME }}
         shell: bash
         run: |
           source ./.venv/bin/activate
-          time python scripts/delete_cloud_lightning_apps.py
+          time python lightning_app/testing/testing.py delete_cloud_lightning_apps

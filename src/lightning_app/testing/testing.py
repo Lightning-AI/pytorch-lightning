@@ -323,3 +323,33 @@ def wait_for(page, callback: Callable, *args, **kwargs) -> Any:
                 print(e)
                 pass
             sleep(2)
+
+
+def delete_cloud_lightning_apps():
+    client = LightningClient()
+
+    try:
+        pr_number = int(os.getenv("PR_NUMBER", None))
+    except (TypeError, ValueError):
+        # Failed when the PR is running master or 'PR_NUMBER' isn't defined.
+        pr_number = ""
+
+    app_name = os.getenv("TEST_APP_NAME", "")
+
+    project = _get_project(client)
+    list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project.project_id)
+
+    print([lightningapp.name for lightningapp in list_lightningapps.lightningapps])
+
+    for lightningapp in list_lightningapps.lightningapps:
+        if pr_number and app_name and not lightningapp.name.startswith(f"test-{pr_number}-{app_name}-"):
+            continue
+        print(f"Deleting {lightningapp.name}")
+        try:
+            res = client.lightningapp_instance_service_delete_lightningapp_instance(
+                project_id=project.project_id,
+                id=lightningapp.id,
+            )
+            assert res == {}
+        except ApiException as e:
+            print(f"Failed to delete {lightningapp.name}. Exception {e}")
