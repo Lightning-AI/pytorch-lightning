@@ -20,7 +20,6 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import BatchSampler, Dataset, DistributedSampler, Sampler
 
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
-from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -176,12 +175,10 @@ class IndexBatchSamplerWrapper:
     def __init__(self, sampler: BatchSampler) -> None:
         self.seen_batch_indices: List[List[int]] = []
         self._sampler = sampler
-        self._batch_indices: List[int] = []
 
     def __iter__(self) -> Iterator[List[int]]:
         self.seen_batch_indices = []
         for batch in self._sampler:
-            self._batch_indices = batch
             self.seen_batch_indices.append(batch)
             yield batch
 
