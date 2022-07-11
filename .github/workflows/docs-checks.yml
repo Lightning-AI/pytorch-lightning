@@ -104,11 +104,10 @@ jobs:
         shell: bash
 
       - name: Make Documentation
-        working-directory: ./docs/source-${{ matrix.pkg }}
         run: |
           # ToDo: rather use python cmd
           # First run the same pipeline as Read-The-Docs
-          make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
+          cd docs/source-${{ matrix.pkg }} && make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Upload built docs
         uses: actions/upload-artifact@v2
