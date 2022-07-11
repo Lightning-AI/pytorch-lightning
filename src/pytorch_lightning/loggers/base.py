@@ -20,7 +20,7 @@ import pytorch_lightning.loggers.logger as logger
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 
-def rank_zero_experiment(fn: Callable) -> Any:
+def rank_zero_experiment(fn: Callable) -> Callable:
     rank_zero_deprecation(
         "The `pytorch_lightning.loggers.base.rank_zero_experiment` is deprecated in v1.7"
         " and will be removed in v1.9. Please use `pytorch_lightning.loggers.logger.rank_zero_experiment` instead."
