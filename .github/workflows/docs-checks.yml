@@ -106,7 +106,7 @@ jobs:
       - name: Make Documentation
         working-directory: ./docs/source-${{ matrix.pkg }}
         run: |
-          # ToDo: rather use puthon cmd
+          # ToDo: rather use python cmd
           # First run the same pipeline as Read-The-Docs
           make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
