@@ -22,7 +22,13 @@ line-length = 120
 
 
 [tool.mypy]
-files = ["pytorch_lightning"]
+files = [
+    "src/pytorch_lightning",
+    # TODO: Check typing in app source
+    # "src/lightning_app",
+]
+install_types = "True"
+non_interactive = "True"
 disallow_untyped_defs = "True"
 ignore_missing_imports = "True"
 show_error_codes = "True"
