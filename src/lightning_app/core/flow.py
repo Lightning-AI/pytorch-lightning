@@ -607,7 +607,7 @@ class LightningFlow:
     def configure_commands(self):
         """Configure the commands of this LightningFlow.
 
-        **Example:** Returns a list of dictionaries mapping a client callback to a flow method.
+        Returns a list of dictionaries mapping a command name to a flow method.
 
         .. code-block:: python
 
@@ -624,5 +624,18 @@ class LightningFlow:
                     return [
                         {"add_name": self.handle_name_request}
                     ]
+
+        Once the app is running with the following command:
+
+        .. code-block:: bash
+
+            lightning run app app.py command
+
+        .. code-block:: bash
+
+            lightning exec app add_name --args name=my_own_name
+
+
+
         """
         raise NotImplementedError

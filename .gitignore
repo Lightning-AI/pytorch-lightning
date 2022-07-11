@@ -159,3 +159,4 @@ cifar-10-batches-py
 tags
 .tags
 src/lightning_app/ui/*
+examples/template_react_ui/*
