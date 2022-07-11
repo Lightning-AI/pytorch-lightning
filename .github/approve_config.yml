@@ -17,6 +17,7 @@ approvals:
         - williamFalcon
     - name: 'Lightning Apps'
       minimum: 0
+      from:
         - alecmerdler
         - awaelchli
         - hhsecond
