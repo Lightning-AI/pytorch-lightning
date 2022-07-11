@@ -76,6 +76,7 @@ class AssistantCLI:
         for req in req_files:
             AssistantCLI._prune_packages(req, packages)
 
+    @staticmethod
     def _prune_packages(req_file: str, packages: Sequence[str]) -> None:
         """Remove some packages from given requirement files."""
         path = Path(req_file)
