@@ -63,13 +63,18 @@ def _get_view():
         return os.environ["LIGHTNING_RENDER_FILE"]
     return _get_view_fn()
 
+def _has_autoreload()->bool:
+    return os.environ.get("PANEL_AUTORELOAD", "no").lower() in ["yes", "true"]
 
 def _serve():
     port = int(os.environ["LIGHTNING_RENDER_PORT"])
     address = os.environ["LIGHTNING_RENDER_ADDRESS"]
     url = os.environ["LIGHTNING_FLOW_NAME"]
     websocket_origin = _get_websocket_origin()
-    autoreload = os.environ.get("PANEL_AUTORELOAD", "no")=="yes"
+
+    # PANEL_AUTORELOAD not yet supported by Panel. See https://github.com/holoviz/panel/issues/3681
+    # Todo: With lightning, the server autoreloads but the browser does not. Fix this.
+    autoreload = _has_autoreload()
 
     view = _get_view()
 

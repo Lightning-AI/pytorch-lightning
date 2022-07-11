@@ -1,14 +1,17 @@
 """The panel_serve_render_fn_or_file file gets run by Python to lunch a Panel Server with
-Lightning."""
+Lightning.
+
+These tests are for serving a render_fn function.
+"""
 import os
 from unittest import mock
 
 import pytest
 
 from lightning_app.frontend.panel.panel_serve_render_fn_or_file import (
-    _serve,
     _get_view_fn,
     _render_fn_wrapper,
+    _serve,
 )
 from lightning_app.frontend.utilities.app_state_watcher import AppStateWatcher
 
@@ -76,4 +79,5 @@ def test_serve(pn_serve: mock.MagicMock):
         port=61896,
         websocket_origin="*",
         show=False,
+        autoreload=False,
     )

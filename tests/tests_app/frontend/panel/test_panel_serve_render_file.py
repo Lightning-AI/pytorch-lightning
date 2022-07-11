@@ -1,5 +1,8 @@
 """The panel_serve_render_fn_or_file file gets run by Python to lunch a Panel Server with
-Lightning."""
+Lightning.
+
+These tests are for serving a render_file script or notebook.
+"""
 # pylint: disable=redefined-outer-name
 import os
 import pathlib
@@ -44,4 +47,5 @@ def test_serve(pn_serve: mock.MagicMock, render_file):
         port=61896,
         websocket_origin="*",
         show=False,
+        autoreload=False,
     )

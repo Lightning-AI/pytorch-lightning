@@ -49,9 +49,10 @@ def _target_fn():
                 # is received per 0.2 second (or 1 second).
                 # while (time.time() - last_updated) < 0.2:
                 #     time.sleep(0.05)
-                
+
                 # Todo: Add some kind of throttling. If 10 messages are received within 100ms then
-                # there is no need to trigger the app state changed, request state and update 10 times.
+                # there is no need to trigger the app state changed, request state and update
+                # 10 times.
                 _logger.debug("App State Changed. Running callbacks")
                 _run_callbacks()
 
