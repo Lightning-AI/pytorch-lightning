@@ -174,6 +174,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
+- Removed the deprecated `LightningModule.add_to_queue` and `LightningModule.get_from_queue` method ([#13600](https://github.com/PyTorchLightning/pytorch-lightning/pull/13600))
+
+
 - Removed the deprecated `Logger.close` method ([#13149](https://github.com/PyTorchLightning/pytorch-lightning/pull/13149))
 
 
