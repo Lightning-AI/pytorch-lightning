@@ -98,20 +98,6 @@ And here's the output you get when running the App using the **Lightning CLI**:
 ----
 
 *************************************************
-Communication from LightningFlow to LightningFlow
-*************************************************
-
-Every LightningFlow (Flow) can access the state of any of its children Flow's.
-
-Here's an example to better understand communication from Flow to Flow.
-
-.. code-block:: python
-
-    import lightning as L
-
-----
-
-*************************************************
 Communication from LightningFlow to LightningWork
 *************************************************
 

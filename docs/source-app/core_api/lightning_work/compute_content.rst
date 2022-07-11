@@ -66,7 +66,7 @@ The up-to-date prices for these instances can be found `here <https://lightning.
 Run on spot/preemptible machine
 *******************************
 
-Most cloud provider offers ``preemptible`` (synonym of ``spot``) machines that are usually discounted by up to 90 %. Those machines are cheaper but the cloud provider can retrieve them at any time.
+Most cloud provider offers ``preemptible`` (synonym of ``spot``) machines that are usually discounted by up to 90 %. Those machines are cheaper but the cloud provider can retrieve them at any time and might take longer to be ready.
 
 .. code-block:: python
 

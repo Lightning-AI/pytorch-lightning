@@ -8,7 +8,7 @@ Sharing Objects between LightningWorks
 
 **Level:** Advanced
 
-**Prerequisite**: Level 16+ and know about the Pandas library and read the `Access app state guide <../../access_app_state.html>`_.
+**Prerequisite**: Reach Level 16+, know about the `pandas DataFrames <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html>`_ and read and read the `Access app state guide <../../access_app_state.html>`_.
 
 ----
 
