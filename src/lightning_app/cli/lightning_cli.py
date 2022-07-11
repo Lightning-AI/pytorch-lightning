@@ -129,9 +129,10 @@ def _retrieve_application_url(app_id_or_name: Optional[str]):
     if app_id_or_name is None:
         try:
             url = "http://127.0.0.1:7501"
-            response = requests.get(f"{url}/api/v1/commands")
-            assert response.status_code == 200
-            return url, response.json()
+            resp = requests.get(f"{url}/api/v1/commands")
+            if resp.status_code != 200:
+                raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
+            return url, resp.json()
         except ConnectionError:
             failed_locally = True
 
@@ -150,9 +151,10 @@ def _retrieve_application_url(app_id_or_name: Optional[str]):
 
         for lightningapp in list_lightningapps.lightningapps:
             if lightningapp.id == app_id_or_name or lightningapp.name == app_id_or_name:
-                response = requests.get(lightningapp.status.url + "/api/v1/commands")
-                assert response.status_code == 200
-                return lightningapp.status.url, response.json()
+                resp = requests.get(lightningapp.status.url + "/api/v1/commands")
+                if resp.status_code != 200:
+                    raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
+                return lightningapp.status.url, resp.json()
     return None, None
 
 
@@ -189,8 +191,8 @@ def exec_app(
         "command_arguments": kwargs,
         "affiliation": command_metadata["affiliation"],
     }
-    response = requests.post(url + "/api/v1/commands", json=json, headers=headers_for({}))
-    assert response.status_code == 200, response.json()
+    resp = requests.post(url + "/api/v1/commands", json=json, headers=headers_for({}))
+    assert resp.status_code == 200, resp.json()
 
 
 @main.group(hidden=True)
