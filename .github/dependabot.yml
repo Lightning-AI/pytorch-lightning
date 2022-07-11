@@ -20,7 +20,6 @@ updates:
     # Allow up to 5 open pull requests for pip dependencies
     open-pull-requests-limit: 5
     reviewers:
-      - "carmocca"
       - "Lightning-AI/teams/core-lightning"
 
   # Enable version updates for GitHub Actions
