@@ -250,7 +250,7 @@ class LightningModule(
         # this should match the implementation of `trainer.logger`
         # we don't reuse it so we can properly set the deprecation stacklevel
         if self.trainer is None:
-            return
+            return None
         loggers = self.trainer.loggers
         if len(loggers) == 0:
             return None
