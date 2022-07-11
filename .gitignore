@@ -160,7 +160,6 @@ tags
 .tags
 src/lightning_app/ui/*
 docs/examples/*
-*docs/source-app/api_reference/api*
 docs/source-app/api_reference/api/*
 examples/template_react_ui
 examples/template_react_ui/*
