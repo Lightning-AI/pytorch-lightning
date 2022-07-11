@@ -1213,7 +1213,7 @@ See the :doc:`profiler documentation <../tuning/profiler>`. for more details.
 
 .. testcode::
 
-    from pytorch_lightning.profiler import SimpleProfiler, AdvancedProfiler
+    from pytorch_lightning.profilers import SimpleProfiler, AdvancedProfiler
 
     # default used by the Trainer
     trainer = Trainer(profiler=None)

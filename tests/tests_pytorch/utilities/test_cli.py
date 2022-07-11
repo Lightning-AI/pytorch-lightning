@@ -36,7 +36,6 @@ from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.loggers import _COMET_AVAILABLE, _NEPTUNE_AVAILABLE, _WANDB_AVAILABLE, TensorBoardLogger
 from pytorch_lightning.plugins.environments import SLURMEnvironment
-from pytorch_lightning.profiler import PyTorchProfiler
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
@@ -610,7 +609,8 @@ class EarlyExitTestModel(BoringModel):
         raise MisconfigurationException("Error on fit start")
 
 
-@RunIf(skip_windows=True)
+# mps not yet supported by distributed
+@RunIf(skip_windows=True, mps=False)
 @pytest.mark.parametrize("logger", (False, True))
 @pytest.mark.parametrize("strategy", ("ddp_spawn", "ddp"))
 def test_cli_distributed_save_config_callback(tmpdir, logger, strategy):
@@ -1483,6 +1483,22 @@ def test_cli_auto_seeding():
     assert cli.config["seed_everything"] == 123  # the original seed is kept
 
 
+def test_cli_trainer_no_callbacks():
+    class MyTrainer(Trainer):
+        def __init__(self):
+            super().__init__()
+
+    class MyCallback(Callback):
+        ...
+
+    match = "MyTrainer` class does not expose the `callbacks"
+    with mock.patch("sys.argv", ["any.py"]), pytest.warns(UserWarning, match=match):
+        cli = LightningCLI(
+            BoringModel, run=False, trainer_class=MyTrainer, trainer_defaults={"callbacks": MyCallback()}
+        )
+    assert not any(isinstance(cb, MyCallback) for cb in cli.trainer.callbacks)
+
+
 def test_unresolvable_import_paths():
     class TestModel(BoringModel):
         def __init__(self, a_func: Callable = torch.softmax):
@@ -1497,6 +1513,8 @@ def test_unresolvable_import_paths():
 
 
 def test_pytorch_profiler_init_args():
+    from pytorch_lightning.profilers import Profiler, PyTorchProfiler
+
     init = {
         "dirpath": "profiler",
         "row_limit": 10,
@@ -1510,7 +1528,7 @@ def test_pytorch_profiler_init_args():
     cli_args += [f"--trainer.profiler.{k}={v}" for k, v in init.items()]
     cli_args += [f"--trainer.profiler.dict_kwargs.{k}={v}" for k, v in unresolved.items()]
 
-    with mock.patch("sys.argv", ["any.py"] + cli_args):
+    with mock.patch("sys.argv", ["any.py"] + cli_args), mock_subclasses(Profiler, PyTorchProfiler):
         cli = LightningCLI(TestModel, run=False)
 
     assert isinstance(cli.config_init.trainer.profiler, PyTorchProfiler)
