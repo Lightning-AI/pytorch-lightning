@@ -41,7 +41,6 @@ jobs:
 
       - name: Install dependencies
         env:
-          PACKAGE_NAME: ${{ matrix.pkg }}
           FREEZE_REQUIREMENTS: 1
         run: |
           sudo apt-get update
@@ -91,7 +90,6 @@ jobs:
 
       - name: Install dependencies
         env:
-          PACKAGE_NAME: ${{ matrix.pkg }}
           FREEZE_REQUIREMENTS: 1
         run: |
           sudo apt-get update
