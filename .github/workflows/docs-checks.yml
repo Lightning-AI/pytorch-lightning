@@ -104,7 +104,7 @@ jobs:
         shell: bash
 
       - name: Make Documentation
-        working-directory: ./docs
+        working-directory: ./docs/source-${{ matrix.pkg }}
         run: |
           # ToDo: rather use puthon cmd
           # First run the same pipeline as Read-The-Docs
