@@ -110,7 +110,7 @@ Here is the application timeline:
 Steps 3 - Build your app in the cloud
 **************************************
 
-Simply add **--cloud** to run this application in the cloud 🤯
+Simply add ``--cloud`` to run this application in the cloud 🤯
 
 .. code-block:: bash
 
@@ -128,7 +128,7 @@ Congratulations! You've now run your first application with Lightning.
 ----
 
 ***********
-Next steps
+Next Steps
 ***********
 
 To learn how to build and modify apps, go to the :ref:`basics`.

@@ -1,5 +1,7 @@
 :orphan:
 
+.. _model_server_example:
+
 ####################
 Build a Model Server
 ####################

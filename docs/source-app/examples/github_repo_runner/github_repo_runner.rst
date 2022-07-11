@@ -1,7 +1,8 @@
+.. _github_repo_script_runner_example:
+
 #################################
 Build a Github Repo Script Runner
 #################################
-
 
 **Audience:** Users that want to create interactive applications which runs Github Repo in the cloud at any scale for multiple users.
 

@@ -1,8 +1,6 @@
 :orphan:
 
-
 .. _install_beginner:
-
 
 #######################
 Installation (Beginner)

@@ -1,3 +1,6 @@
+
+.. _fileserver_example:
+
 ###################
 Build a File Server
 ###################

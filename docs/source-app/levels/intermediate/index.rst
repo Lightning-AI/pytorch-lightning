@@ -49,7 +49,7 @@ Learn to build your own Lightning Apps from scratch and the basics of the framew
 .. displayitem::
    :header: Level 10: Add web UIs
    :description: Learn how to add web UIs to your Lightning App.
-   :button_link: level_10
+   :button_link: level_10.html
    :col_css: col-md-6
    :height: 150
    :tag: intermediate

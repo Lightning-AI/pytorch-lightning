@@ -10,9 +10,9 @@ App Component Tree
 
 ----
 
-****************************************
+**************************************
 What is an Application Component Tree?
-****************************************
+**************************************
 
 Components can be nested to form component trees where the LightningFlows are its branches and LightningWorks are its leaves.
 

@@ -1,7 +1,6 @@
 
 .. _install:
 
-
 ############
 Installation
 ############
@@ -27,7 +26,15 @@ Install with pip
 
 0.  Activate your virtual environment.
 
+    .. raw:: html
+
+        <br />
+
 1.  Install the ``lightning`` package
+
+    .. raw:: html
+
+        <br />
 
     .. code:: bash
 

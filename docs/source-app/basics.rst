@@ -253,7 +253,7 @@ When running the above app, we see the following logs:
 ----
 
 ***********
-Next steps
+Next Steps
 ***********
 
 To keep learning about Lightning, build a :ref:`ui_and_frontends`.

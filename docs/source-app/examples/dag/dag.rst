@@ -2,6 +2,8 @@
 Build a Directed Acyclic Graph (DAG)
 ####################################
 
+.. _dag_example:
+
 **Audience:** Users coming from MLOps to Lightning Apps, looking for more flexibility.
 
 A typical ML training workflow can be implemented with a simple DAG.
@@ -60,10 +62,8 @@ Below is a pseudo-code to run several works in parallel using a built-in :class:
 ----
 
 **********
-Next steps
+Next Steps
 **********
-
-Depending on your use case, you might want to check one of these out next.
 
 .. raw:: html
 

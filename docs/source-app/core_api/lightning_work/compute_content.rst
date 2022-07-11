@@ -92,9 +92,9 @@ By providing **idle_timeout=X Seconds**, the work is automatically stopped **X s
 
 ----
 
-#############
+************
 CloudCompute
-#############
+************
 
 .. autoclass:: lightning_app.utilities.packaging.cloud_compute.CloudCompute
     :noindex:

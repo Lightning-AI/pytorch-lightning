@@ -1,46 +1,23 @@
-############################
-Lightning Apps in 15 minutes
-############################
+************************************************
+The *Train & Demo PyTorch Lightning* Application
+************************************************
 
-**Required background:** Basic Python familiarity.
+Find the *Train & Demo PyTorch Lightning* application in the `Lightning.ai App Gallery <https://lightning.ai/app/AU3WoWwdAP-Train%20%26%20Demo%20PyTorch%20Lightning>`_.
 
-**Goal:** In this guide, we'll walk you through the 4 key steps to build your first Lightning app.
+Here is a recording of this App running locally and in the cloud with the same behavior.
 
-----
+.. raw:: html
 
-The App we build in this guide trains and deploys a model.
+    <br />
+    <video id="background-video" autoplay loop muted controls poster="https://pl-flash-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.png" width="100%">
+        <source src="https://pl-flash-data.s3.amazonaws.com/assets_lightning/lightning_app_experience_cut.mp4" type="video/mp4" width="100%">
+    </video>
+    <br />
+    <br />
 
-..
-    (|qs_app|).
+In the steps below, we are going to show you how to build this application.
 
-    .. |qs_app| raw:: html
-
-       <a href="https://01g3ptaq9ccd3ksz8r3yzmjpcs.litng-ai-03.litng.ai/view/Interactive%20demo" target="_blank">see the app live here</a>
-
-
-A Lightning App is **Organized Python**, it enables AI researchers and ML engineers to build complex AI workflows without any of the **cloud** boilerplate.
-
-With Lightning Apps your favorite components can work together on any machine at any scale. Here's an illustration:
-
-Lightning Apps are:
-
-- cloud agnostic
-- fault-tolerant
-- production ready
-- locally debuggable
-- and much more
-
-.. join_slack::
-   :align: left
-   :margin: 20
-
-
-----
-
-*****************************
-Who can build Lightning Apps?
-*****************************
-Anyone who knows Python can build a Lightning App, even without machine learning experience.
+Here are `the entire App's code <https://github.com/Lightning-AI/lightning-quick-start>`_ and `its commented components. <https://github.com/Lightning-AI/lightning-quick-start/blob/main/quick_start/components.py>`_
 
 ----
 
@@ -48,20 +25,21 @@ Anyone who knows Python can build a Lightning App, even without machine learning
 Step 1: Install Lightning
 *************************
 
-If you are using a :doc:`virtual environment<install_beginner>`, don't forget to activate it before running commands. You must do so in every new shell. We highly recommend using virtual environments.
+If you are using a :ref:`virtual environment<install_beginner>`, don't forget to activate it before running commands.
+You must do so in every new shell.
+
+.. tip:: We highly recommend using virtual environments.
 
 .. code:: python
 
     pip install lightning
 
-(conda install coming soon)
-
 ----
 
-********************************
-Step 2: Install Train Deploy App
-********************************
-The first Lightning App we'll explore is an app to train and deploy a machine learning model.
+****************************************
+Step 2: Install the *Train and Demo* App
+****************************************
+The first Lightning App we'll explore is an App to train and demo a machine learning model.
 
 ..
     [|qs_code|], [|qs_live_app|].
@@ -90,32 +68,29 @@ Verify the App was succesfully installed:
 ----
 
 ***************************
-Step 3: Run the app locally
+Step 3: Run the App locally
 ***************************
-Run the app locally with the ``run`` command
+
+Run the app locally with the ``run`` command 🤯
 
 .. code:: bash
 
     lightning run app app.py
 
-🤯
-
 ----
 
 ********************************
-Step 4: Run the app on the cloud
+Step 4: Run the App in the cloud
 ********************************
-Add the ``--cloud`` argument to run on the `Lightning.AI cloud <http://lightning.ai/>`_.
+
+Add the ``--cloud`` argument to run on the `Lightning.AI cloud <http://lightning.ai/>`_. 🤯🤯🤯
 
 .. code:: bash
 
     lightning run app app.py --cloud
 
-🤯🤯🤯
-
 ..
     Your app should look like this one (|qs_live_app|)
-
 
 ----
 
@@ -124,7 +99,7 @@ Understand the code
 *******************
 The App that we just launched trained a PyTorch Lightning model (although any framework works), then added an interactive demo.
 
-This is the App code:
+This is the App's code:
 
 .. code:: python
 
@@ -158,7 +133,7 @@ This is the App code:
 
     app = L.LightningApp(TrainDeploy())
 
-Let's break down the App code by each section to understand what it is doing.
+Let's break down the code section by section to understand what it is doing.
 
 ----
 
@@ -246,9 +221,9 @@ start a Gradio server for demo purposes.
 
 ----
 
-3: Define how components flow
+3: Define how components Flow
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Every component has a ``run`` method. The run method defines the 🌊 flow 🌊 of how components interact together.
+Every component has a ``run`` method. The run method defines the 🌊 Flow 🌊 of how components interact together.
 
 In this case, we train a model (until completion). When it's done AND there exists a checkpoint, we launch a
 demo server:
@@ -286,9 +261,7 @@ demo server:
 
     app = L.LightningApp(TrainDeploy())
 
-..
-  If you've used other ML systems you'll be pleasantly surprised to not find decorators or YAML files.
-  Read here to understand the benefits more.
+.. note:: If you've used other ML systems you'll be pleasantly surprised to not find decorators or YAML files.
 
 ----
 
@@ -384,9 +357,8 @@ Any component can work with Lightning AI!
 ----
 
 **********
-Next steps
+Next Steps
 **********
-Depending on your use case, you might want to check one of these out next.
 
 .. raw:: html
 
@@ -397,14 +369,14 @@ Depending on your use case, you might want to check one of these out next.
    :header: Add components to your App
    :description: Expand your App by adding components.
    :col_css: col-md-4
-   :button_link: workflows/extend_app.html
+   :button_link: ../workflows/extend_app.html
    :height: 180
 
 .. displayitem::
    :header: Build a component
    :description: Learn to build your own component.
    :col_css: col-md-4
-   :button_link: workflows/build_lightning_component/index.html
+   :button_link: ../workflows/build_lightning_component/index.html
    :height: 180
 
 .. displayitem::
@@ -415,16 +387,16 @@ Depending on your use case, you might want to check one of these out next.
    :height: 180
 
 .. displayitem::
-   :header: How it works under the hood
+   :header: Under the hood
    :description: Explore how it works under the hood.
    :col_css: col-md-4
-   :button_link: core_api/lightning_app/index.html
+   :button_link: ../core_api/lightning_app/index.html
    :height: 180
 
 .. displayitem::
    :header: Run on your private cloud
    :description: Run Lightning Apps on your private VPC or on-prem.
-   :button_link: workflows/run_on_private_cloud.html
+   :button_link: ../workflows/run_on_private_cloud.html
    :col_css: col-md-4
    :height: 180
 

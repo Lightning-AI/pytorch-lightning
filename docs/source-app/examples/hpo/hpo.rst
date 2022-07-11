@@ -1,9 +1,10 @@
 .. hpo:
+.. _hpo_example:
+
 
 #######################################################
 Build a Lightning Hyperparameter Optimization (HPO) App
 #######################################################
-
 
 *******************
 A bit of background

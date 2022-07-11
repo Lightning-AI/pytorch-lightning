@@ -12,37 +12,48 @@ Welcome to ⚡ Lightning Apps
       .. image:: https://pl-flash-data.s3.amazonaws.com/assets_lightning/Lightning.gif
          :alt: Animation showing how to convert a standard training loop to a Lightning loop
    :right:
-      Lightning is a distributed, modular, free, and open framework for
-      building all AI applications where the components you want, interact together.
-      The concept of Lightning apps was designed to help you focus on the what you care about,
-      and automate the rest.
-      The Lightning framework can be used for any type of AI app, from a simple demo to a production pipeline.
-
-.. raw:: html
-
-   <div class="row" style='font-size: 14px'>
-      <div class='col-md-6'>
-      </div>
-      <div class='col-md-6'>
+      The `open-source Lightning framework <https://github.com/Lightning-AI/lightning>`_ gives ML Researchers and Data Scientists, the fastest & most flexible
+      way to iterate on ML research ideas and deliver scalable ML systems with the performance enterprises requires at the same time.
 
 .. join_slack::
    :align: center
    :margin: 0
+
+----
+
+*****************
+Install Lightning
+*****************
+
+
+.. raw:: html
+
+   <div class="row" style='font-size: 16px'>
+      <div class='col-md-6'>
+
+Pip users
+
+.. code-block:: bash
+
+   pip install lightning
+
+.. raw:: html
+
+      </div>
+      <div class='col-md-6'>
+
+Conda users
+
+.. code-block:: bash
+
+   conda install lightning -c conda-forge
 
 .. raw:: html
 
       </div>
    </div>
 
-----
-
-******************
-Install Lightning
-******************
-
-.. code-block:: bash
-
-   pip install lightning
+Or read the :ref:`advanced install <install>` guide.
 
 ----
 
@@ -52,22 +63,132 @@ Get Started
 
 .. raw:: html
 
-    <div class="tutorials-callout-container">
-        <div class="row">
+   <br />
+   <div class="display-card-container">
+      <div class="row">
 
-.. Add callout items below this line
+.. displayitem::
+   :header: Discover what Lightning Apps can do in 5 min
+   :description: Browse through mind-blowing ML Systems
+   :col_css: col-md-6
+   :button_link: get_started/what_app_can_do.html
+   :height: 180
 
-.. customcalloutitem::
-   :header: Build a Lightning App in 15 minutes
-   :description: Learn the 4 key steps to build a Lightning app.
-   :button_link:  lightning_apps_intro.html
+.. displayitem::
+   :header: Build and Train a Model
+   :description: Discover PyTorch Lightning and train your first Model.
+   :col_css: col-md-6
+   :button_link: get_started/build_model.html
+   :height: 180
+
+.. displayitem::
+   :header: Evolve a Model into an ML System
+   :description: Develop an App to train a model in the cloud
+   :col_css: col-md-6
+   :button_link: get_started/training_with_apps.html
+   :height: 180
+
+.. displayitem::
+   :header: Start from an ML system template
+   :description: Learn about Apps, from a template.
+   :col_css: col-md-6
+   :button_link: get_started/go_beyond_training.html
+   :height: 180
 
 .. raw:: html
 
-        </div>
-    </div>
+      </div>
+   </div>
 
-.. End of callout item section
+----
+
+***********************
+Current Lightning Users
+***********************
+
+.. raw:: html
+
+   <br />
+
+Build with Template(s) from the App & Component Gallery
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+   :header: Start from Ready-to-Run Template Apps
+   :description: Jump-start your project's development
+   :col_css: col-md-6
+   :button_link: get_started/jumpstart_from_app_gallery.html
+   :height: 180
+
+.. displayitem::
+   :header: Add Component made by others to your App
+   :description: Add more functionalities to your projects
+   :col_css: col-md-6
+   :button_link: get_started/jumpstart_from_component_gallery.html
+   :height: 180
+
+
+.. raw:: html
+
+      </div>
+   </div>
+   <br />
+
+
+Keep Learning
+^^^^^^^^^^^^^
+
+.. raw:: html
+
+   <div class="display-card-container">
+      <div class="row">
+
+.. displayitem::
+   :header: Level-up with PyTorch Lightning
+   :description: PyTorch Lightning Tutorials
+   :col_css: col-md-6
+   :button_link: https://pytorch-lightning.readthedocs.io/en/latest/expertise_levels.html
+   :height: 180
+
+.. displayitem::
+   :header: Level-up with Lightning Apps
+   :description: From Basics to Advanced Skills
+   :col_css: col-md-6
+   :button_link: levels/basic/index.html
+   :height: 180
+
+.. displayitem::
+   :header: API Reference
+   :description: Detailed description of each API package
+   :col_css: col-md-6
+   :button_link: api_reference/api_references.html
+   :height: 180
+
+.. displayitem::
+   :header: Hands-on Examples
+   :description: Learn by building Apps and Components.
+   :col_css: col-md-6
+   :button_link: examples/hands_on_example.html
+   :height: 180
+
+.. displayitem::
+   :header: Common Workflows
+   :description: Learn how to do ...
+   :col_css: col-md-6
+   :button_link: workflows/index.html
+   :height: 180
+
+.. displayitem::
+   :header: Glossary
+   :description: Discover Lightning App Concepts
+   :col_css: col-md-6
+   :button_link: glossary/index.html
+   :height: 180
 
 .. raw:: html
 
@@ -79,11 +200,16 @@ Get Started
 
 .. toctree::
    :maxdepth: 1
+   :caption: Home
+
+   self
+
+.. toctree::
+   :maxdepth: 1
    :caption: Get Started
 
-   read_me_first
    installation
-   lightning_apps_intro
+   get_started/lightning_apps_intro
 
 .. toctree::
    :maxdepth: 1
@@ -95,7 +221,7 @@ Get Started
 
 .. toctree::
    :maxdepth: 1
-   :caption: Hands-on Examples
+   :caption: Practical Examples
 
    Build a DAG <examples/dag/dag>
    Build a File Server <examples/file_server/file_server>
@@ -111,7 +237,7 @@ Get Started
 
 .. toctree::
    :maxdepth: 1
-   :caption: How to...
+   :caption: Common Workflows
 
    Add a web user interface (UI) <workflows/add_web_ui/index>
    Add a web link  <workflows/add_web_link>
@@ -160,9 +286,9 @@ Get Started
    App Components Tree <glossary/app_tree>
    Build Configuration <glossary/build_config/build_config>
    DAG <glossary/dag>
-   Event loop <glossary/event_loop>
+   Event Loop <glossary/event_loop>
    Environment Variables <glossary/environment_variables>
-   Front-end <workflows/add_web_ui/glossary_front_end.rst>
+   Frontend <workflows/add_web_ui/glossary_front_end.rst>
    Sharing Components <glossary/sharing_components>
    Scheduling <glossary/scheduling.rst>
    Storage <glossary/storage/storage.rst>

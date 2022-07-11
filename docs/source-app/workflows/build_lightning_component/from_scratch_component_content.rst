@@ -1,7 +1,8 @@
-
 *******************************
 LightningFlow vs. LightningWork
 *******************************
+
+.. _flow_vs_work:
 
 .. raw:: html
 
