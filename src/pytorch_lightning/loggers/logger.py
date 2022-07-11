@@ -42,9 +42,9 @@ def rank_zero_experiment(fn: Callable) -> Callable:
             with a ``@rank_zero_experiment`` decorator. An exception is that ``loggers.neptune`` wraps
             ``experiment`` and ``run`` with rank_zero_experiment.
 
-            Union[Any, DummyExperiment] is used because the wrapped hooks have several return
+            ``Union[Any, DummyExperiment]`` is used because the wrapped hooks have several return
             types that are specific to the custom logger. The return type here can be considered as
-            Union[return type of logger.experiment, DummyExperiment]
+            ``Union[return type of logger.experiment, DummyExperiment]``.
         """
 
         @rank_zero_only
