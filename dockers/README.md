@@ -90,12 +90,15 @@ Inspiration comes from https://u.group/thinking/how-to-put-jupyter-notebooks-in-
 ## Build docker image for Lightning on ROCm 
 
 To build the docker image for ROCm follow these steps: 
+
 ```bash
 git clone <git-repository>
 #cd into the newly cloned repository
 docker build -f dockers/for_rocm/Dockerfile .
 ```
+
 To start the container on ROCm drivers run the command: 
+
 ```bash 
 docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -it --network=host --ipc=host --device=/dev/kfd --device=/dev/dri --group-add video <docker id>
 ```
