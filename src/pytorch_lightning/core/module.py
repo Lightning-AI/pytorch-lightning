@@ -22,7 +22,7 @@ import tempfile
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, overload, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, overload, Sequence, Tuple, Union
 
 import torch
 from torch import ScriptModule, Tensor
@@ -1981,7 +1981,7 @@ class LightningModule(
         """
 
     @contextmanager
-    def _prevent_trainer_and_dataloaders_deepcopy(self) -> None:
+    def _prevent_trainer_and_dataloaders_deepcopy(self) -> Generator[None, None, None]:
         self._should_prevent_trainer_and_dataloaders_deepcopy = True
         yield
         self._should_prevent_trainer_and_dataloaders_deepcopy = False
