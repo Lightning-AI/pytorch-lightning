@@ -634,8 +634,5 @@ class LightningFlow:
         .. code-block:: bash
 
             lightning exec app add_name --args name=my_own_name
-
-
-
         """
         raise NotImplementedError
