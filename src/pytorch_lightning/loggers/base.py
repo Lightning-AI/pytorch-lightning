@@ -85,7 +85,7 @@ def merge_dicts(
     dicts: Sequence[Mapping],
     agg_key_funcs: Optional[Mapping] = None,
     default_func: Callable[[Sequence[float]], float] = np.mean,
-) -> Any:
+) -> Dict:
     rank_zero_deprecation(
         "The `pytorch_lightning.loggers.base.merge_dicts` is deprecated in v1.7"
         " and will be removed in v1.9. Please use `pytorch_lightning.loggers.logger.merge_dicts` instead."
