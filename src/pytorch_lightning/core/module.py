@@ -289,7 +289,7 @@ class LightningModule(
         batch = hook(batch, dataloader_idx)
         return batch
 
-    def print(self, *args, **kwargs) -> None:
+    def print(self, *args: Any, **kwargs: Any) -> None:
         r"""
         Prints only from process 0. Use this in any distributed mode to log only once.
 
@@ -575,9 +575,10 @@ class LightningModule(
         group = group if group is not None else torch.distributed.group.WORLD
         all_gather = self.trainer.strategy.all_gather
         data = convert_to_tensors(data, device=self.device)
-        return apply_to_collection(data, Tensor, all_gather, group=group, sync_grads=sync_grads)
+        output = apply_to_collection(data, Tensor, all_gather, group=group, sync_grads=sync_grads)
+        return output
 
-    def forward(self, *args, **kwargs) -> Any:
+    def forward(self, *args: Any, **kwargs: Any) -> Any:
         r"""
         Same as :meth:`torch.nn.Module.forward()`.
 
@@ -590,7 +591,7 @@ class LightningModule(
         """
         return super().forward(*args, **kwargs)
 
-    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
+    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         r"""
         Here you compute and return the training loss and some additional metrics for e.g.
         the progress bar or logger.
@@ -748,7 +749,7 @@ class LightningModule(
                     ...
         """
 
-    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         r"""
         Operates on a single batch of data from the validation set.
         In this step you'd might generate examples or calculate anything of interest like accuracy.
@@ -837,7 +838,7 @@ class LightningModule(
             the model goes back to training mode and gradients are enabled.
         """
 
-    def validation_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def validation_step_end(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         """Use this when validating with dp because :meth:`validation_step` will operate on only part of the batch.
         However, this is still optional and only needed for things like softmax or NCE loss.
 
@@ -934,7 +935,7 @@ class LightningModule(
                     self.log("final_metric", final_value)
         """
 
-    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         r"""
         Operates on a single batch of data from the test set.
         In this step you'd normally generate examples or calculate anything of interest
@@ -1014,7 +1015,7 @@ class LightningModule(
             to training mode and gradients are enabled.
         """
 
-    def test_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def test_step_end(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         """Use this when testing with DP because :meth:`test_step` will operate on only part of the batch. However,
         this is still optional and only needed for things like softmax or NCE loss.
 
@@ -1353,7 +1354,7 @@ class LightningModule(
         """
         rank_zero_warn("`configure_optimizers` must be implemented to be used with the Lightning Trainer")
 
-    def manual_backward(self, loss: Tensor, *args, **kwargs) -> None:
+    def manual_backward(self, loss: Tensor, *args: Any, **kwargs: Any) -> None:
         """Call this directly from your :meth:`training_step` when doing optimizations manually. By using this,
         Lightning can ensure that all the proper scaling gets applied when using mixed precision.
 
@@ -1378,7 +1379,7 @@ class LightningModule(
         self.trainer.strategy.backward(loss, None, None, *args, **kwargs)
 
     def backward(
-        self, loss: Tensor, optimizer: Optional[Optimizer], optimizer_idx: Optional[int], *args, **kwargs
+        self, loss: Tensor, optimizer: Optional[Optimizer], optimizer_idx: Optional[int], *args: Any, **kwargs: Any
     ) -> None:
         """Called to perform backward on the loss returned in :meth:`training_step`. Override this hook with your
         own implementation if you need to.
@@ -1761,7 +1762,7 @@ class LightningModule(
 
         self.train()
 
-    def _verify_is_manual_optimization(self, fn_name):
+    def _verify_is_manual_optimization(self, fn_name: str) -> None:
         if self.automatic_optimization:
             raise MisconfigurationException(
                 f"to use {fn_name}, please disable automatic optimization:"
@@ -1769,7 +1770,7 @@ class LightningModule(
             )
 
     @classmethod
-    def _auto_collect_arguments(cls, frame=None) -> Tuple[Dict, Dict]:
+    def _auto_collect_arguments(cls, frame=None) -> Tuple[Dict, Dict]:  # type: ignore[no-untyped-def]
         """Collect all module arguments in the current constructor and all child constructors. The child
         constructors are all the ``__init__`` methods that reach the current class through (chained)
         ``super().__init__()`` calls.
@@ -1797,7 +1798,7 @@ class LightningModule(
         return self_arguments, parents_arguments
 
     @torch.no_grad()
-    def to_onnx(self, file_path: Union[str, Path], input_sample: Optional[Any] = None, **kwargs) -> None:
+    def to_onnx(self, file_path: Union[str, Path], input_sample: Optional[Any] = None, **kwargs: Any) -> None:
         """Saves the model in ONNX format.
 
         Args:
@@ -1849,7 +1850,7 @@ class LightningModule(
         file_path: Optional[Union[str, Path]] = None,
         method: Optional[str] = "script",
         example_inputs: Optional[Any] = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Union[ScriptModule, Dict[str, ScriptModule]]:
         """By default compiles the whole model to a :class:`~torch.jit.ScriptModule`. If you want to use tracing,
         please provided the argument ``method='trace'`` and make sure that either the `example_inputs` argument is
