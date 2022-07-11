@@ -136,8 +136,8 @@ class CSVLogger(Logger):
         self._name = name or ""
         self._version = version
         self._prefix = prefix
+        self._experiment: Optional[ExperimentWriter] = None
         self._flush_logs_every_n_steps = flush_logs_every_n_steps
-        self._experiment: ExperimentWriter
 
     @property
     def root_dir(self) -> str:
@@ -146,7 +146,7 @@ class CSVLogger(Logger):
         If the experiment name parameter is an empty string, no experiment subdirectory is used and the checkpoint will
         be saved in "save_dir/version"
         """
-        return os.path.join(str(self.save_dir), str(self.name))
+        return os.path.join(self.save_dir, self.name)
 
     @property
     def log_dir(self) -> str:
@@ -161,7 +161,7 @@ class CSVLogger(Logger):
         return log_dir
 
     @property
-    def save_dir(self) -> Optional[str]:
+    def save_dir(self) -> str:
         """The current directory where logs are saved.
 
         Returns:
@@ -182,7 +182,7 @@ class CSVLogger(Logger):
             self.logger.experiment.some_experiment_writer_function()
 
         """
-        if hasattr(self, "_experiment"):
+        if self._experiment is not None:
             return self._experiment
 
         os.makedirs(self.root_dir, exist_ok=True)
