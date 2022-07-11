@@ -123,13 +123,19 @@ def exec():
     """exec your application."""
 
 
-def retrieve_application_url(app_id_or_name: Optional[str]):
-    try:
-        url = "http://127.0.0.1:7501"
-        response = requests.get(f"{url}/api/v1/commands")
-        assert response.status_code == 200
-        return url, response.json()
-    except ConnectionError:
+def _retrieve_application_url(app_id_or_name: Optional[str]):
+    failed_locally = False
+
+    if app_id_or_name is None:
+        try:
+            url = "http://127.0.0.1:7501"
+            response = requests.get(f"{url}/api/v1/commands")
+            assert response.status_code == 200
+            return url, response.json()
+        except ConnectionError:
+            failed_locally = True
+
+    if app_id_or_name or failed_locally:
         from lightning_app.utilities.cloud import _get_project
         from lightning_app.utilities.network import LightningClient
 
@@ -137,8 +143,10 @@ def retrieve_application_url(app_id_or_name: Optional[str]):
         project = _get_project(client)
         list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project.project_id)
 
+        lightningapp_names = [lightningapp.name for lightningapp in list_lightningapps.lightningapps]
+
         if not app_id_or_name:
-            raise Exception("Provide an application name or id with --app_id_or_name ...")
+            raise Exception(f"Provide an application name or id with --app_id_or_name=X. Found {lightningapp_names}")
 
         for lightningapp in list_lightningapps.lightningapps:
             if lightningapp.id == app_id_or_name or lightningapp.name == app_id_or_name:
@@ -158,7 +166,7 @@ def exec_app(
     app_id_or_name: Optional[str] = None,
 ):
     """Run an app from a file."""
-    url, commands = retrieve_application_url(app_id_or_name)
+    url, commands = _retrieve_application_url(app_id_or_name)
     if url is None or commands is None:
         raise Exception("We couldn't find any matching running app.")
 
