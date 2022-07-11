@@ -1,7 +1,7 @@
 app:
-- any: ['src/lightning*/**/*', 'tests/tests_app*/**/*', 'docs/source-app/**/*']
-  all: ['!src/pytorch_lightning/**/*', '!tests/tests_pytorch/**/*', '!docs/source-pytorch/**/*']
+- any: ['src/lightning*/**/*', 'tests/tests_app*/**/*', 'docs/source-app/**/*', 'requirements/app/*.txt']
+  all: ['!src/pytorch_lightning/**/*', '!tests/tests_pytorch/**/*', '!docs/source-pytorch/**/*', '!requirements/pytorch/*.txt']
 
 pl:
-- any: ['src/pytorch_lightning/**/*', 'tests/tests_pytorch/**/*', 'docs/source-pytorch/**/*']
-  all: ['!src/lightning*/**/*', '!tests/tests_app*/**/*', '!docs/source-app/**/*']
+- any: ['src/pytorch_lightning/**/*', 'tests/tests_pytorch/**/*', 'docs/source-pytorch/**/*', 'requirements/pytorch/*.txt']
+  all: ['!src/lightning*/**/*', '!tests/tests_app*/**/*', '!docs/source-app/**/*', '!requirements/app/*.txt']
