@@ -21,12 +21,11 @@ ARG PYTORCH_INSTALLER_VERSION="1.11.0"
 FROM vault.habana.ai/gaudi-docker/${GAUDI_VERSION}/ubuntu20.04/habanalabs/pytorch-installer-${PYTORCH_INSTALLER_VERSION}:${DIST}
 
 LABEL maintainer="https://vault.habana.ai/"
-
-RUN pip uninstall pytorch-lightning -y
 # update the base packages and add a non-sudo user
-RUN apt-get update -y && apt-get upgrade -y && useradd -m docker
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    curl jq build-essential libssl-dev libffi-dev python3 python3-venv python3-dev python3-pip
+RUN \
+    apt-get update -y && \
+    apt-get upgrade -y && \
+    useradd -m docker
 
 # To make it easier for build and release pipelines to run apt-get,
 # configure apt to not require confirmation (assume the -y argument by default)
@@ -36,6 +35,7 @@ RUN echo "APT::Get::Assume-Yes \"true\";" > /etc/apt/apt.conf.d/90assumeyes
 RUN apt-get update --fix-missing && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
+        build-essential \
         curl \
         jq \
         git \
@@ -43,11 +43,19 @@ RUN apt-get update --fix-missing && \
         libcurl4 \
         libunwind8 \
         netcat \
-        libssl1.0
+        libssl1.0 \
+        libssl-dev \
+        libffi-dev \
+        python3 \
+        python3-venv \
+        python3-dev \
+        python3-pip
 
 RUN curl -fsSL https://get.docker.com -o get-docker.sh && \
     sh get-docker.sh && \
     rm get-docker.sh
+
+RUN pip uninstall pytorch-lightning -y
 
 WORKDIR /azp
 
