@@ -105,7 +105,7 @@ class LightningModule(
         self._current_fx_name: Optional[str] = None
         self._automatic_optimization: bool = True
         self._truncated_bptt_steps: int = 0
-        self._param_requires_grad_state = {}
+        self._param_requires_grad_state: Dict = {}
         self._metric_attributes: Optional[Dict[int, str]] = None
         self._should_prevent_trainer_and_dataloaders_deepcopy: bool = False
         # TODO: remove in 1.8
