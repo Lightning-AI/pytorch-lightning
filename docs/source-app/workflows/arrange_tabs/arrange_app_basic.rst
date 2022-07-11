@@ -16,13 +16,12 @@ To enable a single tab on the app UI, return a single dictionary from the ``conf
 
     import lightning as L
 
+
     class DemoComponent(L.demo.dumb_component):
         def configure_layout(self):
-            tab1 = {
-                "name": "THE TAB NAME",
-                "content": self.component_a
-            }
+            tab1 = {"name": "THE TAB NAME", "content": self.component_a}
             return tab1
+
 
     app = L.LightningApp(DemoComponent())
 
@@ -43,11 +42,13 @@ Enable multiple tabs
 
     import lightning as L
 
+
     class DemoComponent(L.demo.dumb_component):
         def configure_layout(self):
             tab1 = {"name": "Tab A", "content": self.component_a}
             tab2 = {"name": "Tab B", "content": self.component_b}
             return tab1, tab2
+
 
     app = L.LightningApp(DemoComponent())
 
@@ -60,6 +61,7 @@ The order matters! Try any of the following configurations:
         tab1 = {"name": "Tab A", "content": self.component_a}
         tab2 = {"name": "Tab B", "content": self.component_b}
         return tab1, tab2
+
 
     def configure_layout(self):
         tab1 = {"name": "Tab A", "content": self.component_a}

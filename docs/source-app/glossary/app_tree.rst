@@ -43,14 +43,14 @@ You can attach your components in the **__init__** method of a flow.
 
     import lightning as L
 
-    class RootFlow(L.LightningFlow):
 
+    class RootFlow(L.LightningFlow):
         def __init__(self):
             super().__init__()
             # The `Work` component is attached here.
             self.work = Work()
 
-             # The `NestedFlow` component is attached here.
+            # The `NestedFlow` component is attached here.
             self.nested_flow = NestedFlow()
 
 Once done, simply add the root flow to a Lightning app as follows:
@@ -72,20 +72,19 @@ You can simply attach your components in the **run** method of a flow using the 
 .. code-block:: python
 
     class RootFlow(L.LightningFlow):
-
         def run(self):
 
             if not hasattr(self, "work"):
-                 # The `Work` component is attached here.
+                # The `Work` component is attached here.
                 setattr(self, "work", Work())
             # Run the `Work` component.
-            getattr(self,  "work").run()
+            getattr(self, "work").run()
 
             if not hasattr(self, "nested_flow"):
-                 # The `NestedFlow` component is attached here.
+                # The `NestedFlow` component is attached here.
                 setattr(self, "nested_flow", NestedFlow())
             # Run the `NestedFlow` component.
-            getattr(self,  "wonested_flowrk").run()
+            getattr(self, "wonested_flowrk").run()
 
 
 But it is usually more readable to use Lightning built-in :class:`~lightning_app.structures.Dict` or :class:`~lightning_app.structures.List` as follows:
@@ -94,8 +93,8 @@ But it is usually more readable to use Lightning built-in :class:`~lightning_app
 
     from lightning_app.structures import Dict
 
-    class RootFlow(L.LightningFlow):
 
+    class RootFlow(L.LightningFlow):
         def __init__(self):
             super().__init__()
             self.dict = Dict()
@@ -108,5 +107,5 @@ But it is usually more readable to use Lightning built-in :class:`~lightning_app
 
             if "nested_flow" not in self.dict:
                 # The `NestedFlow` component is attached here.
-                self.dict["nested_flow"] =NestedFlow()
+                self.dict["nested_flow"] = NestedFlow()
             self.dict["nested_flow"].run()

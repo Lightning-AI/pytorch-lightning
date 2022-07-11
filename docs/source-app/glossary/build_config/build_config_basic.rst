@@ -50,12 +50,11 @@ Instead of listing the requirements in a file, you can also pass them to the Lig
 
     from lightning_app import LightningWork, BuildConfig
 
+
     class MyWork(LightningWork):
         def __init__(self):
             super().__init__()
-            self.cloud_build_config = BuildConfig(
-                requirements=["torch>=1.8", "torchmetrics"]
-            )
+            self.cloud_build_config = BuildConfig(requirements=["torch>=1.8", "torchmetrics"])
 
 .. note::
     The build config only applies when running in the cloud and gets ignored otherwise. A local build config is currently not supported.

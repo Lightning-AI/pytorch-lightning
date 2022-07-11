@@ -18,9 +18,9 @@ If you need to install additional system packages or run other configuration ste
 
         from lightning_app import BuildConfig
 
+
         @dataclass
         class CustomBuildConfig(BuildConfig):
-
             def build_commands(self):
                 return ["sudo apt-get install libsparsehash-dev"]
 
@@ -31,6 +31,7 @@ If you need to install additional system packages or run other configuration ste
 
         from lightning_app import LightningWork
 
+
         class MyWork(LightningWork):
             def __init__(self):
                 super().__init__()
@@ -39,9 +40,7 @@ If you need to install additional system packages or run other configuration ste
                 self.cloud_build_config = CustomBuildConfig()
 
                 # Can also be combined with extra requirements
-                self.cloud_build_config = CustomBuildConfig(
-                    requirements=["torchmetrics"]
-                )
+                self.cloud_build_config = CustomBuildConfig(requirements=["torchmetrics"])
 
 
 .. note::
