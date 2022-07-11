@@ -214,7 +214,7 @@ class LightningModule(
         return self.trainer.local_rank if self.trainer else 0
 
     @property
-    def on_gpu(self):
+    def on_gpu(self) -> bool:
         """Returns ``True`` if this model is currently located on a GPU.
 
         Useful to set flags around the LightningModule for different CPU vs GPU behavior.
@@ -555,7 +555,9 @@ class LightningModule(
         """
         self.log_dict(grad_norm_dict, on_step=True, on_epoch=True, prog_bar=False, logger=True)
 
-    def all_gather(self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False):
+    def all_gather(
+        self, data: Union[Tensor, Dict, List, Tuple], group: Optional[Any] = None, sync_grads: bool = False
+    ) -> Tensor:
         r"""
         Allows users to call ``self.all_gather()`` from the LightningModule, thus making the ``all_gather`` operation
         accelerator agnostic. ``all_gather`` is a function provided by accelerators to gather a tensor from several
@@ -1177,7 +1179,7 @@ class LightningModule(
         """
         return []
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> Any:
         r"""
         Choose what optimizers and learning-rate schedulers to use in your optimization.
         Normally you'd need one. But in the case of GANs or similar you might have multiple.
@@ -1446,7 +1448,7 @@ class LightningModule(
         optimizer: Optimizer,
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
-    ):
+    ) -> None:
         """Handles gradient clipping internally.
 
         Note:
@@ -1500,7 +1502,7 @@ class LightningModule(
         optimizer_idx: int,
         gradient_clip_val: Optional[Union[int, float]] = None,
         gradient_clip_algorithm: Optional[str] = None,
-    ):
+    ) -> None:
         """Perform gradient clipping for the optimizer parameters. Called before :meth:`optimizer_step`.
 
         Args:
@@ -1649,7 +1651,7 @@ class LightningModule(
         """
         optimizer.step(closure=optimizer_closure)
 
-    def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int):
+    def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: Optimizer, optimizer_idx: int) -> None:
         """Override this method to change the default behaviour of ``optimizer.zero_grad()``.
 
         Args:
@@ -1795,7 +1797,7 @@ class LightningModule(
         return self_arguments, parents_arguments
 
     @torch.no_grad()
-    def to_onnx(self, file_path: Union[str, Path], input_sample: Optional[Any] = None, **kwargs):
+    def to_onnx(self, file_path: Union[str, Path], input_sample: Optional[Any] = None, **kwargs) -> None:
         """Saves the model in ONNX format.
 
         Args:
