@@ -23,4 +23,4 @@ RUN \
     git clone https://github.com/Lightning-AI/lightning.git && \
     cd lightning && \ 
     python setup.py install
-    
+
