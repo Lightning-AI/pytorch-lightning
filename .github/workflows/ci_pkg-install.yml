@@ -130,6 +130,7 @@ jobs:
         working-directory: pypi
         run: for file in `ls *.gz`; do tar -xzf $file; done
       - name: Show upacked pkgs
+        if: runner.os == 'linux'
         run: |
           sudo apt install -y tree
           tree pypi/ -L 3
@@ -138,7 +139,7 @@ jobs:
         run: |
           pip install -q fire requests
           python .actions/assistant.py mirror-pkg2source pypi src
-          tree src/ -L 3
+          ls -R src/
 
       # TODO: use this testing when PL 1.6.5 is out
       #- uses: ./.github/actions/pkg-check
