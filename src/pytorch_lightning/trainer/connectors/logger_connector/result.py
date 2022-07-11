@@ -244,12 +244,12 @@ class _ResultMetric(Metric, DeviceDtypeModuleMixin):
             # perform accumulation with reduction
             if self.meta.is_mean_reduction:
                 # do not use `+=` as it doesn't do type promotion
-                self.value = self.value + value.mean() * batch_size
+                self.value = self.value + value * batch_size
                 self.cumulated_batch_size = self.cumulated_batch_size + batch_size
             elif self.meta.is_max_reduction or self.meta.is_min_reduction:
-                self.value = self.meta.reduce_fx(self.value, value.mean())
+                self.value = self.meta.reduce_fx(self.value, value)
             elif self.meta.is_sum_reduction:
-                self.value = self.value + value.mean()
+                self.value = self.value + value
         else:
             value = cast(Metric, value)
             self.value = value
@@ -528,8 +528,14 @@ class _ResultCollection(dict):
                 result_metric.compute()
                 result_metric.meta.sync.should = should
             cache = result_metric._computed
-        if cache is not None and not result_metric.meta.enable_graph:
-            return cache.detach()
+        if cache is not None:
+            if not isinstance(cache, torch.Tensor):
+                raise ValueError(
+                    f"The `.compute()` return of the metric logged as {result_metric.meta.name!r} must be a tensor."
+                    f" Found {cache}"
+                )
+            if not result_metric.meta.enable_graph:
+                return cache.detach()
         return cache
 
     def valid_items(self) -> Generator:

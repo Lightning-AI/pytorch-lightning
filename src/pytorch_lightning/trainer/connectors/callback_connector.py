@@ -19,6 +19,7 @@ from typing import Dict, List, Optional, Sequence, Union
 
 from pytorch_lightning.callbacks import (
     Callback,
+    Checkpoint,
     GradientAccumulationScheduler,
     ModelCheckpoint,
     ModelSummary,
@@ -232,18 +233,18 @@ class CallbackConnector:
 
     @staticmethod
     def _reorder_callbacks(callbacks: List[Callback]) -> List[Callback]:
-        """Moves all ModelCheckpoint callbacks to the end of the list. The sequential order within the group of
+        """Moves all Checkpoint callbacks to the end of the list. The sequential order within the group of
         checkpoint callbacks is preserved, as well as the order of all other callbacks.
 
         Args:
             callbacks: A list of callbacks.
 
         Return:
-            A new list in which the last elements are ModelCheckpoints if there were any present in the
+            A new list in which the last elements are Checkpoint if there were any present in the
             input.
         """
-        checkpoints = [c for c in callbacks if isinstance(c, ModelCheckpoint)]
-        not_checkpoints = [c for c in callbacks if not isinstance(c, ModelCheckpoint)]
+        checkpoints = [c for c in callbacks if isinstance(c, Checkpoint)]
+        not_checkpoints = [c for c in callbacks if not isinstance(c, Checkpoint)]
         return not_checkpoints + checkpoints
 
 

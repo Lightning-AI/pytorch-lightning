@@ -13,6 +13,7 @@
 # limitations under the License.
 import importlib
 import inspect
+import operator
 import threading
 from contextlib import contextmanager
 from functools import partial
@@ -27,8 +28,10 @@ from torch.nn.modules.container import ModuleDict, ModuleList, Sequential
 
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_10
+from pytorch_lightning.utilities.imports import _compare_version
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+
+_TORCH_GREATER_EQUAL_1_10 = _compare_version("torch", operator.ge, "1.10.0")
 
 if _TORCH_GREATER_EQUAL_1_10:
     from torch._C import _DisableTorchDispatch  # type: ignore[attr-defined]

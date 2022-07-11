@@ -269,8 +269,7 @@ strategies
     :template: classtemplate.rst
 
     BaguaStrategy
-    CollaborativeStrategy
-    DDP2Strategy
+    HivemindStrategy
     DDPFullyShardedStrategy
     DDPShardedStrategy
     DDPSpawnShardedStrategy
