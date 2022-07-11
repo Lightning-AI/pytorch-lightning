@@ -460,14 +460,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
                 monitor_val = None
                 if config.reduce_on_plateau:
                     monitor_key = config.monitor
-                    if monitor_key is None:
-                        raise RuntimeError(
-                            "If you use `ReduceLROnPlateau` for updating a learning rate,"
-                            " you must specify a monitor. Please see https://pytorch-lightning.readthedocs.io"
-                            "/en/stable/api/pytorch_lightning.core.LightningModule.html"
-                            "#pytorch_lightning.core.LightningModule.configure_optimizers as well."
-                        )
-
+                    assert monitor_key is not None
                     monitor_val = self._get_monitor_value(monitor_key)
                     if monitor_val is None:
                         if config.strict:
