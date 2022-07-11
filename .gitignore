@@ -160,5 +160,4 @@ tags
 .tags
 src/lightning_app/ui/*
 docs/examples/*
-*docs/source-app/api_reference/api*
 docs/source-app/api_reference/api/*
