@@ -1,9 +1,10 @@
 import logging
 import os
 from pathlib import Path
-from typing import Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import click
+import requests
 from requests.exceptions import ConnectionError
 
 from lightning_app import __version__ as ver
@@ -14,6 +15,7 @@ from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.utilities.cli_helpers import _format_input_env_variables
 from lightning_app.utilities.install_components import register_all_external_components
 from lightning_app.utilities.login import Auth
+from lightning_app.utilities.state import headers_for
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +116,73 @@ def run_app(
 ):
     """Run an app from a file."""
     _run_app(file, cloud, without_server, no_cache, name, blocking, open_ui, env)
+
+
+@main.group()
+def exec():
+    """exec your application."""
+
+
+def retrieve_application_url(app_id_or_name: Optional[str]):
+    try:
+        url = "http://127.0.0.1:7501"
+        response = requests.get(f"{url}/api/v1/commands")
+        assert response.status_code == 200
+        return url, response.json()
+    except ConnectionError:
+        from lightning_app.utilities.cloud import _get_project
+        from lightning_app.utilities.network import LightningClient
+
+        client = LightningClient()
+        project = _get_project(client)
+        list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project.project_id)
+
+        if not app_id_or_name:
+            raise Exception("Provide an application name or id with --app_id_or_name ...")
+
+        for lightningapp in list_lightningapps.lightningapps:
+            if lightningapp.id == app_id_or_name or lightningapp.name == app_id_or_name:
+                response = requests.get(lightningapp.status.url + "/api/v1/commands")
+                assert response.status_code == 200
+                return lightningapp.status.url, response.json()
+    return None, None
+
+
+@exec.command("app")
+@click.argument("command", type=str, default="")
+@click.option("--args", type=str, default=[], multiple=True, help="Env variables to be set for the app.")
+@click.option("--app_id_or_name", help="The current application name", default="", type=str)
+def exec_app(
+    command: str,
+    args: List[str],
+    app_id_or_name: Optional[str] = None,
+):
+    """Run an app from a file."""
+    url, commands = retrieve_application_url(app_id_or_name)
+    if url is None or commands is None:
+        raise Exception("We couldn't find any matching running app.")
+
+    if not commands:
+        raise Exception("This application doesn't expose any commands yet.")
+
+    command_names = [c["command"] for c in commands]
+    if command not in command_names:
+        raise Exception(f"The provided command {command} isn't available in {command_names}")
+
+    command_metadata = [c for c in commands if c["command"] == command][0]
+    params = command_metadata["params"]
+    kwargs = {k.split("=")[0]: k.split("=")[1] for k in args}
+    for param in params:
+        if param not in kwargs:
+            raise Exception(f"The argument --args {param}=X hasn't been provided.")
+
+    json = {
+        "command_name": command,
+        "command_arguments": kwargs,
+        "affiliation": command_metadata["affiliation"],
+    }
+    response = requests.post(url + "/api/v1/commands", json=json, headers=headers_for({}))
+    assert response.status_code == 200, response.json()
 
 
 @main.group(hidden=True)
@@ -262,11 +331,5 @@ def _prepare_file(file: str) -> str:
     exists = os.path.exists(file)
     if exists:
         return file
-
-    if not exists and file == "quick_start.py":
-        from lightning_app.demo.quick_start import app
-
-        logger.info(f"For demo purposes, Lightning will run the {app.__file__} file.")
-        return app.__file__
 
     raise FileNotFoundError(f"The provided file {file} hasn't been found.")

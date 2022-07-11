@@ -3,3 +3,23 @@ exclude requirements.txt
 exclude __pycache__
 include .actions/setup_tools.py
 include *.cff  # citation info
+recursive-include src *.md
+recursive-include requirements *.txt
+recursive-include src *.md
+recursive-include requirements *.txt
+recursive-include src *.md
+recursive-include requirements *.txt
+recursive-include src *.md
+recursive-include requirements *.txt
+recursive-include src *.md
+recursive-include requirements *.txt
+recursive-include src *.md
+recursive-include requirements *.txt
+recursive-include src *.md
+recursive-include requirements *.txt
+recursive-include src *.md
+recursive-include requirements *.txt
+recursive-include src *.md
+recursive-include requirements *.txt
+recursive-include src *.md
+recursive-include requirements *.txt
