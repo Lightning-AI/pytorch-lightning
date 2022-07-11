@@ -171,4 +171,4 @@ jobs:
         shell: bash
         run: |
           source ./.venv/bin/activate
-          time python lightning_app/testing/testing.py delete_cloud_lightning_apps
+          time python src/lightning_app/testing/testing.py delete_cloud_lightning_apps
