@@ -136,9 +136,6 @@ class _XLASpawnLauncher(_SpawnLauncher):
 
         # adds the `callback_metrics` to the queue
         extra = _FakeQueue()
-        if is_overridden("add_to_queue", trainer.lightning_module):
-            # TODO: Remove the if in v1.7
-            trainer.lightning_module.add_to_queue(extra)
         self.add_to_queue(trainer, extra)
 
         return _SpawnOutput(best_model_path, weights_path, trainer.state, results, extra)

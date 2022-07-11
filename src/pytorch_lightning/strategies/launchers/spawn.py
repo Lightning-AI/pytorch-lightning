@@ -122,10 +122,6 @@ class _SpawnLauncher(_Launcher):
         trainer.state = spawn_output.trainer_state
 
         # get the `callback_metrics` and set it to the trainer
-        if is_overridden("get_from_queue", trainer.lightning_module):
-            # only in case the user does not override it.
-            # TODO: Remove the if in v1.7
-            trainer.lightning_module.get_from_queue(spawn_output.extra)
         self.get_from_queue(trainer, spawn_output.extra)
 
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
@@ -151,9 +147,6 @@ class _SpawnLauncher(_Launcher):
 
         # adds the `callback_metrics` to the queue
         extra = _FakeQueue()
-        if is_overridden("add_to_queue", trainer.lightning_module):
-            # TODO: Remove the if in v1.7
-            trainer.lightning_module.add_to_queue(extra)
         self.add_to_queue(trainer, extra)
 
         return _SpawnOutput(best_model_path, weights_path, trainer.state, results, extra)
