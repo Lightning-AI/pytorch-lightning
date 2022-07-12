@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-set -e
+set -ex
 # THIS FILE ASSUMES IT IS RUN INSIDE THE tests/tests_pytorch DIRECTORY
 
 # this environment variable allows special tests to run
