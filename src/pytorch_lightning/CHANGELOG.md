@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
--  Added Sanity Serving Callback and ServableModule ([#13614](https://github.com/PyTorchLightning/pytorch-lightning/pull/13614))
+-  Added ``ServableModule`` and its associated callback called ``ServableModuleValidator`` to ensure the model can served ([#13614](https://github.com/PyTorchLightning/pytorch-lightning/pull/13614))
 
 -  Converted validation loop config warnings to `PossibleUserWarning` ([#13377](https://github.com/PyTorchLightning/pytorch-lightning/pull/13377))
 
