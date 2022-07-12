@@ -14,3 +14,5 @@ scikit-learn>0.22.1
 onnxruntime
 psutil  # for `DeviceStatsMonitor`
 pandas  # needed in benchmarks
+fastapi
+uvicorn

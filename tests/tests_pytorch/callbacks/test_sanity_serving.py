@@ -3,28 +3,28 @@ from typing import Dict
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
-from pytorch_lightning.callbacks.sanity_serving import SanityServing, ServableModule
 from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.serve.sanity_serving import SanityServing, ServableModule
 
 
 class ServableBoringModel(BoringModel, ServableModule):
     def configure_payload(self) -> ...:
         return {"body": {"x": list(range(32))}}
 
-    def configure_inputs_outputs(self):
+    def configure_serialization(self):
         class Tensor:
             @staticmethod
             def deserialize(x):
-                return torch.tensor(x).float()
+                return torch.tensor(x, dtype=torch.float)
 
             @staticmethod
             def serialize(x):
-                return x.numpy().tolist()
+                return x.tolist()
 
-        return ({"x": Tensor.deserialize}, {"output": Tensor.serialize})
+        return {"x": Tensor.deserialize}, {"output": Tensor.serialize}
 
     def serve_step(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
-        return {"output": self.forward(x)}
+        return {"output": self(x)}
 
 
 def test_sanity_serving():
