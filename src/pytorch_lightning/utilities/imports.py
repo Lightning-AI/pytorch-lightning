@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """General utilities."""
+import functools
 import importlib
 import operator
 import platform
 import sys
 from importlib.util import find_spec
-from typing import Callable
+from typing import Callable, List, Union
 
 import pkg_resources
 import torch
@@ -119,6 +120,26 @@ class _RequirementAvailable:
 
     def __repr__(self) -> str:
         return self.__str__()
+
+
+def requires(module_paths: Union[str, List]):
+
+    if not isinstance(module_paths, list):
+        module_paths = [module_paths]
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            unavailable_modules = [f"'{module}'" for module in module_paths if not _module_available(module)]
+            if any(unavailable_modules):
+                raise ModuleNotFoundError(
+                    f"Required dependencies not available. Please run: pip install {' '.join(unavailable_modules)}"
+                )
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 _IS_WINDOWS = platform.system() == "Windows"
