@@ -19,7 +19,7 @@ Evolve a model into an ML system
 Training and beyond
 *******************
 
-With `PyTorch Lightning <https://github.com/Lightning-AI/lightning>`_, we abstracted distributed training and hardware, by organizing PyTorch code.
+With `PyTorch Lightning <https://github.com/Lightning-AI/lightning/tree/master/src/pytorch_lightning>`_, we abstracted distributed training and hardware, by organizing PyTorch code.
 With `Lightning Apps <https://github.com/Lightning-AI/lightning/tree/master/src/lightning_app>`_, we unified the local and cloud experience while abstracting infrastructure.
 
 By using `PyTorch Lightning <https://github.com/Lightning-AI/lightning/tree/master/src/pytorch_lightning>`_ and `Lightning Apps <https://github.com/Lightning-AI/lightning/tree/master/src/lightning_app>`_
