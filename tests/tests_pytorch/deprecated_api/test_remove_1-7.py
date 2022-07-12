@@ -34,25 +34,6 @@ from pytorch_lightning.strategies import SingleDeviceStrategy
 from tests_pytorch.plugins.environments.test_lsf_environment import _make_rankfile
 
 
-class BoringCallbackDDPSpawnModel(BoringModel):
-    def add_to_queue(self, queue):
-        ...
-
-    def get_from_queue(self, queue):
-        ...
-
-
-def test_v1_7_0_deprecate_add_get_queue(tmpdir):
-    model = BoringCallbackDDPSpawnModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
-
-    with pytest.deprecated_call(match=r"`LightningModule.add_to_queue` method was deprecated in v1.5"):
-        trainer.fit(model)
-
-    with pytest.deprecated_call(match=r"`LightningModule.get_from_queue` method was deprecated in v1.5"):
-        trainer.fit(model)
-
-
 def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
     class TestModel(BoringModel):
         def on_post_move_to_device(self):
