@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 from torch import Tensor
@@ -118,8 +118,8 @@ class DataParallelStrategy(ParallelStrategy):
     def broadcast(self, obj: object, src: int = 0) -> object:
         return obj
 
-    def reduce_boolean_decision(self, decision: bool) -> bool:
-        return decision
+    def reduce_boolean_decision(self, decision: Union[bool, torch.Tensor]) -> bool:
+        return bool(decision)
 
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
         with self.precision_plugin.train_step_context():

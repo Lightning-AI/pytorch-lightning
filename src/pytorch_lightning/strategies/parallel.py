@@ -13,7 +13,7 @@
 # limitations under the License.
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 import torch
 from torch import Tensor
@@ -111,8 +111,11 @@ class ParallelStrategy(Strategy, ABC):
         """Perform a all_gather on all processes."""
         return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
-    def reduce_boolean_decision(self, decision: bool) -> bool:
-        decision = torch.tensor(int(decision), device=self.root_device)
+    def reduce_boolean_decision(self, decision: Union[bool, torch.BoolTensor]) -> bool:
+        if isinstance(decision, torch.Tensor):
+            decision = decision.to(self.root_device)
+        else:
+            decision = torch.tensor(decision, device=self.root_device)
         decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
         decision = bool(decision == self.world_size)
         return decision

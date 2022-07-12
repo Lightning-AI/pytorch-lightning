@@ -492,7 +492,6 @@ class ModelCheckpoint(Checkpoint):
 
         monitor_op = {"min": torch.lt, "max": torch.gt}[self.mode]
         should_update_best_and_save = monitor_op(current, self.best_k_models[self.kth_best_model_path])
-        assert isinstance(should_update_best_and_save, bool)
 
         # If using multiple devices, make sure all processes are unanimous on the decision.
         should_update_best_and_save = trainer.strategy.reduce_boolean_decision(should_update_best_and_save)

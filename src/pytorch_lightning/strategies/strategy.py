@@ -290,9 +290,9 @@ class Strategy(ABC):
             sync_grads: flag that allows users to synchronize gradients for all_gather op
         """
 
-    def reduce_boolean_decision(self, decision: bool) -> bool:
-        """Reduce the early stopping decision across all processes."""
-        return decision
+    def reduce_boolean_decision(self, decision: Union[bool, torch.Tensor]) -> bool:
+        """Reduce a boolean decision across all processes."""
+        return bool(decision)
 
     def pre_backward(self, closure_loss: Tensor) -> None:
         """Run before precision plugin executes backward."""
