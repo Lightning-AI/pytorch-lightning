@@ -13,7 +13,7 @@ Furthermore, the users should be able to monitor their training progress in real
 Final Application
 *****************
 
-Here is a recording of the final application built in this example. The example is around 200 lines in total and should give you a great fundation to build your own Lightning App.
+Here is a recording of the final application built in this example. The example is around 200 lines in total and should give you a great foundation to build your own Lightning App.
 
 .. raw:: html
 
