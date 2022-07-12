@@ -19,6 +19,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 
 
 def verify_loop_configurations(trainer: "pl.Trainer") -> None:
@@ -26,8 +27,7 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     Checks that the model is configured correctly before the run is started.
 
     Args:
-        trainer: Lightning Trainer
-        model: The model to check the configuration.
+        trainer: Lightning Trainer. Its `lightning_module` (the model) to check the configuration.
 
     """
     model = trainer.lightning_module
@@ -46,7 +46,6 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
         __verify_eval_loop_configuration(trainer, model, "predict")
 
     __verify_dp_batch_transfer_support(trainer, model)
-    _check_add_get_queue(model)
     # TODO: Delete _check_on_post_move_to_device in v1.7
     _check_on_post_move_to_device(model)
     _check_deprecated_callback_hooks(trainer)
@@ -117,7 +116,10 @@ def __verify_train_val_loop_configuration(trainer: "pl.Trainer", model: "pl.Ligh
     if has_val_loader and not has_val_step:
         rank_zero_warn("You passed in a `val_dataloader` but have no `validation_step`. Skipping val loop.")
     if has_val_step and not has_val_loader:
-        rank_zero_warn("You defined a `validation_step` but have no `val_dataloader`. Skipping val loop.")
+        rank_zero_warn(
+            "You defined a `validation_step` but have no `val_dataloader`. Skipping val loop.",
+            category=PossibleUserWarning,
+        )
 
 
 def _check_on_post_move_to_device(model: "pl.LightningModule") -> None:
@@ -215,23 +217,6 @@ def __check_training_step_requires_dataloader_iter(model: "pl.LightningModule") 
             )
 
 
-def _check_add_get_queue(model: "pl.LightningModule") -> None:
-    r"""
-    Checks if add_to_queue or get_from_queue is overridden and sends a deprecation warning.
-
-    Args:
-        model: The lightning module
-    """
-    if is_overridden("add_to_queue", model):
-        rank_zero_deprecation(
-            "The `LightningModule.add_to_queue` method was deprecated in v1.5 and will be removed in v1.7."
-        )
-    if is_overridden("get_from_queue", model):
-        rank_zero_deprecation(
-            "The `LightningModule.get_from_queue` method was deprecated in v1.5 and will be removed in v1.7."
-        )
-
-
 # TODO: Delete _check_on_hpc_hooks in v1.8
 def _check_on_hpc_hooks(model: "pl.LightningModule") -> None:
     if is_overridden("on_hpc_save", model):
@@ -274,11 +259,6 @@ def _check_on_pretrain_routine(model: "pl.LightningModule") -> None:
 
 def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
     for callback in trainer.callbacks:
-        if is_overridden(method_name="on_keyboard_interrupt", instance=callback):
-            rank_zero_deprecation(
-                "The `on_keyboard_interrupt` callback hook was deprecated in v1.5 and will be removed in v1.7."
-                " Please use the `on_exception` callback hook instead."
-            )
         if is_overridden(method_name="on_init_start", instance=callback):
             rank_zero_deprecation(
                 "The `on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8."

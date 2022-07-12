@@ -654,8 +654,8 @@ class LightningModule(
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
     def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        """Use this when training with dp or ddp2 because :meth:`training_step` will operate on only part of the
-        batch. However, this is still optional and only needed for things like softmax or NCE loss.
+        """Use this when training with dp because :meth:`training_step` will operate on only part of the batch.
+        However, this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
             If you later switch to ddp or some other mode, this will still be called
@@ -674,7 +674,7 @@ class LightningModule(
         Return:
             Anything
 
-        When using dp/ddp2 distributed backends, only a portion of the batch is inside the training_step:
+        When using the DP strategy, only a portion of the batch is inside the training_step:
 
         .. code-block:: python
 
@@ -836,8 +836,8 @@ class LightningModule(
         """
 
     def validation_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        """Use this when validating with dp or ddp2 because :meth:`validation_step` will operate on only part of
-        the batch. However, this is still optional and only needed for things like softmax or NCE loss.
+        """Use this when validating with dp because :meth:`validation_step` will operate on only part of the batch.
+        However, this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
             If you later switch to ddp or some other mode, this will still be called
@@ -859,7 +859,7 @@ class LightningModule(
         .. code-block:: python
 
             # WITHOUT validation_step_end
-            # if used in DP or DDP2, this batch is 1/num_gpus large
+            # if used in DP, this batch is 1/num_gpus large
             def validation_step(self, batch, batch_idx):
                 # batch is 1/num_gpus big
                 x, y = batch
@@ -1013,8 +1013,8 @@ class LightningModule(
         """
 
     def test_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        """Use this when testing with DP or DDP2 because :meth:`test_step` will operate on only part of the batch.
-        However, this is still optional and only needed for things like softmax or NCE loss.
+        """Use this when testing with DP because :meth:`test_step` will operate on only part of the batch. However,
+        this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
             If you later switch to ddp or some other mode, this will still be called
@@ -1036,7 +1036,7 @@ class LightningModule(
         .. code-block:: python
 
             # WITHOUT test_step_end
-            # if used in DP or DDP2, this batch is 1/num_gpus large
+            # if used in DP, this batch is 1/num_gpus large
             def test_step(self, batch, batch_idx):
                 # batch is 1/num_gpus big
                 x, y = batch
@@ -1954,28 +1954,6 @@ class LightningModule(
                 stacklevel=5,
             )
         self._use_amp = use_amp
-
-    def add_to_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
-        """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
-        sharing, we cast the data to numpy.
-
-        Args:
-            queue: the instance of the queue to append the data.
-
-        .. deprecated:: v1.5
-            This method was deprecated in v1.5 and will be removed in v1.7.
-        """
-
-    def get_from_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
-        """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
-        we cast back the data to ``torch.Tensor``.
-
-        Args:
-            queue: the instance of the queue from where to get the data.
-
-        .. deprecated:: v1.5
-            This method was deprecated in v1.5 and will be removed in v1.7.
-        """
 
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> None:
