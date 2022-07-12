@@ -523,7 +523,7 @@ class ModelCheckpoint(Checkpoint):
                 filename = filename.replace(group, f"{{0[{name}]")
 
                 if name not in metrics:
-                    metrics[name] = torch.tensor(0.0)
+                    metrics[name] = torch.tensor(0)
             filename = filename.format(metrics)
 
         if prefix:
