@@ -1,6 +1,6 @@
 
 ********************************
-Communication between components
+Communication Between Components
 ********************************
 
 When creating interactive Lightning Apps (App) with multiple components, you may need your components to share information with each other and rely on that information to control their execution, share progress in the UI, trigger a sequence of operations, etc.
