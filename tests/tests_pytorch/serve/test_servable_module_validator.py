@@ -21,7 +21,7 @@ class ServableBoringModel(BoringModel, ServableModule):
         return {"x": deserialize}, {"output": serialize}
 
     def serve_step(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
-        assert torch.equal(x, torch.arange(32).float())
+        assert torch.equal(x, torch.arange(32, dtype=torch.float))
         return {"output": torch.tensor([0, 1])}
 
 
