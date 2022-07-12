@@ -71,7 +71,7 @@ Here is the associated illustration:
     :alt: Mechanism showing how delta are sent.
     :width: 100 %
 
-Here's another example that is slightly different. Here we define a Flow and Work, where the Work increments a counter indefinitely and the Flow prints its state which contains the Work.
+Here's another example that is slightly different. Here we define a Flow and Work, where the Work increments a counter indefinitely and the Flow prints its state which contain the Work.
 
 You can easily check the state of your entire app as follows:
 
