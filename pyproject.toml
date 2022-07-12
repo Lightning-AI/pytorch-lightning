@@ -22,7 +22,13 @@ line-length = 120
 
 
 [tool.mypy]
-files = ["pytorch_lightning"]
+files = [
+    "src/pytorch_lightning",
+    # TODO: Check typing in app source
+    # "src/lightning_app",
+]
+install_types = "True"
+non_interactive = "True"
 disallow_untyped_defs = "True"
 ignore_missing_imports = "True"
 show_error_codes = "True"
@@ -53,10 +59,7 @@ module = [
     "pytorch_lightning.demos.boring_classes",
     "pytorch_lightning.demos.mnist_datamodule",
     "pytorch_lightning.distributed.dist",
-    "pytorch_lightning.loggers.base",
-    "pytorch_lightning.loggers.logger",
     "pytorch_lightning.loggers.comet",
-    "pytorch_lightning.loggers.csv_logs",
     "pytorch_lightning.loggers.mlflow",
     "pytorch_lightning.loggers.neptune",
     "pytorch_lightning.loggers.tensorboard",
@@ -85,7 +88,6 @@ module = [
     "pytorch_lightning.trainer.supporters",
     "pytorch_lightning.trainer.trainer",
     "pytorch_lightning.tuner.batch_size_scaling",
-    "pytorch_lightning.tuner.lr_finder",
     "pytorch_lightning.tuner.tuning",
     "pytorch_lightning.utilities.auto_restart",
     "pytorch_lightning.utilities.data",
