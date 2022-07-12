@@ -1641,6 +1641,16 @@ The number of epochs run.
     if trainer.current_epoch >= 10:
         ...
 
+is_last_batch
+*************
+
+Whether trainer is executing last batch in the current epoch.
+
+.. code-block:: python
+
+    if trainer.is_last_batch:
+        ...
+
 global_step
 ***********
 
