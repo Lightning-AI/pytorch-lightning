@@ -1,4 +1,4 @@
-name: Test slow
+name: Test PyTorch slow
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
@@ -9,6 +9,9 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     types: [opened, reopened, ready_for_review, synchronize]
     paths-ignore:
       - "src/lightning_app/**"  # todo: implement job skip
+      - "tests/tests_app/**"  # todo: implement job skip
+      - "tests/tests_app_examples/**"  # todo: implement job skip
+      - "examples/app_*"  # todo: implement job skip
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -45,14 +48,17 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
-        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ hashFiles('requirements/base.txt') }}
+        key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ hashFiles('requirements/pytorch/base.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-
 
     - name: Install dependencies
+      env:
+        PACKAGE_NAME: pytorch
+        FREEZE_REQUIREMENTS: 1
       run: |
         # adjust versions according installed Torch version
-        python ./requirements/adjust-versions.py requirements.txt ${{ matrix.pytorch-version }}
+        python ./requirements/pytorch/adjust-versions.py requirements.txt ${{ matrix.pytorch-version }}
         pip install -e .[test] --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip list
       shell: bash

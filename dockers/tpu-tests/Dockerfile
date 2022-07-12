@@ -28,7 +28,7 @@ RUN cd pytorch-lightning && \
 RUN \
     pip install -q fire && \
     # drop unnecessary packages
-    pip install -r pytorch-lightning/requirements/devel.txt --no-cache-dir
+    pip install -r pytorch-lightning/requirements/pytorch/devel.txt --no-cache-dir
 
 COPY ./dockers/tpu-tests/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh

@@ -398,8 +398,16 @@ class LoggingSyncDistModel(BoringModel):
         return super().validation_step(batch, batch_idx)
 
 
-@pytest.mark.parametrize("devices", [1, pytest.param(2, marks=RunIf(min_cuda_gpus=2, skip_windows=True))])
-def test_logging_sync_dist_true(tmpdir, devices):
+@pytest.mark.parametrize(
+    "devices, accelerator",
+    [
+        (1, "cpu"),
+        (2, "cpu"),
+        pytest.param(2, "gpu", marks=RunIf(min_cuda_gpus=2)),
+    ],
+)
+def test_logging_sync_dist_true(tmpdir, devices, accelerator):
+
     """Tests to ensure that the sync_dist flag works (should just return the original value)"""
     fake_result = 1
     model = LoggingSyncDistModel(fake_result)
@@ -412,7 +420,7 @@ def test_logging_sync_dist_true(tmpdir, devices):
         limit_val_batches=3,
         enable_model_summary=False,
         strategy="ddp_spawn" if use_multiple_devices else None,
-        accelerator="auto",
+        accelerator=accelerator,
         devices=devices,
     )
     trainer.fit(model)
@@ -556,8 +564,14 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
     assert trainer.callback_metrics == expected
 
 
-@RunIf(min_cuda_gpus=1)
-def test_metric_are_properly_reduced(tmpdir):
+# mps not yet supported by torchmetrics, see https://github.com/Lightning-AI/metrics/issues/1044
+@pytest.mark.parametrize(
+    "accelerator",
+    [
+        pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)),
+    ],
+)
+def test_metric_are_properly_reduced(tmpdir, accelerator):
     class TestingModel(BoringModel):
         def __init__(self, *args, **kwargs) -> None:
             super().__init__()
@@ -584,7 +598,7 @@ def test_metric_are_properly_reduced(tmpdir):
     model = TestingModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        accelerator="gpu",
+        accelerator=accelerator,
         devices=1,
         max_epochs=2,
         limit_train_batches=5,
@@ -617,7 +631,16 @@ def test_logging_raises(tmpdir):
         def training_step(self, batch, batch_idx):
             self.log("foo/dataloader_idx_0", -1)
 
-    trainer = Trainer(default_root_dir=tmpdir)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=0,
+        max_epochs=1,
+        enable_progress_bar=False,
+        enable_checkpointing=False,
+        logger=False,
+        enable_model_summary=False,
+    )
     model = TestModel()
     with pytest.raises(MisconfigurationException, match="`self.log` with the key `foo/dataloader_idx_0`"):
         trainer.fit(model)
@@ -626,7 +649,6 @@ def test_logging_raises(tmpdir):
         def training_step(self, batch, batch_idx):
             self.log("foo", Accuracy())
 
-    trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
     with pytest.raises(MisconfigurationException, match="fix this by setting an attribute for the metric in your"):
         trainer.fit(model)
@@ -639,7 +661,6 @@ def test_logging_raises(tmpdir):
         def training_step(self, batch, batch_idx):
             self.log("foo", Accuracy())
 
-    trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
     with pytest.raises(
         MisconfigurationException,
@@ -653,7 +674,6 @@ def test_logging_raises(tmpdir):
             self.log("foo", -1, prog_bar=True)
             return super().training_step(*args)
 
-    trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
     with pytest.raises(MisconfigurationException, match=r"self.log\(foo, ...\)` twice in `training_step`"):
         trainer.fit(model)
@@ -663,9 +683,16 @@ def test_logging_raises(tmpdir):
             self.log("foo", -1, reduce_fx=torch.argmax)
             return super().training_step(*args)
 
-    trainer = Trainer(default_root_dir=tmpdir)
     model = TestModel()
     with pytest.raises(MisconfigurationException, match=r"reduce_fx={min,max,mean,sum}\)` are supported"):
+        trainer.fit(model)
+
+    class TestModel(BoringModel):
+        def on_train_start(self):
+            self.log("foo", torch.tensor([1.0, 2.0]))
+
+    model = TestModel()
+    with pytest.raises(ValueError, match="tensor must have a single element"):
         trainer.fit(model)
 
 

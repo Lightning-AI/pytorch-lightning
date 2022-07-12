@@ -1,6 +1,6 @@
 ARG DIST="latest"
-ARG GAUDI_VERSION="1.4.0"
-ARG PYTORCH_VERSION="1.10.2"
+ARG GAUDI_VERSION="1.5.0"
+ARG PYTORCH_VERSION="1.11.0"
 
 FROM vault.habana.ai/gaudi-docker/${GAUDI_VERSION}/ubuntu20.04/habanalabs/pytorch-installer-${PYTORCH_VERSION}:${DIST}
 
