@@ -27,14 +27,14 @@ class MLServer(LightningWork):
         name: str,
         implementation: str,
         workers: int = 1,
-        **kw,
+        **kwargs,
     ):
         super().__init__(
             parallel=True,
             cloud_build_config=BuildConfig(
                 requirements=["mlserver", "mlserver-sklearn"],
             ),
-            **kw,
+            **kwargs,
         )
         # 1: Collect the config's.
         self.settings = {
