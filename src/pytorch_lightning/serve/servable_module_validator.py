@@ -4,6 +4,7 @@ from typing import Any, Dict, Optional
 
 import requests
 import torch
+from requests import Response
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
@@ -61,10 +62,10 @@ class ServableModuleValidator(Callback):
         self.host = host
         self.port = port
         self.server = server
-        self.resp = None
+        self.resp: Optional[Response] = None
 
     @rank_zero_only
-    def on_train_start(self, trainer: "pl.Trainer", servable_model: "ServableModule"):
+    def on_train_start(self, trainer: "pl.Trainer", servable_model: "ServableModule") -> None:
         if isinstance(trainer.strategy, _NOT_SUPPORTED_STRATEGIES):
             raise Exception(
                 f"The current strategy {trainer.strategy} used "
