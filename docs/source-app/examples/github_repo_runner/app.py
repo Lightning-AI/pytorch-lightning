@@ -24,7 +24,7 @@ class GithubRepoRunner(TracerPythonScript):
         script_args: List[str],
         requirements: List[str],
         cloud_compute: Optional[CloudCompute] = None,
-        **kwargs,
+        **kwargs: Any,
     ):
         """The GithubRepoRunner Component clones a repo, runs a specific script with provided arguments and collect
         logs.
