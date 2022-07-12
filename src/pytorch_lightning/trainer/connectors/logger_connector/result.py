@@ -531,8 +531,14 @@ class _ResultCollection(dict):
 
             cache = result_metric._computed
 
-        if cache is not None and not result_metric.meta.enable_graph:
-            return cache.detach()
+        if cache is not None:
+            if not isinstance(cache, torch.Tensor):
+                raise ValueError(
+                    f"The `.compute()` return of the metric logged as {result_metric.meta.name!r} must be a tensor."
+                    f" Found {cache}"
+                )
+            if not result_metric.meta.enable_graph:
+                return cache.detach()
 
         return cache
 
