@@ -4,6 +4,7 @@ import os
 import sys
 import traceback
 import types
+from argparse import ArgumentParser
 from typing import Dict, List, TYPE_CHECKING, Union
 
 from lightning_app.utilities.exceptions import MisconfigurationException
@@ -26,7 +27,7 @@ def load_app_from_file(filepath: str) -> "LightningApp":
     code = _create_code(filepath)
     module = _create_fake_main_module(filepath)
     try:
-        exec(code, module.__dict__)
+        exec(code, _patch_argparse(module.__dict__))
     except Exception:
         # we want to format the exception as if no frame was on top.
         exp, val, tb = sys.exc_info()
@@ -111,6 +112,19 @@ def _create_fake_main_module(script_path):
     # assume is the main script directory.
     module.__dict__["__file__"] = os.path.abspath(script_path)
     return module
+
+
+def _patch_argparse(exec_globals):
+    """This function replaces parse_args by parse_known_args to avoid Argparse to fails due to lightning run
+    app."""
+    cls = ArgumentParser
+
+    def fn(*args, **kwargs):
+        return ArgumentParser.parse_known_args(*args, **kwargs)[0]
+
+    cls.parse_args = fn
+    exec_globals["ArgumentParser"] = cls
+    return exec_globals
 
 
 def component_to_metadata(obj: Union["LightningWork", "LightningFlow"]) -> Dict:
