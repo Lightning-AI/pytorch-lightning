@@ -575,8 +575,7 @@ class LightningModule(
         group = group if group is not None else torch.distributed.group.WORLD
         all_gather = self.trainer.strategy.all_gather
         data = convert_to_tensors(data, device=self.device)
-        output = apply_to_collection(data, Tensor, all_gather, group=group, sync_grads=sync_grads)
-        return output
+        return apply_to_collection(data, Tensor, all_gather, group=group, sync_grads=sync_grads)
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         r"""
