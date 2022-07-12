@@ -40,10 +40,12 @@ class ServableModuleValidator(Callback):
         port: int = 8080,
     ):
         super().__init__()
-        if not _RequirementAvailable("fastapi"):
-            raise ModuleNotFoundError("The package fastapi is required by the ServableModuleValidator callback.")
-        if not _RequirementAvailable("uvicorn"):
-            raise ModuleNotFoundError("The package uvicorn is required by the ServableModuleValidator callback.")
+        fastapi_installed = _RequirementAvailable("fastapi")
+        if not fastapi_installed:
+            raise ModuleNotFoundError(fastapi_installed.message)
+        uvicorn_installed = _RequirementAvailable("uvicorn")
+        if not uvicorn_installed:
+            raise ModuleNotFoundError(uvicorn_installed.message)
 
         # TODO: Add support for those optimizations
         assert optimization in (None, "trace", "script", "onnx", "tensor_rt")
