@@ -70,7 +70,7 @@ class ServableModuleValidator(Callback):
             )
 
         if not isinstance(servable_model, ServableModule):
-            raise Exception("The provided model should be subclass of pytorch_lightning.server.ServableModule.")
+            raise TypeError(f"The provided model should be subclass of {ServableModule.__qualname__}.")
 
         if not is_overridden("configure_payload", servable_model, ServableModule):
             raise NotImplementedError("The `configure_payload` method needs to be overridden.")
