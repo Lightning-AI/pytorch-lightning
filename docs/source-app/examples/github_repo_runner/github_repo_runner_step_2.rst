@@ -4,13 +4,13 @@
 2. Implement the PyTorch Lightning GithubRepoRunner Component
 *************************************************************
 
-The PyTorch Lightning GithubRepoRunner Component subclasses the GithubRepoRunner but tailor the execution experience to PyTorch Lightning.
+The PyTorch Lightning GithubRepoRunner Component subclasses the GithubRepoRunner but tailors the execution experience to PyTorch Lightning.
 
 As a matter of fact, this component adds two primary tailored features for PyTorch Lightning users:
 
 * It injects dynamically a custom callback ``TensorboardServerLauncher`` in the PyTorch Lightning Trainer to start a tensorboard server so it can be exposed in Lightning App UI.
 
-* Once the script has runned, the ``on_after_run`` hook of the :class:`~lightning_app.components.python.tracer.TracerPythonScript` is invoked with the script globals, meaning we can collect anything we need. In particular, we are reloading the best model, torch scripting it and storing its path in the state along side the best metric score.
+* Once the script has run, the ``on_after_run`` hook of the :class:`~lightning_app.components.python.tracer.TracerPythonScript` is invoked with the script globals, meaning we can collect anything we need. In particular, we are reloading the best model, torch scripting it, and storing its path in the state alongside the best metric score.
 
 Let's dive in on how to create such a component with the code below.
 
