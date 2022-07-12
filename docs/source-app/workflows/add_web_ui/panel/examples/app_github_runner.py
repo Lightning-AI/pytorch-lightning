@@ -183,7 +183,7 @@ class Flow(LightningFlow):
 
     def configure_layout(self):
         # Create a StreamLit UI for the user to run his Github Repo.
-        return PanelFrontend("panel_github_render.py")
+        return PanelFrontend("panel_github_runner.py")
 
 
 class RootFlow(LightningFlow):
