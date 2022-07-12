@@ -153,7 +153,7 @@ def _build_training_step_kwargs(
 @contextmanager
 def _block_parallel_sync_behavior(strategy: Strategy, block: bool = True) -> Generator[None, None, None]:
     """Blocks synchronization in :class:`~pytorch_lightning.strategies.parallel.ParallelStrategy`. This is useful
-    for example when when accumulating gradients to reduce communication when it is not needed.
+    for example when accumulating gradients to reduce communication when it is not needed.
 
     Args:
         strategy: the strategy instance to use.

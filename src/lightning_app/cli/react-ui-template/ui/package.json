@@ -10,7 +10,7 @@
   "dependencies": {
     "@emotion/react": "^11.8.2",
     "@emotion/styled": "^11.8.1",
-    "@mui/material": "^5.5.0",
+    "@mui/material": "5.8.5",
     "axios": "^0.26.1",
     "lodash": "^4.17.21",
     "nanoid": "^3.3.1",

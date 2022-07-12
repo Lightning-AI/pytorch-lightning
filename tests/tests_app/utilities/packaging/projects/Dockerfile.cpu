@@ -1,0 +1,1 @@
+FROM pytorchlightning/pytorch_lightning:base-cpu-py3.7-torch1.8

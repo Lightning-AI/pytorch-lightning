@@ -354,11 +354,6 @@ on_predict_end
 .. automethod:: pytorch_lightning.callbacks.Callback.on_predict_end
     :noindex:
 
-on_keyboard_interrupt
-^^^^^^^^^^^^^^^^^^^^^
-
-.. automethod:: pytorch_lightning.callbacks.Callback.on_keyboard_interrupt
-    :noindex:
 
 on_exception
 ^^^^^^^^^^^^

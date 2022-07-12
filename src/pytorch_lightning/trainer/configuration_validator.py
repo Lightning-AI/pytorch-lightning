@@ -27,8 +27,7 @@ def verify_loop_configurations(trainer: "pl.Trainer") -> None:
     Checks that the model is configured correctly before the run is started.
 
     Args:
-        trainer: Lightning Trainer
-        model: The model to check the configuration.
+        trainer: Lightning Trainer. Its `lightning_module` (the model) to check the configuration.
 
     """
     model = trainer.lightning_module
@@ -278,11 +277,6 @@ def _check_on_pretrain_routine(model: "pl.LightningModule") -> None:
 
 def _check_deprecated_callback_hooks(trainer: "pl.Trainer") -> None:
     for callback in trainer.callbacks:
-        if is_overridden(method_name="on_keyboard_interrupt", instance=callback):
-            rank_zero_deprecation(
-                "The `on_keyboard_interrupt` callback hook was deprecated in v1.5 and will be removed in v1.7."
-                " Please use the `on_exception` callback hook instead."
-            )
         if is_overridden(method_name="on_init_start", instance=callback):
             rank_zero_deprecation(
                 "The `on_init_start` callback hook was deprecated in v1.6 and will be removed in v1.8."
