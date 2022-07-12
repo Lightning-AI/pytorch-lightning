@@ -226,7 +226,7 @@ jobs:
           build-args: |
             DIST=latest
             GAUDI_VERSION=${{ matrix.gaudi_version }}
-            PYTORCH_VERSION=${{ matrix.pytorch_version }}
+            PYTORCH_INSTALLER_VERSION=${{ matrix.pytorch_version }}
           file: dockers/ci-runner-hpu/Dockerfile
           push: ${{ env.PUSH_TO_HUB }}
           tags: pytorchlightning/pytorch_lightning:hpu-ci-runner-gaudi${{ matrix.gaudi_version }}
