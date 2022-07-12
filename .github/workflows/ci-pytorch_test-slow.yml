@@ -70,7 +70,7 @@ jobs:
         PL_RUN_SLOW_TESTS: 1
 
     - name: Upload pytest test results
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}
         path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}.xml
