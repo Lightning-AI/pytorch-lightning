@@ -171,7 +171,7 @@ class PredictionEpochLoop(Loop):
             "batch_sampler",
             None,
         )
-        if isinstance(batch_sampler, IndexBatchSamplerWrapper) and self.should_store_predictions:
+        if isinstance(batch_sampler, IndexBatchSamplerWrapper):
             return batch_sampler.seen_batch_indices
 
         warning_cache.warn("Lightning couldn't infer the indices fetched for your dataloader.")
