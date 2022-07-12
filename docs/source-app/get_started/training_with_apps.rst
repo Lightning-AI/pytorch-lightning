@@ -78,7 +78,7 @@ Simply add ``--cloud`` to run this application in the cloud with a GPU machine ð
     lightning run app app.py --cloud
 
 
-Congratulations! Now, you know how to run a `PyTorch Lightning <https://github.com/Lightning-AI/lightning>`_ script with Lightning Apps.
+Congratulations! Now, you know how to run a `PyTorch Lightning <https://github.com/Lightning-AI/lightning/tree/master/src/pytorch_lightning>`_ script with Lightning Apps.
 
 Lightning Apps can make your ML system way more powerful, keep reading to learn how.
 
