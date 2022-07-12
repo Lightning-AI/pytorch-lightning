@@ -118,7 +118,7 @@ class DataParallelStrategy(ParallelStrategy):
     def broadcast(self, obj: object, src: int = 0) -> object:
         return obj
 
-    def reduce_boolean_decision(self, decision: Union[bool, torch.Tensor]) -> bool:
+    def reduce_boolean_decision(self, decision: Union[bool, Tensor]) -> bool:
         return bool(decision)
 
     def training_step(self, *args, **kwargs) -> STEP_OUTPUT:

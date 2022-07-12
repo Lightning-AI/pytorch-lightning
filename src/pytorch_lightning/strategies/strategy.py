@@ -290,7 +290,7 @@ class Strategy(ABC):
             sync_grads: flag that allows users to synchronize gradients for all_gather op
         """
 
-    def reduce_boolean_decision(self, decision: Union[bool, torch.Tensor]) -> bool:
+    def reduce_boolean_decision(self, decision: Union[bool, Tensor]) -> bool:
         """Reduce a boolean decision across all processes."""
         return bool(decision)
 
