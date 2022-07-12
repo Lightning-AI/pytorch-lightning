@@ -17,10 +17,10 @@ logging.Logger.detail = _detail
 
 _root_logger = logging.getLogger()
 _logger = logging.getLogger(__name__)
-_logger.setLevel(logging.INFO)
+_logger.setLevel(logging.DEBUG)
 
 _console = logging.StreamHandler()
-_console.setLevel(logging.INFO)
+_console.setLevel(logging.DEBUG)
 
 formatter = logging.Formatter("%(levelname)s: %(message)s")
 _console.setFormatter(formatter)
