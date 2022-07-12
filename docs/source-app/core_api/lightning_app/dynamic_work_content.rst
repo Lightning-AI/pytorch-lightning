@@ -60,7 +60,7 @@ There are a couple of ways you can add a dynamic Work:
 
         def run(self):
             if "work" not in self.dict:
-			# The `Work` component is attached here.
+			    # The `Work` component is attached here.
                 self.dict["work"] = Work()
             self.dict["work"].run()
 
@@ -105,6 +105,7 @@ In order to do that, we are iterating over the list of ``jupyter_config_requests
 
     import lightning as L
 
+
     class JupyterLabManager(L.LightningFlow):
 
         """This flow manages the users notebooks running within works.""""
@@ -146,7 +147,7 @@ In order to do that, we are iterating over the list of ``jupyter_config_requests
                     self.jupyter_config_requests.pop(idx)
 
         def configure_layout(self):
-            return StreamlitFrontend(render_fn=render_fn)
+            return L.app.frontend.StreamlitFrontend(render_fn=render_fn)
 
 ----
 
