@@ -139,7 +139,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The `WandbLogger` will now use the run name in the logs folder if it is provided, and otherwise the project name  ([#12604](https://github.com/PyTorchLightning/pytorch-lightning/pull/12604))
 
 
-- Raised warning instead of forcing `sync_dist=True` on `epoch_end` ([13210](https://github.com/Lightning-AI/lightning/issues/13210))
+- Raised warning instead of forcing `sync_dist=True` on `epoch_end` ([13364](https://github.com/Lightning-AI/lightning/pull/13364))
 
 
 ### Deprecated
