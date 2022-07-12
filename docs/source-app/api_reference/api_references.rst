@@ -32,10 +32,10 @@ ___________________
     :nosignatures:
     :template: classtemplate_no_index.rst
 
-    ~python.popen.PopenPythonScript
-    ~python.tracer.TracerPythonScript
-    ~serve.gradio.ServeGradio
     ~serve.serve.ModelInferenceAPI
+    ~python.popen.PopenPythonScript
+    ~serve.gradio.ServeGradio
+    ~python.tracer.TracerPythonScript
 
 ----
 
