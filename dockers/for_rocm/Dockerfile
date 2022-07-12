@@ -1,5 +1,5 @@
 
-FROM rocm/pytorch:latest
+FROM rocm/pytorch:latest-release
 
 RUN \
     pip install click && \
