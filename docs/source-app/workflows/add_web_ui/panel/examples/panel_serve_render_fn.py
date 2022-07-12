@@ -17,8 +17,10 @@ import inspect
 import os
 
 import panel as pn
+
 from app_state_watcher import AppStateWatcher
 from other import get_render_fn_from_environment
+
 
 def _get_render_fn():
     render_fn_name = os.environ["LIGHTNING_RENDER_FUNCTION"]

@@ -81,3 +81,12 @@ def get_frontend_environment(
         env["LIGHTNING_RENDER_MODULE_FILE"] = inspect.getmodule(render_fn_or_file).__file__
 
     return env
+
+
+def is_running_locally() -> bool:
+    """Returns True if the lightning app is running locally.
+
+    This function can be used to determine if the app is running locally and provide a better
+    developer experience.
+    """
+    return "LIGHTNING_APP_STATE_URL" not in os.environ

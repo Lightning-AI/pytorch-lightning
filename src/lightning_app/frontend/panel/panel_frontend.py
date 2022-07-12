@@ -6,13 +6,14 @@ import logging
 import pathlib
 import subprocess
 import sys
-from typing import Callable, List
+from typing import Callable, Dict, List
 
 from lightning_app.frontend.frontend import Frontend
 from lightning_app.frontend.utilities.other import (
     get_allowed_hosts,
     get_frontend_environment,
     has_panel_autoreload,
+    is_running_locally,
 )
 from lightning_app.utilities.imports import requires
 from lightning_app.utilities.log import get_frontend_logfile
@@ -40,7 +41,6 @@ class PanelFrontend(Frontend):
         render_fn_or_file: A pure function or the path to a .py or .ipynb file.
         The function must be a pure function that contains your Panel code.
         The function can optionally accept an `AppStateWatcher` argument.
-        The function must return a Panel Viewable.
 
     Raises:
         TypeError: Raised if the render_fn_or_file is a class method
@@ -60,6 +60,7 @@ class PanelFrontend(Frontend):
 
         self.render_fn_or_file = render_fn_or_file
         self._process: None | subprocess.Popen = None
+        self._log_files: Dict[str] = {}
         _logger.debug("initialized")
 
     def _get_popen_args(self, host: str, port: int) -> List:
@@ -101,18 +102,32 @@ class PanelFrontend(Frontend):
             host,
         )
         command = self._get_popen_args(host, port)
-        # Todo: Don't log to file when developing locally. Makes it harder to debug.
-        std_err_out = get_frontend_logfile("error.log")
-        std_out_out = get_frontend_logfile("output.log")
-        with open(std_err_out, "wb") as stderr, open(std_out_out, "wb") as stdout:
-            self._process = subprocess.Popen(  # pylint: disable=consider-using-with
-                command,
-                env=env,
-                stdout=stdout,
-                stderr=stderr,
-            )
+
+        if not is_running_locally():
+            self._open_log_files()
+
+        self._process = subprocess.Popen(  # pylint: disable=consider-using-with
+            command, env=env, **self._log_files
+        )
 
     def stop_server(self) -> None:
         if self._process is None:
             raise RuntimeError("Server is not running. Call `PanelFrontend.start_server()` first.")
         self._process.kill()
+        self._close_log_files()
+
+    def _close_log_files(self):
+        for file_ in self._log_files.values():
+            if not file_.closed:
+                file_.close()
+        self._log_files = {}
+
+    def _open_log_files(self) -> Dict:
+        # Don't log to file when developing locally. Makes it harder to debug.
+        self._close_log_files()
+
+        std_err_out = get_frontend_logfile("error.log")
+        std_out_out = get_frontend_logfile("output.log")
+        stderr = std_err_out.open("wb")
+        stdout = std_out_out.open("wb")
+        self._log_files = {"stdout": stderr, "stderr": stdout}

@@ -10,6 +10,7 @@ from lightning_app.frontend.utilities.other import (
     get_frontend_environment,
     get_render_fn_from_environment,
     has_panel_autoreload,
+    is_running_locally,
 )
 from lightning_app.utilities.state import AppState
 
@@ -92,3 +93,15 @@ def test_has_panel_autoreload(value, expected):
     """We can get and set autoreload via the environment variable PANEL_AUTORELOAD"""
     with mock.patch.dict(os.environ, {"PANEL_AUTORELOAD": value}):
         assert has_panel_autoreload() == expected
+
+
+@mock.patch.dict(os.environ, clear=True)
+def test_is_running_locally() -> bool:
+    """We can determine if lightning is running locally"""
+    assert is_running_locally()
+
+
+@mock.patch.dict(os.environ, {"LIGHTNING_APP_STATE_URL": "127.0.0.1"})
+def test_is_running_cloud() -> bool:
+    """We can determine if lightning is running in cloud"""
+    assert not is_running_locally()

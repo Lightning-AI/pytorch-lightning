@@ -21,6 +21,7 @@ import panel as pn
 from lightning_app.frontend.utilities.app_state_watcher import AppStateWatcher
 from lightning_app.frontend.utilities.other import get_render_fn_from_environment
 
+
 def _get_render_fn():
     render_fn_name = os.environ["LIGHTNING_RENDER_FUNCTION"]
     render_fn_module_file = os.environ["LIGHTNING_RENDER_MODULE_FILE"]
@@ -33,6 +34,7 @@ def _get_render_fn():
 
         return _render_fn_wrapper
     return render_fn
+
 
 if __name__.startswith("bokeh"):
     # I use caching for efficiency reasons. It shaves off 10ms from having

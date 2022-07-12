@@ -9,7 +9,7 @@ from unittest.mock import Mock
 import pytest
 
 from lightning_app import LightningFlow
-from lightning_app.frontend.panel import PanelFrontend
+from lightning_app.frontend.panel import panel_serve_render_fn, PanelFrontend
 from lightning_app.utilities.state import AppState
 
 
@@ -50,10 +50,21 @@ def test_panel_frontend_start_stop_server(subprocess_mock):
 
     env_variables = subprocess_mock.method_calls[0].kwargs["env"]
     call_args = subprocess_mock.method_calls[0].args[0]
-    assert call_args[0] == sys.executable
-    assert call_args[1].exists()
-    assert str(call_args[1]).endswith("panel_serve_render_fn_or_file.py")
-    assert len(call_args) == 2
+    assert call_args == [
+        sys.executable,
+        "-m",
+        "panel",
+        "serve",
+        panel_serve_render_fn.__file__,
+        "--port",
+        "1111",
+        "--address",
+        "hostname",
+        "--prefix",
+        "root.my.flow",
+        "--allow-websocket-origin",
+        "*",
+    ]
 
     assert env_variables["LIGHTNING_FLOW_NAME"] == "root.my.flow"
     assert env_variables["LIGHTNING_RENDER_ADDRESS"] == "hostname"
@@ -88,7 +99,7 @@ def _call_me(state):
 )
 def test_panel_wrapper_calls_render_fn_or_file(*_):
     """Run the panel_serve_render_fn_or_file"""
-    runpy.run_module("lightning_app.frontend.panel.panel_serve_render_fn_or_file")
+    runpy.run_module("lightning_app.frontend.panel.panel_serve_render_fn")
     # TODO: find a way to assert that _call_me got called
 
 
@@ -102,3 +113,26 @@ def test_method_exception():
 
     with pytest.raises(TypeError, match="being a method"):
         PanelFrontend(render_fn_or_file=_DummyClass()._render_fn)
+
+
+def test_open_close_log_files() -> bool:
+    """We can open and close the log files"""
+    frontend = PanelFrontend(_noop_render_fn)
+    assert not frontend._log_files
+    # When
+    frontend._open_log_files()
+    # Then
+    stdout = frontend._log_files["stdout"]
+    stderr = frontend._log_files["stderr"]
+    assert not stdout.closed
+    assert not stderr.closed
+
+    # When
+    frontend._close_log_files()
+    # Then
+    assert not frontend._log_files
+    assert stdout.closed
+    assert stderr.closed
+
+    # We can close even if not open
+    frontend._close_log_files()
