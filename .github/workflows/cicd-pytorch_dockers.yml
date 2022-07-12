@@ -240,3 +240,16 @@ jobs:
           message_format: '{emoji} *{workflow}* {status_message}, see <{run_url}|detail>, cc: <@U02PV6CL144> <@U0355SJN6HK>'  # arao & Mythravarun N R
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  build-NGC:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build Conda Docker
+        # publish master/release
+        uses: docker/build-push-action@v2
+        with:
+          file: dockers/nvidia/Dockerfile
+          push: false
+        timeout-minutes: 55
