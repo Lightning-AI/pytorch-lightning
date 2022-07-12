@@ -40,7 +40,7 @@ class Tuner:
         scale_batch_size_kwargs = scale_batch_size_kwargs or {}
         lr_find_kwargs = lr_find_kwargs or {}
         # return a dict instead of a tuple so BC is not broken if a new tuning procedure is added
-        result = {}
+        result: Dict[str, Any] = {}
 
         self.trainer.strategy.connect(model)
 
@@ -84,7 +84,7 @@ class Tuner:
         init_val: int = 2,
         max_trials: int = 25,
         batch_arg_name: str = "batch_size",
-    ) -> Optional[int]:
+    ) -> Optional[Union[int, _LRFinder]]:
         """Iteratively try to find the largest batch size for a given model that does not give an out of memory
         (OOM) error.
 
@@ -151,7 +151,7 @@ class Tuner:
         mode: str = "exponential",
         early_stop_threshold: float = 4.0,
         update_attr: bool = False,
-    ) -> Optional[_LRFinder]:
+    ) -> Optional[Union[int, _LRFinder]]:
         """Enables the user to do a range test of good initial learning rates, to reduce the amount of guesswork in
         picking a good starting learning rate.
 
