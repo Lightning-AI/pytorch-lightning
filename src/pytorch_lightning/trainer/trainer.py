@@ -306,7 +306,7 @@ class Trainer(
                 Default: ``50``.
 
             enable_progress_bar: Whether to enable to progress bar by default.
-                Default: ``False``.
+                Default: ``True``.
 
             profiler: To profile individual steps during training and assist in identifying bottlenecks.
                 Default: ``None``.
@@ -2574,6 +2574,7 @@ class Trainer(
 
     @property
     def is_last_batch(self) -> bool:
+        """Whether trainer is executing the last batch."""
         return self.fit_loop.epoch_loop.batch_progress.is_last_batch
 
     @property
