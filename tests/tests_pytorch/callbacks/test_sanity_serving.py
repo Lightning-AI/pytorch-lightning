@@ -32,9 +32,12 @@ def test_sanity_serving():
     model = ServableBoringModel()
     callback = SanityServing()
     callback.on_train_start(None, model)
+    assert callback.resp.json() == {"output": [-7.451034069061279, 1.635885238647461]}
 
 
 def test_sanity_serving_trainer():
     seed_everything(42)
-    trainer = Trainer(max_epochs=1, limit_train_batches=2, limit_val_batches=0, callbacks=[SanityServing()])
+    callback = SanityServing()
+    trainer = Trainer(max_epochs=1, limit_train_batches=2, limit_val_batches=0, callbacks=[callback])
     trainer.fit(ServableBoringModel())
+    assert callback.resp.json() == {"output": [-7.451034069061279, 1.635885238647461]}

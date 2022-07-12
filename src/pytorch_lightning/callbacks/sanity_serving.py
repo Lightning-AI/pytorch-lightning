@@ -1,7 +1,7 @@
 import time
 from modulefinder import Module
 from multiprocessing import Process
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import requests
 import torch
@@ -23,7 +23,7 @@ class ServableModule(Module):
         ...
 
 
-def _start_server(servable_model: ServableModule, host: str, port: int) -> None:
+def _start_server(servable_model: ServableModule, host: str, port: int, method: bool) -> None:
     """This method starts a simple FastAPI server with a predict and ping endpoint."""
     from fastapi import Body, FastAPI
     from uvicorn import run
@@ -45,7 +45,9 @@ def _start_server(servable_model: ServableModule, host: str, port: int) -> None:
 
         with torch.no_grad():
             output = servable_model.serve_step(**body)
-        assert isinstance(output, dict)
+
+        if not isinstance(output, dict):
+            raise Exception(f"Please, return your outputs as a dictionary. Found {output}")
 
         for key, serializer in outputs.items():
             output[key] = serializer(output[key])
@@ -61,14 +63,19 @@ class SanityServing(Callback):
 
     @requires("fastapi")
     @requires("uvicorn")
-    def __init__(self):
+    def __init__(self, method: Optional[str] = None):
         super().__init__()
+        assert method in (None, "trace", "script")
+        if method in ("trace", "script"):
+            raise NotImplementedError(f"The method {method} is currently not supported.")
+        self.method = method
+        self.resp = None
 
     @rank_zero_only
     def on_train_start(self, trainer: "pl.Trainer", servable_model: "ServableModule"):
         isinstance(servable_model, ServableModule)
 
-        process = Process(target=_start_server, args=(servable_model, "127.0.0.1", 8080))
+        process = Process(target=_start_server, args=(servable_model, "127.0.0.1", 8080, self.method))
         process.start()
 
         ready = False
@@ -81,6 +88,5 @@ class SanityServing(Callback):
             time.sleep(0.1)
 
         payload = servable_model.configure_payload()
-        resp = requests.post("http://127.0.0.1:8080/predict", json=payload)
+        self.resp = requests.post("http://127.0.0.1:8080/predict", json=payload)
         process.kill()
-        assert resp.json() == {"output": [-7.451034069061279, 1.635885238647461]}
