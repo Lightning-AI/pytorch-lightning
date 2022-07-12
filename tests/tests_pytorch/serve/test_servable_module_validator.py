@@ -4,7 +4,7 @@ import torch
 
 from pytorch_lightning import seed_everything, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.serve.sanity_serving import SanityServing, ServableModule
+from pytorch_lightning.serve.servable_module_validator import ServableModule, ServableModuleValidator
 
 
 class ServableBoringModel(BoringModel, ServableModule):
@@ -28,17 +28,17 @@ class ServableBoringModel(BoringModel, ServableModule):
         return {"output": torch.tensor([0, 1])}
 
 
-def test_sanity_serving():
+def test_servable_module_validator():
     seed_everything(42)
     model = ServableBoringModel()
-    callback = SanityServing()
-    callback.on_train_start(None, model)
+    callback = ServableModuleValidator()
+    callback.on_train_start(Trainer(), model)
     assert callback.resp.json() == {"output": [0, 1]}
 
 
-def test_sanity_serving_trainer():
+def test_servable_module_validator_with_trainer():
     seed_everything(42)
-    callback = SanityServing()
+    callback = ServableModuleValidator()
     trainer = Trainer(max_epochs=1, limit_train_batches=2, limit_val_batches=0, callbacks=[callback])
     trainer.fit(ServableBoringModel())
     assert callback.resp.json() == {"output": [0, 1]}

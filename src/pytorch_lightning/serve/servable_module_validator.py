@@ -7,9 +7,10 @@ import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.serve.module import ServableModule
+from pytorch_lightning.serve.servable_module import ServableModule
 from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy, DDPFullyShardedStrategy, DeepSpeedStrategy
 from pytorch_lightning.utilities.imports import _RequirementAvailable
+from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 _NOT_SUPPORTED_STRATEGIES = (
@@ -19,9 +20,10 @@ _NOT_SUPPORTED_STRATEGIES = (
 )
 
 
-class SanityServing(Callback):
+class ServableModuleValidator(Callback):
 
-    """This callback enables to validate a model is servable following the ServableModule API.
+    """The ServableModuleValidator callback enables to validate a model is servable following the ServableModule
+    API.
 
     Arguments:
         optimization: The format in which the model should be tested while being served.
@@ -39,9 +41,9 @@ class SanityServing(Callback):
     ):
         super().__init__()
         if not _RequirementAvailable("fastapi"):
-            raise ModuleNotFoundError("The package fastapi is required by the SanityServing callback.")
+            raise ModuleNotFoundError("The package fastapi is required by the ServableModuleValidator callback.")
         if not _RequirementAvailable("uvicorn"):
-            raise ModuleNotFoundError("The package uvicorn is required by the SanityServing callback.")
+            raise ModuleNotFoundError("The package uvicorn is required by the ServableModuleValidator callback.")
 
         # TODO: Add support for those optimizations
         assert optimization in (None, "trace", "script", "onnx", "tensor_rt")
@@ -67,7 +69,17 @@ class SanityServing(Callback):
                 "by the trainer isn't supported for sanity serving yet."
             )
 
-        isinstance(servable_model, ServableModule)
+        if not isinstance(servable_model, ServableModule):
+            raise Exception("The provided model should be subclass of pytorch_lightning.server.ServableModule.")
+
+        if not is_overridden("configure_payload", servable_model, ServableModule):
+            raise Exception("The ``configure_payload`` method needs to be overridden.")
+
+        if not is_overridden("configure_serialization", servable_model, ServableModule):
+            raise Exception("The ``configure_serialization`` method needs to be overridden.")
+
+        if not is_overridden("serve_step", servable_model, ServableModule):
+            raise Exception("The ``serve_step`` method needs to be overridden.")
 
         process = Process(target=self._start_server, args=(servable_model, self.host, self.port, self.optimization))
         process.start()
@@ -82,6 +94,10 @@ class SanityServing(Callback):
             time.sleep(0.1)
 
         payload = servable_model.configure_payload()
+
+        if "body" not in payload:
+            raise Exception(f"Your provided payload {payload} should have a field body.")
+
         self.resp = requests.post(f"http://{self.host}:{self.port}/serve", json=payload)
         process.kill()
 

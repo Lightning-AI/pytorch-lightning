@@ -1,4 +1,4 @@
-from pytorch_lightning.serve.module import ServableModule
-from pytorch_lightning.serve.sanity_serving import SanityServing
+from pytorch_lightning.serve.servable_module import ServableModule
+from pytorch_lightning.serve.servable_module_validator import ServableModuleValidator
 
-__all__ = ["SanityServing", "ServableModule"]
+__all__ = ["ServableModuleValidator", "ServableModule"]
