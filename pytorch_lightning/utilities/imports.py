@@ -87,7 +87,7 @@ def _compare_version(package: str, op: Callable, version: str, use_base_version:
 
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
-_PYTHON_GREATER_EQUAL_3_8_0 = Version(platform.python_version()) >= Version("3.8.0")
+_PYTHON_GREATER_EQUAL_3_8_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 8)
 _TORCH_GREATER_EQUAL_1_8_1 = _compare_version("torch", operator.ge, "1.8.1")
 _TORCH_GREATER_EQUAL_1_9 = _compare_version("torch", operator.ge, "1.9.0")
 _TORCH_GREATER_EQUAL_1_9_1 = _compare_version("torch", operator.ge, "1.9.1")
@@ -97,14 +97,10 @@ _TORCH_GREATER_EQUAL_1_11 = _compare_version("torch", operator.ge, "1.11.0")
 _TORCH_GREATER_EQUAL_1_12 = _compare_version("torch", operator.ge, "1.12.0", use_base_version=True)
 
 _APEX_AVAILABLE = _module_available("apex.amp")
-_BAGUA_AVAILABLE = _package_available("bagua")
 _DEEPSPEED_AVAILABLE = _package_available("deepspeed")
 _DEEPSPEED_GREATER_EQUAL_0_5_9 = _DEEPSPEED_AVAILABLE and _compare_version("deepspeed", operator.ge, "0.5.9")
 _DEEPSPEED_GREATER_EQUAL_0_6 = _DEEPSPEED_AVAILABLE and _compare_version("deepspeed", operator.ge, "0.6.0")
 _DOCSTRING_PARSER_AVAILABLE = _package_available("docstring_parser")
-_FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
-_FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
-_FAIRSCALE_FULLY_SHARDED_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.4")
 _GROUP_AVAILABLE = not _IS_WINDOWS and _module_available("torch.distributed.group")
 _HOROVOD_AVAILABLE = _module_available("horovod.torch")
 _HYDRA_AVAILABLE = _package_available("hydra")
@@ -116,7 +112,7 @@ _NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", 
 _OMEGACONF_AVAILABLE = _package_available("omegaconf")
 _POPTORCH_AVAILABLE = _package_available("poptorch")
 _HABANA_FRAMEWORK_AVAILABLE = _package_available("habana_frameworks")
-_RICH_AVAILABLE = _package_available("rich") and _compare_version("rich", operator.ge, "10.2.2")
+
 _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supported_engines if eg != "none"])
 _TORCHTEXT_AVAILABLE = _package_available("torchtext")
 _TORCHTEXT_LEGACY: bool = _TORCHTEXT_AVAILABLE and _compare_version("torchtext", operator.lt, "0.11.0")

@@ -54,7 +54,7 @@ else:
 
 log = logging.getLogger(__name__)
 
-_INTEGRATION_VERSION_KEY = "source_code/integrations/pytorch-lightning"
+_INTEGRATION_VERSION_KEY = "source_code/integrations/lightning"
 
 # kwargs used in previous NeptuneLogger version, now deprecated
 _LEGACY_NEPTUNE_INIT_KWARGS = [
@@ -113,7 +113,7 @@ class NeptuneLogger(LightningLoggerBase):
 
         neptune_logger = NeptuneLogger(
             api_key="ANONYMOUS",  # replace with your own
-            project="common/pytorch-lightning-integration",  # format "<WORKSPACE/PROJECT>"
+            project="common/lightning-integration",  # format "<WORKSPACE/PROJECT>"
             tags=["training", "resnet"],  # optional
         )
         trainer = Trainer(max_epochs=10, logger=neptune_logger)
@@ -157,7 +157,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     .. code-block:: python
 
-        neptune_logger = NeptuneLogger(project="common/pytorch-lightning-integration")
+        neptune_logger = NeptuneLogger(project="common/lightning-integration")
 
         trainer = pl.Trainer(logger=neptune_logger)
         model = ...
@@ -182,7 +182,7 @@ class NeptuneLogger(LightningLoggerBase):
 
     .. code-block:: python
 
-        neptune_logger = NeptuneLogger(project="common/pytorch-lightning-integration", log_model_checkpoints=False)
+        neptune_logger = NeptuneLogger(project="common/lightning-integration", log_model_checkpoints=False)
 
     **Pass additional parameters to the Neptune run**
 
@@ -194,7 +194,7 @@ class NeptuneLogger(LightningLoggerBase):
         from pytorch_lightning.loggers import NeptuneLogger
 
         neptune_logger = NeptuneLogger(
-            project="common/pytorch-lightning-integration",
+            project="common/lightning-integration",
             name="lightning-run",
             description="mlp quick run with pytorch-lightning",
             tags=["mlp", "quick-run"],
@@ -216,10 +216,10 @@ class NeptuneLogger(LightningLoggerBase):
     See Also:
         - Read about
           `what object you can log to Neptune <https://docs.neptune.ai/you-should-know/what-can-you-log-and-display>`_.
-        - Check `example run <https://app.neptune.ai/o/common/org/pytorch-lightning-integration/e/PTL-1/all>`_
+        - Check `example run <https://app.neptune.ai/o/common/org/lightning-integration/e/PTL-1/all>`_
           with multiple types of metadata logged.
         - For more detailed info check
-          `user guide <https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning>`_.
+          `user guide <https://docs.neptune.ai/integrations-and-supported-tools/model-training/lightning>`_.
 
     Args:
         api_key: Optional.
@@ -350,7 +350,7 @@ class NeptuneLogger(LightningLoggerBase):
             "  - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n"
             "The NeptuneLogger was re-written to use the neptune.new Python API\n"
             "  - https://neptune.ai/blog/neptune-new\n"
-            "  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning\n"
+            "  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/lightning\n"
             "You should use arguments accepted by either NeptuneLogger.init() or neptune.init()"
         )
 
@@ -377,7 +377,7 @@ class NeptuneLogger(LightningLoggerBase):
                 "  - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n"
                 "The NeptuneLogger was re-written to use the neptune.new Python API\n"
                 "  - https://neptune.ai/blog/neptune-new\n"
-                "  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning\n"
+                "  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/lightning\n"
             )
 
         # check if user passed redundant neptune.init arguments when passed run
@@ -477,7 +477,7 @@ class NeptuneLogger(LightningLoggerBase):
 
             neptune_logger = NeptuneLogger(
                 api_key="ANONYMOUS",
-                project="common/pytorch-lightning-integration"
+                project="common/lightning-integration"
             )
 
             neptune_logger.log_hyperparams(PARAMS)
@@ -627,7 +627,7 @@ class NeptuneLogger(LightningLoggerBase):
             f"  - https://docs-legacy.neptune.ai/integrations/pytorch_lightning.html\n"
             f"The NeptuneLogger was re-written to use the neptune.new Python API\n"
             f"  - https://neptune.ai/blog/neptune-new\n"
-            f"  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/pytorch-lightning\n"
+            f"  - https://docs.neptune.ai/integrations-and-supported-tools/model-training/lightning\n"
             f"Instead of `logger.{f_name}` you can use:\n"
             f"\t{sample_code}"
         )

@@ -299,7 +299,10 @@ def test_device_placement(tmpdir):
 
 @RunIf(min_torch="1.10", skip_windows=True)
 def test_sharded_tensor_state_dict(single_process_pg):
-    from torch.distributed._sharded_tensor import empty as sharded_tensor_empty
+    if _TORCH_GREATER_EQUAL_1_11:
+        from torch.distributed._shard.sharded_tensor import empty as sharded_tensor_empty
+    else:
+        from torch.distributed._sharded_tensor import empty as sharded_tensor_empty
     from torch.distributed._sharding_spec import ChunkShardingSpec
 
     class BoringModelWithShardedTensor(BoringModel):

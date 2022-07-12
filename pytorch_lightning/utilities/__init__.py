@@ -29,11 +29,7 @@ from pytorch_lightning.utilities.enums import (  # noqa: F401
 from pytorch_lightning.utilities.grads import grad_norm  # noqa: F401
 from pytorch_lightning.utilities.imports import (  # noqa: F401
     _APEX_AVAILABLE,
-    _BAGUA_AVAILABLE,
     _DEEPSPEED_AVAILABLE,
-    _FAIRSCALE_AVAILABLE,
-    _FAIRSCALE_FULLY_SHARDED_AVAILABLE,
-    _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE,
     _GROUP_AVAILABLE,
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
@@ -46,7 +42,6 @@ from pytorch_lightning.utilities.imports import (  # noqa: F401
     _module_available,
     _OMEGACONF_AVAILABLE,
     _POPTORCH_AVAILABLE,
-    _RICH_AVAILABLE,
     _TORCH_GREATER_EQUAL_1_9,
     _TORCH_GREATER_EQUAL_1_10,
     _TORCH_GREATER_EQUAL_1_11,

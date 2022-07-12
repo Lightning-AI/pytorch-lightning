@@ -125,7 +125,7 @@ class _Metadata:
     def _parse_reduce_fx(self) -> None:
         error = (
             "Only `self.log(..., reduce_fx={min,max,mean,sum})` are currently supported."
-            " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`."
+            " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`."
             f" Found: {self.reduce_fx}"
         )
         if isinstance(self.reduce_fx, str):

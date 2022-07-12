@@ -221,7 +221,7 @@ class AcceleratorConnector:
         torch.use_deterministic_algorithms(self.deterministic)
         if self.deterministic:
             # fixing non-deterministic part of horovod
-            # https://github.com/PyTorchLightning/pytorch-lightning/pull/1572/files#r420279383
+            # https://github.com/Lightning-AI/lightning/pull/1572/files#r420279383
             os.environ["HOROVOD_FUSION_THRESHOLD"] = "0"
 
             # https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
@@ -605,7 +605,7 @@ class AcceleratorConnector:
             if _TPU_AVAILABLE:
                 raise MisconfigurationException(
                     "`accelerator='ddp_cpu'` is not supported on TPU machines. "
-                    "Learn more: https://github.com/PyTorchLightning/pytorch-lightning/issues/7810"
+                    "Learn more: https://github.com/Lightning-AI/lightning/issues/7810"
                 )
             if self._devices_flag == 1 and self._num_nodes_flag > 1:
                 strategy_flag = DDPStrategy.strategy_name
@@ -725,7 +725,7 @@ class AcceleratorConnector:
             if self._precision_flag == 64:
                 raise MisconfigurationException(
                     "`Trainer(accelerator='tpu', precision=64)` is not implemented."
-                    " Please, open an issue in `https://github.com/PyTorchLightning/pytorch-lightning/issues`"
+                    " Please, open an issue in `https://github.com/Lightning-AI/lightning/issues`"
                     " requesting this feature."
                 )
             if self._precision_plugin_flag and not isinstance(
