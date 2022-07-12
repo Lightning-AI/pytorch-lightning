@@ -199,8 +199,6 @@ def test_logger_after_fit_predict_test_calls(tmpdir):
 
 
 def test_logger_sync_dist():
-    # Suggestions
-    # Imporve warning
     class CustomBoringModel(BoringModel):
         def training_epoch_end(self, *args, **kwargs):
             super().training_epoch_end(*args, **kwargs)
@@ -209,7 +207,7 @@ def test_logger_sync_dist():
     model = CustomBoringModel()
     trainer = Trainer(fast_dev_run=1, accelerator="cpu", strategy="ddp", devices=2)
 
-    with pytest.warns(UserWarning, match="Please set sync_dist to True global_rank"):
+    with pytest.warns(UserWarning, match="It is recommended to use .* sync_dist=True"):
         trainer.fit(model)
 
     assert trainer.callback_metrics["global_rank"] == 0

@@ -516,19 +516,21 @@ class _ResultCollection(dict):
         apply_to_collections(self[key], value, _ResultMetric, fn)
 
     @staticmethod
-    def _get_cache(result_metric: _ResultMetric, result_key: str, on_step: bool) -> Optional[Tensor]:
+    def _get_cache(result_metric: _ResultMetric, on_step: bool) -> Optional[Tensor]:
         cache = None
         if on_step and result_metric.meta.on_step:
             cache = result_metric._forward_cache
         elif not on_step and result_metric.meta.on_epoch:
             if result_metric._computed is None:
-                # always reduce on epoch end
-                print(f"ABBABAB {result_metric.meta.sync.should}")
                 if not result_metric.meta.sync.should:
-                    warning_cache.warn(f"Please set sync_dist to True {result_key}")
+                    warning_cache.warn(
+                        f"It is recommended to use `self.log({result_metric.meta.name}, sync_dist=True)` when logging"
+                        " on epoch level in distributed setting to accumulate the metric across devices."
+                    )
                 result_metric.compute()
 
             cache = result_metric._computed
+
         if cache is not None and not result_metric.meta.enable_graph:
             return cache.detach()
         return cache
@@ -555,12 +557,10 @@ class _ResultCollection(dict):
     def metrics(self, on_step: bool) -> _METRICS:
         metrics = _METRICS(callback={}, log={}, pbar={})
 
-        for result_key, result_metric in self.valid_items():
+        for _, result_metric in self.valid_items():
 
             # extract forward_cache or computed from the _ResultMetric. ignore when the output is None
-            value = apply_to_collection(
-                result_metric, _ResultMetric, self._get_cache, result_key, on_step, include_none=False
-            )
+            value = apply_to_collection(result_metric, _ResultMetric, self._get_cache, on_step, include_none=False)
 
             # convert metric collection to dict container.
             if isinstance(value, _ResultMetricCollection):
