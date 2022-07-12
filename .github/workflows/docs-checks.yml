@@ -101,7 +101,7 @@ jobs:
           make html --debug --jobs $(nproc) SPHINXOPTS="-W --keep-going"
 
       - name: Upload built docs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: docs-results-${{ github.sha }}
           path: docs/build/html/
