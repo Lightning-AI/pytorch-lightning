@@ -38,13 +38,13 @@ def rank_zero_experiment(fn: Callable) -> Callable:
     def experiment(self) -> Union[Any, DummyExperiment]:  # type: ignore[no-untyped-def]
         """
         Note:
-            `self` is a custom logger instance. The loggers typical wrap an `experiment` method
-            with a @rank_zero_experiment decorator. An exception being `loggers.neptune` wraps
-            `experiment` and `run` with rank_zero_experiment.
+            ``self`` is a custom logger instance. The loggers typically wrap an ``experiment`` method
+            with a ``@rank_zero_experiment`` decorator. An exception is that ``loggers.neptune`` wraps
+            ``experiment`` and ``run`` with rank_zero_experiment.
 
-            Union[Any, DummyExperiment] is used because the wrapped hooks have several returns
-            types that are specific to the custom logger. The return type can be considered as
-            Union[return type of logger.experiment, DummyExperiment]
+            ``Union[Any, DummyExperiment]`` is used because the wrapped hooks have several return
+            types that are specific to the custom logger. The return type here can be considered as
+            ``Union[return type of logger.experiment, DummyExperiment]``.
         """
 
         @rank_zero_only
