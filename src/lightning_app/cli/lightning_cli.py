@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import Tuple, Union
+from typing import List, Tuple, Union
 
 import click
 from requests.exceptions import ConnectionError
@@ -11,9 +11,11 @@ from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_i
 from lightning_app.core.constants import get_lightning_cloud_url, LOCAL_LAUNCH_ADMIN_VIEW
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
+from lightning_app.utilities.app_logs import _app_logs_reader
 from lightning_app.utilities.cli_helpers import _format_input_env_variables
-from lightning_app.utilities.install_components import register_all_external_components
+from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.login import Auth
+from lightning_app.utilities.network import LightningClient
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +31,74 @@ def get_app_url(runtime_type: RuntimeType, *args) -> str:
 @click.group()
 @click.version_option(ver)
 def main():
-    register_all_external_components()
     pass
+
+
+@main.group()
+def show():
+    """Show info about resource."""
+    pass
+
+
+@show.command()
+@click.argument("app_name", required=False)
+@click.argument("components", nargs=-1, required=False)
+@click.option("-f", "--follow", required=False, is_flag=True)
+def logs(app_name: str, components: List[str], follow: bool) -> None:
+
+    # Get project user is working in
+    client = LightningClient()
+    project = _get_project(client)
+
+    # List app applications in the project
+    apps = {
+        app.name: app
+        for app in client.lightningapp_instance_service_list_lightningapp_instances(project.project_id).lightningapps
+    }
+
+    if not apps:
+        raise click.ClickException("Your app list is empty. Please run an application first.")
+
+    # If app_name was not provided we ask to select one from the list
+    if not app_name:
+        raise click.ClickException(
+            f"You have not specified any LightningApp. Please select one of available: [{', '.join(apps.keys())}]"
+        )
+
+    # Verify that the app actually exists
+    if app_name not in apps:
+        raise click.ClickException(f"LightningApp '{app_name}' does not exist.")
+
+    # Fetch all lightning works from given application
+    # 'Flow' component is somewhat implicit, only one for whole app,
+    #    and not listed in lightningwork API - so we add it directly to the list
+    works = client.lightningwork_service_list_lightningwork(
+        project_id=project.project_id, app_id=apps[app_name].id
+    ).lightningworks
+    app_component_names = ["flow"] + [f.name for f in apps[app_name].spec.flow_servers] + [w.name for w in works]
+
+    # If components were not provided directly we ask user to select from available
+    if not components:
+        components = app_component_names
+
+    # Verify that all components actually exist
+    for component in components:
+        if component not in app_component_names:
+            raise click.ClickException(f"Component '{component}' does not exist in app {app_name}.")
+
+    # Initialize log reader
+    log_reader = _app_logs_reader(
+        client=client,
+        project_id=project.project_id,
+        app_id=apps[app_name].id,
+        component_names=components,
+        follow=follow,
+    )
+
+    # Iterate over LogEvents. If we 'follow' then we'll wait on this loop for new entry
+    for component_name, log_event in log_reader:
+        message = f"[{component_name}] {log_event.timestamp.isoformat()} {log_event.message}"
+        click.echo(message, err=log_event.labels.stream == "stderr", color=True)
 
 
 @main.command()

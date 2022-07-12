@@ -1,9 +1,11 @@
 import os
 
 import pytest
-from tests_app import _PROJECT_ROOT
+from click.testing import CliRunner
 
+from lightning_app.cli.lightning_cli import logs
 from lightning_app.testing.testing import run_app_in_cloud, wait_for
+from tests_app import _PROJECT_ROOT
 
 
 @pytest.mark.cloud
@@ -12,6 +14,7 @@ def test_boring_app_example_cloud() -> None:
         _,
         view_page,
         _,
+        name,
     ):
 
         def check_hello_there(*_, **__):
@@ -21,3 +24,10 @@ def test_boring_app_example_cloud() -> None:
                 return True
 
         wait_for(view_page, check_hello_there)
+
+        runner = CliRunner()
+        result = runner.invoke(logs, [name])
+
+        assert result.exit_code == 0
+        assert result.exception is None
+        assert len(result.output.splitlines()) > 1, result.output

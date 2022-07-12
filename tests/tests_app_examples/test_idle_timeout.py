@@ -2,9 +2,9 @@ import os
 from time import sleep
 
 import pytest
-from tests_app import _PROJECT_ROOT
 
 from lightning_app.testing.testing import run_app_in_cloud
+from tests_app import _PROJECT_ROOT
 
 
 @pytest.mark.cloud
@@ -13,6 +13,7 @@ def test_idle_timeout_example_cloud() -> None:
         _,
         _,
         fetch_logs,
+        _,
     ):
         has_logs = False
         while not has_logs:

@@ -3,10 +3,10 @@ from time import sleep
 from typing import Tuple
 
 import pytest
-from tests_app import _PROJECT_ROOT
 
 from lightning_app.testing.testing import application_testing, LightningTestApp, run_app_in_cloud, wait_for
 from lightning_app.utilities.enum import AppStage
+from tests_app import _PROJECT_ROOT
 
 
 class LightningAppTestInt(LightningTestApp):
@@ -36,6 +36,7 @@ def test_v0_app_example_cloud() -> None:
         _,
         view_page,
         fetch_logs,
+        _,
     ):
 
         def check_content(button_name, text_content):
