@@ -12,7 +12,10 @@ from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_i
 from lightning_app.core.constants import get_lightning_cloud_url, LOCAL_LAUNCH_ADMIN_VIEW
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
-from lightning_app.utilities.cli_helpers import _format_input_env_variables
+from lightning_app.utilities.cli_helpers import (
+    _format_input_env_variables,
+    _retrieve_application_url_and_available_commands,
+)
 from lightning_app.utilities.install_components import register_all_external_components
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.state import headers_for
@@ -118,57 +121,25 @@ def run_app(
     _run_app(file, cloud, without_server, no_cache, name, blocking, open_ui, env)
 
 
-@main.group()
-def exec():
-    """exec your application."""
-
-
-def _retrieve_application_url(app_id_or_name: Optional[str]):
-    failed_locally = False
-
-    if app_id_or_name is None:
-        try:
-            url = "http://127.0.0.1:7501"
-            resp = requests.get(f"{url}/api/v1/commands")
-            if resp.status_code != 200:
-                raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
-            return url, resp.json()
-        except ConnectionError:
-            failed_locally = True
-
-    if app_id_or_name or failed_locally:
-        from lightning_app.utilities.cloud import _get_project
-        from lightning_app.utilities.network import LightningClient
-
-        client = LightningClient()
-        project = _get_project(client)
-        list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project.project_id)
-
-        lightningapp_names = [lightningapp.name for lightningapp in list_lightningapps.lightningapps]
-
-        if not app_id_or_name:
-            raise Exception(f"Provide an application name or id with --app_id_or_name=X. Found {lightningapp_names}")
-
-        for lightningapp in list_lightningapps.lightningapps:
-            if lightningapp.id == app_id_or_name or lightningapp.name == app_id_or_name:
-                resp = requests.get(lightningapp.status.url + "/api/v1/commands")
-                if resp.status_code != 200:
-                    raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
-                return lightningapp.status.url, resp.json()
-    return None, None
-
-
-@exec.command("app")
+@run.command("command")
 @click.argument("command", type=str, default="")
-@click.option("--args", type=str, default=[], multiple=True, help="Env variables to be set for the app.")
-@click.option("--app_id_or_name", help="The current application name", default="", type=str)
-def exec_app(
+@click.option(
+    "--args",
+    type=str,
+    default=[],
+    multiple=True,
+    help="Arguments to be passed to the method executed in the running app.",
+)
+@click.option(
+    "--id", help="Unique identifier for the application. It can be its ID, its url or its name.", default=None, type=str
+)
+def command(
     command: str,
     args: List[str],
-    app_id_or_name: Optional[str] = None,
+    id: Optional[str] = None,
 ):
-    """Run an app from a file."""
-    url, commands = _retrieve_application_url(app_id_or_name)
+    """Execute a function in a running application from its name."""
+    url, commands = _retrieve_application_url_and_available_commands(id)
     if url is None or commands is None:
         raise Exception("We couldn't find any matching running app.")
 

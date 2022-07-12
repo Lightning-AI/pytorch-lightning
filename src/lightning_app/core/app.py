@@ -325,10 +325,13 @@ class LightningApp:
         self._has_updated = True
 
     def apply_commands(self):
+        """This method is used to apply remotely a collection of commands (methods) from the CLI to a running
+        app."""
+
         if not is_overridden("configure_commands", self.root):
             return
 
-        # Populate commands metadata
+        # 1: Populate commands metadata
         commands = self.root.configure_commands()
         commands_metadata = []
         command_names = set()
@@ -346,14 +349,17 @@ class LightningApp:
                     }
                 )
 
+        # 1.2: Pass the collected commands through the queue to the Rest API.
         self.commands_metadata_queue.put(commands_metadata)
 
-        # Collect requests metadata
+        # 2: Collect requests metadata
         command_query = self.get_state_changed_from_queue(self.commands_requests_queue)
         if command_query:
             for command in commands:
                 for command_name, method in command.items():
                     if command_query["command_name"] == command_name:
+                        # 2.1: Evaluate the method associated to a specific command.
+                        # Validation is done on the CLI side.
                         method(**command_query["command_arguments"])
 
     def run_once(self):

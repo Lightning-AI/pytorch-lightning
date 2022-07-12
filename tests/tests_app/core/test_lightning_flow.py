@@ -12,7 +12,7 @@ from click.testing import CliRunner
 from deepdiff import DeepDiff, Delta
 
 from lightning.app import LightningApp
-from lightning.app.cli.lightning_cli import exec_app
+from lightning.app.cli.lightning_cli import command
 from lightning.app.core.flow import LightningFlow
 from lightning.app.core.work import LightningWork
 from lightning.app.runners import MultiProcessRuntime, SingleProcessRuntime
@@ -668,7 +668,7 @@ def test_configure_commands():
     sleep(5)
     runner = CliRunner()
     result = runner.invoke(
-        exec_app,
+        command,
         ["user_command", "--args", "name=something"],
         catch_exceptions=False,
     )
