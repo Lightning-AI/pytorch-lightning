@@ -22,7 +22,13 @@ line-length = 120
 
 
 [tool.mypy]
-files = ["pytorch_lightning"]
+files = [
+    "src/pytorch_lightning",
+    # TODO: Check typing in app source
+    # "src/lightning_app",
+]
+install_types = "True"
+non_interactive = "True"
 disallow_untyped_defs = "True"
 ignore_missing_imports = "True"
 show_error_codes = "True"
@@ -54,7 +60,6 @@ module = [
     "pytorch_lightning.demos.mnist_datamodule",
     "pytorch_lightning.distributed.dist",
     "pytorch_lightning.loggers.base",
-    "pytorch_lightning.loggers.logger",
     "pytorch_lightning.loggers.comet",
     "pytorch_lightning.loggers.csv_logs",
     "pytorch_lightning.loggers.mlflow",
@@ -63,7 +68,6 @@ module = [
     "pytorch_lightning.loggers.wandb",
     "pytorch_lightning.loops.epoch.training_epoch_loop",
     "pytorch_lightning.strategies.ddp",
-    "pytorch_lightning.strategies.ddp2",
     "pytorch_lightning.strategies.ddp_spawn",
     "pytorch_lightning.strategies.deepspeed",
     "pytorch_lightning.strategies.dp",
@@ -73,23 +77,19 @@ module = [
     "pytorch_lightning.strategies.parallel",
     "pytorch_lightning.strategies.sharded",
     "pytorch_lightning.strategies.sharded_spawn",
-    "pytorch_lightning.strategies.single_device",
-    "pytorch_lightning.strategies.single_tpu",
     "pytorch_lightning.strategies.tpu_spawn",
     "pytorch_lightning.strategies.strategy",
-    "pytorch_lightning.profiler.advanced",
-    "pytorch_lightning.profiler.base",
-    "pytorch_lightning.profiler.pytorch",
-    "pytorch_lightning.profiler.simple",
+    "pytorch_lightning.profilers.advanced",
+    "pytorch_lightning.profilers.base",
+    "pytorch_lightning.profilers.pytorch",
+    "pytorch_lightning.profilers.simple",
     "pytorch_lightning.trainer.callback_hook",
     "pytorch_lightning.trainer.connectors.callback_connector",
     "pytorch_lightning.trainer.connectors.data_connector",
     "pytorch_lightning.trainer.data_loading",
-    "pytorch_lightning.trainer.optimizers",
     "pytorch_lightning.trainer.supporters",
     "pytorch_lightning.trainer.trainer",
     "pytorch_lightning.tuner.batch_size_scaling",
-    "pytorch_lightning.tuner.lr_finder",
     "pytorch_lightning.tuner.tuning",
     "pytorch_lightning.utilities.auto_restart",
     "pytorch_lightning.utilities.data",

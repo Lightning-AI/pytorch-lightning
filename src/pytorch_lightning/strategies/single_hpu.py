@@ -25,7 +25,6 @@ from pytorch_lightning.utilities.types import _DEVICE, STEP_OUTPUT
 if _HPU_AVAILABLE:
     import habana_frameworks.torch.core as htcore
     import habana_frameworks.torch.core.hccl  # noqa: F401
-    from habana_frameworks.torch.utils.library_loader import load_habana_module
 
 
 class SingleHPUStrategy(SingleDeviceStrategy):
@@ -44,10 +43,6 @@ class SingleHPUStrategy(SingleDeviceStrategy):
         if not _HPU_AVAILABLE:
             raise MisconfigurationException("`SingleHPUStrategy` requires HPU devices to run")
 
-        # This function is used to load Habana libraries required for PyTorch
-        # to register HPU as one of the available devices.
-        load_habana_module()
-
         super().__init__(
             accelerator=accelerator,
             device=device,
@@ -65,9 +60,6 @@ class SingleHPUStrategy(SingleDeviceStrategy):
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
         super().setup_optimizers(trainer)
-
-        if len(self.optimizers) > 1:
-            raise MisconfigurationException("HPUs currently support only one optimizer.")
 
     def model_to_device(self) -> None:
         self.model.to(self.root_device)  # type: ignore

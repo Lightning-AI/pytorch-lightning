@@ -1,11 +1,10 @@
 import inspect
 import logging
 import os
+import re
 from dataclasses import asdict, dataclass
 from types import FrameType
 from typing import cast, List, Optional, TYPE_CHECKING, Union
-
-from lightning_app._setup_tools import _load_requirements
 
 if TYPE_CHECKING:
     from lightning_app import LightningWork
@@ -13,6 +12,37 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+def load_requirements(
+    path_dir: str, file_name: str = "base.txt", comment_char: str = "#", unfreeze: bool = True
+) -> List[str]:
+    """Load requirements from a file.
+
+    .. code-block:: python
+
+        path_req = os.path.join(_PROJECT_ROOT, "requirements")
+        requirements = load_requirements(path_req)
+        print(requirements)  # ['numpy...', 'torch...', ...]
+    """
+    with open(os.path.join(path_dir, file_name)) as file:
+        lines = [ln.strip() for ln in file.readlines()]
+    reqs = []
+    for ln in lines:
+        # filer all comments
+        comment = ""
+        if comment_char in ln:
+            comment = ln[ln.index(comment_char) :]
+            ln = ln[: ln.index(comment_char)]
+        req = ln.strip()
+        # skip directly installed dependencies
+        if not req or req.startswith("http") or "@http" in req:
+            continue
+        # remove version restrictions unless they are strict
+        if unfreeze and "<" in req and "strict" not in comment:
+            req = re.sub(r",? *<=? *[\d\.\*]+", "", req).strip()
+        reqs.append(req)
+    return reqs
 
 
 @dataclass
@@ -61,7 +91,7 @@ class BuildConfig:
             class MyOwnBuildConfig(BuildConfig):
 
                 def build_commands(self):
-                    return ["sudo apt-get install libsparsehash-dev"]
+                    return ["apt-get install libsparsehash-dev"]
 
             BuildConfig(requirements=["git+https://github.com/mit-han-lab/torchsparse.git@v1.4.0"])
         """
@@ -86,7 +116,7 @@ class BuildConfig:
             return []
         dirname, basename = os.path.dirname(requirement_files[0]), os.path.basename(requirement_files[0])
         try:
-            requirements = _load_requirements(dirname, basename)
+            requirements = load_requirements(dirname, basename)
         except NotADirectoryError:
             requirements = []
         return [r for r in requirements if r != "lightning"]
@@ -118,7 +148,7 @@ class BuildConfig:
             if os.path.exists(path):
                 try:
                     requirements.extend(
-                        _load_requirements(os.path.dirname(path), os.path.basename(path)),
+                        load_requirements(os.path.dirname(path), os.path.basename(path)),
                     )
                 except NotADirectoryError:
                     pass

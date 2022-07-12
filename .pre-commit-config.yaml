@@ -36,14 +36,14 @@ repos:
         args: ['--maxkb=350', '--enforce-all']
         exclude: |
             (?x)^(
-                CHANGELOG.md|
                 docs/source-pytorch/_static/images/general/fast_2.gif|
                 docs/source-pytorch/_static/images/mnist_imgs/pt_to_pl.jpg|
                 docs/source-pytorch/_static/images/lightning_module/pt_to_pl.png|
                 docs/source-pytorch/_static/images/general/pl_quick_start_full_compressed.gif|
                 docs/source-pytorch/_static/images/general/pl_overview_flat.jpg|
                 docs/source-pytorch/_static/images/general/pl_overview.gif|
-                src/lightning_app/cli/pl-app-template/ui/yarn.lock
+                src/lightning_app/cli/pl-app-template/ui/yarn.lock|
+                src/pytorch_lightning/CHANGELOG.md
             )$
       - id: detect-private-key
 
@@ -93,7 +93,7 @@ repos:
           - mdformat-gfm
           #- mdformat-black
           - mdformat_frontmatter
-        exclude: CHANGELOG.md
+        exclude: src/pytorch_lightning/CHANGELOG.md
 
   - repo: https://github.com/PyCQA/flake8
     rev: 4.0.1
