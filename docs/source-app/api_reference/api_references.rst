@@ -86,5 +86,5 @@ _______
     :template: classtemplate_no_index.rst
 
     ~cloud.CloudRuntime
-    ~singleprocess.SingleProcessRuntime
     ~multiprocess.MultiProcessRuntime
+    ~singleprocess.SingleProcessRuntime
