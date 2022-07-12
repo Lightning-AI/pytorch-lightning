@@ -25,7 +25,7 @@ import time
 import warnings
 from copy import deepcopy
 from datetime import timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 from weakref import proxy
 
 import numpy as np
@@ -231,8 +231,8 @@ class ModelCheckpoint(Callback):
         self._save_on_train_epoch_end = save_on_train_epoch_end
         self._last_global_step_saved = 0  # no need to save when no steps were taken
         self._last_time_checked: Optional[float] = None
-        self.current_score = None
-        self.best_k_models = {}
+        self.current_score: Optional[Tensor] = None
+        self.best_k_models: Dict[str, Any] = {}
         self.kth_best_model_path = ""
         self.best_model_score = None
         self.best_model_path = ""
@@ -336,7 +336,7 @@ class ModelCheckpoint(Callback):
         if self.dirpath == dirpath_from_ckpt:
             self.best_model_score = state_dict["best_model_score"]
             self.kth_best_model_path = state_dict.get("kth_best_model_path", self.kth_best_model_path)
-            self.kth_value = state_dict.get("kth_value", self.kth_value)
+            self.kth_value: Tensor = state_dict.get("kth_value", self.kth_value)
             self.best_k_models = state_dict.get("best_k_models", self.best_k_models)
             self.last_model_path = state_dict.get("last_model_path", self.last_model_path)
         else:
@@ -395,7 +395,7 @@ class ModelCheckpoint(Callback):
         from pytorch_lightning.trainer.states import TrainerFn
 
         return (
-            trainer.fast_dev_run  # disable checkpointing with fast_dev_run
+            trainer.fast_dev_run == True  # disable checkpointing with fast_dev_run
             or trainer.state.fn != TrainerFn.FITTING  # don't save anything during non-fit
             or trainer.sanity_checking  # don't save anything during sanity check
             or self._last_global_step_saved == trainer.global_step  # already saved at the last step
@@ -446,7 +446,7 @@ class ModelCheckpoint(Callback):
 
     def __init_monitor_mode(self, mode: str) -> None:
         torch_inf = torch.tensor(np.Inf)
-        mode_dict = {"min": (torch_inf, "min"), "max": (-torch_inf, "max")}
+        mode_dict: Dict[str, Tuple[Tensor, str]] = {"min": (torch_inf, "min"), "max": (-torch_inf, "max")}
 
         if mode not in mode_dict:
             raise MisconfigurationException(f"`mode` can be {', '.join(mode_dict.keys())} but got {mode}")
@@ -491,6 +491,7 @@ class ModelCheckpoint(Callback):
 
         monitor_op = {"min": torch.lt, "max": torch.gt}[self.mode]
         should_update_best_and_save = monitor_op(current, self.best_k_models[self.kth_best_model_path])
+        assert isinstance(should_update_best_and_save, bool)
 
         # If using multiple devices, make sure all processes are unanimous on the decision.
         should_update_best_and_save = trainer.strategy.reduce_boolean_decision(should_update_best_and_save)
@@ -590,7 +591,7 @@ class ModelCheckpoint(Callback):
             # the user has changed weights_save_path
             ckpt_path = os.path.join(trainer._weights_save_path_internal, "checkpoints")
         elif trainer.loggers:
-            if len(trainer.loggers) == 1:
+            if trainer.logger is not None:
                 save_dir = trainer.logger.save_dir or trainer.default_root_dir
             else:
                 save_dir = trainer.default_root_dir
@@ -608,7 +609,9 @@ class ModelCheckpoint(Callback):
 
         self.dirpath = ckpt_path
 
-    def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
+    def __warn_if_dir_not_empty(self, dirpath: Optional[_PATH]) -> None:
+        if dirpath is None:
+            rank_zero_warn(f"Checkpoint directory doesn't exist.")
         if self.save_top_k != 0 and self._fs.isdir(dirpath) and len(self._fs.ls(dirpath)) > 0:
             rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
 
@@ -652,8 +655,9 @@ class ModelCheckpoint(Callback):
             trainer.strategy.remove_checkpoint(previous)
 
     def _save_monitor_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, _METRIC]) -> None:
+        assert self.monitor
         current = monitor_candidates.get(self.monitor)
-        if self.check_monitor_top_k(trainer, current):
+        if isinstance(current, Tensor) and self.check_monitor_top_k(trainer, current):
             self._update_best_and_save(current, trainer, monitor_candidates)
         elif self.verbose:
             epoch = monitor_candidates["epoch"]
@@ -688,14 +692,15 @@ class ModelCheckpoint(Callback):
         self.current_score = current
         self.best_k_models[filepath] = current
 
+        getter: Any = self.best_k_models.get
         if len(self.best_k_models) == k:
             # monitor dict has reached k elements
             _op = max if self.mode == "min" else min
-            self.kth_best_model_path = _op(self.best_k_models, key=self.best_k_models.get)
+            self.kth_best_model_path = _op(self.best_k_models, key=getter)
             self.kth_value = self.best_k_models[self.kth_best_model_path]
 
         _op = min if self.mode == "min" else max
-        self.best_model_path = _op(self.best_k_models, key=self.best_k_models.get)
+        self.best_model_path = _op(self.best_k_models, key=getter)
         self.best_model_score = self.best_k_models[self.best_model_path]
 
         if self.verbose:
@@ -715,6 +720,7 @@ class ModelCheckpoint(Callback):
         file."""
         best_k = {k: v.item() for k, v in self.best_k_models.items()}
         if filepath is None:
+            assert self.dirpath
             filepath = os.path.join(self.dirpath, "best_k_models.yaml")
         with self._fs.open(filepath, "w") as fp:
             yaml.dump(best_k, fp)
