@@ -1955,28 +1955,6 @@ class LightningModule(
             )
         self._use_amp = use_amp
 
-    def add_to_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
-        """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
-        sharing, we cast the data to numpy.
-
-        Args:
-            queue: the instance of the queue to append the data.
-
-        .. deprecated:: v1.5
-            This method was deprecated in v1.5 and will be removed in v1.7.
-        """
-
-    def get_from_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
-        """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
-        we cast back the data to ``torch.Tensor``.
-
-        Args:
-            queue: the instance of the queue from where to get the data.
-
-        .. deprecated:: v1.5
-            This method was deprecated in v1.5 and will be removed in v1.7.
-        """
-
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> None:
         self._should_prevent_trainer_and_dataloaders_deepcopy = True
