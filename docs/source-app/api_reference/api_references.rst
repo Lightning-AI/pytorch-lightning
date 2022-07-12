@@ -67,8 +67,8 @@ _______
     :nosignatures:
     :template: classtemplate_no_index.rst
 
-    ~path.Path
     ~drive.Drive
+    ~path.Path
     ~payload.Payload
 
 Learn more about :ref:`Storage <storage>`.
