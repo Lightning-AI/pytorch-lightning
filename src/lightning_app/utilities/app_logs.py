@@ -33,14 +33,13 @@ class _LogEvent:
     labels: _LogEventLabels
 
 
-# This is to push new events to common read_queue
 def _push_logevents_to_read_queue_callback(component_name: str, read_queue: queue.PriorityQueue):
+    """Pushes _LogEvents from websocket to read_queue. Returns callback function used with `on_message_callback` of websocket.WebSocketApp."""
+
     def callback(ws_app: WebSocketApp, msg: str):
         # We strongly trust that the contract on API will hold atm :D
         event_dict = json.loads(msg)
         labels = _LogEventLabels(**event_dict["labels"])
-        # if "message" not in event_dict:
-        #     print(">>>>>>>",component_name,  event_dict)
         if "message" in event_dict:
             event = _LogEvent(
                 message=event_dict["message"],
