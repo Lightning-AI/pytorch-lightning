@@ -120,17 +120,18 @@ def _patch_sys_argv():
     from lightning_app.cli.lightning_cli import run_app
 
     original_argv = sys.argv
+    sys.argv = [v for v in sys.argv if v not in ("lightning", "run", "app")]
     if "--app_args" not in sys.argv:
-        new_argv = [sys.executable] + sys.argv[3:4]
+        new_argv = sys.argv[:1]
     else:
         options = [p.opts[0] for p in run_app.params[1:] if p.opts[0] != "--app_args"]
-        argv_slice = sys.argv[3:]
+        argv_slice = sys.argv
         first_index = argv_slice.index("--app_args") + 1
         last_index = min(
             [len(argv_slice)]
             + [argv_slice.index(opt) for opt in options if opt in argv_slice and argv_slice.index(opt) > first_index]
         )
-        new_argv = [sys.executable] + [argv_slice[0]] + argv_slice[first_index:last_index]
+        new_argv = [argv_slice[0]] + argv_slice[first_index:last_index]
     sys.argv = new_argv
     yield
     sys.argv = original_argv

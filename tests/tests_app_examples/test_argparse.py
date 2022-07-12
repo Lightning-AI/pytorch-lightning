@@ -14,7 +14,7 @@ def test_app_argparse_example():
         "--without-server",
     ]
     result = application_testing(command_line=command_line)
-    assert result.exit_code == 0
+    assert result.exit_code == 0, result.__dict__
 
 
 def test_patch_sys_argv():
@@ -22,15 +22,15 @@ def test_patch_sys_argv():
 
     sys.argv = ["lightning", "run", "app", "app.py"]
     with _patch_sys_argv():
-        assert sys.argv == [sys.executable, "app.py"]
+        assert sys.argv == ["app.py"]
 
     sys.argv = ["lightning", "run", "app", "app.py", "--without-server", "--env", "name=something"]
     with _patch_sys_argv():
-        assert sys.argv == [sys.executable, "app.py"]
+        assert sys.argv == ["app.py"]
 
     sys.argv = ["lightning", "run", "app", "app.py", "--app_args"]
     with _patch_sys_argv():
-        assert sys.argv == [sys.executable, "app.py"]
+        assert sys.argv == ["app.py"]
 
     sys.argv = [
         "lightning",
@@ -45,6 +45,6 @@ def test_patch_sys_argv():
         "name=something",
     ]
     with _patch_sys_argv():
-        assert sys.argv == [sys.executable, "app.py", "--use_gpu", "--name=hello"]
+        assert sys.argv == ["app.py", "--use_gpu", "--name=hello"]
 
     sys.argv = original_argv
