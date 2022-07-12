@@ -24,7 +24,8 @@ class ServableBoringModel(BoringModel, ServableModule):
         return {"x": Tensor.deserialize}, {"output": Tensor.serialize}
 
     def serve_step(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
-        return {"output": self(x)}
+        assert torch.equal(x, torch.arange(32).float())
+        return {"output": torch.tensor([0, 1])}
 
 
 def test_sanity_serving():
@@ -32,7 +33,7 @@ def test_sanity_serving():
     model = ServableBoringModel()
     callback = SanityServing()
     callback.on_train_start(None, model)
-    assert callback.resp.json() == {"output": [-7.451034069061279, 1.635885238647461]}
+    assert callback.resp.json() == {"output": [0, 1]}
 
 
 def test_sanity_serving_trainer():
@@ -40,4 +41,4 @@ def test_sanity_serving_trainer():
     callback = SanityServing()
     trainer = Trainer(max_epochs=1, limit_train_batches=2, limit_val_batches=0, callbacks=[callback])
     trainer.fit(ServableBoringModel())
-    assert callback.resp.json() == {"output": [-7.451034069061279, 1.635885238647461]}
+    assert callback.resp.json() == {"output": [0, 1]}
