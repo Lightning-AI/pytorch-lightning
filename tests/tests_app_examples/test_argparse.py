@@ -41,6 +41,12 @@ def test_patch_sys_argv():
 
     assert sys.argv == expected
 
+    sys.argv = expected = ["lightning", "run", "app", "app.py", "--app_args", "--env", "name=something"]
+    with _patch_sys_argv():
+        assert sys.argv == ["app.py"]
+
+    assert sys.argv == expected
+
     sys.argv = expected = [
         "lightning",
         "run",
