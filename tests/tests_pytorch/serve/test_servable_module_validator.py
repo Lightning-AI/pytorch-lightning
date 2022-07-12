@@ -12,16 +12,13 @@ class ServableBoringModel(BoringModel, ServableModule):
         return {"body": {"x": list(range(32))}}
 
     def configure_serialization(self):
-        class Tensor:
-            @staticmethod
-            def deserialize(x):
-                return torch.tensor(x, dtype=torch.float)
+        def deserialize(x):
+            return torch.tensor(x, dtype=torch.float)
 
-            @staticmethod
-            def serialize(x):
-                return x.tolist()
+        def serialize(x):
+            return x.tolist()
 
-        return {"x": Tensor.deserialize}, {"output": Tensor.serialize}
+        return {"x": deserialize}, {"output": serialize}
 
     def serve_step(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
         assert torch.equal(x, torch.arange(32).float())
