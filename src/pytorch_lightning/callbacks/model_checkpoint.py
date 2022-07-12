@@ -657,8 +657,8 @@ class ModelCheckpoint(Checkpoint):
     def _save_monitor_checkpoint(self, trainer: "pl.Trainer", monitor_candidates: Dict[str, Tensor]) -> None:
         assert self.monitor
         current = monitor_candidates.get(self.monitor)
-        assert isinstance(current, Tensor)
         if self.check_monitor_top_k(trainer, current):
+            assert current is not None
             self._update_best_and_save(current, trainer, monitor_candidates)
         elif self.verbose:
             epoch = monitor_candidates["epoch"]
@@ -693,15 +693,14 @@ class ModelCheckpoint(Checkpoint):
         self.current_score = current
         self.best_k_models[filepath] = current
 
-        getter: Any = self.best_k_models.get
         if len(self.best_k_models) == k:
             # monitor dict has reached k elements
             _op = max if self.mode == "min" else min
-            self.kth_best_model_path = _op(self.best_k_models, key=getter)
+            self.kth_best_model_path = _op(self.best_k_models, key=self.best_k_models.get)  # type: ignore[arg-type]
             self.kth_value = self.best_k_models[self.kth_best_model_path]
 
         _op = min if self.mode == "min" else max
-        self.best_model_path = _op(self.best_k_models, key=getter)
+        self.best_model_path = _op(self.best_k_models, key=self.best_k_models.get)  # type: ignore[arg-type]
         self.best_model_score = self.best_k_models[self.best_model_path]
 
         if self.verbose:
