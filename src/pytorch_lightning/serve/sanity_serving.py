@@ -8,8 +8,15 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.serve.module import ServableModule
+from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy, DDPFullyShardedStrategy, DeepSpeedStrategy
 from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
+
+_NOT_SUPPORTED_STRATEGIES = (
+    DeepSpeedStrategy,
+    DDPFullyShardedNativeStrategy,
+    DDPFullyShardedStrategy,
+)
 
 
 class SanityServing(Callback):
@@ -54,6 +61,12 @@ class SanityServing(Callback):
 
     @rank_zero_only
     def on_train_start(self, trainer: "pl.Trainer", servable_model: "ServableModule"):
+        if isinstance(trainer.strategy, _NOT_SUPPORTED_STRATEGIES):
+            raise Exception(
+                f"The current strategy {trainer.strategy} used "
+                "by the trainer isn't supported for sanity serving yet."
+            )
+
         isinstance(servable_model, ServableModule)
 
         process = Process(target=self._start_server, args=(servable_model, self.host, self.port, self.optimization))
@@ -74,9 +87,10 @@ class SanityServing(Callback):
 
     @property
     def successful(self) -> bool:
+        """Returns whether the model was successful served."""
         return self.resp.status_code == 200 if self.resp else False
 
-    def state_dict(self):
+    def state_dict(self) -> Dict[str, Any]:
         return {"successful": self.successful, "optimization": self.optimization, "server": self.server}
 
     @staticmethod
