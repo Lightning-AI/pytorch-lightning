@@ -5,7 +5,7 @@ Objective
 
 Create a simple application where users can enter information in a UI to run a given PyTorch Lightning Script from a given Github Repo with optionally some extra python requirements and arguments.
 
-Futhermore, the users should be able to monitor their training progress in real-time, view the logs and get the best monitored metric and associated checkpoint for their models.
+Furthermore, the users should be able to monitor their training progress in real-time, view the logs, and get the best-monitored metric and associated checkpoint for their models.
 
 ----
 
