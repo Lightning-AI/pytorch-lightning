@@ -4,6 +4,7 @@ from typing import Any, Dict, Optional
 
 import requests
 import torch
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
@@ -21,7 +22,6 @@ _NOT_SUPPORTED_STRATEGIES = (
 
 
 class ServableModuleValidator(Callback):
-
     """The ServableModuleValidator callback enables to validate a model is servable following the ServableModule
     API.
 
@@ -34,8 +34,8 @@ class ServableModuleValidator(Callback):
 
     def __init__(
         self,
-        optimization: Optional[str] = None,
-        server: str = "fastapi",
+        optimization: Optional[Literal["trace", "script", "onnx", "tensorRt"]] = None,
+        server: Literal["fastapi", "ml_server", "torchserve", "sagemaker"] = "fastapi",
         host: str = "127.0.0.1",
         port: int = 8080,
     ):
@@ -47,13 +47,10 @@ class ServableModuleValidator(Callback):
         if not uvicorn_installed:
             raise ModuleNotFoundError(uvicorn_installed.message)
 
-        # TODO: Add support for those optimizations
-        assert optimization in (None, "trace", "script", "onnx", "tensor_rt")
+        # TODO: Add support for the other options
         if optimization is not None:
             raise NotImplementedError(f"The optimization {optimization} is currently not supported.")
-
         # TODO: Add support for testing with those server services
-        assert server in ("fastapi", "ml_server", "torch_serve", "sagemaker")
         if server != "fastapi":
             raise NotImplementedError("Only the fastapi server is currently supported.")
 
@@ -61,29 +58,27 @@ class ServableModuleValidator(Callback):
         self.host = host
         self.port = port
         self.server = server
-        self.resp = None
+        self.resp: Optional[requests.Response] = None
 
     @rank_zero_only
-    def on_train_start(self, trainer: "pl.Trainer", servable_model: "ServableModule"):
+    def on_train_start(self, trainer: "pl.Trainer", servable_module: "pl.LightningModule") -> None:
         if isinstance(trainer.strategy, _NOT_SUPPORTED_STRATEGIES):
             raise Exception(
                 f"The current strategy {trainer.strategy} used "
                 "by the trainer isn't supported for sanity serving yet."
             )
 
-        if not isinstance(servable_model, ServableModule):
+        if not isinstance(servable_module, ServableModule):
             raise TypeError(f"The provided model should be subclass of {ServableModule.__qualname__}.")
 
-        if not is_overridden("configure_payload", servable_model, ServableModule):
+        if not is_overridden("configure_payload", servable_module, ServableModule):
             raise NotImplementedError("The `configure_payload` method needs to be overridden.")
-
-        if not is_overridden("configure_serialization", servable_model, ServableModule):
+        if not is_overridden("configure_serialization", servable_module, ServableModule):
             raise NotImplementedError("The `configure_serialization` method needs to be overridden.")
-
-        if not is_overridden("serve_step", servable_model, ServableModule):
+        if not is_overridden("serve_step", servable_module, ServableModule):
             raise NotImplementedError("The `serve_step` method needs to be overridden.")
 
-        process = Process(target=self._start_server, args=(servable_model, self.host, self.port, self.optimization))
+        process = Process(target=self._start_server, args=(servable_module, self.host, self.port, self.optimization))
         process.start()
 
         ready = False
@@ -95,7 +90,7 @@ class ServableModuleValidator(Callback):
                 pass
             time.sleep(0.1)
 
-        payload = servable_model.configure_payload()
+        payload = servable_module.configure_payload()
 
         if "body" not in payload:
             raise Exception(f"Your provided payload {payload} should have a field body.")
@@ -105,7 +100,7 @@ class ServableModuleValidator(Callback):
 
     @property
     def successful(self) -> bool:
-        """Returns whether the model was successful served."""
+        """Returns whether the model was successfully served."""
         return self.resp.status_code == 200 if self.resp else False
 
     def state_dict(self) -> Dict[str, Any]:
