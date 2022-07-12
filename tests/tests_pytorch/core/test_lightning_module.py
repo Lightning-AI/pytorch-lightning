@@ -276,11 +276,17 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=1)
-def test_device_placement(tmpdir):
+@pytest.mark.parametrize(
+    "accelerator,device",
+    [
+        pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
+    ],
+)
+def test_device_placement(tmpdir, accelerator, device):
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="gpu", devices=1)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator=accelerator, devices=1)
     trainer.fit(model)
 
     def assert_device(device: torch.device) -> None:
@@ -289,8 +295,8 @@ def test_device_placement(tmpdir):
             assert p.device == device
 
     assert_device(torch.device("cpu"))
-    model.to(torch.device("cuda:0"))
-    assert_device(torch.device("cuda:0"))
+    model.to(torch.device(device))
+    assert_device(torch.device(device))
     trainer.test(model)
     assert_device(torch.device("cpu"))
     trainer.predict(model, dataloaders=model.train_dataloader())
@@ -299,7 +305,10 @@ def test_device_placement(tmpdir):
 
 @RunIf(min_torch="1.10", skip_windows=True)
 def test_sharded_tensor_state_dict(single_process_pg):
-    from torch.distributed._sharded_tensor import empty as sharded_tensor_empty
+    if _TORCH_GREATER_EQUAL_1_11:
+        from torch.distributed._shard.sharded_tensor import empty as sharded_tensor_empty
+    else:
+        from torch.distributed._sharded_tensor import empty as sharded_tensor_empty
     from torch.distributed._sharding_spec import ChunkShardingSpec
 
     class BoringModelWithShardedTensor(BoringModel):

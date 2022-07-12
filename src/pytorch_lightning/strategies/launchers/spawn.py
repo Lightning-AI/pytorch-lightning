@@ -54,7 +54,7 @@ class _SpawnLauncher(_Launcher):
     def is_interactive_compatible(self) -> bool:
         # The start method 'spawn' is currently the only one that works with DDP and CUDA support
         # The start method 'fork' is the only one supported in Jupyter environments but not compatible with CUDA
-        # For more context, see https://github.com/PyTorchLightning/pytorch-lightning/issues/7550
+        # For more context, see https://github.com/Lightning-AI/lightning/issues/7550
         return self._start_method == "fork" and self._strategy.root_device.type != "cuda"
 
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
@@ -109,7 +109,7 @@ class _SpawnLauncher(_Launcher):
 
     def _recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer: "pl.Trainer") -> None:
         # transfer back the best path to the trainer
-        if trainer.checkpoint_callback:
+        if trainer.checkpoint_callback and hasattr(trainer.checkpoint_callback, "best_model_path"):
             trainer.checkpoint_callback.best_model_path = str(spawn_output.best_model_path)
 
         # TODO: pass also best score
@@ -131,7 +131,11 @@ class _SpawnLauncher(_Launcher):
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
         rank_zero_debug("Finalizing the DDP spawn environment.")
         checkpoint_callback = trainer.checkpoint_callback
-        best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
+        best_model_path = (
+            checkpoint_callback.best_model_path
+            if checkpoint_callback and hasattr(checkpoint_callback, "best_model_path")
+            else None
+        )
 
         # requires to compute the state_dict on all processes in case Metrics are present
         state_dict = trainer.lightning_module.state_dict()

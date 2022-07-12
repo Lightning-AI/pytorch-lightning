@@ -27,7 +27,7 @@ Basic use
 
 .. displayitem::
    :header: 2: Mix models and datasets
-   :description: Register models, datasets, optimizers and learning rate schedulers
+   :description: Support multiple models, datasets, optimizers and learning rate schedulers
    :col_css: col-md-4
    :button_link: lightning_cli_intermediate_2.html
    :height: 150
@@ -66,8 +66,8 @@ Advanced use
    :tag: advanced
 
 .. displayitem::
-   :header: Customize configs for complex projects
-   :description: Learn how to connect complex projects with each Registry.
+   :header: Customize for complex projects
+   :description: Learn how to implement CLIs for complex projects.
    :col_css: col-md-6
    :button_link: lightning_cli_advanced_3.html
    :height: 150

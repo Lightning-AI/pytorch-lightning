@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Copyright 2020 The PyTorch Lightning team and Microsoft Corporation. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +19,7 @@ import os
 
 import torch
 
-from pytorch_lightning.utilities import _DEEPSPEED_AVAILABLE
+from pytorch_lightning.strategies.deepspeed import _DEEPSPEED_AVAILABLE
 from pytorch_lightning.utilities.types import _PATH
 
 if _DEEPSPEED_AVAILABLE:
