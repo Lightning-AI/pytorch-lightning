@@ -129,7 +129,7 @@ jobs:
         env:
           LAI_USER: ${{ secrets.LAI_USER }}
           LAI_PASS: ${{ secrets.LAI_PASS }}
-          LIGHTNING_USER_ID: ${{ secrets.GRID_USER_ID }}
+          LIGHTNING_USER_ID: ${{ secrets.LIGHTNING_USER_ID }}
           LIGHTNING_API_KEY: ${{ secrets.LIGHTNING_API_KEY }}
           LIGHTNING_USERNAME: ${{ secrets.LIGHTNING_USERNAME }}
           LIGHTNING_CLOUD_URL: ${{ secrets.LIGHTNING_CLOUD_URL }}
