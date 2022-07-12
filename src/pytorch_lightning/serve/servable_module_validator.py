@@ -73,13 +73,13 @@ class ServableModuleValidator(Callback):
             raise Exception("The provided model should be subclass of pytorch_lightning.server.ServableModule.")
 
         if not is_overridden("configure_payload", servable_model, ServableModule):
-            raise Exception("The ``configure_payload`` method needs to be overridden.")
+            raise NotImplementedError("The `configure_payload` method needs to be overridden.")
 
         if not is_overridden("configure_serialization", servable_model, ServableModule):
-            raise Exception("The ``configure_serialization`` method needs to be overridden.")
+            raise NotImplementedError("The `configure_serialization` method needs to be overridden.")
 
         if not is_overridden("serve_step", servable_model, ServableModule):
-            raise Exception("The ``serve_step`` method needs to be overridden.")
+            raise NotImplementedError("The `serve_step` method needs to be overridden.")
 
         process = Process(target=self._start_server, args=(servable_model, self.host, self.port, self.optimization))
         process.start()
