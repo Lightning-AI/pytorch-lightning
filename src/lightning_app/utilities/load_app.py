@@ -4,7 +4,7 @@ import os
 import sys
 import traceback
 import types
-from argparse import ArgumentParser
+from contextlib import contextmanager
 from typing import Dict, List, TYPE_CHECKING, Union
 
 from lightning_app.utilities.exceptions import MisconfigurationException
@@ -27,7 +27,8 @@ def load_app_from_file(filepath: str) -> "LightningApp":
     code = _create_code(filepath)
     module = _create_fake_main_module(filepath)
     try:
-        exec(code, _patch_argparse(module.__dict__))
+        with _patch_sys_argv():
+            exec(code, module.__dict__)
     except Exception:
         # we want to format the exception as if no frame was on top.
         exp, val, tb = sys.exc_info()
@@ -114,17 +115,25 @@ def _create_fake_main_module(script_path):
     return module
 
 
-def _patch_argparse(exec_globals):
-    """This function replaces parse_args by parse_known_args to avoid Argparse to fails due to lightning run
-    app."""
-    cls = ArgumentParser
+@contextmanager
+def _patch_sys_argv():
+    from lightning_app.cli.lightning_cli import run_app
 
-    def fn(*args, **kwargs):
-        return ArgumentParser.parse_known_args(*args, **kwargs)[0]
-
-    cls.parse_args = fn
-    exec_globals["ArgumentParser"] = cls
-    return exec_globals
+    original_argv = sys.argv
+    if "--app_args" not in sys.argv:
+        new_argv = [sys.executable] + sys.argv[3:4]
+    else:
+        options = [p.opts[0] for p in run_app.params[1:] if p.opts[0] != "--app_args"]
+        argv_slice = sys.argv[3:]
+        first_index = argv_slice.index("--app_args") + 1
+        last_index = min(
+            [len(argv_slice)]
+            + [argv_slice.index(opt) for opt in options if opt in argv_slice and argv_slice.index(opt) > first_index]
+        )
+        new_argv = [sys.executable] + [argv_slice[0]] + argv_slice[first_index:last_index]
+    sys.argv = new_argv
+    yield
+    sys.argv = original_argv
 
 
 def component_to_metadata(obj: Union["LightningWork", "LightningFlow"]) -> Dict:

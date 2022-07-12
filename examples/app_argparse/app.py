@@ -1,4 +1,4 @@
-from argparse import ArgumentParser
+import argparse
 
 from lightning import CloudCompute, LightningApp, LightningFlow, LightningWork
 
@@ -22,7 +22,7 @@ class Flow(LightningFlow):
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser()
+    parser = argparse.ArgumentParser()
     parser.add_argument("--use_gpu", action="store_true", default=False, help="Whether to use GPU in the cloud")
     hparams = parser.parse_args()
     app = LightningApp(Flow(CloudCompute("gpu" if hparams.use_gpu else "cpu")))
