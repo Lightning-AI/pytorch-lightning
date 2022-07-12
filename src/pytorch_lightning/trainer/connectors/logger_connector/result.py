@@ -524,8 +524,8 @@ class _ResultCollection(dict):
             if result_metric._computed is None:
                 if not result_metric.meta.sync.should:
                     warning_cache.warn(
-                        f"It is recommended to use `self.log({result_metric.meta.name}, sync_dist=True)` when logging"
-                        " on epoch level in distributed setting to accumulate the metric across devices."
+                        f"It is recommended to use `self.log({result_metric.meta.name!r}, sync_dist=True)` when"
+                        " logging on epoch level in distributed setting to accumulate the metric across devices."
                     )
                 result_metric.compute()
 
