@@ -14,7 +14,14 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 class SanityServing(Callback):
 
-    """This callback enables to validate a model is servable following the ServableModule API."""
+    """This callback enables to validate a model is servable following the ServableModule API.
+
+    Arguments:
+        optimization: The format in which the model should be tested while being served.
+        server: The library used to evaluate the model serving. Default is FastAPI.
+        host: The host address associated the server.
+        port: The port associated the server.
+    """
 
     def __init__(
         self,
@@ -31,7 +38,7 @@ class SanityServing(Callback):
 
         # TODO: Add support for those optimizations
         assert optimization in (None, "trace", "script", "onnx", "tensor_rt")
-        if optimization in ("trace", "script", "onnx", "tensor_rt"):
+        if optimization is not None:
             raise NotImplementedError(f"The optimization {optimization} is currently not supported.")
 
         # TODO: Add support for testing with those server services
