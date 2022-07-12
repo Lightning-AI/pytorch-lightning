@@ -391,6 +391,9 @@ class BatchSizeFinder(Callback):
 
         # TODO improve this for multi eval dataloaders
         if trainer.state.fn == "fit":
+            if trainer.train_dataloader is None:
+                trainer.reset_train_dataloader()
+
             assert trainer.train_dataloader is not None
             if not self._is_valid_batch_size(new_size, trainer.train_dataloader, trainer):
                 new_size = min(new_size, len(trainer.train_dataloader.dataset))
@@ -398,6 +401,11 @@ class BatchSizeFinder(Callback):
             stage = trainer.state.stage
             assert stage is not None
             dataloaders = getattr(trainer, f"{stage.dataloader_prefix}_dataloaders")
+            if dataloaders is None:
+                getattr(trainer, f"reset_{stage.dataloader_prefix}_dataloader")()
+
+            dataloaders = getattr(trainer, f"{stage.dataloader_prefix}_dataloaders")
+            assert dataloaders is not None
             if not self._is_valid_batch_size(new_size, dataloaders[0], trainer):
                 new_size = min(new_size, len(dataloaders[0].dataset))
 
