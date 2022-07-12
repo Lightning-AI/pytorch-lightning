@@ -31,7 +31,6 @@ from pytorch_lightning.plugins.environments import (
     TorchElasticEnvironment,
 )
 from pytorch_lightning.strategies import SingleDeviceStrategy
-from tests_pytorch.deprecated_api import _soft_unimport_module
 from tests_pytorch.plugins.environments.test_lsf_environment import _make_rankfile
 
 
@@ -74,15 +73,6 @@ def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
         match=r"Method `on_post_move_to_device` has been deprecated in v1.5 and will be removed in v1.7"
     ):
         trainer.fit(model)
-
-
-def test_v1_7_0_deprecate_parameter_validation():
-
-    _soft_unimport_module("pytorch_lightning.core.decorators")
-    with pytest.deprecated_call(
-        match="Using `pytorch_lightning.core.decorators.parameter_validation` is deprecated in v1.5"
-    ):
-        from pytorch_lightning.core.decorators import parameter_validation  # noqa: F401
 
 
 def test_v1_7_0_deprecated_slurm_job_id():
