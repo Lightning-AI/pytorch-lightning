@@ -4,11 +4,11 @@
 4. Implement the UI with StreamLit
 **********************************
 
-In step 3, we have implemented a flow which dynamically create a work when a new request is added to the requests list.
+In step 3, we have implemented a flow that dynamically creates a Work when a new request is added to the requests list.
 
 From the UI, we create 3 pages with `StreamLit <https://streamlit.io/>`_:
 
-* **Page 1**: Create a form with add a new request to the flow state **requests**.
+* **Page 1**: Create a form to add a new request to the flow state **requests**.
 
 * **Page 2**: Iterate through all the requests and display associated information.
 

@@ -32,10 +32,10 @@ ___________________
     :nosignatures:
     :template: classtemplate_no_index.rst
 
-    ~python.popen.PopenPythonScript
-    ~python.tracer.TracerPythonScript
-    ~serve.gradio.ServeGradio
     ~serve.serve.ModelInferenceAPI
+    ~python.popen.PopenPythonScript
+    ~serve.gradio.ServeGradio
+    ~python.tracer.TracerPythonScript
 
 ----
 
@@ -67,8 +67,8 @@ _______
     :nosignatures:
     :template: classtemplate_no_index.rst
 
-    ~path.Path
     ~drive.Drive
+    ~path.Path
     ~payload.Payload
 
 Learn more about :ref:`Storage <storage>`.
@@ -86,5 +86,5 @@ _______
     :template: classtemplate_no_index.rst
 
     ~cloud.CloudRuntime
-    ~singleprocess.SingleProcessRuntime
     ~multiprocess.MultiProcessRuntime
+    ~singleprocess.SingleProcessRuntime

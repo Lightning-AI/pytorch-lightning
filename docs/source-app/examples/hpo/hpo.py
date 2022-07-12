@@ -36,7 +36,7 @@ while not DONE:
             # Run the work
             objective_work.run(trial_id=trial._trial_id, **trial.params)
 
-        # With Lighting, the `objective_work` will run asynchronously
+        # With Lightning, the `objective_work` will run asynchronously
         # and the metric will be prodcued after X amount of time.
         # The Lightning Infinite Loop would have run a very large number of times by then.
         if objective_work.metric and not objective_work.has_told_study:

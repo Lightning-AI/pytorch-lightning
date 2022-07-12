@@ -41,9 +41,9 @@ There are a couple of ways you can add a dynamic Work:
         def run(self):
 
             if not hasattr(self, "work"):
-		# The `Work` component is created and attached here.
+		        # The `Work` component is created and attached here.
                 setattr(self, "work", Work())
-	    # Run the `Work` component.
+	        # Run the `Work` component.
             getattr(self,  "work").run()
 
 **OPTION 2:** Use the built-in Lightning classes :class:`~lightning_app.structures.Dict` or :class:`~lightning_app.structures.List`

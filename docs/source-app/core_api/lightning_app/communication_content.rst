@@ -1,6 +1,6 @@
 
 ********************************
-Communication between components
+Communication Between Components
 ********************************
 
 When creating interactive Lightning Apps (App) with multiple components, you may need your components to share information with each other and rely on that information to control their execution, share progress in the UI, trigger a sequence of operations, etc.
@@ -9,7 +9,7 @@ To accomplish that, Lightning components can communicate using the App State. Th
 
 All attributes of all **LightningWork (Work)** components are accessible in the **LightningFlow (Flow)** components in real-time.
 
-By design, the Flows communicate to all **Works** within the application. However, Works can't communicate between each other directly, they must use Flows as a proxy to communicate.
+By design, the Flows communicate to all **Works** within the application. However, Works can't communicate with each other directly, they must use Flows as a proxy to communicate.
 
 Once a Work is running, any updates to the Work's state is automatically communicated to the Flow, as a delta (using `DeepDiff <https://github.com/seperman/deepdiff>`_). The state communication isn't bi-directional, communication is only done from Work to Flow.
 
@@ -71,7 +71,7 @@ Here is the associated illustration:
     :alt: Mechanism showing how delta are sent.
     :width: 100 %
 
-Here's another example that is slightly different. Here we define a Flow and Work, where the Work increments a counter indefinitely and the Flow prints its state which contains the Work.
+Here's another example that is slightly different. Here we define a Flow and Work, where the Work increments a counter indefinitely and the Flow prints its state which contain the Work.
 
 You can easily check the state of your entire app as follows:
 
