@@ -18,7 +18,6 @@ _logger = logging.getLogger("PanelFrontend")
 
 
 class PanelFrontend(Frontend):
-    # Todo: Add Example to docstring
     """The PanelFrontend enables you to serve Panel code as a Frontend for your LightningFlow.
 
     To use this frontend, you must first install the `panel` package:
@@ -27,6 +26,41 @@ class PanelFrontend(Frontend):
 
         pip install panel
 
+    Example:
+
+    `panel_app_basic.py`
+
+    .. code-block:: python
+
+        import panel as pn
+
+        pn.panel("Hello **Panel ⚡** World").servable()
+
+    `app_basic.py`
+
+    .. code-block:: python
+
+        import lightning as L
+        from lightning_app.frontend.panel import PanelFrontend
+
+        class LitPanel(L.LightningFlow):
+            def __init__(self):
+                super().__init__()
+                self._frontend = PanelFrontend("panel_app_basic.py")
+
+            def configure_layout(self):
+                return self._frontend
+        class LitApp(L.LightningFlow):
+            def __init__(self):
+                super().__init__()
+                self.lit_panel = LitPanel()
+
+            def configure_layout(self):
+                return {"name": "home", "content": self.lit_panel}
+
+
+        app = L.LightningApp(LitApp())
+    
     Please note the Panel server will be logging output to error.log and output.log files
     respectively.
 
