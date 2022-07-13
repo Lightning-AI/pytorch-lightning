@@ -309,6 +309,7 @@ class HiveMindScheduler:
 
     This code ensures that we only step when the HiveMind optimizer reaches the global step.
     """
+
     base_lrs: List[float]
 
     def __init__(self, optimizer: "hivemind.Optimizer", scheduler: _LRScheduler) -> None:
