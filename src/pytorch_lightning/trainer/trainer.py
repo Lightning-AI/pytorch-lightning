@@ -306,7 +306,7 @@ class Trainer(
                 Default: ``50``.
 
             enable_progress_bar: Whether to enable to progress bar by default.
-                Default: ``False``.
+                Default: ``True``.
 
             profiler: To profile individual steps during training and assist in identifying bottlenecks.
                 Default: ``None``.

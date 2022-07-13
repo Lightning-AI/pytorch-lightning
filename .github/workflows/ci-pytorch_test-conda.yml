@@ -79,7 +79,7 @@ jobs:
       run: coverage run --source pytorch_lightning -m pytest -v --timeout 150 --durations=50 --junitxml=results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
 
     - name: Upload pytest results
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: unittest-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}
         path: tests/tests_pytorch/results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
@@ -93,7 +93,7 @@ jobs:
         coverage xml
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v3
       if: always()
       # see: https://github.com/actions/toolkit/issues/399
       continue-on-error: true
