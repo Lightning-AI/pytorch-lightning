@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
+import weakref
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Dict, Iterator
@@ -64,7 +65,7 @@ def test_connect_loops_direct(loop_name):
 
     # trainer.loop_name = loop
     setattr(trainer, loop_name, loop)
-    assert loop.trainer is trainer
+    assert loop.trainer is weakref.proxy(trainer)
 
 
 def test_connect_loops_recursive():
@@ -82,8 +83,8 @@ def test_connect_loops_recursive():
 
     trainer = Trainer()
     trainer.fit_loop = main_loop
-    assert child0.trainer is trainer
-    assert child1.trainer is trainer
+    assert child0.trainer is child1.trainer
+    assert child0.trainer is weakref.proxy(trainer)
 
 
 def test_restarting_loops_recursive():
@@ -117,7 +118,7 @@ def test_connect_subloops(tmpdir):
         _ = new_batch_loop.trainer
 
     trainer.fit(model)
-    assert new_batch_loop.trainer is trainer
+    assert new_batch_loop.trainer is weakref.proxy(trainer)
 
 
 def test_replace_loops():
@@ -146,7 +147,7 @@ def test_replace_loops():
     assert new_loop.max_steps == 321
     assert new_loop.batch_loop is old_loop.batch_loop
     assert new_loop.val_loop is old_loop.val_loop
-    assert new_loop.trainer is trainer
+    assert new_loop.trainer is weakref.proxy(trainer)
 
     class MyBatchLoop(TrainingBatchLoop):
         ...

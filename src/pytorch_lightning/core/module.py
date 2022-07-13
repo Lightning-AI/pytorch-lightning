@@ -180,6 +180,8 @@ class LightningModule(
 
     @trainer.setter
     def trainer(self, trainer: "pl.Trainer") -> None:
+        if not isinstance(trainer, weakref.ProxyTypes):
+            trainer = weakref.proxy(trainer)
         self._trainer = trainer
         for v in self.children():
             if isinstance(v, LightningModule):

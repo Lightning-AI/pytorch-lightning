@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
+import weakref
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Generic, Optional, Type, TypeVar, Union
 
@@ -61,6 +62,8 @@ class Loop(ABC, Generic[T]):
     @trainer.setter
     def trainer(self, trainer: "pl.Trainer") -> None:
         """Connects this loop's trainer and its children."""
+        if not isinstance(trainer, weakref.ProxyTypes):
+            trainer = weakref.proxy(trainer)
         self._trainer = trainer
         for v in self.__dict__.values():
             if isinstance(v, Loop):

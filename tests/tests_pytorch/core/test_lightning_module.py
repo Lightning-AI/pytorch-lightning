@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import sys
+import weakref
 from unittest.mock import Mock
 
 import pytest
@@ -429,5 +430,7 @@ def test_trainer_reference_recursively():
 
     trainer = Mock()
     ensemble.trainer = trainer
-    assert ensemble.trainer is trainer
-    assert inner.trainer is trainer
+    # references match
+    assert ensemble.trainer is inner.trainer
+    # and the trainer was weakly referenced
+    assert inner.trainer is weakref.proxy(trainer)
