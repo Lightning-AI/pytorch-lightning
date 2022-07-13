@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, Dict, Optional, Union
+
 from typing_extensions import NotRequired, TypedDict
 
 import pytorch_lightning as pl
@@ -25,6 +26,7 @@ from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADER
 class _TunerResult(TypedDict):
     lr_find: NotRequired[Optional[_LRFinder]]
     scale_batch_size: NotRequired[Optional[int]]
+
 
 class Tuner:
     """Tuner class to tune your model."""
