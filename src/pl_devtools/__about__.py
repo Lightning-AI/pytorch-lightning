@@ -1,9 +1,11 @@
+import time
+
 __version__ = "0.0.0"
-__author__ = "PyTorchLightning et al."
-__author_email__ = "name@pytorchlightning.ai"
+__author__ = "Lightning AI et al."
+__author_email__ = "pytorch@lightning.ai"
 __license__ = "TBD"
-__copyright__ = f"Copyright (c) 2020-2021, {__author__}."
-__homepage__ = "https://github.com/PyTorchLightning/dev-toolbox"
+__copyright__ = f"Copyright (c) 2022-{time.strftime('%Y')}, {__author__}."
+__homepage__ = "https://github.com/Lightning-AI/dev-toolbox"
 __docs__ = "PyTorch Lightning Sample project."
 __long_doc__ = """
 What is it?

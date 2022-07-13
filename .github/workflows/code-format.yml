@@ -22,24 +22,3 @@ jobs:
       - name: mypy
         run: |
           mypy
-
-  pre-commit-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v2
-
-      - name: set PY
-        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
-      - uses: actions/cache@v2
-        with:
-          path: ~/.cache/pre-commit
-          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
-
-      - uses: pre-commit/action@v2.0.2
-        # this action also provides an additional behaviour when used in private repositories
-        # when configured with a github token, the action will push back fixes to the pull request branch
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}

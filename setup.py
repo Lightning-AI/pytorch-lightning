@@ -31,7 +31,7 @@ setup(
     author=about.__author__,
     author_email=about.__author_email__,
     url=about.__homepage__,
-    download_url="https://github.com/PyTorchLightning/dev-toolbox",
+    download_url="https://github.com/Lightning-AI/dev-toolbox",
     license=about.__license__,
     packages=find_packages(exclude=["tests", "docs"]),
     long_description=long_description,
@@ -43,9 +43,9 @@ setup(
     setup_requires=["wheel"],
     install_requires=setup_tools._load_requirements(_PATH_ROOT),
     project_urls={
-        "Bug Tracker": "https://github.com/PyTorchLightning/dev-toolbox/issues",
+        "Bug Tracker": "https://github.com/Lightning-AI/dev-toolbox/issues",
         "Documentation": "https://dev-toolbox.rtfd.io/en/latest/",
-        "Source Code": "https://github.com/PyTorchLightning/dev-toolbox",
+        "Source Code": "https://github.com/Lightning-AI/dev-toolbox",
     },
     classifiers=[
         "Environment :: Console",

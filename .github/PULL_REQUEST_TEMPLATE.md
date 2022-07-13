@@ -1,7 +1,7 @@
 # Before submitting
 
 - [ ] Was this discussed/approved via a Github issue? (no need for typos and docs improvements)
-- [ ] Did you read the [contributor guideline](https://github.com/PyTorchLightning/pytorch-lightning/blob/master/.github/CONTRIBUTING.md), Pull Request section?
+- [ ] Did you read the [contributor guideline](https://github.com/Lightning-AI/lightning/blob/master/.github/CONTRIBUTING.md), Pull Request section?
 - [ ] Did you make sure to update the docs?
 - [ ] Did you write any new necessary tests?
 
