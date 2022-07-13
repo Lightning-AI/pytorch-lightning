@@ -326,11 +326,7 @@ class Loop(ABC, Generic[T]):
 
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[key])
-            elif (
-                isinstance(v, _ResultCollection)
-                and trainer is not None
-                and trainer.lightning_module is not None
-            ):
+            elif isinstance(v, _ResultCollection) and trainer is not None and trainer.lightning_module is not None:
                 metric_attributes = {
                     name: module
                     for name, module in self.trainer.lightning_module.named_modules()
