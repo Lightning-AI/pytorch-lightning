@@ -114,10 +114,14 @@ class ServableModuleValidator(Callback):
 
         if is_overridden("configure_response", servable_module, ServableModule):
             response = servable_module.configure_response()
-            assert self.resp.json() == response
+            if self.resp.json() != response:
+                raise Exception(f"The expected response {response} doesn't match the generated one {self.resp.json()}.")
 
         if self.exit_on_failure and not self.successful:
             raise SystemExit("The ServableModel API hasn't been properly implemented.")
+
+        if self.successful:
+            print(f"Your model is servable and the received payload was {self.resp.json()}.")
 
     @property
     def successful(self) -> Optional[bool]:

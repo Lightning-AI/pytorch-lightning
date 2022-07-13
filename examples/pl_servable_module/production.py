@@ -4,7 +4,7 @@ import sys
 from dataclasses import dataclass
 from io import BytesIO
 from os import path
-from typing import Optional
+from typing import Dict, Optional
 
 import numpy as np
 import torch
@@ -13,6 +13,7 @@ import torchvision.models as models
 import torchvision.transforms as T
 from PIL import Image as PILImage
 
+from lightning import seed_everything
 from pytorch_lightning import cli_lightning_logo, LightningDataModule, LightningModule
 from pytorch_lightning.serve import ServableModule, ServableModuleValidator
 from pytorch_lightning.utilities.cli import LightningCLI
@@ -30,6 +31,7 @@ class LitModule(LightningModule):
     def __init__(self, name: str = "resnet18"):
         super().__init__()
         self.model = getattr(models, name)(pretrained=True)
+        self.model.fc = torch.nn.Linear(self.model.fc.in_features, 10)
         self.criterion = torch.nn.CrossEntropyLoss()
 
     def training_step(self, batch, batch_idx):
@@ -81,16 +83,10 @@ class Image:
         arr = np.array(img)
         return T.ToTensor()(arr).unsqueeze(0)
 
-    def serialize(self, tensor: torch.Tensor) -> str:
-        tensor = tensor.squeeze(0).numpy()
-        image = PILImage.fromarray(tensor)
-        if image.mode != self.mode:
-            image = image.convert(self.mode)
-        buffer = BytesIO()
-        image.save(buffer, format=self.extension.lower())
-        buffer.seek(0)
-        encoded = buffer.getvalue()
-        return base64.b64encode(encoded).decode("ascii")
+
+class Top1:
+    def serialize(self, tensor: torch.Tensor) -> int:
+        return torch.nn.functional.softmax(tensor).argmax().item()
 
 
 class ProductionReadyModel(LitModule, ServableModule):
@@ -113,14 +109,19 @@ class ProductionReadyModel(LitModule, ServableModule):
         return payload
 
     def configure_serialization(self):
-        image = Image(224, 224)
-        return {"x": image.deserialize}, {"output": image.serialize}
+        return {"x": Image(224, 224).deserialize}, {"output": Top1().serialize}
 
-    def serve_step(self, x):
+    def serve_step(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
         return {"output": self.model(x)}
+
+    def configure_response(self):
+        return {"output": 7}
 
 
 def cli_main():
+
+    seed_everything(42)
+
     if len(sys.argv) == 1:
         sys.argv += DEFAULT_CMD_LINE
 
