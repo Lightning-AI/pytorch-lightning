@@ -1,5 +1,4 @@
 import base64
-import sys
 from dataclasses import dataclass
 from io import BytesIO
 from os import path
@@ -17,12 +16,6 @@ from pytorch_lightning import cli_lightning_logo, LightningDataModule, Lightning
 from pytorch_lightning.serve import ServableModule, ServableModuleValidator
 from pytorch_lightning.utilities.cli import LightningCLI
 
-DEFAULT_CMD_LINE = (
-    "fit",
-    "--trainer.max_epochs=1",
-    "--trainer.limit_train_batches=15",
-    "--trainer.limit_val_batches=15",
-)
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 
 
@@ -116,15 +109,19 @@ def cli_main():
 
     seed_everything(42)
 
-    if len(sys.argv) == 1:
-        sys.argv += DEFAULT_CMD_LINE
-
-    LightningCLI(
+    cli = LightningCLI(
         ProductionReadyModel,
         CIFAR10DataModule,
         save_config_overwrite=True,
-        trainer_defaults={"callbacks": [ServableModuleValidator()]},
+        run=False,
+        trainer_defaults={
+            "callbacks": [ServableModuleValidator()],
+            "max_epochs": 1,
+            "limit_train_batches": 5,
+            "limit_val_batches": 5,
+        },
     )
+    cli.trainer.fit(cli.model, cli.datamodule)
 
 
 if __name__ == "__main__":
