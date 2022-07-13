@@ -22,7 +22,7 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, SequentialSampler
+from torch.utils.data import BatchSampler, DataLoader, DistributedSampler, RandomSampler, SequentialSampler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
@@ -409,7 +409,9 @@ class LightningLite(ABC):
 
     def _run_with_strategy_setup(self, run_method: Callable, *args: Any, **kwargs: Any) -> Any:
         self._strategy.setup_environment()
-        with self._strategy.model_sharded_context(), _replace_init_method(DataLoader, ["dataset"]):
+        with self._strategy.model_sharded_context(), _replace_init_method(
+            DataLoader, ["dataset"]
+        ), _replace_init_method(BatchSampler):
             return run_method(*args, **kwargs)
 
     def _move_model_to_device(self, model: nn.Module, optimizers: List[Optimizer]) -> nn.Module:

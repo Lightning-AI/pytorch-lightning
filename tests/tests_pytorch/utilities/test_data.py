@@ -3,13 +3,15 @@ from dataclasses import dataclass
 import pytest
 import torch
 from torch import Tensor
-from torch.utils.data.dataloader import DataLoader
+from torch.utils.data import BatchSampler, DataLoader, RandomSampler
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
+from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.data import (
     _get_dataloader_init_args_and_kwargs,
+    _inject_arg_to_saved,
     _replace_init_method,
     _update_dataloader,
     extract_batch_size,
@@ -311,7 +313,7 @@ def test_replace_init_method_dataloader(cls, args, kwargs, arg_names, dataset, c
         if isinstance(dataloader_value, torch.Tensor):
             assert dataloader_value is value
         else:
-            assert getattr(dataloader, key) == value
+            assert dataloader_value == value
 
     dataloader = _update_dataloader(dataloader, dataloader.sampler)
 
@@ -328,7 +330,107 @@ def test_replace_init_method_dataloader(cls, args, kwargs, arg_names, dataset, c
         if isinstance(dataloader_value, torch.Tensor):
             assert dataloader_value is value
         else:
-            assert getattr(dataloader, key) == value
+            assert dataloader_value == value
+
+
+def test_replace_init_method_extra_kwargs():
+    class LoaderSubclass(DataLoader):
+        def __init__(self, dataset, *args, batch_size=10, **kwargs):
+            super().__init__(dataset, *args, batch_size=batch_size, **kwargs)
+
+    with _replace_init_method(DataLoader, ["dataset"]):
+        dataloader = LoaderSubclass(range(10))
+
+    assert dataloader.__pl_saved_args == (range(10),)
+    assert dataloader.__pl_saved_kwargs == {"batch_size": 10}
+    assert dataloader.__pl_saved_arg_names == ("dataset",)
+    assert dataloader.__dataset == range(10)
+
+
+@pytest.mark.parametrize("predicting", [True, False])
+def test_custom_batch_sampler(predicting):
+    class MyBatchSampler(BatchSampler):
+        def __init__(self, sampler, extra_arg, drop_last=True):
+            self.extra_arg = extra_arg
+            super().__init__(sampler, 10, drop_last)
+
+    with _replace_init_method(BatchSampler):
+        sampler = RandomSampler(range(10))
+        dataloader = DataLoader(range(10), batch_sampler=MyBatchSampler(sampler, "random_str"))
+
+    assert dataloader.batch_sampler.__pl_saved_args == (sampler, "random_str")
+    assert dataloader.batch_sampler.__pl_saved_kwargs == {"drop_last": True}
+    assert dataloader.batch_sampler.__pl_saved_arg_names == ("sampler", "extra_arg")
+
+    dataloader = _update_dataloader(
+        dataloader, dataloader.sampler, mode=RunningStage.PREDICTING if predicting else None
+    )
+
+    batch_sampler = dataloader.batch_sampler
+
+    if predicting:
+        assert isinstance(batch_sampler, IndexBatchSamplerWrapper)
+        batch_sampler = batch_sampler._sampler
+
+    assert isinstance(batch_sampler, MyBatchSampler)
+    assert batch_sampler.drop_last == (not predicting)
+
+    assert batch_sampler.extra_arg == "random_str"
+    assert not hasattr(batch_sampler, "__pl_saved_kwargs")
+    assert not hasattr(batch_sampler, "__pl_saved_arg_names")
+    assert not hasattr(batch_sampler, "__pl_saved_args")
+
+
+def test_custom_batch_sampler_no_drop_last():
+    class MyBatchSampler(BatchSampler):
+        def __init__(self, sampler, extra_arg):
+            self.extra_arg = extra_arg
+            super().__init__(sampler, 10, False)
+
+    with _replace_init_method(BatchSampler):
+        sampler = RandomSampler(range(10))
+        dataloader = DataLoader(range(10), batch_sampler=MyBatchSampler(sampler, "random_str"))
+
+    assert dataloader.batch_sampler.__pl_saved_args == (sampler, "random_str")
+    assert dataloader.batch_sampler.__pl_saved_kwargs == {}
+    assert dataloader.batch_sampler.__pl_saved_arg_names == ("sampler", "extra_arg")
+
+    with pytest.warns(UserWarning, match="drop_last=False"):
+        dataloader = _update_dataloader(dataloader, dataloader.sampler, mode=RunningStage.PREDICTING)
+
+
+def test_custom_batch_sampler_no_sampler():
+    class MyBatchSampler(BatchSampler):
+        def __init__(self, extra_arg):
+            self.extra_arg = extra_arg
+            super().__init__(RandomSampler(range(10)), 10, False)
+
+    with _replace_init_method(BatchSampler):
+        dataloader = DataLoader(range(10), batch_sampler=MyBatchSampler("random_str"))
+
+    assert dataloader.batch_sampler.__pl_saved_args == ("random_str",)
+    assert dataloader.batch_sampler.__pl_saved_kwargs == {}
+    assert dataloader.batch_sampler.__pl_saved_arg_names == ("extra_arg",)
+
+    with pytest.raises(MisconfigurationException, match="sampler into batch sampler"):
+        dataloader = _update_dataloader(dataloader, dataloader.sampler, mode=RunningStage.PREDICTING)
+
+
+@pytest.mark.parametrize(
+    ["args", "kwargs", "arg_names", "inject_name", "inject_obj", "expected_status", "expected_args", "expected_kwargs"],
+    [
+        pytest.param([], {}, [], "a", 1, False, [], {}, id="empty"),
+        pytest.param([1], {}, ["a"], "a", 2, True, [2], {}, id="simple1"),
+        pytest.param([1, 2, 3], {}, ["a", "b", "c"], "b", False, True, [1, False, 3], {}, id="simple2"),
+        pytest.param([1, 2, 3], {"a": 1}, ["b", "c", "d"], "a", 2, True, [1, 2, 3], {"a": 2}, id="simple_kwargs"),
+    ],
+)
+def test_inject_args(args, kwargs, arg_names, inject_name, inject_obj, expected_status, expected_args, expected_kwargs):
+    assert _inject_arg_to_saved(args, kwargs, arg_names, inject_name, inject_obj) == (
+        expected_status,
+        expected_args,
+        expected_kwargs,
+    )
 
 
 @pytest.mark.parametrize("mode", [RunningStage.TRAINING, RunningStage.PREDICTING, RunningStage.TESTING])

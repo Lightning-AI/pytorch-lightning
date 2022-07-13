@@ -183,10 +183,11 @@ def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
 
     class Lite(LightningLite):
         def run(self):
-            ctx_manager().__enter__.assert_called_once()
+            # One for BatchSampler, another for DataLoader
+            assert ctx_manager().__enter__.call_count == 2
 
     Lite().run()
-    ctx_manager().__exit__.assert_called_once()
+    assert ctx_manager().__exit__.call_count == 2
 
 
 def test_setup_dataloaders_raises_for_unknown_custom_args():

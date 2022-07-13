@@ -322,12 +322,44 @@ def _dataloader_init_kwargs_resolve_sampler(
     batch_sampler = getattr(dataloader, "batch_sampler")
     is_predicting = mode == RunningStage.PREDICTING
     # checking the batch sampler type is different than PyTorch default.
-    if batch_sampler is not None and (type(batch_sampler) is not BatchSampler or is_predicting):
-        batch_sampler = type(batch_sampler)(
-            sampler,
-            batch_size=batch_sampler.batch_size,
-            drop_last=(False if is_predicting else batch_sampler.drop_last),
-        )
+    batch_cls = type(batch_sampler)
+    if batch_sampler is not None and (batch_cls is not BatchSampler or is_predicting):
+        if hasattr(batch_sampler, "__pl_saved_args"):
+            args = list(batch_sampler.__pl_saved_args)
+            kwargs = batch_sampler.__pl_saved_kwargs
+            arg_names = batch_sampler.__pl_saved_arg_names
+
+            if is_predicting:
+                success, args, kwargs = _inject_arg_to_saved(args, kwargs, arg_names, "drop_last", False)
+                if not success:
+                    rank_zero_warn(
+                        "Trying to inject `drop_last=False` into batch sampler since you are predicting, however it "
+                        f"seems the class `{batch_cls}` does not support it. Your predictions might be incomplete. "
+                        "To mitigate this, expose `drop_last` in the `__init__` method of your custom class."
+                    )
+
+            success, args, kwargs = _inject_arg_to_saved(args, kwargs, arg_names, "sampler", sampler)
+            if not success:
+                raise MisconfigurationException(
+                    "Trying to inject modified sampler into batch sampler, however it seems the class "
+                    f"`{batch_cls}` does not support argument called sampler. To mitigate this, "
+                    "expose argument `sampler` in the `__init__` method of your custom class."
+                )
+
+            batch_sampler = batch_cls(*args, **kwargs)
+        else:
+            try:
+                batch_sampler = batch_cls(
+                    sampler,
+                    batch_size=batch_sampler.batch_size,
+                    drop_last=(False if is_predicting else batch_sampler.drop_last),
+                )
+            except TypeError:
+                raise MisconfigurationException(
+                    "We tried to reinstantiate your custom batch sampler and failed. "
+                    "To mitigate this, either follow API of `BatchSampler` or instantiate "
+                    "your custom batch sampler inside `*_dataloader` hooks of your module."
+                )
         if is_predicting:
             batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
 
@@ -350,6 +382,25 @@ def _dataloader_init_kwargs_resolve_sampler(
     return {"sampler": sampler, "shuffle": False, "batch_sampler": None}
 
 
+def _inject_arg_to_saved(
+    args: List[Any], kwargs: Dict[str, Any], arg_names: List[str], inject_name: str, inject_object: Any
+) -> Tuple[bool, List[Any], Dict[str, Any]]:
+    """Tries to inject a custom argument to a saved list of args and kwargs.
+
+    Returns a tuple indicating success of the operation and modified saved args and kwargs
+    """
+
+    if inject_name in arg_names:
+        inject_index = arg_names.index(inject_name)
+        args = args[:inject_index] + [inject_object] + args[inject_index + 1 :]
+        return True, args, kwargs
+    elif inject_name in kwargs:
+        kwargs[inject_name] = inject_object
+        return True, args, kwargs
+
+    return False, args, kwargs
+
+
 def _auto_add_worker_init_fn(dataloader: DataLoader, rank: int) -> None:
     if int(os.environ.get("PL_SEED_WORKERS", 0)) and dataloader.worker_init_fn is None:
         dataloader.worker_init_fn = partial(pl_worker_init_function, rank=rank)
@@ -370,6 +421,17 @@ def _wrap_init_method(init: Callable, store_explicit_args: Optional[List[str]] =
             if param.name != "self" and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
         )
         param_names = param_names[: len(args)]
+
+        default_kwargs = {
+            param.name: param.default
+            for param in params.values()
+            if param.name != "self"
+            and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
+            and param.default != param.empty
+            and (param.name not in kwargs and param.name not in param_names)
+        }
+
+        kwargs = {**kwargs, **default_kwargs}
 
         if not hasattr(obj, "__pl_saved_args"):
             obj.__pl_saved_args = args
