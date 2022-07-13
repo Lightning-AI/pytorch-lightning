@@ -106,12 +106,10 @@ class ProductionReadyModel(LitModule, ServableModule):
 
 
 def cli_main():
-
-    seed_everything(42)
-
     cli = LightningCLI(
         ProductionReadyModel,
         CIFAR10DataModule,
+        seed_everything_default=42,
         save_config_overwrite=True,
         run=False,
         trainer_defaults={
