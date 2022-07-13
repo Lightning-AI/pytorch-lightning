@@ -293,7 +293,7 @@ class LightningModule(
     ) -> Any:
         device = device or self.device
         datahook_selector = (
-            _DataHookSelector(self, None) if self.trainer is None else self.trainer._data_connector._datahook_selector
+            _DataHookSelector(self, None) if self._trainer is None else self.trainer._data_connector._datahook_selector
         )
 
         hook = datahook_selector.get_hook("on_before_batch_transfer")
@@ -380,7 +380,7 @@ class LightningModule(
             value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Metric, Tensor, dict)
         )
 
-        if self.trainer is None:
+        if self._trainer is None:
             # not an error to support testing the `*_step` methods without a `Trainer` reference
             rank_zero_warn(
                 "You are trying to `self.log()` but the `self.trainer` reference is not registered on the model yet."

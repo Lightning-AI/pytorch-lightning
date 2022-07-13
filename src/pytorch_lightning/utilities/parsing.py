@@ -318,6 +318,7 @@ def _lightning_get_all_attr_holders(model: "pl.LightningModule", attribute: str)
 
     trainer = model._trainer
     # Check if the attribute in datamodule (datamodule gets registered in Trainer)
+    trainer = model._trainer
     if trainer is not None and trainer.datamodule is not None and hasattr(trainer.datamodule, attribute):
         holders.append(trainer.datamodule)
 

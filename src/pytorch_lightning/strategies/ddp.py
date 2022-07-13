@@ -467,7 +467,7 @@ class DDPStrategy(ParallelStrategy):
             self.model = self.lightning_module
 
         if (
-            self.lightning_module.trainer is not None
+            self.lightning_module is not None
             and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
             and self._layer_sync
         ):

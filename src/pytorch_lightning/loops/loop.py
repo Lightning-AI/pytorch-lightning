@@ -317,6 +317,7 @@ class Loop(ABC, Generic[T]):
         self.restarting = True
 
     def _load_from_state_dict(self, state_dict: Dict, prefix: str, metrics: Optional[Dict[str, Metric]] = None) -> None:
+        trainer = self._trainer
         for k, v in self.__dict__.items():
             key = prefix + k
             if key not in state_dict:
@@ -327,8 +328,8 @@ class Loop(ABC, Generic[T]):
                 v.load_state_dict(state_dict[key])
             elif (
                 isinstance(v, _ResultCollection)
-                and self.trainer is not None
-                and self.trainer.lightning_module is not None
+                and trainer is not None
+                and trainer.lightning_module is not None
             ):
                 metric_attributes = {
                     name: module

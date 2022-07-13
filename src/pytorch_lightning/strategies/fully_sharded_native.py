@@ -221,7 +221,6 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         log.info(f"{self.__class__.__name__}: tearing down strategy...")
         if (
             self.lightning_module is not None
-            and self.lightning_module.trainer is not None
             and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
             and self._layer_sync
         ):
