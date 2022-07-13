@@ -12,6 +12,3 @@
 
 # install all extra dependencies for running examples
 -r ./examples.txt
-
-# install all extra dependencies for serving
--r ./serve.txt
