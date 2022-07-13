@@ -80,6 +80,7 @@ class LightningModule(
             "automatic_optimization",
             "truncated_bptt_steps",
             "use_amp",
+            "trainer",
         ]
         + DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -174,7 +175,7 @@ class LightningModule(
 
     @property
     def trainer(self) -> "pl.Trainer":
-        if self._trainer is None:
+        if not self._running_torchscript and self._trainer is None:
             raise RuntimeError(f"{self.__class__.__qualname__} is not attached to a `Trainer`.")
         return self._trainer
 
