@@ -174,6 +174,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 
+- Removed deprecated `IndexBatchSamplerWrapper.batch_indices` ([#13565](https://github.com/PyTorchLightning/pytorch-lightning/pull/13565))
+
+
 - Removed the deprecated `LightningModule.add_to_queue` and `LightningModule.get_from_queue` method ([#13600](https://github.com/PyTorchLightning/pytorch-lightning/pull/13600))
 
 
@@ -272,6 +275,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed deprecated `pytorch_lightning.callbacks.lr_monitor.LearningRateMonitor.lr_sch_names` ([#13353](https://github.com/Lightning-AI/lightning/pull/13353))
 
 
+- Removed deprecated `Trainer.slurm_job_id` in favor of `SLURMEnvironment.job_id` ([#13459](https://github.com/PyTorchLightning/pytorch-lightning/pull/13459))
+
+
 - Removed support for the `DDP2Strategy` ([#12705](https://github.com/PyTorchLightning/pytorch-lightning/pull/12705))
 
 
@@ -279,6 +285,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed deprecated `Callback.on_keyboard_interrupt` ([#13438](https://github.com/Lightning-AI/lightning/pull/13438))
+
+
+- Removed deprecated `LightningModule.on_post_move_to_device` ([#13548](https://github.com/Lightning-AI/lightning/pull/13548))
 
 
 ### Fixed
