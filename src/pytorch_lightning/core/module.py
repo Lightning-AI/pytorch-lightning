@@ -93,7 +93,7 @@ class LightningModule(
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
         # pointer to the trainer object
-        self.trainer: Optional["pl.Trainer"] = None
+        self._trainer: Optional["pl.Trainer"] = None
 
         self._use_amp: bool = False
 
@@ -173,6 +173,23 @@ class LightningModule(
         return lr_schedulers
 
     @property
+    def trainer(self) -> "pl.Trainer":
+        if self._trainer is None:
+            raise RuntimeError(f"{self.__class__.__qualname__} is not attached to a `Trainer`.")
+        return self._trainer
+
+    @trainer.setter
+    def trainer(self, trainer: "pl.Trainer") -> None:
+        if not isinstance(trainer, pl.Trainer):
+            raise RuntimeError(
+                f"The {self.__class__.__name__} model should be connected to a `Trainer`, found: {trainer}."
+            )
+        self._trainer = trainer
+        for v in self.children():
+            if isinstance(v, LightningModule):
+                v.trainer = trainer
+
+    @property
     def example_input_array(self) -> Any:
         """The example input array is a specification of what the module can consume in the :meth:`forward` method.
         The return type is interpreted as follows:
@@ -193,7 +210,7 @@ class LightningModule(
     @property
     def current_epoch(self) -> int:
         """The current epoch in the ``Trainer``, or 0 if not attached."""
-        return self.trainer.current_epoch if self.trainer else 0
+        return self.trainer.current_epoch if self._trainer else 0
 
     @property
     def global_step(self) -> int:
@@ -201,17 +218,17 @@ class LightningModule(
 
         If no Trainer is attached, this propery is 0.
         """
-        return self.trainer.global_step if self.trainer else 0
+        return self.trainer.global_step if self._trainer else 0
 
     @property
     def global_rank(self) -> int:
         """The index of the current process across all nodes and devices."""
-        return self.trainer.global_rank if self.trainer else 0
+        return self.trainer.global_rank if self._trainer else 0
 
     @property
     def local_rank(self) -> int:
         """The index of the current process within a single node."""
-        return self.trainer.local_rank if self.trainer else 0
+        return self.trainer.local_rank if self._trainer else 0
 
     @property
     def on_gpu(self):
@@ -249,7 +266,7 @@ class LightningModule(
         """Reference to the logger object in the Trainer."""
         # this should match the implementation of `trainer.logger`
         # we don't reuse it so we can properly set the deprecation stacklevel
-        if self.trainer is None:
+        if self._trainer is None:
             return
         loggers = self.trainer.loggers
         if len(loggers) == 0:
@@ -271,7 +288,7 @@ class LightningModule(
     @property
     def loggers(self) -> List[Logger]:
         """Reference to the list of loggers in the Trainer."""
-        return self.trainer.loggers if self.trainer else []
+        return self.trainer.loggers if self._trainer else []
 
     def _apply_batch_transfer_handler(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0
@@ -1964,7 +1981,7 @@ class LightningModule(
     def __getstate__(self) -> Dict[str, Any]:
         state = dict(self.__dict__)
         if self._should_prevent_trainer_and_dataloaders_deepcopy:
-            state["trainer"] = None
+            state["_trainer"] = None
             state.pop("train_dataloader", None)
             state.pop("val_dataloader", None)
             state.pop("test_dataloader", None)

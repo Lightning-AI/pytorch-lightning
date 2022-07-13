@@ -416,3 +416,18 @@ def test_proper_refcount():
     lightning_module = LightningModule()
 
     assert sys.getrefcount(torch_module) == sys.getrefcount(lightning_module)
+
+
+def test_trainer_reference_recursively():
+    ensemble = LightningModule()
+    inner = LightningModule()
+    ensemble.inner = inner
+
+    assert inner._trainer is None
+    with pytest.raises(RuntimeError, match="attached to a `Trainer"):
+        _ = ensemble.trainer
+
+    trainer = Mock(spec=Trainer)
+    ensemble.trainer = trainer
+    assert ensemble.trainer is trainer
+    assert inner.trainer is trainer
