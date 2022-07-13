@@ -309,13 +309,13 @@ class HiveMindScheduler:
 
     This code ensures that we only step when the HiveMind optimizer reaches the global step.
     """
+    base_lrs: List[float]
 
     def __init__(self, optimizer: "hivemind.Optimizer", scheduler: _LRScheduler) -> None:
         # copy most of the `Scheduler` methods into this instance. `__del__` is skipped in case the scheduler has
         # implemented custom logic which we would not want to call on destruction of the `HiveMindScheduler`
         self.__dict__ = {k: v for k, v in scheduler.__dict__.items() if k not in ("step", "__del__")}
 
-        self.base_lrs = scheduler.base_lrs
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.current_step = -1
