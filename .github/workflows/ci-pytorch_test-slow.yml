@@ -70,7 +70,7 @@ jobs:
         PL_RUN_SLOW_TESTS: 1
 
     - name: Upload pytest test results
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}
         path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}.xml
@@ -84,7 +84,7 @@ jobs:
         coverage xml
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v3
       if: success()
       # see: https://github.com/actions/toolkit/issues/399
       continue-on-error: true
