@@ -90,7 +90,7 @@ jobs:
       - name: Downloading Frontend
         working-directory: ./src
         run: |
-          source ./.venv/bin/activate
+          source ../.venv/bin/activate
           python -c "from lightning_app.utilities.packaging.lightning_utils import download_frontend; download_frontend()"
         shell: bash
 
