@@ -158,3 +158,4 @@ cifar-10-batches-py
 # ctags
 tags
 .tags
+*examples/template_react_ui*

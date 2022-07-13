@@ -117,16 +117,28 @@ def _create_fake_main_module(script_path):
 
 @contextmanager
 def _patch_sys_argv():
+    """This function modifies the ``sys.argv`` by extracting the arguments after ``--app_args`` and removed
+    everything else before executing the user app script.
+
+    The command: ``lightning run app app.py --without-server --app_args --use_gpu --env ...`` will be converted into
+    ``app.py --use_gpu``
+    """
     from lightning_app.cli.lightning_cli import run_app
 
     original_argv = sys.argv
+    # 1: Remove the CLI command
     sys.argv = [v for v in sys.argv if v not in ("lightning", "run", "app")]
+
     if "--app_args" not in sys.argv:
+        # 2: If app_args wasn't used, there is no arguments, so we assign the shorten arguments.
         new_argv = sys.argv[:1]
     else:
+        # 3: Collect all the arguments from the CLI
         options = [p.opts[0] for p in run_app.params[1:] if p.opts[0] != "--app_args"]
         argv_slice = sys.argv
+        # 4: Find the index of `app_args`
         first_index = argv_slice.index("--app_args") + 1
+        # 5: Find the next argument from the CLI if any.
         matches = [
             argv_slice.index(opt) for opt in options if opt in argv_slice and argv_slice.index(opt) >= first_index
         ]
@@ -134,9 +146,13 @@ def _patch_sys_argv():
             last_index = len(argv_slice)
         else:
             last_index = min(matches)
+        # 6: last_index is either the fully command or the latest match from the CLI options.
         new_argv = [argv_slice[0]] + argv_slice[first_index:last_index]
+
+    # 7: Patch the command
     sys.argv = new_argv
     yield
+    # 8: Restore the command
     sys.argv = original_argv
 
 
