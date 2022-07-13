@@ -127,7 +127,8 @@ def _patch_sys_argv():
 
     original_argv = sys.argv
     # 1: Remove the CLI command
-    sys.argv = [v for v in sys.argv if v not in ("lightning", "run", "app")]
+    if sys.argv[:3] == ["lightning", "run", "app"]:
+        sys.argv = sys.argv[3:]
 
     if "--app_args" not in sys.argv:
         # 2: If app_args wasn't used, there is no arguments, so we assign the shorten arguments.
