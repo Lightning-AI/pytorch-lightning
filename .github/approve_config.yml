@@ -3,7 +3,7 @@ approvals:
   minimum: 1
   groups:
     - name: 'PyTorch Lightning'
-      minimum: 0
+      minimum: 1
       from:
         - awaelchli
         - Borda
@@ -16,7 +16,8 @@ approvals:
         - tchaton
         - williamFalcon
     - name: 'Lightning Apps'
-      minimum: 0
+      minimum: 1
+      from:
         - alecmerdler
         - awaelchli
         - hhsecond
