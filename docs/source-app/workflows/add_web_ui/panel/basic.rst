@@ -207,8 +207,10 @@ In this case, we render the ``LitPanel`` UI in the ``home`` tab of the applicati
 Autoreload
 **********
 
-You can run your lightning app with Panel **autoreload** by setting the environment variable
-``PANEL_AUTORELOAD`` to ``yes``.
+To speed up your development workflow, you can run your lightning app with Panel **autoreload** by
+setting the environment variable ``PANEL_AUTORELOAD`` to ``yes``.
+
+Try running the below
 
 .. code-block::
 
