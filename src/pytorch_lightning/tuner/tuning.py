@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from typing import Any, Dict, Optional, Union
+from typing_extensions import TypedDict, NotRequired
 
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.states import TrainerStatus
@@ -20,6 +21,9 @@ from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 
+class _TunerResult(TypedDict):
+    lr_find: NotRequired[Optional[_LRFinder]]
+    scale_batch_size: NotRequired[Optional[int]]
 
 class Tuner:
     """Tuner class to tune your model."""
@@ -36,11 +40,15 @@ class Tuner:
         model: "pl.LightningModule",
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
+    ) -> _TunerResult:
         scale_batch_size_kwargs = scale_batch_size_kwargs or {}
         lr_find_kwargs = lr_find_kwargs or {}
         # return a dict instead of a tuple so BC is not broken if a new tuning procedure is added
-        result = {}
+<<<<<<< HEAD
+        result: _TunerResult = {}
+=======
+        result: Dict[str, Any] = {}
+>>>>>>> 7c4b7df27bfa14ef0611f67cbeba3d9f356c4f44
 
         self.trainer.strategy.connect(model)
 
@@ -84,7 +92,7 @@ class Tuner:
         init_val: int = 2,
         max_trials: int = 25,
         batch_arg_name: str = "batch_size",
-    ) -> Optional[int]:
+    ) -> Optional[Union[int, _LRFinder]]:
         """Iteratively try to find the largest batch size for a given model that does not give an out of memory
         (OOM) error.
 
@@ -151,7 +159,7 @@ class Tuner:
         mode: str = "exponential",
         early_stop_threshold: float = 4.0,
         update_attr: bool = False,
-    ) -> Optional[_LRFinder]:
+    ) -> Optional[Union[int, _LRFinder]]:
         """Enables the user to do a range test of good initial learning rates, to reduce the amount of guesswork in
         picking a good starting learning rate.
 
