@@ -39,7 +39,7 @@ Run a basic Panel app
 
 In the next few sections we'll build an app step-by-step.
 
-First **create a file named `panel_app_basic.py`** with the app content:
+First **create a file named ``panel_app_basic.py``** with the app content:
 
 .. code:: python
 
@@ -47,7 +47,7 @@ First **create a file named `panel_app_basic.py`** with the app content:
 
     pn.panel("Hello **Panel ⚡** World").servable()
 
-Then **create a file named `app_basic.py`** with the app content:
+Then **create a file named ``app_basic.py``** with the app content:
 
 .. code:: python
 
@@ -73,7 +73,7 @@ Then **create a file named `app_basic.py`** with the app content:
 
     app = L.LightningApp(LitApp())
 
-add "Panel" to a requirements.txt file:
+add "panel" to a requirements.txt file:
 
 .. code:: bash
 
@@ -165,7 +165,7 @@ runs your Panel app.
 
 ----
 
-1. Route the UI in the root component
+2. Route the UI in the root component
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The second step, is to tell the Root component in which tab to render this component's UI.
@@ -193,8 +193,9 @@ In this case, we render the ``LitPanel`` UI in the ``home`` tab of the applicati
         def configure_layout(self):
             return {"name": "home", "content": self.lit_panel}
 
-2. Autoreload
-^^^^^^^^^^^^^
+**********
+Autoreload
+**********
 
 You can run your lightning app with Panel **autoreload** by setting the environment variable
 ``PANEL_AUTORELOAD`` to ``yes``.
@@ -208,12 +209,13 @@ You can run your lightning app with Panel **autoreload** by setting the environm
 
    Basic Panel Lightning App with autoreload
 
-3. Theming
-^^^^^^^^^^
+*******
+Theming
+*******
 
 To theme your app you, can use the lightning accent color #792EE5 with the `FastListTemplate`_.
 
-Try replacing the contents of `app_basic.py` with the below code.
+Try replacing the contents of ``app_basic.py`` with the below code.
 
 .. code:: bash
 
