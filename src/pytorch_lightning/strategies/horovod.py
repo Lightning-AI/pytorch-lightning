@@ -113,7 +113,7 @@ class HorovodStrategy(ParallelStrategy):
         lr_scheduler_configs = self.lr_scheduler_configs
         for config in lr_scheduler_configs:
             scheduler = config.scheduler
-            assert isinstance(scheduler, _LRScheduler), "ReduceLROnPlateau does not have attribute 'base_lr'"
+            assert isinstance(scheduler, _LRScheduler)
             scheduler.base_lrs = [lr * self.world_size for lr in scheduler.base_lrs]
 
         assert self.lightning_module is not None
