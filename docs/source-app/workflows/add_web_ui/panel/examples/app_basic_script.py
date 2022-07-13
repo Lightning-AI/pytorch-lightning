@@ -1,10 +1,11 @@
 # app.py
 import panel as pn
 
-import lightning as L
 # Todo: change import
 # from lightning_app.frontend.panel import PanelFrontend
 from panel_frontend import PanelFrontend
+
+import lightning as L
 
 
 class LitPanel(L.LightningFlow):

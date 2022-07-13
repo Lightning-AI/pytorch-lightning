@@ -1,14 +1,9 @@
-"""The watch_app_state function enables us to trigger a callback function when
-ever the app state changes."""
+"""The watch_app_state function enables us to trigger a callback function when ever the app state changes."""
 import os
 from unittest import mock
 
 from lightning_app.core.constants import APP_SERVER_PORT
-from lightning_app.frontend.utilities.app_state_comm import (
-    _get_ws_url,
-    _run_callbacks,
-    watch_app_state,
-)
+from lightning_app.frontend.utilities.app_state_comm import _get_ws_url, _run_callbacks, watch_app_state
 
 FLOW_SUB = "lit_flow"
 FLOW = f"root.{FLOW_SUB}"

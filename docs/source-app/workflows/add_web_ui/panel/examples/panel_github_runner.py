@@ -15,6 +15,7 @@ def to_str(value):
         return "\n".join([str(item) for item in value])
     return str(value)
 
+
 if "LIGHTNING_FLOW_NAME" in os.environ:
     app = AppStateWatcher()
 else:
@@ -23,9 +24,8 @@ else:
         state = param.Parameter()
 
     app = AppMock(state=Mock())
-    
 
-    with open("state.json", "r") as fp:
+    with open("state.json") as fp:
         app.state._state = json.load(fp)
     app.state.requests = [
         {
@@ -68,20 +68,24 @@ pn.config.raw_css.append(
 )
 
 pn.extension("terminal", sizing_mode="stretch_width", template="fast", notifications=True)
-pn.state.template.param.update(site="Panel Lightning ⚡", title="Github Model Runner", accent_base_color=ACCENT, header_background=ACCENT)
+pn.state.template.param.update(
+    site="Panel Lightning ⚡", title="Github Model Runner", accent_base_color=ACCENT, header_background=ACCENT
+)
 pn.pane.JSON.param.hover_preview.default = True
 
-#region: Panel extensions
+# region: Panel extensions
+
 
 def _to_value(value):
     if hasattr(value, "value"):
         return value.value
     return value
 
+
 def bind_as_form(function, *args, submit, watch=False, **kwargs):
-    """Extends pn.bind to support "Forms" like binding. I.e. triggering only when a Submit button is clicked,
-    but using the dynamic values of widgets or Parameters as inputs.
-    
+    """Extends pn.bind to support "Forms" like binding. I.e. triggering only when a Submit button is clicked, but
+    using the dynamic values of widgets or Parameters as inputs.
+
     Args:
         function (_type_): The function to execute
         submit (_type_): The Submit widget or parameter to depend on
@@ -96,27 +100,32 @@ def bind_as_form(function, *args, submit, watch=False, **kwargs):
         kwargs = {}
 
     def function_wrapper(_, args=args, kwargs=kwargs):
-        args=[_to_value[value] for value in args]
-        kwargs={key: _to_value(value) for key, value in kwargs.items()}
+        args = [_to_value[value] for value in args]
+        kwargs = {key: _to_value(value) for key, value in kwargs.items()}
         return function(*args, **kwargs)
+
     return pn.bind(function_wrapper, submit, watch=watch)
 
+
 def show_value(widget):
-    """Shows the value of the widget or Parameter in a Panel
-    
+    """Shows the value of the widget or Parameter in a Panel.
+
     Dynamically updated when ever the value changes
     """
+
     def show(value):
-        return pn.panel(value, sizing_mode="stretch_both")    
-    
+        return pn.panel(value, sizing_mode="stretch_both")
+
     return pn.bind(show, value=widget)
 
+
 THEME = pn.state.session_args.get("theme", [b"default"])[0].decode()
-pn.pane.JSON.param.theme.default = THEME if THEME=="dark" else "light"
+pn.pane.JSON.param.theme.default = THEME if THEME == "dark" else "light"
 
 
-#endregion: Panel extensions
-#region: Create new run
+# endregion: Panel extensions
+# region: Create new run
+
 
 def create_new_run(id, github_repo, script_path, script_args, requirements, ml_framework):
     new_request = {
@@ -130,7 +139,8 @@ def create_new_run(id, github_repo, script_path, script_args, requirements, ml_f
         },
     }
     app.state.requests = app.state.requests + [new_request]
-    pn.state.notifications.send("New run created", background=ACCENT, icon='⚡')
+    pn.state.notifications.send("New run created", background=ACCENT, icon="⚡")
+
 
 def message_or_button(ml_framework, submit_button):
     if ml_framework not in ("PyTorch Lightning"):
@@ -172,7 +182,7 @@ def create_new_page():
         requirements=requirements_input,
         ml_framework=ml_framework_input,
         submit=submit_button,
-        watch=True
+        watch=True,
     )
 
     return pn.Column(
@@ -183,14 +193,17 @@ def create_new_page():
         script_args_input,
         requirements_input,
         ml_framework_input,
-        pn.bind(partial(message_or_button, submit_button=submit_button), ml_framework_input),    
+        pn.bind(partial(message_or_button, submit_button=submit_button), ml_framework_input),
     )
 
-#endregion: Create new run
-#region: Run list page
+
+# endregion: Create new run
+# region: Run list page
+
 
 def configuration_component(request):
     return pn.pane.JSON(request, depth=4)
+
 
 def work_state_ex_logs_component(work):
     w = work["vars"].copy()
@@ -198,21 +211,24 @@ def work_state_ex_logs_component(work):
         w.pop("logs")
     return pn.pane.JSON(w, depth=4)
 
+
 def log_component(work):
     return pn.Column(
-        pn.pane.Markdown(
-            "```bash\n" + to_str(work["vars"]["logs"]) + "\n```", max_height=500
-        ), scroll=True, css_classes=["log-container"]     
+        pn.pane.Markdown("```bash\n" + to_str(work["vars"]["logs"]) + "\n```", max_height=500),
+        scroll=True,
+        css_classes=["log-container"],
     )
+
 
 def run_component(idx, request, state):
     work = state["structures"]["ws"]["works"][f"w_{idx}"]
-    name=work["vars"]["id"]
+    name = work["vars"]["id"]
     return pn.Tabs(
         ("Configuration", configuration_component(request)),
         ("Work state", work_state_ex_logs_component(work)),
         ("Logs", log_component(work)),
-        name=f"Run {idx}: {name}", margin=(5,0,0,0)
+        name=f"Run {idx}: {name}",
+        margin=(5, 0, 0, 0),
     )
 
 
@@ -221,11 +237,12 @@ def view_run_list_page(state: AppState):
     title = "# View your runs 🎈"
     layout = pn.Tabs(sizing_mode="stretch_both")
     for idx, request in enumerate(state.requests):
-        layout.append(run_component(idx, request, state._state))       
+        layout.append(run_component(idx, request, state._state))
     return pn.Column(title, layout)
 
-#endregion: Run list page
-#region: App state page
+
+# endregion: Run list page
+# region: App state page
 
 
 @pn.depends(app.param.state)
@@ -234,12 +251,13 @@ def view_app_state_page(state: AppState):
     json_output = pn.pane.JSON(state._state, depth=6)
     return pn.Column(title, pn.Column(json_output, scroll=True, css_classes=["state-container"]))
 
-#endregion: App state page
-#region: App
+
+# endregion: App state page
+# region: App
 pn.Tabs(
     ("New Run", create_new_page),
     ("View Runs", view_run_list_page),
     ("View State", view_app_state_page),
     sizing_mode="stretch_both",
 ).servable()
-#endregion: App
+# endregion: App

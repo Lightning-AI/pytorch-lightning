@@ -4,9 +4,7 @@ import plotly.express as px
 ACCENT = "#792EE5"
 
 pn.extension("plotly", sizing_mode="stretch_width", template="fast")
-pn.state.template.param.update(
-    title="⚡ Hello Panel + Lightning ⚡", accent_base_color=ACCENT, header_background=ACCENT
-)
+pn.state.template.param.update(title="⚡ Hello Panel + Lightning ⚡", accent_base_color=ACCENT, header_background=ACCENT)
 
 pn.config.raw_css.append(
     """
@@ -18,7 +16,7 @@ pn.config.raw_css.append(
 
 
 def get_panel_theme():
-    """Returns 'default' or 'dark'"""
+    """Returns 'default' or 'dark'."""
     return pn.state.session_args.get("theme", [b"default"])[0].decode()
 
 
@@ -44,7 +42,5 @@ def get_plot(length=5):
 
 
 length = pn.widgets.IntSlider(value=5, start=1, end=10, name="Length")
-dynamic_plot = pn.panel(
-    pn.bind(get_plot, length=length), sizing_mode="stretch_both", config={"responsive": True}
-)
+dynamic_plot = pn.panel(pn.bind(get_plot, length=length), sizing_mode="stretch_both", config={"responsive": True})
 pn.Column(length, dynamic_plot).servable()

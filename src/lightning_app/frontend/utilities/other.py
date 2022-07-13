@@ -41,7 +41,7 @@ def get_flow_state(flow: str) -> AppState:
 
 
 def get_allowed_hosts() -> str:
-    """Returns a comma separated list of host[:port] that should be allowed to connect"""
+    """Returns a comma separated list of host[:port] that should be allowed to connect."""
     # Todo: Improve this. I don't know how to find the specific host(s).
     # I tried but it did not work in cloud
     return "*"
@@ -55,9 +55,7 @@ def has_panel_autoreload() -> bool:
     return os.environ.get("PANEL_AUTORELOAD", "no").lower() in ["yes", "y", "true"]
 
 
-def get_frontend_environment(
-    flow: str, render_fn_or_file: Callable | str, port: int, host: str
-) -> os._Environ:
+def get_frontend_environment(flow: str, render_fn_or_file: Callable | str, port: int, host: str) -> os._Environ:
     """Returns an _Environ with the environment variables for serving a Frontend app set.
 
     Args:
@@ -86,7 +84,6 @@ def get_frontend_environment(
 def is_running_locally() -> bool:
     """Returns True if the lightning app is running locally.
 
-    This function can be used to determine if the app is running locally and provide a better
-    developer experience.
+    This function can be used to determine if the app is running locally and provide a better developer experience.
     """
     return "LIGHTNING_APP_STATE_URL" not in os.environ

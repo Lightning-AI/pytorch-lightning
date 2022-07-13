@@ -2,11 +2,12 @@
 import datetime as dt
 
 import panel as pn
+from app_state_watcher import AppStateWatcher
 
-import lightning as L
 # Todo: change import
 from panel_frontend import PanelFrontend
-from app_state_watcher import AppStateWatcher
+
+import lightning as L
 
 pn.extension(sizing_mode="stretch_width")
 

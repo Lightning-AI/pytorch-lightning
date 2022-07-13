@@ -43,6 +43,7 @@ class PanelFrontend(Frontend):
         import lightning as L
         from lightning_app.frontend.panel import PanelFrontend
 
+
         class LitPanel(L.LightningFlow):
             def __init__(self):
                 super().__init__()
@@ -50,6 +51,8 @@ class PanelFrontend(Frontend):
 
             def configure_layout(self):
                 return self._frontend
+
+
         class LitApp(L.LightningFlow):
             def __init__(self):
                 super().__init__()
@@ -60,7 +63,7 @@ class PanelFrontend(Frontend):
 
 
         app = L.LightningApp(LitApp())
-    
+
     Please note the Panel server will be logging output to error.log and output.log files
     respectively.
 
@@ -90,10 +93,10 @@ class PanelFrontend(Frontend):
 
         self.render_fn_or_file = render_fn_or_file
         self._process: None | subprocess.Popen = None
-        self._log_files: Dict[str] = {}
+        self._log_files: dict[str] = {}
         _logger.debug("initialized")
 
-    def _get_popen_args(self, host: str, port: int) -> List:
+    def _get_popen_args(self, host: str, port: int) -> list:
         if callable(self.render_fn_or_file):
             path = str(pathlib.Path(__file__).parent / "panel_serve_render_fn.py")
         else:
@@ -136,9 +139,7 @@ class PanelFrontend(Frontend):
         if not is_running_locally():
             self._open_log_files()
 
-        self._process = subprocess.Popen(  # pylint: disable=consider-using-with
-            command, env=env, **self._log_files
-        )
+        self._process = subprocess.Popen(command, env=env, **self._log_files)  # pylint: disable=consider-using-with
 
     def stop_server(self) -> None:
         if self._process is None:
@@ -152,7 +153,7 @@ class PanelFrontend(Frontend):
                 file_.close()
         self._log_files = {}
 
-    def _open_log_files(self) -> Dict:
+    def _open_log_files(self) -> dict:
         # Don't log to file when developing locally. Makes it harder to debug.
         self._close_log_files()
 

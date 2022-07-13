@@ -19,7 +19,7 @@ For example, here we increase the ``count`` variable of the Lightning Component 
 presses a button:
 
 .. code:: bash
-    
+
     # app_panel.py
 
     import panel as pn
@@ -47,7 +47,7 @@ presses a button:
 
 
 .. code:: bash
-    
+
     # app.py
 
     import lightning as L

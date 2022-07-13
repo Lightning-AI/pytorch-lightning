@@ -1,5 +1,4 @@
-"""The panel_serve_render_fn_or_file file gets run by Python to lunch a Panel Server with
-Lightning.
+"""The panel_serve_render_fn_or_file file gets run by Python to lunch a Panel Server with Lightning.
 
 These tests are for serving a render_fn function.
 """
@@ -47,7 +46,7 @@ def test_get_view_fn_args():
 
 
 def render_fn_no_args():
-    """Test function with no arguments"""
+    """Test function with no arguments."""
     return "no_args"
 
 

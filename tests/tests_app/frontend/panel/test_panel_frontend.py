@@ -25,21 +25,20 @@ def _noop_render_fn(_):
 
 
 class MockFlow(LightningFlow):
-    """Test Flow"""
+    """Test Flow."""
 
     @property
     def name(self):
-        """Return name"""
+        """Return name."""
         return "root.my.flow"
 
     def run(self):  # pylint: disable=arguments-differ
-        "Be lazy!"
+        """Be lazy!"""
 
 
 @mock.patch("lightning_app.frontend.panel.panel_frontend.subprocess")
 def test_panel_frontend_start_stop_server(subprocess_mock):
-    """Test that `PanelFrontend.start_server()` invokes subprocess.Popen with the right
-    parameters."""
+    """Test that `PanelFrontend.start_server()` invokes subprocess.Popen with the right parameters."""
     # Given
     frontend = PanelFrontend(render_fn_or_file=_noop_render_fn)
     frontend.flow = MockFlow()
@@ -98,14 +97,13 @@ def _call_me(state):
     },
 )
 def test_panel_wrapper_calls_render_fn_or_file(*_):
-    """Run the panel_serve_render_fn_or_file"""
+    """Run the panel_serve_render_fn_or_file."""
     runpy.run_module("lightning_app.frontend.panel.panel_serve_render_fn")
     # TODO: find a way to assert that _call_me got called
 
 
 def test_method_exception():
-    """The PanelFrontend does not support render_fn_or_file being a method
-    and should raise an Exception"""
+    """The PanelFrontend does not support render_fn_or_file being a method and should raise an Exception."""
 
     class _DummyClass:
         def _render_fn(self):
@@ -116,7 +114,7 @@ def test_method_exception():
 
 
 def test_open_close_log_files() -> bool:
-    """We can open and close the log files"""
+    """We can open and close the log files."""
     frontend = PanelFrontend(_noop_render_fn)
     assert not frontend._log_files
     # When

@@ -1,5 +1,4 @@
-"""The watch_app_state function enables us to trigger a callback function when ever the
-app state changes."""
+"""The watch_app_state function enables us to trigger a callback function when ever the app state changes."""
 # Todo: Refactor with Streamlit
 # Note: It would be nice one day to just watch changes within the Flow scope instead of whole app
 from __future__ import annotations

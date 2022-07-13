@@ -17,7 +17,6 @@ import inspect
 import os
 
 import panel as pn
-
 from app_state_watcher import AppStateWatcher
 from other import get_render_fn_from_environment
 

@@ -1,6 +1,8 @@
-import lightning as L
 # from lightning_app.frontend.panel import PanelFrontend
 from panel_frontend import PanelFrontend
+
+import lightning as L
+
 
 class LitPanel(L.LightningFlow):
     def __init__(self):
@@ -9,6 +11,8 @@ class LitPanel(L.LightningFlow):
 
     def configure_layout(self):
         return self._frontend
+
+
 class LitApp(L.LightningFlow):
     def __init__(self):
         super().__init__()

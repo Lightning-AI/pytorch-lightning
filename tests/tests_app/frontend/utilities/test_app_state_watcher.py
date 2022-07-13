@@ -1,4 +1,4 @@
-"""The AppStateWatcher enables a Frontend to
+"""The AppStateWatcher enables a Frontend to.
 
 - subscribe to app state changes.
 - to access and change the app state.
@@ -65,8 +65,8 @@ def test_update_flow_state(flow_state_state: dict):
 def test_is_singleton():
     """The AppStateWatcher is a singleton for efficiency reasons.
 
-    Its key that __new__ and __init__ of AppStateWatcher is only called once.
-    See https://github.com/holoviz/param/issues/643
+    Its key that __new__ and __init__ of AppStateWatcher is only called once. See
+    https://github.com/holoviz/param/issues/643
     """
     # When
     app1 = AppStateWatcher()

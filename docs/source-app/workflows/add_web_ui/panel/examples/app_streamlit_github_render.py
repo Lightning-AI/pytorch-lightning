@@ -26,8 +26,8 @@ class GithubRepoRunner(TracerPythonScript):
         cloud_compute: Optional[CloudCompute] = None,
         **kwargs,
     ):
-        """The GithubRepoRunner Component clones a repo,
-        runs a specific script with provided arguments and collect logs.
+        """The GithubRepoRunner Component clones a repo, runs a specific script with provided arguments and collect
+        logs.
 
         Arguments:
             id: Identified of the component.
@@ -43,7 +43,7 @@ class GithubRepoRunner(TracerPythonScript):
             cloud_compute=cloud_compute,
             cloud_build_config=BuildConfig(requirements=requirements),
         )
-        self.script_path=script_path
+        self.script_path = script_path
         self.id = id
         self.github_repo = github_repo
         self.kwargs = kwargs
@@ -57,8 +57,7 @@ class GithubRepoRunner(TracerPythonScript):
         # 2: Use git command line to clone the repo.
         repo_name = self.github_repo.split("/")[-1].replace(".git", "")
         cwd = os.path.dirname(__file__)
-        subprocess.Popen(
-            f"git clone {self.github_repo}", cwd=cwd, shell=True).wait()
+        subprocess.Popen(f"git clone {self.github_repo}", cwd=cwd, shell=True).wait()
 
         # 3: Execute the parent run method of the TracerPythonScript class.
         os.chdir(os.path.join(cwd, repo_name))
@@ -74,7 +73,6 @@ class GithubRepoRunner(TracerPythonScript):
 
 
 class PyTorchLightningGithubRepoRunner(GithubRepoRunner):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.best_model_path = None
@@ -106,12 +104,12 @@ class PyTorchLightningGithubRepoRunner(GithubRepoRunner):
 
         # 5. Patch the `__init__` method of the Trainer
         # to inject our callback with a reference to the work.
-        tracer.add_traced(
-            Trainer, "__init__", pre_fn=partial(trainer_pre_fn, work=self))
+        tracer.add_traced(Trainer, "__init__", pre_fn=partial(trainer_pre_fn, work=self))
         return tracer
 
     def on_after_run(self, end_script_globals):
         import torch
+
         # 1. Once the script has finished to execute,
         # we can collect its globals and access any objects.
         trainer = end_script_globals["cli"].trainer
@@ -137,10 +135,12 @@ class PyTorchLightningGithubRepoRunner(GithubRepoRunner):
 
 
 class KerasGithubRepoRunner(GithubRepoRunner):
-    """Left to the users to implement"""
+    """Left to the users to implement."""
+
 
 class TensorflowGithubRepoRunner(GithubRepoRunner):
-    """Left to the users to implement"""
+    """Left to the users to implement."""
+
 
 GITHUB_REPO_RUNNERS = {
     "PyTorch Lightning": PyTorchLightningGithubRepoRunner,
@@ -189,8 +189,9 @@ class Flow(LightningFlow):
 
 def render_fn(state: AppState):
     import json
+
     with open("state.json", "w") as fp:
-        json.dump(state._state,fp) 
+        json.dump(state._state, fp)
     import streamlit as st
 
     def page_create_new_run():

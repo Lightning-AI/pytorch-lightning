@@ -11,9 +11,9 @@ import logging
 import os
 
 import param
-
 from app_state_comm import watch_app_state
 from other import get_flow_state
+
 from lightning_app.utilities.imports import requires
 from lightning_app.utilities.state import AppState
 

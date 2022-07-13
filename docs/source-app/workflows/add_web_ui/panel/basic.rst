@@ -67,6 +67,7 @@ Then **create a file named ``app.py``** with the app content:
     import lightning as L
     from lightning_app.frontend.panel import PanelFrontend
 
+
     class LitPanel(L.LightningFlow):
         def __init__(self):
             super().__init__()
@@ -74,6 +75,7 @@ Then **create a file named ``app.py``** with the app content:
 
         def configure_layout(self):
             return self._frontend
+
 
     class LitApp(L.LightningFlow):
         def __init__(self):
@@ -158,6 +160,7 @@ the ``configure_layout`` method of the Lightning component you want to connect t
     import lightning as L
     from lightning_app.frontend.panel import PanelFrontend
 
+
     class LitPanel(L.LightningFlow):
         def __init__(self):
             super().__init__()
@@ -165,6 +168,7 @@ the ``configure_layout`` method of the Lightning component you want to connect t
 
         def configure_layout(self):
             return self._frontend
+
 
     class LitApp(L.LightningFlow):
         def __init__(self):
@@ -194,6 +198,7 @@ In this case, we render the ``LitPanel`` UI in the ``home`` tab of the applicati
     import lightning as L
     from lightning_app.frontend.panel import PanelFrontend
 
+
     class LitPanel(L.LightningFlow):
         def __init__(self):
             super().__init__()
@@ -201,6 +206,7 @@ In this case, we render the ``LitPanel`` UI in the ``home`` tab of the applicati
 
         def configure_layout(self):
             return self._frontend
+
 
     class LitApp(L.LightningFlow):
         def __init__(self):

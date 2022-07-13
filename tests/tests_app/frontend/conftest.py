@@ -1,4 +1,4 @@
-"""Test configuration"""
+"""Test configuration."""
 # pylint: disable=protected-access
 import os
 from unittest import mock
@@ -38,15 +38,18 @@ def _request_state(self):
     _state = APP_STATE
     self._store_state(_state)
 
+
 @pytest.fixture()
 def flow():
     return FLOW
+
 
 @pytest.fixture(autouse=True, scope="module")
 def mock_request_state():
     """Avoid requests to the api."""
     with mock.patch("lightning_app.utilities.state.AppState._request_state", _request_state):
         yield
+
 
 def do_nothing():
     """Be lazy!"""
@@ -61,13 +64,13 @@ def mock_start_websocket():
 
 @pytest.fixture
 def app_state_state():
-    """Returns an AppState dict"""
+    """Returns an AppState dict."""
     return APP_STATE.copy()
 
 
 @pytest.fixture
 def flow_state_state():
-    """Returns an AppState dict scoped to the flow"""
+    """Returns an AppState dict scoped to the flow."""
     return FLOW_STATE.copy()
 
 

@@ -25,7 +25,7 @@ def test_get_flow_state(flow_state_state: dict, flow):
 
 
 def render_fn():
-    """Do nothing"""
+    """Do nothing."""
 
 
 def test_get_render_fn_from_environment():
@@ -44,9 +44,7 @@ def some_fn(_):
 def test_get_frontend_environment_fn():
     """We have a utility function to get the frontend render_fn environment."""
     # When
-    env = get_frontend_environment(
-        flow="root.lit_frontend", render_fn_or_file=some_fn, host="myhost", port=1234
-    )
+    env = get_frontend_environment(flow="root.lit_frontend", render_fn_or_file=some_fn, host="myhost", port=1234)
     # Then
     assert env["LIGHTNING_FLOW_NAME"] == "root.lit_frontend"
     assert env["LIGHTNING_RENDER_ADDRESS"] == "myhost"
@@ -58,9 +56,7 @@ def test_get_frontend_environment_fn():
 def test_get_frontend_environment_file():
     """We have a utility function to get the frontend render_fn environment."""
     # When
-    env = get_frontend_environment(
-        flow="root.lit_frontend", render_fn_or_file="app_panel.py", host="myhost", port=1234
-    )
+    env = get_frontend_environment(flow="root.lit_frontend", render_fn_or_file="app_panel.py", host="myhost", port=1234)
     # Then
     assert env["LIGHTNING_FLOW_NAME"] == "root.lit_frontend"
     assert env["LIGHTNING_RENDER_ADDRESS"] == "myhost"
@@ -90,18 +86,18 @@ def test_get_frontend_environment_file():
     ),
 )
 def test_has_panel_autoreload(value, expected):
-    """We can get and set autoreload via the environment variable PANEL_AUTORELOAD"""
+    """We can get and set autoreload via the environment variable PANEL_AUTORELOAD."""
     with mock.patch.dict(os.environ, {"PANEL_AUTORELOAD": value}):
         assert has_panel_autoreload() == expected
 
 
 @mock.patch.dict(os.environ, clear=True)
 def test_is_running_locally() -> bool:
-    """We can determine if lightning is running locally"""
+    """We can determine if lightning is running locally."""
     assert is_running_locally()
 
 
 @mock.patch.dict(os.environ, {"LIGHTNING_APP_STATE_URL": "127.0.0.1"})
 def test_is_running_cloud() -> bool:
-    """We can determine if lightning is running in cloud"""
+    """We can determine if lightning is running in cloud."""
     assert not is_running_locally()
