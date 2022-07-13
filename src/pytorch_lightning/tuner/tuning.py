@@ -44,11 +44,7 @@ class Tuner:
         scale_batch_size_kwargs = scale_batch_size_kwargs or {}
         lr_find_kwargs = lr_find_kwargs or {}
         # return a dict instead of a tuple so BC is not broken if a new tuning procedure is added
-<<<<<<< HEAD
         result: _TunerResult = {}
-=======
-        result: Dict[str, Any] = {}
->>>>>>> 7c4b7df27bfa14ef0611f67cbeba3d9f356c4f44
 
         self.trainer.strategy.connect(model)
 
