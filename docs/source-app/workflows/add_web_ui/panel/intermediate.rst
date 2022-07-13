@@ -12,10 +12,10 @@ Add a web UI with Panel (intermediate)
 Interact with the component from Panel
 **************************************
 
-The panel UI enables user interactions with the Lightning App via widgets.
+The ``PanelFrontend`` enables user interactions with the Lightning App via widgets.
 You can modify the state variables of a Lightning component via the ``AppStateWatcher``.
 
-For example, here we increase the count variable of the Lightning Component every time a user
+For example, here we increase the ``count`` variable of the Lightning Component every time a user
 presses a button:
 
 .. code:: bash
@@ -84,9 +84,9 @@ presses a button:
     app = L.LightningApp(LitApp())
 
 .. figure:: https://raw.githubusercontent.com/MarcSkovMadsen/awesome-panel-assets/master/videos/panel-lightning/panel-lightning-counter-from-frontend.gif
-   :alt: Panel Lightning App updating a counter in the frontend
+   :alt: Panel Lightning App updating a counter from the frontend
 
-   Panel Lightning App updating a counter in the frontend
+   Panel Lightning App updating a counter from the frontend
 
 ----
 
@@ -94,10 +94,10 @@ presses a button:
 Interact with Panel from the component
 **************************************
 
-To update the Panel UI from any Lightning component, update the property in the component. Make sure to call ``run`` method from the
+To update the `PanelFrontend` from any Lightning component, update the property in the component. Make sure to call ``run`` method from the
 parent component.
 
-In this example we update the value of the counter from the component:
+In this example we update the value of ``count`` from the component:
 
 .. code:: bash
 
@@ -111,7 +111,7 @@ In this example we update the value of the counter from the component:
     pn.extension(sizing_mode="stretch_width")
 
     def counter(state):
-        return f"Counter: {state.counter}"
+        return f"Counter: {state.count}"
 
     last_update = pn.bind(counter, app.param.state)
 
@@ -131,7 +131,7 @@ In this example we update the value of the counter from the component:
         def __init__(self):
             super().__init__()
             self._frontend = PanelFrontend("app_panel.py")
-            self.counter = 0
+            self.count = 0
             self._last_update=dt.now()
 
         def configure_layout(self):
@@ -140,9 +140,9 @@ In this example we update the value of the counter from the component:
         def run(self):
             now = dt.now()
             if (now-self._last_update).microseconds>=250:
-                self.counter += 1
+                self.count += 1
                 self._last_update = now
-                print("Counter changed to: ", self.counter)
+                print("Counter changed to: ", self.count)
 
     class LitApp(L.LightningFlow):
         def __init__(self):
