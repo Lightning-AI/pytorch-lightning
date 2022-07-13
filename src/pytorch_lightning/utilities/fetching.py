@@ -32,7 +32,7 @@ from pytorch_lightning.utilities.auto_restart import (
 )
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _fault_tolerant_training, _NVIDIA_DALI_AVAILABLE
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 
 
 def _profile_nothing() -> None:
@@ -281,12 +281,7 @@ class DataFetcher(AbstractDataFetcher):
             # when we don't prefetch but the dataloader is sized, we use the length for `done`
             dataloader = self.dataloader
             assert isinstance(dataloader, Sized)  # `_has_len` is True
-            if self.fetched >= len(dataloader):
-                self.done = True
-                if _NVIDIA_DALI_AVAILABLE:
-                    from nvidia.dali.plugin.pytorch import DALIGenericIterator
-
-                    apply_to_collection(self.loaders, DALIGenericIterator, DALIGenericIterator.reset)
+            self.done = self.fetched >= len(dataloader)
         self.on_fetch_end(batch, start_output)
 
     def move_to_device(self, batch: Any) -> Any:
