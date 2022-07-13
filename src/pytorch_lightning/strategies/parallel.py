@@ -113,9 +113,9 @@ class ParallelStrategy(Strategy, ABC):
 
     def reduce_boolean_decision(self, decision: Union[bool, Tensor]) -> bool:
         if isinstance(decision, Tensor):
-            decision = decision.to(self.root_device)
+            decision = decision.to(dtype=torch.int, device=self.root_device)
         else:
-            decision = torch.tensor(decision, device=self.root_device)
+            decision = torch.tensor(int(decision), device=self.root_device)
         decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
         decision = bool(decision == self.world_size)
         return decision
