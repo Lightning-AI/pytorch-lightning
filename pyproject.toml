@@ -68,7 +68,6 @@ module = [
     "pytorch_lightning.strategies.ddp",
     "pytorch_lightning.strategies.ddp_spawn",
     "pytorch_lightning.strategies.deepspeed",
-    "pytorch_lightning.strategies.dp",
     "pytorch_lightning.strategies.fully_sharded",
     "pytorch_lightning.strategies.horovod",
     "pytorch_lightning.strategies.ipu",
