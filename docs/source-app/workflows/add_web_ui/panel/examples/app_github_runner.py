@@ -12,7 +12,6 @@ from lightning.app import structures
 from lightning.app.components.python import TracerPythonScript
 from panel_frontend import PanelFrontend
 from lightning.app.storage.path import Path
-from app_state_watcher import AppStateWatcher
 
 class GithubRepoRunner(TracerPythonScript):
     def __init__(

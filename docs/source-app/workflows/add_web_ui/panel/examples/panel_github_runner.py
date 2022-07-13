@@ -151,7 +151,7 @@ def create_new_page():
         name="Enter your base script arguments",
         value=(
             "--trainer.max_epochs=5 --trainer.limit_train_batches=4 --trainer.limit_val_batches=4 "
-            " --trainer.callbacks=ModelCheckpoint --trainer.callbacks.monitor=val_acc"
+            "--trainer.callbacks=ModelCheckpoint --trainer.callbacks.monitor=val_acc"
         ),
     )
     requirements_input = pn.widgets.TextInput(
@@ -163,7 +163,6 @@ def create_new_page():
         inline=True,
     )
     submit_button = pn.widgets.Button(name="⚡ SUBMIT ⚡", button_type="primary")
-
     bind_as_form(
         create_new_run,
         id=id_input,
@@ -222,10 +221,7 @@ def view_run_list_page(state: AppState):
     title = "# View your runs 🎈"
     layout = pn.Tabs(sizing_mode="stretch_both")
     for idx, request in enumerate(state.requests):
-        layout.append(run_component(idx, request, state._state))
-        # We just add some more dummy runs
-        layout.append(run_component(idx, request, state._state))
-        layout.append(run_component(idx, request, state._state))
+        layout.append(run_component(idx, request, state._state))       
     return pn.Column(title, layout)
 
 #endregion: Run list page
