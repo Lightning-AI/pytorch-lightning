@@ -24,13 +24,15 @@ class ServableBoringModel(BoringModel, ServableModule):
         assert torch.equal(x, torch.arange(32, dtype=torch.float))
         return {"output": torch.tensor([0, 1])}
 
+    def configure_response(self):
+        return {"output": [0, 1]}
+
 
 def test_servable_module_validator():
     seed_everything(42)
     model = ServableBoringModel()
     callback = ServableModuleValidator()
     callback.on_train_start(Trainer(), model)
-    assert callback.resp.json() == {"output": [0, 1]}
 
 
 def test_servable_module_validator_with_trainer():
@@ -41,6 +43,7 @@ def test_servable_module_validator_with_trainer():
         limit_train_batches=2,
         limit_val_batches=0,
         callbacks=[callback],
+        strategy="ddp_spawn",
+        devices=2,
     )
     trainer.fit(ServableBoringModel())
-    assert callback.resp.json() == {"output": [0, 1]}

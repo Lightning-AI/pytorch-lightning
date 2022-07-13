@@ -4,7 +4,6 @@ from typing import Any, Dict, Optional
 
 import requests
 import torch
-from torch.nn.parallel.distributed import DistributedDataParallel
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
@@ -23,8 +22,11 @@ _NOT_SUPPORTED_STRATEGIES = (
 
 
 class ServableModuleValidator(Callback):
-    """The ServableModuleValidator callback enables to validate a model is servable following the ServableModule
-    API.
+    """The ServableModuleValidator validates to validate a model correctly implement the ServableModule API.
+
+    .. warning::
+
+        This is currently an experimental feature and API changes are to be expected.
 
     Arguments:
         optimization: The format in which the model should be tested while being served.
@@ -40,6 +42,7 @@ class ServableModuleValidator(Callback):
         host: str = "127.0.0.1",
         port: int = 8080,
         timeout: int = 10,
+        exit_on_failure: bool = True,
     ):
         super().__init__()
         fastapi_installed = _RequirementAvailable("fastapi")
@@ -61,6 +64,7 @@ class ServableModuleValidator(Callback):
         self.port = port
         self.server = server
         self.timeout = timeout
+        self.exit_on_failure = exit_on_failure
         self.resp: Optional[requests.Response] = None
 
     @rank_zero_only
@@ -81,11 +85,12 @@ class ServableModuleValidator(Callback):
         if not is_overridden("serve_step", servable_module, ServableModule):
             raise NotImplementedError("The `serve_step` method needs to be overridden.")
 
-        if isinstance(trainer.model, DistributedDataParallel):
-            raise NotImplementedError("Using DDP isn't supported yet with ServableModuleValidator.")
+        servable_module.trainer = None
 
         process = Process(target=self._start_server, args=(servable_module, self.host, self.port, self.optimization))
         process.start()
+
+        servable_module.trainer = trainer
 
         ready = False
         t0 = time.time()
@@ -106,6 +111,13 @@ class ServableModuleValidator(Callback):
 
         self.resp = requests.post(f"http://{self.host}:{self.port}/serve", json=payload)
         process.kill()
+
+        if is_overridden("configure_response", servable_module, ServableModule):
+            response = servable_module.configure_response()
+            assert self.resp.json() == response
+
+        if self.exit_on_failure and not self.successful:
+            raise SystemExit("The ServableModel API hasn't been properly implemented.")
 
     @property
     def successful(self) -> Optional[bool]:

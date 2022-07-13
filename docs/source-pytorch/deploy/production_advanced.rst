@@ -58,3 +58,19 @@ Once you have the exported model, you can run it on your ONNX runtime in the fol
     input_name = ort_session.get_inputs()[0].name
     ort_inputs = {input_name: np.random.randn(1, 64)}
     ort_outs = ort_session.run(None, ort_inputs)
+
+----
+
+****************************
+Validate a Model Is Servable
+****************************
+
+Production ML Engineers would argue that a model shouldn't be trained if it can't be deployed reliability and in a fully automated manner.
+
+In order to ease transition from training to production, PyTorch Lightning provides a way for you to validate a model can be served even before starting training.
+
+In order to do so, your LightningModule needs to subclass the :class:`~pytorch_lightning.serve.servable_module.ServableModule`, implements its hooks and pass a :class:`~pytorch_lightning.serve.servable_module_validator.ServableModuleValidator` callback to the Trainer.
+
+Find below an example for validating a resnet18 can be served.
+
+.. literalinclude:: ../../../examples/pl_servable_module/production.py
