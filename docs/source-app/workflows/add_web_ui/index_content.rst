@@ -4,6 +4,7 @@
 
    dash/index
    gradio/index
+   panel/index
    streamlit/index
 
 .. toctree::
