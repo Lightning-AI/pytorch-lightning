@@ -23,7 +23,6 @@ from pytorch_lightning.strategies.launchers.spawn import _FakeQueue, _SpawnLaunc
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import move_data_to_device
-from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 
 if _TPU_AVAILABLE:
@@ -136,9 +135,6 @@ class _XLASpawnLauncher(_SpawnLauncher):
 
         # adds the `callback_metrics` to the queue
         extra = _FakeQueue()
-        if is_overridden("add_to_queue", trainer.lightning_module):
-            # TODO: Remove the if in v1.7
-            trainer.lightning_module.add_to_queue(extra)
         self.add_to_queue(trainer, extra)
 
         return _SpawnOutput(best_model_path, weights_path, trainer.state, results, extra)
