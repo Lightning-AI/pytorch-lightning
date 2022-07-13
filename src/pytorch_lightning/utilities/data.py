@@ -17,7 +17,7 @@ import os
 from contextlib import contextmanager
 from dataclasses import fields
 from functools import partial
-from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Set, Tuple, Type, Union
 
 import torch
 from torch import Tensor
@@ -217,11 +217,11 @@ def _get_dataloader_init_args_and_kwargs(
     if not isinstance(dataloader, DataLoader):
         raise ValueError(f"The dataloader {dataloader} needs to subclass `torch.utils.data.DataLoader`")
 
-    was_wrapped = hasattr(dataloader, "__pl_dl_args")
+    was_wrapped = hasattr(dataloader, "__pl_saved_args")
     if was_wrapped:
-        dl_args = dataloader.__pl_dl_args
-        dl_kwargs = dataloader.__pl_dl_kwargs
-        arg_names = dataloader.__pl_dl_arg_names
+        dl_args = dataloader.__pl_saved_args
+        dl_kwargs = dataloader.__pl_saved_kwargs
+        arg_names = dataloader.__pl_saved_arg_names
         original_dataset = dataloader.__dataset  # we have this saved from _wrap_init
     else:
         # get the dataloader instance attributes
@@ -355,12 +355,12 @@ def _auto_add_worker_init_fn(dataloader: DataLoader, rank: int) -> None:
         dataloader.worker_init_fn = partial(pl_worker_init_function, rank=rank)
 
 
-def _wrap_dataloader_init(init: Callable) -> Callable:
-    """Wraps the ``__init__`` method of :class:`~torch.utils.data.DataLoader` in order to enable re-instantiation
-    of custom subclasses."""
+def _wrap_init_method(init: Callable, store_explicit_args: Optional[List[str]] = None) -> Callable:
+    """Wraps the ``__init__`` method of classes (currently :class:`~torch.utils.data.DataLoader` and
+    :class:`~torch.utils.data.BatchSampler`) in order to enable re-instantiation of custom subclasses."""
 
     @functools.wraps(init)
-    def wrapper(obj: DataLoader, *args: Any, **kwargs: Any) -> None:
+    def wrapper(obj: Any, *args: Any, **kwargs: Any) -> None:
         # We need to inspect `init`, as inspecting `obj.__init__`
         # can lead to inspecting the wrong function with multiple inheritance
         params = inspect.signature(init).parameters
@@ -371,18 +371,20 @@ def _wrap_dataloader_init(init: Callable) -> Callable:
         )
         param_names = param_names[: len(args)]
 
-        if not hasattr(obj, "__pl_dl_args"):
-            obj.__pl_dl_args = args
-            obj.__pl_dl_kwargs = kwargs
-            obj.__pl_dl_arg_names = param_names
+        if not hasattr(obj, "__pl_saved_args"):
+            obj.__pl_saved_args = args
+            obj.__pl_saved_kwargs = kwargs
+            obj.__pl_saved_arg_names = param_names
 
-        # We want to use the latest possible value for dataset argument (i.e. ideally what gets passed to DataLoader)
+        # We want to use the latest possible value for explicit arguments (i.e. ideally what gets passed to base class)
         # so that we can be sure, that it will not get changed anymore.
         # That is why we are setting this in every `__init__`
-        if "dataset" in param_names:
-            setattr(obj, "__dataset", args[param_names.index("dataset")])
-        elif "dataset" in kwargs:
-            setattr(obj, "__dataset", kwargs["dataset"])
+        if store_explicit_args is not None:
+            for explicit_arg in store_explicit_args:
+                if explicit_arg in param_names:
+                    setattr(obj, f"__{explicit_arg}", args[param_names.index(explicit_arg)])
+                elif explicit_arg in kwargs:
+                    setattr(obj, f"__{explicit_arg}", kwargs[explicit_arg])
 
         init(obj, *args, **kwargs)
 
@@ -404,15 +406,19 @@ def _get_all_subclasses(cls: Type[Any]) -> Set[Type[Any]]:
 
 
 @contextmanager
-def _replace_dataloader_init_method() -> Generator[None, None, None]:
-    """This context manager is used to add support for re-instantiation of custom (subclasses) of
-    :class:`~torch.utils.data.DataLoader`. It patches the ``__init__`` method."""
-    classes = _get_all_subclasses(DataLoader) | {DataLoader}
+def _replace_init_method(
+    base_cls: Type, store_explicit_args: Optional[List[str]] = None
+) -> Generator[None, None, None]:
+    """This context manager is used to add support for re-instantiation of custom (subclasses) of `base_cls`.
+
+    It patches the ``__init__`` method.
+    """
+    classes = _get_all_subclasses(base_cls) | {base_cls}
     wrapped = set()
     for cls in classes:
         if cls.__init__ not in wrapped:
             cls._old_init = cls.__init__
-            cls.__init__ = _wrap_dataloader_init(cls.__init__)
+            cls.__init__ = _wrap_init_method(cls.__init__, store_explicit_args)
             wrapped.add(cls.__init__)
     yield
     for cls in classes:
@@ -457,13 +463,13 @@ def _apply_fault_tolerant_automatic_capture_dataset_wrapper(
 
 
 def _is_dataloader_shuffled(dataloader: object) -> bool:
-    if hasattr(dataloader, "__pl_dl_kwargs"):
+    if hasattr(dataloader, "__pl_saved_kwargs"):
         # this attribute is not part of PyTorch's DataLoader, but could have been set by
-        # our `_replace_dataloader_init_method` context manager
-        if "shuffle" in dataloader.__pl_dl_kwargs:
-            return dataloader.__pl_dl_kwargs["shuffle"]
-        if "shuffle" in dataloader.__pl_dl_arg_names:
-            return dataloader.__pl_dl_args[dataloader.__pl_dl_arg_names.index("shuffle")]
+        # our `_replace_init_method` context manager
+        if "shuffle" in dataloader.__pl_saved_kwargs:
+            return dataloader.__pl_saved_kwargs["shuffle"]
+        if "shuffle" in dataloader.__pl_saved_arg_names:
+            return dataloader.__pl_saved_args[dataloader.__pl_saved_arg_names.index("shuffle")]
     if isinstance(dataloader.dataset, IterableDataset):
         # shuffling is useless with iterable datasets
         return False

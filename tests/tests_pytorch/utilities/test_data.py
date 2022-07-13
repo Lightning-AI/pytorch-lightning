@@ -10,7 +10,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.data import (
     _get_dataloader_init_args_and_kwargs,
-    _replace_dataloader_init_method,
+    _replace_init_method,
     _update_dataloader,
     extract_batch_size,
     get_len,
@@ -144,7 +144,7 @@ def test_update_dataloader_typerror_custom_exception():
     with pytest.raises(MisconfigurationException, match="`DataLoader` implementation has an error.*`dataset`"):
         _update_dataloader(dataloader, dataloader.sampler)
 
-    with _replace_dataloader_init_method():
+    with _replace_init_method(DataLoader, ["dataset"]):
         dataloader = BadStandaloneGoodHookImpl([1, 2, 3])
     new_dataloader = _update_dataloader(dataloader, dataloader.sampler)
     assert isinstance(new_dataloader, BadStandaloneGoodHookImpl)
@@ -295,13 +295,13 @@ class ChangingDataLoader(DataLoader):
         pytest.param(ChangingDataLoader, (range(5),), dict(), ("dataset",), list(range(10)), dict(), id="test9"),
     ],
 )
-def test_replace_dataloader_init_method(cls, args, kwargs, arg_names, dataset, checked_values):
-    with _replace_dataloader_init_method():
+def test_replace_init_method_dataloader(cls, args, kwargs, arg_names, dataset, checked_values):
+    with _replace_init_method(DataLoader, ["dataset"]):
         dataloader = cls(*args, **kwargs)
 
-    assert dataloader.__pl_dl_args == args
-    assert dataloader.__pl_dl_kwargs == kwargs
-    assert dataloader.__pl_dl_arg_names == arg_names
+    assert dataloader.__pl_saved_args == args
+    assert dataloader.__pl_saved_kwargs == kwargs
+    assert dataloader.__pl_saved_arg_names == arg_names
     assert dataloader.__dataset == dataset
 
     assert dataloader.dataset == dataset
@@ -316,9 +316,9 @@ def test_replace_dataloader_init_method(cls, args, kwargs, arg_names, dataset, c
     dataloader = _update_dataloader(dataloader, dataloader.sampler)
 
     assert isinstance(dataloader, cls)
-    assert not hasattr(dataloader, "__pl_dl_kwargs")
-    assert not hasattr(dataloader, "__pl_dl_arg_names")
-    assert not hasattr(dataloader, "__pl_dl_args")
+    assert not hasattr(dataloader, "__pl_saved_kwargs")
+    assert not hasattr(dataloader, "__pl_saved_arg_names")
+    assert not hasattr(dataloader, "__pl_saved_args")
     assert not hasattr(dataloader, "__dataset")
 
     assert dataloader.dataset == dataset

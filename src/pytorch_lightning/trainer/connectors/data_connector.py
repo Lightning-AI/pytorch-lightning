@@ -31,7 +31,7 @@ from pytorch_lightning.utilities.auto_restart import _validate_fault_tolerant_au
 from pytorch_lightning.utilities.data import (
     _auto_add_worker_init_fn,
     _is_dataloader_shuffled,
-    _replace_dataloader_init_method,
+    _replace_init_method,
     _update_dataloader,
     has_iterable_dataset,
     has_len_all_ranks,
@@ -424,7 +424,7 @@ class DataConnector:
         """
         source = getattr(self, f"_{stage.dataloader_prefix}_dataloader_source")
 
-        with _replace_dataloader_init_method():
+        with _replace_init_method(DataLoader, ["dataset"]):
             # under this context manager, the arguments passed to `DataLoader.__init__` will be captured and saved as
             # attributes on the instance in case the dataloader needs to be re-instantiated later by Lightning
             dataloader = source.dataloader()
