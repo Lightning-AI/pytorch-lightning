@@ -53,9 +53,6 @@ class ServableModule(torch.nn.Module):
         assert callback.resp.json() == {"output": [0, 1]}
     """
 
-    def __init__(self):
-        super().__init__()
-
     def configure_payload(self) -> Dict[str, Any]:
         """Returns a request payload as a dictionary."""
         ...
