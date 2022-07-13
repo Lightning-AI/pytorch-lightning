@@ -14,3 +14,6 @@ scikit-learn>0.22.1
 onnxruntime
 psutil  # for `DeviceStatsMonitor`
 pandas  # needed in benchmarks
+
+# install all extra dependencies for serving
+-r ./serve.txt

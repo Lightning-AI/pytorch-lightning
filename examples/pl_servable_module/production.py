@@ -1,5 +1,4 @@
 import base64
-import os
 import sys
 from dataclasses import dataclass
 from io import BytesIO
@@ -98,14 +97,12 @@ class ProductionReadyModel(LitModule, ServableModule):
         pil_image = T.ToPILImage()(image)
         pil_image.save("payload_image.png")
 
-        # 3: Load the image as bytes and encode it with base64
-        with open("payload_image.png", "rb") as f:
-            imgstr = base64.b64encode(f.read()).decode("UTF-8")
+        # 3: Convert the image to bytes and encode it with base64
+        buffered = BytesIO()
+        pil_image.save(buffered, format="JPEG")
+        img_str = base64.b64encode(buffered.getvalue()).decode("UTF-8")
 
-        payload = {"body": {"x": imgstr}}
-
-        # 4: Delete the image
-        os.remove("payload_image.png")
+        payload = {"body": {"x": img_str}}
         return payload
 
     def configure_serialization(self):
