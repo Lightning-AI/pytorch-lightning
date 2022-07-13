@@ -180,10 +180,6 @@ class LightningModule(
 
     @trainer.setter
     def trainer(self, trainer: "pl.Trainer") -> None:
-        if not isinstance(trainer, pl.Trainer):
-            raise RuntimeError(
-                f"The {self.__class__.__name__} model should be connected to a `Trainer`, found: {trainer}."
-            )
         self._trainer = trainer
         for v in self.children():
             if isinstance(v, LightningModule):

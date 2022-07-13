@@ -427,7 +427,7 @@ def test_trainer_reference_recursively():
     with pytest.raises(RuntimeError, match="attached to a `Trainer"):
         _ = ensemble.trainer
 
-    trainer = Mock(spec=Trainer)
+    trainer = Mock()
     ensemble.trainer = trainer
     assert ensemble.trainer is trainer
     assert inner.trainer is trainer

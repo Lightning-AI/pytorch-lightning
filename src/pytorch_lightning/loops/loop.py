@@ -61,10 +61,6 @@ class Loop(ABC, Generic[T]):
     @trainer.setter
     def trainer(self, trainer: "pl.Trainer") -> None:
         """Connects this loop's trainer and its children."""
-        if not isinstance(trainer, pl.Trainer):
-            raise RuntimeError(
-                f"The {self.__class__.__name__} loop should be connected to a `Trainer`, found: {trainer}."
-            )
         self._trainer = trainer
         for v in self.__dict__.values():
             if isinstance(v, Loop):

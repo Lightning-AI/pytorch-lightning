@@ -26,8 +26,6 @@ def test_loops_state_dict():
     trainer = Trainer()
 
     fit_loop = FitLoop()
-    with pytest.raises(MisconfigurationException, match="Loop FitLoop should be connected to a"):
-        fit_loop.trainer = object()
 
     fit_loop.trainer = trainer
     state_dict = fit_loop.state_dict()
