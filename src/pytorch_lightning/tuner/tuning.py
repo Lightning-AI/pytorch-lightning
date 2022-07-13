@@ -88,7 +88,7 @@ class Tuner:
         init_val: int = 2,
         max_trials: int = 25,
         batch_arg_name: str = "batch_size",
-    ) -> Optional[Union[int, _LRFinder]]:
+    ) -> Optional[int]:
         """Iteratively try to find the largest batch size for a given model that does not give an out of memory
         (OOM) error.
 
@@ -155,7 +155,7 @@ class Tuner:
         mode: str = "exponential",
         early_stop_threshold: float = 4.0,
         update_attr: bool = False,
-    ) -> Optional[Union[int, _LRFinder]]:
+    ) -> Optional[_LRFinder]:
         """Enables the user to do a range test of good initial learning rates, to reduce the amount of guesswork in
         picking a good starting learning rate.
 
