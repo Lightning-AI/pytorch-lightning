@@ -21,6 +21,11 @@ via `HoloViews`_, streaming and much more.
 - Panel is used by for example Rapids to power `CuxFilter`_, a CuDF based big data viz framework.
 - Panel can be deployed on your favorite server or cloud including `Lightning`_.
 
+.. figure:: https://cdn.jsdelivr.net/gh/MarcSkovMadsen/awesome-panel-assets@master/videos/panel-lightning/panel-intro.gif
+   :alt: Basic Panel Lightning App
+
+   Example Panel App
+
 Panel is **particularly well suited for lightning.ai apps** that needs to display live progress from
 `LightningWork` as the Panel server can react to progress and asynchronously push messages from the server to the
 client via web socket communication.
@@ -125,7 +130,7 @@ First, find the Panel app you want to integrate. In this example, that app looks
 
     pn.panel("Hello **Panel ⚡** World").servable()
 
-Refer to the `Panel documentation <https://docs.Panel.io/>`_ for more complex examples.
+Refer to the `Panel documentation <https://docs.Panel.io/>`_ or `awesome-panel.org <https://awesome-panel.org>`_ for more complex examples.
 
 ----
 
@@ -295,3 +300,4 @@ Finally run the app
 .. _HoloViews: https://holoviews.org/
 .. _Lightning: https://lightning.ai/
 .. _CuxFilter: https://github.com/rapidsai/cuxfilter
+.. _AwesomePanel: https://awesome-panel.org/home
