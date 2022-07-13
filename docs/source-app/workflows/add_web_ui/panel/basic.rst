@@ -102,6 +102,8 @@ Run the app locally to see it!
 
     lightning run app app_basic.py
 
+The app should look like the below
+
 .. figure:: https://cdn.jsdelivr.net/gh/MarcSkovMadsen/awesome-panel-assets@master/images/panel-lightning/panel-lightning-basic.png
    :alt: Basic Panel Lightning App
 
@@ -114,6 +116,8 @@ Now run it on the cloud as well:
     lightning run app app_basic.py --cloud
 
 ----
+
+Todo: Insert figure of app running in cloud
 
 ************************
 Step-by-step walkthrough
