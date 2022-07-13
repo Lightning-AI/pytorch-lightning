@@ -453,6 +453,7 @@ class DDPStrategy(ParallelStrategy):
     def teardown(self) -> None:
         log.detail(f"{self.__class__.__name__}: tearing down strategy")
 
+        pl_module = self.lightning_module
         if isinstance(self.model, DistributedDataParallel):
             if (
                 _TORCH_GREATER_EQUAL_1_11
@@ -464,15 +465,16 @@ class DDPStrategy(ParallelStrategy):
                     f" pass `Trainer(..., strategy={self.__class__.__name__}(static_graph=True))` to enable them."
                 )
             # unwrap model
-            self.model = self.lightning_module
+            self.model = pl_module
 
         if (
-            self.lightning_module is not None
-            and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+            pl_module is not None
+            # `self.lightning_module._trainer` can be None if teardown gets called on an exception before
+            # the trainer gets set on the LightningModule
+            and pl_module._trainer is not None
+            and pl_module._trainer.state.fn == TrainerFn.FITTING
             and self._layer_sync
         ):
-            # `self.lightning_module.trainer` can be None if teardown gets called on an exception before
-            # the trainer gets set on the LightningModule
             self.model = self._layer_sync.revert(self.model)
 
         super().teardown()
