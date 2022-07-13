@@ -93,11 +93,8 @@ class ProductionReadyModel(LitModule, ServableModule):
         # 1: Access the train dataloader and load a single sample.
         image, _ = self.trainer.train_dataloader.loaders.dataset[0]
 
-        # 2: Convert the image into a PIL Image and save it to disk
+        # 2: Convert the image into a PIL Image to bytes and encode it with base64
         pil_image = T.ToPILImage()(image)
-        pil_image.save("payload_image.png")
-
-        # 3: Convert the image to bytes and encode it with base64
         buffered = BytesIO()
         pil_image.save(buffered, format="JPEG")
         img_str = base64.b64encode(buffered.getvalue()).decode("UTF-8")
