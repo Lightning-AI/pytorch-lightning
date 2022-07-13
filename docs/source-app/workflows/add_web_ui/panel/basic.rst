@@ -48,7 +48,7 @@ Run a basic Panel app
 
 In the next few sections we'll build an app step-by-step.
 
-First **create a file named ``panel_app_basic.py``** with the app content:
+First **create a file named ``panel_app.py``** with the app content:
 
 .. code:: python
 
@@ -56,7 +56,7 @@ First **create a file named ``panel_app_basic.py``** with the app content:
 
     pn.panel("Hello **Panel ⚡** World").servable()
 
-Then **create a file named ``app_basic.py``** with the app content:
+Then **create a file named ``app.py``** with the app content:
 
 .. code:: python
 
@@ -66,7 +66,7 @@ Then **create a file named ``app_basic.py``** with the app content:
     class LitPanel(L.LightningFlow):
         def __init__(self):
             super().__init__()
-            self._frontend = PanelFrontend("panel_app_basic.py")
+            self._frontend = PanelFrontend("panel_app.py")
 
         def configure_layout(self):
             return self._frontend
@@ -100,7 +100,7 @@ Run the app locally to see it!
 
 .. code:: bash
 
-    lightning run app app_basic.py
+    lightning run app app.py
 
 The app should look like the below
 
@@ -113,7 +113,7 @@ Now run it on the cloud as well:
 
 .. code:: bash
 
-    lightning run app app_basic.py --cloud
+    lightning run app app.py --cloud
 
 ----
 
@@ -157,7 +157,7 @@ the ``configure_layout`` method of the Lightning component you want to connect t
     class LitPanel(L.LightningFlow):
         def __init__(self):
             super().__init__()
-            self._frontend = PanelFrontend("panel_app_basic.py")
+            self._frontend = PanelFrontend("panel_app.py")
 
         def configure_layout(self):
             return self._frontend
@@ -193,7 +193,7 @@ In this case, we render the ``LitPanel`` UI in the ``home`` tab of the applicati
     class LitPanel(L.LightningFlow):
         def __init__(self):
             super().__init__()
-            self._frontend = PanelFrontend("panel_app_basic.py")
+            self._frontend = PanelFrontend("panel_app.py")
 
         def configure_layout(self):
             return self._frontend
@@ -217,7 +217,7 @@ Try running the below
 
 .. code-block::
 
-    PANEL_AUTORELOAD=yes lightning run app app_basic.py
+    PANEL_AUTORELOAD=yes lightning run app app.py
 
 .. figure:: https://cdn.jsdelivr.net/gh/MarcSkovMadsen/awesome-panel-assets@master/videos/panel-lightning/panel-lightning-autoreload.gif
    :alt: Basic Panel Lightning App with autoreload
@@ -230,7 +230,7 @@ Theming
 
 To theme your app you, can use the lightning accent color #792EE5 with the `FastListTemplate`_.
 
-Try replacing the contents of ``app_basic.py`` with the below code.
+Try replacing the contents of ``app.py`` with the below code.
 
 .. code:: bash
 
@@ -296,7 +296,7 @@ Finally run the app
 
 .. code:: bash
 
-    lightning run app app_basic.py
+    lightning run app app.py
 
 .. figure:: https://cdn.jsdelivr.net/gh/MarcSkovMadsen/awesome-panel-assets@master/videos/panel-lightning/panel-lightning-theme.gif
    :alt: Basic Panel Plotly Lightning App with theming
