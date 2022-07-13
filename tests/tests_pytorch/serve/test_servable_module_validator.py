@@ -36,6 +36,11 @@ def test_servable_module_validator():
 def test_servable_module_validator_with_trainer():
     seed_everything(42)
     callback = ServableModuleValidator()
-    trainer = Trainer(max_epochs=1, limit_train_batches=2, limit_val_batches=0, callbacks=[callback])
+    trainer = Trainer(
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=0,
+        callbacks=[callback],
+    )
     trainer.fit(ServableBoringModel())
     assert callback.resp.json() == {"output": [0, 1]}

@@ -4,6 +4,7 @@ from typing import Any, Dict, Optional
 
 import requests
 import torch
+from torch.nn.parallel.distributed import DistributedDataParallel
 from typing_extensions import Literal
 
 import pytorch_lightning as pl
@@ -34,10 +35,11 @@ class ServableModuleValidator(Callback):
 
     def __init__(
         self,
-        optimization: Optional[Literal["trace", "script", "onnx", "tensorRt"]] = None,
+        optimization: Optional[Literal["trace", "script", "onnx", "tensorrt"]] = None,
         server: Literal["fastapi", "ml_server", "torchserve", "sagemaker"] = "fastapi",
         host: str = "127.0.0.1",
         port: int = 8080,
+        timeout: int = 10,
     ):
         super().__init__()
         fastapi_installed = _RequirementAvailable("fastapi")
@@ -58,6 +60,7 @@ class ServableModuleValidator(Callback):
         self.host = host
         self.port = port
         self.server = server
+        self.timeout = timeout
         self.resp: Optional[requests.Response] = None
 
     @rank_zero_only
@@ -78,43 +81,51 @@ class ServableModuleValidator(Callback):
         if not is_overridden("serve_step", servable_module, ServableModule):
             raise NotImplementedError("The `serve_step` method needs to be overridden.")
 
+        if isinstance(trainer.model, DistributedDataParallel):
+            raise NotImplementedError("Using DDP isn't supported yet with ServableModuleValidator.")
+
         process = Process(target=self._start_server, args=(servable_module, self.host, self.port, self.optimization))
         process.start()
 
         ready = False
+        t0 = time.time()
         while not ready:
             try:
                 resp = requests.get(f"http://{self.host}:{self.port}/ping")
                 ready = resp.status_code == 200
             except requests.exceptions.ConnectionError:
                 pass
+            if time.time() - t0 > self.timeout:
+                raise Exception(f"The Server didn't start in {self.timeout}")
             time.sleep(0.1)
 
         payload = servable_module.configure_payload()
 
         if "body" not in payload:
-            raise Exception(f"Your provided payload {payload} should have a field body.")
+            raise Exception(f'Your provided payload {payload} should have a field named "body".')
 
         self.resp = requests.post(f"http://{self.host}:{self.port}/serve", json=payload)
         process.kill()
 
     @property
-    def successful(self) -> bool:
+    def successful(self) -> Optional[bool]:
         """Returns whether the model was successfully served."""
-        return self.resp.status_code == 200 if self.resp else False
+        return self.resp.status_code == 200 if self.resp else None
 
     def state_dict(self) -> Dict[str, Any]:
         return {"successful": self.successful, "optimization": self.optimization, "server": self.server}
 
     @staticmethod
     def _start_server(servable_model: ServableModule, host: str, port: int, _: bool) -> None:
-        """This optimization starts a simple FastAPI server with a predict and ping endpoint."""
+        """This method starts a server with a serve and ping endpoints."""
         from fastapi import Body, FastAPI
         from uvicorn import run
 
         app = FastAPI()
 
         deserializers, serializers = servable_model.configure_serialization()
+
+        # Note: This isn't the original version, but a copy.
         servable_model.eval()
 
         @app.get("/ping")

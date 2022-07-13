@@ -1,10 +1,12 @@
-from modulefinder import Module
 from typing import Any, Callable, Dict, Tuple
 
 import torch
 
 
-class ServableModule(Module):
+class ServableModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
     def configure_payload(self) -> Dict[str, Any]:
         ...
 
