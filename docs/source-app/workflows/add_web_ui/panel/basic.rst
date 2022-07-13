@@ -2,7 +2,7 @@
 Add a web UI with Panel (basic)
 ###################################
 
-**Audience:** Users who want to add a web UI written with Python.
+**Audience:** Users who want to add a web UI written with Python and Panel.
 
 **Prereqs:** Basic Python knowledge.
 
@@ -48,9 +48,11 @@ Run a basic Panel app
 
 In the next few sections we'll build an app step-by-step.
 
-First **create a file named ``panel_app.py``** with the app content:
+First **create a file named ``app_panel.py``** with the app content:
 
 .. code:: python
+
+    # app_panel.py
 
     import panel as pn
 
@@ -60,13 +62,15 @@ Then **create a file named ``app.py``** with the app content:
 
 .. code:: python
 
+    # app.py
+
     import lightning as L
     from lightning_app.frontend.panel import PanelFrontend
 
     class LitPanel(L.LightningFlow):
         def __init__(self):
             super().__init__()
-            self._frontend = PanelFrontend("panel_app.py")
+            self._frontend = PanelFrontend("app_panel.py")
 
         def configure_layout(self):
             return self._frontend
@@ -157,7 +161,7 @@ the ``configure_layout`` method of the Lightning component you want to connect t
     class LitPanel(L.LightningFlow):
         def __init__(self):
             super().__init__()
-            self._frontend = PanelFrontend("panel_app.py")
+            self._frontend = PanelFrontend("app_panel.py")
 
         def configure_layout(self):
             return self._frontend
@@ -193,7 +197,7 @@ In this case, we render the ``LitPanel`` UI in the ``home`` tab of the applicati
     class LitPanel(L.LightningFlow):
         def __init__(self):
             super().__init__()
-            self._frontend = PanelFrontend("panel_app.py")
+            self._frontend = PanelFrontend("app_panel.py")
 
         def configure_layout(self):
             return self._frontend
@@ -230,9 +234,11 @@ Theming
 
 To theme your app you, can use the lightning accent color #792EE5 with the `FastListTemplate`_.
 
-Try replacing the contents of ``app.py`` with the below code.
+Try replacing the contents of ``app_panel.py`` with the below code.
 
 .. code:: bash
+
+    # app_panel.py
 
     import panel as pn
     import plotly.express as px
