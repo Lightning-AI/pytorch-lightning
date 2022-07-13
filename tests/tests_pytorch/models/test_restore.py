@@ -255,11 +255,33 @@ def test_correct_step_and_epoch(tmpdir):
         def on_train_start(self) -> None:
             assert self.trainer.current_epoch == first_max_epochs
             assert self.trainer.global_step == first_max_epochs * train_batches
+            assert self.trainer.fit_loop.epoch_loop._batches_that_stepped == first_max_epochs * train_batches
 
     trainer.fit(TestModel(), ckpt_path=ckpt_path)
     assert trainer.current_epoch == max_epochs
     assert trainer.global_step == max_epochs * train_batches
     assert trainer.fit_loop.epoch_loop._batches_that_stepped == max_epochs * train_batches
+
+
+def test_logging_step_loaded_correctly_pre_1_6_5(tmpdir):
+    trainer = Trainer(max_steps=1, default_root_dir=tmpdir)
+    model = BoringModel()
+    trainer.fit(model)
+    ckpt_path = trainer.checkpoint_callback.best_model_path
+    ckpt = torch.load(ckpt_path)
+    del ckpt["loops"]["fit_loop"]["epoch_loop.state_dict"]["_batches_that_stepped"]
+    torch.save(ckpt, ckpt_path)
+
+    class TestModel(BoringModel):
+        def on_train_start(self) -> None:
+            assert self.trainer.global_step == 1
+            assert self.trainer.fit_loop.epoch_loop._batches_that_stepped == 1
+
+    trainer = Trainer(max_steps=2, default_root_dir=tmpdir)
+    model = TestModel()
+    trainer.fit(model, ckpt_path=ckpt_path)
+    new_loop = trainer.fit_loop.epoch_loop
+    assert new_loop.global_step == new_loop._batches_that_stepped == 2
 
 
 def test_fit_twice(tmpdir):
