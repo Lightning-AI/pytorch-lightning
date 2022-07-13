@@ -30,7 +30,7 @@ Panel is **particularly well suited for lightning.ai apps** that needs to displa
 `LightningWork` as the Panel server can react to progress and asynchronously push messages from the server to the
 client via web socket communication.
 
-.. figure:: https://cdn.jsdelivr.net/gh/MarcSkovMadsen/awesome-panel-assets@master/videos/panel-lightning/panel-intro.gif
+.. figure:: https://cdn.jsdelivr.net/gh/MarcSkovMadsen/awesome-panel-assets@master/videos/panel-lightning/panel-streaming.gif
    :alt: Example Panel Streaming App
 
    Example Panel Streaming App
