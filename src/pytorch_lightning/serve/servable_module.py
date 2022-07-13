@@ -15,7 +15,7 @@ class ServableModule(torch.nn.Module):
 
     .. code-block:: python
 
-        from typing import Dict
+        from typing import Dict, Any, Callable
 
         import torch
 
@@ -25,10 +25,10 @@ class ServableModule(torch.nn.Module):
 
 
         class ServableBoringModel(BoringModel, ServableModule):
-            def configure_payload(self) -> ...:
+            def configure_payload(self) -> Dict[str, Any]:
                 return {"body": {"x": list(range(32))}}
 
-            def configure_serialization(self):
+            def configure_serialization(self) -> Tuple[Dict[str, Callable], Dict[str, Callable]]:
                 def deserialize(x):
                     return torch.tensor(x, dtype=torch.float)
 
@@ -38,7 +38,6 @@ class ServableModule(torch.nn.Module):
                 return {"x": deserialize}, {"output": serialize}
 
             def serve_step(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
-                assert torch.equal(x, torch.arange(32, dtype=torch.float))
                 return {"output": torch.tensor([0, 1])}
 
 
@@ -78,11 +77,11 @@ class ServableModule(torch.nn.Module):
                 return {"predictions": self(x)}
 
         Args:
-            args|kwargs (:class:`~torch.Tensor` | (:class:`~torch.Tensor`, ...) | [:class:`~torch.Tensor`, ...]):
-                The output of the serializer functions provided by the ``configure_serialization`` hook.
+            args: The output from serializer functions provided by the ``configure_serialization`` hook.
+            kwargs: The keyword output of the serializer functions provided by the ``configure_serialization`` hook.
 
         Return:
-            - ``dict`` - A dictionary. Can include any keys, but must include the key ``'loss'``
+            - ``dict`` - A dictionary with their associated tensors.
         """
         ...
 

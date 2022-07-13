@@ -1,3 +1,4 @@
+import logging
 import time
 from multiprocessing import Process
 from typing import Any, Dict, Optional
@@ -10,6 +11,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.serve.servable_module import ServableModule
 from pytorch_lightning.strategies import DDPFullyShardedNativeStrategy, DDPFullyShardedStrategy, DeepSpeedStrategy
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
@@ -19,6 +21,8 @@ _NOT_SUPPORTED_STRATEGIES = (
     DDPFullyShardedNativeStrategy,
     DDPFullyShardedStrategy,
 )
+
+_logger = logging.getLogger(__name__)
 
 
 class ServableModuleValidator(Callback):
@@ -85,6 +89,8 @@ class ServableModuleValidator(Callback):
         if not is_overridden("serve_step", servable_module, ServableModule):
             raise NotImplementedError("The `serve_step` method needs to be overridden.")
 
+        # Note: The Trainer needs to be detached from the pl_module before starting the process.
+        # This would fail during the deepcopy with DDP.
         servable_module.trainer = None
 
         process = Process(target=self._start_server, args=(servable_module, self.host, self.port, self.optimization))
@@ -118,10 +124,10 @@ class ServableModuleValidator(Callback):
                 raise Exception(f"The expected response {response} doesn't match the generated one {self.resp.json()}.")
 
         if self.exit_on_failure and not self.successful:
-            raise SystemExit("The ServableModel API hasn't been properly implemented.")
+            raise MisconfigurationException("The model isn't servable. Investigate the traceback and try again.")
 
         if self.successful:
-            print(f"Your model is servable and the received payload was {self.resp.json()}.")
+            _logger.info(f"Your model is servable and the received payload was {self.resp.json()}.")
 
     @property
     def successful(self) -> Optional[bool]:

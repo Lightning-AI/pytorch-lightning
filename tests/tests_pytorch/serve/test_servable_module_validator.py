@@ -8,7 +8,7 @@ from pytorch_lightning.serve.servable_module_validator import ServableModule, Se
 
 
 class ServableBoringModel(BoringModel, ServableModule):
-    def configure_payload(self) -> ...:
+    def configure_payload(self):
         return {"body": {"x": list(range(32))}}
 
     def configure_serialization(self):
