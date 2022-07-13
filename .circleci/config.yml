@@ -1,8 +1,8 @@
 # Python CircleCI 2.1 configuration file.
 version: 2.1
 orbs:
-  gcp-gke: circleci/gcp-gke@1.0.4
-  go: circleci/go@1.3.0
+  gcp-gke: circleci/gcp-gke@1.4.0
+  go: circleci/go@1.7.1
   codecov: codecov/codecov@1.1.0
 
 trigger:
@@ -40,7 +40,7 @@ references:
         # the image uses python 2.7 by default, force a different version
         pyenv global 3.7.3
         python --version
-        pip install -r requirements/docs.txt
+        pip install -e . -r requirements/pytorch/docs.txt
         pip list
         cd docs
         make clean
@@ -60,7 +60,7 @@ references:
     run:
       name: Install jsonnet
       command: |
-        go get github.com/google/go-jsonnet/cmd/jsonnet
+        go install github.com/google/go-jsonnet/cmd/jsonnet@latest
 
   update_jsonnet: &update_jsonnet
     run:

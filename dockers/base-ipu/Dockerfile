@@ -14,7 +14,7 @@
 
 FROM ubuntu:20.04
 
-LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
+LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
 ARG PYTHON_VERSION=3.9
 ARG CONDA_VERSION=4.9.2
@@ -73,20 +73,18 @@ ENV \
     CONDA_DEFAULT_ENV=${CONDA_ENV} \
     MKL_THREADING_LAYER=GNU
 
-COPY ./requirements/extra.txt requirements-extra.txt
-COPY ./requirements/test.txt requirements-test.txt
-COPY ./requirements/adjust-versions.py adjust_versions.py
+COPY ./requirements/pytorch/* requirements/
 COPY ./.actions/assistant.py assistant.py
 
 RUN \
     pip list | grep torch && \
     python -c "import torch; print(torch.__version__)" && \
-    python adjust_versions.py requirements-extra.txt && \
     pip install -q fire && \
+    python requirements/adjust-versions.py requirements/extra.txt && \
     # Install remaining requirements
-    pip install -r requirements-extra.txt --no-cache-dir && \
-    pip install -r requirements-test.txt --no-cache-dir && \
-    rm requirements*
+    pip install -r requirements/extra.txt --no-cache-dir && \
+    pip install -r requirements/test.txt --no-cache-dir && \
+    rm -rf requirements/
 
 RUN \
     # Show what we have

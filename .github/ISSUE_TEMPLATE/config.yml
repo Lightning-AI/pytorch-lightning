@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: Ask a Question
-    url: https://github.com/PyTorchLightning/pytorch-lightning/discussions/new
+    url: https://github.com/Lightning-AI/lightning/discussions/new
     about: Ask and answer Lightning related questions
   - name: 💬 Slack
     url: https://www.pytorchlightning.ai/community

@@ -29,12 +29,12 @@ jobs:
     - name: Generate checkpoint
       run: |
         while IFS= read -r line; do
-            bash legacy/generate_checkpoints.sh $line
-        done <<< $(cat legacy/back-compatible-versions.txt)
+            bash tests/legacy/generate_checkpoints.sh $line
+        done <<< $(cat tests/legacy/back-compatible-versions.txt)
 
     - name: Push files to S3
-      working-directory: ./legacy
+      working-directory: ./tests/legacy
       run: |
-        aws s3 sync legacy/checkpoints/ s3://pl-public-data/legacy/checkpoints/
+        aws s3 sync checkpoints/ s3://pl-public-data/legacy/checkpoints/
         zip -r checkpoints.zip checkpoints
         aws s3 cp checkpoints.zip s3://pl-public-data/legacy/ --acl public-read

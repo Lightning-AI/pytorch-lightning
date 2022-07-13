@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG PYTORCH_VERSION=21.11
+ARG PYTORCH_VERSION=22.04
 
 # https://docs.nvidia.com/deeplearning/frameworks/pytorch-release-notes
 FROM nvcr.io/nvidia/pytorch:${PYTORCH_VERSION}-py3
 
-LABEL maintainer="PyTorchLightning <https://github.com/PyTorchLightning>"
+LABEL maintainer="Lightning-AI <https://github.com/Lightning-AI>"
 
 ARG LIGHTNING_VERSION=""
 
@@ -30,26 +30,25 @@ RUN \
     # replace by specific version if asked
     if [ ! -z "$LIGHTNING_VERSION" ] ; then \
         rm -rf pytorch-lightning ; \
-        git clone https://github.com/PyTorchLightning/pytorch-lightning.git ; \
+        git clone https://github.com/Lightning-AI/lightning.git ; \
         cd pytorch-lightning ; \
         git checkout ${LIGHTNING_VERSION} ; \
         git submodule update --init --recursive ; \
         cd .. ; \
     fi && \
 # save the examples
-    mv pytorch-lightning/_notebooks notebooks && \
-    mv pytorch-lightning/pl_examples . && \
+    mv pytorch-lightning/_notebooks/.notebooks/ notebooks && \
+    mv pytorch-lightning/examples . && \
 
 # Installations \
     pip install -q fire && \
-    python ./pytorch-lightning/.actions/assistant.py requirements_prune_pkgs horovod --req_files ./pytorch-lightning/requirements/extra.txt  && \
-    pip install "Pillow>=8.2, !=8.3.0" "cryptography>=3.4" "py>=1.10" --no-cache-dir --upgrade-strategy only-if-needed && \
-    pip install -r ./pytorch-lightning/requirements/extra.txt --no-cache-dir --upgrade-strategy only-if-needed && \
-    pip install -r ./pytorch-lightning/requirements/examples.txt --no-cache-dir --upgrade-strategy only-if-needed && \
-    pip install ./pytorch-lightning --no-cache-dir && \
+    pip install "Pillow>=8.2, !=8.3.0" "cryptography>=3.4" "py>=1.10" --no-cache-dir && \
+    pip install ./pytorch-lightning["extra","loggers","strategies"] --no-cache-dir && \
+    pip install -r ./pytorch-lightning/requirements/pytorch/examples.txt --no-cache-dir && \
     rm -rf pytorch-lightning && \
-    pip install jupyterlab[all] -U && \
     pip list
+
+RUN pip install jupyterlab[all] -U
 
 RUN pip install lightning-grid -U && \
     pip install "py>=1.10" "protobuf>=3.15.6" --upgrade-strategy only-if-needed
