@@ -284,6 +284,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed support for the `DDP2Strategy` ([#12705](https://github.com/PyTorchLightning/pytorch-lightning/pull/12705))
 
 
+- Removed deprecated `LightningDistributed` ([#13549](https://github.com/PyTorchLightning/pytorch-lightning/pull/13549))
+
+
 - Removed deprecated ClusterEnvironment properties `master_address` and `master_port` in favor of `main_address` and `main_port` ([#13458](https://github.com/PyTorchLightning/pytorch-lightning/pull/13458))
 
 
