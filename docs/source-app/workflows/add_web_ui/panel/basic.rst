@@ -22,13 +22,18 @@ via `HoloViews`_, streaming and much more.
 - Panel can be deployed on your favorite server or cloud including `Lightning`_.
 
 .. figure:: https://cdn.jsdelivr.net/gh/MarcSkovMadsen/awesome-panel-assets@master/videos/panel-lightning/panel-intro.gif
-   :alt: Basic Panel Lightning App
+   :alt: Example Panel App
 
    Example Panel App
 
 Panel is **particularly well suited for lightning.ai apps** that needs to display live progress from
 `LightningWork` as the Panel server can react to progress and asynchronously push messages from the server to the
 client via web socket communication.
+
+.. figure:: https://cdn.jsdelivr.net/gh/MarcSkovMadsen/awesome-panel-assets@master/videos/panel-lightning/panel-intro.gif
+   :alt: Example Panel Streaming App
+
+   Example Panel Streaming App
 
 Install Panel with:
 
@@ -210,7 +215,7 @@ You can run your lightning app with Panel **autoreload** by setting the environm
     PANEL_AUTORELOAD=yes lightning run app app_basic.py
 
 .. figure:: https://cdn.jsdelivr.net/gh/MarcSkovMadsen/awesome-panel-assets@master/videos/panel-lightning/panel-lightning-autoreload.gif
-   :alt: Basic Panel Lightning App
+   :alt: Basic Panel Lightning App with autoreload
 
    Basic Panel Lightning App with autoreload
 
@@ -289,7 +294,7 @@ Finally run the app
     lightning run app app_basic.py
 
 .. figure:: https://cdn.jsdelivr.net/gh/MarcSkovMadsen/awesome-panel-assets@master/videos/panel-lightning/panel-lightning-theme.gif
-   :alt: Basic Panel Lightning App
+   :alt: Basic Panel Plotly Lightning App with theming
 
    Basic Panel Plotly Lightning App with theming
 
