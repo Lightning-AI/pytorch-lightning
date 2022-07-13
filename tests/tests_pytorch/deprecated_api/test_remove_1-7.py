@@ -12,23 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.7.0."""
-import os
 from re import escape
-from unittest import mock
 
 import pytest
 import torch
 
 from pytorch_lightning import Trainer
-from pytorch_lightning.plugins.environments import (
-    KubeflowEnvironment,
-    LightningEnvironment,
-    LSFEnvironment,
-    SLURMEnvironment,
-    TorchElasticEnvironment,
-)
 from pytorch_lightning.strategies import SingleDeviceStrategy
-from tests_pytorch.plugins.environments.test_lsf_environment import _make_rankfile
 
 
 def test_v1_7_0_deprecated_max_steps_none(tmpdir):
@@ -38,83 +28,6 @@ def test_v1_7_0_deprecated_max_steps_none(tmpdir):
     trainer = Trainer()
     with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
         trainer.fit_loop.max_steps = None
-
-
-@pytest.mark.parametrize(
-    "cls",
-    [
-        KubeflowEnvironment,
-        LightningEnvironment,
-        SLURMEnvironment,
-        TorchElasticEnvironment,
-    ],
-)
-def test_v1_7_0_cluster_environment_master_address(cls):
-    class MyClusterEnvironment(cls):
-        def master_address(self):
-            pass
-
-    with pytest.deprecated_call(
-        match="MyClusterEnvironment.master_address` has been deprecated in v1.6 and will be removed in v1.7"
-    ):
-        MyClusterEnvironment()
-
-
-@pytest.mark.parametrize(
-    "cls",
-    [
-        KubeflowEnvironment,
-        LightningEnvironment,
-        SLURMEnvironment,
-        TorchElasticEnvironment,
-    ],
-)
-def test_v1_7_0_cluster_environment_master_port(cls):
-    class MyClusterEnvironment(cls):
-        def master_port(self):
-            pass
-
-    with pytest.deprecated_call(
-        match="MyClusterEnvironment.master_port` has been deprecated in v1.6 and will be removed in v1.7"
-    ):
-        MyClusterEnvironment()
-
-
-@pytest.mark.parametrize(
-    "cls,method_name",
-    [
-        (KubeflowEnvironment, "is_using_kubeflow"),
-        (LSFEnvironment, "is_using_lsf"),
-        (TorchElasticEnvironment, "is_using_torchelastic"),
-    ],
-)
-def test_v1_7_0_cluster_environment_detection(cls, method_name, tmp_path):
-    class MyClusterEnvironment(cls):
-        @staticmethod
-        def is_using_kubeflow():
-            pass
-
-        @staticmethod
-        def is_using_lsf():
-            pass
-
-        @staticmethod
-        def is_using_torchelastic():
-            pass
-
-    environ = {
-        "LSB_DJOB_RANKFILE": _make_rankfile(tmp_path),
-        "LSB_JOBID": "1234",
-        "JSM_NAMESPACE_SIZE": "4",
-        "JSM_NAMESPACE_RANK": "3",
-        "JSM_NAMESPACE_LOCAL_RANK": "1",
-    }
-    with mock.patch.dict(os.environ, environ):
-        with mock.patch("socket.gethostname", return_value="10.10.10.2"):
-            with pytest.deprecated_call(
-                match=f"MyClusterEnvironment.{method_name}` has been deprecated in v1.6 and will be removed in v1.7"
-            ):
-                MyClusterEnvironment()
 
 
 def test_v1_7_0_post_dispatch_hook():
