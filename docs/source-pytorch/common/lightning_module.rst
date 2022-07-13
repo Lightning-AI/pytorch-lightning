@@ -1626,15 +1626,3 @@ on_after_batch_transfer
 
 .. automethod:: pytorch_lightning.core.module.LightningModule.on_after_batch_transfer
     :noindex:
-
-add_to_queue
-~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.add_to_queue
-    :noindex:
-
-get_from_queue
-~~~~~~~~~~~~~~
-
-.. automethod:: pytorch_lightning.core.module.LightningModule.get_from_queue
-    :noindex:
