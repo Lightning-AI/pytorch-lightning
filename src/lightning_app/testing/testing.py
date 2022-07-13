@@ -341,6 +341,7 @@ def delete_cloud_lightning_apps():
 
     app_name = os.getenv("TEST_APP_NAME", "")
 
+    print(f"deleting apps for pr_number: {pr_number}, app_name: {app_name}")
     project = _get_project(client)
     list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project.project_id)
 

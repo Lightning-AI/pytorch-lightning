@@ -68,7 +68,7 @@ jobs:
           source ./.venv/bin/activate
           pip --version
           python -m pip install -r requirements/app/devel.txt --no-cache --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
-#        if: steps.cache-venv.outputs.cache-hit != 'true'
+        if: steps.cache-venv.outputs.cache-hit != 'true'
 
       - name: Install package
         run: |
@@ -90,7 +90,7 @@ jobs:
           source ./.venv/bin/activate
           python -m pip install playwright
           python -m playwright install --with-deps
-#        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
 
       - name: Install Lightning as top-level
         run: pip install -e . -r requirements/app/base.txt
@@ -175,4 +175,4 @@ jobs:
         shell: bash
         run: |
           source ./.venv/bin/activate
-          time python src/lightning_app/testing/testing.py delete_cloud_lightning_apps
+          time python -c "from lightning.app import testing; testing.delete_cloud_lightning_apps()"
