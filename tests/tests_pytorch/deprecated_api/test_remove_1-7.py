@@ -15,14 +15,12 @@
 import os
 from re import escape
 from unittest import mock
-from unittest.mock import Mock
 
 import pytest
 import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
     LightningEnvironment,
@@ -146,15 +144,6 @@ def test_v1_7_0_cluster_environment_detection(cls, method_name, tmp_path):
                 match=f"MyClusterEnvironment.{method_name}` has been deprecated in v1.6 and will be removed in v1.7"
             ):
                 MyClusterEnvironment()
-
-
-def test_v1_7_0_index_batch_sampler_wrapper_batch_indices():
-    sampler = IndexBatchSamplerWrapper(Mock())
-    with pytest.deprecated_call(match="was deprecated in v1.5 and will be removed in v1.7"):
-        _ = sampler.batch_indices
-
-    with pytest.deprecated_call(match="was deprecated in v1.5 and will be removed in v1.7"):
-        sampler.batch_indices = []
 
 
 def test_v1_7_0_post_dispatch_hook():
