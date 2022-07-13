@@ -54,12 +54,6 @@ def test_v1_7_0_deprecate_on_post_move_to_device(tmpdir):
         trainer.fit(model)
 
 
-def test_v1_7_0_deprecated_slurm_job_id():
-    trainer = Trainer()
-    with pytest.deprecated_call(match="Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0."):
-        trainer.slurm_job_id
-
-
 def test_v1_7_0_deprecated_max_steps_none(tmpdir):
     with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
         _ = Trainer(max_steps=None)
