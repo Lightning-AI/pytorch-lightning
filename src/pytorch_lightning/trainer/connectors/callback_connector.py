@@ -252,7 +252,7 @@ class CallbackConnector:
         for cb in callbacks:
             if isinstance(cb, BatchSizeFinder):
                 tuner_callbacks.append(cb)
-            elif isinstance(cb, ModelCheckpoint):
+            elif isinstance(cb, Checkpoint):
                 checkpoint_callbacks.append(cb)
             else:
                 other_callbacks.append(cb)

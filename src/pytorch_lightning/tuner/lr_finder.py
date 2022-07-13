@@ -207,7 +207,7 @@ def lr_find(
     """See :meth:`~pytorch_lightning.tuner.tuning.Tuner.lr_find`"""
     if trainer.fast_dev_run:
         rank_zero_warn("Skipping learning rate finder since `fast_dev_run` is enabled.")
-        return
+        return None
 
     # Determine lr attr
     if update_attr:
