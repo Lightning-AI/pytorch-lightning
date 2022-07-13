@@ -180,13 +180,16 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
         }
         context = browser.new_context(
             # Eventually this will need to be deleted
-            http_credentials=HttpCredentials({"username": os.getenv("LAI_USER"), "password": os.getenv("LAI_PASS")}),
+            http_credentials=HttpCredentials(
+                {"username": os.getenv("LAI_USER").strip(), "password": os.getenv("LAI_PASS")}
+            ),
             record_video_dir=os.path.join(Config.video_location, TEST_APP_NAME),
             record_har_path=Config.har_location,
         )
         admin_page = context.new_page()
         res = requests.post(Config.url + "/v1/auth/login", data=json.dumps(payload))
         token = res.json()["token"]
+        print({"username": os.getenv("LAI_USER").strip(), "password": os.getenv("LAI_PASS")})
         print(f"The Lightning App Token is: {token}")
         print(f"The Lightning App user key is: {Config.key}")
         print(f"The Lightning App user id is: {Config.id}")
