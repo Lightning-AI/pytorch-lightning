@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, List, Optional, TypeVar, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 from torch import Tensor
@@ -23,13 +23,11 @@ from pytorch_lightning.overrides.data_parallel import LightningParallelModule
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
-from pytorch_lightning.strategies.strategy import TBroadcast
+from pytorch_lightning.strategies.strategy import TBroadcast, TReduce
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.types import _METRIC_COLLECTION, STEP_OUTPUT
-
-T = TypeVar("T")  # Both input and return type of DataParallelStrategy.reduce()
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class DataParallelStrategy(ParallelStrategy):
@@ -94,8 +92,8 @@ class DataParallelStrategy(ParallelStrategy):
         return DataParallel(module=model, device_ids=self.parallel_devices)
 
     def reduce(
-        self, collection: T, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
-    ) -> T:
+        self, collection: TReduce, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
+    ) -> TReduce:
         """Reduces a collection of tensors from all processes. It can be applied to just a single tensor.
 
         Args:
