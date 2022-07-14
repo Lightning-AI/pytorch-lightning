@@ -395,7 +395,7 @@ def _dataloader_init_kwargs_resolve_sampler(
 def _replace_value_in_saved_args(
     replace_key: str, replace_value: Any, args: List[Any], kwargs: Dict[str, Any], arg_names: List[str]
 ) -> Tuple[bool, List[Any], Dict[str, Any]]:
-    """Tries to inject a custom argument to a saved list of args and kwargs.
+    """Tries to replace an argument value in a saved list of args and kwargs.
 
     Returns a tuple indicating success of the operation and modified saved args and kwargs
     """
