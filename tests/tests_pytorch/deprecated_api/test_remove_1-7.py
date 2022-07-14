@@ -21,13 +21,6 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.strategies import SingleDeviceStrategy
 
 
-def test_v1_7_0_deprecate_lightning_distributed(tmpdir):
-    with pytest.deprecated_call(match="LightningDistributed is deprecated in v1.5 and will be removed in v1.7."):
-        from pytorch_lightning.distributed.dist import LightningDistributed
-
-        _ = LightningDistributed()
-
-
 def test_v1_7_0_deprecated_max_steps_none(tmpdir):
     with pytest.deprecated_call(match="`max_steps = None` is deprecated in v1.5"):
         _ = Trainer(max_steps=None)
