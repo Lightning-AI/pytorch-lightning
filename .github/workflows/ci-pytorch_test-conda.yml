@@ -44,7 +44,7 @@ jobs:
       id: skip
       run: |
         FILTER='src/pytorch_lightning|requirements/pytorch|tests/tests_pytorch|examples/pl_'
-        MATCHES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}"" | grep -E $FILTER)
+        MATCHES=$(echo "${{ steps.changed-files.outputs.all_changed_files }}" | grep -E $FILTER)
         if [ -z "$MATCHES" ]; then
             echo "Skip"
             echo "::set-output continue="0"
