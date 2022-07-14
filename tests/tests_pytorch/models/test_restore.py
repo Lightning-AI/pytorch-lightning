@@ -259,6 +259,7 @@ def test_correct_step_and_epoch(tmpdir):
     trainer.fit(TestModel(), ckpt_path=ckpt_path)
     assert trainer.current_epoch == max_epochs
     assert trainer.global_step == max_epochs * train_batches
+    assert trainer.fit_loop.epoch_loop._batches_that_stepped == max_epochs * train_batches
 
 
 def test_fit_twice(tmpdir):

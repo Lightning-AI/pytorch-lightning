@@ -61,7 +61,6 @@ from pytorch_lightning.plugins import (
     PLUGIN_INPUT,
     PrecisionPlugin,
 )
-from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profilers import (
     AdvancedProfiler,
     PassThroughProfiler,
@@ -306,7 +305,7 @@ class Trainer(
                 Default: ``50``.
 
             enable_progress_bar: Whether to enable to progress bar by default.
-                Default: ``False``.
+                Default: ``True``.
 
             profiler: To profile individual steps during training and assist in identifying bottlenecks.
                 Default: ``None``.
@@ -653,13 +652,12 @@ class Trainer(
                 return self.strategy.launcher.launch(trainer_fn, *args, trainer=self, **kwargs)
             else:
                 return trainer_fn(*args, **kwargs)
-        # TODO: treat KeyboardInterrupt as BaseException (delete the code below) in v1.7
+        # TODO(awaelchli): Unify both exceptions below, where `KeyboardError` doesn't re-raise
         except KeyboardInterrupt as exception:
             rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
             # user could press Ctrl+c many times... only shutdown once
             if not self.interrupted:
                 self.state.status = TrainerStatus.INTERRUPTED
-                self._call_callback_hooks("on_keyboard_interrupt")
                 self._call_callback_hooks("on_exception", exception)
         except BaseException as exception:
             self.state.status = TrainerStatus.INTERRUPTED
@@ -2232,11 +2230,6 @@ class Trainer(
         return self.strategy.is_global_zero
 
     @property
-    def slurm_job_id(self) -> Optional[int]:
-        rank_zero_deprecation("Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0.")
-        return SLURMEnvironment.job_id()
-
-    @property
     def distributed_sampler_kwargs(self) -> Optional[dict]:
         if isinstance(self.strategy, ParallelStrategy):
             return self.strategy.distributed_sampler_kwargs
@@ -2575,6 +2568,7 @@ class Trainer(
 
     @property
     def is_last_batch(self) -> bool:
+        """Whether trainer is executing the last batch."""
         return self.fit_loop.epoch_loop.batch_progress.is_last_batch
 
     @property
