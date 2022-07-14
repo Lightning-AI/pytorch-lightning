@@ -39,26 +39,26 @@ First **create a file named app.py** with the app content:
 
 .. code:: bash
 
-        import lightning as L
+        import lightning_app as la
         import dash
         import plotly.express as px
 
-        class LitDash(L.LightningWork):
+        class LitDash(lapp.LightningWork):
             def run(self):
-                dash_app = dash.Dash(__name__)
+                app = dash.Dash(__name__)
                 X = [1, 2, 3, 4, 5, 6]
                 Y = [2, 4, 8, 16, 32, 64]
                 fig = px.line(x=X, y=Y)
 
-                dash_app.layout = dash.html.Div(children=[
+                app.layout = dash.html.Div(children=[
                     dash.html.H1(children='⚡ Hello Dash + Lightning⚡'),
-                    dash.html.Div(children='The Dash framework running inside a ⚡ Lightning App'),
+                    dash.html.Div(children='''The Dash framework running inside a ⚡ Lightning App'''),
                     dash.dcc.Graph(id='example-graph', figure=fig)
                 ])
 
-                dash_app.run_server(host=self.host, port=self.port)
+                app.run_server(host=self.host, port=self.port)
 
-        class LitApp(L.LightningFlow):
+        class LitApp(lapp.LightningFlow):
             def __init__(self):
                 super().__init__()
                 self.lit_dash = LitDash(parallel=True)
@@ -70,7 +70,7 @@ First **create a file named app.py** with the app content:
                 tab1 = {"name": "home", "content": self.lit_dash}
                 return tab1
 
-        app = L.LightningApp(LitApp())
+        app = lapp.LightningApp(LitApp())
 
 
 add 'dash' to a requirements.txt file:
@@ -88,13 +88,13 @@ Run the app
 ***********
 Run the app locally to see it!
 
-.. code:: python
+.. code:: bash
 
     lightning run app app.py
 
 Now run it on the cloud as well:
 
-.. code:: python
+.. code:: console
 
     lightning run app app.py --cloud
 
@@ -116,18 +116,20 @@ First, find the dash app you want to integrate. In this example, that app looks 
         import dash
         import plotly.express as px
 
-        dash_app = dash.Dash(__name__)
+        app = dash.Dash(__name__)
         X = [1, 2, 3, 4, 5, 6]
         Y = [2, 4, 8, 16, 32, 64]
         fig = px.line(x=X, y=Y)
 
-        dash_app.layout = dash.html.Div(children=[
-            dash.html.H1(children='⚡ Hello Dash + Lightning⚡'),
-            dash.html.Div(children='The Dash framework running inside a ⚡ Lightning App'),
-            dash.dcc.Graph(id='example-graph', figure=fig)
-        ])
+        app.layout = dash.html.Div(
+            children=[
+                dash.html.H1(children="⚡ Hello Dash + Lightning⚡"),
+                dash.html.Div(children="""The Dash framework running inside a ⚡ Lightning App"""),
+                dash.dcc.Graph(id="example-graph", figure=fig),
+            ]
+        )
 
-        dash_app.run_server(host='0.0.0.0', port=80)
+        app.run_server(host="0.0.0.0", port=80)
 
 This dash app plots a simple line curve along with some HTMlapp.
 `Visit the Dash documentation for the full API <https://plotly.com/dash/>`_.
@@ -141,26 +143,30 @@ Add the dash app to the run method of a ``LightningWork`` component and run the 
 .. code:: python
     :emphasize-lines: 6, 18
 
-        import lightning as L
+        import lightning_app as la
         import dash
         import plotly.express as px
 
-        class LitDash(L.LightningWork):
+
+        class LitDash(lapp.LightningWork):
             def run(self):
-                dash_app = dash.Dash(__name__)
+                app = dash.Dash(__name__)
                 X = [1, 2, 3, 4, 5, 6]
                 Y = [2, 4, 8, 16, 32, 64]
                 fig = px.line(x=X, y=Y)
 
-                dash_app.layout = dash.html.Div(children=[
-                    dash.html.H1(children='⚡ Hello Dash + Lightning⚡'),
-                    dash.html.Div(children='The Dash framework running inside a ⚡ Lightning App'),
-                    dash.dcc.Graph(id='example-graph', figure=fig)
-                ])
+                app.layout = dash.html.Div(
+                    children=[
+                        dash.html.H1(children="⚡ Hello Dash + Lightning⚡"),
+                        dash.html.Div(children="""The Dash framework running inside a ⚡ Lightning App"""),
+                        dash.dcc.Graph(id="example-graph", figure=fig),
+                    ]
+                )
 
-                dash_app.run_server(host=self.host, port=self.port)
+                app.run_server(host=self.host, port=self.port)
 
-        class LitApp(L.LightningFlow):
+
+        class LitApp(lapp.LightningFlow):
             def __init__(self):
                 super().__init__()
                 self.lit_dash = LitDash(parallel=True)
@@ -172,7 +178,8 @@ Add the dash app to the run method of a ``LightningWork`` component and run the 
                 tab1 = {"name": "home", "content": self.lit_dash}
                 return tab1
 
-        app = L.LightningApp(LitApp())
+
+        app = lapp.LightningApp(LitApp())
 
 ----
 
@@ -184,26 +191,30 @@ In this case, we render the ``LitDash`` UI in the ``home`` tab of the applicatio
 .. code:: python
     :emphasize-lines: 23, 29
 
-        import lightning as L
+        import lightning_app as la
         import dash
         import plotly.express as px
 
-        class LitDash(L.LightningWork):
+
+        class LitDash(lapp.LightningWork):
             def run(self):
-                dash_app = dash.Dash(__name__)
+                app = dash.Dash(__name__)
                 X = [1, 2, 3, 4, 5, 6]
                 Y = [2, 4, 8, 16, 32, 64]
                 fig = px.line(x=X, y=Y)
 
-                dash_app.layout = dash.html.Div(children=[
-                    dash.html.H1(children='⚡ Hello Dash + Lightning⚡'),
-                    dash.html.Div(children='The Dash framework running inside a ⚡ Lightning App'),
-                    dash.dcc.Graph(id='example-graph', figure=fig)
-                ])
+                app.layout = dash.html.Div(
+                    children=[
+                        dash.html.H1(children="⚡ Hello Dash + Lightning⚡"),
+                        dash.html.Div(children="""The Dash framework running inside a ⚡ Lightning App"""),
+                        dash.dcc.Graph(id="example-graph", figure=fig),
+                    ]
+                )
 
-                dash_app.run_server(host=self.host, port=self.port)
+                app.run_server(host=self.host, port=self.port)
 
-        class LitApp(L.LightningFlow):
+
+        class LitApp(lapp.LightningFlow):
             def __init__(self):
                 super().__init__()
                 self.lit_dash = LitDash(parallel=True)
@@ -215,7 +226,8 @@ In this case, we render the ``LitDash`` UI in the ``home`` tab of the applicatio
                 tab1 = {"name": "home", "content": self.lit_dash}
                 return tab1
 
-        app = L.LightningApp(LitApp())
+
+        app = lapp.LightningApp(LitApp())
 
 We use the ``parallel=True`` argument of ``LightningWork`` to run the server in the background
 while the rest of the Lightning App runs everything else.
