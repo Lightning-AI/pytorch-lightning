@@ -42,7 +42,7 @@ class GithubRepoRunner(TracerPythonScript):
             script_args=script_args,
             cloud_compute=cloud_compute,
             cloud_build_config=BuildConfig(requirements=requirements),
-            **kwargs
+            **kwargs,
         )
         self.id = id
         self.github_repo = github_repo
