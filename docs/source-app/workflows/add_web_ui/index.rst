@@ -1,9 +1,7 @@
-
 #############################
 Add a web user interface (UI)
 #############################
-
-**Audience:** Users who want to add a UI to their Lightning Apps
+Every component in a Lightning App can have its own web user interface (UI).
 
 ----
 
