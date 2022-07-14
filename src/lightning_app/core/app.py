@@ -1,4 +1,3 @@
-import inspect
 import logging
 import os
 import pickle
@@ -16,7 +15,7 @@ from lightning_app.core.constants import FLOW_DURATION_SAMPLES, FLOW_DURATION_TH
 from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.frontend import Frontend
 from lightning_app.storage.path import storage_root_dir
-from lightning_app.utilities.app_helpers import _delta_to_appstate_delta, _LightningAppRef, is_overridden
+from lightning_app.utilities.app_helpers import _delta_to_appstate_delta, _LightningAppRef
 from lightning_app.utilities.component import _convert_paths_after_init
 from lightning_app.utilities.enum import AppStage
 from lightning_app.utilities.exceptions import CacheMissException, ExitAppException
@@ -73,8 +72,6 @@ class LightningApp:
         # queues definition.
         self.delta_queue: t.Optional[BaseQueue] = None
         self.readiness_queue: t.Optional[BaseQueue] = None
-        self.commands_requests_queue: t.Optional[BaseQueue] = None
-        self.commands_metadata_queue: t.Optional[BaseQueue] = None
         self.api_publish_state_queue: t.Optional[BaseQueue] = None
         self.api_delta_queue: t.Optional[BaseQueue] = None
         self.error_queue: t.Optional[BaseQueue] = None
@@ -324,44 +321,6 @@ class LightningApp:
         self.set_state(state)
         self._has_updated = True
 
-    def apply_commands(self):
-        """This method is used to apply remotely a collection of commands (methods) from the CLI to a running
-        app."""
-
-        if not is_overridden("configure_commands", self.root):
-            return
-
-        # 1: Populate commands metadata
-        commands = self.root.configure_commands()
-        commands_metadata = []
-        command_names = set()
-        for command in commands:
-            for name, method in command.items():
-                if name in command_names:
-                    raise Exception(f"The component name {name} has already been used. They need to be unique.")
-                command_names.add(name)
-                params = inspect.signature(method).parameters
-                commands_metadata.append(
-                    {
-                        "command": name,
-                        "affiliation": method.__self__.name,
-                        "params": list(params.keys()),
-                    }
-                )
-
-        # 1.2: Pass the collected commands through the queue to the Rest API.
-        self.commands_metadata_queue.put(commands_metadata)
-
-        # 2: Collect requests metadata
-        command_query = self.get_state_changed_from_queue(self.commands_requests_queue)
-        if command_query:
-            for command in commands:
-                for command_name, method in command.items():
-                    if command_query["command_name"] == command_name:
-                        # 2.1: Evaluate the method associated to a specific command.
-                        # Validation is done on the CLI side.
-                        method(**command_query["command_arguments"])
-
     def run_once(self):
         """Method used to collect changes and run the root Flow once."""
         done = False
@@ -385,8 +344,6 @@ class LightningApp:
 
         elif self.stage == AppStage.RESTARTING:
             return self._apply_restarting()
-
-        self.apply_commands()
 
         try:
             self.check_error_queue()

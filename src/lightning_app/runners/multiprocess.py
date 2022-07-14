@@ -66,8 +66,6 @@ class MultiProcessRuntime(Runtime):
                     api_publish_state_queue=self.app.api_publish_state_queue,
                     api_delta_queue=self.app.api_delta_queue,
                     has_started_queue=has_started_queue,
-                    commands_requests_queue=self.app.commands_requests_queue,
-                    commands_metadata_queue=self.app.commands_metadata_queue,
                     spec=extract_metadata_from_app(self.app),
                 )
                 server_proc = multiprocessing.Process(target=start_server, kwargs=kwargs)

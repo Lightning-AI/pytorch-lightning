@@ -1,11 +1,5 @@
 import re
-from typing import Dict, Optional
-
-import requests
-
-from lightning_app.core.constants import APP_SERVER_PORT
-from lightning_app.utilities.cloud import _get_project
-from lightning_app.utilities.network import LightningClient
+from typing import Dict
 
 
 def _format_input_env_variables(env_list: tuple) -> Dict[str, str]:
@@ -41,53 +35,3 @@ def _format_input_env_variables(env_list: tuple) -> Dict[str, str]:
 
         env_vars_dict[var_name] = value
     return env_vars_dict
-
-
-def _is_url(id: Optional[str]) -> bool:
-    if isinstance(id, str) and (id.startswith("https://") or id.startswith("http://")):
-        return True
-    return False
-
-
-def _retrieve_application_url_and_available_commands(app_id_or_name_or_url: Optional[str]):
-    """This function is used to retrieve the current url associated with an id."""
-
-    if _is_url(app_id_or_name_or_url):
-        url = app_id_or_name_or_url
-        assert url
-        resp = requests.get(url + "/api/v1/commands")
-        if resp.status_code != 200:
-            raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
-        return url, resp.json()
-
-    # 2: If no identifier has been provided, evaluate the local application
-    failed_locally = False
-
-    if app_id_or_name_or_url is None:
-        try:
-            url = f"http://127.0.0.1:{APP_SERVER_PORT}"
-            resp = requests.get(f"{url}/api/v1/commands")
-            if resp.status_code != 200:
-                raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
-            return url, resp.json()
-        except ConnectionError:
-            failed_locally = True
-
-    # 3: If an identified was provided or the local evaluation has failed, evaluate the cloud.
-    if app_id_or_name_or_url or failed_locally:
-        client = LightningClient()
-        project = _get_project(client)
-        list_lightningapps = client.lightningapp_instance_service_list_lightningapp_instances(project.project_id)
-
-        lightningapp_names = [lightningapp.name for lightningapp in list_lightningapps.lightningapps]
-
-        if not app_id_or_name_or_url:
-            raise Exception(f"Provide an application name, id or url with --id=X. Found {lightningapp_names}")
-
-        for lightningapp in list_lightningapps.lightningapps:
-            if lightningapp.id == app_id_or_name_or_url or lightningapp.name == app_id_or_name_or_url:
-                resp = requests.get(lightningapp.status.url + "/api/v1/commands")
-                if resp.status_code != 200:
-                    raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
-                return lightningapp.status.url, resp.json()
-    return None, None
