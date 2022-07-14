@@ -32,10 +32,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
 
     - name: Get changed files
       id: changed-files
@@ -55,6 +51,12 @@ jobs:
             echo "Continue"
             echo "::set-output name=continue::'1'"
         fi
+
+    - name: Set up Python ${{ matrix.python-version }}
+      if: ${{ (steps.skip.outputs.continue == '1') }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
 
     - name: Reset caching
       if: ${{ (steps.skip.outputs.continue == '1') }}
