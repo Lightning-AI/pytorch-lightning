@@ -171,8 +171,9 @@ def single_process_pg():
 
 
 def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.Config):
+    initial_size = len(items)
     conditions = []
-    skipped = 0
+    filtered, skipped = 0, 0
 
     for env_var, kwarg in (
         ("PL_RUN_STANDALONE_TESTS", "standalone"),
@@ -183,24 +184,27 @@ def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.C
         # this will compute the intersection of all tests selected per environment variable
         if os.getenv(env_var, "0") == "1":
             conditions.append(env_var)
-            skip = pytest.mark.skip(reason=f'`{env_var}=1` is set but the test is not a "{kwarg}" test.')
-            for test in items:
+            for i, test in reversed(list(enumerate(items))):  # loop in reverse, since we are going to pop items
                 already_skipped = any(marker.name == "skip" for marker in test.own_markers)
                 if already_skipped:
+                    # the test was going to be skipped for a different reason, exclude it
+                    items.pop(i)
+                    skipped += 1
                     continue
                 # the test has `@RunIf(kwarg=True)`
                 has_runif_with_kwarg = any(
                     marker.name == "skipif" and marker.kwargs.get(kwarg) for marker in test.own_markers
                 )
                 if not has_runif_with_kwarg:
-                    test.add_marker(skip)
-                    skipped += 1
+                    items.pop(i)
+                    filtered += 1
 
-    if conditions and config.option.verbose >= 0:
-        config.get_terminal_writer().write(
-            f"The number of tests has been filtered from {len(items)} to {len(items) - skipped} after the filters"
-            f" {conditions}\n",
-            flush=True,
+    if config.option.verbose >= 0 and (filtered or skipped):
+        writer = config.get_terminal_writer()
+        writer.write(
+            f"The number of tests has been filtered from {initial_size} to {initial_size - filtered} after the"
+            f" filters {conditions}.\n{skipped} tests are marked as unconditional skips.\nIn total, {len(items)} tests"
+            f" will run.\n",
             bold=True,
             purple=True,  # oh yeah, branded pytest messages
         )
