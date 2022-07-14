@@ -38,6 +38,8 @@ jobs:
     - name: Workaround for https://github.com/actions/checkout/issues/760
       run: git config --global --add safe.directory /__w/lightning/lightning
 
+    - run: exit 0
+
     - uses: actions/checkout@v2
 
     - name: Update base dependencies
