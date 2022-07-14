@@ -54,6 +54,7 @@ lock = Lock()
 
 app_spec: Optional[List] = None
 app_commands_metadata: Optional[Dict] = None
+commands_response_store = {}
 
 logger = logging.getLogger(__name__)
 
@@ -174,7 +175,11 @@ async def post_command(
     if not affiliation:
         raise Exception("The provided affiliation is empty.")
     data = await request.json()
+    # request_id = data["id"]
     api_commands_requests_queue.put(data)
+    # response = api_commands_requests_queue.get()
+    # if request_id == response["response_id"]:
+    #     return response
 
 
 @fastapi_service.get("/api/v1/commands", response_class=JSONResponse)
@@ -318,6 +323,7 @@ def start_server(
     api_publish_state_queue,
     api_delta_queue,
     commands_requests_queue,
+    commands_response_queue,
     commands_metadata_queue,
     has_started_queue: Optional[Queue] = None,
     host="127.0.0.1",

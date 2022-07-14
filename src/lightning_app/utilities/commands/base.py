@@ -7,6 +7,7 @@ from getpass import getuser
 from importlib.util import module_from_spec, spec_from_file_location
 from tempfile import gettempdir
 from typing import Any, Callable, Dict, List, Optional, Tuple
+from uuid import uuid4
 
 import requests
 from pydantic import BaseModel
@@ -60,6 +61,7 @@ class ClientCommand:
             "command_name": self.metadata["command"],
             "command_arguments": {k: v.json() for k, v in kwargs.items()},
             "affiliation": self.metadata["affiliation"],
+            "id": str(uuid4()),
         }
         resp = requests.post(self.url + "/api/v1/commands", json=json, headers=headers_for({}))
         assert resp.status_code == 200, resp.json()

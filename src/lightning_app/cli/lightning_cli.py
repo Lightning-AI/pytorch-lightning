@@ -2,6 +2,7 @@ import logging
 import os
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
+from uuid import uuid4
 
 import click
 import requests
@@ -163,6 +164,7 @@ def command(
             "command_name": command,
             "command_arguments": kwargs,
             "affiliation": command_metadata["affiliation"],
+            "id": str(uuid4()),
         }
         resp = requests.post(url + "/api/v1/commands", json=json, headers=headers_for({}))
         assert resp.status_code == 200, resp.json()

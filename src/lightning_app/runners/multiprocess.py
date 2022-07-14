@@ -1,3 +1,4 @@
+import asyncio
 import multiprocessing
 import os
 from dataclasses import dataclass
@@ -60,6 +61,7 @@ class MultiProcessRuntime(Runtime):
             if self.start_server:
                 self.app.should_publish_changes_to_api = True
                 has_started_queue = self.backend.queues.get_has_server_started_queue()
+                self.app.commands_response_queue = asyncio.Queue()
                 kwargs = dict(
                     host=self.host,
                     port=self.port,
@@ -67,6 +69,7 @@ class MultiProcessRuntime(Runtime):
                     api_delta_queue=self.app.api_delta_queue,
                     has_started_queue=has_started_queue,
                     commands_requests_queue=self.app.commands_requests_queue,
+                    commands_response_queue=self.app.commands_response_queue,
                     commands_metadata_queue=self.app.commands_metadata_queue,
                     spec=extract_metadata_from_app(self.app),
                 )

@@ -20,7 +20,8 @@ class SweepConfig(BaseModel):
 class SweepCommand(ClientCommand):
     def run(self, sweep_name: str, num_trials: str) -> None:
         config = SweepConfig(sweep_name=sweep_name, num_trials=num_trials)
-        _ = self.invoke_handler(config=config)
+        response = self.invoke_handler(config=config)
+        print("Response Client", response)
 
 
 class FlowCommands(LightningFlow):
@@ -33,6 +34,7 @@ class FlowCommands(LightningFlow):
 
     def sweep(self, config: SweepConfig):
         print(config)
+        return True
 
     def configure_commands(self):
         return [{"user_command": self.trigger_method}, {"sweep": SweepCommand(self.sweep)}]

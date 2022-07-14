@@ -378,7 +378,7 @@ class LightningApp:
                     if command_query["command_name"] == command_name:
                         # 2.1: Evaluate the method associated to a specific command.
                         # Validation is done on the CLI side.
-                        method(**command_query["command_arguments"])
+                        response = method(**command_query["command_arguments"])
 
     def run_once(self):
         """Method used to collect changes and run the root Flow once."""
