@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 Lightning-DevToolbox documentation
-===============================
+==================================
 .. toctree::
    :maxdepth: 1
    :name: start

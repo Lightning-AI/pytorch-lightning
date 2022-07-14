@@ -1,0 +1,92 @@
+name: Check docs flow
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python version to use'
+        default: '3.9'
+        required: false
+        type: string
+      docs-dir:
+        description: 'Working directory to run make docs in'
+        default: './docs'
+        required: false
+        type: string
+      timeout-minutes:
+        description: 'timeout-minutes for each job'
+        default: 15
+        required: false
+        type: number
+
+jobs:
+  check:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: ammaraskar/sphinx-action@master
+      with:
+        # git is required to clone the docs theme
+        # before custom requirement are resolved https://github.com/ammaraskar/sphinx-action/issues/16
+        pre-build-command: "apt-get update -y && apt-get install -y git && pip install -r requirements/docs.txt"
+        docs-folder: "docs/"
+        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+
+  doctest:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install -e . -U -f https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -r docs/requirements.txt
+          python --version
+          pip --version
+          pip list
+        shell: bash
+
+      - name: Test Documentation
+        working-directory: ${{ inputs.docs-dir }}
+        env:
+          SPHINX_MOCK_REQUIREMENTS: 0
+        run: |
+          make doctest
+          make coverage
+
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install -e . -U -r docs/requirements.txt -f https://download.pytorch.org/whl/torch_stable.html
+          sudo apt-get update --fix-missing
+          sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures
+          python --version
+          pip --version
+          pip list
+
+      - name: Build documentation
+        working-directory: ${{ inputs.docs-dir }}
+        run: make html --debug SPHINXOPTS="-W --keep-going"
+
+      - name: Upload built docs
+        uses: actions/upload-artifact@v3
+        with:
+          name: docs-${{ github.sha }}
+          path: ${{ inputs.docs-dir }}/build/html/
+        if: success()

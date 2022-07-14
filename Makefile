@@ -19,8 +19,8 @@ test:
 	# python -m coverage run --source src/pl_devtools -m pytest --flake8 --durations=0 -v -k
 
 docs: clean
-	pip install --quiet -r docs/requirements.txt
-	python -m sphinx -b html -W --keep-going docs/source docs/build
+	pip install -e . -r docs/requirements.txt
+	cd docs && $(MAKE) html
 
 clean:
 	# clean all temp runs

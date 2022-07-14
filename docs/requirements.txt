@@ -4,6 +4,8 @@ nbsphinx>=0.8.5
 ipython[notebook]
 pandoc>=1.0
 docutils>=0.16
+# https://github.com/jupyterlab/jupyterlab_pygments/issues/5
+pygments>=2.4.1
 sphinxcontrib-fulltoc>=1.0
 sphinxcontrib-mockautodoc
 

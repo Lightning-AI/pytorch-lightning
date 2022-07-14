@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 
+from fileinput import filename
 import os
 from importlib.util import module_from_spec, spec_from_file_location
 
 from setuptools import find_packages, setup
 
-_PATH_ROOT = os.path.dirname(__file__)
-
+_PATH_ROOT = os.path.realpath(os.path.dirname(__file__))
+_PATH_SOURCE = os.path.join(_PATH_ROOT, "src")
+_PATH_REQUIRE = os.path.join(_PATH_ROOT, "requirements")
 
 def _load_py_module(fname, pkg="pl_devtools"):
-    spec = spec_from_file_location(os.path.join(pkg, fname), os.path.join(_PATH_ROOT, pkg, fname))
+    spec = spec_from_file_location(os.path.join(pkg, fname), os.path.join(_PATH_SOURCE, pkg, fname))
     py = module_from_spec(spec)
     spec.loader.exec_module(py)
     return py
@@ -19,11 +21,7 @@ about = _load_py_module("__about__.py")
 setup_tools = _load_py_module("setup_tools.py")
 long_description = setup_tools._load_readme_description(_PATH_ROOT, homepage=about.__homepage__, ver=about.__version__)
 
-# https://packaging.python.org/discussions/install-requires-vs-requirements /
-# keep the meta-data here for simplicity in reading this file... it's not obvious
-# what happens and to non-engineers they won't know to look in init ...
-# the goal of the project is simplicity for researchers, don't want to add too much
-# engineer specific practices
+
 setup(
     name="lightning-devtools",
     version=about.__version__,
@@ -33,15 +31,16 @@ setup(
     url=about.__homepage__,
     download_url="https://github.com/Lightning-AI/dev-toolbox",
     license=about.__license__,
-    packages=find_packages(exclude=["tests", "docs"]),
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
     long_description=long_description,
     long_description_content_type="text/markdown",
     include_package_data=True,
     zip_safe=False,
     keywords=["deep learning", "pytorch", "AI"],
-    python_requires=">=3.6",
-    setup_requires=["wheel"],
-    install_requires=setup_tools._load_requirements(_PATH_ROOT),
+    python_requires=">=3.7",
+    setup_requires=[],
+    install_requires=setup_tools._load_requirements(path_dir=_PATH_ROOT, file_name="requirements.txt"),
     project_urls={
         "Bug Tracker": "https://github.com/Lightning-AI/dev-toolbox/issues",
         "Documentation": "https://dev-toolbox.rtfd.io/en/latest/",
@@ -61,11 +60,10 @@ setup(
         # Pick your license as you wish
         # 'License :: OSI Approved :: BSD License',
         "Operating System :: OS Independent",
-        # Specify the Python versions you support here. In particular, ensure
-        # that you indicate whether you support Python 2, Python 3 or both.
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     ],
 )

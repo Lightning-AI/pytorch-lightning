@@ -16,7 +16,7 @@ import os
 import re
 from typing import List
 
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+_PROJECT_ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 
 def _load_requirements(path_dir: str, file_name: str = "requirements.txt", comment_char: str = "#") -> List[str]:

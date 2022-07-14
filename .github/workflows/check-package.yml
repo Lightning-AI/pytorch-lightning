@@ -1,0 +1,63 @@
+name: Check package flow
+
+on:
+  workflow_call:
+    inputs:
+      import-name:
+        description: 'Import name to test with after installation'
+        required: true
+        type: string
+      pypi-name:
+        description: 'PyPI name to install the package with'
+        required: true
+        type: string
+
+jobs:
+  pkg-check:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04, macos-12, windows-2022]
+        python-version: [3.7, 3.9]  # todo: make this as input too
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Check local package
+        run: |
+          pip install -q -U check-manifest
+          # check MANIFEST.in
+          check-manifest
+          # check package
+          python setup.py check --metadata --strict
+
+      - name: Create package
+        run: |
+          pip install -q -U setuptools wheel
+          python setup.py sdist bdist_wheel
+          python setup.py clean
+
+      - name: Check build package
+        run: |
+          pip install -q -U twine
+          # check package description
+          twine check dist/*
+
+      - name: Install and uninstall package (archive)
+        working-directory: dist
+        run: |
+          pip install *.tar.gz
+          python -c "import ${{ inputs.import-name }}; print(${{ inputs.import-name }}.__version__)"
+          pip uninstall -y ${{ inputs.pypi-name }}
+
+      - name: Install and uninstall package (wheel)
+        working-directory: dist
+        run: |
+          pip install *.whl
+          python -c "import ${{ inputs.import-name }}; print(${{ inputs.import-name }}.__version__)"
+          pip uninstall -y ${{ inputs.pypi-name }}

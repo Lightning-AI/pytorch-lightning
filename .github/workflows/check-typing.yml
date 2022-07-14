@@ -1,0 +1,37 @@
+name: Check typing flow
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python version to use'
+        default: '3.9'
+        required: false
+        type: string
+
+jobs:
+  mypy:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions/setup-python@v3
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install dependencies
+      run: |
+        pip install -e '.[test]' --extra-index-url https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install mypy  # don't use --upgrade to respect the version installed via setup.py
+        pip list
+
+    - name: Check typing
+      # mypy uses the config file found in the following order:
+      # 1. mypy.ini
+      # 2. pyproject.toml
+      # 3. setup.cfg
+      # 4. $XDG_CONFIG_HOME/mypy/config
+      # 5. ~/.config/mypy/config
+      # 6. ~/.mypy.ini
+      # https://mypy.readthedocs.io/en/stable/config_file.html
+      run: mypy
