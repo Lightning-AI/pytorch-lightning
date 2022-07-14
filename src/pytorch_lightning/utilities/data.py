@@ -433,7 +433,7 @@ def _wrap_init_method(init: Callable, store_explicit_arg: Optional[str] = None) 
             if param.name != "self" and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
         )
 
-        param_names = tuple(parameters_defaults.keys())[: len(args)]
+        param_names = tuple(parameters_defaults)[: len(args)]
 
         default_kwargs = {
             name: value
