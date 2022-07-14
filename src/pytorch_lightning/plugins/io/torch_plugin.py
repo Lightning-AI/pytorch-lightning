@@ -27,7 +27,14 @@ log = logging.getLogger(__name__)
 
 class TorchCheckpointIO(CheckpointIO):
     """CheckpointIO that utilizes :func:`torch.save` and :func:`torch.load` to save and load checkpoints
-    respectively, common for most use cases."""
+    respectively, common for most use cases.
+
+    Args:
+        save_async: whether to save the checkpoint asynchronously or not.
+    """
+
+    def __init__(self, save_async: bool = False):
+        self.save_async = save_async
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
@@ -51,7 +58,7 @@ class TorchCheckpointIO(CheckpointIO):
         fs.makedirs(os.path.dirname(path), exist_ok=True)
         try:
             # write the checkpoint dictionary on the file
-            atomic_save(checkpoint, path)
+            atomic_save(checkpoint, path, self.save_async)
         except AttributeError as err:
             # todo (sean): is this try catch necessary still?
             # https://github.com/Lightning-AI/lightning/pull/431

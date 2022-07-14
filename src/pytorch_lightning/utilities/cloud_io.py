@@ -14,6 +14,7 @@
 """Utilities related to data saving/loading."""
 
 import io
+import threading
 from pathlib import Path
 from typing import Any, Callable, Dict, IO, Optional, Union
 
@@ -52,7 +53,7 @@ def get_filesystem(path: _PATH, **kwargs: Any) -> AbstractFileSystem:
     return fs
 
 
-def atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None:
+def atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path], save_async: bool = False) -> None:
     """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
     Args:
@@ -62,7 +63,14 @@ def atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None:
         filepath: The path to which the checkpoint will be saved.
             This points to the file that the checkpoint will be stored in.
     """
+    if save_async:
+        thread = threading.Thread(target=_atomic_save, args=((checkpoint, filepath)))
+        thread.start()
+    else:
+        _atomic_save(checkpoint, filepath)
 
+
+def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None:
     bytesbuffer = io.BytesIO()
     torch.save(checkpoint, bytesbuffer)
     with fsspec.open(filepath, "wb") as f:

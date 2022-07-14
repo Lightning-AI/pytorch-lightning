@@ -14,6 +14,8 @@
 import os
 from typing import Any, Dict, Optional
 
+from hydra import MissingConfigException
+
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -28,7 +30,23 @@ if _OMEGACONF_AVAILABLE:
 
 
 class XLACheckpointIO(TorchCheckpointIO):
-    """CheckpointIO that utilizes :func:`xm.save` to save checkpoints for TPU training strategies."""
+    """CheckpointIO that utilizes :func:`xm.save` to save checkpoints for TPU training strategies.
+
+    Args:
+        save_async: whether to save the checkpoint asynchronously or not.
+
+    Raises:
+        MisconfigurationException:
+            If ``save_async`` is set to ``True``.
+    """
+
+    def __init__(self, save_async: bool = False):
+        if save_async:
+            raise MissingConfigException(
+                "Saving checkpoints asynchronously is not supported with `XLACheckpointIO` plugin."
+            )
+
+        super().__init__(save_async=save_async)
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.

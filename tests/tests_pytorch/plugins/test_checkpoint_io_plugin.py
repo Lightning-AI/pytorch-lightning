@@ -15,20 +15,18 @@ import os
 from typing import Any, Dict, Optional
 from unittest.mock import MagicMock
 
+import pytest
 import torch
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.plugins import CheckpointIO
+from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.strategies import SingleDeviceStrategy
 from pytorch_lightning.utilities.types import _PATH
 
 
-class CustomCheckpointIO(CheckpointIO):
-    def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
-        torch.save(checkpoint, path)
-
+class CustomCheckpointIO(TorchCheckpointIO):
     def load_checkpoint(self, path: _PATH, storage_options: Optional[Any] = None) -> Dict[str, Any]:
         return torch.load(path)
 
@@ -36,9 +34,10 @@ class CustomCheckpointIO(CheckpointIO):
         os.remove(path)
 
 
-def test_checkpoint_plugin_called(tmpdir):
+@pytest.mark.parametrize("save_async", [True, False])
+def test_checkpoint_plugin_called(tmpdir, save_async):
     """Ensure that the custom checkpoint IO plugin and torch checkpoint IO plugin is called when saving/loading."""
-    checkpoint_plugin = CustomCheckpointIO()
+    checkpoint_plugin = CustomCheckpointIO(save_async=save_async)
     checkpoint_plugin = MagicMock(wraps=checkpoint_plugin, spec=CustomCheckpointIO)
 
     ck = ModelCheckpoint(dirpath=tmpdir, save_last=True)
@@ -49,9 +48,13 @@ def test_checkpoint_plugin_called(tmpdir):
         strategy=SingleDeviceStrategy("cpu", checkpoint_io=checkpoint_plugin),
         callbacks=ck,
         max_epochs=2,
+        limit_train_batches=1,
+        limit_val_batches=0,
     )
     trainer.fit(model)
 
+    assert trainer.checkpoint_callback.best_model_path == tmpdir / "epoch=1-step=2.ckpt"
+    assert trainer.checkpoint_callback.last_model_path == tmpdir / "last.ckpt"
     assert checkpoint_plugin.save_checkpoint.call_count == 4
     assert checkpoint_plugin.remove_checkpoint.call_count == 1
 
@@ -68,9 +71,13 @@ def test_checkpoint_plugin_called(tmpdir):
         plugins=[checkpoint_plugin],
         callbacks=ck,
         max_epochs=2,
+        limit_train_batches=1,
+        limit_val_batches=0,
     )
     trainer.fit(model)
 
+    assert trainer.checkpoint_callback.best_model_path == tmpdir / "epoch=1-step=2-v1.ckpt"
+    assert trainer.checkpoint_callback.last_model_path == tmpdir / "last-v1.ckpt"
     assert checkpoint_plugin.save_checkpoint.call_count == 4
     assert checkpoint_plugin.remove_checkpoint.call_count == 1
 
