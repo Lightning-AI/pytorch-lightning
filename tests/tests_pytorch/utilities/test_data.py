@@ -11,8 +11,8 @@ from pytorch_lightning.overrides.distributed import IndexBatchSamplerWrapper
 from pytorch_lightning.trainer.states import RunningStage
 from pytorch_lightning.utilities.data import (
     _get_dataloader_init_args_and_kwargs,
-    _inject_arg_to_saved,
     _replace_init_method,
+    _replace_value_in_saved_args,
     _update_dataloader,
     extract_batch_size,
     get_len,
@@ -146,7 +146,7 @@ def test_update_dataloader_typerror_custom_exception():
     with pytest.raises(MisconfigurationException, match="`DataLoader` implementation has an error.*`dataset`"):
         _update_dataloader(dataloader, dataloader.sampler)
 
-    with _replace_init_method(DataLoader, ["dataset"]):
+    with _replace_init_method(DataLoader, "dataset"):
         dataloader = BadStandaloneGoodHookImpl([1, 2, 3])
     new_dataloader = _update_dataloader(dataloader, dataloader.sampler)
     assert isinstance(new_dataloader, BadStandaloneGoodHookImpl)
@@ -298,7 +298,7 @@ class ChangingDataLoader(DataLoader):
     ],
 )
 def test_replace_init_method_dataloader(cls, args, kwargs, arg_names, dataset, checked_values):
-    with _replace_init_method(DataLoader, ["dataset"]):
+    with _replace_init_method(DataLoader, "dataset"):
         dataloader = cls(*args, **kwargs)
 
     assert dataloader.__pl_saved_args == args
@@ -338,7 +338,7 @@ def test_replace_init_method_extra_kwargs():
         def __init__(self, dataset, *args, batch_size=10, **kwargs):
             super().__init__(dataset, *args, batch_size=batch_size, **kwargs)
 
-    with _replace_init_method(DataLoader, ["dataset"]):
+    with _replace_init_method(DataLoader, "dataset"):
         dataloader = LoaderSubclass(range(10))
 
     assert dataloader.__pl_saved_args == (range(10),)
@@ -417,7 +417,16 @@ def test_custom_batch_sampler_no_sampler():
 
 
 @pytest.mark.parametrize(
-    ["args", "kwargs", "arg_names", "inject_name", "inject_obj", "expected_status", "expected_args", "expected_kwargs"],
+    [
+        "args",
+        "kwargs",
+        "arg_names",
+        "replace_key",
+        "replace_value",
+        "expected_status",
+        "expected_args",
+        "expected_kwargs",
+    ],
     [
         pytest.param([], {}, [], "a", 1, False, [], {}, id="empty"),
         pytest.param([1], {}, ["a"], "a", 2, True, [2], {}, id="simple1"),
@@ -425,8 +434,10 @@ def test_custom_batch_sampler_no_sampler():
         pytest.param([1, 2, 3], {"a": 1}, ["b", "c", "d"], "a", 2, True, [1, 2, 3], {"a": 2}, id="simple_kwargs"),
     ],
 )
-def test_inject_args(args, kwargs, arg_names, inject_name, inject_obj, expected_status, expected_args, expected_kwargs):
-    assert _inject_arg_to_saved(args, kwargs, arg_names, inject_name, inject_obj) == (
+def test_replace_value_in_args(
+    args, kwargs, arg_names, replace_key, replace_value, expected_status, expected_args, expected_kwargs
+):
+    assert _replace_value_in_saved_args(replace_key, replace_value, args, kwargs, arg_names) == (
         expected_status,
         expected_args,
         expected_kwargs,

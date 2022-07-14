@@ -424,7 +424,7 @@ class DataConnector:
         """
         source = getattr(self, f"_{stage.dataloader_prefix}_dataloader_source")
 
-        with _replace_init_method(DataLoader, ["dataset"]), _replace_init_method(BatchSampler):
+        with _replace_init_method(DataLoader, "dataset"), _replace_init_method(BatchSampler):
             # under this context manager, the arguments passed to `DataLoader.__init__` will be captured and saved as
             # attributes on the instance in case the dataloader needs to be re-instantiated later by Lightning
             dataloader = source.dataloader()
