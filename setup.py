@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from fileinput import filename
 import os
 from importlib.util import module_from_spec, spec_from_file_location
 
@@ -9,6 +8,7 @@ from setuptools import find_packages, setup
 _PATH_ROOT = os.path.realpath(os.path.dirname(__file__))
 _PATH_SOURCE = os.path.join(_PATH_ROOT, "src")
 _PATH_REQUIRE = os.path.join(_PATH_ROOT, "requirements")
+
 
 def _load_py_module(fname, pkg="pl_devtools"):
     spec = spec_from_file_location(os.path.join(pkg, fname), os.path.join(_PATH_SOURCE, pkg, fname))
