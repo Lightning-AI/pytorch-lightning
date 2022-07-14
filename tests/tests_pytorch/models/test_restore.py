@@ -264,7 +264,7 @@ def test_correct_step_and_epoch(tmpdir):
 
 
 def test_logging_step_loaded_correctly_pre_1_6_5(tmpdir):
-    trainer = Trainer(max_steps=1, default_root_dir=tmpdir)
+    trainer = Trainer(max_steps=1, limit_val_batches=0, default_root_dir=tmpdir)
     model = BoringModel()
     trainer.fit(model)
     ckpt_path = trainer.checkpoint_callback.best_model_path
@@ -277,7 +277,7 @@ def test_logging_step_loaded_correctly_pre_1_6_5(tmpdir):
             assert self.trainer.global_step == 1
             assert self.trainer.fit_loop.epoch_loop._batches_that_stepped == 1
 
-    trainer = Trainer(max_steps=2, default_root_dir=tmpdir)
+    trainer = Trainer(max_steps=2, limit_val_batches=0, default_root_dir=tmpdir)
     model = TestModel()
     trainer.fit(model, ckpt_path=ckpt_path)
     new_loop = trainer.fit_loop.epoch_loop
