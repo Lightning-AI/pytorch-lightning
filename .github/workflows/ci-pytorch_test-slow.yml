@@ -1,4 +1,4 @@
-name: Test slow
+name: Test PyTorch slow
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on:  # Trigger the workflow on push or pull request, but only for the master branch
@@ -9,6 +9,9 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     types: [opened, reopened, ready_for_review, synchronize]
     paths-ignore:
       - "src/lightning_app/**"  # todo: implement job skip
+      - "tests/tests_app/**"  # todo: implement job skip
+      - "tests/tests_app_examples/**"  # todo: implement job skip
+      - "examples/app_*"  # todo: implement job skip
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -50,6 +53,9 @@ jobs:
           ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-
 
     - name: Install dependencies
+      env:
+        PACKAGE_NAME: pytorch
+        FREEZE_REQUIREMENTS: 1
       run: |
         # adjust versions according installed Torch version
         python ./requirements/pytorch/adjust-versions.py requirements.txt ${{ matrix.pytorch-version }}
@@ -64,7 +70,7 @@ jobs:
         PL_RUN_SLOW_TESTS: 1
 
     - name: Upload pytest test results
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: unittest-results-${{ runner.os }}-py${{ matrix.python-version }}
         path: tests/tests_pytorch/results-${{ runner.os }}-py${{ matrix.python-version }}.xml
@@ -78,7 +84,7 @@ jobs:
         coverage xml
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v3
       if: success()
       # see: https://github.com/actions/toolkit/issues/399
       continue-on-error: true

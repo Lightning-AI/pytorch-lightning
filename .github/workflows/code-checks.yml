@@ -14,8 +14,9 @@ jobs:
   mypy:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@master
-    - uses: actions/setup-python@v2
+    - uses: actions/checkout@v3
+
+    - uses: actions/setup-python@v3
       with:
         python-version: 3.9
 
@@ -33,9 +34,8 @@ jobs:
       run: |
         pip install torch==1.11 --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
-        pip install '.[dev]'
+        pip install -r requirements/pytorch/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
         pip list
 
-    - name: Type check PyTorch
-      working-directory: src/pytorch_lightning
-      run: mypy . --install-types --non-interactive --config-file ../../pyproject.toml
+    - name: Check typing
+      run: mypy
