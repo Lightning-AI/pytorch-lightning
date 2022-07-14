@@ -50,8 +50,6 @@ def _adjust_manifest(**__: Any) -> None:
         "recursive-exclude requirements *.txt" + os.linesep,
         "recursive-include src/lightning_app *.md" + os.linesep,
         "recursive-include requirements/app *.txt" + os.linesep,
-        # TODO: remove this once lightning-ui package is ready as a dependency
-        "recursive-include src/lightning_app/ui *" + os.linesep,
     ]
     with open(manifest_path, "w") as fp:
         fp.writelines(lines)

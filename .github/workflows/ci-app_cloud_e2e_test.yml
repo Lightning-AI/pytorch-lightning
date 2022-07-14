@@ -68,7 +68,7 @@ jobs:
           python -m venv ./.venv
           source ./.venv/bin/activate
           pip --version
-          python -m pip install -r requirements/app/devel.txt -r ./requirements/pytorch/base.txt --no-cache --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          python -m pip install -r requirements/app/devel.txt --no-cache --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
 #        if: steps.cache-venv.outputs.cache-hit != 'true'  # TODO: Enable cache
 
       - name: Cache Playwright dependencies
@@ -95,9 +95,7 @@ jobs:
           python -c "from lightning_app.utilities.packaging.lightning_utils import download_frontend; download_frontend()"
         shell: bash
 
-      - name: Install lightning-app
-        env:
-          PACKAGE_NAME: app
+      - name: Install lightning
         run: |
           source ./.venv/bin/activate
           pip install -e .
