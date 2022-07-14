@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import sys
 from time import time
 from typing import Any, Iterator
 from unittest import mock
-from unittest.mock import Mock
 
 import pytest
 import torch
