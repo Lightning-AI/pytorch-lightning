@@ -23,7 +23,7 @@ coverage:
         target: 99% # specify the target coverage for each commit status
         threshold: 30% # allow this little decrease on project
         # https://github.com/codecov/support/wiki/Filtering-Branches
-        # branches: master
+        # branches: main
         if_ci_failed: error
     # https://github.com/codecov/support/wiki/Patch-Status
     patch:

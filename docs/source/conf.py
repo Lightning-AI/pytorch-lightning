@@ -339,7 +339,7 @@ def linkcode_resolve(domain, info):
             fname = os.path.relpath(fname, start=path_top)
         else:
             # Local build, imitate master
-            fname = "master/" + os.path.relpath(fname, start=os.path.abspath(".."))
+            fname = "main/" + os.path.relpath(fname, start=os.path.abspath(".."))
         source, lineno = inspect.getsourcelines(obj)
         return fname, lineno, lineno + len(source) - 1
 
@@ -353,8 +353,8 @@ def linkcode_resolve(domain, info):
     # tag = subprocess.Popen(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE,
     #                        universal_newlines=True).communicate()[0][:-1]
     branch = filename.split("/")[0]
-    # do mapping from latest tags to master
-    branch = {"latest": "master", "stable": "master"}.get(branch, branch)
+    # do mapping from latest tags to main
+    branch = {"latest": "main", "stable": "main"}.get(branch, branch)
     filename = "/".join([branch] + filename.split("/")[1:])
     return f"https://github.com/{github_user}/{github_repo}/blob/{filename}"
 

@@ -2,13 +2,13 @@ name: Apply checks
 
 on:
   push:
-    branches: [master, "release/*"]
+    branches: [main, "release/*"]
   pull_request:
-    branches: [master, "release/*"]
+    branches: [main, "release/*"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
-  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/release/')) }}
+  cancel-in-progress: ${{ ! (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 jobs:
   check-typing:

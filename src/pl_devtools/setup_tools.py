@@ -60,9 +60,9 @@ def _load_readme_description(path_dir: str, homepage: str, ver: str) -> str:
     text = text.replace("badge/?version=stable", f"badge/?version={ver}")
     text = text.replace("dev-toolbox.readthedocs.io/en/stable/", f"dev-toolbox.readthedocs.io/en/{ver}")
     # codecov badge
-    text = text.replace("/branch/master/graph/badge.svg", f"/release/{ver}/graph/badge.svg")
+    text = text.replace("/branch/main/graph/badge.svg", f"/release/{ver}/graph/badge.svg")
     # replace github badges for release ones
-    text = text.replace("badge.svg?branch=master&event=push", f"badge.svg?tag={ver}")
+    text = text.replace("badge.svg?branch=main&event=push", f"badge.svg?tag={ver}")
 
     skip_begin = r"<!-- following section will be skipped from PyPI description -->"
     skip_end = r"<!-- end skipping PyPI description -->"
