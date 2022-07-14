@@ -141,11 +141,10 @@ jobs:
           python .actions/assistant.py mirror-pkg2source pypi src
           ls -R src/
 
-      # TODO: use this testing when PL 1.6.5 is out
-      #- uses: ./.github/actions/pkg-check
-      #  with:
-      #    pkg-name: "lightning"
+      - uses: ./.github/actions/pkg-check
+        with:
+          pkg-name: "lightning"
 
-      #- uses: ./.github/actions/pkg-install
-      #  with:
-      #    pkg-name: "lightning"
+      - uses: ./.github/actions/pkg-install
+        with:
+          pkg-name: "lightning"
