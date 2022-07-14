@@ -188,7 +188,9 @@ def pytest_collection_modifyitems(items, config):
                 if already_skipped:
                     continue
                 # the test has `@RunIf(kwarg=True)`
-                has_runif_with_kwarg = any(marker.name == "skipif" and marker.kwargs.get(kwarg) for marker in test.own_markers)
+                has_runif_with_kwarg = any(
+                    marker.name == "skipif" and marker.kwargs.get(kwarg) for marker in test.own_markers
+                )
                 if not has_runif_with_kwarg:
                     test.add_marker(skip)
                     skipped += 1
