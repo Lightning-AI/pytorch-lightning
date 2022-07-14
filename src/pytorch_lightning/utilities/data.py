@@ -18,7 +18,7 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from dataclasses import fields
 from functools import partial
-from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Mapping, Optional, Set, Tuple, Type, Union
 
 import torch
 from torch import Tensor
@@ -394,7 +394,7 @@ def _dataloader_init_kwargs_resolve_sampler(
 
 
 def _replace_value_in_saved_args(
-    replace_key: str, replace_value: Any, args: Tuple[Any, ...], kwargs: Dict[str, Any], arg_names: List[str]
+    replace_key: str, replace_value: Any, args: Tuple[Any, ...], kwargs: Dict[str, Any], arg_names: Tuple[str, ...]
 ) -> Tuple[bool, Tuple[Any, ...], Dict[str, Any]]:
     """Tries to replace an argument value in a saved list of args and kwargs.
 
