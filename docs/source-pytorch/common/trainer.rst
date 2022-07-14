@@ -954,7 +954,7 @@ Training will stop if max_steps or max_epochs have reached (earliest).
 .. testcode::
 
     # Default (disabled)
-    trainer = Trainer(max_steps=None)
+    trainer = Trainer(max_steps=-1)
 
     # Stop after 100 steps
     trainer = Trainer(max_steps=100)
