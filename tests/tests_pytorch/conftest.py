@@ -169,7 +169,10 @@ def single_process_pg():
         os.environ.update(orig_environ)
 
 
-def pytest_collection_modifyitems(items):
+def pytest_collection_modifyitems(items, config):
+    conditions = []
+    skipped = 0
+
     for env_var, kwarg in (
         ("PL_RUN_STANDALONE_TESTS", "standalone"),
         ("PL_RUN_CUDA_TESTS", "min_cuda_gpus"),
@@ -178,13 +181,22 @@ def pytest_collection_modifyitems(items):
     ):
         # this will compute the intersection of all tests selected per environment variable
         if os.getenv(env_var, "0") == "1":
-            items[:] = [
-                item
-                for item in items
-                for marker in item.own_markers
-                # has `@RunIf(kwarg=True)`
-                if marker.name == "skipif" and marker.kwargs.get(kwarg)
-            ]
+            conditions.append(env_var)
+            skip = pytest.mark.skip(reason=f'`{env_var}=1` is set but the test is not a "{kwarg}" test.')
+            for test in items:
+                already_skipped = any(marker.name == "skip" for marker in test.own_markers)
+                if already_skipped:
+                    continue
+                # the test has `@RunIf(kwarg=True)`
+                has_runif_with_kwarg = any(marker.name == "skipif" and marker.kwargs.get(kwarg) for marker in test.own_markers)
+                if not has_runif_with_kwarg:
+                    test.add_marker(skip)
+                    skipped += 1
+
+    if conditions:
+        config.get_terminal_writer().write(
+            f"The number of tests has been filtered from {len(items)} to {len(items) - skipped} after the filters {conditions}\n"
+        )
 
 
 def pytest_addoption(parser):
