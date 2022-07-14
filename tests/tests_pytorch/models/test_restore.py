@@ -269,6 +269,7 @@ def test_logging_step_loaded_correctly_pre_1_6_5(tmpdir):
     trainer.fit(model)
     ckpt_path = trainer.checkpoint_callback.best_model_path
     ckpt = torch.load(ckpt_path)
+    # the key "_batches_that_stepped" doesn't exist in checkpoints generated with <v1.6.5
     del ckpt["loops"]["fit_loop"]["epoch_loop.state_dict"]["_batches_that_stepped"]
     torch.save(ckpt, ckpt_path)
 
