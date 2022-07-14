@@ -72,8 +72,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             precision_plugin=precision_plugin,
         )
         self.debug = debug
-        self.tpu_local_core_rank = 0
-        self.tpu_global_core_rank = 0
         self.start_method = "fork"
 
     @property
@@ -152,12 +150,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
     def configure_ddp(self) -> None:
         pass
 
-    def init_dist_connection(self, global_rank: int, world_size: int) -> None:
-        pass
-
-    def set_world_ranks(self, process_idx: int = 0) -> None:
-        pass
-
     def model_to_device(self) -> None:
         self.model = self.wrapped_model.to(self.root_device)
 
@@ -203,9 +195,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     def _worker_setup(self, process_idx: int):
         reset_seed()
-        self._local_rank = xm.get_local_ordinal()
-        self.tpu_local_core_rank = xm.get_local_ordinal()
-        self.tpu_global_core_rank = xm.get_ordinal()
+        self.set_world_ranks(process_idx)
         rank_zero_only.rank = self.global_rank
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
@@ -237,7 +227,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         # from different vms to the main worker doesn't work well with tqdm
         # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
         # The print statement seems to force tqdm to flush stdout.
-        if self.tpu_global_core_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
+        if self.global_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
             print()
 
     def save_checkpoint(
@@ -276,6 +266,10 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             tensor = tensor.unsqueeze(0)
         return xm.all_gather(tensor)
 
+    def teardown(self) -> None:
+        super().teardown()
+        os.environ.pop("PT_XLA_DEBUG", None)
+
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
@@ -287,7 +281,3 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             cls,
             description=f"{cls.__class__.__name__}",
         )
-
-    def teardown(self) -> None:
-        super().teardown()
-        os.environ.pop("PT_XLA_DEBUG", None)
