@@ -145,9 +145,13 @@ def test_prediction_writer_partial_support_for_combined_loader():
 def test_batch_level_batch_indices():
     """Test that batch_indices are returned when `return_predictions=False`."""
     DummyPredictionWriter.write_on_batch_end = Mock()
-    DummyPredictionWriter.write_on_epoch_end = Mock()
+
+    class CustomBoringModel(BoringModel):
+        def on_predict_epoch_end(self, *args, **kwargs):
+            assert self.trainer.predict_loop.epoch_batch_indices == [[]]
+
     writer = DummyPredictionWriter("batch")
-    model = BoringModel()
+    model = CustomBoringModel()
     dataloader = DataLoader(RandomDataset(32, 64), batch_size=4)
     trainer = Trainer(limit_predict_batches=4, callbacks=writer)
     trainer.predict(model, dataloaders=dataloader, return_predictions=False)
