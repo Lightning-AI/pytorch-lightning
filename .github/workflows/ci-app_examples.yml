@@ -93,7 +93,7 @@ jobs:
           coverage run --source lightning_app -m pytest -m "not cloud" tests_app_examples --timeout=300 -vvvv --junitxml=$PYTEST_ARTIFACT --durations=0
 
       - name: Upload pytest test results
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: unittest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
           path: tests/results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
@@ -107,7 +107,7 @@ jobs:
           coverage report -i
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: tests/coverage.xml
