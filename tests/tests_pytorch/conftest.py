@@ -179,6 +179,14 @@ def pytest_collection_modifyitems(items):
             # has `@RunIf(standalone=True)`
             if marker.name == "skipif" and marker.kwargs.get("standalone")
         ]
+    elif os.getenv("PL_RUN_CUDA_TESTS", "0") == "1":
+        items[:] = [
+            item
+            for item in items
+            for marker in item.own_markers
+            # has `@RunIf(min_cuda_gpus=N)`
+            if marker.name == "skipif" and marker.kwargs.get("min_cuda_gpus")
+        ]
     elif os.getenv("PL_RUN_SLOW_TESTS", "0") == "1":
         items[:] = [
             item
