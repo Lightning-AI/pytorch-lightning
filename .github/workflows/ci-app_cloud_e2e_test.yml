@@ -53,13 +53,13 @@ jobs:
             echo "::set-output name=ID::${{github.event.number}}"
           fi
 
-      - name: Cache virtualenv
-        id: cache-venv
-        uses: actions/cache@v2
-        with:
-          path: ./.venv/
-          key: ${{ runner.os }}-pip-${{ matrix.app_name }}-${{ hashFiles('requirements/app/base.txt', 'requirements/app/*.txt', 'src/lightning_app/__version__.py') }}
-          restore-keys: ${{ runner.os }}-venv-${{ matrix.app_name }}-
+#      - name: Cache virtualenv
+#        id: cache-venv
+#        uses: actions/cache@v2
+#        with:
+#          path: ./.venv/
+#          key: ${{ runner.os }}-pip-${{ matrix.app_name }}-${{ hashFiles('requirements/app/base.txt', 'requirements/app/*.txt', 'src/lightning_app/__version__.py') }}
+#          restore-keys: ${{ runner.os }}-venv-${{ matrix.app_name }}-
 
       - name: Install dependencies
         shell: bash
