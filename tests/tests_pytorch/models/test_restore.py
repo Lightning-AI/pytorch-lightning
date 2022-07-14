@@ -28,7 +28,7 @@ import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.demos.boring_classes import BoringModel, ManualOptimBoringModel
 from pytorch_lightning.trainer.states import TrainerFn
 from tests_pytorch.helpers.datamodules import ClassifDataModule
 from tests_pytorch.helpers.runif import RunIf
@@ -263,9 +263,10 @@ def test_correct_step_and_epoch(tmpdir):
     assert trainer.fit_loop.epoch_loop._batches_that_stepped == max_epochs * train_batches
 
 
-def test_logging_step_loaded_correctly_pre_1_6_5(tmpdir):
+@pytest.mark.parametrize("model_class", [BoringModel, ManualOptimBoringModel])
+def test_logging_step_loaded_correctly_pre_1_6_5(tmpdir, model_class):
     trainer = Trainer(max_steps=1, limit_val_batches=0, default_root_dir=tmpdir)
-    model = BoringModel()
+    model = model_class()
     trainer.fit(model)
     ckpt_path = trainer.checkpoint_callback.best_model_path
     ckpt = torch.load(ckpt_path)
@@ -273,7 +274,7 @@ def test_logging_step_loaded_correctly_pre_1_6_5(tmpdir):
     del ckpt["loops"]["fit_loop"]["epoch_loop.state_dict"]["_batches_that_stepped"]
     torch.save(ckpt, ckpt_path)
 
-    class TestModel(BoringModel):
+    class TestModel(model_class):
         def on_train_start(self) -> None:
             assert self.trainer.global_step == 1
             assert self.trainer.fit_loop.epoch_loop._batches_that_stepped == 1
