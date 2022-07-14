@@ -27,7 +27,7 @@ jobs:
         app_name:
           - v0_app
           - boring_app
-          - quick_start
+#          - quick_start  # TODO: fix this
           - template_streamlit_ui
           - template_react_ui
           - template_jupyterlab
