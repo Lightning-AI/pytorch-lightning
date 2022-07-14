@@ -335,7 +335,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     ) -> Union[List[List[Dict[str, Any]]], List[Dict[str, Any]]]:
         """Processes the outputs from the batch loop into the format passed to the ``on_train_batch_end`` hook."""
         if not batch_output:
-            return cast(List[Dict[str, Any]], [])
+            return []  # type: ignore[return-value]
 
         # convert optimizer dicts to list
         if lightning_module.automatic_optimization:
@@ -377,7 +377,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         """Processes the outputs from the batch loop into the format passed to the ``training_epoch_end`` hook."""
         # `batch_outputs` (plural) is the same as `epoch_end_output` (singular)
         if not batch_outputs:
-            return cast(List[Dict[str, Any]], [])
+            return []  # type: ignore[return-value]
 
         # convert optimizer dicts to list
         if lightning_module.automatic_optimization:
