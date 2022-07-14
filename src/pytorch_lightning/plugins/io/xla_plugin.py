@@ -14,8 +14,7 @@
 import os
 from typing import Any, Dict, Optional
 
-from hydra import MissingConfigException
-
+from lightning_app.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -42,7 +41,7 @@ class XLACheckpointIO(TorchCheckpointIO):
 
     def __init__(self, save_async: bool = False):
         if save_async:
-            raise MissingConfigException(
+            raise MisconfigurationException(
                 "Saving checkpoints asynchronously is not supported with `XLACheckpointIO` plugin."
             )
 
