@@ -55,6 +55,8 @@ def test_checkpoint_plugin_called(tmpdir, save_async):
 
     assert trainer.checkpoint_callback.best_model_path == tmpdir / "epoch=1-step=2.ckpt"
     assert trainer.checkpoint_callback.last_model_path == tmpdir / "last.ckpt"
+    assert os.path.exists(trainer.checkpoint_callback.best_model_path)
+    assert os.path.exists(trainer.checkpoint_callback.last_model_path)
     assert checkpoint_plugin.save_checkpoint.call_count == 4
     assert checkpoint_plugin.remove_checkpoint.call_count == 1
 
@@ -77,6 +79,8 @@ def test_checkpoint_plugin_called(tmpdir, save_async):
     trainer.fit(model)
 
     assert trainer.checkpoint_callback.best_model_path == tmpdir / "epoch=1-step=2-v1.ckpt"
+    assert os.path.exists(trainer.checkpoint_callback.best_model_path)
+    assert os.path.exists(trainer.checkpoint_callback.last_model_path)
     assert trainer.checkpoint_callback.last_model_path == tmpdir / "last-v1.ckpt"
     assert checkpoint_plugin.save_checkpoint.call_count == 4
     assert checkpoint_plugin.remove_checkpoint.call_count == 1
