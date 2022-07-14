@@ -65,6 +65,7 @@ class _Stateful(Protocol):
 @runtime_checkable
 class _LRScheduler(_Stateful, Protocol):
     optimizer: Optimizer
+    base_lrs: List[float]
 
     def __init__(self, optimizer: Optimizer, *args: Any, **kwargs: Any) -> None:
         ...
