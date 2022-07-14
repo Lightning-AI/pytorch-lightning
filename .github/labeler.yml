@@ -1,0 +1,5 @@
+documentation:
+  - docs/**/*
+ci/cd:
+  - .github/actions/**/*
+  - .github/workflows/*
