@@ -1,21 +1,18 @@
 import time
 
-__version__ = "0.0.0"
+__version__ = "0.1.0dev"
 __author__ = "Lightning AI et al."
 __author_email__ = "pytorch@lightning.ai"
-__license__ = "TBD"
+__license__ = "Apache-2.0"
 __copyright__ = f"Copyright (c) 2022-{time.strftime('%Y')}, {__author__}."
 __homepage__ = "https://github.com/Lightning-AI/dev-toolbox"
 __docs__ = "PyTorch Lightning Sample project."
 __long_doc__ = """
 What is it?
 -----------
-This is starter project template which shall simplify initial steps for each new PL project...
+It enables you share GH workflows and some basic assistance actions...
 
-Except the implemented sections:
- - sample package
- - setting CI
- - setting Docs
+
 """
 
 __all__ = [

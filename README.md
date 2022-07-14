@@ -14,10 +14,9 @@ You still need to enable some external integrations such as:
 - in GH setting, set `gh-pages` as website and _docs_ as source folder
 - init Read-The-Docs (add this new project)
 - add credentials for releasing package to PyPI
-- specify license in `LICENSE` file and package init
 
 ## Tests / Docs notes
 
-- We are using [Napoleon style](https://www.sphinx-doc.org/en/main/usage/extensions/napoleon.html), and we shall use static types...
+- We are using [Napoleon style](https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html), and we shall use static types...
 - It is nice to se [doctest](https://docs.python.org/3/library/doctest.html) as they are also generated as examples in documentation
 - For wider and edge cases testing use [pytest parametrization](https://docs.pytest.org/en/stable/parametrize.html) :\]
