@@ -53,6 +53,7 @@ jobs:
             echo "::set-output name=ID::${{github.event.number}}"
           fi
 
+# TODO: Enable cache
 #      - name: Cache virtualenv
 #        id: cache-venv
 #        uses: actions/cache@v2
@@ -67,7 +68,7 @@ jobs:
           python -m venv ./.venv
           source ./.venv/bin/activate
           pip --version
-          python -m pip install -r requirements/app/devel.txt --no-cache --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+          python -m pip install -r requirements/app/devel.txt -r ./requirements/pytorch/base.txt --no-cache --quiet --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
 #        if: steps.cache-venv.outputs.cache-hit != 'true'  # TODO: Enable cache
 
       - name: Cache Playwright dependencies
@@ -99,7 +100,7 @@ jobs:
           PACKAGE_NAME: app
         run: |
           source ./.venv/bin/activate
-          pip install -e . -r requirements/app/base.txt
+          pip install -e .
         shell: bash
 
       - name: List pip dependency
