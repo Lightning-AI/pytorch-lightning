@@ -33,7 +33,7 @@ class SimpleBoringModel(LightningModule):
         self.layer = nn.Sequential(*[nn.Linear(1, 1) for _ in range(self.hparams.num_layers)])
 
 
-@RunIf(min_torch="1.10.0", standalone=True)
+@RunIf(min_torch="1.10.0")
 def test_init_meta_context():
 
     with init_meta_context():
@@ -72,7 +72,7 @@ def test_init_meta_context():
     assert m.weight.device.type == "cpu"
 
 
-@RunIf(min_torch="1.10.0", standalone=True)
+@RunIf(min_torch="1.10.0")
 def test_materialize_module_recursive_child():
     """Test materialize_module doesn't set a child recursively to a model instantiated within init_meta_context."""
     with init_meta_context():
