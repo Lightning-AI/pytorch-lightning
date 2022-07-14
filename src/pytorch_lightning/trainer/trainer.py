@@ -61,7 +61,6 @@ from pytorch_lightning.plugins import (
     PLUGIN_INPUT,
     PrecisionPlugin,
 )
-from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profilers import (
     AdvancedProfiler,
     PassThroughProfiler,
@@ -2228,11 +2227,6 @@ class Trainer(
     @property
     def is_global_zero(self) -> bool:
         return self.strategy.is_global_zero
-
-    @property
-    def slurm_job_id(self) -> Optional[int]:
-        rank_zero_deprecation("Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0.")
-        return SLURMEnvironment.job_id()
 
     @property
     def distributed_sampler_kwargs(self) -> Optional[dict]:
