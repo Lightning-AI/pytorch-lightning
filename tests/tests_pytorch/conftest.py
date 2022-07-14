@@ -171,10 +171,10 @@ def single_process_pg():
 
 def pytest_collection_modifyitems(items):
     for env_var, kwarg in (
-        ("PL_RUN_STANDALONE_TESTS",  "standalone"),
-        ("PL_RUN_CUDA_TESTS",  "min_cuda_gpus"),
-        ("PL_RUN_SLOW_TESTS",  "slow"),
-        ("PL_RUN_IPU_TESTS",  "ipu"),
+        ("PL_RUN_STANDALONE_TESTS", "standalone"),
+        ("PL_RUN_CUDA_TESTS", "min_cuda_gpus"),
+        ("PL_RUN_SLOW_TESTS", "slow"),
+        ("PL_RUN_IPU_TESTS", "ipu"),
     ):
         # this will compute the intersection of all tests selected per environment variable
         if os.getenv(env_var, "0") == "1":
