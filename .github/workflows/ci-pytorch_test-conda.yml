@@ -54,9 +54,10 @@ jobs:
             echo "Continue"
             echo "::set-output name=continue::1"
         fi
+        echo ${{ steps.skip.outputs.continue }}
 
     - name: Update base dependencies
-      if: ${{ steps.skip.outputs.continue }} == "1"
+      if: ${{ (steps.skip.outputs.continue != '1') }}
       env:
         PACKAGE_NAME: pytorch
         FREEZE_REQUIREMENTS: 1
@@ -66,12 +67,12 @@ jobs:
         pip install -e .[test]
 
     - name: DocTests
-      if: ${{ steps.skip.outputs.continue }} == "1"
+      if: ${{ (steps.skip.outputs.continue != '1') }}
       working-directory: ./src
       run: pytest pytorch_lightning --cov=pytorch_lightning
 
     - name: Update all dependencies
-      if: ${{ steps.skip.outputs.continue }} == "1"
+      if: ${{ (steps.skip.outputs.continue != '1') }}
       env:
         HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
         HOROVOD_WITHOUT_MXNET: 1
@@ -90,11 +91,11 @@ jobs:
         python requirements/pytorch/check-avail-extras.py
 
     - name: Pull legacy checkpoints
-      if: ${{ steps.skip.outputs.continue }} == "1"
+      if: ${{ (steps.skip.outputs.continue != '1') }}
       run: bash .actions/pull_legacy_checkpoints.sh
 
     - name: Testing PyTorch
-      if: ${{ steps.skip.outputs.continue }} == "1"
+      if: ${{ (steps.skip.outputs.continue != '1') }}
       working-directory: tests/tests_pytorch
       run: coverage run --source pytorch_lightning -m pytest -v --timeout 150 --durations=50 --junitxml=results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
 
@@ -106,7 +107,7 @@ jobs:
       if: failure()
 
     - name: Statistics
-      if: success() && ${{ steps.skip.outputs.continue }} == "1"
+      if: ${{ success() && (steps.skip.outputs.continue != '1') }}
       working-directory: tests/tests_pytorch
       run: |
         coverage report
@@ -114,7 +115,7 @@ jobs:
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
-      if: success() && ${{ steps.skip.outputs.continue }} == "1"
+      if: ${{ success() && (steps.skip.outputs.continue != '1') }}
       # see: https://github.com/actions/toolkit/issues/399
       continue-on-error: true
       with:
