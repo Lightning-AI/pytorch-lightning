@@ -14,6 +14,7 @@
 import functools
 import inspect
 import os
+from collections import OrderedDict
 from contextlib import contextmanager
 from dataclasses import fields
 from functools import partial
@@ -325,7 +326,7 @@ def _dataloader_init_kwargs_resolve_sampler(
     batch_sampler_cls = type(batch_sampler)
     if batch_sampler is not None and (batch_sampler_cls is not BatchSampler or is_predicting):
         if hasattr(batch_sampler, "__pl_saved_args"):
-            args = list(batch_sampler.__pl_saved_args)
+            args = batch_sampler.__pl_saved_args
             kwargs = batch_sampler.__pl_saved_kwargs
             arg_names = batch_sampler.__pl_saved_arg_names
 
@@ -393,8 +394,8 @@ def _dataloader_init_kwargs_resolve_sampler(
 
 
 def _replace_value_in_saved_args(
-    replace_key: str, replace_value: Any, args: List[Any], kwargs: Dict[str, Any], arg_names: List[str]
-) -> Tuple[bool, List[Any], Dict[str, Any]]:
+    replace_key: str, replace_value: Any, args: Tuple[Any, ...], kwargs: Dict[str, Any], arg_names: List[str]
+) -> Tuple[bool, Tuple[Any, ...], Dict[str, Any]]:
     """Tries to replace an argument value in a saved list of args and kwargs.
 
     Returns a tuple indicating success of the operation and modified saved args and kwargs
@@ -402,7 +403,7 @@ def _replace_value_in_saved_args(
 
     if replace_key in arg_names:
         replace_index = arg_names.index(replace_key)
-        args = args[:replace_index] + [replace_value] + args[replace_index + 1 :]
+        args = args[:replace_index] + (replace_value,) + args[replace_index + 1 :]
         return True, args, kwargs
     elif replace_key in kwargs:
         kwargs[replace_key] = replace_value
@@ -425,20 +426,19 @@ def _wrap_init_method(init: Callable, store_explicit_arg: Optional[str] = None) 
         # We need to inspect `init`, as inspecting `obj.__init__`
         # can lead to inspecting the wrong function with multiple inheritance
         params = inspect.signature(init).parameters
-        param_names = tuple(
-            param.name
+
+        parameters_defaults = OrderedDict(
+            (param.name, param.default)
             for param in params.values()
             if param.name != "self" and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
         )
-        param_names = param_names[: len(args)]
+
+        param_names = tuple(parameters_defaults.keys())[: len(args)]
 
         default_kwargs = {
-            param.name: param.default
-            for param in params.values()
-            if param.name != "self"
-            and param.kind not in (param.VAR_POSITIONAL, param.VAR_KEYWORD)
-            and param.default != param.empty
-            and (param.name not in kwargs and param.name not in param_names)
+            name: value
+            for name, value in parameters_defaults.items()
+            if name not in kwargs and name not in param_names and value != inspect.Parameter.empty
         }
 
         kwargs = {**kwargs, **default_kwargs}

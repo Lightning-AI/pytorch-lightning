@@ -354,9 +354,11 @@ def test_custom_batch_sampler(predicting):
             self.extra_arg = extra_arg
             super().__init__(sampler, 10, drop_last)
 
+    sampler = RandomSampler(range(10))
     with _replace_init_method(BatchSampler):
-        sampler = RandomSampler(range(10))
-        dataloader = DataLoader(range(10), batch_sampler=MyBatchSampler(sampler, "random_str"))
+        batch_sampler = MyBatchSampler(sampler, "random_str")
+
+    dataloader = DataLoader(range(10), batch_sampler=batch_sampler)
 
     assert dataloader.batch_sampler.__pl_saved_args == (sampler, "random_str")
     assert dataloader.batch_sampler.__pl_saved_kwargs == {"drop_last": True}
@@ -387,9 +389,11 @@ def test_custom_batch_sampler_no_drop_last():
             self.extra_arg = extra_arg
             super().__init__(sampler, 10, False)
 
+    sampler = RandomSampler(range(10))
     with _replace_init_method(BatchSampler):
-        sampler = RandomSampler(range(10))
-        dataloader = DataLoader(range(10), batch_sampler=MyBatchSampler(sampler, "random_str"))
+        batch_sampler = MyBatchSampler(sampler, "random_str")
+
+    dataloader = DataLoader(range(10), batch_sampler=batch_sampler)
 
     assert dataloader.batch_sampler.__pl_saved_args == (sampler, "random_str")
     assert dataloader.batch_sampler.__pl_saved_kwargs == {}
@@ -406,7 +410,8 @@ def test_custom_batch_sampler_no_sampler():
             super().__init__(RandomSampler(range(10)), 10, False)
 
     with _replace_init_method(BatchSampler):
-        dataloader = DataLoader(range(10), batch_sampler=MyBatchSampler("random_str"))
+        batch_sampler = MyBatchSampler("random_str")
+    dataloader = DataLoader(range(10), batch_sampler=batch_sampler)
 
     assert dataloader.batch_sampler.__pl_saved_args == ("random_str",)
     assert dataloader.batch_sampler.__pl_saved_kwargs == {}
@@ -428,10 +433,10 @@ def test_custom_batch_sampler_no_sampler():
         "expected_kwargs",
     ],
     [
-        pytest.param([], {}, [], "a", 1, False, [], {}, id="empty"),
-        pytest.param([1], {}, ["a"], "a", 2, True, [2], {}, id="simple1"),
-        pytest.param([1, 2, 3], {}, ["a", "b", "c"], "b", False, True, [1, False, 3], {}, id="simple2"),
-        pytest.param([1, 2, 3], {"a": 1}, ["b", "c", "d"], "a", 2, True, [1, 2, 3], {"a": 2}, id="simple_kwargs"),
+        pytest.param((), {}, [], "a", 1, False, (), {}, id="empty"),
+        pytest.param((1,), {}, ["a"], "a", 2, True, (2,), {}, id="simple1"),
+        pytest.param((1, 2, 3), {}, ["a", "b", "c"], "b", False, True, (1, False, 3), {}, id="simple2"),
+        pytest.param((1, 2, 3), {"a": 1}, ["b", "c", "d"], "a", 2, True, (1, 2, 3), {"a": 2}, id="simple_kwargs"),
     ],
 )
 def test_replace_value_in_args(
