@@ -8,7 +8,7 @@ from lightning import LightningFlow
 from lightning_app import LightningApp
 from lightning_app.cli.lightning_cli import command
 from lightning_app.runners import MultiProcessRuntime
-from lightning_app.utilities.commands import ClientCommand
+from lightning_app.utilities.commands.base import ClientCommand
 from lightning_app.utilities.state import AppState
 
 

@@ -328,7 +328,7 @@ class LightningApp:
     def apply_commands(self):
         """This method is used to apply remotely a collection of commands (methods) from the CLI to a running
         app."""
-        from lightning_app.utilities.commands import ClientCommand
+        from lightning_app.utilities.commands.base import ClientCommand
 
         if not is_overridden("configure_commands", self.root):
             return

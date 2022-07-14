@@ -139,7 +139,7 @@ def command(
     id: Optional[str] = None,
 ):
     """Execute a function in a running application from its name."""
-    from lightning_app.utilities.commands import _download_command
+    from lightning_app.utilities.commands.base import _download_command
 
     url, commands = _retrieve_application_url_and_available_commands(id)
     if url is None or commands is None:
