@@ -40,16 +40,19 @@ jobs:
       id: changed-files
       uses: tj-actions/changed-files@v23.1
 
-    - name: List all changed files
+    - name: Decide if the test should be skipped
+      id: skip
       run: |
-        set -e
-        for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-          echo "$file was changed"
-        done
-        python .actions/job_skipper.py --changed_files ${{ steps.changed-files.outputs.all_changed_files }}
-        exit 1
+        FILTER='src/pytorch_lightning|requirements/pytorch|tests/tests_pytorch|examples/pl_'
+        MATCHES=$(echo ${{ steps.changed-files.outputs.all_changed_files }} | grep -E '$FILTER')
+        if [ -z "$MATCHES" ]; then
+            echo "::set-output continue="0"
+        else
+            echo "::set-output continue="1"
+        fi
 
     - name: Update base dependencies
+      if: ${{ steps.skip.outputs.continue }} == "1"
       env:
         PACKAGE_NAME: pytorch
         FREEZE_REQUIREMENTS: 1
@@ -59,10 +62,12 @@ jobs:
         pip install -e .[test]
 
     - name: DocTests
+      if: ${{ steps.skip.outputs.continue }} == "1"
       working-directory: ./src
       run: pytest pytorch_lightning --cov=pytorch_lightning
 
     - name: Update all dependencies
+      if: ${{ steps.skip.outputs.continue }} == "1"
       env:
         HOROVOD_BUILD_ARCH_FLAGS: "-mfma"
         HOROVOD_WITHOUT_MXNET: 1
@@ -81,9 +86,11 @@ jobs:
         python requirements/pytorch/check-avail-extras.py
 
     - name: Pull legacy checkpoints
+      if: ${{ steps.skip.outputs.continue }} == "1"
       run: bash .actions/pull_legacy_checkpoints.sh
 
     - name: Testing PyTorch
+      if: ${{ steps.skip.outputs.continue }} == "1"
       working-directory: tests/tests_pytorch
       run: coverage run --source pytorch_lightning -m pytest -v --timeout 150 --durations=50 --junitxml=results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
 
@@ -95,7 +102,7 @@ jobs:
       if: failure()
 
     - name: Statistics
-      if: success()
+      if: success() && ${{ steps.skip.outputs.continue }} == "1"
       working-directory: tests/tests_pytorch
       run: |
         coverage report
@@ -103,7 +110,7 @@ jobs:
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
-      if: always()
+      if: success() && ${{ steps.skip.outputs.continue }} == "1"
       # see: https://github.com/actions/toolkit/issues/399
       continue-on-error: true
       with:
