@@ -5,7 +5,7 @@ import sys
 from copy import deepcopy
 from functools import partial
 from subprocess import Popen
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from lightning import BuildConfig, CloudCompute, LightningApp, LightningFlow
 from lightning.app import structures
@@ -24,7 +24,7 @@ class GithubRepoRunner(TracerPythonScript):
         script_args: List[str],
         requirements: List[str],
         cloud_compute: Optional[CloudCompute] = None,
-        **kwargs,
+        **kwargs: Any,
     ):
         """The GithubRepoRunner Component clones a repo, runs a specific script with provided arguments and collect
         logs.

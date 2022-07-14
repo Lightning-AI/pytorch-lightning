@@ -158,8 +158,10 @@ Continuing from the Jupyter Notebook example, in the UI, we receive the **state*
 
 .. code-block:: python
 
+    import streamlit as st
+
+
     def render_fn(state):
-        import streamlit as st
 
         # Step 1: Enable users to select their notebooks and create them
         column_1, column_2, column_3 = st.columns(3)
