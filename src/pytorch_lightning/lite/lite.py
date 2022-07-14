@@ -46,8 +46,6 @@ from pytorch_lightning.utilities.seed import seed_everything
 class LightningLite(ABC):
     """Lite accelerates your PyTorch training or inference code with minimal changes required.
 
-    Bla blas
-
     - Automatic placement of models and data onto the device.
     - Automatic support for mixed and double precision (smaller memory footprint).
     - Seamless switching between hardware (CPU, GPU, TPU) and distributed training strategies
