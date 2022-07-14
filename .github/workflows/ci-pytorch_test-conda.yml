@@ -6,11 +6,6 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
-    paths:
-      - "src/pytorch_lightning"
-      - "tests/tests_pytorch"
-      - "examples/pl_*"
-      - "requirements/pytorch"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -34,11 +29,25 @@ jobs:
           - {python-version: "3.9", pytorch-version: "1.11"}
 
     timeout-minutes: 30
+
     steps:
     - name: Workaround for https://github.com/actions/checkout/issues/760
       run: git config --global --add safe.directory /__w/lightning/lightning
 
     - uses: actions/checkout@v2
+
+    - name: Get changed files
+      id: changed-files
+      uses: tj-actions/changed-files@v23.1
+
+    - name: List all changed files
+      run: |
+        set -e
+        for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+          echo "$file was changed"
+        done
+        python ./actions/job_skipper.py --changed_files ${{ steps.changed-files.outputs.all_changed_files }}
+        exit 1
 
     - name: Update base dependencies
       env:
