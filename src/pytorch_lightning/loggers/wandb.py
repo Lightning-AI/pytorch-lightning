@@ -298,7 +298,7 @@ class WandbLogger(Logger):
             id=version or id,
             dir=save_dir,
             resume="allow",
-            anonymous="allow" if anonymous else None,
+            anonymous=("allow" if anonymous else None),
         )
         self._wandb_init.update(**kwargs)
         # extract parameters
@@ -380,8 +380,7 @@ class WandbLogger(Logger):
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
         if step is not None:
-            metrics["trainer/global_step"] = step
-            self.experiment.log(**metrics)
+            self.experiment.log(dict(metrics, **{"trainer/global_step": step}))
         else:
             self.experiment.log(metrics)
 
