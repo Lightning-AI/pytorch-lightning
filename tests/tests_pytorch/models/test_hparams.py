@@ -809,6 +809,7 @@ def _get_mock_logger(tmpdir):
     mock_logger.name = "mock_logger"
     mock_logger.save_dir = tmpdir
     mock_logger.version = "0"
+    mock_logger.state_dict.return_value = {}
     del mock_logger.__iter__
     return mock_logger
 
