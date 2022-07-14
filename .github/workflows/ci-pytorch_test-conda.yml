@@ -42,7 +42,7 @@ jobs:
 
     - name: Decide if the test should be skipped
       id: skip
-      shell: bash
+      shell: bash -l {0}
       run: |
         FILTER='src/pytorch_lightning|requirements/pytorch|tests/tests_pytorch|examples/pl_'
         echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr " " "\n" > changed_files.txt
