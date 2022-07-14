@@ -99,7 +99,6 @@ class Logger(ABC):
         else:
             self._agg_default_func = np.mean
 
-
     @property
     def state_key(self) -> str:
         """Identifier for the state of the logger.
@@ -118,7 +117,6 @@ class Logger(ABC):
             **kwargs: A set of key-value pairs. Must be serializable to :class:`str`.
         """
         return f"{self.__class__.__qualname__}{repr(kwargs)}"
-
 
     def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
         """Called after model checkpoint callback saves a new checkpoint.
