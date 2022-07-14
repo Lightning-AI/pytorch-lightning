@@ -65,7 +65,7 @@ jobs:
 
     - name: Cache pip
       if: ${{ (steps.skip.outputs.continue == '1') }}
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: ${{ runner.os }}-pip-td${{ env.TIME_PERIOD }}-py${{ matrix.python-version }}-${{ hashFiles('requirements/pytorch/base.txt') }}
