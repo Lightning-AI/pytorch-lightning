@@ -18,23 +18,19 @@ and connect the UIs. Create a file named **app.py** with this code:
    <a href="https://01g3ppzb6t3pp5cf1zhg8shpym.litng-ai-03.litng.ai/view/TB%20logs" target="_blank">the app running here</a>
 
 .. code:: python
-    :emphasize-lines: 7,11
+    :emphasize-lines: 5, 6, 7
 
-    import lightning as L
+    import lightning_app as la
 
-    class LitApp(L.LightningFlow):
+
+    class LitApp(lapp.LightningFlow):
         def configure_layout(self):
-            tab_1 = {
-                "name": "Logger",
-                "content": "https://bit.ly/tb-aasae"
-            }
-            tab_2 = {
-                "name": "Paper",
-                "content": "https://arxiv.org/pdf/2107.12329.pdf"
-            }
+            tab_1 = {"name": "TB logs", "content": "https://bit.ly/tb-aasae"}
+            tab_2 = {"name": "Paper", "content": "https://arxiv.org/pdf/2107.12329.pdf"}
             return tab_1, tab_2
 
-    app = L.LightningApp(LitApp())
+
+    app = lapp.LightningApp(LitApp())
 
 ----
 
@@ -43,12 +39,12 @@ Run the app
 ***********
 Run the app locally to see it!
 
-.. code:: python
+.. code:: bash
 
     lightning run app app.py
 
 Now run it on the cloud as well:
 
-.. code:: python
+.. code:: bash
 
     lightning run app app.py --cloud

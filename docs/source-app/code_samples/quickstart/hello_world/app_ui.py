@@ -1,12 +1,12 @@
 import os
 
-import lightning as L
-from lightning.app.frontend import StaticWebFrontend, StreamlitFrontend
-from lightning.app.utilities.state import AppState
+from lightning_app import LightningApp, LightningFlow
+from lightning_app.frontend import StaticWebFrontend, StreamlitFrontend
+from lightning_app.utilities.state import AppState
 
 
 # Step 1: Define your LightningFlow component with the app UI
-class UIStreamLit(L.LightningFlow):
+class UIStreamLit(LightningFlow):
     def __init__(self):
         super().__init__()
         self.should_print = False
@@ -31,7 +31,7 @@ def render_fn(state: AppState):
 
 
 # Step 4: Implement a Static Web Frontend. This could be react, vue, etc.
-class UIStatic(L.LightningFlow):
+class UIStatic(LightningFlow):
 
     # Step 5:
     def configure_layout(self):
@@ -39,7 +39,7 @@ class UIStatic(L.LightningFlow):
 
 
 # Step 6: Implement the root flow.
-class HelloWorld(L.LightningFlow):
+class HelloWorld(LightningFlow):
     def __init__(self):
         super().__init__()
         self.static_ui = UIStatic()
@@ -55,4 +55,4 @@ class HelloWorld(L.LightningFlow):
         ]
 
 
-app = L.LightningApp(HelloWorld())
+app = LightningApp(HelloWorld())

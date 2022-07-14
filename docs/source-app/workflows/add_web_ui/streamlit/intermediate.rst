@@ -15,30 +15,27 @@ To modify the variables of a Lightning component, access the ``lightning_app_sta
 
 For example, here we increase the count variable of the Lightning Component every time a user presses a button:
 
-.. code:: python
+.. code:: bash
     :emphasize-lines: 7, 13
 
     # app.py
-    import lightning as L
+    import lightning_app as la
     import streamlit as st
 
-
     def your_streamlit_app(lightning_app_state):
-        if st.button("press to increase count"):
+        if st.button('press to increase count'):
             lightning_app_state.count += 1
-        st.write(f"current count: {lightning_app_state.count}")
+        st.write(f'current count: {lightning_app_state.count}')
 
-
-    class LitStreamlit(L.LightningFlow):
+    class LitStreamlit(lapp.LightningFlow):
         def __init__(self):
             super().__init__()
             self.count = 0
 
         def configure_layout(self):
-            return L.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
+            return lapp.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
 
-
-    class LitApp(L.LightningFlow):
+    class LitApp(lapp.LightningFlow):
         def __init__(self):
             super().__init__()
             self.lit_streamlit = LitStreamlit()
@@ -47,8 +44,7 @@ For example, here we increase the count variable of the Lightning Component ever
             tab1 = {"name": "home", "content": self.lit_streamlit}
             return tab1
 
-
-    app = L.LightningApp(LitApp())
+    app = lapp.LightningApp(LitApp())
 
 ----
 
@@ -60,19 +56,17 @@ parent component.
 
 In this example we update the value of the counter from the component:
 
-.. code:: python
+.. code:: bash
     :emphasize-lines: 6, 14
 
     # app.py
-    import lightning as L
+    import lightning_app as la
     import streamlit as st
 
-
     def your_streamlit_app(lightning_app_state):
-        st.write(f"current count: {lightning_app_state.count}")
+        st.write(f'current count: {lightning_app_state.count}')
 
-
-    class LitStreamlit(L.LightningFlow):
+    class LitStreamlit(lapp.LightningFlow):
         def __init__(self):
             super().__init__()
             self.count = 0
@@ -81,10 +75,9 @@ In this example we update the value of the counter from the component:
             self.count += 1
 
         def configure_layout(self):
-            return L.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
+            return lapp.frontend.StreamlitFrontend(render_fn=your_streamlit_app)
 
-
-    class LitApp(L.LightningFlow):
+    class LitApp(lapp.LightningFlow):
         def __init__(self):
             super().__init__()
             self.lit_streamlit = LitStreamlit()
@@ -96,5 +89,4 @@ In this example we update the value of the counter from the component:
             tab1 = {"name": "home", "content": self.lit_streamlit}
             return tab1
 
-
-    app = L.LightningApp(LitApp())
+    app = lapp.LightningApp(LitApp())
