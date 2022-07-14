@@ -73,6 +73,7 @@ class HorovodStrategy(ParallelStrategy):
 
     @property
     def root_device(self) -> torch.device:
+        assert self.parallel_devices is not None
         return self.parallel_devices[self.local_rank]
 
     @property
