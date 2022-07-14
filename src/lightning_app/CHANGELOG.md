@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Add support for Lightning App Commands through the `configure_commands` hook on the Lightning Flow  ([#13602](https://github.com/PyTorchLightning/pytorch-lightning/pull/13602))
+- Update the Lightning App docs ([#13537](https://github.com/PyTorchLightning/pytorch-lightning/pull/13537))
 
 ### Changed
 
