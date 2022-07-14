@@ -170,39 +170,21 @@ def single_process_pg():
 
 
 def pytest_collection_modifyitems(items):
-    # filter out special tests
-    if os.getenv("PL_RUN_STANDALONE_TESTS", "0") == "1":
-        items[:] = [
-            item
-            for item in items
-            for marker in item.own_markers
-            # has `@RunIf(standalone=True)`
-            if marker.name == "skipif" and marker.kwargs.get("standalone")
-        ]
-    elif os.getenv("PL_RUN_CUDA_TESTS", "0") == "1":
-        items[:] = [
-            item
-            for item in items
-            for marker in item.own_markers
-            # has `@RunIf(min_cuda_gpus=N)`
-            if marker.name == "skipif" and marker.kwargs.get("min_cuda_gpus")
-        ]
-    elif os.getenv("PL_RUN_SLOW_TESTS", "0") == "1":
-        items[:] = [
-            item
-            for item in items
-            for marker in item.own_markers
-            # has `@RunIf(slow=True)`
-            if marker.name == "skipif" and marker.kwargs.get("slow")
-        ]
-    elif os.getenv("PL_RUN_IPU_TESTS", "0") == "1":
-        items[:] = [
-            item
-            for item in items
-            for marker in item.own_markers
-            # has `@RunIf(ipu=True)`
-            if marker.name == "skipif" and marker.kwargs.get("ipu")
-        ]
+    for env_var, kwarg in (
+        ("PL_RUN_STANDALONE_TESTS",  "standalone"),
+        ("PL_RUN_CUDA_TESTS",  "min_cuda_gpus"),
+        ("PL_RUN_SLOW_TESTS",  "slow"),
+        ("PL_RUN_IPU_TESTS",  "ipu"),
+    ):
+        # this will compute the intersection of all tests selected per environment variable
+        if os.getenv(env_var, "0") == "1":
+            items[:] = [
+                item
+                for item in items
+                for marker in item.own_markers
+                # has `@RunIf(kwarg=True)`
+                if marker.name == "skipif" and marker.kwargs.get(kwarg)
+            ]
 
 
 def pytest_addoption(parser):
