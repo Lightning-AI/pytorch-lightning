@@ -26,9 +26,6 @@ jobs:
 
     timeout-minutes: 20
     steps:
-    - name: Workaround for https://github.com/actions/checkout/issues/760
-      run: git config --global --add safe.directory /__w/lightning/lightning
-
     - uses: actions/checkout@v2
 
     - name: Get changed files
@@ -45,10 +42,10 @@ jobs:
         echo $MATCHES
         if [ -z "$MATCHES" ]; then
             echo "Skip"
-            echo "::set-output name=continue::'0'"
+            echo "::set-output name=continue::0"
         else
             echo "Continue"
-            echo "::set-output name=continue::'1'"
+            echo "::set-output name=continue::1"
         fi
 
     - uses: actions/setup-python@v2
