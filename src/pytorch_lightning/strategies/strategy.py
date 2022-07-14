@@ -38,6 +38,7 @@ from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizer
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, STEP_OUTPUT
 
 TBroadcast = TypeVar("TBroadcast")
+TReduce = TypeVar("TReduce")
 
 log = logging.getLogger(__name__)
 
