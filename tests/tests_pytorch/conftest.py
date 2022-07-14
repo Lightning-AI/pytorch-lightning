@@ -17,6 +17,7 @@ import threading
 from functools import partial
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
+from typing import List
 
 import pytest
 import torch.distributed
@@ -169,7 +170,7 @@ def single_process_pg():
         os.environ.update(orig_environ)
 
 
-def pytest_collection_modifyitems(items, config):
+def pytest_collection_modifyitems(items: List[pytest.Function], config: pytest.Config):
     conditions = []
     skipped = 0
 
@@ -195,9 +196,13 @@ def pytest_collection_modifyitems(items, config):
                     test.add_marker(skip)
                     skipped += 1
 
-    if conditions:
+    if conditions and config.option.verbose >= 0:
         config.get_terminal_writer().write(
-            f"The number of tests has been filtered from {len(items)} to {len(items) - skipped} after the filters {conditions}\n"
+            f"The number of tests has been filtered from {len(items)} to {len(items) - skipped} after the filters"
+            f" {conditions}\n",
+            flush=True,
+            bold=True,
+            purple=True,  # oh yeah, branded pytest messages
         )
 
 
