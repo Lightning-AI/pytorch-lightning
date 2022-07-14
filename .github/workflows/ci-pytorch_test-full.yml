@@ -7,11 +7,6 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
   pull_request:
     branches: [master, "release/*"]
     types: [opened, reopened, ready_for_review, synchronize]
-    paths:
-      - "src/pytorch_lightning"
-      - "tests/tests_pytorch"
-      - "examples/pl_*"
-      - "requirements/pytorch"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
