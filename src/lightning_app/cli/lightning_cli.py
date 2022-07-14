@@ -121,7 +121,7 @@ def run_app(
     _run_app(file, cloud, without_server, no_cache, name, blocking, open_ui, env)
 
 
-@run.command("command")
+@main.command("command")
 @click.argument("command", type=str, default="")
 @click.option(
     "--args",
@@ -139,6 +139,8 @@ def command(
     id: Optional[str] = None,
 ):
     """Execute a function in a running application from its name."""
+    from lightning_app.utilities.commands import _download_command
+
     url, commands = _retrieve_application_url_and_available_commands(id)
     if url is None or commands is None:
         raise Exception("We couldn't find any matching running app.")
@@ -153,17 +155,21 @@ def command(
     command_metadata = [c for c in commands if c["command"] == command][0]
     params = command_metadata["params"]
     kwargs = {k.split("=")[0]: k.split("=")[1] for k in args}
-    for param in params:
-        if param not in kwargs:
-            raise Exception(f"The argument --args {param}=X hasn't been provided.")
-
-    json = {
-        "command_name": command,
-        "command_arguments": kwargs,
-        "affiliation": command_metadata["affiliation"],
-    }
-    resp = requests.post(url + "/api/v1/commands", json=json, headers=headers_for({}))
-    assert resp.status_code == 200, resp.json()
+    if not command_metadata["is_command"]:
+        for param in params:
+            if param not in kwargs:
+                raise Exception(f"The argument --args {param}=X hasn't been provided.")
+        json = {
+            "command_name": command,
+            "command_arguments": kwargs,
+            "affiliation": command_metadata["affiliation"],
+        }
+        resp = requests.post(url + "/api/v1/commands", json=json, headers=headers_for({}))
+        assert resp.status_code == 200, resp.json()
+    else:
+        client_command, models = _download_command(command_metadata)
+        client_command._setup(metadata=command_metadata, models=models, url=url)
+        client_command.run(**kwargs)
 
 
 @main.group(hidden=True)

@@ -3,6 +3,7 @@ import logging
 import os
 import pickle
 import queue
+import sys
 import threading
 import typing as t
 import warnings
@@ -327,6 +328,7 @@ class LightningApp:
     def apply_commands(self):
         """This method is used to apply remotely a collection of commands (methods) from the CLI to a running
         app."""
+        from lightning_app.utilities.commands import ClientCommand
 
         if not is_overridden("configure_commands", self.root):
             return
@@ -335,17 +337,33 @@ class LightningApp:
         commands = self.root.configure_commands()
         commands_metadata = []
         command_names = set()
-        for command in commands:
-            for name, method in command.items():
-                if name in command_names:
-                    raise Exception(f"The component name {name} has already been used. They need to be unique.")
-                command_names.add(name)
-                params = inspect.signature(method).parameters
+        for command_mapping in commands:
+            for command_name, command in command_mapping.items():
+                is_command = isinstance(command, ClientCommand)
+                extra = {}
+                if is_command:
+                    params = inspect.signature(command.method).parameters
+                    extra = {
+                        "cls_path": inspect.getfile(command.__class__),
+                        "cls_name": command.__class__.__name__,
+                        "params": {p.name: str(p.annotation).split("'")[1].split(".")[-1] for p in params.values()},
+                        **command._to_dict(),
+                    }
+                    command.models = {
+                        k: getattr(sys.modules[command.__module__], v) for k, v in extra["params"].items()
+                    }
+                    command = command.method
+                if command_name in command_names:
+                    raise Exception(f"The component name {command_name} has already been used. They need to be unique.")
+                command_names.add(command_name)
+                params = inspect.signature(command).parameters
                 commands_metadata.append(
                     {
-                        "command": name,
-                        "affiliation": method.__self__.name,
+                        "command": command_name,
+                        "affiliation": command.__self__.name,
                         "params": list(params.keys()),
+                        "is_command": is_command,
+                        **extra,
                     }
                 )
 

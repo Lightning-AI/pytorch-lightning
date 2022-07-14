@@ -3,16 +3,13 @@ import pickle
 from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass
-from multiprocessing import Process
-from time import sleep, time
+from time import time
 from unittest.mock import ANY
 
 import pytest
-from click.testing import CliRunner
 from deepdiff import DeepDiff, Delta
 
 from lightning.app import LightningApp
-from lightning.app.cli.lightning_cli import command
 from lightning.app.core.flow import LightningFlow
 from lightning.app.core.work import LightningWork
 from lightning.app.runners import MultiProcessRuntime, SingleProcessRuntime
@@ -638,40 +635,3 @@ def test_lightning_flow():
             assert len(self._calls["scheduling"]) == 8
 
     Flow().run()
-
-
-class FlowCommands(LightningFlow):
-    def __init__(self):
-        super().__init__()
-        self.names = []
-
-    def run(self):
-        if len(self.names):
-            print(self.names)
-            self._exit()
-
-    def trigger_method(self, name: str):
-        self.names.append(name)
-
-    def configure_commands(self):
-        return [{"user_command": self.trigger_method}]
-
-
-def target():
-    app = LightningApp(FlowCommands())
-    MultiProcessRuntime(app).dispatch()
-
-
-def test_configure_commands():
-    process = Process(target=target)
-    process.start()
-    sleep(5)
-    runner = CliRunner()
-    result = runner.invoke(
-        command,
-        ["user_command", "--args", "name=something"],
-        catch_exceptions=False,
-    )
-    sleep(2)
-    assert result.exit_code == 0
-    assert process.exitcode == 0

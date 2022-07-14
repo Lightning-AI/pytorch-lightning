@@ -173,7 +173,8 @@ async def post_command(
     affiliation = data.get("affiliation", None)
     if not affiliation:
         raise Exception("The provided affiliation is empty.")
-    api_commands_requests_queue.put(await request.json())
+    data = await request.json()
+    api_commands_requests_queue.put(data)
 
 
 @fastapi_service.get("/api/v1/commands", response_class=JSONResponse)
