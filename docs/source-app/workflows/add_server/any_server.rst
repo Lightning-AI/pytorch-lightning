@@ -21,7 +21,6 @@ Add a server to a component
 Any server that listens on a port, can be enabled via a work. For example, here's a plain python server:
 
 .. code:: python
-    :emphasize-lines: 11-12
 
     import socketserver
     from http import HTTPStatus, server
@@ -31,8 +30,7 @@ Any server that listens on a port, can be enabled via a work. For example, here'
         def do_GET(self):
             self.send_response(HTTPStatus.OK)
             self.end_headers()
-            html = "<h1 style='color: blue'> Hello lit world </div>"
-            self.wfile.write(html)
+            self.wfile.write(b"<h1 style='color: blue'> Hello lit world </div>")
 
 
     httpd = socketserver.TCPServer(("localhost", "3000"), PlainServer)
@@ -41,9 +39,9 @@ Any server that listens on a port, can be enabled via a work. For example, here'
 To enable the server inside the component, start the server in the run method and use the ``self.host`` and ``self.port`` properties:
 
 .. code:: python
-    :emphasize-lines: 14-15
+    :emphasize-lines: 13, 14
 
-    import lightning as L
+    import lightning_app as la
     import socketserver
     from http import HTTPStatus, server
 
@@ -52,11 +50,10 @@ To enable the server inside the component, start the server in the run method an
         def do_GET(self):
             self.send_response(HTTPStatus.OK)
             self.end_headers()
-            html = "<h1 style='color: blue'> Hello lit world </div>"
-            self.wfile.write(html)
+            self.wfile.write(b"<h1 style='color: blue'> Hello lit world </div>")
 
 
-    class LitServer(L.LightningWork):
+    class LitServer(lapp.LightningWork):
         def run(self):
             httpd = socketserver.TCPServer((self.host, self.port), PlainServer)
             httpd.serve_forever()
@@ -70,9 +67,9 @@ The final step, is to tell the Root component in which tab to render this compon
 In this case, we render the ``LitServer`` output in the ``home`` tab of the application.
 
 .. code:: python
-    :emphasize-lines: 20, 23, 28
+    :emphasize-lines: 19, 25
 
-    import lightning as L
+    import lightning_app as la
     import socketserver
     from http import HTTPStatus, server
 
@@ -81,17 +78,16 @@ In this case, we render the ``LitServer`` output in the ``home`` tab of the appl
         def do_GET(self):
             self.send_response(HTTPStatus.OK)
             self.end_headers()
-            html = "<h1 style='color: blue'> Hello lit world </div>"
-            self.wfile.write(html)
+            self.wfile.write(b"<h1 style='color: blue'> Hello lit world </div>")
 
 
-    class LitServer(L.LightningWork):
+    class LitServer(lapp.LightningWork):
         def run(self):
             httpd = socketserver.TCPServer((self.host, self.port), PlainServer)
             httpd.serve_forever()
 
 
-    class Root(L.LightningFlow):
+    class Root(lapp.LightningFlow):
         def __init__(self):
             super().__init__()
             self.lit_server = LitServer(parallel=True)
@@ -104,7 +100,7 @@ In this case, we render the ``LitServer`` output in the ``home`` tab of the appl
             return tab1
 
 
-    app = L.LightningApp(Root())
+    app = lapp.LightningApp(Root())
 
 We use the ``parallel=True`` argument of ``LightningWork`` to run the server in parallel
 while the rest of the Lightning App runs everything else.

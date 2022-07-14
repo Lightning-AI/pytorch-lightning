@@ -39,14 +39,15 @@ First **create a file named app.py** with the app content:
 
 .. code:: python
 
-    import lightning as L
+    import lightning_app as la
     from lightning_app.components.serve import ServeGradio
     import gradio as gr
 
+
     class LitGradio(ServeGradio):
 
-        inputs = gr.inputs.Textbox(default='lightning', label='name input')
-        outputs = gr.outputs.Textbox(label='output')
+        inputs = gr.inputs.Textbox(default="lightning", label="name input")
+        outputs = gr.outputs.Textbox(label="output")
         examples = [["hello lightning"]]
 
         def predict(self, input_text):
@@ -56,7 +57,8 @@ First **create a file named app.py** with the app content:
             fake_model = lambda x: f"hello {x}"
             return fake_model
 
-    class RootFlow(L.LightningFlow):
+
+    class RootFlow(lapp.LightningFlow):
         def __init__(self):
             super().__init__()
             self.lit_gradio = LitGradio()
@@ -67,7 +69,8 @@ First **create a file named app.py** with the app content:
         def configure_layout(self):
             return [{"name": "home", "content": self.lit_gradio}]
 
-    app = L.LightningApp(RootFlow())
+
+    app = lapp.LightningApp(RootFlow())
 
 add "gradio" to a requirements.txt file:
 
@@ -84,13 +87,13 @@ Run the app
 ***********
 Run the app locally to see it!
 
-.. code:: python
+.. code:: bash
 
     lightning run app app.py
 
 Now run it on the cloud as well:
 
-.. code:: python
+.. code:: bash
 
     lightning run app app.py --cloud
 
@@ -123,10 +126,11 @@ Here's an example:
     from lightning_app.components.serve import ServeGradio
     import gradio as gr
 
+
     class LitGradio(ServeGradio):
 
-        inputs = gr.inputs.Textbox(default='lightning', label='name input')
-        outputs = gr.outputs.Textbox(label='output')
+        inputs = gr.inputs.Textbox(default="lightning", label="name input")
+        outputs = gr.outputs.Textbox(label="output")
 
         def predict(self, input_text):
             return self.model(input_text)
@@ -147,14 +151,15 @@ In this case, we render the ``LitGradio`` UI in the ``home`` tab of the applicat
 .. code:: python
     :emphasize-lines: 21, 27
 
-    import lightning as L
+    import lightning_app as la
     from lightning_app.components.serve import ServeGradio
     import gradio as gr
 
+
     class LitGradio(ServeGradio):
 
-        inputs = gr.inputs.Textbox(default='lightning', label='name input')
-        outputs = gr.outputs.Textbox(label='output')
+        inputs = gr.inputs.Textbox(default="lightning", label="name input")
+        outputs = gr.outputs.Textbox(label="output")
         examples = [["hello lightning"]]
 
         def predict(self, input_text):
@@ -164,7 +169,8 @@ In this case, we render the ``LitGradio`` UI in the ``home`` tab of the applicat
             fake_model = lambda x: f"hello {x}"
             return fake_model
 
-    class RootFlow(L.LightningFlow):
+
+    class RootFlow(lapp.LightningFlow):
         def __init__(self):
             super().__init__()
             self.lit_gradio = LitGradio()
@@ -175,7 +181,8 @@ In this case, we render the ``LitGradio`` UI in the ``home`` tab of the applicat
         def configure_layout(self):
             return [{"name": "home", "content": self.lit_gradio}]
 
-    app = L.LightningApp(RootFlow())
+
+    app = lapp.LightningApp(RootFlow())
 
 ----
 
@@ -186,14 +193,15 @@ Finally, don't forget to call run inside the Root Flow to serve the Gradio app.
 .. code:: python
     :emphasize-lines: 24
 
-    import lightning as L
+    import lightning_app as la
     from lightning_app.components.serve import ServeGradio
     import gradio as gr
 
+
     class LitGradio(ServeGradio):
 
-        inputs = gr.inputs.Textbox(default='lightning', label='name input')
-        outputs = gr.outputs.Textbox(label='output')
+        inputs = gr.inputs.Textbox(default="lightning", label="name input")
+        outputs = gr.outputs.Textbox(label="output")
         examples = [["hello lightning"]]
 
         def predict(self, input_text):
@@ -203,7 +211,8 @@ Finally, don't forget to call run inside the Root Flow to serve the Gradio app.
             fake_model = lambda x: f"hello {x}"
             return fake_model
 
-    class RootFlow(L.LightningFlow):
+
+    class RootFlow(lapp.LightningFlow):
         def __init__(self):
             super().__init__()
             self.lit_gradio = LitGradio()
@@ -214,4 +223,5 @@ Finally, don't forget to call run inside the Root Flow to serve the Gradio app.
         def configure_layout(self):
             return [{"name": "home", "content": self.lit_gradio}]
 
-    app = L.LightningApp(RootFlow())
+
+    app = lapp.LightningApp(RootFlow())

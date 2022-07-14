@@ -3,7 +3,6 @@
 ###########################
 Lightning Apps Key concepts
 ###########################
-
 **Audience:** Users who want to know how the 🤯 magic works under the hood.
 
 ----

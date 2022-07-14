@@ -1,5 +1,3 @@
-:orphan:
-
 ##################################
 Integrate any javascript framework
 ##################################
