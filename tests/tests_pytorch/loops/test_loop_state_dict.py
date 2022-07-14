@@ -15,11 +15,8 @@ import os
 from unittest import mock
 from unittest.mock import Mock
 
-import pytest
-
 from pytorch_lightning.loops import FitLoop
 from pytorch_lightning.trainer.trainer import Trainer
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
 def test_loops_state_dict():
