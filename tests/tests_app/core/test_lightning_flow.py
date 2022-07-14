@@ -3,21 +3,24 @@ import pickle
 from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass
-from time import time
+from multiprocessing import Process
+from time import sleep, time
 from unittest.mock import ANY
 
 import pytest
+from click.testing import CliRunner
 from deepdiff import DeepDiff, Delta
 
-from lightning_app import LightningApp
-from lightning_app.core.flow import LightningFlow
-from lightning_app.core.work import LightningWork
-from lightning_app.runners import MultiProcessRuntime, SingleProcessRuntime
-from lightning_app.storage import Path
-from lightning_app.storage.path import storage_root_dir
-from lightning_app.testing.helpers import EmptyFlow, EmptyWork
-from lightning_app.utilities.app_helpers import _delta_to_appstate_delta, _LightningAppRef
-from lightning_app.utilities.exceptions import ExitAppException
+from lightning.app import LightningApp
+from lightning.app.cli.lightning_cli import command
+from lightning.app.core.flow import LightningFlow
+from lightning.app.core.work import LightningWork
+from lightning.app.runners import MultiProcessRuntime, SingleProcessRuntime
+from lightning.app.storage import Path
+from lightning.app.storage.path import storage_root_dir
+from lightning.app.testing.helpers import EmptyFlow, EmptyWork
+from lightning.app.utilities.app_helpers import _delta_to_appstate_delta, _LightningAppRef
+from lightning.app.utilities.exceptions import ExitAppException
 
 
 def test_empty_component():
@@ -543,7 +546,7 @@ def test_flow_iterate_method():
 
 
 def test_flow_path_assignment():
-    """Test that paths in the lit format lit:// get converted to a proper lightning_app.storage.Path object."""
+    """Test that paths in the lit format lit:// get converted to a proper lightning.app.storage.Path object."""
 
     class Flow(LightningFlow):
         def __init__(self):
@@ -635,3 +638,40 @@ def test_lightning_flow():
             assert len(self._calls["scheduling"]) == 8
 
     Flow().run()
+
+
+class FlowCommands(LightningFlow):
+    def __init__(self):
+        super().__init__()
+        self.names = []
+
+    def run(self):
+        if len(self.names):
+            print(self.names)
+            self._exit()
+
+    def trigger_method(self, name: str):
+        self.names.append(name)
+
+    def configure_commands(self):
+        return [{"user_command": self.trigger_method}]
+
+
+def target():
+    app = LightningApp(FlowCommands())
+    MultiProcessRuntime(app).dispatch()
+
+
+def test_configure_commands():
+    process = Process(target=target)
+    process.start()
+    sleep(5)
+    runner = CliRunner()
+    result = runner.invoke(
+        command,
+        ["user_command", "--args", "name=something"],
+        catch_exceptions=False,
+    )
+    sleep(2)
+    assert result.exit_code == 0
+    assert process.exitcode == 0
