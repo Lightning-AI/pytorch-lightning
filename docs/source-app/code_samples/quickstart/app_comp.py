@@ -1,8 +1,8 @@
-import lightning as L
-from lightning.app.testing.helpers import EmptyFlow, EmptyWork
+from lightning_app import LightningApp, LightningFlow
+from lightning_app.testing.helpers import EmptyFlow, EmptyWork
 
 
-class FlowB(L.LightningFlow):
+class FlowB(LightningFlow):
     def __init__(self):
         super().__init__()
         self.flow_d = EmptyFlow()
@@ -12,7 +12,7 @@ class FlowB(L.LightningFlow):
         ...
 
 
-class FlowA(L.LightningFlow):
+class FlowA(LightningFlow):
     def __init__(self):
         super().__init__()
         self.flow_b = FlowB()
@@ -23,4 +23,4 @@ class FlowA(L.LightningFlow):
         ...
 
 
-app = L.LightningApp(FlowA())
+app = LightningApp(FlowA())

@@ -1,19 +1,19 @@
-import lightning as L
-from lightning.app.utilities.app_helpers import pretty_state
+from lightning_app import LightningApp, LightningFlow, LightningWork
+from lightning_app.utilities.app_helpers import pretty_state
 
 
-class Work(L.LightningWork):
+class Work(LightningWork):
     def __init__(self):
         super().__init__(cache_calls=False)
         # Attributes are registered automatically in the state.
         self.counter = 0
 
     def run(self):
-        # Incrementing an attribute gets reflected in the `Flow` state.
+        # Incrementing an attribute gets reflected in the `RootFlow` state.
         self.counter += 1
 
 
-class Flow(L.LightningFlow):
+class Flow(LightningFlow):
     def __init__(self):
         super().__init__()
         self.w = Work()
@@ -24,4 +24,4 @@ class Flow(L.LightningFlow):
         self.w.run()
 
 
-app = L.LightningApp(Flow())
+app = LightningApp(Flow())
