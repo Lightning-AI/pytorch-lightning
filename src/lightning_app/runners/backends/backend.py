@@ -83,6 +83,7 @@ class Backend(ABC):
         app.delta_queue = self.queues.get_delta_queue(**kw)
         app.readiness_queue = self.queues.get_readiness_queue(**kw)
         app.commands_requests_queue = self.queues.get_commands_requests_queue(**kw)
+        app.commands_responses_queue = self.queues.get_commands_responses_queue(**kw)
         app.commands_metadata_queue = self.queues.get_commands_metadata_queue(**kw)
         app.error_queue = self.queues.get_error_queue(**kw)
         app.delta_queue = self.queues.get_delta_queue(**kw)

@@ -21,7 +21,7 @@ class SweepCommand(ClientCommand):
     def run(self, sweep_name: str, num_trials: str) -> None:
         config = SweepConfig(sweep_name=sweep_name, num_trials=num_trials)
         response = self.invoke_handler(config=config)
-        print("Response Client", response)
+        assert response is True
 
 
 class FlowCommands(LightningFlow):

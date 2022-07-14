@@ -75,6 +75,7 @@ class LightningApp:
         self.delta_queue: t.Optional[BaseQueue] = None
         self.readiness_queue: t.Optional[BaseQueue] = None
         self.commands_requests_queue: t.Optional[BaseQueue] = None
+        self.commands_responses_queue: t.Optional[BaseQueue] = None
         self.commands_metadata_queue: t.Optional[BaseQueue] = None
         self.api_publish_state_queue: t.Optional[BaseQueue] = None
         self.api_delta_queue: t.Optional[BaseQueue] = None
@@ -379,6 +380,7 @@ class LightningApp:
                         # 2.1: Evaluate the method associated to a specific command.
                         # Validation is done on the CLI side.
                         response = method(**command_query["command_arguments"])
+                        self.commands_responses_queue.put({"response": response, "id": command_query["id"]})
 
     def run_once(self):
         """Method used to collect changes and run the root Flow once."""

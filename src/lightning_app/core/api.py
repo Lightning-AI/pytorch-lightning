@@ -42,6 +42,7 @@ frontend_static_dir = os.path.join(FRONTEND_DIR, "static")
 api_app_delta_queue: Queue = None
 api_commands_requests_queue: Queue = None
 api_commands_metadata_queue: Queue = None
+api_commands_responses_queue: Queue = None
 
 template = {"ui": {}, "app": {}}
 templates = Jinja2Templates(directory=FRONTEND_DIR)
@@ -174,12 +175,19 @@ async def post_command(
     affiliation = data.get("affiliation", None)
     if not affiliation:
         raise Exception("The provided affiliation is empty.")
-    data = await request.json()
-    # request_id = data["id"]
-    api_commands_requests_queue.put(data)
-    # response = api_commands_requests_queue.get()
-    # if request_id == response["response_id"]:
-    #     return response
+
+    async def fn(request: Request):
+        data = await request.json()
+        request_id = data["id"]
+        api_commands_requests_queue.put(data)
+
+        response = api_commands_responses_queue.get()
+        if request_id == response["id"]:
+            return response["response"]
+        else:
+            raise Exception("This is a bug")
+
+    return await asyncio.create_task(fn(request))
 
 
 @fastapi_service.get("/api/v1/commands", response_class=JSONResponse)
@@ -323,7 +331,7 @@ def start_server(
     api_publish_state_queue,
     api_delta_queue,
     commands_requests_queue,
-    commands_response_queue,
+    commands_responses_queue,
     commands_metadata_queue,
     has_started_queue: Optional[Queue] = None,
     host="127.0.0.1",
@@ -335,10 +343,13 @@ def start_server(
     global api_app_delta_queue
     global global_app_state_store
     global api_commands_requests_queue
+    global api_commands_responses_queue
     global app_spec
+
     app_spec = spec
     api_app_delta_queue = api_delta_queue
     api_commands_requests_queue = commands_requests_queue
+    api_commands_responses_queue = commands_responses_queue
     api_commands_metadata_queue = commands_metadata_queue
 
     if app_state_store is not None:
