@@ -46,7 +46,7 @@ jobs:
         for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
           echo "$file was changed"
         done
-        python ./actions/job_skipper.py --changed_files ${{ steps.changed-files.outputs.all_changed_files }}
+        python .actions/job_skipper.py --changed_files ${{ steps.changed-files.outputs.all_changed_files }}
         exit 1
 
     - name: Update base dependencies
