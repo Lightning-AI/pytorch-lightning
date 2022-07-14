@@ -48,13 +48,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def __init__(self, min_steps: Optional[int] = None, max_steps: int = -1) -> None:
         super().__init__()
-        if max_steps is None:
-            rank_zero_deprecation(
-                "Setting `max_steps = None` is deprecated in v1.5 and will no longer be supported in v1.7."
-                " Use `max_steps = -1` instead."
-            )
-            max_steps = -1
-        elif max_steps < -1:
+        if max_steps < -1:
             raise MisconfigurationException(
                 f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {max_steps}."
             )
@@ -273,6 +267,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def on_save_checkpoint(self) -> Dict:
         state_dict = super().on_save_checkpoint()
+        state_dict["_batches_that_stepped"] = self._batches_that_stepped
 
         if (
             self.trainer is not None
@@ -292,6 +287,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
     def on_load_checkpoint(self, state_dict: Dict) -> None:
         # cache the dataloader state dict until the dataloader objects are available
         self._dataloader_state_dict = state_dict.get("dataloader_state_dict")
+        self._batches_that_stepped = state_dict.get("_batches_that_stepped", 0)
 
     def _run_validation(self) -> None:
         # reload dataloaders

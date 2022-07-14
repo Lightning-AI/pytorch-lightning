@@ -298,21 +298,6 @@ class ModelHooks:
                         )
         """
 
-    def on_post_move_to_device(self) -> None:
-        """Called in the ``parameter_validation`` decorator after
-        :meth:`~pytorch_lightning.core.LightningModule.to` is called. This is a good place to tie weights between
-        modules after moving them to a device. Can be used when training models with weight sharing properties on
-        TPU.
-
-        Addresses the handling of shared weights on TPU:
-        https://github.com/pytorch/xla/blob/master/TROUBLESHOOTING.md#xla-tensor-quirks
-
-        Example::
-
-            def on_post_move_to_device(self):
-                self.decoder.weight = self.encoder.weight
-        """
-
     def configure_sharded_model(self) -> None:
         """Hook to create modules in a distributed aware context. This is useful for when using sharded plugins,
         where we'd like to shard the model instantly, which is useful for extremely large models which can save
