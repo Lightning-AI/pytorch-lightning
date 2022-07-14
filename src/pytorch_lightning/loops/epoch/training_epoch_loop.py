@@ -618,7 +618,7 @@ def _get_max_shape(array: List[Any]) -> List[int]:
         >>> _get_max_shape([[], [[1], [2]], []])
         [3, 2, 1]
     """
-    dimensions: DefaultDict[Any, int] = defaultdict(int)
+    dimensions: DefaultDict[int, int] = defaultdict(int)
     for level, length in _get_dimensions(array):
         dimensions[level] = max(dimensions[level], length)
     return [value for _, value in sorted(dimensions.items())]
