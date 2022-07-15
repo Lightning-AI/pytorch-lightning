@@ -34,9 +34,11 @@ class ServableModuleValidator(Callback):
 
     Arguments:
         optimization: The format in which the model should be tested while being served.
-        server: The library used to evaluate the model serving. Default is FastAPI.
-        host: The host address associated the server.
-        port: The port associated the server.
+        server: The library used to evaluate the model serving. The default is FastAPI.
+        host: The host address associated with the server.
+        port: The port associated with the server.
+        timeout: Timeout period in seconds, that the process should wait for the server to start.
+        exit_on_failure: Whether to exit the process on failure.
     """
 
     def __init__(
@@ -75,7 +77,7 @@ class ServableModuleValidator(Callback):
     def on_train_start(self, trainer: "pl.Trainer", servable_module: "pl.LightningModule") -> None:
         if isinstance(trainer.strategy, _NOT_SUPPORTED_STRATEGIES):
             raise Exception(
-                f"The current strategy {trainer.strategy} used "
+                f"The current strategy {trainer.strategy.__class__.__qualname__} used "
                 "by the trainer isn't supported for sanity serving yet."
             )
 

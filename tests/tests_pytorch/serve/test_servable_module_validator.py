@@ -35,10 +35,11 @@ def test_servable_module_validator():
     callback.on_train_start(Trainer(), model)
 
 
-def test_servable_module_validator_with_trainer():
+def test_servable_module_validator_with_trainer(tmpdir):
     seed_everything(42)
     callback = ServableModuleValidator()
     trainer = Trainer(
+        default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=2,
         limit_val_batches=0,

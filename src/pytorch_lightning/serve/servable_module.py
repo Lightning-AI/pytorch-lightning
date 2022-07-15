@@ -11,7 +11,7 @@ class ServableModule(torch.nn.Module):
 
         This is currently an experimental feature and API changes are to be expected.
 
-    Here is an example on how to use the `ServableModule` module.
+    Here is an example of how to use the ``ServableModule`` module.
 
     .. code-block:: python
 
@@ -19,7 +19,7 @@ class ServableModule(torch.nn.Module):
 
         import torch
 
-        from pytorch_lightning import seed_everything, Trainer
+        from pytorch_lightning import Trainer
         from pytorch_lightning.demos.boring_classes import BoringModel
         from pytorch_lightning.serve.servable_module_validator import ServableModule, ServableModuleValidator
 
@@ -40,16 +40,19 @@ class ServableModule(torch.nn.Module):
             def serve_step(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
                 return {"output": torch.tensor([0, 1])}
 
+            def configure_response(self):
+                return {"output": [0, 1]}
 
-        callback = ServableModuleValidator()
+
+        serve_cb = ServableModuleValidator()
         trainer = Trainer(
             max_epochs=1,
             limit_train_batches=2,
             limit_val_batches=0,
-            callbacks=[callback],
+            callbacks=[serve_cb],
         )
         trainer.fit(ServableBoringModel())
-        assert callback.resp.json() == {"output": [0, 1]}
+        assert serve_cb.resp.json() == {"output": [0, 1]}
     """
 
     def configure_payload(self) -> Dict[str, Any]:
@@ -77,8 +80,8 @@ class ServableModule(torch.nn.Module):
                 return {"predictions": self(x)}
 
         Args:
-            args: The output from serializer functions provided by the ``configure_serialization`` hook.
-            kwargs: The keyword output of the serializer functions provided by the ``configure_serialization`` hook.
+            args: The output from de-serializer functions provided by the ``configure_serialization`` hook.
+            kwargs: The keyword output of the de-serializer functions provided by the ``configure_serialization`` hook.
 
         Return:
             - ``dict`` - A dictionary with their associated tensors.
