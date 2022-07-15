@@ -145,7 +145,7 @@ def sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Un
     if group is None:
         group = torch.distributed.group.WORLD
 
-    op: Optional[ReduceOp] = None
+    op: Optional[ReduceOp]
     if isinstance(reduce_op, str):
         if reduce_op.lower() in ("avg", "mean"):
             op = ReduceOp.SUM
