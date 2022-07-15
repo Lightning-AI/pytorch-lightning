@@ -40,7 +40,7 @@ parametrizations_arr=($parametrizations)
 # tests to skip - space separated
 blocklist='profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx utilities/test_warnings.py'
 report=''
-test_batch_size=8
+test_batch_size=4
 rm -f standalone_test_output.txt
 
 for i in "${!parametrizations_arr[@]}"; do
@@ -69,6 +69,7 @@ done
 
 wait -n # wait for any leftover tests
 cat standalone_test_output.txt; rm -f standalone_test_output.txt
+echo "Batched mode finished. Continuing with the rest of standalone tests."
 
 if nvcc --version; then
     nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
