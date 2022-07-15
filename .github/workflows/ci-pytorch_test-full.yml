@@ -127,7 +127,7 @@ jobs:
       run: |
         # adjust versions according installed Torch version
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
-        pip install --requirement ./requirements/pytorch/extra.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
+        pip install -r ./requirements/pytorch/extra.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html --upgrade
         pip list
       shell: bash
 

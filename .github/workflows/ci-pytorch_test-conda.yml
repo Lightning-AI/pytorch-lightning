@@ -22,11 +22,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8"]  # previous to last Python version as that one is already used in test-full
-        pytorch-version: ["1.9", "1.10"]
         # nightly: add when there's a release candidate
         include:
+          - {python-version: "3.8", pytorch-version: "1.9"}
+          - {python-version: "3.8", pytorch-version: "1.10"}
           - {python-version: "3.9", pytorch-version: "1.11"}
+          - {python-version: "3.9", pytorch-version: "1.12"}
 
     timeout-minutes: 30
 
@@ -66,6 +67,10 @@ jobs:
         conda list
         pip install -e .[test]
 
+    - name: Freeze PIL (hotfix)
+      # import of PILLOW_VERSION which they recently removed in v9.0 in favor of __version__
+      run: pip install "Pillow<9.0"  # It messes with torchvision
+
     - name: DocTests
       if: ${{ (steps.skip.outputs.continue == '1') }}
       working-directory: ./src
@@ -79,10 +84,11 @@ jobs:
         HOROVOD_WITHOUT_TENSORFLOW: 1
       run: |
         set -e
+        pip list
         # adjust versions according installed Torch version
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/extra.txt
         python ./requirements/pytorch/adjust-versions.py requirements/pytorch/examples.txt
-        pip install -r requirements/pytorch/devel.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install -r requirements/pytorch/devel.txt --find-links https://download.pytorch.org/whl/torch_stable.html
         pip install -r requirements/pytorch/strategies.txt
         # set a per-test timeout of 2.5 minutes to fail sooner; this aids with hanging tests
         pip install pytest-timeout
