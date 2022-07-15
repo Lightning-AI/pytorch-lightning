@@ -880,7 +880,7 @@ def test_checkpoint_repeated_strategy(tmpdir):
         trainer.fit(model, ckpt_path=checkpoint_callback.best_model_path)
         trainer.test(ckpt_path=checkpoint_callback.best_model_path, verbose=False)
         assert set(os.listdir(tmpdir)) == {"epoch=00.ckpt", "lightning_logs"}
-        
+
     # verify tensorboard experiment version has not increased (it should be restored from ckpt)
     assert set(os.listdir(tmpdir / "lightning_logs")) == {"version_0"}
 
