@@ -40,11 +40,8 @@ parametrizations_arr=($parametrizations)
 # tests to skip - space separated
 blocklist='profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx utilities/test_warnings.py'
 report=''
-
 test_batch_size=8
-# create a log file that buffers test output. since the tests will run in the background, we cannot let them output
-# to std{out,err} because the outputs would be garbled together
-rm -f standalone_test_output.txt; touch standalone_test_output.txt
+rm -f standalone_test_output.txt
 
 for i in "${!parametrizations_arr[@]}"; do
   parametrization=${parametrizations_arr[$i]}
@@ -58,12 +55,15 @@ for i in "${!parametrizations_arr[@]}"; do
   # run the test
   echo "Running $parametrization"
   # the test is executed in the background
+
+  # redirect to a log file that buffers test output. since the tests will run in the background, we cannot let them
+  # output to std{out,err} because the outputs would be garbled together
   python ${defaults} "$parametrization" &>> standalone_test_output.txt &
   report+="Ran\t$parametrization\n"
 
   if ((($i + 1) % $test_batch_size == 0)); then
     wait -n  # wait for running tests, exit if any failed
-    cat standalone_test_output.txt; rm -f standalone_test_output.txt; touch standalone_test_output.txt;
+    cat standalone_test_output.txt; rm -f standalone_test_output.txt
   fi
 done
 
