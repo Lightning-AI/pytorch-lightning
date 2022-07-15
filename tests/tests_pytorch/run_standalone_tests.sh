@@ -18,7 +18,7 @@ set -e
 # this environment variable allows special tests to run
 export PL_RUN_STANDALONE_TESTS=1
 # python arguments
-defaults='-m coverage run --source pytorch_lightning --append -m pytest --capture=no'
+defaults='-m coverage run --source pytorch_lightning --append -m pytest -v'
 
 # find tests marked as `@RunIf(standalone=True)`. done manually instead of with pytest because it is faster
 grep_output=$(grep --recursive --word-regexp . --regexp 'standalone=True' --include '*.py')
@@ -41,6 +41,7 @@ parametrizations_arr=($parametrizations)
 blocklist='profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx utilities/test_warnings.py'
 report=''
 
+test_batch_size=8
 for i in "${!parametrizations_arr[@]}"; do
   parametrization=${parametrizations_arr[$i]}
 
@@ -52,10 +53,17 @@ for i in "${!parametrizations_arr[@]}"; do
 
   # run the test
   echo "Running $parametrization"
-  python ${defaults} "$parametrization"
-
+  # the test is executed in the foreground
+  python ${defaults} "$parametrization" &
   report+="Ran\t$parametrization\n"
+
+  if ((($i + 1) % $test_batch_size == 0)); then
+    # wait for running tests
+    wait
+  fi
 done
+# wait for any leftover tests
+wait
 
 if nvcc --version; then
     nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
