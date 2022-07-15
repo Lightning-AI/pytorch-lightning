@@ -856,6 +856,7 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer):
     """Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works."""
+
     class VerificationCallback(Callback):
         def __init__(self):
             self.on_train_batch_start_called = False
