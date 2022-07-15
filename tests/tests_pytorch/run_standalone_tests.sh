@@ -42,6 +42,10 @@ blocklist='profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx ut
 report=''
 
 test_batch_size=8
+# create a log file that buffers test output. since the tests will run in the background, we cannot let them output
+# to std{out,err} because the outputs would be garbled together
+rm -f standalone_test_output.txt; touch standalone_test_output.txt
+
 for i in "${!parametrizations_arr[@]}"; do
   parametrization=${parametrizations_arr[$i]}
 
@@ -53,17 +57,18 @@ for i in "${!parametrizations_arr[@]}"; do
 
   # run the test
   echo "Running $parametrization"
-  # the test is executed in the foreground
-  python ${defaults} "$parametrization" &
+  # the test is executed in the background
+  python ${defaults} "$parametrization" &>> standalone_test_output.txt &
   report+="Ran\t$parametrization\n"
 
   if ((($i + 1) % $test_batch_size == 0)); then
-    # wait for running tests
-    wait
+    wait  # wait for running tests
+    cat standalone_test_output.txt; rm -f standalone_test_output.txt; touch standalone_test_output.txt;
   fi
 done
-# wait for any leftover tests
-wait
+
+wait  # wait for any leftover tests
+cat standalone_test_output.txt; rm -f standalone_test_output.txt
 
 if nvcc --version; then
     nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
