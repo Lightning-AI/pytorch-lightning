@@ -35,6 +35,7 @@ local tputests = base.BaseTest {
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
       export XRT_TPU_CONFIG="tpu_worker;0;${KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS:7}"
       cd tests/tests_pytorch
+      pil list | grep pytest
       echo $PWD
       # TODO (@kaushikb11): Add device stats tests here
       coverage run --source pytorch_lightning -m pytest -v --capture=no \
