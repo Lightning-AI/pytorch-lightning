@@ -179,7 +179,7 @@ class AllGatherGrad(torch.autograd.Function):
         ctx: Any,
         tensor: Tensor,
         group: Optional["torch.distributed.ProcessGroup"] = group.WORLD,
-    ) -> Tensor: 
+    ) -> Tensor:
         ctx.group = group
 
         gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())]
