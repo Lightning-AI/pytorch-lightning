@@ -181,12 +181,13 @@ class LightningModule(
 
     @trainer.setter
     def trainer(self, trainer: "pl.Trainer") -> None:
-        if not isinstance(trainer, weakref.ProxyTypes):
-            trainer = weakref.proxy(trainer)
-        self._trainer = trainer
         for v in self.children():
             if isinstance(v, LightningModule):
                 v.trainer = trainer
+        if trainer is not None:
+            trainer = weakref.proxy(trainer)
+        self._trainer = trainer
+       
 
     @property
     def example_input_array(self) -> Any:
