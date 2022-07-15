@@ -49,26 +49,31 @@ for i in "${!parametrizations_arr[@]}"; do
   # check blocklist
   if echo $blocklist | grep -F "${parametrization}"; then
     report+="Skipped\t$parametrization\n"
-    continue
+    # do not continue the loop because we might need to wait for batched jobs
+  else
+    echo "Running $parametrization"
+    # execute the test in the background
+    # redirect to a log file that buffers test output. since the tests will run in the background, we cannot let them
+    # output to std{out,err} because the outputs would be garbled together
+    python ${defaults} "$parametrization" &>> standalone_test_output.txt &
+    # save the PID in an array
+    pids[${i}]=$!
+    # add row to the final report
+    report+="Ran\t$parametrization\n"
   fi
 
-  # run the test
-  echo "Running $parametrization"
-  # the test is executed in the background
-
-  # redirect to a log file that buffers test output. since the tests will run in the background, we cannot let them
-  # output to std{out,err} because the outputs would be garbled together
-  python ${defaults} "$parametrization" &>> standalone_test_output.txt &
-  report+="Ran\t$parametrization\n"
-
   if ((($i + 1) % $test_batch_size == 0)); then
-    wait -n  # wait for running tests, exit if any failed
+    # wait for running tests
+    for pid in ${pids[*]}; do wait $pid; done
+    unset pids  # empty the array
     cat standalone_test_output.txt; rm -f standalone_test_output.txt
   fi
 done
 
-wait -n # wait for any leftover tests
-cat standalone_test_output.txt; rm -f standalone_test_output.txt
+# wait for leftover tests
+for pid in ${pids[*]}; do wait $pid; done
+# check if exists before printing
+[ -f standalone_test_output.txt ] && cat standalone_test_output.txt; rm standalone_test_output.txt
 echo "Batched mode finished. Continuing with the rest of standalone tests."
 
 if nvcc --version; then
