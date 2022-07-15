@@ -870,9 +870,9 @@ def test_checkpoint_repeated_strategy(tmpdir):
         "enable_progress_bar": False,
         "enable_model_summary": False,
     }
-    trainer = Trainer(**trainer_kwargs, callbacks=[checkpoint_callback])
+    trainer = Trainer(**trainer_kwargs, default_root_dir=tmpdir, callbacks=[checkpoint_callback])
     trainer.fit(model)
-    assert os.listdir(tmpdir) == ["epoch=00.ckpt"]
+    assert set(os.listdir(tmpdir)) == {"epoch=00.ckpt", "lightning_logs"}
 
     for idx in range(4):
         # load from checkpoint
@@ -881,7 +881,7 @@ def test_checkpoint_repeated_strategy(tmpdir):
         trainer.test(ckpt_path=checkpoint_callback.best_model_path, verbose=False)
         assert set(os.listdir(tmpdir)) == {"epoch=00.ckpt", "lightning_logs"}
 
-    # verify tensorboard experiment version has not increased (it should be restored from ckpt)
+    # verify tensorboard experiment version has not increased (should be restored from ckpt)
     assert set(os.listdir(tmpdir / "lightning_logs")) == {"version_0"}
 
 
