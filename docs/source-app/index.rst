@@ -26,32 +26,11 @@ Install Lightning
 *****************
 
 
-.. raw:: html
-
-   <div class="row" style='font-size: 16px'>
-      <div class='col-md-6'>
-
 Pip users
 
 .. code-block:: bash
 
    pip install lightning
-
-.. raw:: html
-
-      </div>
-      <div class='col-md-6'>
-
-Conda users
-
-.. code-block:: bash
-
-   conda install lightning -c conda-forge
-
-.. raw:: html
-
-      </div>
-   </div>
 
 Or read the :ref:`advanced install <install>` guide.
 
@@ -166,7 +145,7 @@ Keep Learning
    :header: API Reference
    :description: Detailed description of each API package
    :col_css: col-md-6
-   :button_link: api_reference/api_references.html
+   :button_link: api_references.html
    :height: 180
 
 .. displayitem::
