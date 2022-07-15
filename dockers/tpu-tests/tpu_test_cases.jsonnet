@@ -42,7 +42,8 @@ local tputests = base.BaseTest {
           profilers/test_xla_profiler.py \
           accelerators/test_tpu.py \
           models/test_tpu.py \
-          plugins/environments/test_xla_environment.py
+          plugins/environments/test_xla_environment.py \
+          utilities/test_xla_device_utils.py
       test_exit_code=$?
       echo "\n||| END PYTEST LOGS |||\n"
       coverage xml
