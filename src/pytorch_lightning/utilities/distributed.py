@@ -144,7 +144,7 @@ def sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Un
 
     if group is None:
         group = torch.distributed.group.WORLD
-    
+
     op: Optional[ReduceOp] = None
     if isinstance(reduce_op, str):
         if reduce_op.lower() in ("avg", "mean"):
@@ -175,7 +175,7 @@ def sync_ddp(result: Tensor, group: Optional[Any] = None, reduce_op: Optional[Un
 
 class AllGatherGrad(torch.autograd.Function):
     @staticmethod
-    def forward( #type: ignore[override] 
+    def forward(  # type: ignore[override]
         ctx: Any,
         tensor: Tensor,
         group: Optional["torch.distributed.ProcessGroup"] = group.WORLD,
@@ -318,7 +318,7 @@ def register_ddp_comm_hook(
         ddp_comm_hook = ddp_comm_wrapper(ddp_comm_hook)
 
     new_rank_zero_debug(f"Registering DDP comm hook: {ddp_comm_hook.__qualname__}.")
-    model.register_comm_hook(state=ddp_comm_state, hook=ddp_comm_hook) #type: ignore[operator]
+    model.register_comm_hook(state=ddp_comm_state, hook=ddp_comm_hook)  # type: ignore[operator]
 
 
 def tpu_distributed() -> bool:
