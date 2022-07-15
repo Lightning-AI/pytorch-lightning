@@ -189,7 +189,6 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
         admin_page = context.new_page()
         res = requests.post(Config.url + "/v1/auth/login", data=json.dumps(payload))
         token = res.json()["token"]
-        print({"username": os.getenv("LAI_USER").strip(), "password": os.getenv("LAI_PASS")})
         print(f"The Lightning App Token is: {token}")
         print(f"The Lightning App user key is: {Config.key}")
         print(f"The Lightning App user id is: {Config.id}")
