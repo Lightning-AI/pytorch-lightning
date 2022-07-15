@@ -28,8 +28,6 @@ class TrainerCallbackHookMixin(ABC):
     r"""
     .. deprecated:: v1.6
         The `TrainerCallbackHookMixin` class was deprecated in v1.6 and will be removed in v1.8.
-
-        Random addition
     """
 
     # this is just a summary on variables used in this abstract class,
