@@ -39,7 +39,7 @@ RUN \
 # save the examples \
     ls -lh lightning/ && \
     mv lightning/_notebooks/.notebooks/ notebooks && \
-    mv lightning/*examples . && \
+    cp -r lightning/*examples . && \
 
 # Installations \
     pip install -q fire && \
