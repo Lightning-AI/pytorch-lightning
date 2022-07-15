@@ -18,7 +18,7 @@ set -e
 # this environment variable allows special tests to run
 export PL_RUN_STANDALONE_TESTS=1
 # python arguments
-defaults='-m coverage run --source pytorch_lightning --append -m pytest -v'
+defaults='-m coverage run --source pytorch_lightning --append -m pytest --no-header'
 
 # find tests marked as `@RunIf(standalone=True)`. done manually instead of with pytest because it is faster
 grep_output=$(grep --recursive --word-regexp . --regexp 'standalone=True' --include '*.py')
@@ -41,7 +41,15 @@ parametrizations_arr=($parametrizations)
 blocklist='profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx utilities/test_warnings.py'
 report=''
 test_batch_size=4
-rm -f standalone_test_output.txt
+
+rm -f standalone_test_output.txt  # in case it exists, remove it
+function show_batched_output {
+  if [ -f standalone_test_output.txt ]; then  # if exists
+    cat standalone_test_output.txt
+    rm standalone_test_output.txt
+  fi
+}
+trap show_batched_output EXIT  # show the output on exit
 
 for i in "${!parametrizations_arr[@]}"; do
   parametrization=${parametrizations_arr[$i]}
@@ -66,14 +74,12 @@ for i in "${!parametrizations_arr[@]}"; do
     # wait for running tests
     for pid in ${pids[*]}; do wait $pid; done
     unset pids  # empty the array
-    cat standalone_test_output.txt; rm -f standalone_test_output.txt
+    show_batched_output
   fi
 done
-
 # wait for leftover tests
 for pid in ${pids[*]}; do wait $pid; done
-# check if exists before printing
-[ -f standalone_test_output.txt ] && cat standalone_test_output.txt; rm standalone_test_output.txt
+show_batched_output
 echo "Batched mode finished. Continuing with the rest of standalone tests."
 
 if nvcc --version; then
