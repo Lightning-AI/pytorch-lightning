@@ -187,7 +187,6 @@ class LightningModule(
         if trainer is not None:
             trainer = weakref.proxy(trainer)
         self._trainer = trainer
-       
 
     @property
     def example_input_array(self) -> Any:
