@@ -15,6 +15,7 @@ from urllib import request
 from urllib.request import Request, urlopen
 
 import fire
+import pkg_resources
 
 REQUIREMENT_FILES = {
     "pytorch": (
@@ -78,17 +79,12 @@ class AssistantCLI:
     @staticmethod
     def _prune_packages(req_file: str, packages: Sequence[str]) -> None:
         """Remove some packages from given requirement files."""
-        with open(req_file) as fp:
-            lines = fp.readlines()
-
-        if isinstance(packages, str):
-            packages = [packages]
-        for pkg in packages:
-            lines = [ln for ln in lines if not ln.startswith(pkg)]
-        pprint(lines)
-
-        with open(req_file, "w") as fp:
-            fp.writelines(lines)
+        path = Path(req_file)
+        assert path.exists()
+        text = path.read_text()
+        final = [str(req) for req in pkg_resources.parse_requirements(text) if req.name not in packages]
+        pprint(final)
+        path.write_text("\n".join(final))
 
     @staticmethod
     def _replace_min(fname: str) -> None:
