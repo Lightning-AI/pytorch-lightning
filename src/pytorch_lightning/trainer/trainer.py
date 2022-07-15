@@ -61,7 +61,6 @@ from pytorch_lightning.plugins import (
     PLUGIN_INPUT,
     PrecisionPlugin,
 )
-from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profilers import (
     AdvancedProfiler,
     PassThroughProfiler,
@@ -85,8 +84,7 @@ from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.tuner.lr_finder import _LRFinder
-from pytorch_lightning.tuner.tuning import Tuner
+from pytorch_lightning.tuner.tuning import _TunerResult, Tuner
 from pytorch_lightning.utilities import (
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
@@ -1015,7 +1013,7 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
+    ) -> _TunerResult:
         r"""
         Runs routines to tune hyperparameters before training.
 
@@ -1227,7 +1225,6 @@ class Trainer(
     def _teardown(self):
         """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and
         Callback; those are handled by :meth:`_call_teardown_hook`."""
-        self.strategy.post_dispatch(self)
         self.strategy.teardown()
         loop = self._active_loop
         # loop should never be `None` here but it can because we don't know the trainer stage with `ddp_spawn`
@@ -2229,11 +2226,6 @@ class Trainer(
     @property
     def is_global_zero(self) -> bool:
         return self.strategy.is_global_zero
-
-    @property
-    def slurm_job_id(self) -> Optional[int]:
-        rank_zero_deprecation("Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0.")
-        return SLURMEnvironment.job_id()
 
     @property
     def distributed_sampler_kwargs(self) -> Optional[dict]:
