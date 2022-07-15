@@ -63,7 +63,6 @@ module = [
     "pytorch_lightning.loggers.neptune",
     "pytorch_lightning.loggers.tensorboard",
     "pytorch_lightning.loggers.wandb",
-    "pytorch_lightning.loops.epoch.training_epoch_loop",
     "pytorch_lightning.profilers.advanced",
     "pytorch_lightning.profilers.base",
     "pytorch_lightning.profilers.pytorch",
