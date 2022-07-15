@@ -111,6 +111,7 @@ class PyTorchLightningGithubRepoRunner(GithubRepoRunner):
 
     def on_after_run(self, end_script_globals):
         import torch
+
         # 1. Once the script has finished to execute,
         # we can collect its globals and access any objects.
         trainer = end_script_globals["cli"].trainer

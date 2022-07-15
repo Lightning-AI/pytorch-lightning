@@ -4,10 +4,11 @@ import tarfile
 import uuid
 import zipfile
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List
+
 import lightning as L
 from lightning.app.storage import Drive
-from pathlib import Path
 
 
 class FileServer(L.LightningWork):
@@ -157,8 +158,10 @@ class FileServer(L.LightningWork):
         return self.url != ""
 
 
-from lightning import LightningWork
 import requests
+
+from lightning import LightningWork
+
 
 class TestFileServer(LightningWork):
 
@@ -183,6 +186,7 @@ class TestFileServer(LightningWork):
 
 
 from lightning import LightningApp, LightningFlow
+
 
 class Flow(LightningFlow):
 
@@ -216,11 +220,13 @@ class Flow(LightningFlow):
 
 from lightning.app.runners import MultiProcessRuntime
 
+
 def test_file_server():
     app = LightningApp(Flow())
     MultiProcessRuntime(app).dispatch()
 
 from lightning.app.testing.testing import run_app_in_cloud
+
 
 def test_file_server_in_cloud():
     # You need to provide the directory containing the app file.
