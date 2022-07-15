@@ -44,7 +44,7 @@ jobs:
       id: skip
       shell: bash -l {0}
       run: |
-        FILTER='src/pytorch_lightning|requirements/pytorch|tests/tests_pytorch|examples/pl_'
+        FILTER='src/pytorch_lightning|requirements/pytorch|tests/tests_pytorch|examples/pl_*'
         echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr " " "\n" > changed_files.txt
         MATCHES=$(cat changed_files.txt | grep -E $FILTER)
         echo $MATCHES
