@@ -48,13 +48,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def __init__(self, min_steps: Optional[int] = None, max_steps: int = -1) -> None:
         super().__init__()
-        if max_steps is None:
-            rank_zero_deprecation(
-                "Setting `max_steps = None` is deprecated in v1.5 and will no longer be supported in v1.7."
-                " Use `max_steps = -1` instead."
-            )
-            max_steps = -1
-        elif max_steps < -1:
+        if max_steps < -1:
             raise MisconfigurationException(
                 f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {max_steps}."
             )
