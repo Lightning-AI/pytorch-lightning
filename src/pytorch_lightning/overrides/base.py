@@ -52,9 +52,6 @@ class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Modu
     def forward(self, *args: Any, **kwargs: Any) -> Any:
         raise NotImplementedError
 
-    def on_post_move_to_device(self) -> None:
-        pass
-
 
 class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
     def __init__(self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]) -> None:
@@ -94,9 +91,6 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
             if trainer.predicting:
                 return self.module.predict_step(*inputs, **kwargs)
         return self.module(*inputs, **kwargs)
-
-    def on_post_move_to_device(self) -> None:
-        pass
 
 
 def unwrap_lightning_module(wrapped_model: nn.Module) -> "pl.LightningModule":
