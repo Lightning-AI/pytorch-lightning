@@ -40,7 +40,7 @@ parametrizations_arr=($parametrizations)
 # tests to skip - space separated
 blocklist='profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx utilities/test_warnings.py'
 report=''
-test_batch_size=4
+test_batch_size=8
 
 rm -f standalone_test_output.txt  # in case it exists, remove it
 function show_batched_output {
