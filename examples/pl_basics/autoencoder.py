@@ -50,7 +50,6 @@ class ImageSampler(callbacks.Callback):
     ) -> None:
         """
         Args:
-            HERE
             num_samples: Number of images displayed in the grid. Default: ``3``.
             nrow: Number of images displayed in each row of the grid.
                 The final grid size is ``(B / nrow, nrow)``. Default: ``8``.
