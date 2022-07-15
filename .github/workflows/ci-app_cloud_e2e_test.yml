@@ -89,14 +89,6 @@ jobs:
           python -m playwright install --with-deps
 #        if: steps.playwright-cache.outputs.cache-hit != 'true'  # TODO: Enable cache
 
-
-      - name: Downloading Frontend
-        if: steps.changes.outputs.app_examples == 'true'
-        working-directory: ./src
-        run: |
-          python -c "from lightning_app.utilities.packaging.lightning_utils import download_frontend; download_frontend()"
-        shell: bash
-
       - name: Install lightning
         if: steps.changes.outputs.app_examples == 'true'
         run: |
