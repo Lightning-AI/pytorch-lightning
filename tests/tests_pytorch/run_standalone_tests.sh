@@ -62,12 +62,12 @@ for i in "${!parametrizations_arr[@]}"; do
   report+="Ran\t$parametrization\n"
 
   if ((($i + 1) % $test_batch_size == 0)); then
-    wait  # wait for running tests
+    wait -n  # wait for running tests, exit if any failed
     cat standalone_test_output.txt; rm -f standalone_test_output.txt; touch standalone_test_output.txt;
   fi
 done
 
-wait  # wait for any leftover tests
+wait -n # wait for any leftover tests
 cat standalone_test_output.txt; rm -f standalone_test_output.txt
 
 if nvcc --version; then
