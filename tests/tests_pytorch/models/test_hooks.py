@@ -498,8 +498,8 @@ def test_trainer_model_hook_system_fit(tmpdir, kwargs, automatic_optimization):
     ]
     trainer.fit(model)
     saved_ckpt = {
-        "callbacks": ANY,
         "loggers": ANY,
+        "callbacks": ANY,
         "epoch": 0,
         "global_step": train_batches,
         "lr_schedulers": ANY,
