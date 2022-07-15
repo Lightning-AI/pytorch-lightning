@@ -7,11 +7,6 @@ on: # Trigger the workflow on push or pull request, but only for the master bran
     branches:
       - "master"
   pull_request:
-    paths:
-      - "src/lightning_app/**"
-      - "tests/tests_app_examples/**"
-      - "requirements/app/**"
-      - "setup.py"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -44,7 +39,14 @@ jobs:
         with:
           python-version: "3.8"
 
+      - name: Check for related changes
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: .github/file-filters.yml
+
       - name: Get PR ID
+        if: steps.changes.outputs.app_examples == 'true'
         id: PR
         run: |
           if [ -z ${{github.event.number}} ]; then
@@ -63,6 +65,7 @@ jobs:
 #          restore-keys: ${{ runner.os }}-venv-${{ matrix.app_name }}-
 
       - name: Install dependencies
+        if: steps.changes.outputs.app_examples == 'true'
         shell: bash
         run: |
           pip --version
@@ -70,6 +73,7 @@ jobs:
 #        if: steps.cache-venv.outputs.cache-hit != 'true'  # TODO: Enable cache
 
       - name: Cache Playwright dependencies
+        if: steps.changes.outputs.app_examples == 'true'
         id: playwright-cache
         uses: actions/cache@v2
         with:
@@ -78,6 +82,7 @@ jobs:
           restore-keys: ${{ runner.os }}-playwright-${{ matrix.app_name }}-
 
       - name: Install Playwright system dependencies
+        if: steps.changes.outputs.app_examples == 'true'
         shell: bash
         run: |
           python -m pip install playwright
@@ -86,23 +91,26 @@ jobs:
 
 
       - name: Downloading Frontend
+        if: steps.changes.outputs.app_examples == 'true'
         working-directory: ./src
         run: |
           python -c "from lightning_app.utilities.packaging.lightning_utils import download_frontend; download_frontend()"
         shell: bash
 
       - name: Install lightning
+        if: steps.changes.outputs.app_examples == 'true'
         run: |
           pip install -e .
         shell: bash
 
       - name: Lightning Install quick-start
+        if: ${{ (matrix.app_name == 'quick_start') && (steps.changes.outputs.app_examples == 'true') }}
         shell: bash
-        if: matrix.app_name == 'quick_start'
         run: |
           python -m lightning install app lightning/quick-start -y
 
       - name: Clone Template React UI Repo
+        if: steps.changes.outputs.app_examples == 'true'
         uses: actions/checkout@v3
         with:
           repository: Lightning-AI/lightning-template-react
@@ -111,6 +119,7 @@ jobs:
           path: examples/app_template_react_ui
 
       - name: Clone Template Jupyter Lab Repo
+        if: steps.changes.outputs.app_examples == 'true'
         uses: actions/checkout@v3
         with:
           repository: Lightning-AI/lightning-template-jupyterlab
@@ -119,15 +128,18 @@ jobs:
           path: examples/app_template_jupyterlab
 
       - name: Copy Template Jupyter Lab Repo tests
+        if: steps.changes.outputs.app_examples == 'true'
         shell: bash
         run: cp examples/app_template_jupyterlab/tests/test_template_jupyterlab.py tests/tests_app_examples/test_template_jupyterlab.py
 
       - name: List pip dependency
+        if: steps.changes.outputs.app_examples == 'true'
         shell: bash
         run: |
           pip list
 
       - name: Run the tests
+        if: steps.changes.outputs.app_examples == 'true'
         env:
           LAI_USER: ${{ secrets.LAI_USER }}
           LAI_PASS: ${{ secrets.LAI_PASS }}
@@ -149,13 +161,14 @@ jobs:
           rm -r ${VIDEO_LOCATION}/${{ matrix.app_name }}
 
       - uses: actions/upload-artifact@v2
-        if: ${{ always() }}
+
+        if: ${{ always() && (steps.changes.outputs.app_examples == 'true')}}
         with:
           name: test-artifacts
           path: ./artifacts/videos
 
       - name: Clean Previous Apps
-        if: ${{ always() }}
+        if: ${{ always() && (steps.changes.outputs.app_examples == 'true')}}
         env:
           LAI_USER: ${{ secrets.LAI_USER }}
           LAI_PASS: ${{ secrets.LAI_PASS }}
