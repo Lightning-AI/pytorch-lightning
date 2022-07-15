@@ -22,7 +22,7 @@ from pytorch_lightning.utilities.cloud_io import _atomic_save, atomic_save, get_
 from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.cloud_io import ThreadQueue
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.types import _PATH
 
 log = logging.getLogger(__name__)
@@ -38,10 +38,15 @@ class TorchCheckpointIO(CheckpointIO):
     """
 
     def __init__(self, save_async: bool = False, num_threads: Optional[int] = None):
-
-        if save_async and not (isinstance(num_threads, int) and (num_threads >= 0)):
+        if save_async and not (isinstance(num_threads, int) and (num_threads > 0)):
             raise MisconfigurationException(
-                f"Asynchronous checkpoint is not possible with `num_threds={num_threads!r}`."
+                f"Asynchronous checkpoint is not possible with `num_threads={num_threads!r}`."
+            )
+
+        if save_async:
+            rank_zero_info(
+                "With asynchronous checkpointing, it is recommended to set"
+                " `ModelCheckpoint(save_top_k=-1)` if your checkpoint interval is low."
             )
 
         self.queue = None

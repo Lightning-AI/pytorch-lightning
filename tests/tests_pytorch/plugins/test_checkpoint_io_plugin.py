@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 from unittest.mock import MagicMock
 
+import pytest
 import torch
 
 from pytorch_lightning import Trainer
@@ -23,6 +24,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.strategies import SingleDeviceStrategy
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import _PATH
 
 
@@ -114,3 +116,8 @@ def test_checkpoint_plugin_called_async(tmpdir):
     assert ckpt_files == {"epoch=0-step=1.ckpt", "epoch=1-step=2.ckpt"}
     assert checkpoint_plugin.save_checkpoint.call_count == 2
     assert checkpoint_plugin.remove_checkpoint.call_count == 0
+
+
+def test_invalid_configuration_with_async():
+    with pytest.raises(MisconfigurationException, match="not possible with `num_threads=0`"):
+        TorchCheckpointIO(save_async=True, num_threads=0)
