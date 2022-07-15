@@ -346,5 +346,5 @@ def download_frontend(root: str = _PROJECT_ROOT):
         print("The Lightning UI has successfully been downloaded!")
 
     # If installing from source without internet connection, we don't want to break the installation
-    except Exception as e:
+    except Exception:
         print("The Lightning UI downloading has failed!")
