@@ -124,7 +124,6 @@ class _FxValidator:
         ),
         "on_predict_batch_start": None,
         "on_predict_batch_end": None,
-        "on_keyboard_interrupt": None,
         "on_exception": None,
         "state_dict": None,
         "on_save_checkpoint": None,

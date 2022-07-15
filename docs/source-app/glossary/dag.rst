@@ -1,17 +1,7 @@
 ######################
-Directed acyclic Graph
+Directed Acyclic Graph
 ######################
 **Audience:** Users coming from MLOps to Lightning Apps, looking for more flexibility.
-
-.. warning:: documentation under development
-
-----
-
-***************************************
-What is a Directed acyclic Graph (DAG)?
-***************************************
-
-.. note:: documentation under development
 
 ----
 
@@ -29,4 +19,28 @@ Can I Build a DAG with Lightning?
 *********************************
 Yes!
 
-DAGs are the (easiest) use-cases to build with Lightning Apps. For example, here's a full app that defines a DAG:
+DAGs are one of the easiest Lightning Apps to build. For example, here's a `full app that defines a DAG <../examples/dag/dag.html>`_.
+
+----
+
+********
+Examples
+********
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+   :header: Build a DAG
+   :description: Learn how to create a DAG with Lightning
+   :col_css: col-md-4
+   :button_link: ../examples/dag/dag.html
+   :height: 180
+   :tag: Intermediate
+
+.. raw:: html
+
+        </div>
+    </div>

@@ -44,14 +44,6 @@ class BoringCallbackDDPSpawnModel(BoringModel):
         self.log(self.name, self.val)
         return super().validation_step(batch, batch_idx)
 
-    def add_to_queue(self, queue) -> None:
-        queue.put("test_val")
-        return super().add_to_queue(queue)
-
-    def get_from_queue(self, queue) -> None:
-        self.test_val = queue.get()
-        return super().get_from_queue(queue)
-
 
 @RunIf(skip_windows=True)
 def test_ddp_cpu():
@@ -67,31 +59,13 @@ def test_ddp_cpu():
     trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=2)
-def test_ddp_spawn_extra_parameters(tmpdir):
-    """Tests if device is set correctly when training for DDPSpawnStrategy and tests add_to_queue/get_from_queue
-    with Lightning Module (deprecated way)."""
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="gpu", devices=2, strategy="ddp_spawn")
-
-    assert isinstance(trainer.strategy, DDPSpawnStrategy)
-    assert trainer.strategy.root_device == torch.device("cuda:0")
-
-    val: float = 1.0
-    val_name: str = "val_acc"
-    model = BoringCallbackDDPSpawnModel(val_name, val)
-    dm = BoringDataModule()
-    trainer.fit(model, datamodule=dm)
-    assert trainer.callback_metrics[val_name] == torch.tensor(val)
-    assert model.test_val == "test_val"
-
-
 class CustomSpawnLauncher(_SpawnLauncher):
     def add_to_queue(self, trainer, queue) -> None:
-        queue.put("new_test_val")
+        queue.put("test_val")
         return super().add_to_queue(trainer, queue)
 
     def get_from_queue(self, trainer: Trainer, queue) -> None:
-        trainer.strategy.new_test_val = queue.get()
+        trainer.strategy.test_val = queue.get()
         return super().get_from_queue(trainer, queue)
 
 
@@ -115,7 +89,7 @@ def test_ddp_spawn_add_get_queue(tmpdir):
     dm = BoringDataModule()
     trainer.fit(model, datamodule=dm)
     assert trainer.callback_metrics[val_name] == torch.tensor(val)
-    assert ddp_spawn_strategy.new_test_val == "new_test_val"
+    assert ddp_spawn_strategy.test_val == "test_val"
 
 
 class BoringModelDDP(BoringModel):
