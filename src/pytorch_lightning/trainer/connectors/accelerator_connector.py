@@ -546,7 +546,8 @@ class AcceleratorConnector:
             return SLURMEnvironment()
         for env_type in (BaguaEnvironment, TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
             if env_type.detect():
-                return env_type()
+                # Ignore type error because it is a false positive: https://github.com/python/mypy/issues/13044
+                return env_type()  # type: ignore[abstract]
         return LightningEnvironment()
 
     def _is_slurm_managing_tasks(self) -> bool:
