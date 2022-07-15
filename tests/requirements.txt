@@ -1,10 +1,5 @@
 coverage>=5.0
 codecov>=2.1
-pytest>=5.0
-# pytest-cov
-pytest-flake8
-flake8>=3.0
-check-manifest
-twine>=3.2
-isort>=5.0
-mypy>=0.720
+pytest>=6.0
+pytest-cov
+pytest-timeout

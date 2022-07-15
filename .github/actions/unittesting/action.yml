@@ -1,0 +1,62 @@
+name: Unittesting and coverage
+description: pull data samples -> unittests
+
+inputs:
+  python-version:
+    description: Python version
+    required: true
+  pytorch-version:
+    description: PyTorch version
+    required: true
+  pkg-name:
+    description: package name for coverage collctions
+    required: true
+  requires:
+    description: define oldest or latest
+    required: false
+    default: ""
+  dirs:
+    description: Testing folders per domains
+    required: false
+    default: "."
+  pytest-args:
+    description: Additional pytest arguments such as `--timeout=120`
+    required: false
+    default: ""
+  shell-type:
+    description: Define Shell type
+    required: false
+    default: "bash"
+
+runs:
+  using: "composite"
+  steps:
+
+  - run: |
+      python --version
+      pip --version
+      pip list
+    shell: ${{ inputs.shell-type }}
+
+  - run: echo "PYTEST_ARTEFACT=test-results-${{ runner.os }}-py${{ inputs.python-version }}-pt{{ inputs.pytorch-version }}-${{ inputs.requires }}" >> $GITHUB_ENV
+    shell: bash
+
+  - name: Unittests
+    working-directory: ./tests
+    run: python -m pytest ${{ inputs.dirs }} --cov=${{ inputs.pkg-name }} --junitxml="$PYTEST_ARTEFACT.xml" --durations=50 ${{ inputs.test-timeout }}
+    shell: ${{ inputs.shell-type }}
+
+  - name: Upload pytest results
+    uses: actions/upload-artifact@v2
+    with:
+      name: ${{env.PYTEST_ARTEFACT}}
+      path: "test/${{env.PYTEST_ARTEFACT}}.xml"
+    if: failure()
+
+  - name: Statistics
+    if: success()
+    working-directory: ./tests
+    run: |
+      coverage xml
+      coverage report
+    shell: ${{ inputs.shell-type }}

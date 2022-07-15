@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   check-typing:
-    uses: ./.github/workflows/check-typing.yml
+    uses: ./.github/workflows/check-code.yml
 
   check-schema:
     uses: ./.github/workflows/check-schema.yml
