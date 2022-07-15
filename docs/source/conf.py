@@ -10,42 +10,31 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-
 import glob
 import inspect
 import os
 import re
-import shutil
 import sys
-from importlib.util import module_from_spec, spec_from_file_location
 
 import pt_lightning_sphinx_theme
 
+import pl_devtools
+
 _PATH_HERE = os.path.abspath(os.path.dirname(__file__))
 _PATH_ROOT = os.path.realpath(os.path.join(_PATH_HERE, "..", ".."))
-sys.path.insert(0, os.path.abspath(_PATH_ROOT))
-
 SPHINX_MOCK_REQUIREMENTS = int(os.environ.get("SPHINX_MOCK_REQUIREMENTS", True))
-
-# alternative https://stackoverflow.com/a/67692/4521646
-spec = spec_from_file_location(
-    "pl_devtools/__about__.py",
-    os.path.join(_PATH_ROOT, "src", "pl_devtools", "__about__.py"),
-)
-about = module_from_spec(spec)
-spec.loader.exec_module(about)
 
 # -- Project information -----------------------------------------------------
 
 # this name shall match the project name in Github as it is used for linking to code
 project = "Lightning-Dev-Tools"
-copyright = about.__copyright__
-author = about.__author__
+copyright = pl_devtools.__copyright__
+author = pl_devtools.__author__
 
 # The short X.Y version
-version = about.__version__
+version = pl_devtools.__version__
 # The full version, including alpha/beta/rc tags
-release = about.__version__
+release = pl_devtools.__version__
 
 # Options for the linkcode extension
 # ----------------------------------
@@ -173,8 +162,8 @@ html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
 # documentation.
 
 html_theme_options = {
-    "pytorch_project": about.__homepage__,
-    "canonical_url": about.__homepage__,
+    "pytorch_project": pl_devtools.__homepage__,
+    "canonical_url": pl_devtools.__homepage__,
     "collapse_navigation": False,
     "display_version": True,
     "logo_only": False,
@@ -240,7 +229,7 @@ texinfo_documents = [
         project + " Documentation",
         author,
         project,
-        about.__docs__,
+        pl_devtools.__docs__,
         "Miscellaneous",
     ),
 ]
@@ -285,15 +274,6 @@ def setup(app):
     app.add_js_file("copybutton.js")
 
 
-# copy all notebooks to local folder
-path_nbs = os.path.join(_PATH_HERE, "notebooks")
-if not os.path.isdir(path_nbs):
-    os.mkdir(path_nbs)
-for path_ipynb in glob.glob(os.path.join(_PATH_ROOT, "notebooks", "*.ipynb")):
-    path_ipynb2 = os.path.join(path_nbs, os.path.basename(path_ipynb))
-    shutil.copy(path_ipynb, path_ipynb2)
-
-
 # Ignoring Third-party packages
 # https://stackoverflow.com/questions/15889621/sphinx-how-to-exclude-imports-in-automodule
 def _package_list_from_file(file):
@@ -315,7 +295,7 @@ PACKAGE_MAPPING = {
 MOCK_PACKAGES = []
 if SPHINX_MOCK_REQUIREMENTS:
     # mock also base packages when we are on RTD since we don't install them there
-    MOCK_PACKAGES += _package_list_from_file(os.path.join(_PATH_ROOT, "requirements.txt"))
+    MOCK_PACKAGES += _package_list_from_file(os.path.join(_PATH_ROOT, "requirements", "base.txt"))
 MOCK_PACKAGES = [PACKAGE_MAPPING.get(pkg, pkg) for pkg in MOCK_PACKAGES]
 
 autodoc_mock_imports = MOCK_PACKAGES
@@ -392,13 +372,6 @@ autosectionlabel_prefix_document = True
 # only run doctests marked with a ".. doctest::" directive
 doctest_test_doctest_blocks = ""
 doctest_global_setup = """
-
-import importlib
 import os
-import torch
-
-import pytorch_lightning as pl
-from pytorch_lightning import Trainer, LightningModule
-
 """
 coverage_skip_undoc_in_source = True

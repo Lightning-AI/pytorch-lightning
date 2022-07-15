@@ -23,14 +23,14 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/*.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
       - name: Install dependencies
         run: |
-          pip install  --requirement requirements.txt -U -f https://download.pytorch.org/whl/cpu/torch_stable.html  --quiet
-          pip install  --requirement docs/requirements.txt
+          pip install  -e . -U -f https://download.pytorch.org/whl/cpu/torch_stable.html  --quiet
+          pip install  --requirement requirements/docs.txt
           # install Texlive, see https://linuxconfig.org/how-to-install-latex-on-ubuntu-20-04-focal-fossa-linux
           sudo apt-get update
           sudo apt-get install -y texlive-latex-extra dvipng texlive-pictures

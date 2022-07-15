@@ -6,8 +6,8 @@ export SLURM_LOCALID=0
 export SPHINX_MOCK_REQUIREMENTS=0
 
 test:
-	pip install -q -r requirements.txt
-	pip install -q -r tests/requirements.txt
+	pip install -q -r requirements/base.txt
+	pip install -q -r requirements/test.txt
 
 	# use this to run tests
 	rm -rf _ckpt_*
@@ -19,7 +19,7 @@ test:
 	# python -m coverage run --source src/pl_devtools -m pytest --flake8 --durations=0 -v -k
 
 docs: clean
-	pip install -e . -r docs/requirements.txt
+	pip install -e . -q -r requirements/docs.txt
 	cd docs && $(MAKE) html
 
 clean:
