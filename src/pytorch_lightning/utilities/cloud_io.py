@@ -14,9 +14,11 @@
 """Utilities related to data saving/loading."""
 
 import io
+import queue
 import threading
+import time
 from pathlib import Path
-from typing import Any, Callable, Dict, IO, Optional, Union
+from typing import Any, Callable, Dict, IO, List, Optional, Union
 
 import fsspec
 import torch
@@ -24,6 +26,30 @@ from fsspec.core import url_to_fs
 from fsspec.implementations.local import AbstractFileSystem
 
 from pytorch_lightning.utilities.types import _PATH
+
+_state_observer_lock = threading.Lock()
+
+
+class ThreadQueue(threading.Thread):
+    def __init__(self, func: Callable, q: queue.Queue, interval: int = 5) -> None:
+        super().__init__(daemon=True)
+        self.func = func
+        self.q = q
+        self._close_thread = False
+        self._interval = interval
+
+    def run(self) -> None:
+        with _state_observer_lock:
+            while not (self._close_thread and self.q.empty()):
+                time.sleep(self._interval)
+                args = self.q.get()
+                self.func(*args)
+                self.q.task_done()
+
+    def join(self, timeout: Optional[float] = None) -> None:
+        self._close_thread = True
+        self.q.join()
+        super().join(timeout)
 
 
 def load(
@@ -53,7 +79,9 @@ def get_filesystem(path: _PATH, **kwargs: Any) -> AbstractFileSystem:
     return fs
 
 
-def atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path], save_async: bool = False) -> None:
+def atomic_save(
+    checkpoint: Dict[str, Any], filepath: Union[str, Path], threads: List[ThreadQueue] = None, queue: queue.Queue = None
+) -> None:
     """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
     Args:
@@ -63,14 +91,23 @@ def atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path], save_asy
         filepath: The path to which the checkpoint will be saved.
             This points to the file that the checkpoint will be stored in.
     """
-    if save_async:
-        thread = threading.Thread(target=_atomic_save, args=((checkpoint, filepath)))
-        thread.start()
+    if threads is not None:
+        assert queue is not None
+        queue.put((checkpoint, filepath))
     else:
         _atomic_save(checkpoint, filepath)
 
 
 def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None:
+    """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
+
+    Args:
+        checkpoint: The object to save.
+            Built to be used with the ``dump_checkpoint`` method, but can deal with anything which ``torch.save``
+            accepts.
+        filepath: The path to which the checkpoint will be saved.
+            This points to the file that the checkpoint will be stored in.
+    """
     bytesbuffer = io.BytesIO()
     torch.save(checkpoint, bytesbuffer)
     with fsspec.open(filepath, "wb") as f:

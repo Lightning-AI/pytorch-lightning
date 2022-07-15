@@ -13,12 +13,15 @@
 # limitations under the License.
 import logging
 import os
+import queue
 from typing import Any, Callable, Dict, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.utilities.cloud_io import atomic_save, get_filesystem
+from pytorch_lightning.utilities.cloud_io import _atomic_save, atomic_save, get_filesystem
 from pytorch_lightning.utilities.cloud_io import load as pl_load
+from pytorch_lightning.utilities.cloud_io import ThreadQueue
+from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.types import _PATH
 
@@ -31,10 +34,26 @@ class TorchCheckpointIO(CheckpointIO):
 
     Args:
         save_async: whether to save the checkpoint asynchronously or not.
+        num_threads: Number of threads to use for asynchronous checkpointing.
     """
 
-    def __init__(self, save_async: bool = False):
-        self.save_async = save_async
+    def __init__(self, save_async: bool = False, num_threads: Optional[int] = None):
+
+        if save_async and not (isinstance(num_threads, int) and (num_threads >= 0)):
+            raise MisconfigurationException(
+                f"Asynchronous checkpoint is not possible with `num_threds={num_threads!r}`."
+            )
+
+        self.queue = None
+        self.threads = None
+
+        if save_async:
+            self.queue = queue.Queue()
+            assert isinstance(num_threads, int)
+            assert self.queue is not None
+            self.threads = [ThreadQueue(func=_atomic_save, q=self.queue) for _ in range(num_threads)]
+            for thread in self.threads:
+                thread.start()
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
@@ -58,14 +77,14 @@ class TorchCheckpointIO(CheckpointIO):
         fs.makedirs(os.path.dirname(path), exist_ok=True)
         try:
             # write the checkpoint dictionary on the file
-            atomic_save(checkpoint, path, self.save_async)
+            atomic_save(checkpoint, path, self.threads, self.queue)
         except AttributeError as err:
             # todo (sean): is this try catch necessary still?
             # https://github.com/Lightning-AI/lightning/pull/431
             key = pl.LightningModule.CHECKPOINT_HYPER_PARAMS_KEY
             checkpoint.pop(key, None)
             rank_zero_warn(f"Warning, `{key}` dropped from checkpoint. An attribute is not picklable: {err}")
-            atomic_save(checkpoint, path)
+            atomic_save(checkpoint, path, self.threads, self.queue)
 
     def load_checkpoint(
         self, path: _PATH, map_location: Optional[Callable] = lambda storage, loc: storage
@@ -101,3 +120,10 @@ class TorchCheckpointIO(CheckpointIO):
         if fs.exists(path):
             fs.rm(path, recursive=True)
             log.debug(f"Removed checkpoint: {path}")
+
+    def on_train_end(self) -> None:
+        if self.threads is None:
+            return
+
+        for thread in self.threads:
+            thread.join()

@@ -60,3 +60,7 @@ class CheckpointIO(ABC):
         Args:
             path: Path to checkpoint
         """
+
+    def on_train_end(self) -> None:
+        """Called when train ends."""
+        pass

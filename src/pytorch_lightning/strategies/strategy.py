@@ -471,7 +471,7 @@ class Strategy(ABC):
 
     def on_train_end(self) -> None:
         """Called when train ends."""
-        pass
+        self.checkpoint_io.on_train_end()
 
     def on_validation_end(self) -> None:
         """Called when validation ends."""

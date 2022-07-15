@@ -11,15 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
-from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.utilities import _OMEGACONF_AVAILABLE, _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.cloud_io import get_filesystem
-from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.cloud_io import load as pl_load
 from pytorch_lightning.utilities.types import _PATH
+
+log = logging.getLogger(__name__)
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
@@ -28,24 +31,8 @@ if _OMEGACONF_AVAILABLE:
     from omegaconf import DictConfig, ListConfig, OmegaConf
 
 
-class XLACheckpointIO(TorchCheckpointIO):
-    """CheckpointIO that utilizes :func:`xm.save` to save checkpoints for TPU training strategies.
-
-    Args:
-        save_async: whether to save the checkpoint asynchronously or not.
-
-    Raises:
-        MisconfigurationException:
-            If ``save_async`` is set to ``True``.
-    """
-
-    def __init__(self, save_async: bool = False):
-        if save_async:
-            raise MisconfigurationException(
-                "Saving checkpoints asynchronously is not supported with `XLACheckpointIO` plugin."
-            )
-
-        super().__init__(save_async=save_async)
+class XLACheckpointIO(CheckpointIO):
+    """CheckpointIO that utilizes :func:`xm.save` to save checkpoints for TPU training strategies."""
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
@@ -72,3 +59,38 @@ class XLACheckpointIO(TorchCheckpointIO):
         if _OMEGACONF_AVAILABLE:
             checkpoint = apply_to_collection(checkpoint, (DictConfig, ListConfig), OmegaConf.to_container)
         xm.save({k: v for k, v in checkpoint.items() if k != "callbacks"}, path)
+
+    def load_checkpoint(
+        self, path: _PATH, map_location: Optional[Callable] = lambda storage, loc: storage
+    ) -> Dict[str, Any]:
+        """Loads checkpoint using :func:`torch.load`, with additional handling for ``fsspec`` remote loading of
+        files.
+
+        Args:
+            path: Path to checkpoint
+            map_location: a function, :class:`torch.device`, string or a dict specifying how to remap storage
+            locations.
+
+        Returns: The loaded checkpoint.
+
+        Raises:
+            FileNotFoundError: If ``path`` is not found by the ``fsspec`` filesystem
+        """
+
+        # Try to read the checkpoint at `path`. If not exist, do not restore checkpoint.
+        fs = get_filesystem(path)
+        if not fs.exists(path):
+            raise FileNotFoundError(f"Checkpoint at {path} not found. Aborting training.")
+
+        return pl_load(path, map_location=map_location)
+
+    def remove_checkpoint(self, path: _PATH) -> None:
+        """Remove checkpoint file from the filesystem.
+
+        Args:
+            path: Path to checkpoint
+        """
+        fs = get_filesystem(path)
+        if fs.exists(path):
+            fs.rm(path, recursive=True)
+            log.debug(f"Removed checkpoint: {path}")
