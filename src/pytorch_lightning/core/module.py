@@ -1567,7 +1567,10 @@ class LightningModule(
                 scheduler.step(epoch=self.current_epoch)
 
         """
-        scheduler.step(metric)
+        if metric is None:
+            scheduler.step()  # type: ignore[call-arg]
+        else:
+            scheduler.step(metric)
 
     def optimizer_step(
         self,
