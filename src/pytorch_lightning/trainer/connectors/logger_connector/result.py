@@ -29,7 +29,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.utilities.warnings import WarningCache, PossibleUserWarning
+from pytorch_lightning.utilities.warnings import PossibleUserWarning, WarningCache
 
 _IN_METRIC = Union[Metric, Tensor]  # Do not include scalars as they were converted to tensors
 _OUT_METRIC = Union[Tensor, Dict[str, Tensor]]
@@ -527,7 +527,8 @@ class _ResultCollection(dict):
                     warning_cache.warn(
                         f"It is recommended to use `self.log({result_metric.meta.name!r}, ..., sync_dist=True)` when"
                         " logging on epoch level in distributed setting to accumulate the metric across devices.",
-                        category=PossibleUserWarning)
+                        category=PossibleUserWarning,
+                    )
                 result_metric.compute()
 
             cache = result_metric._computed
