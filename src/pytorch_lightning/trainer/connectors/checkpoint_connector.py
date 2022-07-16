@@ -265,11 +265,12 @@ class CheckpointConnector:
 
         fit_loop = self.trainer.fit_loop
         pl_module = self.trainer.lightning_module
+        assert pl_module is not None
 
         # set the `global_step` value for checkpoints before v1.6 without the progress tracking state.
         # it will be overwritten by the loop's state if it was also saved
         batch_loop = fit_loop.epoch_loop.batch_loop
-        if pl_module is None or pl_module.automatic_optimization:
+        if pl_module.automatic_optimization:
             batch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = self._loaded_checkpoint[
                 "global_step"
             ]
