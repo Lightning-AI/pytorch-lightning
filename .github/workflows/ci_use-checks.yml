@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: ${{ ! (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) }}
 
 jobs:
-  check-typing:
+  check-code:
     uses: ./.github/workflows/check-code.yml
 
   check-schema:

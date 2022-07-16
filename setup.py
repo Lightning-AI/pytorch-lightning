@@ -31,7 +31,7 @@ setup(
     author=about.__author__,
     author_email=about.__author_email__,
     url=about.__homepage__,
-    download_url="https://github.com/Lightning-AI/dev-toolbox",
+    download_url="https://github.com/Lightning-AI/devtools",
     license=about.__license__,
     packages=find_packages(where="src"),
     package_dir={"": "src"},
@@ -44,9 +44,9 @@ setup(
     setup_requires=[],
     install_requires=requirements,
     project_urls={
-        "Bug Tracker": "https://github.com/Lightning-AI/dev-toolbox/issues",
-        "Documentation": "https://dev-toolbox.rtfd.io/en/latest/",
-        "Source Code": "https://github.com/Lightning-AI/dev-toolbox",
+        "Bug Tracker": "https://github.com/Lightning-AI/devtools/issues",
+        "Documentation": "https://dev-toolbox.rtfd.io/en/latest/",  # TODO: Update domain
+        "Source Code": "https://github.com/Lightning-AI/devtools",
     },
     classifiers=[
         "Environment :: Console",
