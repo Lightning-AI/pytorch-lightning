@@ -17,6 +17,8 @@ What is a Jupyter Notebook?
 
 TODO
 
+----
+
 *******************
 Install Jupyter Lab
 *******************

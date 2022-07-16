@@ -45,7 +45,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
 from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -1954,28 +1954,6 @@ class LightningModule(
             )
         self._use_amp = use_amp
 
-    def add_to_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
-        """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
-        sharing, we cast the data to numpy.
-
-        Args:
-            queue: the instance of the queue to append the data.
-
-        .. deprecated:: v1.5
-            This method was deprecated in v1.5 and will be removed in v1.7.
-        """
-
-    def get_from_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
-        """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
-        we cast back the data to ``torch.Tensor``.
-
-        Args:
-            queue: the instance of the queue from where to get the data.
-
-        .. deprecated:: v1.5
-            This method was deprecated in v1.5 and will be removed in v1.7.
-        """
-
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> Generator[None, None, None]:
         self._should_prevent_trainer_and_dataloaders_deepcopy = True
@@ -2008,7 +1986,7 @@ class LightningModule(
 
         self._register_state_dict_hook(state_dict_hook)
 
-        if _TORCH_GREATER_EQUAL_1_12:
+        if _TORCH_GREATER_EQUAL_1_13:
             self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
         else:
             # We need to make sure the self inside the method is a weakref proxy
