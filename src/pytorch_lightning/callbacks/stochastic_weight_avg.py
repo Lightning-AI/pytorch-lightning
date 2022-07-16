@@ -168,13 +168,16 @@ class StochasticWeightAveraging(Callback):
             for lr, group in zip(self._swa_lrs, optimizer.param_groups):
                 group["initial_lr"] = lr
 
-            self._swa_scheduler: _LRScheduler = cast(_LRScheduler, SWALR(
-                optimizer,
-                swa_lr=self._swa_lrs,  # type: ignore[arg-type]
-                anneal_epochs=self._annealing_epochs,
-                anneal_strategy=self._annealing_strategy,
-                last_epoch=trainer.max_epochs if self._annealing_strategy == "cos" else -1,
-            ))
+            self._swa_scheduler: _LRScheduler = cast(
+                _LRScheduler,
+                SWALR(
+                    optimizer,
+                    swa_lr=self._swa_lrs,  # type: ignore[arg-type]
+                    anneal_epochs=self._annealing_epochs,
+                    anneal_strategy=self._annealing_strategy,
+                    last_epoch=trainer.max_epochs if self._annealing_strategy == "cos" else -1,
+                ),
+            )
             # We assert that there is only one optimizer on fit start, so know opt_idx is always 0
             default_scheduler_cfg = LRSchedulerConfig(self._swa_scheduler, opt_idx=0)
             assert default_scheduler_cfg.interval == "epoch" and default_scheduler_cfg.frequency == 1
@@ -243,12 +246,12 @@ class StochasticWeightAveraging(Callback):
             module.running_mean = torch.zeros_like(
                 module.running_mean,  # type: ignore[arg-type]
                 device=pl_module.device,
-                dtype=module.running_mean.dtype  # type: ignore[union-attr]
+                dtype=module.running_mean.dtype,  # type: ignore[union-attr]
             )
             module.running_var = torch.ones_like(
                 module.running_var,  # type: ignore[arg-type]
                 device=pl_module.device,
-                dtype=module.running_var.dtype  # type: ignore[union-attr]
+                dtype=module.running_var.dtype,  # type: ignore[union-attr]
             )
             self.momenta[module] = module.momentum
             module.momentum = None  # type: ignore[assignment]
@@ -273,7 +276,6 @@ class StochasticWeightAveraging(Callback):
         n_averaged += 1
 
     @staticmethod
-    def avg_fn(
-        averaged_model_parameter: Tensor, model_parameter: Tensor, num_averaged: Tensor) -> Tensor:
+    def avg_fn(averaged_model_parameter: Tensor, model_parameter: Tensor, num_averaged: Tensor) -> Tensor:
         """Adapted from https://github.com/pytorch/pytorch/blob/v1.7.1/torch/optim/swa_utils.py#L95-L97."""
         return averaged_model_parameter + (model_parameter - averaged_model_parameter) / (num_averaged + 1)
