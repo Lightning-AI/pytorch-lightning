@@ -207,8 +207,11 @@ def test_logger_sync_dist():
     model = CustomBoringModel()
     trainer = Trainer(fast_dev_run=1, accelerator="cpu", strategy="ddp", devices=2)
 
-    with pytest.warns(PossibleUserWarning, match="It is recommended to use `self.log('global_rank', ..., sync_dist=True)` when "
-        "logging on epoch level in distributed setting to accumulate the metric across devices."):
+    with pytest.warns(
+        PossibleUserWarning,
+        match="It is recommended to use `self.log('global_rank', ..., sync_dist=True)` when "
+        "logging on epoch level in distributed setting to accumulate the metric across devices.",
+    ):
         trainer.fit(model)
 
     assert trainer.callback_metrics["global_rank"] == 0
