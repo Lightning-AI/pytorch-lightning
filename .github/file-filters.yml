@@ -6,3 +6,4 @@ app_examples:
   - "requirements/app/**"
   - "examples/app_*"
   - "setup.py"
+  - "src/pytorch_lightning/__version__.py"

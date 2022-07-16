@@ -108,6 +108,7 @@ jobs:
         shell: bash
 
       - name: Lightning Install quick-start
+        if: ${{ (matrix.app_name == 'quick_start') }}
         shell: bash
         run: |
           python -m lightning install app lightning/quick-start -y
