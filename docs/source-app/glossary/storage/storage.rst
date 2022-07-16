@@ -48,3 +48,30 @@ Lightning storage provides two solutions :class:`~lightning_app.storage.drive.Dr
 
         </div>
     </div>
+
+
+----
+
+********
+Examples
+********
+
+
+
+.. raw:: html
+
+    <div class="display-card-container">
+        <div class="row">
+
+.. displayitem::
+   :header: Build a File Server
+   :description: Learn how to use Drive to upload / download files to your app.
+   :col_css: col-md-4
+   :button_link: ../../examples/file_server/file_server.html
+   :height: 180
+   :tag: Intermediate
+
+.. raw:: html
+
+        </div>
+    </div>
