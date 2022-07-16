@@ -327,7 +327,7 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
             fp.writelines(lines)
 
 
-def download_frontend(root: str = _PROJECT_ROOT):
+def _download_frontend(root: str = _PROJECT_ROOT):
     """Downloads an archive file for a specific release of the Lightning frontend and extracts it to the correct
     directory."""
 

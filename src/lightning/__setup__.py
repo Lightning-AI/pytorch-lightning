@@ -70,7 +70,7 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
     # TODO: consider invaliding some additional arguments from packages, for example if include data or safe to zip
 
     # TODO: remove this once lightning-ui package is ready as a dependency
-    _setup_tools.download_frontend(_PROJECT_ROOT)
+    _setup_tools._download_frontend(_PROJECT_ROOT)
 
     return dict(
         name="lightning",
