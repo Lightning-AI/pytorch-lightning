@@ -224,7 +224,7 @@ class LightningModule(
 
         Useful to set flags around the LightningModule for different CPU vs GPU behavior.
         """
-        return self.device.type == "cuda"
+        return self.device.type == "cuda"  # type: ignore[union-attr]
 
     @property
     def automatic_optimization(self) -> bool:
@@ -1426,7 +1426,7 @@ class LightningModule(
 
         # Then iterate over the current optimizer's parameters and set its `requires_grad`
         # properties accordingly
-        for group in optimizer.param_groups:
+        for group in optimizer.param_groups:  # type: ignore[union-attr]
             for param in group["params"]:
                 param.requires_grad = param_requires_grad_state[param]
         self._param_requires_grad_state = param_requires_grad_state
