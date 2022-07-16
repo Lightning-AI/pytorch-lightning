@@ -24,11 +24,12 @@ from typing_extensions import TypedDict
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to_collections, move_data_to_device
 from pytorch_lightning.utilities.data import extract_batch_size
+from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
-from pytorch_lightning.utilities.warnings import WarningCache
+from pytorch_lightning.utilities.warnings import WarningCache, PossibleUserWarning
 
 _IN_METRIC = Union[Metric, Tensor]  # Do not include scalars as they were converted to tensors
 _OUT_METRIC = Union[Tensor, Dict[str, Tensor]]
@@ -522,11 +523,11 @@ class _ResultCollection(dict):
             cache = result_metric._forward_cache
         elif not on_step and result_metric.meta.on_epoch:
             if result_metric._computed is None:
-                if not result_metric.meta.sync.should:
+                if not result_metric.meta.sync.should and distributed_available():
                     warning_cache.warn(
                         f"It is recommended to use `self.log({result_metric.meta.name!r}, ..., sync_dist=True)` when"
-                        " logging on epoch level in distributed setting to accumulate the metric across devices."
-                    )
+                        " logging on epoch level in distributed setting to accumulate the metric across devices.",
+                        category=PossibleUserWarning)
                 result_metric.compute()
 
             cache = result_metric._computed

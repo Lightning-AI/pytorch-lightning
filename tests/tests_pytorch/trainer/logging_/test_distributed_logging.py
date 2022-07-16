@@ -21,6 +21,7 @@ import pytorch_lightning as pl
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers.logger import Logger
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests_pytorch.helpers.runif import RunIf
 
 
@@ -200,14 +201,13 @@ def test_logger_after_fit_predict_test_calls(tmpdir):
 
 def test_logger_sync_dist():
     class CustomBoringModel(BoringModel):
-        def training_epoch_end(self, *args, **kwargs):
-            super().training_epoch_end(*args, **kwargs)
+        def on_train_epoch_end(self):
             self.log("global_rank", self.global_rank, sync_dist=False)
 
     model = CustomBoringModel()
     trainer = Trainer(fast_dev_run=1, accelerator="cpu", strategy="ddp", devices=2)
 
-    with pytest.warns(UserWarning, match="It is recommended to use .* sync_dist=True"):
+    with pytest.warns(PossibleUserWarning, match="It is recommended to use .* sync_dist=True"):
         trainer.fit(model)
 
     assert trainer.callback_metrics["global_rank"] == 0
