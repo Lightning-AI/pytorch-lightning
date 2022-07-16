@@ -61,7 +61,6 @@ module = [
     "pytorch_lightning.loggers.comet",
     "pytorch_lightning.loggers.mlflow",
     "pytorch_lightning.loggers.neptune",
-    "pytorch_lightning.loggers.tensorboard",
     "pytorch_lightning.loggers.wandb",
     "pytorch_lightning.profilers.advanced",
     "pytorch_lightning.profilers.base",
