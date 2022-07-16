@@ -1726,7 +1726,7 @@ class LightningModule(
                 if isinstance(x, Tensor):
                     split_x = x[:, t : t + split_size]
                 elif isinstance(x, collections.Sequence):
-                    split_x = [None] * len(x)
+                    split_x = [None] * len(x)  # type: ignore[assignment]
                     for batch_idx in range(len(x)):
                         split_x[batch_idx] = x[batch_idx][t : t + split_size]
 
@@ -1838,7 +1838,7 @@ class LightningModule(
 
         if not _TORCH_GREATER_EQUAL_1_10 and "example_outputs" not in kwargs:
             self.eval()
-            if isinstance(input_sample, Tuple):
+            if isinstance(input_sample, tuple):
                 kwargs["example_outputs"] = self(*input_sample)
             else:
                 kwargs["example_outputs"] = self(input_sample)
@@ -1996,4 +1996,6 @@ class LightningModule(
             self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
         else:
             # We need to make sure the self inside the method is a weakref proxy
-            self.__class__._register_load_state_dict_pre_hook(weakref.proxy(self), pre_load_state_dict_hook, True)
+            self.__class__._register_load_state_dict_pre_hook(
+                weakref.proxy(self), pre_load_state_dict_hook, True
+            )  # type: ignore[arg-type]
