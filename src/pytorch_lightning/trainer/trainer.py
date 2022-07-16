@@ -1225,7 +1225,6 @@ class Trainer(
     def _teardown(self):
         """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and
         Callback; those are handled by :meth:`_call_teardown_hook`."""
-        self.strategy.post_dispatch(self)
         self.strategy.teardown()
         loop = self._active_loop
         # loop should never be `None` here but it can because we don't know the trainer stage with `ddp_spawn`

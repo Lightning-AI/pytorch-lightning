@@ -76,14 +76,20 @@ class LightningTestApp(LightningApp):
 
 
 @requires("click")
-def application_testing(lightning_app_cls: Type[LightningTestApp], command_line: List[str] = []) -> Any:
+def application_testing(
+    lightning_app_cls: Type[LightningTestApp] = LightningTestApp, command_line: List[str] = []
+) -> Any:
     from unittest import mock
 
     from click.testing import CliRunner
 
     with mock.patch("lightning.LightningApp", lightning_app_cls):
+        original = sys.argv
+        sys.argv = command_line
         runner = CliRunner()
-        return runner.invoke(run_app, command_line, catch_exceptions=False)
+        result = runner.invoke(run_app, command_line, catch_exceptions=False)
+        sys.argv = original
+        return result
 
 
 class SingleWorkFlow(LightningFlow):

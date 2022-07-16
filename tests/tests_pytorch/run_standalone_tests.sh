@@ -21,7 +21,7 @@ export PL_RUN_STANDALONE_TESTS=1
 defaults='-m coverage run --source pytorch_lightning --append -m pytest --capture=no'
 
 # find tests marked as `@RunIf(standalone=True)`. done manually instead of with pytest because it is faster
-grep_output=$(grep --recursive --word-regexp . --regexp 'standalone=True' --include '*.py' --exclude 'conftest.py')
+grep_output=$(grep --recursive --word-regexp . --regexp 'standalone=True' --include '*.py')
 
 # file paths, remove duplicates
 files=$(echo "$grep_output" | cut -f1 -d: | sort | uniq)
