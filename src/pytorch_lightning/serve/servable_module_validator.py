@@ -98,7 +98,7 @@ class ServableModuleValidator(Callback):
         process = Process(target=self._start_server, args=(servable_module, self.host, self.port, self.optimization))
         process.start()
 
-        servable_module.trainer = trainer
+        servable_module.trainer = trainer  # type: ignore[assignment]
 
         ready = False
         t0 = time.time()
