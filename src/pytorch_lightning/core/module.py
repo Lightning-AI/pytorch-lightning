@@ -49,7 +49,13 @@ from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORC
 from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
-from pytorch_lightning.utilities.types import _METRIC_COLLECTION, EPOCH_OUTPUT, LRSchedulerTypeUnion, STEP_OUTPUT
+from pytorch_lightning.utilities.types import (
+    _METRIC_COLLECTION,
+    EPOCH_OUTPUT,
+    LRSchedulerPLType,
+    LRSchedulerTypeUnion,
+    STEP_OUTPUT,
+)
 from pytorch_lightning.utilities.warnings import WarningCache
 
 warning_cache = WarningCache()
@@ -151,7 +157,7 @@ class LightningModule(
         # multiple opts
         return opts
 
-    def lr_schedulers(self) -> Optional[Union[LRSchedulerTypeUnion, List[LRSchedulerTypeUnion]]]:
+    def lr_schedulers(self) -> Optional[Union[LRSchedulerTypeUnion, List[LRSchedulerTypeUnion], LRSchedulerPLType]]:
         """Returns the learning rate scheduler(s) that are being used during training. Useful for manual
         optimization.
 
