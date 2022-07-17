@@ -165,7 +165,10 @@ def _get_abbrev_qualified_cls_name(cls: Any) -> str:
 
 
 def add_argparse_args(
-    cls: Type["pl.Trainer"], parent_parser: ArgumentParser, *, use_argument_group: bool = True
+    cls: Type[Union["pl.Trainer", "pl.LightningDataModule"]],
+    parent_parser: ArgumentParser,
+    *,
+    use_argument_group: bool = True,
 ) -> Union[_ArgumentGroup, ArgumentParser]:
     r"""Extends existing argparse by default attributes for ``cls``.
 
@@ -216,7 +219,7 @@ def add_argparse_args(
 
     ignore_arg_names = ["self", "args", "kwargs"]
     if hasattr(cls, "get_deprecated_arg_names"):
-        ignore_arg_names += cls.get_deprecated_arg_names()
+        ignore_arg_names += cls.get_deprecated_arg_names()  # type: ignore[union-attr]
 
     allowed_types = (str, int, float, bool)
 
