@@ -26,6 +26,8 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.parsing import str_to_bool, str_to_bool_or_int, str_to_bool_or_str
 
 _T = TypeVar("_T", bound=Callable[..., Any])
+FROM_ARGPARSE_ARGS_CLS = Union[Type["ParseArgparserDataType"], Type["pl.LightningDataModule"]]
+FROM_ARGPARSE_ARGS_RETURN = Union["ParseArgparserDataType", "pl.LightningDataModule"]
 
 
 class ParseArgparserDataType(ABC):
@@ -38,8 +40,8 @@ class ParseArgparserDataType(ABC):
 
 
 def from_argparse_args(
-    cls: Type[ParseArgparserDataType], args: Union[Namespace, ArgumentParser], **kwargs: Any
-) -> ParseArgparserDataType:
+    cls: FROM_ARGPARSE_ARGS_CLS, args: Union[Namespace, ArgumentParser], **kwargs: Any
+) -> FROM_ARGPARSE_ARGS_RETURN:
     """Create an instance from CLI arguments. Eventually use variables from OS environment which are defined as
     ``"PL_<CLASS-NAME>_<CLASS_ARUMENT_NAME>"``.
 
@@ -60,7 +62,7 @@ def from_argparse_args(
         >>> trainer = Trainer.from_argparse_args(args, logger=False)
     """
     if isinstance(args, ArgumentParser):
-        args = cls.parse_argparser(args)
+        args = cls.parse_argparser(args)  # type: ignore[union-attr]
 
     params = vars(args)
 
@@ -165,7 +167,7 @@ def _get_abbrev_qualified_cls_name(cls: Any) -> str:
 
 
 def add_argparse_args(
-    cls: Type[Union["pl.Trainer", "pl.LightningDataModule"]],
+    cls: Union[Type["pl.Trainer"], Type["pl.LightningDataModule"]],
     parent_parser: ArgumentParser,
     *,
     use_argument_group: bool = True,
