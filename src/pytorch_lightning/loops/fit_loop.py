@@ -33,7 +33,7 @@ from pytorch_lightning.utilities.fetching import (
     InterBatchParallelDataFetcher,
 )
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 log = logging.getLogger(__name__)
@@ -104,13 +104,7 @@ class FitLoop(Loop[None]):
     def max_steps(self, value: int) -> None:
         """Sets the maximum number of steps (forwards to epoch_loop)"""
         # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
-        if value is None:
-            rank_zero_deprecation(
-                "Setting `max_steps = None` is deprecated in v1.5 and will no longer be supported in v1.7."
-                " Use `max_steps = -1` instead."
-            )
-            value = -1
-        elif value < -1:
+        if value < -1:
             raise MisconfigurationException(
                 f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {value}."
             )
