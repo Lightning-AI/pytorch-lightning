@@ -40,6 +40,9 @@ def _adjust_manifest(**kwargs: Any) -> None:
             "recursive-include src *.md" + os.linesep,
             "recursive-include requirements *.txt" + os.linesep,
         ]
+
+    # TODO: remove this once lightning-ui package is ready as a dependency
+    lines += ["recursive-include src/lightning_app/ui *" + os.linesep]
     with open(manifest_path, "w") as fp:
         fp.writelines(lines)
 
@@ -64,7 +67,11 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
             if os.path.isdir(d)
         ]
         _requires = list(chain(*_requires))
-    # todo: consider invaliding some additional arguments from packages, for example if include data or safe to zip
+    # TODO: consider invaliding some additional arguments from packages, for example if include data or safe to zip
+
+    # TODO: remove this once lightning-ui package is ready as a dependency
+    _setup_tools._download_frontend(_PROJECT_ROOT)
+
     return dict(
         name="lightning",
         version=_version.version,  # todo: consider adding branch for installation from source
