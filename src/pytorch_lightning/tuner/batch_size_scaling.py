@@ -235,7 +235,7 @@ def _adjust_batch_size(
     model = trainer.lightning_module
     batch_size = lightning_getattr(model, batch_arg_name)
     assert batch_size is not None
-    new_size: int = value if value is not None else int(batch_size * factor)
+    new_size = value if value is not None else int(batch_size * factor)
     if desc:
         log.info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
