@@ -30,7 +30,7 @@ from weakref import ReferenceType
 import torch
 from torch import Tensor
 
-from pytorch_lightning import __version__
+import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.imports import _NEPTUNE_AVAILABLE, _NEPTUNE_GREATER_EQUAL_0_9
@@ -268,7 +268,7 @@ class NeptuneLogger(Logger):
         prefix: str = "training",
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
         agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
-        **neptune_run_kwargs,
+        **neptune_run_kwargs: Any,
     ):
         # verify if user passed proper init arguments
         self._verify_input_arguments(api_key, project, name, run, neptune_run_kwargs)
@@ -292,9 +292,9 @@ class NeptuneLogger(Logger):
             self._retrieve_run_data()
 
             # make sure that we've log integration version for outside `Run` instances
-            self._run_instance[_INTEGRATION_VERSION_KEY] = __version__
+            self._run_instance[_INTEGRATION_VERSION_KEY] = pl.__version__
 
-    def _retrieve_run_data(self):
+    def _retrieve_run_data(self) -> None:
         try:
             self._run_instance.wait()
             self._run_short_id = self._run_instance["sys/id"].fetch()
@@ -304,8 +304,8 @@ class NeptuneLogger(Logger):
             self._run_name = "offline-name"
 
     @property
-    def _neptune_init_args(self):
-        args = {}
+    def _neptune_init_args(self) -> Dict:
+        args: Dict = {}
         # Backward compatibility in case of previous version retrieval
         try:
             args = self._neptune_run_kwargs
@@ -343,7 +343,7 @@ class NeptuneLogger(Logger):
         name: Optional[str],
         run: Optional["Run"],
         neptune_run_kwargs: dict,
-    ):
+    ) -> None:
         legacy_kwargs_msg = (
             "Following kwargs are deprecated: {legacy_kwargs}.\n"
             "If you are looking for the Neptune logger using legacy Python API,"
@@ -389,17 +389,17 @@ class NeptuneLogger(Logger):
                 " you can't provide other neptune.init() parameters.\n"
             )
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict:
         state = self.__dict__.copy()
         # Run instance can't be pickled
         state["_run_instance"] = None
         return state
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Dict) -> None:
         self.__dict__ = state
         self._run_instance = neptune.init(**self._neptune_init_args)
 
-    @property
+    @property  # type: ignore[misc]
     @rank_zero_experiment
     def experiment(self) -> Run:
         r"""
@@ -429,7 +429,7 @@ class NeptuneLogger(Logger):
         """
         return self.run
 
-    @property
+    @property  # type: ignore[misc]
     @rank_zero_experiment
     def run(self) -> Run:
         try:
@@ -437,7 +437,7 @@ class NeptuneLogger(Logger):
                 self._run_instance = neptune.init(**self._neptune_init_args)
                 self._retrieve_run_data()
                 # make sure that we've log integration version for newly created
-                self._run_instance[_INTEGRATION_VERSION_KEY] = __version__
+                self._run_instance[_INTEGRATION_VERSION_KEY] = pl.__version__
 
             return self._run_instance
         except NeptuneLegacyProjectException as e:
@@ -527,7 +527,7 @@ class NeptuneLogger(Logger):
         return os.path.join(os.getcwd(), ".neptune")
 
     @rank_zero_only
-    def log_model_summary(self, model, max_depth=-1):
+    def log_model_summary(self, model: "pl.LightningModule", max_depth: int = -1) -> None:
         model_str = str(ModelSummary(model=model, max_depth=max_depth))
         self.run[self._construct_path_with_prefix("model/summary")] = neptune.types.File.from_content(
             content=model_str, extension="txt"
@@ -625,7 +625,7 @@ class NeptuneLogger(Logger):
         return self._run_short_id
 
     @staticmethod
-    def _signal_deprecated_api_usage(f_name, sample_code, raise_exception=False):
+    def _signal_deprecated_api_usage(f_name: str, sample_code: str, raise_exception: bool = False) -> None:
         msg_suffix = (
             f"If you are looking for the Neptune logger using legacy Python API,"
             f" it's still available as part of neptune-contrib package:\n"
@@ -645,7 +645,7 @@ class NeptuneLogger(Logger):
             raise ValueError("The function you've used is deprecated.\n" + msg_suffix)
 
     @rank_zero_only
-    def log_metric(self, metric_name: str, metric_value: Union[Tensor, float, str], step: Optional[int] = None):
+    def log_metric(self, metric_name: str, metric_value: Union[Tensor, float, str], step: Optional[int] = None) -> None:
         key = f"{self._prefix}/{metric_name}"
         self._signal_deprecated_api_usage("log_metric", f"logger.run['{key}'].log(42)")
         if torch.is_tensor(metric_value):
@@ -674,12 +674,12 @@ class NeptuneLogger(Logger):
         self._signal_deprecated_api_usage("log_artifact", f"logger.run['{key}].log('path_to_file')")
         self.run[key].log(destination)
 
-    def set_property(self, *args, **kwargs):
+    def set_property(self, *args: Any, **kwargs: Any) -> None:
         self._signal_deprecated_api_usage(
             "log_artifact", f"logger.run['{self._prefix}/{self.PARAMETERS_KEY}/key'].log(value)", raise_exception=True
         )
 
-    def append_tags(self, *args, **kwargs):
+    def append_tags(self, *args: Any, **kwargs: Any) -> None:
         self._signal_deprecated_api_usage(
             "append_tags", "logger.run['sys/tags'].add(['foo', 'bar'])", raise_exception=True
         )
