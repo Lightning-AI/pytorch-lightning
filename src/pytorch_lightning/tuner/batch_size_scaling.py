@@ -16,6 +16,8 @@ import os
 import uuid
 from typing import Any, Dict, Optional, Tuple
 
+from torch.utils.data import DataLoader
+
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.logger import DummyLogger
 from pytorch_lightning.utilities.data import has_len_all_ranks
@@ -232,18 +234,13 @@ def _adjust_batch_size(
     """
     model = trainer.lightning_module
     batch_size = lightning_getattr(model, batch_arg_name)
-    if value is not None:
-        new_size = value
-    else:
-        if not isinstance(batch_size, int):
-            raise ValueError(f"Batch size attribute in LightningModule must be an integer, got: {batch_size!r}")
-        new_size = int(batch_size * factor)
-
+    assert batch_size is not None
+    new_size: int = value if value is not None else int(batch_size * factor)
     if desc:
         log.info(f"Batch size {batch_size} {desc}, trying batch size {new_size}")
 
+    assert trainer.train_dataloader is not None
     if not _is_valid_batch_size(new_size, trainer.train_dataloader, trainer):
-        assert trainer.train_dataloader is not None
         new_size = min(new_size, len(trainer.train_dataloader.dataset))
 
     changed = new_size != batch_size
@@ -251,8 +248,6 @@ def _adjust_batch_size(
     return new_size, changed
 
 
-def _is_valid_batch_size(batch_size: int, dataloader: Optional[Any], trainer: "pl.Trainer") -> bool:
-    if dataloader is None:
-        return True
+def _is_valid_batch_size(batch_size: int, dataloader: DataLoader, trainer: "pl.Trainer") -> bool:
     module = trainer.lightning_module or trainer.datamodule
     return not has_len_all_ranks(dataloader, trainer.strategy, module) or batch_size <= len(dataloader)
