@@ -25,9 +25,11 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v4
+      - name: Set up Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ inputs.python-version }}
 
@@ -52,9 +54,11 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v4
+      - name: Set up Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ inputs.python-version }}
 

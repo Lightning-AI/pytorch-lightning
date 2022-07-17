@@ -13,9 +13,11 @@ jobs:
   mypy:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout
+      uses: actions/checkout@v3
 
-    - uses: actions/setup-python@v3
+    - name: Set up Python ${{ inputs.python-version }}
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ inputs.python-version }}
 
@@ -39,20 +41,26 @@ jobs:
   pre-commit:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v2
 
-      - name: set PY
+      - name: Set up Python
+        uses: actions/setup-python@v4
+
+      - name: Determine cache hash
         run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
-      - uses: actions/cache@v2
+
+      - name: Cache pre-commit
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pre-commit
           key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
 
-      - uses: pre-commit/action@v2.0.2
+      - name: Run pre-commit
+        uses: pre-commit/action@v3.0.0
         # this action also provides an additional behaviour when used in private repositories
         # when configured with a github token, the action will push back fixes to the pull request branch
-        #with:
-        #  token: ${{ secrets.GITHUB_TOKEN }}
+        # with:
+        #   token: ${{ secrets.GITHUB_TOKEN }}
