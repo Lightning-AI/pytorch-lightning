@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+-  Added ``ServableModule`` and its associated callback called ``ServableModuleValidator`` to ensure the model can served ([#13614](https://github.com/PyTorchLightning/pytorch-lightning/pull/13614))
+
 -  Converted validation loop config warnings to `PossibleUserWarning` ([#13377](https://github.com/PyTorchLightning/pytorch-lightning/pull/13377))
 
 
@@ -277,6 +279,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed the need to explicitly load habana module ([#13338](https://github.com/PyTorchLightning/pytorch-lightning/pull/13338))
+
+
+- Removed the deprecated `Strategy.post_dispatch()` hook ([#13461](https://github.com/PyTorchLightning/pytorch-lightning/pull/13461))
 
 
 - Removed deprecated `pytorch_lightning.callbacks.lr_monitor.LearningRateMonitor.lr_sch_names` ([#13353](https://github.com/Lightning-AI/lightning/pull/13353))
