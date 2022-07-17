@@ -74,7 +74,6 @@ class LambdaCallback(Callback):
         on_validation_end: Optional[Callable] = None,
         on_test_start: Optional[Callable] = None,
         on_test_end: Optional[Callable] = None,
-        on_keyboard_interrupt: Optional[Callable] = None,
         on_exception: Optional[Callable] = None,
         on_save_checkpoint: Optional[Callable] = None,
         on_load_checkpoint: Optional[Callable] = None,
