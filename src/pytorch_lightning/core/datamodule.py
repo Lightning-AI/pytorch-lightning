@@ -20,7 +20,12 @@ from torch.utils.data import DataLoader, Dataset, IterableDataset
 from pytorch_lightning.core.hooks import CheckpointHooks, DataHooks
 from pytorch_lightning.core.mixins import HyperparametersMixin
 from pytorch_lightning.core.saving import _load_from_checkpoint
-from pytorch_lightning.utilities.argparse import add_argparse_args, from_argparse_args, get_init_arguments_and_types
+from pytorch_lightning.utilities.argparse import (
+    add_argparse_args,
+    from_argparse_args,
+    FROM_ARGPARSE_ARGS_RETURN,
+    get_init_arguments_and_types,
+)
 from pytorch_lightning.utilities.types import _PATH
 
 ADD_ARGPARSE_RETURN = Union[ArgumentParser, Union[_ArgumentGroup, ArgumentParser]]
@@ -77,7 +82,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
         return add_argparse_args(cls, parent_parser, **kwargs)
 
     @classmethod
-    def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs: Any) -> ArgumentParser:
+    def from_argparse_args(cls, args: Union[Namespace, ArgumentParser], **kwargs: Any) -> FROM_ARGPARSE_ARGS_RETURN:
         """Create an instance from CLI arguments.
 
         Args:
