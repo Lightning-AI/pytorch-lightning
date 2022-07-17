@@ -50,7 +50,17 @@ elif hasattr(context, "registry"):
     from mlflow.tracking.context.registry import resolve_tags
 else:
 
-    def resolve_tags(tags=None):
+    def resolve_tags(tags: Optional[Dict] = None) -> Optional[Dict]:
+        """
+        Args:
+            tags: A dictionary of tags to override. If specified, tags passed in this argument will
+                 override those inferred from the context.
+
+        Returns: A dictionary of resolved tags.
+
+        Note:
+            See ``mlflow.tracking.context.registry`` for more details.
+        """
         return tags
 
 
@@ -129,7 +139,7 @@ class MLFlowLogger(Logger):
             tracking_uri = f"{LOCAL_FILE_URI_PREFIX}{save_dir}"
 
         self._experiment_name = experiment_name
-        self._experiment_id = None
+        self._experiment_id: Optional[str] = None
         self._tracking_uri = tracking_uri
         self._run_name = run_name
         self._run_id = run_id
@@ -141,7 +151,7 @@ class MLFlowLogger(Logger):
 
         self._mlflow_client = MlflowClient(tracking_uri)
 
-    @property
+    @property  # type: ignore[misc]
     @rank_zero_experiment
     def experiment(self) -> MlflowClient:
         r"""
@@ -194,7 +204,7 @@ class MLFlowLogger(Logger):
             The run id.
         """
         _ = self.experiment
-        return self._run_id
+        return self._run_id  # type: ignore[return-value]
 
     @property
     def experiment_id(self) -> str:
@@ -204,7 +214,7 @@ class MLFlowLogger(Logger):
             The experiment id.
         """
         _ = self.experiment
-        return self._experiment_id
+        return self._experiment_id  # type: ignore[return-value]
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
@@ -250,7 +260,7 @@ class MLFlowLogger(Logger):
             self.experiment.set_terminated(self.run_id, status)
 
     @property
-    def save_dir(self) -> Optional[str]:
+    def save_dir(self) -> str:
         """The root file directory in which MLflow experiments are saved.
 
         Return:
