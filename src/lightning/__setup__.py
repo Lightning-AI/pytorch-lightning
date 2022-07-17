@@ -58,7 +58,7 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
     if kwargs["pkg_name"] == "lightning":
         _include_pkgs = ["lightning", "lightning.*"]
         # todo: generate this list automatically with parsing feature pkg versions
-        _requires = ["pytorch-lightning>=1.6.*", "lightning-app>=0.5.*"]
+        _requires = ["pytorch-lightning>=1.6.5, <1.7.0", "lightning-app>=0.5.2, <0.6.0"]
     else:
         _include_pkgs = ["*"]
         _requires = [
