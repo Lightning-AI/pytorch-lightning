@@ -22,10 +22,11 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader, DistributedSampler, RandomSampler, SequentialSampler
+from torch.utils.data import DataLoader, DistributedSampler
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.lite.wrappers import _LiteDataLoader, _LiteModule, _LiteOptimizer
+from pytorch_lightning.overrides.distributed import DistributedSamplerWrapper
 from pytorch_lightning.plugins import PLUGIN_INPUT
 from pytorch_lightning.strategies import DeepSpeedStrategy, Strategy, TPUSpawnStrategy
 from pytorch_lightning.strategies.strategy import TBroadcast
@@ -222,13 +223,6 @@ class LightningLite(ABC):
         """
         sampler = dataloader.sampler
         if replace_sampler and self._requires_distributed_sampler(dataloader):
-            if not isinstance(sampler, (SequentialSampler, RandomSampler)):
-                raise MisconfigurationException(
-                    "You seem to have configured a sampler in your DataLoader. This will be replaced "
-                    " by `DistributedSampler` since `replace_sampler_ddp` is True and you are using"
-                    " distributed training. Either remove the sampler from your DataLoader or set"
-                    " `replace_sampler=False` if you want to use your custom sampler."
-                )
             sampler = self._get_distributed_sampler(dataloader, **self._strategy.distributed_sampler_kwargs)
 
         # the dataloader needs to be re-instantiated because we want to update the input arguments (e.g., sampler)
@@ -439,7 +433,7 @@ class LightningLite(ABC):
     @staticmethod
     def _get_distributed_sampler(dataloader: DataLoader, **kwargs: Any) -> DistributedSampler:
         kwargs.setdefault("seed", int(os.getenv("PL_GLOBAL_SEED", 0)))
-        return DistributedSampler(dataloader.dataset, **kwargs)
+        return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
     def _check_accelerator_support(self, accelerator: Optional[Union[str, Accelerator]]) -> None:
         supported = [t.value.lower() for t in self._supported_device_types()] + ["auto"]
@@ -465,6 +459,7 @@ class LightningLite(ABC):
             _AcceleratorType.CPU,
             _AcceleratorType.GPU,
             _AcceleratorType.TPU,
+            _AcceleratorType.MPS,
         )
 
     @staticmethod

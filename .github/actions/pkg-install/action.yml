@@ -1,0 +1,33 @@
+name: Install and check package
+description: installing and validationg the package
+
+inputs:
+  pkg-name:
+    description: package name for import
+    required: true
+  pip-flags:
+    description: additional pil install flags
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+
+  - name: Install | Uninstall package - archive
+    working-directory: ./dist
+    run: |
+      pip install *.tar.gz ${{ inputs.pip-flags }}
+      pip list | grep lightning
+      python -c "import ${{ inputs.pkg-name }} ; print(${{ inputs.pkg-name }}.__version__)"
+      pip uninstall -y ${{ inputs.pkg-name }}
+    shell: bash
+
+  - name: Install | Uninstall package - wheel
+    working-directory: ./dist
+    run: |
+      pip install *.whl ${{ inputs.pip-flags }}
+      pip list | grep lightning
+      python -c "import ${{ inputs.pkg-name }} ; print(${{ inputs.pkg-name }}.__version__)"
+      pip uninstall -y ${{ inputs.pkg-name }}
+    shell: bash

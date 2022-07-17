@@ -110,7 +110,7 @@ class TensorRunningAccum:
 
 @dataclass
 class SharedCycleIteratorState:
-    """A state shared between all CylceIterators in a CombinedLoader.
+    """A state shared between all CycleIterators in a CombinedLoader.
 
     With a shared state, the iterators can decide to terminate based on the state of all others. If the mode is
     *max_size_cycle*, all iterators need to have finished before the combined loading is considered finished, and
@@ -438,8 +438,13 @@ class CombinedLoader:
 
     @property
     def sampler(self) -> Union[Iterable, Sequence, Mapping]:
-        """Return a collections of samplers extracting from loaders."""
+        """Return a collections of samplers extracted from loaders."""
         return apply_to_collection(self.loaders, (DataLoader, IterableDataset), getattr, "sampler", None)
+
+    @property
+    def batch_sampler(self) -> Union[Iterable, Sequence, Mapping]:
+        """Return a collections of batch samplers extracted from loaders."""
+        return apply_to_collection(self.loaders, (DataLoader, IterableDataset), getattr, "batch_sampler", None)
 
     def _wrap_loaders_max_size_cycle(self) -> Any:
         """Wraps all loaders to make sure they are cycled until the longest loader is exhausted.

@@ -22,6 +22,7 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
+from pytorch_lightning.plugins.environments import XLAEnvironment
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
@@ -32,7 +33,6 @@ from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, 
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from pytorch_lightning.utilities.seed import reset_seed
@@ -67,25 +67,12 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
+            cluster_environment=XLAEnvironment(),
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
         self.debug = debug
-        self.tpu_local_core_rank = 0
-        self.tpu_global_core_rank = 0
         self.start_method = "fork"
-
-    @property
-    def global_rank(self) -> int:
-        return self.tpu_global_core_rank
-
-    @property
-    def local_rank(self) -> int:
-        return self.tpu_local_core_rank
-
-    @property
-    def world_size(self) -> int:
-        return xm.xrt_world_size()
 
     @property
     def root_device(self) -> torch.device:
@@ -134,11 +121,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
         shared_params = find_shared_parameters(self.model)
         self.model_to_device()
-        if is_overridden("on_post_move_to_device", self.lightning_module):
-            self.model.module.on_post_move_to_device()
-        else:
-            set_shared_parameters(self.model.module, shared_params)
-
+        set_shared_parameters(self.model.module, shared_params)
         self.setup_precision_plugin()
 
         if trainer.state.fn == TrainerFn.FITTING:
@@ -150,7 +133,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
+        return dict(num_replicas=self.world_size, rank=self.global_rank)
 
     @property
     def is_distributed(self) -> bool:
@@ -165,12 +148,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         return dataloader
 
     def configure_ddp(self) -> None:
-        pass
-
-    def init_dist_connection(self, global_rank: int, world_size: int) -> None:
-        pass
-
-    def set_world_ranks(self, process_idx: int = 0) -> None:
         pass
 
     def model_to_device(self) -> None:
@@ -218,8 +195,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     def _worker_setup(self, process_idx: int):
         reset_seed()
-        self.tpu_local_core_rank = xm.get_local_ordinal()
-        self.tpu_global_core_rank = xm.get_ordinal()
+        self.set_world_ranks(process_idx)
         rank_zero_only.rank = self.global_rank
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
@@ -251,7 +227,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         # from different vms to the main worker doesn't work well with tqdm
         # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
         # The print statement seems to force tqdm to flush stdout.
-        if self.tpu_global_core_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
+        if self.global_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
             print()
 
     def save_checkpoint(
@@ -290,6 +266,10 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             tensor = tensor.unsqueeze(0)
         return xm.all_gather(tensor)
 
+    def teardown(self) -> None:
+        super().teardown()
+        os.environ.pop("PT_XLA_DEBUG", None)
+
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
         strategy_registry.register(
@@ -301,7 +281,3 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             cls,
             description=f"{cls.__class__.__name__}",
         )
-
-    def teardown(self) -> None:
-        super().teardown()
-        os.environ.pop("PT_XLA_DEBUG", None)

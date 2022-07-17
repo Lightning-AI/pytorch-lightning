@@ -21,7 +21,7 @@ export PL_RUN_STANDALONE_TESTS=1
 defaults='-m coverage run --source pytorch_lightning --append -m pytest --capture=no'
 
 # find tests marked as `@RunIf(standalone=True)`. done manually instead of with pytest because it is faster
-grep_output=$(grep --recursive --word-regexp . --regexp 'standalone=True' --include '*.py' --exclude 'conftest.py')
+grep_output=$(grep --recursive --word-regexp . --regexp 'standalone=True' --include '*.py')
 
 # file paths, remove duplicates
 files=$(echo "$grep_output" | cut -f1 -d: | sort | uniq)
@@ -38,7 +38,7 @@ parametrizations=${parametrizations//"tests/tests_pytorch/"/}
 parametrizations_arr=($parametrizations)
 
 # tests to skip - space separated
-blocklist='profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx utilities/test_warnings.py'
+blocklist='profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx utilities/test_warnings.py'
 report=''
 
 for i in "${!parametrizations_arr[@]}"; do
@@ -58,7 +58,7 @@ for i in "${!parametrizations_arr[@]}"; do
 done
 
 if nvcc --version; then
-    nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} profiler/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
+    nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
 fi
 
 # needs to run outside of `pytest`

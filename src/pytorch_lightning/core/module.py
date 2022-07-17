@@ -45,7 +45,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, convert_
 from pytorch_lightning.utilities.cloud_io import get_filesystem
 from pytorch_lightning.utilities.distributed import distributed_available, sync_ddp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_12
+from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_11, _TORCH_GREATER_EQUAL_1_13
 from pytorch_lightning.utilities.parsing import collect_init_args
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_deprecation, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
@@ -396,6 +396,7 @@ class LightningModule(
             )
 
         value = apply_to_collection(value, numbers.Number, self.__to_tensor)
+        apply_to_collection(value, torch.Tensor, self.__check_numel_1, name)
 
         if self.trainer._logger_connector.should_reset_tensors(self._current_fx_name):
             # if we started a new epoch (running its first batch) the hook name has changed
@@ -518,11 +519,10 @@ class LightningModule(
             )
 
     @staticmethod
-    def __check_not_nested(value: dict, name: str) -> dict:
+    def __check_not_nested(value: dict, name: str) -> None:
         # self-imposed restriction. for simplicity
         if any(isinstance(v, dict) for v in value.values()):
             raise ValueError(f"`self.log({name}, {value})` was called, but nested dictionaries cannot be logged")
-        return value
 
     @staticmethod
     def __check_allowed(v: Any, name: str, value: Any) -> None:
@@ -530,6 +530,14 @@ class LightningModule(
 
     def __to_tensor(self, value: numbers.Number) -> Tensor:
         return torch.tensor(value, device=self.device)
+
+    @staticmethod
+    def __check_numel_1(value: torch.Tensor, name: str) -> None:
+        if not torch.numel(value) == 1:
+            raise ValueError(
+                f"`self.log({name}, {value})` was called, but the tensor must have a single element."
+                f" You can try doing `self.log({name}, {value}.mean())`"
+            )
 
     def log_grad_norm(self, grad_norm_dict: Dict[str, float]) -> None:
         """Override this method to change the default behaviour of ``log_grad_norm``.
@@ -646,8 +654,8 @@ class LightningModule(
         rank_zero_warn("`training_step` must be implemented to be used with the Lightning Trainer")
 
     def training_step_end(self, step_output: STEP_OUTPUT) -> STEP_OUTPUT:
-        """Use this when training with dp or ddp2 because :meth:`training_step` will operate on only part of the
-        batch. However, this is still optional and only needed for things like softmax or NCE loss.
+        """Use this when training with dp because :meth:`training_step` will operate on only part of the batch.
+        However, this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
             If you later switch to ddp or some other mode, this will still be called
@@ -666,7 +674,7 @@ class LightningModule(
         Return:
             Anything
 
-        When using dp/ddp2 distributed backends, only a portion of the batch is inside the training_step:
+        When using the DP strategy, only a portion of the batch is inside the training_step:
 
         .. code-block:: python
 
@@ -828,8 +836,8 @@ class LightningModule(
         """
 
     def validation_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        """Use this when validating with dp or ddp2 because :meth:`validation_step` will operate on only part of
-        the batch. However, this is still optional and only needed for things like softmax or NCE loss.
+        """Use this when validating with dp because :meth:`validation_step` will operate on only part of the batch.
+        However, this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
             If you later switch to ddp or some other mode, this will still be called
@@ -851,7 +859,7 @@ class LightningModule(
         .. code-block:: python
 
             # WITHOUT validation_step_end
-            # if used in DP or DDP2, this batch is 1/num_gpus large
+            # if used in DP, this batch is 1/num_gpus large
             def validation_step(self, batch, batch_idx):
                 # batch is 1/num_gpus big
                 x, y = batch
@@ -1005,8 +1013,8 @@ class LightningModule(
         """
 
     def test_step_end(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
-        """Use this when testing with DP or DDP2 because :meth:`test_step` will operate on only part of the batch.
-        However, this is still optional and only needed for things like softmax or NCE loss.
+        """Use this when testing with DP because :meth:`test_step` will operate on only part of the batch. However,
+        this is still optional and only needed for things like softmax or NCE loss.
 
         Note:
             If you later switch to ddp or some other mode, this will still be called
@@ -1028,7 +1036,7 @@ class LightningModule(
         .. code-block:: python
 
             # WITHOUT test_step_end
-            # if used in DP or DDP2, this batch is 1/num_gpus large
+            # if used in DP, this batch is 1/num_gpus large
             def test_step(self, batch, batch_idx):
                 # batch is 1/num_gpus big
                 x, y = batch
@@ -1329,7 +1337,10 @@ class LightningModule(
         Note:
             Some things to know:
 
-            - Lightning calls ``.backward()`` and ``.step()`` on each optimizer and learning rate scheduler as needed.
+            - Lightning calls ``.backward()`` and ``.step()`` on each optimizer as needed.
+            - If learning rate scheduler is specified in ``configure_optimizers()`` with key
+              ``"interval"`` (default "epoch") in the scheduler configuration, Lightning will call
+              the scheduler's ``.step()`` method automatically in case of automatic optimization.
             - If you use 16-bit precision (``precision=16``), Lightning will automatically handle the optimizers.
             - If you use multiple optimizers, :meth:`training_step` will have an additional ``optimizer_idx`` parameter.
             - If you use :class:`torch.optim.LBFGS`, Lightning handles the closure function automatically for you.
@@ -1944,28 +1955,6 @@ class LightningModule(
             )
         self._use_amp = use_amp
 
-    def add_to_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
-        """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
-        sharing, we cast the data to numpy.
-
-        Args:
-            queue: the instance of the queue to append the data.
-
-        .. deprecated:: v1.5
-            This method was deprecated in v1.5 and will be removed in v1.7.
-        """
-
-    def get_from_queue(self, queue: pl.strategies.launchers.spawn._FakeQueue) -> None:
-        """Retrieve the :attr:`trainer.callback_metrics` dictionary from the given queue. To preserve consistency,
-        we cast back the data to ``torch.Tensor``.
-
-        Args:
-            queue: the instance of the queue from where to get the data.
-
-        .. deprecated:: v1.5
-            This method was deprecated in v1.5 and will be removed in v1.7.
-        """
-
     @contextmanager
     def _prevent_trainer_and_dataloaders_deepcopy(self) -> None:
         self._should_prevent_trainer_and_dataloaders_deepcopy = True
@@ -1998,7 +1987,7 @@ class LightningModule(
 
         self._register_state_dict_hook(state_dict_hook)
 
-        if _TORCH_GREATER_EQUAL_1_12:
+        if _TORCH_GREATER_EQUAL_1_13:
             self._register_load_state_dict_pre_hook(pre_load_state_dict_hook, True)
         else:
             # We need to make sure the self inside the method is a weakref proxy
