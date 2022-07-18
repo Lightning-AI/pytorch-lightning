@@ -318,7 +318,7 @@ class TensorBoardLogger(Logger):
         # logging of arrays with dimension > 1 is not supported, sanitize as string
         return {k: str(v) if isinstance(v, (Tensor, np.ndarray)) and v.ndim > 1 else v for k, v in params.items()}
 
-    def __getstate__(self):  # type: ignore[no-untyped-def]
+    def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
         state["_experiment"] = None
         return state
