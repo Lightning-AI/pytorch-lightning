@@ -86,6 +86,8 @@ def _retrieve_application_url_and_available_commands(app_id_or_name_or_url: Opti
 
         for lightningapp in list_lightningapps.lightningapps:
             if lightningapp.id == app_id_or_name_or_url or lightningapp.name == app_id_or_name_or_url:
+                if lightningapp.status.url == "":
+                    raise Exception("The application is starting. Try in a few moments.")
                 resp = requests.get(lightningapp.status.url + "/api/v1/commands")
                 if resp.status_code != 200:
                     raise Exception(f"The server didn't process the request properly. Found {resp.json()}")

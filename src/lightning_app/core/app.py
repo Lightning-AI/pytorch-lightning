@@ -17,6 +17,7 @@ from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.frontend import Frontend
 from lightning_app.storage.path import storage_root_dir
 from lightning_app.utilities.app_helpers import _delta_to_appstate_delta, _LightningAppRef, is_overridden
+from lightning_app.utilities.commands.base import _upload_command
 from lightning_app.utilities.component import _convert_paths_after_init
 from lightning_app.utilities.enum import AppStage
 from lightning_app.utilities.exceptions import CacheMissException, ExitAppException
@@ -342,6 +343,7 @@ class LightningApp:
                 is_command = isinstance(command, ClientCommand)
                 extras = {}
                 if is_command:
+                    _upload_command(command_name, command)
                     command, extras = _command_to_method_and_metadata(command)
                 if command_name in command_names:
                     raise Exception(f"The component name {command_name} has already been used. They need to be unique.")
@@ -365,6 +367,8 @@ class LightningApp:
         if command_query:
             for command in commands:
                 for command_name, method in command.items():
+                    logger.info(command_query)
+                    logger.info(command_name)
                     if command_query["command_name"] == command_name:
                         # 2.1: Evaluate the method associated to a specific command.
                         # Validation is done on the CLI side.

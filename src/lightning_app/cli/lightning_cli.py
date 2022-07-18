@@ -142,6 +142,7 @@ def command(
     """Execute a function in a running application from its name."""
     from lightning_app.utilities.commands.base import _download_command
 
+    # 1: Collect the url and comments from the running application
     url, commands = _retrieve_application_url_and_available_commands(id)
     if url is None or commands is None:
         raise Exception("We couldn't find any matching running app.")
@@ -153,9 +154,15 @@ def command(
     if command not in command_names:
         raise Exception(f"The provided command {command} isn't available in {command_names}")
 
+    # 2: Send the command from the user
     command_metadata = [c for c in commands if c["command"] == command][0]
     params = command_metadata["params"]
+
+    # 3: Prepare the arguments provided by the users.
+    # TODO: Improve what is supported there.
     kwargs = {k.split("=")[0]: k.split("=")[1] for k in args}
+
+    # 4: Execute commands
     if not command_metadata["is_command"]:
         for param in params:
             if param not in kwargs:
@@ -169,8 +176,8 @@ def command(
         resp = requests.post(url + "/api/v1/commands", json=json, headers=headers_for({}))
         assert resp.status_code == 200, resp.json()
     else:
-        client_command, models = _download_command(command_metadata)
-        client_command._setup(metadata=command_metadata, models=models, url=url)
+        client_command, models = _download_command(command_metadata, id)
+        client_command._setup(metadata=command_metadata, models=models, app_url=url)
         client_command.run(**kwargs)
 
 

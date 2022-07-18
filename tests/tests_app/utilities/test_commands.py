@@ -2,6 +2,7 @@ from multiprocessing import Process
 from time import sleep
 from unittest.mock import MagicMock
 
+import pytest
 from click.testing import CliRunner
 from pydantic import BaseModel
 
@@ -55,6 +56,33 @@ class DummyCommand(ClientCommand):
 
 def run(config: DummyConfig):
     assert isinstance(config, DummyCommand)
+
+
+def run_failure_0(name: str):
+    pass
+
+
+def run_failure_1(name):
+    pass
+
+
+class CustomModel(BaseModel):
+    pass
+
+
+def run_failure_2(name: CustomModel):
+    pass
+
+
+def test_command_to_method_and_metadata():
+    with pytest.raises(Exception, match="The provided annotation for the argument name"):
+        _command_to_method_and_metadata(ClientCommand(run_failure_0))
+
+    with pytest.raises(Exception, match="Found _empty"):
+        _command_to_method_and_metadata(ClientCommand(run_failure_1))
+
+    with pytest.raises(Exception, match="The flow annotation needs to"):
+        _command_to_method_and_metadata(ClientCommand(run_failure_2))
 
 
 def test_client_commands(monkeypatch):

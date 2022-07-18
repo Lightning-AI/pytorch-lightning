@@ -1,3 +1,5 @@
+from command import CustomCommand, CustomConfig
+
 from lightning import LightningFlow
 from lightning_app.core.app import LightningApp
 
@@ -20,11 +22,18 @@ class FlowCommands(LightningFlow):
         if len(self.names):
             print(self.names)
 
-    def trigger_method(self, name: str):
+    def trigger_without_client_command(self, name: str):
         self.names.append(name)
 
+    def trigger_with_client_command(self, config: CustomConfig):
+        self.names.append(config.name)
+
     def configure_commands(self):
-        return [{"flow_trigger_command": self.trigger_method}] + self.child_flow.configure_commands()
+        commnands = [
+            {"trigger_without_client_command": self.trigger_without_client_command},
+            {"trigger_with_client_command": CustomCommand(self.trigger_with_client_command)},
+        ]
+        return commnands + self.child_flow.configure_commands()
 
 
 app = LightningApp(FlowCommands())

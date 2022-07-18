@@ -113,6 +113,7 @@ def _prepare_lightning_wheels_and_requirements(root: Path) -> Optional[Callable]
         # building and copying launcher wheel if installed in editable mode
         launcher_project_path = get_dist_path_if_editable_install("lightning_launcher")
         if launcher_project_path:
+            logger.info("Packaged Lightning Launcher with your application.")
             _prepare_wheel(launcher_project_path)
             tar_name = _copy_tar(launcher_project_path, root)
             tar_files.append(os.path.join(root, tar_name))
@@ -120,6 +121,7 @@ def _prepare_lightning_wheels_and_requirements(root: Path) -> Optional[Callable]
         # building and copying lightning-cloud wheel if installed in editable mode
         lightning_cloud_project_path = get_dist_path_if_editable_install("lightning_cloud")
         if lightning_cloud_project_path:
+            logger.info("Packaged Lightning Cloud with your application.")
             _prepare_wheel(lightning_cloud_project_path)
             tar_name = _copy_tar(lightning_cloud_project_path, root)
             tar_files.append(os.path.join(root, tar_name))

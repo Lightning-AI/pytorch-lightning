@@ -1,5 +1,6 @@
 import errno
 import inspect
+import logging
 import os
 import os.path as osp
 import shutil
@@ -13,7 +14,10 @@ from uuid import uuid4
 import requests
 from pydantic import BaseModel
 
-from lightning.app.utilities.state import headers_for
+from lightning_app.utilities.cloud import _get_project
+from lightning_app.utilities.network import LightningClient
+
+_logger = logging.getLogger(__name__)
 
 
 def makedirs(path: str):
@@ -44,17 +48,19 @@ class ClientCommand:
         self.requirements = requirements
         self.metadata = None
         self.models = Optional[Dict[str, BaseModel]]
-        self.url = None
+        self.app_url = None
 
-    def _setup(self, metadata: Dict[str, Any], models: Dict[str, BaseModel], url: str) -> None:
+    def _setup(self, metadata: Dict[str, Any], models: Dict[str, BaseModel], app_url: str) -> None:
         self.metadata = metadata
         self.models = models
-        self.url = url
+        self.app_url = app_url
 
     def run(self, **cli_kwargs) -> None:
         """Overrides with the logic to execute on the client side."""
 
     def invoke_handler(self, **kwargs: Any) -> Dict[str, Any]:
+        from lightning.app.utilities.state import headers_for
+
         assert kwargs.keys() == self.models.keys()
         for k, v in kwargs.items():
             assert isinstance(v, self.models[k])
@@ -64,7 +70,7 @@ class ClientCommand:
             "affiliation": self.metadata["affiliation"],
             "id": str(uuid4()),
         }
-        resp = requests.post(self.url + "/api/v1/commands", json=json, headers=headers_for({}))
+        resp = requests.post(self.app_url + "/api/v1/commands", json=json, headers=headers_for({}))
         assert resp.status_code == 200, resp.json()
         return resp.json()
 
@@ -77,24 +83,34 @@ class ClientCommand:
         return self.method(**kwargs)
 
 
-def _download_command(command_metadata: Dict[str, Any]) -> Tuple[ClientCommand, Dict[str, BaseModel]]:
+def _download_command(
+    command_metadata: Dict[str, Any], app_id: Optional[str]
+) -> Tuple[ClientCommand, Dict[str, BaseModel]]:
     config = _Config(**command_metadata)
-    if config.cls_path.startswith("s3://"):
-        raise NotImplementedError()
+    tmpdir = osp.join(gettempdir(), f"{getuser()}_commands")
+    makedirs(tmpdir)
+    target_file = osp.join(tmpdir, f"{config.command}.py")
+    if app_id:
+        client = LightningClient()
+        project_id = _get_project(client).project_id
+        response = client.lightningapp_instance_service_list_lightningapp_instance_artifacts(project_id, app_id)
+        for artifact in response.artifacts:
+            if f"commands/{config.command}.py" == artifact.filename:
+                r = requests.get(artifact.url, allow_redirects=True)
+                with open(target_file, "wb") as f:
+                    f.write(r.content)
     else:
-        tmpdir = osp.join(gettempdir(), f"{getuser()}_commands")
-        makedirs(tmpdir)
-        cls_name = config.cls_name
-        target_file = osp.join(tmpdir, f"{config.command}.py")
         shutil.copy(config.cls_path, target_file)
-        spec = spec_from_file_location(config.cls_name, target_file)
-        mod = module_from_spec(spec)
-        sys.modules[cls_name] = mod
-        spec.loader.exec_module(mod)
-        command = getattr(mod, cls_name)(method=None, requirements=config.requirements)
-        models = {k: getattr(mod, v) for k, v in config.params.items()}
-        shutil.rmtree(tmpdir)
-        return command, models
+
+    cls_name = config.cls_name
+    spec = spec_from_file_location(config.cls_name, target_file)
+    mod = module_from_spec(spec)
+    sys.modules[cls_name] = mod
+    spec.loader.exec_module(mod)
+    command = getattr(mod, cls_name)(method=None, requirements=config.requirements)
+    models = {k: getattr(mod, v) for k, v in config.params.items()}
+    shutil.rmtree(tmpdir)
+    return command, models
 
 
 def _command_to_method_and_metadata(command: ClientCommand) -> Tuple[Callable, Dict[str, Any]]:
@@ -109,3 +125,21 @@ def _command_to_method_and_metadata(command: ClientCommand) -> Tuple[Callable, D
     command.models = {k: getattr(sys.modules[command.__module__], v) for k, v in extra["params"].items()}
     method = command.method
     return method, extra
+
+
+def _upload_command(command_name: str, command: ClientCommand) -> Optional[str]:
+    from lightning_app.storage.path import _is_s3fs_available, filesystem, shared_storage_path
+
+    filepath = f"commands/{command_name}.py"
+    remote_url = str(shared_storage_path() / "artifacts" / filepath)
+    fs = filesystem()
+
+    if _is_s3fs_available() and not fs.exists(remote_url):
+        from s3fs import S3FileSystem
+
+        if not isinstance(fs, S3FileSystem):
+            return
+        source_file = str(inspect.getfile(command.__class__))
+        remote_url = str(shared_storage_path() / "artifacts" / filepath)
+        fs.put(source_file, remote_url)
+        return filepath
