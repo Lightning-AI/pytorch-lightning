@@ -21,6 +21,7 @@ import os
 from argparse import Namespace
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
 
+import torch
 from torch import is_tensor, Tensor
 
 import pytorch_lightning as pl
@@ -247,8 +248,8 @@ class CometLogger(Logger):
         # Comet.ml expects metrics to be a dictionary of detached tensors on CPU
         metrics_without_epoch = metrics.copy()
         for key, val in metrics_without_epoch.items():
-            if is_tensor(val):
-                metrics_without_epoch[key] = val.cpu().detach()  # type: ignore[union-attr]
+            if isinstance(val, Tensor):
+                metrics_without_epoch[key] = val.cpu().detach()
 
         epoch = metrics_without_epoch.pop("epoch", None)
         metrics_without_epoch = _add_prefix(metrics_without_epoch, self._prefix, self.LOGGER_JOIN_CHAR)
