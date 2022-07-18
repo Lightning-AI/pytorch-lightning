@@ -11,7 +11,7 @@ from lightning_app.testing.testing import run_app_in_cloud
 
 @mock.patch.dict(os.environ, {"SKIP_LIGHTING_UTILITY_WHEELS_BUILD": "0"})
 @pytest.mark.cloud
-def test_v0_app_example_cloud() -> None:
+def test_commands_example_cloud() -> None:
     with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "examples/app_commands")) as (
         admin_page,
         _,
