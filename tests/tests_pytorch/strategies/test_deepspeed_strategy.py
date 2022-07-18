@@ -26,7 +26,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Accuracy
 
-from pytorch_lightning import LightningDataModule, LightningModule, seed_everything, Trainer
+from pytorch_lightning import LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.callbacks import Callback, LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.plugins import DeepSpeedPrecisionPlugin
@@ -712,7 +712,6 @@ def test_deepspeed_multigpu_stage_3_manual_optimization(tmpdir, deepspeed_config
 @pytest.mark.parametrize(("accumulate_grad_batches", "automatic_optimization"), [(1, False), (2, True)])
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization, accumulate_grad_batches):
-    seed_everything(1)
     if automatic_optimization:
         model = ModelParallelClassificationModel()
     else:
@@ -734,9 +733,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization
     trainer.fit(model, datamodule=dm)
 
     results = trainer.test(datamodule=dm)
-    assert results[0]["test_acc"] > 0.7
     saved_results = trainer.test(ckpt_path=ck.best_model_path, datamodule=dm)
-    assert saved_results[0]["test_acc"] > 0.7
     assert saved_results == results
 
     if automatic_optimization:
@@ -752,9 +749,7 @@ def test_deepspeed_multigpu_stage_3_checkpointing(tmpdir, automatic_optimization
         enable_progress_bar=False,
         enable_model_summary=False,
     )
-
-    results = trainer.test(model, datamodule=dm, ckpt_path=ck.best_model_path)
-    assert results[0]["test_acc"] > 0.7
+    trainer.test(model, datamodule=dm, ckpt_path=ck.best_model_path)
 
 
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
@@ -861,7 +856,6 @@ def test_deepspeed_multigpu_stage_3_resume_training(tmpdir):
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multigpu_stage_2_accumulated_grad_batches(tmpdir, offload_optimizer):
     """Test to ensure with Stage 2 and multiple GPUs, accumulated grad batches works."""
-    seed_everything(42)
 
     class VerificationCallback(Callback):
         def __init__(self):
@@ -1109,7 +1103,7 @@ def test_deepspeed_setup_train_dataloader(tmpdir):
 @pytest.mark.parametrize("max_epoch", [2])
 @pytest.mark.parametrize("limit_train_batches", [2])
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
-def test_scheduler_step_count(mock_step, max_epoch, limit_train_batches, interval):
+def test_scheduler_step_count(mock_step, tmpdir, max_epoch, limit_train_batches, interval):
     """Test to ensure that the scheduler is called the correct amount of times during training when scheduler is
     set to step or epoch."""
 
@@ -1124,7 +1118,7 @@ def test_scheduler_step_count(mock_step, max_epoch, limit_train_batches, interva
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         limit_val_batches=0,
         max_epochs=max_epoch,

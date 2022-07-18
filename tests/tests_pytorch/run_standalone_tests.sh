@@ -18,7 +18,7 @@ set -e
 # this environment variable allows special tests to run
 export PL_RUN_STANDALONE_TESTS=1
 # python arguments
-defaults='-m coverage run --source pytorch_lightning --append -m pytest --capture=no'
+defaults='-m coverage run --source pytorch_lightning --append -m pytest --no-header'
 
 # find tests marked as `@RunIf(standalone=True)`. done manually instead of with pytest because it is faster
 grep_output=$(grep --recursive --word-regexp . --regexp 'standalone=True' --include '*.py')
@@ -40,6 +40,16 @@ parametrizations_arr=($parametrizations)
 # tests to skip - space separated
 blocklist='profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx utilities/test_warnings.py'
 report=''
+test_batch_size=6
+
+rm -f standalone_test_output.txt  # in case it exists, remove it
+function show_batched_output {
+  if [ -f standalone_test_output.txt ]; then  # if exists
+    cat standalone_test_output.txt
+    rm standalone_test_output.txt
+  fi
+}
+trap show_batched_output EXIT  # show the output on exit
 
 for i in "${!parametrizations_arr[@]}"; do
   parametrization=${parametrizations_arr[$i]}
@@ -47,15 +57,30 @@ for i in "${!parametrizations_arr[@]}"; do
   # check blocklist
   if echo $blocklist | grep -F "${parametrization}"; then
     report+="Skipped\t$parametrization\n"
-    continue
+    # do not continue the loop because we might need to wait for batched jobs
+  else
+    echo "Running $parametrization"
+    # execute the test in the background
+    # redirect to a log file that buffers test output. since the tests will run in the background, we cannot let them
+    # output to std{out,err} because the outputs would be garbled together
+    python ${defaults} "$parametrization" &>> standalone_test_output.txt &
+    # save the PID in an array
+    pids[${i}]=$!
+    # add row to the final report
+    report+="Ran\t$parametrization\n"
   fi
 
-  # run the test
-  echo "Running $parametrization"
-  python ${defaults} "$parametrization"
-
-  report+="Ran\t$parametrization\n"
+  if ((($i + 1) % $test_batch_size == 0)); then
+    # wait for running tests
+    for pid in ${pids[*]}; do wait $pid; done
+    unset pids  # empty the array
+    show_batched_output
+  fi
 done
+# wait for leftover tests
+for pid in ${pids[*]}; do wait $pid; done
+show_batched_output
+echo "Batched mode finished. Continuing with the rest of standalone tests."
 
 if nvcc --version; then
     nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
