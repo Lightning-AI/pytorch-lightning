@@ -197,24 +197,24 @@ class MLFlowLogger(Logger):
         return self._mlflow_client
 
     @property
-    def run_id(self) -> str:
+    def run_id(self) -> Optional[str]:
         """Create the experiment if it does not exist to get the run id.
 
         Returns:
             The run id.
         """
         _ = self.experiment
-        return self._run_id  # type: ignore[return-value]
+        return self._run_id
 
     @property
-    def experiment_id(self) -> str:
+    def experiment_id(self) -> Optional[str]:
         """Create the experiment if it does not exist to get the experiment id.
 
         Returns:
             The experiment id.
         """
         _ = self.experiment
-        return self._experiment_id  # type: ignore[return-value]
+        return self._experiment_id
 
     @rank_zero_only
     def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
@@ -271,7 +271,7 @@ class MLFlowLogger(Logger):
             return self._tracking_uri.lstrip(LOCAL_FILE_URI_PREFIX)
 
     @property
-    def name(self) -> str:
+    def name(self) -> Optional[str]:
         """Get the experiment id.
 
         Returns:
@@ -280,7 +280,7 @@ class MLFlowLogger(Logger):
         return self.experiment_id
 
     @property
-    def version(self) -> str:
+    def version(self) -> Optional[str]:
         """Get the run id.
 
         Returns:
