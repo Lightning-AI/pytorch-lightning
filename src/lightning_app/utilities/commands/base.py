@@ -1,4 +1,5 @@
 import errno
+import inspect
 import os
 import os.path as osp
 import shutil
@@ -50,7 +51,7 @@ class ClientCommand:
         self.models = models
         self.url = url
 
-    def run(self):
+    def run(self, **cli_kwargs) -> None:
         """Overrides with the logic to execute on the client side."""
 
     def invoke_handler(self, **kwargs: Any) -> Dict[str, Any]:
@@ -78,7 +79,6 @@ class ClientCommand:
 
 def _download_command(command_metadata: Dict[str, Any]) -> Tuple[ClientCommand, Dict[str, BaseModel]]:
     config = _Config(**command_metadata)
-    print(config)
     if config.cls_path.startswith("s3://"):
         raise NotImplementedError()
     else:
@@ -95,3 +95,17 @@ def _download_command(command_metadata: Dict[str, Any]) -> Tuple[ClientCommand, 
         models = {k: getattr(mod, v) for k, v in config.params.items()}
         shutil.rmtree(tmpdir)
         return command, models
+
+
+def _command_to_method_and_metadata(command: ClientCommand) -> Tuple[Callable, Dict[str, Any]]:
+    """Extract method and metadata from a ClientCommand."""
+    params = inspect.signature(command.method).parameters
+    extra = {
+        "cls_path": inspect.getfile(command.__class__),
+        "cls_name": command.__class__.__name__,
+        "params": {p.name: str(p.annotation).split("'")[1].split(".")[-1] for p in params.values()},
+        **command._to_dict(),
+    }
+    command.models = {k: getattr(sys.modules[command.__module__], v) for k, v in extra["params"].items()}
+    method = command.method
+    return method, extra
