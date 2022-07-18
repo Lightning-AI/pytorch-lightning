@@ -208,7 +208,7 @@ class Logger(ABC):
 
     @property
     @abstractmethod
-    def version(self) -> Union[int, Optional[str]]:
+    def version(self) -> Union[int, str, None]:
         """Return the experiment version."""
 
 
