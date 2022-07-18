@@ -97,8 +97,8 @@ repos:
           - mdformat_frontmatter
         exclude: |
             (?x)^(
-                src/lightning_app/CHANGELOG.md|
-                src/pytorch_lightning/CHANGELOG.md
+                src/pytorch_lightning/CHANGELOG.md|
+                src/lightning_app/CHANGELOG.md
             )$
 
   - repo: https://github.com/PyCQA/flake8
