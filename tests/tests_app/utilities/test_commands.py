@@ -3,12 +3,14 @@ from time import sleep
 from unittest.mock import MagicMock
 
 import pytest
+import requests
 from click.testing import CliRunner
 from pydantic import BaseModel
 
 from lightning import LightningFlow
 from lightning_app import LightningApp
 from lightning_app.cli.lightning_cli import command
+from lightning_app.core.constants import APP_SERVER_PORT
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.utilities.commands.base import _command_to_method_and_metadata, _download_command, ClientCommand
 from lightning_app.utilities.state import AppState
@@ -78,10 +80,10 @@ def test_command_to_method_and_metadata():
     with pytest.raises(Exception, match="The provided annotation for the argument name"):
         _command_to_method_and_metadata(ClientCommand(run_failure_0))
 
-    with pytest.raises(Exception, match="Found _empty"):
+    with pytest.raises(Exception, match="annotate your method"):
         _command_to_method_and_metadata(ClientCommand(run_failure_1))
 
-    with pytest.raises(Exception, match="The flow annotation needs to"):
+    with pytest.raises(Exception, match="lightning_app/utilities/commands/base.py"):
         _command_to_method_and_metadata(ClientCommand(run_failure_2))
 
 
@@ -107,8 +109,8 @@ def test_client_commands(monkeypatch):
             "owner": "root",
         }
     )
-    client_command, models = _download_command(command_metadata)
-    client_command._setup(metadata=command_metadata, models=models, url=url)
+    client_command, models = _download_command(command_metadata, None)
+    client_command._setup(metadata=command_metadata, models=models, app_url=url)
     client_command.run(**kwargs)
 
 
@@ -120,15 +122,24 @@ def target():
 def test_configure_commands():
     process = Process(target=target)
     process.start()
-    sleep(5)
+    time_left = 15
+    while time_left > 0:
+        try:
+            requests.get(f"http://localhost:{APP_SERVER_PORT}/healthz")
+            break
+        except requests.exceptions.ConnectionError:
+            sleep(0.1)
+            time_left -= 0.1
+
+    sleep(0.5)
     runner = CliRunner()
     result = runner.invoke(
         command,
         ["user_command", "--args", "name=something"],
         catch_exceptions=False,
     )
-    sleep(2)
     assert result.exit_code == 0
+    sleep(0.5)
     state = AppState()
     state._request_state()
     assert state.names == ["something"]
@@ -138,5 +149,4 @@ def test_configure_commands():
         ["sweep", "--args", "sweep_name=my_name", "--args", "num_trials=num_trials"],
         catch_exceptions=False,
     )
-    sleep(2)
     assert result.exit_code == 0

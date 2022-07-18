@@ -65,12 +65,12 @@ def _retrieve_application_url_and_available_commands(app_id_or_name_or_url: Opti
 
     if app_id_or_name_or_url is None:
         try:
-            url = f"http://127.0.0.1:{APP_SERVER_PORT}"
+            url = f"http://localhost:{APP_SERVER_PORT}"
             resp = requests.get(f"{url}/api/v1/commands")
             if resp.status_code != 200:
                 raise Exception(f"The server didn't process the request properly. Found {resp.json()}")
             return url, resp.json()
-        except ConnectionError:
+        except requests.exceptions.ConnectionError:
             failed_locally = True
 
     # 3: If an identified was provided or the local evaluation has failed, evaluate the cloud.

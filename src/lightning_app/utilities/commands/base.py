@@ -113,18 +113,43 @@ def _download_command(
     return command, models
 
 
+def _to_annotation(anno: str) -> str:
+    anno = anno.split("'")[1]
+    if "." in anno:
+        return anno.split(".")[-1]
+    return anno
+
+
 def _command_to_method_and_metadata(command: ClientCommand) -> Tuple[Callable, Dict[str, Any]]:
-    """Extract method and metadata from a ClientCommand."""
+    """Extract method and its metadata from a ClientCommand."""
     params = inspect.signature(command.method).parameters
-    extra = {
+    command_metadata = {
         "cls_path": inspect.getfile(command.__class__),
         "cls_name": command.__class__.__name__,
-        "params": {p.name: str(p.annotation).split("'")[1].split(".")[-1] for p in params.values()},
+        "params": {p.name: _to_annotation(str(p.annotation)) for p in params.values()},
         **command._to_dict(),
     }
-    command.models = {k: getattr(sys.modules[command.__module__], v) for k, v in extra["params"].items()}
     method = command.method
-    return method, extra
+    command.models = {}
+    for k, v in command_metadata["params"].items():
+        if v == "_empty":
+            raise Exception(
+                f"Please, annotate your method {method} with pydantic BaseModel. Refer to the documentation."
+            )
+        config = getattr(sys.modules[command.__module__], v, None)
+        if config is None:
+            config = getattr(sys.modules[method.__module__], v, None)
+            if config:
+                raise Exception(
+                    f"The provided annotation for the argument {k} should in the file "
+                    f"{inspect.getfile(command.__class__)}, not {inspect.getfile(command.method)}."
+                )
+        if not issubclass(config, BaseModel):
+            raise Exception(
+                f"The provided annotation for the argument {k} shouldn't an instance of pydantic BaseModel."
+            )
+        command.models[k] = config
+    return method, command_metadata
 
 
 def _upload_command(command_name: str, command: ClientCommand) -> Optional[str]:
