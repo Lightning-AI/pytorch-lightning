@@ -35,6 +35,7 @@ def test_check_val_every_n_epoch(tmpdir, max_epochs, expected_val_loop_calls, ex
 
     model = TestModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=max_epochs,
         num_sanity_val_steps=0,
@@ -68,6 +69,7 @@ def test_check_val_every_n_epoch_with_max_steps(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_steps=data_samples_train * max_epochs,
         check_val_every_n_epoch=check_val_every_n_epoch,

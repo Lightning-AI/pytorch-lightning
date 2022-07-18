@@ -68,6 +68,7 @@ def test_callbacks_and_logger_not_called_with_fastdevrun(tmpdir, fast_dev_run):
     early_stopping_callback = EarlyStopping(monitor="foo")
     early_stopping_callback._evaluate_stopping_criteria = Mock()
     trainer_config = dict(
+        accelerator="auto",
         default_root_dir=tmpdir,
         fast_dev_run=fast_dev_run,
         val_check_interval=2,

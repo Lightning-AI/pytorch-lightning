@@ -48,7 +48,9 @@ class HPCHookedModel(BoringModel):
 )
 def test_hpc_hook_calls(mock_slurm_env, tmpdir):
     model = HPCHookedModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False
+    )
     environment = trainer._accelerator_connector.cluster_environment
     assert isinstance(environment, SLURMEnvironment)
     assert environment.auto_requeue
@@ -65,7 +67,9 @@ def test_hpc_hook_calls(mock_slurm_env, tmpdir):
 
     # new training run, restore from hpc checkpoint file automatically
     assert set(os.listdir(tmpdir)) == {"hpc_ckpt_1.ckpt"}
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False
+    )
     with pytest.deprecated_call(
         match=r"Method `LightningModule.on_hpc_save` is deprecated in v1.6 and will be removed in v1.8."
     ):
@@ -77,7 +81,7 @@ def test_hpc_hook_calls(mock_slurm_env, tmpdir):
 def test_preloaded_checkpoint_lifecycle(tmpdir):
     """Tests that the preloaded checkpoint contents gets cleared from memory when it is not required anymore."""
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_steps=1)
     trainer.fit(model)
 
     connector = trainer._checkpoint_connector
@@ -108,7 +112,9 @@ def test_preloaded_checkpoint_lifecycle(tmpdir):
 def test_hpc_restore_attempt(tmpdir):
     """Test that restore() attempts to restore the hpc_ckpt with highest priority."""
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, max_steps=1, enable_checkpointing=False, logger=False
+    )
     trainer.fit(model)
 
     hpc_ckpt_path = tmpdir / "hpc_ckpt_3.ckpt"
@@ -120,7 +126,9 @@ def test_hpc_restore_attempt(tmpdir):
         torch.nn.init.constant_(param, 0)
 
     # case 1: restore hpc first, no explicit resume path provided
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, enable_checkpointing=False, logger=False)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, max_steps=2, enable_checkpointing=False, logger=False
+    )
     trainer.fit(model)
 
     for param in model.parameters():
@@ -128,7 +136,7 @@ def test_hpc_restore_attempt(tmpdir):
         torch.nn.init.constant_(param, 0)
 
     # case 2: explicit resume path provided, restore hpc anyway
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=3)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_steps=3)
     trainer.fit(model, ckpt_path="not existing")
 
     for param in model.parameters():
@@ -138,7 +146,7 @@ def test_hpc_restore_attempt(tmpdir):
 def test_hpc_max_ckpt_version(tmpdir):
     """Test that the CheckpointConnector is able to find the hpc checkpoint file with the highest version."""
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_steps=1)
     trainer.fit(model)
     trainer.save_checkpoint(tmpdir / "hpc_ckpt.ckpt")
     trainer.save_checkpoint(tmpdir / "hpc_ckpt_0.ckpt")
@@ -158,6 +166,7 @@ def test_loops_restore(tmpdir):
     model = BoringModel()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_last=True)
     trainer_args = dict(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=1,

@@ -26,43 +26,43 @@ def test_wrong_train_setting(tmpdir):
     * Test that an error is thrown when no `train_dataloader()` is defined
     * Test that an error is thrown when no `training_step()` is defined
     """
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=1)
 
+    model = BoringModel()
+    model.train_dataloader = None
     with pytest.raises(MisconfigurationException, match=r"No `train_dataloader\(\)` method defined."):
-        model = BoringModel()
-        model.train_dataloader = None
         trainer.fit(model)
 
+    model = BoringModel()
+    model.training_step = None
     with pytest.raises(MisconfigurationException, match=r"No `training_step\(\)` method defined."):
-        model = BoringModel()
-        model.training_step = None
         trainer.fit(model)
 
 
 def test_wrong_configure_optimizers(tmpdir):
     """Test that an error is thrown when no `configure_optimizers()` is defined."""
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=1)
 
+    model = BoringModel()
+    model.configure_optimizers = None
     with pytest.raises(MisconfigurationException, match=r"No `configure_optimizers\(\)` method defined."):
-        model = BoringModel()
-        model.configure_optimizers = None
         trainer.fit(model)
 
 
 def test_fit_val_loop_config(tmpdir):
     """When either val loop or val data are missing raise warning."""
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=1)
 
     # no val data has val loop
+    model = BoringModel()
+    model.validation_step = None
     with pytest.warns(UserWarning, match=r"You passed in a `val_dataloader` but have no `validation_step`"):
-        model = BoringModel()
-        model.validation_step = None
         trainer.fit(model)
 
     # has val loop but no val data
+    model = BoringModel()
+    model.val_dataloader = None
     with pytest.warns(PossibleUserWarning, match=r"You defined a `validation_step` but have no `val_dataloader`"):
-        model = BoringModel()
-        model.val_dataloader = None
         trainer.fit(model)
 
 
@@ -151,11 +151,11 @@ def test_trainer_manual_optimization_config(tmpdir):
     model = BoringModel()
     model.automatic_optimization = False
 
-    trainer = Trainer(gradient_clip_val=1.0)
+    trainer = Trainer(accelerator="auto", gradient_clip_val=1.0)
     with pytest.raises(MisconfigurationException, match="Automatic gradient clipping is not supported"):
         trainer.fit(model)
 
-    trainer = Trainer(accumulate_grad_batches=2)
+    trainer = Trainer(accelerator="auto", accumulate_grad_batches=2)
     with pytest.raises(MisconfigurationException, match="Automatic gradient accumulation is not supported"):
         trainer.fit(model)
 
@@ -182,12 +182,12 @@ def test_invalid_setup_method():
     ]
 
     for kwargs in fit_kwargs:
-        trainer = Trainer(fast_dev_run=True)
+        trainer = Trainer(accelerator="auto", fast_dev_run=True)
 
         with pytest.raises(MisconfigurationException, match="does not have a `stage` argument"):
             trainer.fit(**kwargs)
 
-    trainer = Trainer(fast_dev_run=True, callbacks=[CustomBoringCallback()])
+    trainer = Trainer(accelerator="auto", fast_dev_run=True, callbacks=[CustomBoringCallback()])
     model = BoringModel()
 
     with pytest.raises(MisconfigurationException, match="does not have a `stage` argument"):

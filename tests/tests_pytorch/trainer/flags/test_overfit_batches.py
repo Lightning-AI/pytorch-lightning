@@ -31,7 +31,11 @@ def test_overfit_basic(tmpdir, overfit_batches):
     total_train_samples = len(BoringModel().train_dataloader())
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, overfit_batches=overfit_batches, enable_model_summary=False
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        overfit_batches=overfit_batches,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -64,7 +68,7 @@ def test_overfit_batches_raises_warning_in_case_of_sequential_sampler(tmpdir):
             return torch.utils.data.DataLoader(dataset, sampler=sampler)
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, overfit_batches=2)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=1, overfit_batches=2)
 
     with pytest.warns(UserWarning, match="requested to overfit but enabled training dataloader shuffling"):
         trainer.fit(model)

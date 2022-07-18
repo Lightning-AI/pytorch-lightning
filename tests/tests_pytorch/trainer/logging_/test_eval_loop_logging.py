@@ -58,6 +58,7 @@ def test__validation_step__log(tmpdir):
     model.validation_epoch_end = None
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -99,6 +100,7 @@ def test__validation_step__epoch_end__log(tmpdir):
     model = TestModel()
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -130,6 +132,7 @@ def test_eval_epoch_logging(tmpdir, batches, log_interval, max_epochs):
     model = TestModel()
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=batches,
         limit_val_batches=batches,
@@ -165,6 +168,7 @@ def test_eval_float_logging(tmpdir):
     model = TestModel()
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -196,6 +200,7 @@ def test_eval_logging_auto_reduce(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=3,
         limit_val_batches=3,
@@ -346,6 +351,7 @@ def test_log_works_in_val_callback(tmpdir):
     model.validation_epoch_end = None
     cb = TestCallback()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=4,
@@ -555,6 +561,7 @@ def test_validation_step_log_with_tensorboard(mock_log_metrics, tmpdir):
 
     # Initialize a trainer
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         logger=TensorBoardLogger(tmpdir),
         limit_train_batches=2,
@@ -627,6 +634,7 @@ def test_logging_dict_on_validation_step(tmpdir):
     model = TestModel()
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -680,6 +688,7 @@ def test_multiple_dataloaders_reset(val_check_interval, tmpdir):
 
     model = TestModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=5,
         limit_val_batches=5,
@@ -1006,6 +1015,7 @@ def test_eval_step_logging(mock_log_metrics, tmpdir, num_dataloaders):
     limit_batches = 4
     max_epochs = 3
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=max_epochs,
         limit_train_batches=1,

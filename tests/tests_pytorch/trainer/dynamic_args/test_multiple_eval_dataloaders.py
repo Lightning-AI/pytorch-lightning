@@ -65,6 +65,7 @@ def test_multiple_eval_dataloaders_tuple(tmpdir):
     model.validation_epoch_end = None
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -95,6 +96,7 @@ def test_multiple_eval_dataloaders_list(tmpdir):
     model.validation_epoch_end = None
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -152,6 +154,7 @@ def test_multiple_optimizers_multiple_dataloaders(tmpdir):
     model.validation_epoch_end = None
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,

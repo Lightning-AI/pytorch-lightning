@@ -77,6 +77,7 @@ def test__training_step__log(tmpdir):
     model.val_dataloader = None
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -118,6 +119,7 @@ def test__training_step__epoch_end__log(tmpdir):
     model.val_dataloader = None
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -161,6 +163,7 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     model.val_dataloader = None
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=batches,
         limit_val_batches=batches,
@@ -203,6 +206,7 @@ def test__training_step__log_max_reduce_fx(tmpdir, batches, fx, result):
 
     model = TestModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=batches,
         limit_val_batches=batches,
@@ -241,6 +245,7 @@ def test_different_batch_types_for_sizing(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=2,
@@ -321,6 +326,7 @@ def test_log_works_in_train_callback(tmpdir):
     model = TestModel()
     cb = TestCallback()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=0,
@@ -506,6 +512,7 @@ def test_progress_bar_metrics_contains_values_on_train_epoch_end(tmpdir: str):
 
     progress_bar = TestProgressBar()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         callbacks=[progress_bar],
         max_epochs=2,
@@ -542,6 +549,7 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
@@ -619,7 +627,7 @@ def test_log_none_raises(tmpdir, value):
         def training_step(self, *args):
             self.log("foo", value)
 
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=1)
     model = TestModel()
     match = escape(f"self.log(foo, {value})` was called")
     with pytest.raises(ValueError, match=match):
@@ -632,6 +640,7 @@ def test_logging_raises(tmpdir):
             self.log("foo/dataloader_idx_0", -1)
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=0,
@@ -714,7 +723,12 @@ def test_sanity_metrics_are_reset(tmpdir):
             return loss
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=2, num_sanity_val_steps=2
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=2,
+        num_sanity_val_steps=2,
     )
     trainer.fit(TestModel())
 
@@ -769,6 +783,7 @@ def test_on_epoch_logging_with_sum_and_on_batch_start(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
+        accelerator="auto",
         enable_progress_bar=False,
         limit_train_batches=3,
         limit_val_batches=3,
@@ -791,6 +806,7 @@ def test_log_metrics_epoch_step_values(mock_log_metrics, tmpdir):
 
     model = MyModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=0,

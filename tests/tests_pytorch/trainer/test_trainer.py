@@ -87,7 +87,7 @@ def test_no_val_module(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     # logger file to get meta
     logger = tutils.get_default_logger(tmpdir)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, limit_val_batches=1, logger=logger)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_steps=1, limit_val_batches=1, logger=logger)
     # fit model
     trainer.fit(model)
     # training complete
@@ -127,7 +127,7 @@ def test_strict_model_load(monkeypatch, tmpdir, tmpdir_server, url_ckpt):
     logger = tutils.get_default_logger(tmpdir)
 
     # fit model
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, logger=logger)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=1, logger=logger)
     trainer.fit(model)
 
     # training complete
@@ -240,6 +240,7 @@ def test_gradient_accumulation_scheduling_last_batch(tmpdir, accumulate_grad_bat
 
     model = TestModel()
     trainer = Trainer(
+        accelerator="auto",
         accumulate_grad_batches=accumulate_grad_batches,
         max_epochs=2,
         limit_train_batches=limit_train_batches,
@@ -357,6 +358,7 @@ def test_model_checkpoint_only_weights(tmpdir):
     model = BoringModel()
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=1,
@@ -429,6 +431,7 @@ def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ck
     model = TestModel()
     max_epochs = 2
     trainer = Trainer(
+        accelerator="auto",
         max_epochs=max_epochs,
         limit_train_batches=0.65,
         limit_val_batches=1,
@@ -456,7 +459,7 @@ def test_fit_ckpt_path_epoch_restored(monkeypatch, tmpdir, tmpdir_server, url_ck
         model = TestModel()
         state = pl_load(ckpt)
         # Resume training
-        trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, enable_progress_bar=False)
+        trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=2, enable_progress_bar=False)
         trainer.fit(model, ckpt_path=ckpt)
         assert state["global_step"] + model.num_batches_seen == trainer.global_step
         assert model.num_on_load_checkpoint_called == 1
@@ -468,15 +471,16 @@ def test_trainer_max_steps_and_epochs(tmpdir):
     num_train_samples = math.floor(len(model.train_dataloader()) * 0.5)
 
     # define less train steps than epochs
-    trainer_kwargs = {
-        "limit_train_batches": 0.5,
-        "default_root_dir": tmpdir,
-        "max_epochs": 3,
-        "max_steps": num_train_samples + 10,
-        "logger": False,
-        "enable_model_summary": False,
-        "enable_progress_bar": False,
-    }
+    trainer_kwargs = dict(
+        accelerator="auto",
+        limit_train_batches=0.5,
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        max_steps=num_train_samples + 10,
+        logger=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 
@@ -558,18 +562,19 @@ def test_trainer_min_steps_and_epochs(tmpdir):
 
     model = CustomModel()
 
-    trainer_kwargs = {
-        "limit_train_batches": 0.5,
-        "default_root_dir": tmpdir,
-        "val_check_interval": 2,
-        "min_epochs": 1,
-        "max_epochs": 7,
+    trainer_kwargs = dict(
+        accelerator="auto",
+        limit_train_batches=0.5,
+        default_root_dir=tmpdir,
+        val_check_interval=2,
+        min_epochs=1,
+        max_epochs=7,
         # define less min steps than 1 epoch
-        "min_steps": num_train_samples // 2,
-        "logger": False,
-        "enable_model_summary": False,
-        "enable_progress_bar": False,
-    }
+        min_steps=num_train_samples // 2,
+        logger=False,
+        enable_model_summary=False,
+        enable_progress_bar=False,
+    )
     trainer = Trainer(**trainer_kwargs)
     trainer.fit(model)
 
@@ -605,6 +610,7 @@ def test_trainer_min_steps_and_min_epochs_not_reached(tmpdir, caplog):
     early_stop = EarlyStopping(monitor="loss", patience=0, check_on_train_epoch_end=True)
     min_epochs = 5
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         enable_progress_bar=False,
         min_epochs=min_epochs,
@@ -628,6 +634,7 @@ def test_trainer_max_steps_accumulate_batches(tmpdir):
 
     # define less train steps than epochs
     trainer = Trainer(
+        accelerator="auto",
         limit_train_batches=0.5,
         default_root_dir=tmpdir,
         max_steps=num_train_samples + 10,
@@ -708,13 +715,14 @@ def test_checkpoint_path_input_last(tmpdir, ckpt_path, save_last, fn):
     model = BoringModel()
     mc = ModelCheckpoint(save_last=save_last)
     trainer = Trainer(
+        accelerator="auto",
+        default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=1,
         limit_val_batches=1,
         enable_model_summary=False,
         enable_progress_bar=False,
         logger=False,
-        default_root_dir=tmpdir,
         callbacks=[mc],
     )
     assert trainer.ckpt_path is None
@@ -765,12 +773,13 @@ def test_checkpoint_path_input(tmpdir, ckpt_path, save_top_k, fn):
     model = TestModel()
     model.test_epoch_end = None
     trainer = Trainer(
+        accelerator="auto",
+        default_root_dir=tmpdir,
         max_epochs=2,
         limit_val_batches=1,
         limit_test_batches=1,
         limit_predict_batches=1,
         enable_progress_bar=False,
-        default_root_dir=tmpdir,
         callbacks=[ModelCheckpoint(monitor="foo", save_top_k=save_top_k)],
     )
     trainer.fit(model)
@@ -836,12 +845,13 @@ def test_tested_checkpoint_path_best(tmpdir, enable_checkpointing, fn):
     model = TestModel()
     model.test_epoch_end = None
     trainer = Trainer(
+        accelerator="auto",
+        default_root_dir=tmpdir,
         max_epochs=2,
         limit_val_batches=1,
         limit_test_batches=1,
         limit_predict_batches=1,
         enable_progress_bar=False,
-        default_root_dir=tmpdir,
         enable_checkpointing=enable_checkpointing,
     )
     trainer.fit(model)
@@ -896,6 +906,7 @@ def test_disabled_training(tmpdir):
     model = CurrentModel()
 
     trainer_options = dict(
+        accelerator="auto",
         default_root_dir=tmpdir,
         enable_progress_bar=False,
         max_epochs=2,
@@ -958,6 +969,7 @@ def test_disabled_validation(tmpdir):
     model = CurrentModel()
 
     trainer_options = dict(
+        accelerator="auto",
         default_root_dir=tmpdir,
         enable_progress_bar=False,
         max_epochs=2,
@@ -1020,13 +1032,14 @@ def test_on_exception_hook(tmpdir):
     handle_interrupt_callback = HandleInterruptCallback()
 
     trainer = Trainer(
+        accelerator="auto",
+        default_root_dir=tmpdir,
         callbacks=[interrupt_callback, handle_interrupt_callback],
         max_epochs=1,
         limit_val_batches=0.1,
         limit_train_batches=0.2,
         enable_progress_bar=False,
         logger=False,
-        default_root_dir=tmpdir,
     )
     assert not trainer.interrupted
     assert handle_interrupt_callback.exception is None
@@ -1045,10 +1058,10 @@ def test_gradient_clipping_by_norm(tmpdir, precision):
     tutils.reset_seed()
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_steps=1,
         max_epochs=1,
-        accelerator="auto",
         devices=1,
         precision=precision,
         gradient_clip_algorithm="norm",
@@ -1075,10 +1088,10 @@ def test_gradient_clipping_by_value(tmpdir, precision):
     tutils.reset_seed()
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_steps=1,
         max_epochs=1,
-        accelerator="auto",
         devices=1,
         precision=precision,
         gradient_clip_algorithm="value",
@@ -1135,6 +1148,7 @@ def test_num_sanity_val_steps(tmpdir, limit_val_batches):
     num_sanity_val_steps = 4
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         num_sanity_val_steps=num_sanity_val_steps,
         limit_val_batches=limit_val_batches,
@@ -1175,7 +1189,11 @@ def test_num_sanity_val_steps_neg_one(tmpdir, limit_val_batches):
     model = CustomModel()
     model.validation_epoch_end = None
     trainer = Trainer(
-        default_root_dir=tmpdir, num_sanity_val_steps=-1, limit_val_batches=limit_val_batches, max_steps=1
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        num_sanity_val_steps=-1,
+        limit_val_batches=limit_val_batches,
+        max_steps=1,
     )
     assert trainer.num_sanity_val_steps == float("inf")
 
@@ -1259,7 +1277,9 @@ def test_trainer_setup_call(tmpdir, stage):
 
     model = CurrentModel()
     callback = CurrentCallback()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, enable_checkpointing=False, callbacks=[callback])
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, max_epochs=1, enable_checkpointing=False, callbacks=[callback]
+    )
 
     if stage == "fit":
         trainer.fit(model)
@@ -1508,7 +1528,7 @@ def test_repeated_fit_calls_with_max_epochs_and_steps(tmpdir, max_steps, max_epo
 
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=max_steps, max_epochs=max_epochs)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_steps=max_steps, max_epochs=max_epochs)
     trainer.fit(model, train_data)
     assert trainer.global_step == global_step
     trainer.fit(model, train_data)
@@ -1525,7 +1545,7 @@ def test_trainer_access_in_configure_optimizers(tmpdir):
     train_data = torch.utils.data.DataLoader(RandomDataset(32, 64))
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model, train_data)
 
 
@@ -1575,6 +1595,7 @@ def test_train_loop_system(tmpdir):
     called_methods = []
 
     trainer_options = dict(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=5,
@@ -1724,10 +1745,12 @@ def test_on_load_checkpoint_missing_callbacks(tmpdir):
     model = BoringModel()
     chk = ModelCheckpoint(dirpath=tmpdir, save_last=True)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=3, callbacks=[chk, CustomCallbackOnLoadCheckpoint()])
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, max_epochs=3, callbacks=[chk, CustomCallbackOnLoadCheckpoint()]
+    )
     trainer.fit(model)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=5)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=5)
     with pytest.warns(UserWarning, match="CustomCallbackOnLoadCheckpoint"):
         trainer.fit(model, ckpt_path=chk.last_model_path)
 
@@ -1735,7 +1758,9 @@ def test_on_load_checkpoint_missing_callbacks(tmpdir):
 def test_module_current_fx_attributes_reset(tmpdir):
     """Ensure that lightning module's attributes related to current fx are reset at the end of execution."""
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, enable_checkpointing=False, logger=False)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, fast_dev_run=1, enable_checkpointing=False, logger=False
+    )
 
     trainer.fit(model)
     assert model._current_fx_name is None
@@ -1870,6 +1895,7 @@ def test_error_handling_all_stages(tmpdir, strategy):
     counter = ExceptionCounter()
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         strategy=strategy,
         devices=1,
@@ -1933,7 +1959,9 @@ def test_trainer_metrics_reset_before_each_task(tmpdir):
             return super().test_step(*args, **kwargs)
 
     model = CustomBoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=4, callbacks=[TestMetricRestartCallback()])
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, fast_dev_run=4, callbacks=[TestMetricRestartCallback()]
+    )
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
@@ -1948,7 +1976,7 @@ def test_detect_anomaly_nan(tmpdir):
             return output
 
     model = NanModel()
-    trainer = Trainer(default_root_dir=tmpdir, detect_anomaly=True)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, detect_anomaly=True)
     with pytest.raises(RuntimeError, match=r"returned nan values in its 0th output."):
         with pytest.warns(
             UserWarning, match=r".*Error detected in.* Traceback of forward call that caused the error.*"

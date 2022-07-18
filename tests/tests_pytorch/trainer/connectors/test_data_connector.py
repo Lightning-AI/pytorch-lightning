@@ -324,7 +324,7 @@ def test_loader_detaching():
     assert len(model.predict_dataloader()) == 64
     assert len(model.test_dataloader()) == 64
 
-    trainer = Trainer(fast_dev_run=1)
+    trainer = Trainer(accelerator="auto", fast_dev_run=1)
     trainer.fit(model, loader, loader)
 
     assert len(model.train_dataloader()) == 64

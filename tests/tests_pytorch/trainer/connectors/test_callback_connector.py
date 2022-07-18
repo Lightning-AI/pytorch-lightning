@@ -114,6 +114,7 @@ def test_all_callback_states_saved_before_checkpoint_callback(tmpdir):
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, filename="all_states")
     model = BoringModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_steps=1,
         limit_val_batches=1,

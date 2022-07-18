@@ -249,6 +249,7 @@ def test_fx_validator_integration(tmpdir):
 
     callback = HookedCallback(not_supported)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=2,
         limit_train_batches=1,
@@ -376,7 +377,7 @@ def test_can_return_tensor_with_more_than_one_element(tmpdir):
             assert all(torch.equal(d["test"], torch.tensor([0, 1])) for d in outputs)  # check values
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, enable_progress_bar=False)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=2, enable_progress_bar=False)
     trainer.fit(model)
     trainer.validate(model)
     trainer.test(model)
@@ -392,7 +393,7 @@ def test_logging_to_progress_bar_with_reserved_key(tmpdir):
             return output
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.warns(UserWarning, match="The progress bar already tracks a metric with the .* 'loss'"):
         trainer.fit(model)
 
@@ -419,7 +420,7 @@ def test_auto_add_dataloader_idx(tmpdir, add_dataloader_idx):
     model = TestModel()
     model.validation_epoch_end = None
 
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=2)
     trainer.fit(model)
     logged = trainer.logged_metrics
 
@@ -520,6 +521,7 @@ def test_metrics_reset(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -647,7 +649,7 @@ def test_logged_metrics_has_logged_epoch_value(tmpdir):
             return super().training_step(batch, batch_idx)
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=2)
     trainer.fit(model)
 
     # should not get overridden if logged manually

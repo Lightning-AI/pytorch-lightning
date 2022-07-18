@@ -39,7 +39,7 @@ def test_val_check_interval(tmpdir, max_epochs, denominator):
                 self.val_epoch_calls += 1
 
     model = TestModel()
-    trainer = Trainer(max_epochs=max_epochs, val_check_interval=1 / denominator, logger=False)
+    trainer = Trainer(accelerator="auto", max_epochs=max_epochs, val_check_interval=1 / denominator, logger=False)
     trainer.fit(model)
 
     assert model.train_epoch_calls == max_epochs
@@ -87,6 +87,7 @@ def test_validation_check_interval_exceed_data_length_correct(tmpdir, use_infini
 
     model = TestModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_val_batches=1,
         max_steps=max_steps,
@@ -104,6 +105,7 @@ def test_validation_check_interval_exceed_data_length_correct(tmpdir, use_infini
 
 def test_validation_check_interval_exceed_data_length_wrong():
     trainer = Trainer(
+        accelerator="auto",
         limit_train_batches=10,
         val_check_interval=100,
     )

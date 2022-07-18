@@ -22,6 +22,7 @@ def test_min_max_steps_epochs(tmpdir, min_epochs, max_epochs, min_steps, max_ste
     model = BoringModel()
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         min_epochs=min_epochs,
         max_epochs=max_epochs,

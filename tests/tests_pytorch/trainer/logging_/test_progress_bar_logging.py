@@ -14,6 +14,6 @@ def test_logging_to_progress_bar_with_reserved_key(tmpdir):
             return output
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_steps=2)
     with pytest.warns(UserWarning, match="The progress bar already tracks a metric with the .* 'loss'"):
         trainer.fit(model)

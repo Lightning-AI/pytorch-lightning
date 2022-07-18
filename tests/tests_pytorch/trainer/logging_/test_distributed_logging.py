@@ -123,6 +123,7 @@ def test_first_logger_call_in_subprocess(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
@@ -179,6 +180,7 @@ def test_logger_after_fit_predict_test_calls(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
