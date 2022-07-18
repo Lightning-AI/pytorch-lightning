@@ -1103,7 +1103,7 @@ def test_deepspeed_setup_train_dataloader(tmpdir):
 @pytest.mark.parametrize("max_epoch", [2])
 @pytest.mark.parametrize("limit_train_batches", [2])
 @RunIf(min_cuda_gpus=1, standalone=True, deepspeed=True)
-def test_scheduler_step_count(mock_step, max_epoch, limit_train_batches, interval):
+def test_scheduler_step_count(mock_step, tmpdir, max_epoch, limit_train_batches, interval):
     """Test to ensure that the scheduler is called the correct amount of times during training when scheduler is
     set to step or epoch."""
 
@@ -1118,7 +1118,7 @@ def test_scheduler_step_count(mock_step, max_epoch, limit_train_batches, interva
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=os.getcwd(),
+        default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         limit_val_batches=0,
         max_epochs=max_epoch,
