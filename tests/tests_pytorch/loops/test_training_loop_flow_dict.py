@@ -37,6 +37,7 @@ def test__training_step__flow_dict(tmpdir):
     model.val_dataloader = None
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -76,6 +77,7 @@ def test__training_step__tr_step_end__flow_dict(tmpdir):
     model.val_dataloader = None
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -123,6 +125,7 @@ def test__training_step__epoch_end__flow_dict(tmpdir):
     model.val_dataloader = None
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -176,6 +179,7 @@ def test__training_step__step_end__epoch_end__flow_dict(tmpdir):
     model.val_dataloader = None
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,

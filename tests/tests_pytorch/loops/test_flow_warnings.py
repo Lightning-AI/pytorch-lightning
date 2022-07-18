@@ -30,6 +30,7 @@ def test_no_depre_without_epoch_end(tmpdir):
     model.validation_epoch_end = None
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,

@@ -106,7 +106,7 @@ def test_restarting_loops_recursive():
 def test_connect_subloops(tmpdir):
     """Test connecting individual subloops by calling `trainer.x.y.connect()`"""
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=True)
 
     epoch_loop = trainer.fit_loop.epoch_loop
     new_batch_loop = TrainingBatchLoop()
@@ -337,6 +337,7 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     model.validation_epoch_end = None
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=n_epochs,
         limit_train_batches=1,
@@ -418,6 +419,7 @@ def test_loop_state_on_exception(accumulate_grad_batches, stop_epoch, stop_batch
     model.training_epoch_end = None
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=n_epochs,
         limit_train_batches=n_batches,
@@ -620,6 +622,7 @@ def test_loop_state_on_complete_run(n_optimizers, tmpdir):
     model.training_epoch_end = None
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=n_epochs,
         limit_val_batches=0,
@@ -733,6 +736,7 @@ def test_fit_loop_reset(tmpdir):
         save_top_k=-1,
     )
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=4,
         max_epochs=2,
@@ -847,6 +851,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
 
     model = TestModel(False)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         val_check_interval=val_check_interval,
@@ -885,6 +890,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
 
     model = TestModel(True)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         val_check_interval=val_check_interval,
@@ -936,6 +942,7 @@ def test_fit_can_fail_during_validation(train_datasets, val_datasets, val_check_
 
     model = TestModel(False)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         val_check_interval=val_check_interval,
@@ -1001,6 +1008,7 @@ def test_workers_are_shutdown(tmpdir, should_fail, persistent_workers):
 
     model = BoringModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,

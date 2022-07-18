@@ -97,6 +97,7 @@ def test_persistent_hidden_state_transfer(tmpdir, model_class):
 
     model = TBPTTModel(truncated_bptt_steps=2, input_size=1, hidden_size=8)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=2,
         enable_model_summary=False,
@@ -138,6 +139,7 @@ def test_tbptt_split_shapes(tmpdir, model_class):
 
     model = TBPTTModel(truncated_bptt_steps=truncated_bptt_steps, input_size=f, hidden_size=8)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         enable_model_summary=False,
@@ -162,6 +164,7 @@ def test_tbptt_logging(tmpdir, model_class):
 
     model = TBPTTModel(truncated_bptt_steps=2)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=2,
         log_every_n_steps=2,
@@ -192,6 +195,7 @@ def test_hiddens_multiple_optimizers(tmpdir):
 
     model = TBPTTModel(truncated_bptt_steps=2, input_size=1, hidden_size=1)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=1,

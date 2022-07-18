@@ -28,7 +28,7 @@ def test_optimizer_step_no_closure_raises(tmpdir):
             pass
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=1)
     with pytest.raises(MisconfigurationException, match="The closure hasn't been executed"):
         trainer.fit(model)
 
@@ -42,6 +42,6 @@ def test_optimizer_step_no_closure_raises(tmpdir):
             return BrokenSGD(self.layer.parameters(), lr=0.1)
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=1)
     with pytest.raises(MisconfigurationException, match="The closure hasn't been executed"):
         trainer.fit(model)

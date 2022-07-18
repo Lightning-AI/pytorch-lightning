@@ -47,6 +47,7 @@ def test__eval_step__flow(tmpdir):
     model.validation_epoch_end = None
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -108,6 +109,7 @@ def test__eval_step__eval_step_end__flow(tmpdir):
     model.validation_epoch_end = None
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -175,6 +177,7 @@ def test__eval_step__epoch_end__flow(tmpdir):
     model.validation_step_end = None
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -233,6 +236,7 @@ def test__validation_step__step_end__epoch_end__flow(tmpdir):
     model = TestModel()
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,

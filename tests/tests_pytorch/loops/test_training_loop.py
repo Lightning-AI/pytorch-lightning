@@ -47,6 +47,7 @@ def test_outputs_format(tmpdir):
 
     # fit model
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=1,
@@ -80,14 +81,14 @@ def test_training_starts_with_seed(tmpdir, seed_once):
 
     if seed_once:
         seed_everything(123)
-        sequence0 = run_training(default_root_dir=tmpdir, max_steps=2, num_sanity_val_steps=0)
-        sequence1 = run_training(default_root_dir=tmpdir, max_steps=2, num_sanity_val_steps=2)
+        sequence0 = run_training(accelerator="auto", default_root_dir=tmpdir, max_steps=2, num_sanity_val_steps=0)
+        sequence1 = run_training(accelerator="auto", default_root_dir=tmpdir, max_steps=2, num_sanity_val_steps=2)
         assert not torch.allclose(sequence0, sequence1)
     else:
         seed_everything(123)
-        sequence0 = run_training(default_root_dir=tmpdir, max_steps=2, num_sanity_val_steps=0)
+        sequence0 = run_training(accelerator="auto", default_root_dir=tmpdir, max_steps=2, num_sanity_val_steps=0)
         seed_everything(123)
-        sequence1 = run_training(default_root_dir=tmpdir, max_steps=2, num_sanity_val_steps=2)
+        sequence1 = run_training(accelerator="auto", default_root_dir=tmpdir, max_steps=2, num_sanity_val_steps=2)
         assert torch.allclose(sequence0, sequence1)
 
 
@@ -99,7 +100,7 @@ def test_on_train_batch_start_return_minus_one(max_epochs, batch_idx_, tmpdir):
                 return -1
 
     model = CurrentModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=max_epochs, limit_train_batches=10)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=max_epochs, limit_train_batches=10)
     trainer.fit(model)
     if batch_idx_ > trainer.num_training_batches - 1:
         assert trainer.fit_loop.batch_idx == trainer.num_training_batches - 1
@@ -127,7 +128,9 @@ def test_should_stop_mid_epoch(tmpdir):
             return super().validation_step(*args)
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=10, limit_val_batches=1)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, max_epochs=1, limit_train_batches=10, limit_val_batches=1
+    )
     trainer.fit(model)
 
     # even though we stopped mid epoch, the fit loop finished normally and the current epoch was increased
@@ -148,6 +151,6 @@ def test_warning_valid_train_step_end(tmpdir):
 
     # No error is raised
     model = ValidTrainStepEndModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=1)
 
     trainer.fit(model)

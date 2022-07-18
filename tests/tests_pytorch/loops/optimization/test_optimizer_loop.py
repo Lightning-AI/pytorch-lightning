@@ -60,7 +60,7 @@ def test_warning_invalid_trainstep_output(tmpdir, case):
             return output
 
     model = InvalidTrainStepModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=1)
 
     with pytest.raises(MisconfigurationException, match=match):
         trainer.fit(model)
@@ -118,6 +118,7 @@ def test_optimizer_frequencies(tmpdir, frequencies, expected):
     model.training_epoch_end = None
     model.optimizer_step = Mock(wraps=model.optimizer_step)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         fast_dev_run=10,
         enable_progress_bar=False,
@@ -183,6 +184,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
     model.training_epoch_end = None
     model.optimizer_step = Mock(wraps=model.optimizer_step)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=n_epochs,
         limit_train_batches=n_batches,
@@ -202,6 +204,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
     model.training_epoch_end = None
     model.optimizer_step = Mock(wraps=model.optimizer_step)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=n_epochs,
         limit_train_batches=n_batches,
@@ -222,6 +225,7 @@ def test_loop_restart_progress_multiple_optimizers(tmpdir, n_optimizers, stop_op
     model.training_epoch_end = None
     model.optimizer_step = Mock(wraps=model.optimizer_step)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=n_epochs,
         limit_train_batches=n_batches,

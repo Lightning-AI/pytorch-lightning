@@ -32,7 +32,12 @@ def test_on_evaluation_epoch_end(eval_epoch_end_mock, tmpdir):
     model = BoringModel()
 
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=2, limit_val_batches=2, max_epochs=2, enable_model_summary=False
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        max_epochs=2,
+        enable_model_summary=False,
     )
 
     trainer.fit(model)
@@ -55,6 +60,7 @@ def test_evaluation_loop_sampler_set_epoch_called(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
@@ -89,6 +95,7 @@ def test_evaluation_loop_batch_sampler_set_epoch_called(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
@@ -124,7 +131,9 @@ def test_log_epoch_metrics_before_on_evaluation_end(update_eval_epoch_metrics_mo
             order.append("on_validation_end")
             super().on_validation_end()
 
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, enable_model_summary=False, num_sanity_val_steps=0)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, fast_dev_run=1, enable_model_summary=False, num_sanity_val_steps=0
+    )
     trainer.fit(LessBoringModel())
 
     assert order == ["log_epoch_metrics", "on_validation_end"]
