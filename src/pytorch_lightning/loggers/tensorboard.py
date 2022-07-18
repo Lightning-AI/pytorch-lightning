@@ -119,7 +119,7 @@ class TensorBoardLogger(Logger):
         If the experiment name parameter is an empty string, no experiment subdirectory is used and the checkpoint will
         be saved in "save_dir/version"
         """
-        return os.path.join(self.save_dir, self.name)  # type: ignore[arg-type]
+        return os.path.join(self.save_dir, self.name)
 
     @property
     def log_dir(self) -> str:
@@ -138,7 +138,7 @@ class TensorBoardLogger(Logger):
         return log_dir
 
     @property
-    def save_dir(self) -> Optional[str]:
+    def save_dir(self) -> str:
         """Gets the save directory where the TensorBoard experiments are saved.
 
         Returns:
