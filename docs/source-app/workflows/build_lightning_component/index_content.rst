@@ -28,7 +28,7 @@ Basics
         <div class="row">
 
 .. displayitem::
-   :header: Build a component
+   :header: Build a Lightning component
    :description: Learn the basics of building a Lightning component
    :col_css: col-md-4
    :button_link: basic.html
@@ -36,8 +36,8 @@ Basics
    :tag: basic
 
 .. displayitem::
-   :header: Explore community components
-   :description: Discover community-built components
+   :header: Explore community Lightning components
+   :description: Discover community-built Lightning components
    :col_css: col-md-4
    :button_link: https://lightning.ai/components
    :height: 150
@@ -84,7 +84,7 @@ Intermediate
    :tag: intermediate
 
 .. displayitem::
-   :header: Publish a component
+   :header: Publish a Lightning component
    :description: Learn the basics of publishing a Lightning component.
    :col_css: col-md-4
    :button_link: publish_a_component.html
