@@ -291,7 +291,7 @@ class TensorBoardLogger(Logger):
             self._version = self._get_next_version()
         return self._version
 
-    def _get_next_version(self):  # type: ignore[no-untyped-def]
+    def _get_next_version(self) -> int:
         root_dir = self.root_dir
 
         try:
