@@ -13,17 +13,17 @@
 *.yml           @borda @carmocca @akihironitta @tchaton
 
 # Docs
-/docs/                                      @edenlightning @tchaton @borda @awaelchli @RobertLaurella
+/docs/                                      @edenlightning @tchaton @borda @awaelchli @RobertLaurella @Felonious-Spellfire
 /.github/*.md                               @edenlightning @williamfalcon @borda
 /.github/ISSUE_TEMPLATE/                    @edenlightning @borda @tchaton
 /docs/source-pytorch/conf.py                @borda @awaelchli @carmocca
 /docs/source-pytorch/index.rst              @williamfalcon
 /docs/source-pytorch/levels                 @williamfalcon @RobertLaurella
 /docs/source-pytorch/expertise_levels       @williamfalcon @RobertLaurella
-/docs/source-app/                           @williamfalcon @RobertLaurella @tchaton @awaelchli
+/docs/source-app/                           @williamfalcon @Felonious-Spellfire @RobertLaurella @tchaton @awaelchli
 /docs/source-app/conf.py                    @borda @awaelchli @carmocca
 /docs/source-app/index.rst                  @williamfalcon
-/docs/source-app/expertise_levels           @williamfalcon @RobertLaurella
+/docs/source-app/expertise_levels           @williamfalcon @Felonious-Spellfire @RobertLaurella
 
 # Packages
 /src/pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
