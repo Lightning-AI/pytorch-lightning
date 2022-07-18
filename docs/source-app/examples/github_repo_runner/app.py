@@ -198,12 +198,13 @@ def page_1__create_new_run(state):
         "Enter a Github Repo URL", value="https://github.com/Lightning-AI/lightning-quick-start.git"
     )
 
-    default_script_args = \
-        "--trainer.max_epochs=5" \
-        " --trainer.limit_train_batches=4" \
-        " --trainer.limit_val_batches=4" \
-        " --trainer.callbacks=ModelCheckpoint" \
+    default_script_args = (
+        "--trainer.max_epochs=5"
+        " --trainer.limit_train_batches=4"
+        " --trainer.limit_val_batches=4"
+        " --trainer.callbacks=ModelCheckpoint"
         " --trainer.callbacks.monitor=val_acc"
+    )
     default_requirements = "torchvision, pytorch_lightning, jsonargparse[signatures]"
 
     script_path = st.text_input("Enter your script to run", value="train_script.py")
