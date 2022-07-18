@@ -34,7 +34,12 @@ def test_lr_monitor_single_lr(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, limit_val_batches=0.1, limit_train_batches=0.5, callbacks=[lr_monitor]
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
+        callbacks=[lr_monitor],
     )
     trainer.fit(model)
 
@@ -66,6 +71,7 @@ def test_lr_monitor_single_lr_with_momentum(tmpdir, opt: str):
     model = LogMomentumModel(opt=opt)
     lr_monitor = LearningRateMonitor(log_momentum=True)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=2,
         limit_val_batches=2,
@@ -92,6 +98,7 @@ def test_log_momentum_no_momentum_optimizer(tmpdir):
     model = LogMomentumModel()
     lr_monitor = LearningRateMonitor(log_momentum=True)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=2,
@@ -120,7 +127,12 @@ def test_lr_monitor_no_lr_scheduler_single_lr(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, limit_val_batches=0.1, limit_train_batches=0.5, callbacks=[lr_monitor]
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
+        callbacks=[lr_monitor],
     )
 
     trainer.fit(model)
@@ -151,6 +163,7 @@ def test_lr_monitor_no_lr_scheduler_single_lr_with_momentum(tmpdir, opt: str):
     model = LogMomentumModel(opt=opt)
     lr_monitor = LearningRateMonitor(log_momentum=True)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=2,
         limit_val_batches=2,
@@ -176,6 +189,7 @@ def test_log_momentum_no_momentum_optimizer_no_lr_scheduler(tmpdir):
     model = LogMomentumModel()
     lr_monitor = LearningRateMonitor(log_momentum=True)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_val_batches=2,
@@ -197,7 +211,7 @@ def test_lr_monitor_no_logger(tmpdir):
     model = BoringModel()
 
     lr_monitor = LearningRateMonitor()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, callbacks=[lr_monitor], logger=False)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=1, callbacks=[lr_monitor], logger=False)
 
     with pytest.raises(MisconfigurationException, match="`Trainer` that has no logger"):
         trainer.fit(model)
@@ -226,6 +240,7 @@ def test_lr_monitor_multi_lrs(tmpdir, logging_interval: str):
     log_every_n_steps = 2
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=2,
         log_every_n_steps=log_every_n_steps,
@@ -270,6 +285,7 @@ def test_lr_monitor_no_lr_scheduler_multi_lrs(tmpdir, logging_interval: str):
     log_every_n_steps = 2
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=2,
         log_every_n_steps=log_every_n_steps,
@@ -312,7 +328,12 @@ def test_lr_monitor_param_groups(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, limit_val_batches=0.1, limit_train_batches=0.5, callbacks=[lr_monitor]
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_val_batches=0.1,
+        limit_train_batches=0.5,
+        callbacks=[lr_monitor],
     )
     trainer.fit(model, datamodule=dm)
 
@@ -330,6 +351,7 @@ def test_lr_monitor_custom_name(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=2,
         limit_val_batches=0.1,
@@ -351,6 +373,7 @@ def test_lr_monitor_custom_pg_name(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=2,
         limit_val_batches=2,
@@ -388,6 +411,7 @@ def test_lr_monitor_duplicate_custom_pg_names(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=2,
         limit_val_batches=2,
@@ -479,6 +503,7 @@ def test_multiple_optimizers_basefinetuning(tmpdir):
 
     lr_monitor = LearningRateMonitor()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=5,
         limit_val_batches=0,
@@ -537,6 +562,7 @@ def test_lr_monitor_multiple_param_groups_no_lr_scheduler(tmpdir):
 
     lr_monitor = LearningRateMonitor(log_momentum=True)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=2,
         limit_val_batches=2,

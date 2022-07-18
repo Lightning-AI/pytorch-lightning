@@ -144,6 +144,7 @@ def test_model_checkpoint_score_and_ckpt(
         model.val_dataloaders = None
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         callbacks=[checkpoint],
         limit_train_batches=limit_train_batches,
@@ -240,6 +241,7 @@ def test_model_checkpoint_score_and_ckpt_val_check_interval(
     model = CustomBoringModel()
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         callbacks=[checkpoint],
         limit_train_batches=limit_train_batches,
@@ -303,7 +305,9 @@ def test_model_checkpoint_with_non_string_input(tmpdir, save_top_k: int):
 
     checkpoint = ModelCheckpoint(monitor="early_stop_on", dirpath=None, filename="{epoch}", save_top_k=save_top_k)
     max_epochs = 2
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[checkpoint], overfit_batches=0.20, max_epochs=max_epochs)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, callbacks=[checkpoint], overfit_batches=0.20, max_epochs=max_epochs
+    )
     trainer.fit(model)
     assert checkpoint.dirpath == tmpdir / trainer.logger.name / "version_0" / "checkpoints"
 
@@ -322,7 +326,9 @@ def test_model_checkpoint_to_yaml(tmpdir, save_top_k: int):
 
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="early_stop_on", save_top_k=save_top_k)
 
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[checkpoint], overfit_batches=0.20, max_epochs=2)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, callbacks=[checkpoint], overfit_batches=0.20, max_epochs=2
+    )
     trainer.fit(model)
 
     path_yaml = os.path.join(tmpdir, "best_k_models.yaml")
@@ -339,7 +345,7 @@ def test_model_checkpoint_path(tmpdir, logger_version: Union[None, int, str], ex
     model = LogInTwoMethods()
     logger = TensorBoardLogger(str(tmpdir), version=logger_version)
 
-    trainer = Trainer(default_root_dir=tmpdir, overfit_batches=0.2, max_epochs=2, logger=logger)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, overfit_batches=0.2, max_epochs=2, logger=logger)
     trainer.fit(model)
 
     ckpt_version = Path(trainer.checkpoint_callback.dirpath).parent.name
@@ -469,7 +475,9 @@ def test_model_checkpoint_file_extension(tmpdir):
     model_checkpoint = ModelCheckpointExtensionTest(
         monitor="early_stop_on", dirpath=tmpdir, save_top_k=1, save_last=True
     )
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[model_checkpoint], max_steps=1, logger=False)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, callbacks=[model_checkpoint], max_steps=1, logger=False
+    )
     trainer.fit(model)
 
     expected = ["epoch=0-step=1.tpkc", "last.tpkc"]
@@ -484,6 +492,7 @@ def test_model_checkpoint_save_last(tmpdir):
     ModelCheckpoint.CHECKPOINT_NAME_LAST = "last-{epoch}"
     model_checkpoint = ModelCheckpoint(monitor="early_stop_on", dirpath=tmpdir, save_top_k=-1, save_last=True)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         callbacks=[model_checkpoint],
         max_epochs=epochs,
@@ -572,6 +581,7 @@ def test_model_checkpoint_save_last_none_monitor(tmpdir, caplog):
     epochs = 2
     checkpoint_callback = ModelCheckpoint(monitor=None, dirpath=tmpdir, save_top_k=-1, save_last=True)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         callbacks=[checkpoint_callback],
         limit_train_batches=10,
@@ -606,6 +616,7 @@ def test_model_checkpoint_every_n_epochs(tmpdir, every_n_epochs):
         dirpath=tmpdir, filename="{epoch}", save_top_k=-1, every_n_epochs=every_n_epochs
     )
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         callbacks=[checkpoint_callback],
         max_epochs=epochs,
@@ -636,6 +647,7 @@ def test_ckpt_every_n_train_steps(tmpdir):
         save_last=False,
     )
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=2,
         enable_progress_bar=False,
@@ -662,6 +674,7 @@ def test_model_checkpoint_train_time_interval(mock_datetime, tmpdir) -> None:
 
     model = BoringModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         min_epochs=num_epochs,
         max_epochs=num_epochs,
@@ -689,7 +702,9 @@ def test_model_checkpoint_topk_zero(tmpdir):
     """Test that no checkpoints are saved when save_top_k=0."""
     model = LogInTwoMethods()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_top_k=0, save_last=True)
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[checkpoint_callback], max_epochs=2, logger=False)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, callbacks=[checkpoint_callback], max_epochs=2, logger=False
+    )
     trainer.fit(model)
     # these should not be set if monitor is None
     assert checkpoint_callback.monitor is None
@@ -712,6 +727,7 @@ def test_model_checkpoint_topk_all(tmpdir):
         dirpath=tmpdir, filename="{epoch}", monitor="epoch", mode="max", save_top_k=-1
     )
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         callbacks=[checkpoint_callback],
         max_epochs=epochs,
@@ -732,6 +748,7 @@ def test_ckpt_metric_names(tmpdir):
     model = LogInTwoMethods()
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         gradient_clip_val=1.0,
@@ -757,7 +774,12 @@ def test_default_checkpoint_behavior(tmpdir):
 
     model = LogInTwoMethods()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=3, enable_progress_bar=False, limit_train_batches=5, limit_val_batches=5
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        max_epochs=3,
+        enable_progress_bar=False,
+        limit_train_batches=5,
+        limit_val_batches=5,
     )
 
     with patch.object(trainer, "save_checkpoint", wraps=trainer.save_checkpoint) as save_mock:
@@ -788,6 +810,7 @@ def test_model_checkpoint_save_last_checkpoint_contents(tmpdir):
         monitor="early_stop_on", dirpath=tmpdir, filename="{epoch}", save_top_k=num_epochs, save_last=True
     )
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         callbacks=[model_checkpoint],
         max_epochs=num_epochs,
@@ -835,6 +858,7 @@ def test_checkpointing_with_nan_as_first(tmpdir, mode):
     callback = ModelCheckpoint(monitor="abc", mode=mode, save_top_k=1, dirpath=tmpdir)
 
     trainer = Trainer(
+        accelerator="auto",
         callbacks=[callback],
         default_root_dir=tmpdir,
         val_check_interval=1.0,
@@ -862,14 +886,15 @@ def test_checkpoint_repeated_strategy(tmpdir):
 
     model = ExtendedBoringModel()
     model.validation_epoch_end = None
-    trainer_kwargs = {
-        "max_epochs": 1,
-        "limit_train_batches": 2,
-        "limit_val_batches": 2,
-        "limit_test_batches": 2,
-        "enable_progress_bar": False,
-        "enable_model_summary": False,
-    }
+    trainer_kwargs = dict(
+        accelerator="auto",
+        max_epochs=1,
+        limit_train_batches=2,
+        limit_val_batches=2,
+        limit_test_batches=2,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
     trainer = Trainer(**trainer_kwargs, callbacks=[checkpoint_callback])
     trainer.fit(model)
     assert os.listdir(tmpdir) == ["epoch=00.ckpt"]
@@ -923,6 +948,7 @@ def test_checkpoint_repeated_strategy_extended(tmpdir):
     epochs = 2
     limit_train_batches = 2
     trainer_config = dict(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=epochs,
         limit_train_batches=limit_train_batches,
@@ -1011,6 +1037,7 @@ def test_val_check_interval_checkpoint_files(tmpdir):
     model = LogInTwoMethods()
     model_checkpoint = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="val_acc", mode="max")
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         val_check_interval=0.2,
         max_epochs=1,
@@ -1035,6 +1062,7 @@ def test_current_score(tmpdir):
 
     model_checkpoint = ModelCheckpoint(dirpath=tmpdir, save_top_k=3, monitor="foo", mode="min")
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=3,
         limit_train_batches=1,
@@ -1068,6 +1096,7 @@ def test_current_score_when_nan(tmpdir, mode: str):
 
     model_checkpoint = ModelCheckpoint(dirpath=tmpdir, save_top_k=1, monitor="foo", mode=mode)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=1,
@@ -1092,6 +1121,7 @@ def test_hparams_type(tmpdir, use_omegaconf):
 
     model_checkpoint = ModelCheckpoint(dirpath=tmpdir, save_top_k=1)
     trainer = Trainer(
+        accelerator="auto",
         max_epochs=1,
         default_root_dir=tmpdir,
         limit_train_batches=1,
@@ -1120,6 +1150,7 @@ def test_ckpt_version_after_rerun_new_trainer(tmpdir):
     for i in range(epochs):
         mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="{epoch}")
         trainer = Trainer(
+            accelerator="auto",
             max_epochs=epochs,
             limit_train_batches=1,
             limit_val_batches=1,
@@ -1146,6 +1177,7 @@ def test_ckpt_version_after_rerun_same_trainer(tmpdir):
     mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1, monitor="epoch", filename="test")
     mc.STARTING_VERSION = 9
     trainer = Trainer(
+        accelerator="auto",
         max_epochs=2,
         limit_train_batches=1,
         limit_val_batches=1,
@@ -1176,6 +1208,7 @@ def test_check_val_every_n_epochs_top_k_integration(tmpdir):
     model = BoringModel()
     mc = ModelCheckpoint(dirpath=tmpdir, monitor="epoch", save_top_k=-1, filename="{epoch}")
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=1,
         limit_val_batches=1,
@@ -1255,22 +1288,23 @@ def test_resume_training_preserves_old_ckpt_last(tmpdir):
     """Ensures that the last saved checkpoint is not deleted from the previous folder when training is resumed from
     the old checkpoint."""
     model = BoringModel()
-    trainer_kwargs = {
-        "default_root_dir": tmpdir,
-        "max_epochs": 1,
-        "limit_train_batches": 3,
-        "limit_val_batches": 0,
-        "enable_model_summary": False,
-        "logger": False,
-    }
-    mc_kwargs = {
-        "filename": "{step}",
-        "monitor": "step",
-        "mode": "max",
-        "save_last": True,
-        "save_top_k": 2,
-        "every_n_train_steps": 1,
-    }
+    trainer_kwargs = dict(
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=3,
+        limit_val_batches=0,
+        enable_model_summary=False,
+        logger=False,
+    )
+    mc_kwargs = dict(
+        filename="{step}",
+        monitor="step",
+        mode="max",
+        save_last=True,
+        save_top_k=2,
+        every_n_train_steps=1,
+    )
     trainer = Trainer(**trainer_kwargs, callbacks=ModelCheckpoint(**mc_kwargs))
     trainer.fit(model)
     # Make sure that the last checkpoint file exists in the dirpath passed (`tmpdir`)
@@ -1304,6 +1338,7 @@ def test_save_last_versioning(tmpdir):
     for _ in range(2):
         mc = ModelCheckpoint(dirpath=tmpdir, save_top_k=0, save_last=True)
         trainer = Trainer(
+            accelerator="auto",
             max_epochs=2,
             callbacks=mc,
             limit_train_batches=1,
@@ -1355,6 +1390,7 @@ def test_dirpath_weights_save_path(tmpdir, logger_setting):
     mc = ModelCheckpoint(monitor="epoch", save_top_k=-1)
     with pytest.deprecated_call(match=r"Setting `Trainer\(weights_save_path=\)` has been deprecated in v1.6"):
         trainer = Trainer(
+            accelerator="auto",
             default_root_dir=tmpdir,
             weights_save_path=tmpdir / "weights_save_path",
             limit_train_batches=1,
@@ -1375,6 +1411,7 @@ def test_save_last_every_n_epochs_interaction(tmpdir, every_n_epochs):
     """Test that `save_last` ignores `every_n_epochs`."""
     mc = ModelCheckpoint(every_n_epochs=every_n_epochs, save_last=True, save_top_k=0, save_on_train_epoch_end=True)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=2,
         callbacks=mc,

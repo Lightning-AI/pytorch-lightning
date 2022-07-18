@@ -31,19 +31,19 @@ def test_trainer_flag(caplog):
         def on_fit_start(self):
             raise SystemExit()
 
-    trainer = Trainer(max_time=dict(seconds=1337))
+    trainer = Trainer(accelerator="auto", max_time=dict(seconds=1337))
     with pytest.raises(SystemExit):
         trainer.fit(TestModel())
     timer = [c for c in trainer.callbacks if isinstance(c, Timer)][0]
     assert timer._duration == 1337
 
-    trainer = Trainer(max_time=dict(seconds=1337), callbacks=[Timer()])
+    trainer = Trainer(accelerator="auto", max_time=dict(seconds=1337), callbacks=[Timer()])
     with pytest.raises(SystemExit), caplog.at_level(level=logging.INFO):
         trainer.fit(TestModel())
     assert "callbacks list already contains a Timer" in caplog.text
 
     # Make sure max_time still honored even if max_epochs == -1
-    trainer = Trainer(max_time=dict(seconds=1), max_epochs=-1)
+    trainer = Trainer(accelerator="auto", max_time=dict(seconds=1), max_epochs=-1)
     with pytest.raises(SystemExit):
         trainer.fit(TestModel())
     timer = [c for c in trainer.callbacks if isinstance(c, Timer)][0]
@@ -109,7 +109,7 @@ def test_timer_stops_training(tmpdir, caplog):
     duration = timedelta(milliseconds=100)
     timer = Timer(duration=duration)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1000, callbacks=[timer])
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=1000, callbacks=[timer])
     with caplog.at_level(logging.INFO):
         trainer.fit(model)
     assert trainer.global_step > 1
@@ -123,7 +123,7 @@ def test_timer_zero_duration_stop(tmpdir, interval):
     """Test that the timer stops training immediately after the first check occurs."""
     model = BoringModel()
     duration = timedelta(0)
-    timer = Timer(duration=duration, interval=interval)
+    timer = Timer(accelerator="auto", duration=duration, interval=interval)
     trainer = Trainer(default_root_dir=tmpdir, callbacks=[timer])
     trainer.fit(model)
     assert trainer.global_step == 0
@@ -135,7 +135,9 @@ def test_timer_duration_min_steps_override(tmpdir, min_steps, min_epochs):
     model = BoringModel()
     duration = timedelta(0)
     timer = Timer(duration=duration)
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[timer], min_steps=min_steps, min_epochs=min_epochs)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, callbacks=[timer], min_steps=min_steps, min_epochs=min_epochs
+    )
     trainer.fit(model)
     if min_epochs:
         assert trainer.current_epoch >= min_epochs
@@ -152,6 +154,7 @@ def test_timer_resume_training(tmpdir):
 
     # initial training
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=100,
         callbacks=[timer, checkpoint_callback],
@@ -164,7 +167,7 @@ def test_timer_resume_training(tmpdir):
 
     # resume training (with depleted timer)
     timer = Timer(duration=timedelta(milliseconds=200))
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=timer)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, callbacks=timer)
     trainer.fit(model, ckpt_path=checkpoint_callback.best_model_path)
     assert timer._offset > 0
     assert trainer.global_step == saved_global_step
@@ -176,7 +179,7 @@ def test_timer_track_stages(tmpdir):
     # note: skipped on windows because time resolution of time.monotonic() is not high enough for this fast test
     model = BoringModel()
     timer = Timer()
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=5, callbacks=[timer])
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_steps=5, callbacks=[timer])
     trainer.fit(model)
     assert timer.time_elapsed() == timer.time_elapsed("train") > 0
     assert timer.time_elapsed("validate") > 0

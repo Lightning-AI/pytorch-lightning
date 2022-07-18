@@ -147,7 +147,11 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     # check the sanity dataloaders
     num_sanity_val_steps = 4
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=0, num_sanity_val_steps=num_sanity_val_steps
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=0,
+        num_sanity_val_steps=num_sanity_val_steps,
     )
     pbar = trainer.progress_bar_callback
     with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
@@ -161,7 +165,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
     assert pbar.val_progress_bar.descriptions == [f"Sanity Checking DataLoader {i}: " for i in range(num_dl)]
 
     # fit
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=1)
     pbar = trainer.progress_bar_callback
     with mock.patch("pytorch_lightning.callbacks.progress.tqdm_progress.Tqdm", MockTqdm):
         trainer.fit(model)
@@ -212,7 +216,7 @@ def test_tqdm_progress_bar_totals(tmpdir, num_dl):
 def test_tqdm_progress_bar_fast_dev_run(tmpdir):
     model = BoringModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=True)
 
     trainer.fit(model)
 
@@ -264,6 +268,7 @@ def test_tqdm_progress_bar_progress_refresh(tmpdir, refresh_rate: int):
 
     pbar = CurrentProgressBar(refresh_rate=refresh_rate)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         callbacks=[pbar],
         limit_train_batches=1.0,
@@ -315,6 +320,7 @@ def test_num_sanity_val_steps_progress_bar(tmpdir, limit_val_batches: int):
     num_sanity_val_steps = 2
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         num_sanity_val_steps=num_sanity_val_steps,
@@ -372,6 +378,7 @@ def test_main_progress_bar_update_amount(
     model = BoringModel()
     progress_bar = TQDMProgressBar(refresh_rate=refresh_rate)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=train_batches,
@@ -417,7 +424,12 @@ def test_tensor_to_float_conversion(tmpdir):
             return super().training_step(batch, batch_idx)
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=2, logger=False, enable_checkpointing=False
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=2,
+        logger=False,
+        enable_checkpointing=False,
     )
     trainer.fit(TestModel())
 
@@ -471,6 +483,7 @@ def test_tqdm_progress_bar_print(tqdm_write, tmpdir):
     model = PrintModel()
     bar = TQDMProgressBar()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         num_sanity_val_steps=0,
         limit_train_batches=1,
@@ -523,6 +536,7 @@ def test_tqdm_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
     model = PrintModel()
     bar = TQDMProgressBar()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         num_sanity_val_steps=0,
         limit_train_batches=1,
@@ -545,7 +559,7 @@ def test_tqdm_progress_bar_print_disabled(tqdm_write, mock_print, tmpdir):
 
 def test_tqdm_progress_bar_can_be_pickled():
     bar = TQDMProgressBar()
-    trainer = Trainer(fast_dev_run=True, callbacks=[bar], max_steps=1)
+    trainer = Trainer(accelerator="auto", fast_dev_run=True, callbacks=[bar], max_steps=1)
     model = BoringModel()
 
     pickle.dumps(bar)
@@ -567,6 +581,7 @@ def test_progress_bar_max_val_check_interval(
     limit_batches = 7
     model = BoringModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         num_sanity_val_steps=0,
         max_epochs=1,
@@ -648,6 +663,7 @@ def test_get_progress_bar_metrics(tmpdir: str):
 
     progress_bar = TestProgressBar()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         callbacks=[progress_bar],
         fast_dev_run=True,
@@ -693,6 +709,7 @@ def test_tqdm_progress_bar_correct_value_epoch_end(tmpdir):
     model = MyModel()
     pbar = MockedProgressBar()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -731,6 +748,7 @@ def test_tqdm_progress_bar_disabled_when_not_rank_zero(is_global_zero):
     pbar = TQDMProgressBar()
     model = BoringModel()
     trainer = Trainer(
+        accelerator="auto",
         callbacks=[pbar],
         fast_dev_run=True,
     )

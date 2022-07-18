@@ -24,7 +24,7 @@ from tests_pytorch.helpers.runif import RunIf
 
 def test_disabled_checkpointing(tmpdir):
     # no callback
-    trainer = Trainer(max_epochs=3, enable_checkpointing=False)
+    trainer = Trainer(accelerator="auto", max_epochs=3, enable_checkpointing=False)
     assert not trainer.checkpoint_callbacks
     trainer.fit(BoringModel())
     assert not trainer.checkpoint_callbacks
@@ -38,6 +38,7 @@ def test_default_checkpoint_freq(save_mock, tmpdir, epochs: int, val_check_inter
 
     model = BoringModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=epochs,
         enable_model_summary=False,
@@ -72,6 +73,7 @@ def test_top_k(save_mock, tmpdir, k: int, epochs: int, val_check_interval: float
 
     model = TestModel()
     trainer = Trainer(
+        accelerator="auto",
         callbacks=[callbacks.ModelCheckpoint(dirpath=tmpdir, monitor="my_loss", save_top_k=k, save_last=save_last)],
         default_root_dir=tmpdir,
         max_epochs=epochs,

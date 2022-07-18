@@ -62,6 +62,6 @@ def test_custom_model_summary_callback_summarize(tmpdir):
             assert trainable_parameters == 66
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=CustomModelSummary(), max_steps=1)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, callbacks=CustomModelSummary(), max_steps=1)
 
     trainer.fit(model)

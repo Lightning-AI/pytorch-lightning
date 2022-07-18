@@ -24,7 +24,7 @@ def test_model_torch_save(tmpdir):
     """Test to ensure torch save does not fail for model and trainer."""
     model = BoringModel()
     num_epochs = 1
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=num_epochs)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=num_epochs)
     temp_path = os.path.join(tmpdir, "temp.pt")
     trainer.fit(model)
 

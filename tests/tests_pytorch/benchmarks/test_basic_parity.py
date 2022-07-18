@@ -158,7 +158,7 @@ def lightning_loop(cls_model, idx, device_type: str = "cuda", num_epochs=10):
         enable_progress_bar=False,
         enable_model_summary=False,
         enable_checkpointing=False,
-        accelerator="gpu" if device_type == "cuda" else "cpu",
+        accelerator="auto",
         devices=1,
         logger=False,
         replace_sampler_ddp=False,

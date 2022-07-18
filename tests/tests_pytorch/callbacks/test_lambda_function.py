@@ -42,6 +42,7 @@ def test_lambda_call(tmpdir):
 
     # successful run
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=1,
@@ -56,6 +57,7 @@ def test_lambda_call(tmpdir):
 
     # raises KeyboardInterrupt and loads from checkpoint
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=3,
         limit_train_batches=1,

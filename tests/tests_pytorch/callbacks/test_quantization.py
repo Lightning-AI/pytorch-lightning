@@ -38,15 +38,12 @@ from tests_pytorch.helpers.simple_models import RegressionModel
 @RunIf(quantization=True, max_torch="1.11")
 def test_quantization(tmpdir, observe: str, fuse: bool, convert: bool):
     """Parity test for quant model."""
-    cuda_available = GPUAccelerator.is_available()
-
     if observe == "average" and not fuse and GPUAccelerator.is_available():
         pytest.xfail("TODO: flakiness in GPU CI")
 
     seed_everything(42)
     dm = RegressDataModule()
-    accelerator = "gpu" if cuda_available else "cpu"
-    trainer_args = dict(default_root_dir=tmpdir, max_epochs=7, accelerator=accelerator, devices=1)
+    trainer_args = dict(accelerator="auto", default_root_dir=tmpdir, max_epochs=7, devices=1)
     model = RegressionModel()
     qmodel = copy.deepcopy(model)
 
@@ -106,7 +103,7 @@ def test_quantize_torchscript(tmpdir):
     dm = RegressDataModule()
     qmodel = RegressionModel()
     qcb = QuantizationAwareTraining(input_compatible=False)
-    trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(accelerator="auto", callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
     trainer.fit(qmodel, datamodule=dm)
 
     batch = iter(dm.test_dataloader()).next()
@@ -136,7 +133,7 @@ def test_quantization_exceptions(tmpdir):
 
     fusing_layers = [(f"layers.mlp_{i}", f"layers.NONE-mlp_{i}a") for i in range(3)]
     qcb = QuantizationAwareTraining(modules_to_fuse=fusing_layers)
-    trainer = Trainer(callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(accelerator="auto", callbacks=[qcb], default_root_dir=tmpdir, max_epochs=1)
     with pytest.raises(MisconfigurationException, match="one or more of them is not your model attributes"):
         trainer.fit(RegressionModel(), datamodule=RegressDataModule())
 
@@ -164,7 +161,12 @@ def test_quantization_triggers(tmpdir, trigger_fn: Union[None, int, Callable], e
     qmodel = RegressionModel()
     qcb = QuantizationAwareTraining(collect_quantization=trigger_fn)
     trainer = Trainer(
-        callbacks=[qcb], default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=1, max_epochs=4
+        accelerator="auto",
+        callbacks=[qcb],
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=4,
     )
     trainer.fit(qmodel, datamodule=dm)
 
@@ -226,6 +228,7 @@ def test_quantization_val_test_predict(tmpdir):
 
     val_test_predict_qmodel = copy.deepcopy(qmodel)
     trainer = Trainer(
+        accelerator="auto",
         callbacks=[QuantizationAwareTraining(quantize_on_fit_end=False)],
         default_root_dir=tmpdir,
         limit_train_batches=1,

@@ -47,6 +47,7 @@ def test_train_step_no_return(tmpdir, single_cb: bool):
     model = TestModel()
 
     trainer = Trainer(
+        accelerator="auto",
         callbacks=CB() if single_cb else [CB()],
         default_root_dir=tmpdir,
         limit_train_batches=2,
@@ -69,6 +70,7 @@ def test_free_memory_on_eval_outputs(tmpdir):
     model = BoringModel()
 
     trainer = Trainer(
+        accelerator="auto",
         callbacks=CB(),
         default_root_dir=tmpdir,
         limit_train_batches=2,

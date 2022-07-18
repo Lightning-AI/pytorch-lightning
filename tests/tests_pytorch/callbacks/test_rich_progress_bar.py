@@ -63,6 +63,7 @@ def test_rich_progress_bar(tmpdir, dataset):
             return DataLoader(dataset=dataset)
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         num_sanity_val_steps=0,
         limit_train_batches=1,
@@ -145,6 +146,7 @@ def test_rich_progress_bar_keyboard_interrupt(tmpdir):
     ) as mock_progress_stop:
         progress_bar = RichProgressBar()
         trainer = Trainer(
+            accelerator="auto",
             default_root_dir=tmpdir,
             fast_dev_run=True,
             callbacks=progress_bar,
@@ -183,6 +185,7 @@ def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
     ) as mock_progress_reset:
         progress_bar = RichProgressBar(leave=leave)
         trainer = Trainer(
+            accelerator="auto",
             default_root_dir=tmpdir,
             num_sanity_val_steps=0,
             limit_train_batches=1,
@@ -197,6 +200,7 @@ def test_rich_progress_bar_leave(tmpdir, leave, reset_call_count):
 @mock.patch("pytorch_lightning.callbacks.progress.rich_progress.Progress.update")
 def test_rich_progress_bar_refresh_rate_disabled(progress_update, tmpdir):
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         fast_dev_run=4,
         callbacks=RichProgressBar(refresh_rate=0),
@@ -224,6 +228,7 @@ def test_rich_progress_bar_refresh_rate_disabled(progress_update, tmpdir):
 def test_rich_progress_bar_with_refresh_rate(tmpdir, refresh_rate, train_batches, val_batches, expected_call_count):
     model = BoringModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         num_sanity_val_steps=0,
         limit_train_batches=train_batches,
@@ -260,6 +265,7 @@ def test_rich_progress_bar_num_sanity_val_steps(tmpdir, limit_val_batches):
     num_sanity_val_steps = 3
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         num_sanity_val_steps=num_sanity_val_steps,
         limit_train_batches=1,
@@ -279,6 +285,7 @@ def test_rich_progress_bar_counter_with_val_check_interval(tmpdir):
     progress_bar = RichProgressBar()
     model = BoringModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         val_check_interval=2,
         max_epochs=1,
@@ -326,7 +333,7 @@ def test_rich_progress_bar_metric_display_task_id(tmpdir):
 
     progress_bar = RichProgressBar()
     model = CustomModel()
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=progress_bar, fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, callbacks=progress_bar, fast_dev_run=True)
 
     trainer.fit(model)
     main_progress_bar_id = progress_bar.main_progress_bar_id
@@ -371,6 +378,7 @@ def test_rich_progress_bar_correct_value_epoch_end(tmpdir):
     model = MyModel()
     pbar = MockedProgressBar()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,

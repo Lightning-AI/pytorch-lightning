@@ -45,6 +45,7 @@ def test_finetuning_with_ckpt_path(tmpdir):
     model = ExtendedBoringModel()
     model.validation_epoch_end = None
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=12,
@@ -60,6 +61,7 @@ def test_finetuning_with_ckpt_path(tmpdir):
     for idx in range(3, 6):
         # load from checkpoint
         trainer = pl.Trainer(
+            accelerator="auto",
             default_root_dir=tmpdir,
             max_epochs=idx,
             limit_train_batches=12,
@@ -82,6 +84,7 @@ def test_trainer_save_checkpoint_storage_options(tmpdir):
     """This test validates that storage_options argument is properly passed to ``CheckpointIO``"""
     model = BoringModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         fast_dev_run=True,
         enable_checkpointing=False,

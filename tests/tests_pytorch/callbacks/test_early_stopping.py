@@ -68,6 +68,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, monitor="train_loss", save_top_k=1)
     early_stop_callback = EarlyStoppingTestRestore(None, monitor="train_loss")
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         callbacks=[early_stop_callback, checkpoint_callback],
         num_sanity_val_steps=0,
@@ -89,6 +90,7 @@ def test_resume_early_stopping_from_checkpoint(tmpdir):
     # ensure state is reloaded properly (assertion in the callback)
     early_stop_callback = EarlyStoppingTestRestore(early_stop_callback_state, monitor="train_loss")
     new_trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         callbacks=[early_stop_callback],
@@ -106,6 +108,7 @@ def test_early_stopping_no_extraneous_invocations(tmpdir):
     early_stop_callback._run_early_stopping_check = Mock()
     expected_count = 4
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         callbacks=[early_stop_callback],
         limit_train_batches=4,
@@ -137,6 +140,7 @@ def test_early_stopping_patience(tmpdir, loss_values: list, patience: int, expec
     model = ModelOverrideValidationReturn()
     early_stop_callback = EarlyStopping(monitor="test_val_loss", patience=patience, verbose=True)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         callbacks=[early_stop_callback],
         num_sanity_val_steps=0,
@@ -173,6 +177,7 @@ def test_early_stopping_patience_train(
         monitor="train_loss", patience=patience, verbose=True, check_on_train_epoch_end=True
     )
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         callbacks=[early_stop_callback],
         num_sanity_val_steps=0,
@@ -204,7 +209,9 @@ def test_early_stopping_no_val_step(tmpdir):
     model.val_dataloader = None
 
     stopping = EarlyStopping(monitor="train_loss", min_delta=0.1, patience=0, check_on_train_epoch_end=True)
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[stopping], overfit_batches=0.20, max_epochs=10)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, callbacks=[stopping], overfit_batches=0.20, max_epochs=10
+    )
     trainer.fit(model, datamodule=dm)
 
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -230,6 +237,7 @@ def test_early_stopping_thresholds(tmpdir, stopping_threshold, divergence_thresh
         monitor="abc", stopping_threshold=stopping_threshold, divergence_threshold=divergence_threshold
     )
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         callbacks=[early_stopping],
         limit_train_batches=0.2,
@@ -254,6 +262,7 @@ def test_early_stopping_on_non_finite_monitor(tmpdir, stop_value):
     model = CurrentModel()
     early_stopping = EarlyStopping(monitor="val_loss", check_finite=True)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         callbacks=[early_stopping],
         limit_train_batches=0.2,
@@ -294,6 +303,7 @@ def test_min_epochs_min_steps_global_step(tmpdir, limit_train_batches, min_epoch
 
     es_callback = EarlyStopping("foo")
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         callbacks=es_callback,
         limit_val_batches=0,
@@ -397,13 +407,13 @@ def test_multiple_early_stopping_callbacks(
     model = EarlyStoppingModel(expected_stop_epoch, check_on_train_epoch_end)
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         callbacks=callbacks,
         limit_train_batches=0.1,
         limit_val_batches=0.1,
         max_epochs=20,
         strategy=strategy,
-        accelerator="cpu",
         devices=devices,
     )
     trainer.fit(model)
@@ -425,6 +435,7 @@ def test_check_on_train_epoch_end_smart_handling(tmpdir, case):
     case, kwargs = case
     model = TestModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_val_batches=1,
         callbacks=EarlyStopping(monitor="foo"),

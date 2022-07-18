@@ -35,7 +35,11 @@ def test_callbacks_configured_in_model(tmpdir):
 
     model = TestModel()
     trainer_options = dict(
-        default_root_dir=tmpdir, enable_checkpointing=False, fast_dev_run=True, enable_progress_bar=False
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        enable_checkpointing=False,
+        fast_dev_run=True,
+        enable_progress_bar=False,
     )
 
     def assert_expected_calls(_trainer, model_callback, trainer_callback):
@@ -86,7 +90,7 @@ def test_configure_callbacks_hook_multiple_calls(tmpdir):
             return model_callback_mock
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, enable_checkpointing=False)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=True, enable_checkpointing=False)
 
     callbacks_before_fit = trainer.callbacks.copy()
     assert callbacks_before_fit
@@ -127,13 +131,13 @@ def test_resume_callback_state_saved_by_type_stateful(tmpdir):
     state_dict/load_state_dict."""
     model = BoringModel()
     callback = OldStatefulCallback(state=111)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
     trainer.fit(model)
     ckpt_path = Path(trainer.checkpoint_callback.best_model_path)
     assert ckpt_path.exists()
 
     callback = OldStatefulCallback(state=222)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback])
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_steps=2, callbacks=[callback])
     trainer.fit(model, ckpt_path=ckpt_path)
     assert callback.state == 111
 
@@ -163,14 +167,14 @@ def test_resume_callback_state_saved_by_type_hooks(tmpdir):
     # on_save_checkpoint() -> None and on_load_checkpoint(checkpoint)
     model = BoringModel()
     callback = OldStatefulCallbackHooks(state=111)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
     with pytest.deprecated_call():
         trainer.fit(model)
     ckpt_path = Path(trainer.checkpoint_callback.best_model_path)
     assert ckpt_path.exists()
 
     callback = OldStatefulCallbackHooks(state=222)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback])
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_steps=2, callbacks=[callback])
     with pytest.deprecated_call():
         trainer.fit(model, ckpt_path=ckpt_path)
     assert callback.state == 111
@@ -181,6 +185,7 @@ def test_resume_incomplete_callbacks_list_warning(tmpdir):
     callback0 = ModelCheckpoint(monitor="epoch")
     callback1 = ModelCheckpoint(monitor="global_step")
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_steps=1,
         callbacks=[callback0, callback1],
@@ -189,6 +194,7 @@ def test_resume_incomplete_callbacks_list_warning(tmpdir):
     ckpt_path = trainer.checkpoint_callback.best_model_path
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_steps=1,
         callbacks=[callback1],  # one callback is missing!
@@ -197,6 +203,7 @@ def test_resume_incomplete_callbacks_list_warning(tmpdir):
         trainer.fit(model, ckpt_path=ckpt_path)
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_steps=1,
         callbacks=[callback1, callback0],  # all callbacks here, order switched
@@ -237,14 +244,14 @@ def test_resume_callback_state_all(tmpdir):
     # on_save_checkpoint() -> None and on_load_checkpoint(checkpoint)
     model = BoringModel()
     callback = AllStatefulCallback(state=111)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_steps=1, callbacks=[callback])
     with pytest.deprecated_call():
         trainer.fit(model)
     ckpt_path = Path(trainer.checkpoint_callback.best_model_path)
     assert ckpt_path.exists()
 
     callback = AllStatefulCallback(state=222)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[callback])
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_steps=2, callbacks=[callback])
     with pytest.deprecated_call():
         trainer.fit(model, ckpt_path=ckpt_path)
     assert callback.state == 10
