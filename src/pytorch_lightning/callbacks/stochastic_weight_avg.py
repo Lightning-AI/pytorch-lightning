@@ -106,7 +106,7 @@ class StochasticWeightAveraging(Callback):
         if wrong_type or wrong_float or wrong_list:
             raise MisconfigurationException("The `swa_lrs` should a positive float, or a list of positive floats")
 
-        if avg_fn is not None and not isinstance(avg_fn, Callable):  # type: ignore[arg-type]
+        if avg_fn is not None and not callable(avg_fn):
             raise MisconfigurationException("The `avg_fn` should be callable.")
 
         if device is not None and not isinstance(device, (torch.device, str)):
@@ -124,7 +124,7 @@ class StochasticWeightAveraging(Callback):
 
     @property
     def swa_start(self) -> int:
-        return max(self._swa_epoch_start - 1, 0)  # type: ignore[return-value]
+        return max(self._swa_epoch_start - 1, 0)  # type: ignore[return-value]  # 0-based
 
     @property
     def swa_end(self) -> int:
