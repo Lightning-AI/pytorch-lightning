@@ -161,3 +161,5 @@ tags
 .tags
 src/lightning_app/ui/*
 *examples/template_react_ui*
+hars*
+artifacts/*
