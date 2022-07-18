@@ -184,7 +184,7 @@ class LightningModule(
         for v in self.children():
             if isinstance(v, LightningModule):
                 v.trainer = trainer
-        if trainer is not None:
+        if trainer is not None and not isinstance(trainer, weakref.ProxyTypes):
             trainer = weakref.proxy(trainer)
         self._trainer = trainer
 
