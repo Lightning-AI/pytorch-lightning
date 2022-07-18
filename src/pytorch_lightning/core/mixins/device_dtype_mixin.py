@@ -115,7 +115,7 @@ class DeviceDtypeModuleMixin(Module):
         self.__update_properties(device=out[0], dtype=out[1])
         return super().to(*args, **kwargs)
 
-    def cuda(self, device: Optional[Union[torch.device, int]] = None) -> DeviceDtypeModuleMixin:
+    def cuda(self, device: Optional[Union[torch.device, int]] = None) -> TDeviceDtypeModuleMixin:
         """Moves all model parameters and buffers to the GPU. This also makes associated parameters and buffers
         different objects. So it should be called before constructing optimizer if the module will live on GPU
         while being optimized.
@@ -128,6 +128,7 @@ class DeviceDtypeModuleMixin(Module):
             Module: self
         """
         if device is None or isinstance(device, int):
+            assert isinstance(device, int)
             device = torch.device("cuda", index=device)
         self.__update_properties(device=device)
         return super().cuda(device=device)
