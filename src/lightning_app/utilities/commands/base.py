@@ -144,7 +144,7 @@ def _command_to_method_and_metadata(command: ClientCommand) -> Tuple[Callable, D
                     f"The provided annotation for the argument {k} should in the file "
                     f"{inspect.getfile(command.__class__)}, not {inspect.getfile(command.method)}."
                 )
-        if not issubclass(config, BaseModel):
+        if config is None or not issubclass(config, BaseModel):
             raise Exception(
                 f"The provided annotation for the argument {k} shouldn't an instance of pydantic BaseModel."
             )
