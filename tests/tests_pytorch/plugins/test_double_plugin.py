@@ -142,7 +142,9 @@ class DoublePrecisionBoringModelComplexBuffer(BoringModel):
 def test_double_precision(tmpdir, boring_model):
     model = boring_model()
 
-    trainer = Trainer(max_epochs=2, default_root_dir=tmpdir, fast_dev_run=2, precision=64, log_every_n_steps=1)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, max_epochs=2, fast_dev_run=2, precision=64, log_every_n_steps=1
+    )
     trainer.fit(model)
     trainer.test(model)
     trainer.predict(model)

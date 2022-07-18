@@ -108,6 +108,7 @@ def test_model_properties_fit_ckpt_path(tmpdir):
     model = BoringModel()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_last=True)
     trainer_args = dict(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=2,
@@ -137,6 +138,7 @@ def test_trainer_properties_restore_ckpt_path(tmpdir):
     dm = ClassifDataModule()
     checkpoint_callback = ModelCheckpoint(dirpath=tmpdir, save_last=True)
     trainer_args = dict(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=2,
@@ -226,7 +228,11 @@ def test_correct_step_and_epoch(tmpdir):
     first_max_epochs = 2
     train_batches = 2
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=first_max_epochs, limit_train_batches=train_batches, limit_val_batches=0
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        max_epochs=first_max_epochs,
+        limit_train_batches=train_batches,
+        limit_val_batches=0,
     )
     assert trainer.current_epoch == 0
     assert trainer.global_step == 0
@@ -245,7 +251,11 @@ def test_correct_step_and_epoch(tmpdir):
 
     max_epochs = first_max_epochs + 2
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=max_epochs, limit_train_batches=train_batches, limit_val_batches=0
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        max_epochs=max_epochs,
+        limit_train_batches=train_batches,
+        limit_val_batches=0,
     )
     # the ckpt state is not loaded at this point
     assert trainer.current_epoch == 0
@@ -270,6 +280,7 @@ def test_fit_twice(tmpdir):
             epochs.append(self.current_epoch)
 
     trainer = Trainer(
+        accelerator="auto",
         max_epochs=2,
         limit_train_batches=1,
         limit_val_batches=1,
@@ -288,7 +299,7 @@ def test_fit_twice(tmpdir):
 def test_try_resume_from_non_existing_checkpoint(tmpdir):
     """Test that trying to resume from non-existing `ckpt_path` fails with an error."""
     model = BoringModel()
-    trainer = Trainer()
+    trainer = Trainer(accelerator="auto")
 
     with pytest.raises(FileNotFoundError, match="Aborting training"):
         trainer.fit(model, ckpt_path=str(tmpdir / "non_existing.ckpt"))
@@ -310,6 +321,7 @@ def test_callbacks_state_fit_ckpt_path(tmpdir):
     def get_trainer_args():
         checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
         trainer_args = dict(
+            accelerator="auto",
             default_root_dir=tmpdir,
             limit_train_batches=1,
             limit_val_batches=2,
@@ -352,17 +364,18 @@ def test_callbacks_references_fit_ckpt_path(tmpdir):
     """Test that resuming from a checkpoint sets references as expected."""
     dm = ClassifDataModule()
     model = ClassificationModel()
-    args = {
-        "default_root_dir": tmpdir,
-        "max_steps": 1,
-        "logger": False,
-        "limit_val_batches": 2,
-        "num_sanity_val_steps": 0,
-    }
+    trainer_args = dict(
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        max_steps=1,
+        logger=False,
+        limit_val_batches=2,
+        num_sanity_val_steps=0,
+    )
 
     # initial training
     checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
-    trainer = Trainer(**args, callbacks=[checkpoint])
+    trainer = Trainer(**trainer_args, callbacks=[checkpoint])
     assert checkpoint is trainer.callbacks[-1] is trainer.checkpoint_callback
     trainer.fit(model, datamodule=dm)
 
@@ -370,7 +383,7 @@ def test_callbacks_references_fit_ckpt_path(tmpdir):
     new_checkpoint = ModelCheckpoint(dirpath=tmpdir, monitor="val_loss", save_last=True)
     # pass in a new checkpoint object, which should take
     # precedence over the one in the last.ckpt file
-    trainer = Trainer(**args, callbacks=[new_checkpoint])
+    trainer = Trainer(**trainer_args, callbacks=[new_checkpoint])
     assert checkpoint is not new_checkpoint
     assert new_checkpoint is trainer.callbacks[-1] is trainer.checkpoint_callback
     trainer.fit(model, datamodule=dm, ckpt_path=str(tmpdir / "last.ckpt"))
@@ -487,6 +500,7 @@ def test_running_test_pretrained_model_cpu(tmpdir):
     checkpoint = tutils.init_checkpoint_callback(logger)
 
     trainer_options = dict(
+        accelerator="auto",
         enable_progress_bar=False,
         max_epochs=2,
         limit_train_batches=2,
@@ -519,6 +533,7 @@ def test_load_model_from_checkpoint(tmpdir, model_template):
     model = model_template()
 
     trainer_options = dict(
+        accelerator="auto",
         enable_progress_bar=False,
         max_epochs=2,
         limit_train_batches=2,
@@ -637,12 +652,13 @@ def test_model_saving_loading(tmpdir):
 
     # fit model
     trainer = Trainer(
+        accelerator="auto",
+        default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=2,
         limit_val_batches=2,
         logger=logger,
         callbacks=[ModelCheckpoint(dirpath=tmpdir)],
-        default_root_dir=tmpdir,
     )
     trainer.fit(model)
 
@@ -691,6 +707,7 @@ def test_strict_model_load_more_params(monkeypatch, tmpdir, tmpdir_server, url_c
 
     # fit model
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=2,
@@ -731,6 +748,7 @@ def test_strict_model_load_less_params(monkeypatch, tmpdir, tmpdir_server, url_c
 
     # fit model
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=2,
@@ -794,13 +812,14 @@ class ShouldStopModel(ExceptionModel):
 def test_restarting_mid_epoch_raises_warning(tmpdir, stop_in_the_middle, model_cls):
     """Test that a warning is raised if training is restarted from mid-epoch."""
     limit_train_batches = 8
-    trainer_kwargs = {
-        "default_root_dir": tmpdir,
-        "limit_train_batches": limit_train_batches,
-        "limit_val_batches": 0,
-        "enable_progress_bar": False,
-        "enable_model_summary": False,
-    }
+    trainer_kwargs = dict(
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+    )
     trainer = Trainer(max_epochs=1, **trainer_kwargs)
     model = model_cls(limit_train_batches // 2 if stop_in_the_middle else -1)
 

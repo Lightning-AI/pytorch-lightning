@@ -31,7 +31,7 @@ from tests_pytorch.utilities.test_model_summary import UnorderedModel
 def test_model_saves_with_input_sample(tmpdir):
     """Test that ONNX model saves with input sample and size is greater than 3 MB."""
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", fast_dev_run=True)
     trainer.fit(model)
 
     file_path = os.path.join(tmpdir, "model.onnx")
@@ -61,7 +61,7 @@ def test_model_saves_on_gpu(tmpdir, accelerator):
 def test_model_saves_with_example_output(tmpdir):
     """Test that ONNX model saves when provided with example output."""
     model = BoringModel()
-    trainer = Trainer(fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", fast_dev_run=True)
     trainer.fit(model)
 
     file_path = os.path.join(tmpdir, "model.onnx")
@@ -152,7 +152,7 @@ def test_if_inference_output_is_valid(tmpdir):
     model = BoringModel()
     model.example_input_array = torch.randn(5, 32)
 
-    trainer = Trainer(fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", fast_dev_run=True)
     trainer.fit(model)
 
     model.eval()

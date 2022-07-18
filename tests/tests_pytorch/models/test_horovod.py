@@ -294,6 +294,7 @@ def test_horovod_multi_optimizer(tmpdir):
 
     # fit model
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=str(tmpdir),
         enable_progress_bar=False,
         max_epochs=1,
@@ -356,6 +357,7 @@ def test_result_reduce_horovod(tmpdir):
         model.val_dataloader = None
 
         trainer = Trainer(
+            accelerator="auto",
             default_root_dir=tmpdir,
             limit_train_batches=2,
             limit_val_batches=2,
@@ -443,7 +445,12 @@ def test_horovod_multi_optimizer_with_scheduling_stepping(tmpdir):
 
         # fit model
         trainer = Trainer(
-            default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.5, limit_train_batches=0.2, strategy="horovod"
+            accelerator="auto",
+            default_root_dir=tmpdir,
+            max_epochs=1,
+            limit_val_batches=0.5,
+            limit_train_batches=0.2,
+            strategy="horovod",
         )
         trainer.fit(model)
 

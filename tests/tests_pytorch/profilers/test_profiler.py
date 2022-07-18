@@ -103,7 +103,7 @@ def test_simple_profiler_dirpath(tmpdir):
     assert profiler.dirpath is None
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, profiler=profiler)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=1, profiler=profiler)
     trainer.fit(model)
 
     expected = tmpdir / "lightning_logs" / "version_0"
@@ -121,7 +121,12 @@ def test_simple_profiler_with_nonexisting_log_dir(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=nonexisting_tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, profiler=profiler
+        accelerator="auto",
+        default_root_dir=nonexisting_tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        profiler=profiler,
     )
     trainer.fit(model)
 
@@ -140,7 +145,12 @@ def test_simple_profiler_with_nonexisting_dirpath(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, profiler=profiler
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        profiler=profiler,
     )
     trainer.fit(model)
 
@@ -177,7 +187,9 @@ def test_simple_profiler_distributed_files(tmpdir):
 def test_simple_profiler_logs(tmpdir, caplog, simple_profiler):
     """Ensure that the number of printed logs is correct."""
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2, profiler=simple_profiler, logger=False)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, fast_dev_run=2, profiler=simple_profiler, logger=False
+    )
     with caplog.at_level(logging.INFO, logger="pytorch_lightning.profiler"):
         trainer.fit(model)
         trainer.test(model)
@@ -338,6 +350,7 @@ def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     """Checks for pickle issue reported in #6522."""
     model = BoringModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         fast_dev_run=True,
         profiler="advanced",
@@ -394,7 +407,9 @@ def test_pytorch_profiler_trainer_fit(fast_dev_run, boring_model_cls, tmpdir):
     """Ensure that the profiler can be given to the trainer and test step are properly recorded."""
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profile")
     model = boring_model_cls()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, fast_dev_run=fast_dev_run, profiler=pytorch_profiler)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, max_epochs=1, fast_dev_run=fast_dev_run, profiler=pytorch_profiler
+    )
     trainer.fit(model)
 
     assert sum(
@@ -470,7 +485,14 @@ def test_pytorch_profiler_multiple_loggers(tmpdir):
 
     model = BoringModel()
     loggers = [TensorBoardLogger(save_dir=tmpdir), CSVLogger(tmpdir)]
-    trainer = Trainer(default_root_dir=tmpdir, profiler="pytorch", logger=loggers, limit_train_batches=5, max_epochs=1)
+    trainer = Trainer(
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        profiler="pytorch",
+        logger=loggers,
+        limit_train_batches=5,
+        max_epochs=1,
+    )
     assert len(trainer.loggers) == 2
     trainer.fit(model)
     assert look_for_trace(tmpdir)
@@ -540,7 +562,9 @@ def test_profiler_teardown(tmpdir, cls):
 
     profiler = cls(dirpath=tmpdir, filename="profiler")
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=1, profiler=profiler, callbacks=[TestCallback()])
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, fast_dev_run=1, profiler=profiler, callbacks=[TestCallback()]
+    )
     trainer.fit(model)
 
     assert profiler._output_file is None
@@ -614,6 +638,7 @@ def test_profile_callbacks(tmpdir):
     pytorch_profiler = PyTorchProfiler(dirpath=tmpdir, filename="profiler")
     model = BoringModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         fast_dev_run=1,
         profiler=pytorch_profiler,

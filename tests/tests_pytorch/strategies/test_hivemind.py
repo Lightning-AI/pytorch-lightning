@@ -9,7 +9,7 @@ import pytest
 import torch
 from torch.optim import Optimizer
 
-import pytorch_lightning as pl
+from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies import HivemindStrategy
 from pytorch_lightning.strategies.hivemind import HiveMindScheduler
@@ -33,7 +33,7 @@ def test_raise_exception_if_hivemind_unavailable():
 @mock.patch("hivemind.DHT", autospec=True)
 def test_strategy(mock_dht):
     strategy = HivemindStrategy(target_batch_size=1)
-    trainer = pl.Trainer(strategy=strategy)
+    trainer = Trainer(strategy=strategy)
     assert trainer.strategy == strategy
 
 
@@ -46,7 +46,7 @@ def test_optimizer_wrapped():
             assert isinstance(optimizer, hivemind.Optimizer)
 
     model = TestModel()
-    trainer = pl.Trainer(strategy=HivemindStrategy(target_batch_size=1), fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", strategy=HivemindStrategy(target_batch_size=1), fast_dev_run=True)
     trainer.fit(model)
 
 
@@ -63,7 +63,8 @@ def test_scheduler_wrapped():
             return [optimizer], [torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)]
 
     model = TestModel()
-    trainer = pl.Trainer(
+    trainer = Trainer(
+        accelerator="auto",
         strategy=HivemindStrategy(target_batch_size=1),
         fast_dev_run=True,
     )
@@ -100,7 +101,9 @@ def test_reuse_grad_buffers_warning():
             pass
 
     model = TestModel()
-    trainer = pl.Trainer(strategy=HivemindStrategy(target_batch_size=1, reuse_grad_buffers=True), fast_dev_run=True)
+    trainer = Trainer(
+        accelerator="auto", strategy=HivemindStrategy(target_batch_size=1, reuse_grad_buffers=True), fast_dev_run=True
+    )
 
     with pytest.warns(UserWarning, match="You have overridden `optimizer_zero_grad` which will be disabled."):
         trainer.fit(model)
@@ -117,7 +120,7 @@ def test_raise_exception_multiple_optimizers():
             return [optimizer, optimizer], [lr_scheduler]
 
     model = TestModel()
-    trainer = pl.Trainer(strategy=HivemindStrategy(target_batch_size=1), fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", strategy=HivemindStrategy(target_batch_size=1), fast_dev_run=True)
 
     with pytest.raises(MisconfigurationException, match="Hivemind only supports training with one optimizer."):
         trainer.fit(model)
@@ -129,7 +132,7 @@ def test_raise_exception_no_batch_size(mock_extract_batch_size):
     """Test that we raise an exception when no batch size is automatically found."""
 
     model = BoringModel()
-    trainer = pl.Trainer(strategy=HivemindStrategy(target_batch_size=1), fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", strategy=HivemindStrategy(target_batch_size=1), fast_dev_run=True)
 
     with pytest.raises(MisconfigurationException, match="Please provide the batch size to the Strategy."):
         trainer.fit(model)
@@ -145,7 +148,8 @@ def test_warn_if_argument_passed(delay_grad_averaging, delay_state_averaging, de
     """Test ensures that valid combination of HiveMind delay arguments warn if scheduler isn't passed in as a
     function."""
     model = BoringModel()
-    trainer = pl.Trainer(
+    trainer = Trainer(
+        accelerator="auto",
         strategy=HivemindStrategy(
             target_batch_size=1,
             delay_grad_averaging=delay_grad_averaging,
@@ -187,7 +191,8 @@ def test_args_passed_to_optimizer(mock_peers):
                     assert value == kwargs[key]
 
         model = TestModel()
-        trainer = pl.Trainer(
+        trainer = Trainer(
+            accelerator="auto",
             strategy=HivemindStrategy(
                 target_batch_size=1,
                 reuse_grad_buffers=True,
@@ -231,7 +236,8 @@ def _run_collab_training_fn(initial_peers, wait_seconds, barrier, recorded_proce
             barrier.wait()
 
     model = TestModel()
-    trainer = pl.Trainer(
+    trainer = Trainer(
+        accelerator="auto",
         max_epochs=1,
         limit_train_batches=16,
         limit_val_batches=0,
@@ -301,7 +307,7 @@ def test_scaler_updated_precision_16():
             raise SystemExit
 
     model = TestModel()
-    trainer = pl.Trainer(
+    trainer = Trainer(
         strategy=HivemindStrategy(target_batch_size=1),
         fast_dev_run=True,
         precision=16,
