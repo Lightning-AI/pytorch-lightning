@@ -156,7 +156,9 @@ class TestNeptuneLogger(unittest.TestCase):
         run_instance_mock.__getitem__().log.assert_called_once_with(torch.ones(1))
 
     def _fit_and_test(self, logger, model):
-        trainer = Trainer(default_root_dir=self.tmpdir, max_epochs=1, limit_train_batches=0.05, logger=logger)
+        trainer = Trainer(
+            accelerator="auto", default_root_dir=self.tmpdir, max_epochs=1, limit_train_batches=0.05, logger=logger
+        )
         assert trainer.log_dir == os.path.join(os.getcwd(), ".neptune")
         trainer.fit(model)
         trainer.test(model)

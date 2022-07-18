@@ -129,6 +129,7 @@ def _test_loggers_fit_test(tmpdir, logger_class):
 
     model = CustomModel()
     trainer = Trainer(
+        accelerator="auto",
         max_epochs=1,
         logger=logger,
         limit_train_batches=1,
@@ -180,7 +181,7 @@ def _test_loggers_save_dir_and_weights_save_path(tmpdir, logger_class):
             return "name"
 
     model = BoringModel()
-    trainer_args = dict(default_root_dir=tmpdir, max_steps=3)
+    trainer_args = dict(accelerator="auto", default_root_dir=tmpdir, max_steps=3)
 
     # no weights_save_path given
     save_dir = tmpdir / "logs"

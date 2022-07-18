@@ -38,7 +38,12 @@ def test_lightning_optimizer(tmpdir, auto):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=1, max_epochs=1, enable_model_summary=False
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=1,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -54,7 +59,7 @@ def test_init_optimizers_resets_lightning_optimizers(tmpdir):
 
     model = BoringModel()
     model.lr = 0.2
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, auto_lr_find=True)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=1, auto_lr_find=True)
 
     trainer.tune(model)
     compare_optimizers()
@@ -110,7 +115,12 @@ def test_lightning_optimizer_manual_optimization_and_accumulated_gradients(tmpdi
     model.training_step_end = None
     model.training_epoch_end = None
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=8, limit_val_batches=1, max_epochs=1, enable_model_summary=False
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        limit_train_batches=8,
+        limit_val_batches=1,
+        max_epochs=1,
+        enable_model_summary=False,
     )
 
     with patch.multiple(torch.optim.SGD, zero_grad=DEFAULT, step=DEFAULT) as sgd, patch.multiple(
@@ -185,7 +195,12 @@ def test_lightning_optimizer_automatic_optimization_optimizer_zero_grad(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=20, limit_val_batches=1, max_epochs=1, enable_model_summary=False
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        limit_train_batches=20,
+        limit_val_batches=1,
+        max_epochs=1,
+        enable_model_summary=False,
     )
 
     with patch("torch.optim.Adam.zero_grad") as adam_zero_grad, patch("torch.optim.SGD.zero_grad") as sgd_zero_grad:
@@ -225,6 +240,7 @@ def test_lightning_optimizer_automatic_optimization_optimizer_step(tmpdir):
 
     limit_train_batches = 8
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         limit_val_batches=1,
@@ -254,7 +270,12 @@ def test_lightning_optimizer_automatic_optimization_lbfgs_zero_grad(tmpdir):
 
     model = TestModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=1, max_epochs=1, enable_model_summary=False
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        max_epochs=1,
+        enable_model_summary=False,
     )
 
     with patch("torch.optim.LBFGS.zero_grad") as zero_grad:
@@ -344,5 +365,7 @@ def test_params_groups_and_state_are_accessible(tmpdir):
             assert loss == self.__loss
 
     model = TestModel()
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, limit_train_batches=1, limit_val_batches=0)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=0
+    )
     trainer.fit(model)

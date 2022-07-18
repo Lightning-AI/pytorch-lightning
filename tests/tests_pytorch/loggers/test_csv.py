@@ -111,7 +111,7 @@ def test_fit_csv_logger(tmpdir):
     dm = ClassifDataModule()
     model = ClassificationModel()
     logger = CSVLogger(save_dir=tmpdir)
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=10, logger=logger, log_every_n_steps=1)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_steps=10, logger=logger, log_every_n_steps=1)
     trainer.fit(model, datamodule=dm)
     metrics_file = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
     assert os.path.isfile(metrics_file)

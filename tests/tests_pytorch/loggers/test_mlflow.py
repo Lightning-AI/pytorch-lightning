@@ -154,7 +154,14 @@ def test_mlflow_log_dir(client, mlflow, tmpdir):
     assert logger.name == "exp-id"
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_train_batches=1, limit_val_batches=3)
+    trainer = Trainer(
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=3,
+    )
     assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
     assert trainer.checkpoint_callback.dirpath == (tmpdir / "exp-id" / "run-id" / "checkpoints")
@@ -187,6 +194,7 @@ def test_mlflow_logger_dirs_creation(tmpdir):
     model = CustomModel()
     limit_batches = 5
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         logger=logger,
         max_epochs=1,

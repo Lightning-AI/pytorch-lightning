@@ -160,7 +160,14 @@ def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
 
     version = logger.version
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=1, limit_train_batches=3, limit_val_batches=3)
+    trainer = Trainer(
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=1,
+        limit_train_batches=3,
+        limit_val_batches=3,
+    )
     assert trainer.log_dir == logger.save_dir
     trainer.fit(model)
 
@@ -183,7 +190,14 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     logger = WandbLogger(log_model=True)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer = Trainer(
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=3,
+    )
     trainer.fit(model)
     wandb.init().log_artifact.assert_called_once()
 
@@ -193,7 +207,14 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     logger = WandbLogger(log_model="all")
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer = Trainer(
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=3,
+    )
     trainer.fit(model)
     assert wandb.init().log_artifact.call_count == 2
 
@@ -203,7 +224,14 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     logger = WandbLogger(log_model=False)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer = Trainer(
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=3,
+    )
     trainer.fit(model)
     assert not wandb.init().log_artifact.called
 
@@ -214,7 +242,14 @@ def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     logger = WandbLogger(log_model=True)
     logger.experiment.id = "1"
     logger.experiment.name = "run_name"
-    trainer = Trainer(default_root_dir=tmpdir, logger=logger, max_epochs=2, limit_train_batches=3, limit_val_batches=3)
+    trainer = Trainer(
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        logger=logger,
+        max_epochs=2,
+        limit_train_batches=3,
+        limit_val_batches=3,
+    )
     trainer.fit(model)
     wandb.Artifact.assert_called_once_with(
         name="model-1",

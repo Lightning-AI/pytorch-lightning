@@ -43,7 +43,7 @@ def test_tensorboard_hparams_reload(tmpdir):
             super().__init__()
             self.save_hyperparameters()
 
-    trainer = Trainer(max_steps=1, default_root_dir=tmpdir)
+    trainer = Trainer(accelerator="auto", max_steps=1, default_root_dir=tmpdir)
     model = CustomModel()
     assert trainer.log_dir == trainer.logger.log_dir
     trainer.fit(model)
@@ -268,6 +268,7 @@ def test_tensorboard_with_accummulated_gradients(mock_log_metrics, tmpdir):
     model.training_epoch_end = None
     logger_0 = TensorBoardLogger(tmpdir, default_hp_metric=False)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=12,
         limit_val_batches=0,
@@ -298,7 +299,7 @@ def test_tensorboard_finalize(summary_writer, tmpdir):
 def test_tensorboard_save_hparams_to_yaml_once(tmpdir):
     model = BoringModel()
     logger = TensorBoardLogger(save_dir=tmpdir, default_hp_metric=False)
-    trainer = Trainer(max_steps=1, default_root_dir=tmpdir, logger=logger)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_steps=1, logger=logger)
     assert trainer.log_dir == trainer.logger.log_dir
     trainer.fit(model)
 

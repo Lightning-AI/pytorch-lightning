@@ -450,13 +450,13 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
                 self.has_validated_sum = True
 
     model = ExtendedBoringModel()
-    trainer_kwargs = {
-        "max_epochs": 1,
-        "limit_train_batches": 5,
-        "limit_val_batches": 0,
-        "accelerator": accelerator,
-        "devices": devices,
-    }
+    trainer_kwargs = dict(
+        max_epochs=1,
+        limit_train_batches=5,
+        limit_val_batches=0,
+        accelerator=accelerator,
+        devices=devices,
+    )
     trainer_kwargs.update(kwargs)
     trainer = Trainer(**trainer_kwargs)
 
@@ -555,7 +555,9 @@ def test_metric_collections(tmpdir):
 
     model = TestModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=2, limit_train_batches=2, limit_val_batches=0)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, max_epochs=2, limit_train_batches=2, limit_val_batches=0
+    )
     trainer.fit(model)
 
 
@@ -649,6 +651,7 @@ def test_compute_not_a_tensor_raises():
 
     model = MyModel()
     trainer = Trainer(
+        accelerator="auto",
         limit_train_batches=1,
         limit_val_batches=0,
         max_epochs=1,
