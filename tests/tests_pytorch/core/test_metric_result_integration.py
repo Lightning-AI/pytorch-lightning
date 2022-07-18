@@ -456,6 +456,8 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
         "limit_val_batches": 0,
         "accelerator": accelerator,
         "devices": devices,
+        "enable_progress_bar": False,
+        "enable_model_summary": False,
     }
     trainer_kwargs.update(kwargs)
     trainer = Trainer(**trainer_kwargs)
@@ -471,7 +473,7 @@ def result_collection_reload(accelerator="auto", devices=1, **kwargs):
     )
     ckpt_path = os.path.join(tmpdir, ".pl_auto_save.ckpt")
 
-    trainer = Trainer(**trainer_kwargs, enable_progress_bar=False, enable_model_summary=False)
+    trainer = Trainer(**trainer_kwargs)
     trainer.fit(model, ckpt_path=ckpt_path)
     assert model.has_validated_sum
 

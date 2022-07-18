@@ -26,6 +26,7 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection, apply_to
 from pytorch_lightning.utilities.data import extract_batch_size
 from pytorch_lightning.utilities.distributed import distributed_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
+from pytorch_lightning.utilities.imports import _fault_tolerant_training
 from pytorch_lightning.utilities.memory import recursive_detach
 from pytorch_lightning.utilities.metrics import metrics_to_scalars
 from pytorch_lightning.utilities.rank_zero import rank_zero_warn
@@ -523,13 +524,20 @@ class _ResultCollection(dict):
             cache = result_metric._forward_cache
         elif not on_step and result_metric.meta.on_epoch:
             if result_metric._computed is None:
+                should = result_metric.meta.sync.should
                 if not result_metric.meta.sync.should and distributed_available():
-                    warning_cache.warn(
-                        f"It is recommended to use `self.log({result_metric.meta.name!r}, ..., sync_dist=True)` when"
-                        " logging on epoch level in distributed setting to accumulate the metric across devices.",
-                        category=PossibleUserWarning,
-                    )
+                    if _fault_tolerant_training():
+                        # make sure to always sync across devices when fault-tolerant is used
+                        result_metric.meta.sync.should = True
+                    else:
+                        warning_cache.warn(
+                            f"It is recommended to use `self.log({result_metric.meta.name!r}, ..., sync_dist=True)`"
+                            " when logging on epoch level in distributed setting to accumulate the metric across"
+                            " devices.",
+                            category=PossibleUserWarning,
+                        )
                 result_metric.compute()
+                result_metric.meta.sync.should = should
 
             cache = result_metric._computed
 

@@ -13,14 +13,22 @@
 # limitations under the License.
 import os
 from typing import Any, Dict, Optional, Union
+from unittest import mock
 from unittest.mock import Mock
 
 import pytest
+import torch
 
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers.logger import Logger
+from pytorch_lightning.trainer.connectors.logger_connector.result import (
+    _Metadata,
+    _ResultCollection,
+    _ResultMetric,
+    _Sync,
+)
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
@@ -200,24 +208,20 @@ def test_logger_after_fit_predict_test_calls(tmpdir):
     assert trainer.logger.logs == {"fit": 1, "validate": 1, "test": 1, "predict": 1}
 
 
-def test_logger_sync_dist():
-    class CustomBoringModel(BoringModel):
-        def on_train_epoch_end(self):
-            self.log("global_rank", self.global_rank, sync_dist=False)
+@pytest.mark.parametrize("distributed_env", [True, False])
+def test_logger_sync_dist(distributed_env):
+    # self.log('bar', 7, ..., sync_dist=False)
+    meta = _Metadata("foo", "bar")
+    meta.sync = _Sync(_should=False)
+    result_metric = _ResultMetric(metadata=meta, is_tensor=True)
+    result_metric.update(torch.tensor(7.0), 10)
 
-    model = CustomBoringModel()
-    trainer = Trainer(fast_dev_run=1, accelerator="cpu", strategy="ddp", devices=2)
-    with pytest.warns(
-        PossibleUserWarning, match=r"recommended to use `self.log\('global_rank', ..., sync_dist=True\)`"
+    warning_ctx = pytest.warns if distributed_env else no_warning_call
+
+    with mock.patch(
+        "pytorch_lightning.trainer.connectors.logger_connector.result.distributed_available",
+        return_value=distributed_env,
     ):
-        trainer.fit(model)
-
-    assert trainer.callback_metrics["global_rank"] == 0
-
-    trainer = Trainer(fast_dev_run=1, accelerator="cpu", devices=1)
-    with no_warning_call(
-        PossibleUserWarning, match=r"recommended to use `self.log\('global_rank', ..., sync_dist=True\)`"
-    ):
-        trainer.fit(model)
-
-    assert trainer.callback_metrics["global_rank"] == 0
+        with warning_ctx(PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"):
+            value = _ResultCollection._get_cache(result_metric, on_step=False)
+        assert value == 7.0
