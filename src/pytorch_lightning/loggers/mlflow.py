@@ -260,7 +260,7 @@ class MLFlowLogger(Logger):
             self.experiment.set_terminated(self.run_id, status)
 
     @property
-    def save_dir(self) -> str:
+    def save_dir(self) -> Optional[str]:
         """The root file directory in which MLflow experiments are saved.
 
         Return:
