@@ -236,7 +236,7 @@ class TensorBoardLogger(Logger):
                     raise ValueError(m) from ex
 
     @rank_zero_only
-    def log_graph(self, model: "pl.LightningModule", input_array: Any = None) -> None:
+    def log_graph(self, model: "pl.LightningModule", input_array: Optional[Any] = None) -> None:
         if self._log_graph:
             if input_array is None:
                 input_array = model.example_input_array
