@@ -23,6 +23,7 @@ from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers.logger import Logger
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.utils import no_warning_call
 
 
 class AllRankLogger(Logger):
@@ -206,11 +207,16 @@ def test_logger_sync_dist():
 
     model = CustomBoringModel()
     trainer = Trainer(fast_dev_run=1, accelerator="cpu", strategy="ddp", devices=2)
-
     with pytest.warns(
-        PossibleUserWarning,
-        match="It is recommended to use `self.log('global_rank', ..., sync_dist=True)` when "
-        "logging on epoch level in distributed setting to accumulate the metric across devices.",
+        PossibleUserWarning, match=r"recommended to use `self.log\('global_rank', ..., sync_dist=True\)`"
+    ):
+        trainer.fit(model)
+
+    assert trainer.callback_metrics["global_rank"] == 0
+
+    trainer = Trainer(fast_dev_run=1, accelerator="cpu", devices=1)
+    with no_warning_call(
+        PossibleUserWarning, match=r"recommended to use `self.log\('global_rank', ..., sync_dist=True\)`"
     ):
         trainer.fit(model)
 
