@@ -346,7 +346,7 @@ class LightningApp:
                     _upload_command(command_name, command)
                     command, extras = _command_to_method_and_metadata(command)
                 if command_name in command_names:
-                    raise Exception(f"The component name {command_name} has already been used. They need to be unique.")
+                    raise Exception(f"The command name {command_name} has already been used. They need to be unique.")
                 command_names.add(command_name)
                 params = inspect.signature(command).parameters
                 commands_metadata.append(
