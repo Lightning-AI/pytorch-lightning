@@ -411,7 +411,7 @@ def filesystem() -> AbstractFileSystem:
         key = os.getenv("LIGHTNING_AWS_ACCESS_KEY_ID", "")
         secret = os.getenv("LIGHTNING_AWS_SECRET_ACCESS_KEY", "")
         # TODO: Remove when updated on the platform side.
-        if not key or not secret:
+        if key == "" or secret == "":
             key = os.getenv("AWS_ACCESS_KEY_ID", "")
             secret = os.getenv("AWS_SECRET_ACCESS_KEY", "")
         if key == "" or secret == "":
