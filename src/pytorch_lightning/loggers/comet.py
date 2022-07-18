@@ -328,7 +328,7 @@ class CometLogger(Logger):
 
         return self._future_experiment_key
 
-    def __getstate__(self):  # type: ignore[no-untyped-def]
+    def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
 
         # Save the experiment id in case an experiment object already exists,
