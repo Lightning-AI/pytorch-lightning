@@ -209,7 +209,7 @@ def test_call_to_trainer_method(tmpdir, scale_method):
     model = BatchSizeModel(batch_size=before_batch_size)
 
     # logger file to get meta
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=1)
 
     after_batch_size = trainer.tuner.scale_batch_size(model, mode=scale_method, max_trials=5)
     model.batch_size = after_batch_size

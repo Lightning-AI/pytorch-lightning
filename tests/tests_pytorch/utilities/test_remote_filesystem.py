@@ -45,6 +45,7 @@ def test_gcs_model_checkpoint_contents(tmpdir):
     epochs = 2
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=dir_path,
         callbacks=[checkpoint_callback],
         limit_train_batches=10,
@@ -96,7 +97,7 @@ def test_gcs_save_hparams_to_yaml_file(tmpdir):
 
     model = BoringModel()
     logger = TensorBoardLogger(save_dir=dir_path, default_hp_metric=False)
-    trainer = Trainer(max_steps=1, default_root_dir=dir_path, logger=logger)
+    trainer = Trainer(accelerator="auto", default_root_dir=dir_path, max_steps=1, logger=logger)
     assert trainer.log_dir == trainer.logger.log_dir
     trainer.fit(model)
 

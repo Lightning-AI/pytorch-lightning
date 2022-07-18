@@ -36,7 +36,12 @@ def test_optimizer_with_scheduling(tmpdir):
 
     model = BoringModel()
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2, val_check_interval=0.5
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_val_batches=0.1,
+        limit_train_batches=0.2,
+        val_check_interval=0.5,
     )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -67,7 +72,9 @@ def test_multi_optimizer_with_scheduling(tmpdir):
 
     model = TestModel()
     model.training_epoch_end = None
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2
+    )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -86,7 +93,7 @@ def test_reducelronplateau_with_no_monitor_raises(tmpdir):
     model = BoringModel()
     optimizer = optim.Adam(model.parameters())
     model.configure_optimizers = lambda: ([optimizer], [optim.lr_scheduler.ReduceLROnPlateau(optimizer)])
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(
         MisconfigurationException, match="`configure_optimizers` must include a monitor when a `ReduceLROnPlateau`"
     ):
@@ -101,7 +108,7 @@ def test_reducelronplateau_with_no_monitor_in_lr_scheduler_dict_raises(tmpdir):
         "optimizer": optimizer,
         "lr_scheduler": {"scheduler": optim.lr_scheduler.ReduceLROnPlateau(optimizer)},
     }
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(MisconfigurationException, match="must include a monitor when a `ReduceLROnPlateau`"):
         trainer.fit(model)
 
@@ -130,7 +137,7 @@ def test_reducelronplateau_scheduling(tmpdir):
             }
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -230,7 +237,9 @@ def test_optimizer_return_options(tmpdir):
 def test_none_optimizer(tmpdir):
     model = BoringModel()
     model.configure_optimizers = lambda: None
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, max_epochs=1, limit_val_batches=0.1, limit_train_batches=0.2
+    )
     with pytest.warns(UserWarning, match="will run with no optimizer"):
         trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
@@ -245,7 +254,7 @@ def test_configure_optimizer_from_dict(tmpdir):
             return config
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=True)
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -306,7 +315,9 @@ def test_step_scheduling_for_multiple_optimizers_with_frequency(
 
     model = DummyModel()
 
-    trainer = Trainer(default_root_dir=tmpdir, limit_val_batches=1, limit_train_batches=5, max_epochs=max_epochs)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, limit_val_batches=1, limit_train_batches=5, max_epochs=max_epochs
+    )
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
 
@@ -373,8 +384,9 @@ def test_multiple_optimizers_callbacks(tmpdir):
     model = TestModel()
     model.training_epoch_end = None
     trainer = Trainer(
-        callbacks=[CB()],
+        accelerator="auto",
         default_root_dir=tmpdir,
+        callbacks=[CB()],
         limit_train_batches=1,
         limit_val_batches=2,
         max_epochs=1,
@@ -392,7 +404,7 @@ def test_lr_scheduler_strict(step_mock, tmpdir, complete_epoch):
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer)
     max_epochs = 1 if complete_epoch else None
     max_steps = -1 if complete_epoch else 1
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=max_epochs, max_steps=max_steps)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=max_epochs, max_steps=max_steps)
 
     model.configure_optimizers = lambda: {
         "optimizer": optimizer,
@@ -416,7 +428,7 @@ def test_lr_scheduler_strict(step_mock, tmpdir, complete_epoch):
     }
 
     if complete_epoch:
-        trainer = Trainer(default_root_dir=tmpdir, max_epochs=max_epochs, max_steps=max_steps)
+        trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=max_epochs, max_steps=max_steps)
         with pytest.warns(
             RuntimeWarning, match=r"ReduceLROnPlateau conditioned on metric .* which is not available but strict"
         ):
@@ -429,7 +441,7 @@ def test_unknown_configure_optimizers_raises(tmpdir):
     """Test exception with an unsupported configure_optimizers return."""
     model = BoringModel()
     model.configure_optimizers = lambda: 1
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(MisconfigurationException, match="Unknown configuration for model optimizers"):
         trainer.fit(model)
 
@@ -471,7 +483,7 @@ def test_lr_scheduler_with_unknown_interval_raises(tmpdir):
         "optimizer": optimizer,
         "lr_scheduler": {"scheduler": optim.lr_scheduler.StepLR(optimizer, 1), "interval": "incorrect_unknown_value"},
     }
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(MisconfigurationException, match=r'The "interval" key in lr scheduler dict must be'):
         trainer.fit(model)
 
@@ -484,7 +496,7 @@ def test_lr_scheduler_with_extra_keys_warns(tmpdir):
         "optimizer": optimizer,
         "lr_scheduler": {"scheduler": optim.lr_scheduler.StepLR(optimizer, 1), "foo": 1, "bar": 2},
     }
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.warns(RuntimeWarning, match=r"Found unsupported keys in the lr scheduler dict: \{.+\}"):
         trainer.fit(model)
 
@@ -493,7 +505,7 @@ def test_lr_scheduler_with_no_actual_scheduler_raises(tmpdir):
     """Test exception when lr_scheduler dict has no scheduler."""
     model = BoringModel()
     model.configure_optimizers = lambda: {"optimizer": optim.Adam(model.parameters()), "lr_scheduler": {}}
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(MisconfigurationException, match='The lr scheduler dict must have the key "scheduler"'):
         trainer.fit(model)
 
@@ -509,7 +521,7 @@ def test_invalid_optimizer_in_scheduler(tmpdir):
             return [opt1], [lr_scheduler]
 
     model = InvalidOptimizerModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(MisconfigurationException, match="attached with an optimizer that wasn't returned"):
         trainer.fit(model)
 
@@ -525,7 +537,7 @@ def test_invalid_opt_idx_in_scheduler(tmpdir):
             return [opt1, opt2], [lr_scheduler]
 
     model = InvalidOptimizerModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(
         MisconfigurationException, match="`opt_idx` .* does not match with the index of the respective optimizer"
     ):
@@ -540,7 +552,7 @@ def test_invalid_optimizer_dict_raises(tmpdir):
             return [{"optimizer": optim.Adam(self.parameters())}, optim.Adam(self.parameters())]
 
     model = DummyModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.raises(MisconfigurationException, match="Unknown configuration for model optimizers"):
         trainer.fit(model)
 
@@ -559,7 +571,7 @@ def test_warn_invalid_scheduler_key_in_manual_optimization(tmpdir):
             return [opt], [{"scheduler": sch, "interval": "epoch"}]
 
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=True)
     with pytest.warns(RuntimeWarning, match="the keys will be ignored"):
         trainer.fit(model)
 
@@ -599,6 +611,7 @@ def test_lr_scheduler_epoch_step_frequency(mocked_sched, check_val_every_n_epoch
 
     model = BoringModel()
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -615,6 +628,7 @@ def test_lr_scheduler_state_updated_before_saving(tmpdir, every_n_train_steps, e
     max_epochs = 1
     lr, gamma = 1, 10
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         enable_progress_bar=False,
         logger=False,
@@ -651,6 +665,7 @@ def test_lr_scheduler_state_updated_before_saving(tmpdir, every_n_train_steps, e
 def test_plateau_scheduler_lr_step_interval_updated_after_saving(tmpdir, save_on_train_epoch_end):
     batches = 4
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         enable_progress_bar=False,
         logger=False,
@@ -735,6 +750,7 @@ def test_lr_scheduler_step_hook(tmpdir):
     max_epochs = 3
     limit_train_batches = 2
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         enable_checkpointing=False,
         logger=False,

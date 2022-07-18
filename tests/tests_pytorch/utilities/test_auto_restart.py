@@ -667,7 +667,9 @@ def test_data_loading_wraps_dataset_and_samplers(_, tmpdir, use_fault_tolerant):
     with mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": use_fault_tolerant}):
         model = TestModel()
         model.training_epoch_end = None
-        trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, callbacks=Check())
+        trainer = Trainer(
+            accelerator="auto", default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, callbacks=Check()
+        )
         trainer.fit(model)
 
 
@@ -855,6 +857,7 @@ def _run_training(trainer_kwargs, dataset_classes, fail_on_step: int = -1, ckpt_
 def test_dataset_rng_states_restart_with_lightning(_, tmpdir, dataset_classes, multiple_trainloader_mode):
     """Test that the Trainer can resume from a failed run in the case of several types of datasets."""
     trainer_kwargs = dict(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=3,
         enable_progress_bar=False,
@@ -955,6 +958,7 @@ def test_auto_restart_within_validation_loop(train_datasets, val_datasets, val_c
 
         ckpt_path = str(tmpdir / ".pl_auto_save.ckpt") if resume else None
         trainer = Trainer(
+            accelerator="auto",
             default_root_dir=tmpdir,
             max_epochs=1,
             val_check_interval=val_check_interval,
@@ -1030,6 +1034,7 @@ def _fit_model(
     model = TestAutoRestartModelUnderSignal(should_signal, failure_on_step, failure_on_training, on_last_batch)
 
     trainer_kwargs = dict(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_epochs=1,
         limit_train_batches=4,
@@ -1492,7 +1497,7 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
 
     seed_everything(42)
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
     trainer.fit(model)
     total_batches = model.batches
     total_weight = deepcopy(model.layer.weight)
@@ -1500,7 +1505,7 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
 
     seed_everything(42)
     model = TestModel(should_fail=True)
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
     with pytest.raises(CustomException):
         trainer.fit(model)
     trainer.train_dataloader = None
@@ -1512,7 +1517,7 @@ def test_fault_tolerant_manual_mode(val_check_interval, train_dataset_cls, val_d
 
     seed_everything(42)
     model = TestModel()
-    trainer = Trainer(default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=1, val_check_interval=val_check_interval)
     trainer.fit(model, ckpt_path=checkpoint_path)
     trainer.train_dataloader = None
     restart_batches = model.batches

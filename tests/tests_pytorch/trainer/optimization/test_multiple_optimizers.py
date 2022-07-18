@@ -15,7 +15,7 @@
 import pytest
 import torch
 
-import pytorch_lightning as pl
+from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
@@ -50,8 +50,13 @@ def test_unbalanced_logging_with_multiple_optimizers(tmpdir):
     model.training_epoch_end = None
 
     # Initialize a trainer
-    trainer = pl.Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=5, limit_val_batches=5, enable_model_summary=False
+    trainer = Trainer(
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=5,
+        limit_val_batches=5,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -77,7 +82,8 @@ def test_multiple_optimizers(tmpdir):
     model = TestModel()
     model.val_dataloader = None
 
-    trainer = pl.Trainer(
+    trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=2,
         limit_val_batches=2,
@@ -122,8 +128,13 @@ def test_multiple_optimizers_manual(tmpdir):
     model = TestModel()
     model.val_dataloader = None
 
-    trainer = pl.Trainer(
-        default_root_dir=tmpdir, limit_train_batches=2, max_epochs=1, log_every_n_steps=1, enable_model_summary=False
+    trainer = Trainer(
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        limit_train_batches=2,
+        max_epochs=1,
+        log_every_n_steps=1,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
@@ -138,7 +149,7 @@ def test_multiple_optimizers_no_opt_idx_argument(tmpdir):
         def training_step(self, batch, batch_idx):
             return super().training_step(batch, batch_idx)
 
-    trainer = pl.Trainer(default_root_dir=tmpdir, fast_dev_run=2)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=2)
 
     with pytest.raises(ValueError, match="`training_step` is missing the `optimizer_idx`"):
         trainer.fit(TestModel())
@@ -191,7 +202,8 @@ def test_custom_optimizer_step_with_multiple_optimizers(tmpdir):
     model.val_dataloader = None
 
     limit_train_batches = 4
-    trainer = pl.Trainer(
+    trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         max_epochs=1,

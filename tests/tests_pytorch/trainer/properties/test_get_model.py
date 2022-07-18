@@ -34,7 +34,11 @@ def test_get_model(tmpdir):
 
     limit_train_batches = 2
     trainer = Trainer(
-        default_root_dir=tmpdir, limit_train_batches=limit_train_batches, limit_val_batches=2, max_epochs=1
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        limit_train_batches=limit_train_batches,
+        limit_val_batches=2,
+        max_epochs=1,
     )
     trainer.fit(model)
 

@@ -162,6 +162,7 @@ def test_multiple_optimizers_manual_return(tmpdir):
 
     limit_train_batches = 2
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
@@ -190,6 +191,7 @@ def test_multiple_optimizers_manual_log(tmpdir):
 
     limit_train_batches = 2
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
@@ -543,6 +545,7 @@ def test_step_with_optimizer_closure(tmpdir):
 
     limit_train_batches = 2
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         limit_val_batches=0,
@@ -585,6 +588,7 @@ def test_step_with_optimizer_closure_2(tmpdir):
 
     limit_train_batches = 4
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         limit_val_batches=0,
@@ -660,6 +664,7 @@ def test_step_with_optimizer_closure_with_different_frequencies(mock_sgd_step, m
 
     limit_train_batches = 8
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         limit_train_batches=limit_train_batches,
         limit_val_batches=2,
@@ -891,7 +896,12 @@ def test_lr_schedulers(tmpdir):
     model.training_epoch_end = None
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, limit_test_batches=1
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
     )
 
     trainer.fit(model)
@@ -930,7 +940,12 @@ def test_lr_schedulers_reduce_lr_on_plateau(tmpdir, scheduler_as_dict):
     model = TestModel(scheduler_as_dict=scheduler_as_dict)
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=1, limit_train_batches=1, limit_val_batches=1, limit_test_batches=1
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        limit_train_batches=1,
+        limit_val_batches=1,
+        limit_test_batches=1,
     )
 
     if scheduler_as_dict:
@@ -962,7 +977,7 @@ def test_lr_scheduler_step_not_called(tmpdir):
     model.training_step_end = None
     model.training_epoch_end = None
 
-    trainer = Trainer(max_epochs=1, default_root_dir=tmpdir, fast_dev_run=2)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_epochs=1, fast_dev_run=2)
 
     with patch("torch.optim.lr_scheduler.StepLR.step") as lr_step:
         trainer.fit(model)
@@ -1045,7 +1060,7 @@ def test_manual_optimization_training_step_signature(tmpdir):
             return super().training_step(batch, batch_idx)
 
     model = ConfusedAutomaticManualModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=2)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, fast_dev_run=2)
 
     with pytest.raises(ValueError, match="Your `LightningModule.training_step` signature contains an `optimizer_idx`"):
         trainer.fit(model)

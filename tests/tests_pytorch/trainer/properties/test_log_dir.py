@@ -35,7 +35,9 @@ def test_logdir(tmpdir):
 
     model = TestModel(expected)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, callbacks=[ModelCheckpoint(dirpath=tmpdir)])
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, max_steps=2, callbacks=[ModelCheckpoint(dirpath=tmpdir)]
+    )
 
     assert trainer.log_dir == expected
     trainer.fit(model)
@@ -47,7 +49,7 @@ def test_logdir_no_checkpoint_cb(tmpdir):
     expected = os.path.join(tmpdir, "lightning_logs", "version_0")
     model = TestModel(expected)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, enable_checkpointing=False)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, max_steps=2, enable_checkpointing=False)
 
     assert trainer.log_dir == expected
     trainer.fit(model)
@@ -59,7 +61,13 @@ def test_logdir_no_logger(tmpdir):
     expected = os.path.join(tmpdir)
     model = TestModel(expected)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, logger=False, callbacks=[ModelCheckpoint(dirpath=tmpdir)])
+    trainer = Trainer(
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        max_steps=2,
+        logger=False,
+        callbacks=[ModelCheckpoint(dirpath=tmpdir)],
+    )
 
     assert trainer.log_dir == expected
     trainer.fit(model)
@@ -71,7 +79,9 @@ def test_logdir_no_logger_no_checkpoint(tmpdir):
     expected = os.path.join(tmpdir)
     model = TestModel(expected)
 
-    trainer = Trainer(default_root_dir=tmpdir, max_steps=2, logger=False, enable_checkpointing=False)
+    trainer = Trainer(
+        accelerator="auto", default_root_dir=tmpdir, max_steps=2, logger=False, enable_checkpointing=False
+    )
 
     assert trainer.log_dir == expected
     trainer.fit(model)
@@ -84,7 +94,10 @@ def test_logdir_custom_callback(tmpdir):
     model = TestModel(expected)
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_steps=2, callbacks=[ModelCheckpoint(dirpath=os.path.join(tmpdir, "ckpts"))]
+        accelerator="auto",
+        default_root_dir=tmpdir,
+        max_steps=2,
+        callbacks=[ModelCheckpoint(dirpath=os.path.join(tmpdir, "ckpts"))],
     )
 
     assert trainer.log_dir == expected
@@ -98,6 +111,7 @@ def test_logdir_custom_logger(tmpdir):
     model = TestModel(expected)
 
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=tmpdir,
         max_steps=2,
         callbacks=[ModelCheckpoint(dirpath=tmpdir)],
@@ -115,6 +129,7 @@ def test_logdir_multiple_loggers(tmpdir):
     save_dir = tmpdir / "save_dir"
     model = TestModel(default_root_dir)
     trainer = Trainer(
+        accelerator="auto",
         default_root_dir=default_root_dir,
         max_steps=2,
         logger=[TensorBoardLogger(save_dir=save_dir, name="custom_logs"), CSVLogger(tmpdir)],
