@@ -34,7 +34,10 @@ class _LogEvent:
 
 
 def _push_logevents_to_read_queue_callback(component_name: str, read_queue: queue.PriorityQueue):
-    """Pushes _LogEvents from websocket to read_queue. Returns callback function used with `on_message_callback` of websocket.WebSocketApp."""
+    """Pushes _LogEvents from websocket to read_queue.
+
+    Returns callback function used with `on_message_callback` of websocket.WebSocketApp.
+    """
 
     def callback(ws_app: WebSocketApp, msg: str):
         # We strongly trust that the contract on API will hold atm :D

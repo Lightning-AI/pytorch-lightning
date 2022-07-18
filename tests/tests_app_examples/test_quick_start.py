@@ -4,12 +4,12 @@ from unittest import mock
 
 import pytest
 from click.testing import CliRunner
+from tests_app import _PROJECT_ROOT
 
 from lightning_app import LightningApp
 from lightning_app.cli.lightning_cli import run_app
 from lightning_app.testing.helpers import RunIf
 from lightning_app.testing.testing import run_app_in_cloud, wait_for
-from tests_app import _PROJECT_ROOT
 
 
 class QuickStartApp(LightningApp):

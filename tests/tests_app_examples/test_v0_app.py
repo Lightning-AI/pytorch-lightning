@@ -3,10 +3,10 @@ from time import sleep
 from typing import Tuple
 
 import pytest
+from tests_app import _PROJECT_ROOT
 
 from lightning_app.testing.testing import application_testing, LightningTestApp, run_app_in_cloud, wait_for
 from lightning_app.utilities.enum import AppStage
-from tests_app import _PROJECT_ROOT
 
 
 class LightningAppTestInt(LightningTestApp):
