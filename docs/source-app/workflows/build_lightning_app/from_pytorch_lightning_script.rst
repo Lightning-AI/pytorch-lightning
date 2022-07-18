@@ -75,10 +75,10 @@ The command above generates an app file like this:
 
     from your_app_name import ComponentA, ComponentB
 
-    import lightning_app as la
+    import lightning as L
 
 
-    class LitApp(lapp.LightningFlow):
+    class LitApp(L.LightningFlow):
         def __init__(self) -> None:
             super().__init__()
             self.component_a = ComponentA()
@@ -89,7 +89,7 @@ The command above generates an app file like this:
             self.component_b.run()
 
 
-    app = lapp.LightningApp(LitApp())
+    app = L.LightningApp(LitApp())
 
 Now you can add your own components as you wish!
 

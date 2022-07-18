@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+-  Added ``ServableModule`` and its associated callback called ``ServableModuleValidator`` to ensure the model can served ([#13614](https://github.com/PyTorchLightning/pytorch-lightning/pull/13614))
+
 -  Converted validation loop config warnings to `PossibleUserWarning` ([#13377](https://github.com/PyTorchLightning/pytorch-lightning/pull/13377))
 
 
@@ -272,10 +274,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Removed deprecated `get_progress_bar_dict` property from `LightningModule` ([#12839](https://github.com/PyTorchLightning/pytorch-lightning/pull/12839))
 
+
 - Removed sanity check for multi-optimizer support with habana backends ([#13217](https://github.com/PyTorchLightning/pytorch-lightning/pull/13217))
 
 
 - Removed the need to explicitly load habana module ([#13338](https://github.com/PyTorchLightning/pytorch-lightning/pull/13338))
+
+
+- Removed the deprecated `Strategy.post_dispatch()` hook ([#13461](https://github.com/PyTorchLightning/pytorch-lightning/pull/13461))
 
 
 - Removed deprecated `pytorch_lightning.callbacks.lr_monitor.LearningRateMonitor.lr_sch_names` ([#13353](https://github.com/Lightning-AI/lightning/pull/13353))
@@ -300,6 +306,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Removed deprecated `LightningModule.on_post_move_to_device` ([#13548](https://github.com/Lightning-AI/lightning/pull/13548))
+
+
+- Removed `TPUSpawnStrategy.{tpu_local_core_rank,tpu_global_core_rank}` attributes in favor of `TPUSpawnStrategy.{local_rank,global_rank}` ([#11163](https://github.com/PyTorchLightning/pytorch-lightning/pull/11163))
+
+
+- Removed `SingleTPUStrategy.{tpu_local_core_rank,tpu_global_core_rank}` attributes in favor of `SingleTPUStrategy.{local_rank,global_rank}`([#11163](https://github.com/PyTorchLightning/pytorch-lightning/pull/11163))
+
 
 
 ### Fixed
@@ -327,6 +340,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 - Fixed the input validation for the accelerator Trainer argument when passed as a string ([#13417](https://github.com/PyTorchLightning/pytorch-lightning/pull/13417))
+
+
+- Fixed `Trainer.predict(return_predictions=False)` to track prediction's batch_indices ([#13629](https://github.com/Lightning-AI/lightning/pull/13629))
 
 
 ## [1.6.5] - 2022-07-13

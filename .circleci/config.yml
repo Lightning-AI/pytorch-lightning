@@ -14,6 +14,7 @@ trigger:
       - "master"
       - "release/*"
       - "refs/tags/*"
+
 pr:
   - "master"
   - "release/*"
@@ -157,9 +158,9 @@ jobs:
 
 workflows:
   version: 2
-  build-docs:
-    jobs:
-      - build-Docs
+  #build-docs:  # FixMe
+  #  jobs:
+  #    - build-Docs
   test-on-tpus:
     jobs:
       - TPU-tests

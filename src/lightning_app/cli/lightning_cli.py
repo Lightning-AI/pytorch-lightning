@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import Tuple, Union
+from typing import List, Tuple, Union
 
 import click
 from requests.exceptions import ConnectionError
@@ -109,8 +109,17 @@ def run():
 @click.option("--blocking", "blocking", type=bool, default=False)
 @click.option("--open-ui", type=bool, default=True, help="Decide whether to launch the app UI in a web browser")
 @click.option("--env", type=str, default=[], multiple=True, help="Env variables to be set for the app.")
+@click.option("--app_args", type=str, default=[], multiple=True, help="Collection of arguments for the app.")
 def run_app(
-    file: str, cloud: bool, without_server: bool, no_cache: bool, name: str, blocking: bool, open_ui: bool, env: tuple
+    file: str,
+    cloud: bool,
+    without_server: bool,
+    no_cache: bool,
+    name: str,
+    blocking: bool,
+    open_ui: bool,
+    env: tuple,
+    app_args: List[str],
 ):
     """Run an app from a file."""
     _run_app(file, cloud, without_server, no_cache, name, blocking, open_ui, env)
@@ -262,11 +271,5 @@ def _prepare_file(file: str) -> str:
     exists = os.path.exists(file)
     if exists:
         return file
-
-    if not exists and file == "quick_start.py":
-        from lightning_app.demo.quick_start import app
-
-        logger.info(f"For demo purposes, Lightning will run the {app.__file__} file.")
-        return app.__file__
 
     raise FileNotFoundError(f"The provided file {file} hasn't been found.")

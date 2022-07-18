@@ -30,10 +30,8 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
-from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, STEP_OUTPUT
 
@@ -61,11 +59,6 @@ class Strategy(ABC):
         self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
         self.lr_scheduler_configs: List[LRSchedulerConfig] = []
         self.optimizer_frequencies: List[int] = []
-        if is_overridden("post_dispatch", self, parent=Strategy):
-            rank_zero_deprecation(
-                f"`{self.__class__.__name__}.post_dispatch()` has been deprecated in v1.6 and will be removed in v1.7."
-                f" Move your implementation to `{self.__class__.__name__}.teardown()` instead."
-            )
 
     @property
     def launcher(self) -> Optional[_Launcher]:
@@ -506,11 +499,3 @@ class Strategy(ABC):
     def __setstate__(self, state: Dict) -> None:
         self.__dict__ = state
         self.optimizers = self.optimizers  # re-create the `_lightning_optimizers`
-
-    def post_dispatch(self, trainer: "pl.Trainer") -> None:
-        r"""
-        .. deprecated::
-            v1.6 This method has been deprecated in v1.6 and will be removed in v1.7. Use :meth:`teardown` instead.
-
-        Hook to do something after the training/evaluation/prediction finishes.
-        """

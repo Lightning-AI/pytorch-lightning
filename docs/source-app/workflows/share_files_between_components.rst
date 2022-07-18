@@ -62,7 +62,7 @@ To use a file, pass the reference to the file:
 
     ******************************
     Use a directory  - coming soon
-    ***************
+    ******************************
     TODO
 
     ----
@@ -73,57 +73,32 @@ Example: Share a model checkpoint
 A common workflow in ML is to use a checkpoint created by another component.
 First, define a component that saves a checkpoint:
 
-.. code:: python
-
-    import lightning_app as lalit
-    from lightning_app.storage.path import Path
-    import torch
-    import os
-
-
-    class ModelTraining(lit.LightningWork):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.model_checkpoints_path = Path("/checkpoints")
-
-        def run(self):
-            # make fake checkpoints
-            checkpoint_1 = torch.tensor([0, 1, 2, 3, 4])
-            checkpoint_2 = torch.tensor([0, 1, 2, 3, 4])
-            torch.save(checkpoint_1, self.model_checkpoints_path + "checkpoint_1.ckpt")
-            torch.save(checkpoint_2, self.model_checkpoints_path + "checkpoint_2.ckpt")
-
+.. literalinclude:: ./share_files_between_components/app.py
+    :lines: -19
 
 Next, define a component that needs the checkpoints:
 
-.. code:: python
-
-    class ModelDeploy(lit.LightningWork):
-        def __init__(self, ckpt_path, *args, **kwargs):
-            super().__init__()
-            self.ckpt_path = ckpt_path
-
-        def run(self):
-            ckpts = os.list_dir(self.ckpt_path)
-            checkpoint_1 = torch.load(ckpts[0])
-            checkpoint_2 = torch.load(ckpts[1])
+.. literalinclude:: ./share_files_between_components/app.py
+    :lines: 20-31
 
 Link both components via a parent component:
 
-.. code:: python
-
-    class Root(lit.LightningFlow):
-        def __init__(self):
-            super().__init__()
-            self.train = ModelTraining()
-            self.deploy = ModelDeploy(ckpt_path=self.train.model_checkpoints_path)
-
-        def run(self):
-            self.train.run()
-            self.deploy.run()
+.. literalinclude:: ./share_files_between_components/app.py
+    :lines: 32-
 
 
-    app = lit.LightningApp(Root())
+Run the app above with the following command:
+
+.. code-block:: bash
+
+    lightning run app docs/source-app/workflows/share_files_between_components/app.py
+
+.. code-block:: console
+
+    Your Lightning App is starting. This won't take long.
+    INFO: Your app has started. View it in your browser: http://127.0.0.1:7501/view
+    Loaded checkpoint_1: tensor([0, 1, 2, 3, 4])
+    Loaded checkpoint_2: tensor([0, 1, 2, 3, 4])
 
 
 For example, here we save a file on one component and use it in another component:
@@ -136,7 +111,7 @@ For example, here we save a file on one component and use it in another componen
     class ComponentA(LightningWork):
         def __init__(self):
             super().__init__()
-            self.boring_path = Path("boring_file.txt")
+            self.boring_path = None
 
         def run(self):
             # This should be used as a REFERENCE to the file.
