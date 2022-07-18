@@ -181,11 +181,11 @@ async def post_command(
         request_id = data["id"]
         api_commands_requests_queue.put(data)
 
-        response = api_commands_responses_queue.get()
-        if request_id == response["id"]:
-            return response["response"]
-        else:
-            raise Exception("This is a bug")
+        resp = api_commands_responses_queue.get()
+        if request_id == resp["id"]:
+            return resp["response"]
+
+        raise Exception("This is a bug. It shouldn't happen.")
 
     return await asyncio.create_task(fn(request))
 

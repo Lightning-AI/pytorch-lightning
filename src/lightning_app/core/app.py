@@ -367,8 +367,6 @@ class LightningApp:
         if command_query:
             for command in commands:
                 for command_name, method in command.items():
-                    logger.info(command_query)
-                    logger.info(command_name)
                     if command_query["command_name"] == command_name:
                         # 2.1: Evaluate the method associated to a specific command.
                         # Validation is done on the CLI side.

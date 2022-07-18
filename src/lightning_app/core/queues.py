@@ -59,7 +59,9 @@ class QueuingSystem(Enum):
         return self._get_queue(queue_name)
 
     def get_commands_responses_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
-        queue_name = f"{queue_id}_{COMMANDS_REQUESTS_QUEUE_CONSTANT}" if queue_id else COMMANDS_REQUESTS_QUEUE_CONSTANT
+        queue_name = (
+            f"{queue_id}_{COMMANDS_RESPONSES_QUEUE_CONSTANT}" if queue_id else COMMANDS_RESPONSES_QUEUE_CONSTANT
+        )
         return self._get_queue(queue_name)
 
     def get_commands_metadata_queue(self, queue_id: Optional[str] = None) -> "BaseQueue":
