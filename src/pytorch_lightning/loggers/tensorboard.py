@@ -281,7 +281,7 @@ class TensorBoardLogger(Logger):
         return self._name
 
     @property
-    def version(self) -> Union[int, str, Any]:
+    def version(self) -> Union[int, str]:
         """Get the experiment version.
 
         Returns:
