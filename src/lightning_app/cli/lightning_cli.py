@@ -115,8 +115,17 @@ def run():
 @click.option("--blocking", "blocking", type=bool, default=False)
 @click.option("--open-ui", type=bool, default=True, help="Decide whether to launch the app UI in a web browser")
 @click.option("--env", type=str, default=[], multiple=True, help="Env variables to be set for the app.")
+@click.option("--app_args", type=str, default=[], multiple=True, help="Collection of arguments for the app.")
 def run_app(
-    file: str, cloud: bool, without_server: bool, no_cache: bool, name: str, blocking: bool, open_ui: bool, env: tuple
+    file: str,
+    cloud: bool,
+    without_server: bool,
+    no_cache: bool,
+    name: str,
+    blocking: bool,
+    open_ui: bool,
+    env: tuple,
+    app_args: List[str],
 ):
     """Run an app from a file."""
     _run_app(file, cloud, without_server, no_cache, name, blocking, open_ui, env)
