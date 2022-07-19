@@ -123,7 +123,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             precision_plugin=precision_plugin,
         )
         self._process_group = None
-        self._num_nodes = 1
+        self.num_nodes = 1
         self._process_group_backend = process_group_backend
         self.cpu_offload = cpu_offload
         self.backward_prefetch = backward_prefetch
@@ -135,15 +135,6 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
     def root_device(self) -> torch.device:
         assert self.parallel_devices is not None
         return self.parallel_devices[self.local_rank]
-
-    @property
-    def num_nodes(self) -> int:
-        return self._num_nodes
-
-    @num_nodes.setter
-    def num_nodes(self, num_nodes: int) -> None:
-        # note that world ranks is related to num_nodes, when resetting it, need to reset world ranks
-        self._num_nodes = num_nodes
 
     @property
     def num_processes(self) -> int:
@@ -173,10 +164,6 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         return dict(num_replicas=(self.num_nodes * self.num_processes), rank=self.global_rank)
 
     def setup_environment(self) -> None:
-        self.setup_distributed()
-        super().setup_environment()
-
-    def setup_distributed(self) -> None:
         log.detail(f"{self.__class__.__name__}: setting up distributed...")
         reset_seed()
 
@@ -189,6 +176,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         self._process_group_backend = self._get_process_group_backend()
         assert self.cluster_environment is not None
         init_dist_connection(self.cluster_environment, self._process_group_backend)
+        super().setup_environment()
 
     def _get_process_group_backend(self) -> str:
         return (
