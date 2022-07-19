@@ -496,7 +496,7 @@ class AcceleratorConnector:
                 return "hpu"
             if MPSAccelerator.is_available():
                 return "mps"
-            if GPUAccelerator.is_available():
+            if CUDAAccelerator.is_available():
                 return "cuda"
         return "cpu"
 
