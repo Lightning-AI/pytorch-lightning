@@ -20,9 +20,11 @@ from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _BAGUA_AVAILABLE
+from pytorch_lightning.utilities.imports import _package_available
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.seed import reset_seed
+
+_BAGUA_AVAILABLE = _package_available("bagua")
 
 if _BAGUA_AVAILABLE:
     import bagua.torch_api as bagua

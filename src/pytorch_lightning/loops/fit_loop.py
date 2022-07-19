@@ -21,7 +21,7 @@ from pytorch_lightning.accelerators import GPUAccelerator
 from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.loops.epoch.training_epoch_loop import _OUTPUTS_TYPE as _EPOCH_OUTPUTS_TYPE
-from pytorch_lightning.loops.utilities import _is_max_limit_reached
+from pytorch_lightning.loops.utilities import _is_max_limit_reached, _set_sampler_epoch
 from pytorch_lightning.trainer.connectors.logger_connector.result import _ResultCollection
 from pytorch_lightning.trainer.progress import Progress
 from pytorch_lightning.trainer.supporters import TensorRunningAccum
@@ -33,7 +33,7 @@ from pytorch_lightning.utilities.fetching import (
     InterBatchParallelDataFetcher,
 )
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 log = logging.getLogger(__name__)
@@ -104,13 +104,7 @@ class FitLoop(Loop[None]):
     def max_steps(self, value: int) -> None:
         """Sets the maximum number of steps (forwards to epoch_loop)"""
         # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
-        if value is None:
-            rank_zero_deprecation(
-                "Setting `max_steps = None` is deprecated in v1.5 and will no longer be supported in v1.7."
-                " Use `max_steps = -1` instead."
-            )
-            value = -1
-        elif value < -1:
+        if value < -1:
             raise MisconfigurationException(
                 f"`max_steps` must be a non-negative integer or -1 (infinite steps). You passed in {value}."
             )
@@ -232,11 +226,8 @@ class FitLoop(Loop[None]):
         # reset outputs here instead of in `reset` as they are not accumulated between epochs
         self._outputs = []
 
-        if self.trainer.train_dataloader is not None and callable(
-            getattr(self.trainer.train_dataloader.sampler, "set_epoch", None)
-        ):
-            # set seed for distributed sampler (enables shuffling for each epoch)
-            self.trainer.train_dataloader.sampler.set_epoch(self.epoch_progress.current.processed)
+        if self.trainer.train_dataloader is not None:
+            _set_sampler_epoch(self.trainer.train_dataloader, self.epoch_progress.current.processed)
 
         # changing gradient according accumulation_scheduler
         self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)

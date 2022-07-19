@@ -123,15 +123,15 @@ class _RequirementAvailable:
 
 _IS_WINDOWS = platform.system() == "Windows"
 _IS_INTERACTIVE = hasattr(sys, "ps1")  # https://stackoverflow.com/a/64523765
-_PYTHON_GREATER_EQUAL_3_8_0 = Version(platform.python_version()) >= Version("3.8.0")
+_PYTHON_GREATER_EQUAL_3_8_0 = (sys.version_info.major, sys.version_info.minor) >= (3, 8)
 _TORCH_GREATER_EQUAL_1_9_1 = _compare_version("torch", operator.ge, "1.9.1")
 _TORCH_GREATER_EQUAL_1_10 = _compare_version("torch", operator.ge, "1.10.0")
 _TORCH_LESSER_EQUAL_1_10_2 = _compare_version("torch", operator.le, "1.10.2")
 _TORCH_GREATER_EQUAL_1_11 = _compare_version("torch", operator.ge, "1.11.0")
-_TORCH_GREATER_EQUAL_1_12 = _compare_version("torch", operator.ge, "1.12.0", use_base_version=True)
+_TORCH_GREATER_EQUAL_1_12 = _compare_version("torch", operator.ge, "1.12.0")
+_TORCH_GREATER_EQUAL_1_13 = _compare_version("torch", operator.ge, "1.13.0", use_base_version=True)
 
 _APEX_AVAILABLE = _module_available("apex.amp")
-_BAGUA_AVAILABLE = _package_available("bagua")
 _DALI_AVAILABLE = _module_available("nvidia.dali")
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
 _FAIRSCALE_OSS_FP16_BROADCAST_AVAILABLE = _FAIRSCALE_AVAILABLE and _compare_version("fairscale", operator.ge, "0.3.3")
