@@ -123,8 +123,8 @@ def test_timer_zero_duration_stop(tmpdir, interval):
     """Test that the timer stops training immediately after the first check occurs."""
     model = BoringModel()
     duration = timedelta(0)
-    timer = Timer(accelerator="auto", duration=duration, interval=interval)
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[timer])
+    timer = Timer(duration=duration, interval=interval)
+    trainer = Trainer(accelerator="auto", default_root_dir=tmpdir, callbacks=[timer])
     trainer.fit(model)
     assert trainer.global_step == 0
     assert trainer.current_epoch == 0
