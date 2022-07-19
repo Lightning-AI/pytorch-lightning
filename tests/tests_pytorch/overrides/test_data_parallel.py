@@ -16,7 +16,6 @@ from unittest.mock import MagicMock, Mock
 import pytest
 import torch
 import torch.nn as nn
-from tests_pytorch.helpers.runif import RunIf
 from torch.nn import DataParallel
 
 from pytorch_lightning import LightningModule
@@ -28,6 +27,7 @@ from pytorch_lightning.overrides.data_parallel import (
     unsqueeze_scalar_tensor,
 )
 from pytorch_lightning.trainer.states import RunningStage
+from tests_pytorch.helpers.runif import RunIf
 
 
 @pytest.mark.parametrize("wrapper_class", [LightningParallelModule, LightningDistributedModule])
