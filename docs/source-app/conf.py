@@ -138,6 +138,7 @@ exclude_patterns = [
     "PULL_REQUEST_TEMPLATE.md",
     "**/README.md/*",
     "readme.md",
+    "code_samples/convert_pl_to_app/requirements.txt",
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.

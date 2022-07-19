@@ -26,10 +26,10 @@ from tests_pytorch.helpers.runif import RunIf
 
 
 class DummyPredictionWriter(BasePredictionWriter):
-    def write_on_batch_end(self, *args, **kwargs):
+    def write_on_batch_end(self, *_, **__):
         pass
 
-    def write_on_epoch_end(self, *args, **kwargs):
+    def write_on_epoch_end(self, *_, **__):
         pass
 
 
@@ -39,7 +39,7 @@ def test_prediction_writer_invalid_write_interval():
         DummyPredictionWriter("something")
 
 
-def test_prediction_writer_hook_call_intervals(tmpdir):
+def test_prediction_writer_hook_call_intervals():
     """Test that the `write_on_batch_end` and `write_on_epoch_end` hooks get invoked based on the defined
     interval."""
     DummyPredictionWriter.write_on_batch_end = Mock()
@@ -84,7 +84,7 @@ def test_prediction_writer_hook_call_intervals(tmpdir):
 
 
 @pytest.mark.parametrize("num_workers", [0, pytest.param(2, marks=RunIf(slow=True))])
-def test_prediction_writer_batch_indices(tmpdir, num_workers):
+def test_prediction_writer_batch_indices(num_workers):
     DummyPredictionWriter.write_on_batch_end = Mock()
     DummyPredictionWriter.write_on_epoch_end = Mock()
 
@@ -110,7 +110,7 @@ def test_prediction_writer_batch_indices(tmpdir, num_workers):
     )
 
 
-def test_prediction_writer_partial_support_for_combined_loader(tmpdir):
+def test_prediction_writer_partial_support_for_combined_loader():
     """Test partial support for CombinedLoader: prediction works but sample indices don't get tracked."""
     pl.loops.epoch.prediction_epoch_loop.warning_cache.clear()
 
@@ -140,3 +140,27 @@ def test_prediction_writer_partial_support_for_combined_loader(tmpdir):
     )
 
     writer.write_on_epoch_end.assert_has_calls([call(trainer, model, ANY, [[]])])
+
+
+def test_batch_level_batch_indices():
+    """Test that batch_indices are returned when `return_predictions=False`."""
+    DummyPredictionWriter.write_on_batch_end = Mock()
+
+    class CustomBoringModel(BoringModel):
+        def on_predict_epoch_end(self, *args, **kwargs):
+            assert self.trainer.predict_loop.epoch_batch_indices == [[]]
+
+    writer = DummyPredictionWriter("batch")
+    model = CustomBoringModel()
+    dataloader = DataLoader(RandomDataset(32, 64), batch_size=4)
+    trainer = Trainer(limit_predict_batches=4, callbacks=writer)
+    trainer.predict(model, dataloaders=dataloader, return_predictions=False)
+
+    writer.write_on_batch_end.assert_has_calls(
+        [
+            call(trainer, model, ANY, [0, 1, 2, 3], ANY, 0, 0),
+            call(trainer, model, ANY, [4, 5, 6, 7], ANY, 1, 0),
+            call(trainer, model, ANY, [8, 9, 10, 11], ANY, 2, 0),
+            call(trainer, model, ANY, [12, 13, 14, 15], ANY, 3, 0),
+        ]
+    )
