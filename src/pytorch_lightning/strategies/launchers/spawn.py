@@ -35,7 +35,7 @@ class _SpawnLauncher(_Launcher):
     r"""Spawns processes that run a given function in parallel, and joins them all at the end.
 
     The main process in which this launcher is invoked creates N so-called worker processes (using
-    :func:`torch.multiprocessing.spawn`) that run the given function.
+    :func:`torch.multiprocessing.start_processes`) that run the given function.
     Worker processes have a rank that ranges from 0 to N - 1.
 
     Note:
@@ -50,14 +50,18 @@ class _SpawnLauncher(_Launcher):
         start_method: The method how to start the processes.
             - 'spawn': The default start method. Requires all objects to be pickleable.
             - 'fork': Preferrable for IPython/Jupyter environments where 'spawn' is not available. Not available on
-              the Windows platform.
+              the Windows platform for example.
+            - 'forkserver': Alternative implementation to 'fork'.
     """
 
-    def __init__(self, strategy: Strategy, start_method: Literal["spawn", "fork"] = "spawn") -> None:
+    def __init__(self, strategy: Strategy, start_method: Literal["spawn", "fork", "forkserver"] = "spawn") -> None:
         self._strategy = strategy
         self._start_method = start_method
-        if start_method == "fork" and not hasattr(os, "fork"):
-            raise ValueError("The start method 'fork' is not available on this platform. Use 'spawn' instead.")
+        if start_method not in mp.get_all_start_methods():
+            raise ValueError(
+                f"The start method '{start_method}' is not available on this platform. Available methods are:"
+                f" {', '.join(mp.get_all_start_methods())}"
+            )
 
     @property
     def is_interactive_compatible(self) -> bool:

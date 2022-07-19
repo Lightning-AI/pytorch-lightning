@@ -13,15 +13,13 @@
 # limitations under the License.
 from unittest import mock
 from unittest.mock import ANY, Mock
-
 import pytest
 
-import pytorch_lightning
 from pytorch_lightning.strategies.launchers.spawn import _SpawnLauncher
 
 
-def test_spawn_launcher_forking_on_unsupported_platform(monkeypatch):
-    monkeypatch.delattr(pytorch_lightning.strategies.launchers.spawn.os, "fork")
+@mock.patch("pytorch_lightning.strategies.launchers.spawn.mp.get_all_start_methods", return_value=[])
+def test_spawn_launcher_forking_on_unsupported_platform(_):
     with pytest.raises(ValueError, match="The start method 'fork' is not available on this platform"):
         _SpawnLauncher(strategy=Mock(), start_method="fork")
 
@@ -29,6 +27,7 @@ def test_spawn_launcher_forking_on_unsupported_platform(monkeypatch):
 @pytest.mark.parametrize("start_method", ["spawn", "fork"])
 @mock.patch("pytorch_lightning.strategies.launchers.spawn.mp")
 def test_spawn_launcher_start_method(mp_mock, start_method):
+    mp_mock.get_all_start_methods.return_value = [start_method]
     launcher = _SpawnLauncher(strategy=Mock(), start_method=start_method)
     launcher.launch(function=Mock())
     mp_mock.get_context.assert_called_with(start_method)
