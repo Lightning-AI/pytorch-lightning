@@ -40,9 +40,6 @@ def _adjust_manifest(**kwargs: Any) -> None:
             "recursive-include src *.md" + os.linesep,
             "recursive-include requirements *.txt" + os.linesep,
         ]
-
-    # TODO: remove this once lightning-ui package is ready as a dependency
-    lines += ["recursive-include src/lightning_app/ui *" + os.linesep]
     with open(manifest_path, "w") as fp:
         fp.writelines(lines)
 
@@ -58,7 +55,7 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
     if kwargs["pkg_name"] == "lightning":
         _include_pkgs = ["lightning", "lightning.*"]
         # todo: generate this list automatically with parsing feature pkg versions
-        _requires = ["pytorch-lightning>=1.6.*", "lightning-app>=0.5.*"]
+        _requires = ["pytorch-lightning>=1.6.5", "lightning-app>=0.5.2"]
     else:
         _include_pkgs = ["*"]
         _requires = [
