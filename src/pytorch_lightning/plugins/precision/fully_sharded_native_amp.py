@@ -47,7 +47,7 @@ class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
         elif self.precision == PrecisionType.BFLOAT:
             dtype = torch.bfloat16
         else:
-            raise MisconfigurationException(f"Was unable to infer precision type, received {self.precision}.")
+            raise MisconfigurationException(f"Was unable to infer precision type, received {self.precision!r}.")
         return MixedPrecision(
             param_dtype=dtype,
             reduce_dtype=dtype,

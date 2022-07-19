@@ -76,7 +76,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         mixed_precision: Optional[MixedPrecision] = None,
         **kwargs: Any,
     ) -> None:
-        """Strategy for Fully Sharded Data Parallel provided by torch.Distributed.
+        r"""Strategy for Fully Sharded Data Parallel provided by torch.Distributed.
 
         Fully Sharded Training shards the entire model across all available GPUs, allowing you to scale model
         size, whilst using efficient communication to reduce overhead. In practice, this means we can remain
@@ -110,10 +110,12 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
                 Mixed Precision config. By default, Lightning will enable FP16 if ``precision=16`
                 or BF16 if ``precision=bf16`` unless a config is passed in.
                 This is only available in PyTorch 1.12 and later.
-            **kwargs: Passed to the FSDP Context manager which will configure the FSDP class when wrapping modules.
+            \**kwargs: Passed to the FSDP Context manager which will configure the FSDP class when wrapping modules.
         """
         if not _TORCH_GREATER_EQUAL_1_12:
-            raise MisconfigurationException("DDPFullyShardedNativeStrategy is supported from pytorch v1.12.0 onwards.")
+            raise MisconfigurationException(
+                "`DDPFullyShardedNativeStrategy` is supported from PyTorch v1.12.0 onwards."
+            )
 
         super().__init__(
             accelerator=accelerator,
