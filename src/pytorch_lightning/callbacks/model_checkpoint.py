@@ -257,6 +257,7 @@ class ModelCheckpoint(Checkpoint):
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         self.__resolve_ckpt_dir(trainer)
+        assert self.dirpath is not None
         if trainer.is_global_zero and stage == "fit":
             self.__warn_if_dir_not_empty(self.dirpath)
 
@@ -610,8 +611,8 @@ class ModelCheckpoint(Checkpoint):
 
         self.dirpath = ckpt_path
 
-    def __warn_if_dir_not_empty(self, dirpath: Optional[_PATH]) -> None:
-        if dirpath is not None and self.save_top_k != 0 and self._fs.isdir(dirpath) and len(self._fs.ls(dirpath)) > 0:
+    def __warn_if_dir_not_empty(self, dirpath: _PATH) -> None:
+        if self.save_top_k != 0 and self._fs.isdir(dirpath) and len(self._fs.ls(dirpath)) > 0:
             rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
 
     def _get_metric_interpolated_filepath_name(
