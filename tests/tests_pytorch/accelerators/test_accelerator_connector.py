@@ -584,25 +584,6 @@ def test_check_native_fsdp_strategy_and_fallback():
         Trainer(accelerator="cpu", strategy="fsdp_native")
 
 
-@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
-@mock.patch("torch.cuda.device_count", return_value=1)
-@mock.patch("torch.cuda.is_available", return_value=True)
-@RunIf(min_torch="1.12")
-def test_mixed_precision_support_with_native_fsdp_strategy(device_count_mock, mock_cuda_available, tmpdir):
-    with pytest.raises(
-        MisconfigurationException, match="DDPFullyShardedNativeStrategy currently doesn't support Mixed Precision"
-    ):
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            fast_dev_run=True,
-            strategy="fsdp_native",
-            accelerator="gpu",
-            devices=1,
-            precision=16,
-        )
-        assert isinstance(trainer.strategy, DDPFullyShardedNativeStrategy)
-
-
 @mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
 def test_unsupported_tpu_choice(mock_tpu_acc_avail):
 

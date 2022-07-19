@@ -32,7 +32,7 @@ def test_invalid_on_cpu(tmpdir):
         trainer.strategy.setup_environment()
 
 
-@RunIf(min_torch="1.12")
+@RunIf(min_torch="1.12", min_cuda_gpus=1)
 @pytest.mark.parametrize("precision, expected", [(16, torch.float16), ("bf16", torch.bfloat16)])
 def test_precision_plugin_config(precision, expected):
     plugin = FullyShardedNativeMixedPrecisionPlugin(precision=precision, device="cuda")
