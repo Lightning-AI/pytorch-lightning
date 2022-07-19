@@ -39,6 +39,7 @@ def _adjust_manifest(**kwargs: Any) -> None:
         lines += [
             "recursive-include src *.md" + os.linesep,
             "recursive-include requirements *.txt" + os.linesep,
+            "recursive-include src/lightning_app/ui *" + os.linesep,
         ]
     with open(manifest_path, "w") as fp:
         fp.writelines(lines)
