@@ -21,8 +21,7 @@ import os
 from argparse import Namespace
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Union
 
-import torch
-from torch import is_tensor, Tensor
+from torch import Tensor
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
