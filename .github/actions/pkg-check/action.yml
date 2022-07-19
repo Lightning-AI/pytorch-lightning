@@ -47,6 +47,7 @@ runs:
       import os, glob, pathlib, shutil
       # list folders without ending .egg-info
       dirs = [d for d in glob.glob(os.path.join("*", "src", "*")) if not d.endswith(".egg-info")]
+      print(dirs)
       assert len(dirs) == 1
       # cleaning
       shutil.rmtree(pathlib.Path(dirs[0]).parent.parent)
