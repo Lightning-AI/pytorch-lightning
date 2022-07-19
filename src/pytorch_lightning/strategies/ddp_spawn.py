@@ -53,6 +53,13 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 log = logging.getLogger(__name__)
 
+_DDP_FORK_ALIASES = (
+    "ddp_fork",
+    "ddp_fork_find_unused_parameters_false",
+    "ddp_notebook",
+    "ddp_notebook_find_unused_parameters_false",
+)
+
 
 class DDPSpawnStrategy(ParallelStrategy):
     """Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training

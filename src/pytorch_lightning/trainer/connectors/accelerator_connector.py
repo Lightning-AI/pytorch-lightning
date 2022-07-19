@@ -72,6 +72,7 @@ from pytorch_lightning.strategies import (
     StrategyRegistry,
     TPUSpawnStrategy,
 )
+from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _StrategyType,
@@ -614,10 +615,7 @@ class AcceleratorConnector:
                 f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
                 "but GPU accelerator is not used."
             )
-        if (
-            strategy_flag in ("ddp_fork", "ddp_fork_find_unused_parameters_false")
-            and "fork" not in torch.multiprocessing.get_all_start_methods()
-        ):
+        if strategy_flag in _DDP_FORK_ALIASES and "fork" not in torch.multiprocessing.get_all_start_methods():
             raise ValueError(
                 f"You selected `Trainer(strategy='{strategy_flag}')` but process forking is not supported on this"
                 f" platform. We recommed `Trainer(strategy='ddp_spawn')` instead."
