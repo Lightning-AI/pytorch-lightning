@@ -5,13 +5,21 @@ import pickle
 from re import escape
 from time import sleep
 from unittest import mock
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 
 from lightning_app import LightningApp, LightningFlow, LightningWork
 from lightning_app.runners import MultiProcessRuntime
-from lightning_app.storage.path import artifacts_path, is_lit_path, Path, shared_storage_path, storage_root_dir
+from lightning_app.storage.path import (
+    _is_s3fs_available,
+    artifacts_path,
+    filesystem,
+    is_lit_path,
+    Path,
+    shared_storage_path,
+    storage_root_dir,
+)
 from lightning_app.storage.requests import ExistsResponse, GetResponse
 from lightning_app.testing.helpers import EmptyWork, MockQueue, RunIf
 from lightning_app.utilities.app_helpers import LightningJSONEncoder
@@ -678,3 +686,21 @@ def test_artifacts_path():
     work = Mock()
     work.name = "root.flow.work"
     assert artifacts_path(work) == shared_storage_path() / "artifacts" / "root.flow.work"
+
+
+@pytest.mark.skipif(not _is_s3fs_available(), reason="This test requires s3fs.")
+@mock.patch.dict(os.environ, {"LIGHTNING_BUCKET_ENDPOINT_URL": "a"})
+@mock.patch.dict(os.environ, {"LIGHTNING_BUCKET_NAME": "b"})
+@mock.patch.dict(os.environ, {"LIGHTNING_AWS_ACCESS_KEY_ID": "c"})
+@mock.patch.dict(os.environ, {"LIGHTNING_AWS_SECRET_ACCESS_KEY": "d"})
+@mock.patch.dict(os.environ, {"LIGHTNING_CLOUD_APP_ID": "e"})
+def test_filesystem(monkeypatch):
+    from lightning_app.storage import path
+
+    mock = MagicMock()
+    monkeypatch.setattr(path, "S3FileSystem", mock)
+    fs = filesystem()
+    assert fs._mock_new_parent._mock_mock_calls[0].kwargs["key"] == "c"
+    assert fs._mock_new_parent._mock_mock_calls[0].kwargs["secret"] == "d"
+    assert not fs._mock_new_parent._mock_mock_calls[0].kwargs["use_ssl"]
+    assert fs._mock_new_parent._mock_mock_calls[0].kwargs["client_kwargs"] == {"endpoint_url": "a"}

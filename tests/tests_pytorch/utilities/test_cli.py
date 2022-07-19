@@ -1501,7 +1501,7 @@ def test_cli_trainer_no_callbacks():
 
 def test_unresolvable_import_paths():
     class TestModel(BoringModel):
-        def __init__(self, a_func: Callable = torch.softmax):
+        def __init__(self, a_func: Callable = torch.nn.Softmax):
             super().__init__()
             self.a_func = a_func
 
@@ -1509,7 +1509,7 @@ def test_unresolvable_import_paths():
     with mock.patch("sys.argv", ["any.py", "--print_config"]), redirect_stdout(out), pytest.raises(SystemExit):
         LightningCLI(TestModel, run=False)
 
-    assert "a_func: torch.softmax" in out.getvalue()
+    assert "a_func: torch.nn.Softmax" in out.getvalue()
 
 
 def test_pytorch_profiler_init_args():

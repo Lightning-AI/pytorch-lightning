@@ -14,7 +14,9 @@ _FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
 
 def _load_py_module(name: str, location: str) -> ModuleType:
     spec = spec_from_file_location(name, location)
+    assert spec, f"Failed to load module {name} from {location}"
     py = module_from_spec(spec)
+    assert spec.loader, f"ModuleSpec.loader is None for {name} from {location}"
     spec.loader.exec_module(py)
     return py
 
@@ -49,6 +51,10 @@ def _adjust_manifest(**__: Any) -> None:
         "recursive-include src/lightning_app *.md" + os.linesep,
         "recursive-include requirements/app *.txt" + os.linesep,
     ]
+
+    # TODO: remove this once lightning-ui package is ready as a dependency
+    lines += ["recursive-include src/lightning_app/ui *" + os.linesep]
+
     with open(manifest_path, "w") as fp:
         fp.writelines(lines)
 
@@ -61,7 +67,10 @@ def _setup_args(**__: Any) -> Dict[str, Any]:
     _long_description = _setup_tools.load_readme_description(
         _PACKAGE_ROOT, homepage=_about.__homepage__, version=_version.version
     )
-    # TODO: at this point we need to download the UI to the package
+
+    # TODO: remove this once lightning-ui package is ready as a dependency
+    _setup_tools._download_frontend(_PROJECT_ROOT)
+
     return dict(
         name="lightning-app",
         version=_version.version,  # todo: consider using date version + branch for installation from source
