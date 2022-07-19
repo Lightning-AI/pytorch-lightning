@@ -72,7 +72,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         ddp_comm_wrapper: Optional[callable] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
-        start_method: Literal["spawn", "fork"] = "spawn",
+        start_method: Literal["spawn", "fork", "forkserver"] = "spawn",
         **kwargs: Any,
     ):
         super().__init__(
