@@ -42,16 +42,18 @@ from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
 from pytorch_lightning.utilities.seed import reset_seed
 
-MixedPrecision = None
 if _TORCH_GREATER_EQUAL_1_12:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision  # type: ignore[no-redef]
     from torch.distributed.fsdp.fully_sharded_data_parallel import (
         BackwardPrefetch,
         CPUOffload,
         FullyShardedDataParallel,
+        MixedPrecision,
     )
     from torch.distributed.fsdp.wrap import enable_wrap
-
+else:
+    MixedPrecision = None
+    BackwardPrefetch = None  # type: ignore[misc,assignment]
+    CPUOffload = None  # type: ignore[misc,assignment]
 
 log = logging.getLogger(__name__)
 
@@ -61,7 +63,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
     strategy_name = "fsdp_native"
     _registered_strategies: List[str] = []
 
-    def __init__(  # type: ignore[no-untyped-def]
+    def __init__(
         self,
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[torch.device]] = None,
@@ -69,10 +71,10 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         process_group_backend: Optional[str] = None,
-        cpu_offload=None,
-        backward_prefetch=None,
-        mixed_precision=None,
-        **kwargs,
+        cpu_offload: Optional[CPUOffload] = None,
+        backward_prefetch: Optional[BackwardPrefetch] = None,
+        mixed_precision: Optional[MixedPrecision] = None,
+        **kwargs: Any,
     ) -> None:
         """Strategy for Fully Sharded Data Parallel provided by torch.Distributed.
 
@@ -91,7 +93,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         `https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html`
 
         Arguments:
-            cpu_offload (Optional [CPUOffload]):
+            cpu_offload:
                 CPU offloading config. Currently, only parameter and gradient CPU
                 offload is supported. It can be enabled via passing in
                 ``cpu_offload=CPUOffload(offload_params=True)``. Note that this
@@ -99,12 +101,12 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
                 params and grads to be on same device to work with optimizer. This
                 API is subject to change. Default is ``None`` in which case there
                 will be no offloading.
-            backward_prefetch: (Optional[BackwardPrefetch]):
+            backward_prefetch:
                 This is an experimental feature that is subject to change in the
                 the near future. It allows users to enable two different backward_prefetch
                 algorithms to help backward communication and computation overlapping.
                 Pros and cons of each algorithm is explained in the class ``BackwardPrefetch``.
-            mixed_precision: (Optional[MixedPrecision]):
+            mixed_precision:
                 Mixed Precision config. By default, Lightning will enable FP16 if ``precision=16`
                 or BF16 if ``precision=bf16`` unless a config is passed in.
                 This is only available in PyTorch 1.12 and later.
@@ -122,10 +124,10 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         )
         self._process_group = None
         self._num_nodes = 1
-        self._process_group_backend: Optional[str] = process_group_backend
-        self.cpu_offload: Optional[CPUOffload] = cpu_offload
-        self.backward_prefetch: Optional[BackwardPrefetch] = backward_prefetch
-        self.mixed_precision: Optional[MixedPrecision] = mixed_precision  # type: ignore
+        self._process_group_backend = process_group_backend
+        self.cpu_offload = cpu_offload
+        self.backward_prefetch = backward_prefetch
+        self.mixed_precision = mixed_precision
         self._rank_0_will_call_children_scripts: bool = False
         self.kwargs = kwargs
 
@@ -159,7 +161,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         return self._process_group_backend
 
     @property
-    def mixed_precision_config(self) -> Optional[MixedPrecision]:  # type: ignore
+    def mixed_precision_config(self) -> Optional[MixedPrecision]:
         if self.mixed_precision:
             return self.mixed_precision
         plugin = self.precision_plugin

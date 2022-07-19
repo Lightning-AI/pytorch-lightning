@@ -20,9 +20,10 @@ from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCH_GREATER_EQUAL_1_12
 
-MixedPrecision = None
 if _TORCH_GREATER_EQUAL_1_12:
-    from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision  # type: ignore[no-redef]
+    from torch.distributed.fsdp.fully_sharded_data_parallel import MixedPrecision
+else:
+    MixedPrecision = None
 
 
 class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
@@ -39,7 +40,7 @@ class FullyShardedNativeMixedPrecisionPlugin(ShardedNativeMixedPrecisionPlugin):
         )
 
     @property
-    def mixed_precision_config(self) -> Optional[MixedPrecision]:  # type: ignore
+    def mixed_precision_config(self) -> Optional[MixedPrecision]:
         assert MixedPrecision is not None
         if self.precision == PrecisionType.HALF:
             dtype = torch.float16
