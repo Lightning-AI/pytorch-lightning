@@ -26,6 +26,7 @@ from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
 from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.accelerators.mps import MPSAccelerator
+from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins import DoublePrecisionPlugin, LayerSync, NativeSyncBatchNorm, PrecisionPlugin
 from pytorch_lightning.plugins.environments import (
     KubeflowEnvironment,
@@ -226,7 +227,10 @@ def test_ipython_compatible_dp_strategy_gpu(_, monkeypatch):
 
 
 @mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
-def test_ipython_compatible_strategy_tpu(_, monkeypatch):
+@mock.patch(
+    "pytorch_lightning.strategies.launchers.spawn.torch.multiprocessing.get_all_start_methods", return_value=["fork"]
+)
+def test_ipython_compatible_strategy_tpu(_, __, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     trainer = Trainer(accelerator="tpu")
     assert trainer.strategy.launcher.is_interactive_compatible
@@ -259,7 +263,7 @@ def test_accelerator_choice_multi_node_gpu(
     assert isinstance(trainer.strategy, strategy_class)
 
 
-@mock.patch("pytorch_lightning.accelerators.gpu.device_parser.num_cuda_devices", return_value=0)
+@mock.patch("pytorch_lightning.accelerators.cuda.device_parser.num_cuda_devices", return_value=0)
 def test_accelerator_cpu(_):
     trainer = Trainer(accelerator="cpu")
     assert isinstance(trainer.accelerator, CPUAccelerator)

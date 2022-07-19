@@ -57,11 +57,6 @@ class _SpawnLauncher(_Launcher):
     def __init__(self, strategy: Strategy, start_method: Literal["spawn", "fork", "forkserver"] = "spawn") -> None:
         self._strategy = strategy
         self._start_method = start_method
-        if start_method not in mp.get_all_start_methods():
-            raise ValueError(
-                f"The start method '{start_method}' is not available on this platform. Available methods are:"
-                f" {', '.join(mp.get_all_start_methods())}"
-            )
 
     @property
     def is_interactive_compatible(self) -> bool:
@@ -83,6 +78,12 @@ class _SpawnLauncher(_Launcher):
                 a selected set of attributes get restored in the main process after processes join.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
+        if self._start_method not in mp.get_all_start_methods():
+            raise ValueError(
+                f"The start method '{self._start_method}' is not available on this platform. Available methods are:"
+                f" {', '.join(mp.get_all_start_methods())}"
+            )
+
         # The default cluster environment in Lightning chooses a random free port number
         # This needs to be done in the main process here before spawning to ensure each rank will connect
         # through the same port

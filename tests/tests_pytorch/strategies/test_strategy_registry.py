@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+import torch.multiprocessing
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.plugins import CheckpointIO
@@ -117,10 +118,11 @@ def test_fsdp_strategy_registry(tmpdir):
             DDPSpawnStrategy,
             {"find_unused_parameters": False, "start_method": "spawn"},
         ),
-        (
+        pytest.param(
             "ddp_fork_find_unused_parameters_false",
             DDPSpawnStrategy,
             {"find_unused_parameters": False, "start_method": "fork"},
+            marks=RunIf(skip_windows=True),
         ),
         (
             "ddp_sharded_spawn_find_unused_parameters_false",
