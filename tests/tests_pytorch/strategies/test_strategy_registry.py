@@ -123,6 +123,12 @@ def test_fsdp_strategy_registry(tmpdir):
             {"find_unused_parameters": False, "start_method": "fork"},
             marks=RunIf(skip_windows=True),
         ),
+        pytest.param(
+            "ddp_notebook_find_unused_parameters_false",
+            DDPSpawnStrategy,
+            {"find_unused_parameters": False, "start_method": "fork"},
+            marks=RunIf(skip_windows=True),
+        ),
         (
             "ddp_sharded_spawn_find_unused_parameters_false",
             DDPSpawnShardedStrategy,
