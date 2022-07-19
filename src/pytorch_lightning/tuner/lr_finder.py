@@ -39,7 +39,7 @@ if importlib.util.find_spec("ipywidgets") is not None:
 else:
     from tqdm import tqdm
 
-_MATPLOTLIB_AVAILABLE: bool = _RequirementAvailable("matplotlib")  # type: ignore[assignment]
+_MATPLOTLIB_AVAILABLE = _RequirementAvailable("matplotlib")
 if _MATPLOTLIB_AVAILABLE and TYPE_CHECKING:
     import matplotlib.pyplot as plt
 

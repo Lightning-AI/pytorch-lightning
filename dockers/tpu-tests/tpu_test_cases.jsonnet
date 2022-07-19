@@ -31,7 +31,7 @@ local tputests = base.BaseTest {
       git checkout {SHA}
       export PACKAGE_NAME=pytorch
       export FREEZE_REQUIREMENTS=1
-      pip install -e .
+      pip install -e .[test]
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
       export XRT_TPU_CONFIG="tpu_worker;0;${KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS:7}"
       cd tests/tests_pytorch
@@ -42,7 +42,8 @@ local tputests = base.BaseTest {
           profilers/test_xla_profiler.py \
           accelerators/test_tpu.py \
           models/test_tpu.py \
-          plugins/environments/test_xla_environment.py
+          plugins/environments/test_xla_environment.py \
+          utilities/test_xla_device_utils.py
       test_exit_code=$?
       echo "\n||| END PYTEST LOGS |||\n"
       coverage xml
