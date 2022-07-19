@@ -1,7 +1,7 @@
-from lightning_app import LightningWork
+import lightning as L
 
 
-class ExampleWork(LightningWork):
+class ExampleWork(L.LightningWork):
     def __init__(self):
         super().__init__(cache_calls=False)
 

@@ -13,12 +13,19 @@
 # limitations under the License.
 from typing import Any, Dict, Optional, Union
 
+from typing_extensions import NotRequired, TypedDict
+
 import pytorch_lightning as pl
 from pytorch_lightning.trainer.states import TrainerStatus
 from pytorch_lightning.tuner.batch_size_scaling import scale_batch_size
 from pytorch_lightning.tuner.lr_finder import _LRFinder, lr_find
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
+
+
+class _TunerResult(TypedDict):
+    lr_find: NotRequired[Optional[_LRFinder]]
+    scale_batch_size: NotRequired[Optional[int]]
 
 
 class Tuner:
@@ -36,11 +43,11 @@ class Tuner:
         model: "pl.LightningModule",
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
+    ) -> _TunerResult:
         scale_batch_size_kwargs = scale_batch_size_kwargs or {}
         lr_find_kwargs = lr_find_kwargs or {}
         # return a dict instead of a tuple so BC is not broken if a new tuning procedure is added
-        result = {}
+        result = _TunerResult()
 
         self.trainer.strategy.connect(model)
 

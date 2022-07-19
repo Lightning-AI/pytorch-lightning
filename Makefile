@@ -36,7 +36,7 @@ test: clean
 
 docs: clean
 	pip install -e . --quiet -r requirements/pytorch/docs.txt
-	python -m sphinx -b html -W --keep-going docs/source-pytorch docs/build
+	cd docs && $(MAKE) html
 
 update:
 	git submodule update --init --recursive --remote

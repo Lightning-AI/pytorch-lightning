@@ -62,7 +62,6 @@ module = [
     "pytorch_lightning.loggers.mlflow",
     "pytorch_lightning.loggers.neptune",
     "pytorch_lightning.loggers.tensorboard",
-    "pytorch_lightning.loops.epoch.training_epoch_loop",
     "pytorch_lightning.profilers.advanced",
     "pytorch_lightning.profilers.base",
     "pytorch_lightning.profilers.pytorch",
@@ -82,10 +81,8 @@ module = [
     "pytorch_lightning.trainer.supporters",
     "pytorch_lightning.trainer.trainer",
     "pytorch_lightning.tuner.batch_size_scaling",
-    "pytorch_lightning.tuner.tuning",
     "pytorch_lightning.utilities.auto_restart",
     "pytorch_lightning.utilities.data",
-    "pytorch_lightning.utilities.distributed",
     "pytorch_lightning.utilities.meta",
 ]
 ignore_errors = "True"
