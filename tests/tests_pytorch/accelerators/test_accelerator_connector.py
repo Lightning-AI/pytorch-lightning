@@ -758,7 +758,10 @@ def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
 
 
 @pytest.mark.parametrize("strategy", ["ddp_fork", "ddp_fork_find_unused_parameters_false"])
-def test_ddp_fork_on_unsupported_platform(strategy, monkeypatch):
-    monkeypatch.delattr(os, "fork")
+@mock.patch(
+    "pytorch_lightning.trainer.connectors.accelerator_connector.torch.multiprocessing.get_all_start_methods",
+    return_value=[],
+)
+def test_ddp_fork_on_unsupported_platform(_, strategy):
     with pytest.raises(ValueError, match="process forking is not supported on this platform"):
         Trainer(strategy=strategy)

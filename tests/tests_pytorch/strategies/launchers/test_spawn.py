@@ -13,6 +13,7 @@
 # limitations under the License.
 from unittest import mock
 from unittest.mock import ANY, Mock
+
 import pytest
 
 from pytorch_lightning.strategies.launchers.spawn import _SpawnLauncher

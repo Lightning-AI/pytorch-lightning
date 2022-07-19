@@ -620,7 +620,7 @@ class AcceleratorConnector:
         ):
             raise ValueError(
                 f"You selected `Trainer(strategy='{strategy_flag}')` but process forking is not supported on this"
-                f" platform. We recommed to choose `Trainer(strategy='ddp_spawn')` instead."
+                f" platform. We recommed `Trainer(strategy='ddp_spawn')` instead."
             )
         if strategy_flag:
             self._strategy_flag = strategy_flag
