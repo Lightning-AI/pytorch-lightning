@@ -33,7 +33,7 @@ If you don't, simply create a ``pl_project`` folder with those two files and add
 
 Add the following to the ``requirements.txt`` file.
 
-.. literalinclude:: ../code_samples/convert_pl_to_app/requirements.py
+.. literalinclude:: ../code_samples/convert_pl_to_app/requirements.txt
 
 Simply run the following commands in your terminal to install the requirements and train the model.
 

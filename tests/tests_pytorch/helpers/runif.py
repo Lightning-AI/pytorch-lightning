@@ -127,8 +127,7 @@ class RunIf:
         reasons = []
 
         if min_cuda_gpus:
-            env_flag = os.getenv("PL_RUN_CUDA_TESTS", "0")
-            conditions.append(env_flag != "1" or torch.cuda.device_count() < min_cuda_gpus)
+            conditions.append(torch.cuda.device_count() < min_cuda_gpus)
             reasons.append(f"GPUs>={min_cuda_gpus}")
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["min_cuda_gpus"] = True
@@ -180,8 +179,7 @@ class RunIf:
             reasons.append("TPU")
 
         if ipu:
-            env_flag = os.getenv("PL_RUN_IPU_TESTS", "0")
-            conditions.append(env_flag != "1" or not _IPU_AVAILABLE)
+            conditions.append(not _IPU_AVAILABLE)
             reasons.append("IPU")
             # used in conftest.py::pytest_collection_modifyitems
             kwargs["ipu"] = True
