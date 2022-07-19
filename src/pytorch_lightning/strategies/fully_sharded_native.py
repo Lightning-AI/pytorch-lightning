@@ -185,6 +185,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         rank_zero_only.rank = self.global_rank
 
         self._process_group_backend = self._get_process_group_backend()
+        assert self.cluster_environment is not None
         init_dist_connection(self.cluster_environment, self._process_group_backend)
 
     def _get_process_group_backend(self) -> str:
@@ -202,6 +203,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         rank_zero_only.rank = self.cluster_environment.global_rank()
 
     def _configure_launcher(self) -> None:
+        assert self.cluster_environment is not None
         if not self.cluster_environment.creates_processes_externally:
             self._launcher = _SubprocessScriptLauncher(self.cluster_environment, self.num_processes, self.num_nodes)
             self._rank_0_will_call_children_scripts = True
@@ -216,6 +218,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             self.model = self._layer_sync.apply(self.model)
 
         # we set the device so that optimizers can be created with distributed comms.
+        assert self.lightning_module is not None
         self.lightning_module._device = self.root_device
 
         self.barrier()
@@ -290,6 +293,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             assert self.model is not None
             self.model = self._layer_sync.revert(self.model)
 
+        assert self.cluster_environment is not None
         self.cluster_environment.teardown()
         self.precision_plugin.teardown()
         self.accelerator.teardown()
