@@ -302,7 +302,7 @@ def create_meta_package(src_folder: str, pkg_name: str = "pytorch_lightning", li
             body = replace_block_with_imports([ln.rstrip() for ln in body], import_path, "class")
             body = replace_block_with_imports(body, import_path, "def")
             body = replace_block_with_imports(body, import_path, "async def")
-            if fname not in ("__main__.py", ):
+            if fname not in ("__main__.py",):
                 body = prune_imports_callables(body)
             body = replace_vars_with_imports(body, import_path)
             body_len = -1
