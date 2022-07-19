@@ -33,3 +33,21 @@ runs:
   - name: copy/export pkg
     run: cp dist/* pypi/
     shell: bash
+
+  - name: Unzip packages
+    if: ${{ inputs.pkg-name != '' }}
+    working-directory: dist
+    run: for file in `ls *.gz`; do tar -xzf $file; done
+    shell: bash
+
+  - name: Check single pkg/folder
+    if: ${{ inputs.pkg-name != '' }}
+    working-directory: dist
+    run: |
+      import os, glob, pathlib, shutil
+      # list folders without ending .egg-info
+      dirs = [d for d in glob.glob(os.path.join("*", "src", "*")) if not d.endswith(".egg-info")]
+      assert len(dirs) == 1
+      # cleaning
+      shutil.rmtree(pathlib.Path(dirs[0]).parent.parent)
+    shell: python
