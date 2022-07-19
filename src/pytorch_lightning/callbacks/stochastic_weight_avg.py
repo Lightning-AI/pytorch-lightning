@@ -19,7 +19,7 @@ from copy import deepcopy
 from typing import Any, Callable, cast, List, Optional, Union
 
 import torch
-from torch import FloatTensor, nn, Tensor
+from torch import nn, Tensor
 from torch.optim.swa_utils import SWALR
 
 import pytorch_lightning as pl
