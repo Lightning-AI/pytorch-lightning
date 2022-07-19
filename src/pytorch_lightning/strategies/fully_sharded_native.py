@@ -144,7 +144,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         self._num_nodes = num_nodes
 
     @property
-    def num_processes(self):
+    def num_processes(self) -> int:
         return len(self.parallel_devices) if self.parallel_devices is not None else 0
 
     @property
