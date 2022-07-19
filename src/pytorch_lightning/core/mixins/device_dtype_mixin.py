@@ -112,7 +112,7 @@ class DeviceDtypeModuleMixin(Module):
         # there is diff nb vars in PT 1.5
         out = torch._C._nn._parse_to(*args, **kwargs)
         self.__update_properties(device=out[0], dtype=out[1])
-        return super().to(*args, **kwargs) # type: ignore
+        return super().to(*args, **kwargs)  # type: ignore
 
     def cuda(self, device: Optional[Union[torch.device, int]] = None) -> TDeviceDtypeModuleMixin:
         """Moves all model parameters and buffers to the GPU. This also makes associated parameters and buffers
@@ -130,7 +130,7 @@ class DeviceDtypeModuleMixin(Module):
             assert isinstance(device, int)
             device = torch.device("cuda", index=device)
         self.__update_properties(device=device)
-        return super().cuda(device=device) # type: ignore
+        return super().cuda(device=device)  # type: ignore
 
     def cpu(self) -> TDeviceDtypeModuleMixin:
         """Moves all model parameters and buffers to the CPU.
@@ -139,7 +139,7 @@ class DeviceDtypeModuleMixin(Module):
             Module: self
         """
         self.__update_properties(device=torch.device("cpu"))
-        return super().cpu() # type: ignore
+        return super().cpu()  # type: ignore
 
     def type(self, dst_type: Union[str, torch.dtype]) -> TDeviceDtypeModuleMixin:
         """Casts all parameters and buffers to :attr:`dst_type`.
@@ -151,7 +151,7 @@ class DeviceDtypeModuleMixin(Module):
             Module: self
         """
         self.__update_properties(dtype=dst_type)
-        return super().type(dst_type=dst_type) # type: ignore
+        return super().type(dst_type=dst_type)  # type: ignore
 
     def float(self) -> TDeviceDtypeModuleMixin:
         """Casts all floating point parameters and buffers to ``float`` datatype.
@@ -160,7 +160,7 @@ class DeviceDtypeModuleMixin(Module):
             Module: self
         """
         self.__update_properties(dtype=torch.float)
-        return super().float() # type: ignore
+        return super().float()  # type: ignore
 
     def double(self) -> TDeviceDtypeModuleMixin:
         """Casts all floating point parameters and buffers to ``double`` datatype.
@@ -169,7 +169,7 @@ class DeviceDtypeModuleMixin(Module):
             Module: self
         """
         self.__update_properties(dtype=torch.double)
-        return super().double() # type: ignore
+        return super().double()  # type: ignore
 
     def half(self) -> TDeviceDtypeModuleMixin:
         """Casts all floating point parameters and buffers to ``half`` datatype.
@@ -178,7 +178,7 @@ class DeviceDtypeModuleMixin(Module):
             Module: self
         """
         self.__update_properties(dtype=torch.half)
-        return super().half() # type: ignore
+        return super().half()  # type: ignore
 
     def __update_properties(
         self, device: Optional[torch.device] = None, dtype: Optional[Union[str, torch.dtype]] = None
