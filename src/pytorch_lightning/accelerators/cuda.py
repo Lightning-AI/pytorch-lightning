@@ -28,8 +28,8 @@ from pytorch_lightning.utilities.types import _DEVICE
 _log = logging.getLogger(__name__)
 
 
-class GPUAccelerator(Accelerator):
-    """Accelerator for GPU devices."""
+class CUDAAccelerator(Accelerator):
+    """Accelerator for NVIDIA CUDA devices."""
 
     def setup_environment(self, root_device: torch.device) -> None:
         """
@@ -92,6 +92,12 @@ class GPUAccelerator(Accelerator):
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:
+        accelerator_registry.register(
+            "cuda",
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )
+        # temporarily enable "gpu" to point to the CUDA Accelerator
         accelerator_registry.register(
             "gpu",
             cls,
