@@ -34,7 +34,9 @@ from pytorch_lightning.trainer.connectors.logger_connector.result import (
     _ResultMetric,
     _Sync,
 )
+from pytorch_lightning.utilities.warnings import PossibleUserWarning
 from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.utils import no_warning_call
 
 
 class DummyMetric(Metric):
@@ -661,3 +663,22 @@ def test_compute_not_a_tensor_raises():
     )
     with pytest.raises(ValueError, match=r"compute\(\)` return of.*foo' must be a tensor"):
         trainer.fit(model)
+
+
+@pytest.mark.parametrize("distributed_env", [True, False])
+def test_logger_sync_dist(distributed_env):
+    # self.log('bar', 7, ..., sync_dist=False)
+    meta = _Metadata("foo", "bar")
+    meta.sync = _Sync(_should=False)
+    result_metric = _ResultMetric(metadata=meta, is_tensor=True)
+    result_metric.update(torch.tensor(7.0), 10)
+
+    warning_ctx = pytest.warns if distributed_env else no_warning_call
+
+    with mock.patch(
+        "pytorch_lightning.trainer.connectors.logger_connector.result.distributed_available",
+        return_value=distributed_env,
+    ):
+        with warning_ctx(PossibleUserWarning, match=r"recommended to use `self.log\('bar', ..., sync_dist=True\)`"):
+            value = _ResultCollection._get_cache(result_metric, on_step=False)
+        assert value == 7.0

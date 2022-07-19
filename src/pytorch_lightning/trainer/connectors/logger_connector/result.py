@@ -526,8 +526,11 @@ class _ResultCollection(dict):
             if result_metric._computed is None:
                 should = result_metric.meta.sync.should
                 if not result_metric.meta.sync.should and distributed_available():
+                    # ensure sync happens for FT since during a failure, the metrics are synced and saved to the
+                    # checkpoint, so during restart, metrics on rank 0 are from the accumulated ones from the previous
+                    # run, and on other ranks, they are 0. So we need to make sure they are synced in further training
+                    # to ensure correct calculation.
                     if _fault_tolerant_training():
-                        # make sure to always sync across devices when fault-tolerant is used
                         result_metric.meta.sync.should = True
                     else:
                         warning_cache.warn(
