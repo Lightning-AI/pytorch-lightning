@@ -193,8 +193,9 @@ def test_lightning_parallel_module_device_access_warning():
 
     pl_module = DeviceAccessModel()
     # required for redirecting the forward call to training_step
-    pl_module.trainer = Mock()
-    pl_module.trainer.state.stage = RunningStage.TRAINING
+    trainer = Mock()
+    pl_module.trainer = trainer
+    trainer.state.stage = RunningStage.TRAINING
 
     wrapped_module = LightningParallelModule(pl_module).cuda()
     model = DataParallel(wrapped_module, device_ids=[0, 1])
