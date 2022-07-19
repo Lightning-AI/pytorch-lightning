@@ -127,7 +127,7 @@ class DeviceDtypeModuleMixin(Module):
             Module: self
         """
         if device is None or isinstance(device, int):
-            assert isinstance(device, int)
+            assert isinstance(device, int) or device is None
             device = torch.device("cuda", index=device)
         self.__update_properties(device=device)
         return super().cuda(device=device) # type: ignore
