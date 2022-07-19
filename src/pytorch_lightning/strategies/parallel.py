@@ -112,11 +112,8 @@ class ParallelStrategy(Strategy, ABC):
         """Perform a all_gather on all processes."""
         return all_gather_ddp_if_available(tensor, group=group, sync_grads=sync_grads)
 
-    def reduce_boolean_decision(self, decision: Union[bool, Tensor]) -> bool:
-        if isinstance(decision, Tensor):
-            decision = decision.to(dtype=torch.int, device=self.root_device)
-        else:
-            decision = torch.tensor(int(decision), device=self.root_device)
+    def reduce_boolean_decision(self, decision: bool) -> bool:
+        decision = torch.tensor(int(decision), device=self.root_device)
         decision = self.reduce(decision, reduce_op=ReduceOp.SUM)
         decision = bool(decision == self.world_size)
         return decision

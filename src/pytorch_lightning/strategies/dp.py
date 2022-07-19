@@ -125,8 +125,8 @@ class DataParallelStrategy(ParallelStrategy):
     def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return obj
 
-    def reduce_boolean_decision(self, decision: Union[bool, Tensor]) -> bool:
-        return bool(decision)
+    def reduce_boolean_decision(self, decision: bool) -> bool:
+        return decision
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         with self.precision_plugin.train_step_context():
