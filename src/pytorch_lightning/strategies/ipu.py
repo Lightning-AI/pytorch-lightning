@@ -13,11 +13,12 @@
 # limitations under the License.
 import json
 import os
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from pytorch_lightning.strategies.strategy import TBroadcast
 
 import torch
 from torch import FloatTensor, Tensor
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Sampler
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
@@ -110,12 +111,12 @@ class IPUStrategy(ParallelStrategy):
         self.device_iterations = device_iterations
         self.autoreport = autoreport
         self.autoreport_dir = autoreport_dir
-        self.poptorch_models = {}
+        self.poptorch_models : Dict[Union[RunningStage, str], "poptorch.PoplarExecutor"] = {}
         self._training_opts = training_opts
         self._inference_opts = inference_opts
 
         if self.autoreport:
-            options = {"autoReport.all": self.autoreport}
+            options : Dict[str, Any] = {"autoReport.all": self.autoreport}
             if self.autoreport_dir:
                 self._fs = get_filesystem(str(self.autoreport_dir))
                 self._fs.makedirs(self.autoreport_dir, exist_ok=True)
@@ -136,6 +137,8 @@ class IPUStrategy(ParallelStrategy):
         pl.trainer.connectors.data_connector._update_dataloader = self._convert_to_poptorch_loader
 
         super().setup(trainer)
+
+        assert self.lightning_module.trainer is not None
 
         # disable the `optimizer_zero_grad` function by setting it to `None`.
         # this is because the IPU zeros the gradients internally
@@ -159,7 +162,7 @@ class IPUStrategy(ParallelStrategy):
             model = poptorch.trainingModel(model=model, options=training_opts, optimizer=optimizer)
             self.poptorch_models[RunningStage.TRAINING] = model
 
-            if self.lightning_module.trainer.enable_validation:
+            if self.lightning_module.trainer and self.lightning_module.trainer.enable_validation:
                 model = poptorch.inferenceModel(model=model, options=inference_opts)
                 self.poptorch_models[RunningStage.VALIDATING] = model
         elif trainer_fn == TrainerFn.VALIDATING:
@@ -189,12 +192,14 @@ class IPUStrategy(ParallelStrategy):
             if self._inference_opts:
                 return self._inference_opts.replication_factor
 
-            return len(self.parallel_devices)
-
+            return len(self.parallel_devices) if self.parallel_devices else 0
+        assert self.lightning_module.trainer is not None
         stage = self.lightning_module.trainer.state.stage
+        assert stage is not None
         return self.poptorch_models[stage]._options.toDict()["replication_factor"]
 
     def _create_opts(self, training: bool) -> "poptorch.Options":
+        assert self.lightning_module.trainer is not None
         opts = poptorch.Options()
         opts.deviceIterations(self.device_iterations)
         opts.replicationFactor(self.replication_factor)
@@ -218,11 +223,13 @@ class IPUStrategy(ParallelStrategy):
         return self._inference_opts
 
     @property
-    def lightning_module(self) -> Optional["pl.LightningModule"]:
-        return self.model.module if isinstance(self.model, LightningIPUModule) else self.model
+    def lightning_module(self) -> pl.LightningModule:
+        model = self.model.module if isinstance(self.model, LightningIPUModule) else self.model
+        assert model is not None
+        return model
 
     def _convert_to_poptorch_loader(
-        self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None
+        self, dataloader: DataLoader, sampler: Sampler, mode: Optional[RunningStage] = None
     ) -> "poptorch.DataLoader":
         if isinstance(dataloader, poptorch.DataLoader):
             # the user is returning the `poptorch.DataLoader` directly, don't change anything.
@@ -239,6 +246,7 @@ class IPUStrategy(ParallelStrategy):
 
         ``optimizer_step`` will be called on every batch, and the IPU will handle grad accumulation internally.
         """
+        assert self.lightning_module.trainer is not None
         accumulation_scheduler = self.lightning_module.trainer.accumulation_scheduler
 
         if accumulation_scheduler.epochs != [0]:
@@ -250,18 +258,18 @@ class IPUStrategy(ParallelStrategy):
         accumulation_scheduler.scheduling.update({0: 1})
 
     @property
-    def _n_replicate(self):
+    def _n_replicate(self) -> int:
         opts = self.training_opts if self.lightning_module.training else self.inference_opts
         accumulate_grad_batches = opts.Training.gradient_accumulation
         device_iterations = opts.device_iterations
         replication_factor = opts.replication_factor
         return replication_factor * device_iterations * accumulate_grad_batches
 
-    def _prepare_input(self, args: Any):
-        def to_tuple(x):
+    def _prepare_input(self, args: Any) -> Any:
+        def to_tuple(x: Any) -> Tuple:
             return tuple(x)
 
-        def to_tensor(x):
+        def to_tensor(x: Any) -> Tensor:
             return torch.tensor(x).unsqueeze(0).repeat(self._n_replicate)
 
         args = apply_to_collection(args, dtype=list, function=to_tuple)
@@ -278,7 +286,7 @@ class IPUStrategy(ParallelStrategy):
             )
         lightning_module.optimizer_zero_grad = None  # type: ignore[assignment]
 
-    def _step(self, stage: RunningStage, *args: Any, **kwargs: Any):
+    def _step(self, stage: RunningStage, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         args = self._prepare_input(args)
         poptorch_model = self.poptorch_models[stage]
         self.lightning_module._running_torchscript = True
@@ -286,19 +294,19 @@ class IPUStrategy(ParallelStrategy):
         self.lightning_module._running_torchscript = False
         return out
 
-    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
+    def training_step(self,  *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         with self.precision_plugin.train_step_context():
             return self._step(RunningStage.TRAINING, *args, **kwargs)
 
-    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
             return self._step(RunningStage.VALIDATING, *args, **kwargs)
 
-    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def test_step(self,  *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.test_step_context():
             return self._step(RunningStage.TESTING, *args, **kwargs)
 
-    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+    def predict_step(self,  *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         with self.precision_plugin.predict_step_context():
             return self._step(RunningStage.PREDICTING, *args, **kwargs)
 
@@ -309,24 +317,24 @@ class IPUStrategy(ParallelStrategy):
 
         if self._optimizer_zero_grad_original is not None:
             # re-enable `optimizer_zero_grad`
-            self.lightning_module.optimizer_zero_grad = self._optimizer_zero_grad_original
+            self.lightning_module.optimizer_zero_grad = self._optimizer_zero_grad_original  # type: ignore[assignment]
 
         for model in self.poptorch_models.values():
             model.destroy()
 
         super().teardown()
 
-    def _compiled(self, model: Any):
+    def _compiled(self, model: Any) -> bool:
         # Required to ensure we only attach compiled models, as they are compiled lazily.
         return model._executable is not None
 
-    def _detach_models(self):
+    def _detach_models(self) -> None:
         """Detaches all stage specific models from IPU devices."""
         for k, model in self.poptorch_models.items():
             if self._compiled(model) and model.isAttachedToDevice():
                 model.detachFromDevice()
 
-    def _load_model(self, stage: str):
+    def _load_model(self, stage: str) -> None:
         """Loads the stage specific accelerator model onto device if compiled and not attached to IPU devices.
 
         Args:
@@ -337,28 +345,28 @@ class IPUStrategy(ParallelStrategy):
         if self._compiled(model) and not model.isAttachedToDevice():
             model.attachToDevice()
 
-    def on_train_start(self):
+    def on_train_start(self) -> None:
         self._load_model(RunningStage.TRAINING)
 
-    def on_validation_start(self):
+    def on_validation_start(self) -> None:
         self._load_model(RunningStage.VALIDATING)
 
-    def on_test_start(self):
+    def on_test_start(self) -> None:
         self._load_model(RunningStage.TESTING)
 
-    def on_predict_start(self):
+    def on_predict_start(self) -> None:
         self._load_model(RunningStage.PREDICTING)
 
-    def on_train_end(self):
+    def on_train_end(self) -> None:
         self._detach_models()
 
-    def on_validation_end(self):
+    def on_validation_end(self) -> None:
         self._detach_models()
 
-    def on_test_end(self):
+    def on_test_end(self) -> None:
         self._detach_models()
 
-    def on_predict_end(self):
+    def on_predict_end(self) -> None:
         self._detach_models()
 
     def on_train_batch_start(self, batch: Any, batch_idx: int) -> None:
@@ -386,7 +394,7 @@ class IPUStrategy(ParallelStrategy):
     def all_gather(self, tensor: Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> Tensor:
         return tensor
 
-    def broadcast(self, obj: object, src: int = 0) -> object:
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         return obj
 
     @classmethod
