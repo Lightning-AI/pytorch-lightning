@@ -87,8 +87,9 @@ from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
+    _IS_INTERACTIVE,
     _TORCH_GREATER_EQUAL_1_11,
-    _TPU_AVAILABLE, _IS_INTERACTIVE,
+    _TPU_AVAILABLE,
 )
 
 log = logging.getLogger(__name__)
