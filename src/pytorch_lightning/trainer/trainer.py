@@ -38,7 +38,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import (
     Accelerator,
-    GPUAccelerator,
+    CUDAAccelerator,
     HPUAccelerator,
     IPUAccelerator,
     MPSAccelerator,
@@ -84,8 +84,7 @@ from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.tuner.lr_finder import _LRFinder
-from pytorch_lightning.tuner.tuning import Tuner
+from pytorch_lightning.tuner.tuning import _TunerResult, Tuner
 from pytorch_lightning.utilities import (
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
@@ -1014,7 +1013,7 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
+    ) -> _TunerResult:
         r"""
         Runs routines to tune hyperparameters before training.
 
@@ -1226,7 +1225,6 @@ class Trainer(
     def _teardown(self):
         """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and
         Callback; those are handled by :meth:`_call_teardown_hook`."""
-        self.strategy.post_dispatch(self)
         self.strategy.teardown()
         loop = self._active_loop
         # loop should never be `None` here but it can because we don't know the trainer stage with `ddp_spawn`
@@ -1737,7 +1735,7 @@ class Trainer(
 
     def _log_device_info(self) -> None:
 
-        if GPUAccelerator.is_available():
+        if CUDAAccelerator.is_available():
             gpu_available = True
             gpu_type = " (cuda)"
         elif MPSAccelerator.is_available():
@@ -1747,7 +1745,7 @@ class Trainer(
             gpu_available = False
             gpu_type = ""
 
-        gpu_used = isinstance(self.accelerator, (GPUAccelerator, MPSAccelerator))
+        gpu_used = isinstance(self.accelerator, (CUDAAccelerator, MPSAccelerator))
         rank_zero_info(f"GPU available: {gpu_available}{gpu_type}, used: {gpu_used}")
 
         num_tpu_cores = self.num_devices if isinstance(self.accelerator, TPUAccelerator) else 0
@@ -1760,10 +1758,10 @@ class Trainer(
         rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
 
         # TODO: Integrate MPS Accelerator here, once gpu maps to both
-        if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
+        if torch.cuda.is_available() and not isinstance(self.accelerator, CUDAAccelerator):
             rank_zero_warn(
                 "GPU available but not used. Set `accelerator` and `devices` using"
-                f" `Trainer(accelerator='gpu', devices={GPUAccelerator.auto_device_count()})`.",
+                f" `Trainer(accelerator='gpu', devices={CUDAAccelerator.auto_device_count()})`.",
                 category=PossibleUserWarning,
             )
 
@@ -2071,7 +2069,7 @@ class Trainer(
             "`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
             "Please use `Trainer.strategy.root_device.index` instead."
         )
-        return self.strategy.root_device.index if isinstance(self.accelerator, GPUAccelerator) else None
+        return self.strategy.root_device.index if isinstance(self.accelerator, CUDAAccelerator) else None
 
     @property
     def tpu_cores(self) -> int:
@@ -2095,7 +2093,7 @@ class Trainer(
             "`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
             " Please use `Trainer.num_devices` instead."
         )
-        return self.num_devices if isinstance(self.accelerator, GPUAccelerator) else 0
+        return self.num_devices if isinstance(self.accelerator, CUDAAccelerator) else 0
 
     @property
     def devices(self) -> int:
@@ -2111,7 +2109,7 @@ class Trainer(
             "`Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
             " Please use `Trainer.device_ids` instead."
         )
-        return self.device_ids if isinstance(self.accelerator, GPUAccelerator) else None
+        return self.device_ids if isinstance(self.accelerator, CUDAAccelerator) else None
 
     @property
     def lightning_module(self) -> "pl.LightningModule":

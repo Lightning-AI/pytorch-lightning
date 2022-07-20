@@ -44,10 +44,7 @@ class SingleTPUStrategy(SingleDeviceStrategy):
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
-
         self.debug = debug
-        self.tpu_local_core_rank = 0
-        self.tpu_global_core_rank = 0
 
     @property
     def is_distributed(self) -> bool:
@@ -62,9 +59,6 @@ class SingleTPUStrategy(SingleDeviceStrategy):
 
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
-
-        self.tpu_local_core_rank = xm.get_local_ordinal()
-        self.tpu_global_core_rank = xm.get_ordinal()
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:

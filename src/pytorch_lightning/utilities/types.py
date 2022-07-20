@@ -16,12 +16,14 @@ Convention:
  - Do not include any `_TYPE` suffix
  - Types used in public hooks (as those in the `LightningModule` and `Callback`) should be public (no leading `_`)
 """
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Type, Union
+from typing import Any, Dict, Generator, Iterator, List, Mapping, Optional, Sequence, Type, Union
 
 import torch
 from torch import Tensor
+from torch._C._distributed_c10d import ProcessGroup
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchmetrics import Metric
@@ -65,6 +67,7 @@ class _Stateful(Protocol):
 @runtime_checkable
 class _LRScheduler(_Stateful, Protocol):
     optimizer: Optimizer
+    base_lrs: List[float]
 
     def __init__(self, optimizer: Optimizer, *args: Any, **kwargs: Any) -> None:
         ...
@@ -96,6 +99,31 @@ class ReduceLROnPlateau(_Stateful, Protocol):
         ...
 
     def step(self, metrics: Union[float, int, Tensor], epoch: Optional[int] = None) -> None:
+        ...
+
+
+# Inferred from `torch.nn.parallel.distributed.pyi`
+# Missing attributes were added to improve typing
+@runtime_checkable
+class DistributedDataParallel(Protocol):
+    def __init__(
+        self,
+        module: torch.nn.Module,
+        device_ids: Optional[List[Union[int, torch.device]]] = None,
+        output_device: Optional[Union[int, torch.device]] = None,
+        dim: int = 0,
+        broadcast_buffers: bool = True,
+        process_group: Optional[ProcessGroup] = None,
+        bucket_cap_mb: int = 25,
+        find_unused_parameters: bool = False,
+        check_reduction: bool = False,
+        gradient_as_bucket_view: bool = False,
+        static_graph: bool = False,
+    ) -> None:
+        ...
+
+    @contextmanager
+    def no_sync(self) -> Generator:
         ...
 
 

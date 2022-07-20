@@ -63,7 +63,6 @@ module = [
     "pytorch_lightning.loggers.neptune",
     "pytorch_lightning.loggers.tensorboard",
     "pytorch_lightning.loggers.wandb",
-    "pytorch_lightning.loops.epoch.training_epoch_loop",
     "pytorch_lightning.profilers.advanced",
     "pytorch_lightning.profilers.base",
     "pytorch_lightning.profilers.pytorch",
@@ -72,9 +71,7 @@ module = [
     "pytorch_lightning.strategies.ddp_spawn",
     "pytorch_lightning.strategies.deepspeed",
     "pytorch_lightning.strategies.fully_sharded",
-    "pytorch_lightning.strategies.horovod",
     "pytorch_lightning.strategies.ipu",
-    "pytorch_lightning.strategies.parallel",
     "pytorch_lightning.strategies.sharded",
     "pytorch_lightning.strategies.sharded_spawn",
     "pytorch_lightning.strategies.strategy",
@@ -85,10 +82,8 @@ module = [
     "pytorch_lightning.trainer.supporters",
     "pytorch_lightning.trainer.trainer",
     "pytorch_lightning.tuner.batch_size_scaling",
-    "pytorch_lightning.tuner.tuning",
     "pytorch_lightning.utilities.auto_restart",
     "pytorch_lightning.utilities.data",
-    "pytorch_lightning.utilities.distributed",
     "pytorch_lightning.utilities.meta",
 ]
 ignore_errors = "True"
