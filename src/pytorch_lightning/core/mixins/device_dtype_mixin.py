@@ -12,14 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, Optional, Union
 
 import torch
 from torch.nn import Module
-
-TDeviceDtypeModuleMixin = TypeVar("TDeviceDtypeModuleMixin", bound="DeviceDtypeModuleMixin")
-
-
+from typing_extensions import Self
 import pytorch_lightning as pl
 
 
@@ -50,7 +47,7 @@ class DeviceDtypeModuleMixin(Module):
 
         return device
 
-    def to(self, *args: Any, **kwargs: Any) -> TDeviceDtypeModuleMixin:
+    def to(self, *args: Any, **kwargs: Any) -> Self: # type: ignore[valid-type]
         """Moves and/or casts the parameters and buffers.
 
         This can be called as
@@ -112,9 +109,9 @@ class DeviceDtypeModuleMixin(Module):
         # there is diff nb vars in PT 1.5
         out = torch._C._nn._parse_to(*args, **kwargs)
         self.__update_properties(device=out[0], dtype=out[1])
-        return super().to(*args, **kwargs)  # type: ignore
+        return super().to(*args, **kwargs)
 
-    def cuda(self, device: Optional[Union[torch.device, int]] = None) -> TDeviceDtypeModuleMixin:
+    def cuda(self, device: Optional[Union[torch.device, int]] = None) -> Self:  # type: ignore[valid-type]
         """Moves all model parameters and buffers to the GPU. This also makes associated parameters and buffers
         different objects. So it should be called before constructing optimizer if the module will live on GPU
         while being optimized.
@@ -127,21 +124,21 @@ class DeviceDtypeModuleMixin(Module):
             Module: self
         """
         if device is None or isinstance(device, int):
-            assert isinstance(device, int) or device is None
+            assert isinstance(device, (int, type(None)))
             device = torch.device("cuda", index=device)
         self.__update_properties(device=device)
-        return super().cuda(device=device)  # type: ignore
+        return super().cuda(device=device)
 
-    def cpu(self) -> TDeviceDtypeModuleMixin:
+    def cpu(self) -> Self:  # type: ignore[valid-type]
         """Moves all model parameters and buffers to the CPU.
 
         Returns:
             Module: self
         """
         self.__update_properties(device=torch.device("cpu"))
-        return super().cpu()  # type: ignore
+        return super().cpu()
 
-    def type(self, dst_type: Union[str, torch.dtype]) -> TDeviceDtypeModuleMixin:
+    def type(self, dst_type: Union[str, torch.dtype]) -> Self:  # type: ignore[valid-type]
         """Casts all parameters and buffers to :attr:`dst_type`.
 
         Arguments:
@@ -151,34 +148,34 @@ class DeviceDtypeModuleMixin(Module):
             Module: self
         """
         self.__update_properties(dtype=dst_type)
-        return super().type(dst_type=dst_type)  # type: ignore
+        return super().type(dst_type=dst_type)
 
-    def float(self) -> TDeviceDtypeModuleMixin:
+    def float(self) -> Self:  # type: ignore[valid-type]
         """Casts all floating point parameters and buffers to ``float`` datatype.
 
         Returns:
             Module: self
         """
         self.__update_properties(dtype=torch.float)
-        return super().float()  # type: ignore
+        return super().float()
 
-    def double(self) -> TDeviceDtypeModuleMixin:
+    def double(self) -> Self:  # type: ignore[valid-type]
         """Casts all floating point parameters and buffers to ``double`` datatype.
 
         Returns:
             Module: self
         """
         self.__update_properties(dtype=torch.double)
-        return super().double()  # type: ignore
+        return super().double()
 
-    def half(self) -> TDeviceDtypeModuleMixin:
+    def half(self) -> Self:  # type: ignore[valid-type]
         """Casts all floating point parameters and buffers to ``half`` datatype.
 
         Returns:
             Module: self
         """
         self.__update_properties(dtype=torch.half)
-        return super().half()  # type: ignore
+        return super().half()
 
     def __update_properties(
         self, device: Optional[torch.device] = None, dtype: Optional[Union[str, torch.dtype]] = None
