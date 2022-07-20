@@ -91,7 +91,7 @@ if _TORCH_GREATER_EQUAL_1_10:
             )
 
         @classmethod
-        def __torch_dispatch__(cls, func, types, args=(), kwargs=None):
+        def __torch_dispatch__(cls, func: Callable, types: Any, args: Any=(), kwargs: Optional[Any]=None) -> Any:
             cls._ensure_handlers_initialized()
 
             op_handler: Optional[Callable]
