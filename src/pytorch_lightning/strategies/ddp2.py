@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any
+
 
 class DDP2Strategy:
     """DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP.
@@ -25,7 +27,7 @@ class DDP2Strategy:
 
     strategy_name = "ddp2"
 
-    def __new__(cls, *args, **kwargs) -> None:
+    def __new__(cls, *args: Any, **kwargs: Any) -> "DDP2Strategy":
         raise TypeError(
             "The `DDP2Strategy`/`DDP2Plugin` is no longer supported in v1.7 and will be removed completely in v1.8."
             " For single-node execution, we recommend the `DDPStrategy` or the `DPStrategy`. If you rely on DDP2, you"
