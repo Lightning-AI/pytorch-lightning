@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import mock
+
 import pytest
 
 from pytorch_lightning import Trainer
@@ -79,7 +81,8 @@ def test_deepspeed_strategy_registry_with_trainer(tmpdir, strategy):
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
 
 
-def test_tpu_spawn_debug_strategy_registry(tmpdir):
+@mock.patch("pytorch_lightning.strategies.launchers.spawn.mp.get_all_start_methods", return_value=["fork"])
+def test_tpu_spawn_debug_strategy_registry(_):
 
     strategy = "tpu_spawn_debug"
 

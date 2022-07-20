@@ -225,8 +225,9 @@ def test_ipython_compatible_dp_strategy_gpu(_, monkeypatch):
     assert trainer.strategy.launcher is None
 
 
+@mock.patch("pytorch_lightning.strategies.launchers.spawn.mp.get_all_start_methods", return_value=["fork"])
 @mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
-def test_ipython_compatible_strategy_tpu(_, monkeypatch):
+def test_ipython_compatible_strategy_tpu(_, __, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     trainer = Trainer(accelerator="tpu")
     assert trainer.strategy.launcher.is_interactive_compatible
