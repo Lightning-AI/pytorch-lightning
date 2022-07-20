@@ -1,0 +1,31 @@
+{
+  "name": "hello-world",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "start": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.8.2",
+    "@emotion/styled": "^11.8.1",
+    "@mui/material": "5.8.5",
+    "axios": "^0.26.1",
+    "lodash": "^4.17.21",
+    "nanoid": "^3.3.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.179",
+    "@types/react": "^18.0.1",
+    "@types/react-dom": "^18.0.0",
+    "@vitejs/plugin-react": "^1.0.7",
+    "prettier": "^2.5.1",
+    "typescript": "^4.5.4",
+    "vite": "^2.8.6"
+  },
+  "main": "index.js",
+  "license": "MIT"
+}

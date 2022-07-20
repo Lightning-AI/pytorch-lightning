@@ -1,0 +1,16 @@
+name: Probot
+
+on:
+  issues:
+    types: [labeled]
+  pull_request:
+    types: [labeled, ready_for_review]
+
+jobs:
+  auto-cc:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issue' || github.event.pull_request.draft == false
+    steps:
+      - uses: carmocca/probot@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

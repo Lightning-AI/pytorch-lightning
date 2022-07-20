@@ -1,9 +1,23 @@
 # Python CircleCI 2.1 configuration file.
 version: 2.1
 orbs:
-  gcp-gke: circleci/gcp-gke@1.0.4
-  go: circleci/go@1.3.0
+  gcp-gke: circleci/gcp-gke@1.4.0
+  go: circleci/go@1.7.1
   codecov: codecov/codecov@1.1.0
+
+trigger:
+  tags:
+    include:
+      - '*'
+  branches:
+    include:
+      - "master"
+      - "release/*"
+      - "refs/tags/*"
+
+pr:
+  - "master"
+  - "release/*"
 
 # Workflow Steps:
 #  1. Checkout
@@ -24,13 +38,10 @@ references:
     run:
       name: Make Documentation
       command: |
-        # First run the same pipeline as Read-The-Docs
-        # apt-get update && apt-get install -y cmake
-        # using: https://hub.docker.com/r/readthedocs/build
-        # we need to use py3.7 ot higher becase of an issue with metaclass inheritence
+        # the image uses python 2.7 by default, force a different version
         pyenv global 3.7.3
         python --version
-        pip install -r requirements/docs.txt
+        pip install -e . -r requirements/pytorch/docs.txt
         pip list
         cd docs
         make clean
@@ -50,7 +61,7 @@ references:
     run:
       name: Install jsonnet
       command: |
-        go get github.com/google/go-jsonnet/cmd/jsonnet
+        go install github.com/google/go-jsonnet/cmd/jsonnet@latest
 
   update_jsonnet: &update_jsonnet
     run:
@@ -106,7 +117,7 @@ jobs:
     docker:
       - image: circleci/python:3.7
     environment:
-      - XLA_VER: 1.8
+      - XLA_VER: 1.9
       - PYTHON_VER: 3.7
       - MAX_CHECKS: 240
       - CHECK_SPEEP: 5
@@ -147,7 +158,9 @@ jobs:
 
 workflows:
   version: 2
-  ci-tests:
+  #build-docs:  # FixMe
+  #  jobs:
+  #    - build-Docs
+  test-on-tpus:
     jobs:
-      - build-Docs
       - TPU-tests

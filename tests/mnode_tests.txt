@@ -1,2 +1,0 @@
-./tests/backends/test_multi_nodes_gpu.py::test_logging_sync_dist_true_ddp
-./tests/backends/test_multi_nodes_gpu.py::test__validation_step__log
