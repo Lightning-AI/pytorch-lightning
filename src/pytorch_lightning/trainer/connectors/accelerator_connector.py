@@ -204,7 +204,7 @@ class AcceleratorConnector:
         # handle "gpu"
         if self._accelerator_flag == "gpu":
             self._accelerator_flag = self._choose_gpu_accelerator_backend()
-        
+
         # handle `auto` and `None`
         if self._accelerator_flag == "auto" or self._accelerator_flag is None:
             self._accelerator_flag = self._choose_auto_accelerator()
@@ -509,11 +509,11 @@ class AcceleratorConnector:
     def _choose_gpu_accelerator_backend() -> str:
         if CUDAAccelerator.is_available():
             return "cuda"
-        
+
         if MPSAccelerator.is_available():
             return "mps"
 
-        raise RuntimeError('No supported gpu backend found!')
+        raise RuntimeError("No supported gpu backend found!")
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
         if isinstance(self._accelerator_flag, Accelerator):
