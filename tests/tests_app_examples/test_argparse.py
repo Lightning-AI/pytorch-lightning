@@ -5,7 +5,6 @@ from lightning_app import _PACKAGE_ROOT
 from lightning_app.testing.testing import application_testing
 from lightning_app.utilities.load_app import _patch_sys_argv
 
-
 def test_app_argparse_example():
     original_argv = sys.argv
 

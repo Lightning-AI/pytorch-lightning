@@ -2,11 +2,12 @@ import asyncio
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
 from contextlib import contextmanager
-from subprocess import Popen
+from subprocess import Popen, check_output
 from time import sleep
 from typing import Any, Callable, Dict, Generator, List, Type
 
@@ -126,6 +127,32 @@ def browser_context_args(browser_context_args: Dict) -> Dict:
         "ignore_https_errors": True,
     }
 
+@contextmanager
+def run_cli(args) -> Generator:
+    # TODO(rr) capture & pass stdout to allow inspection
+    """This utility is used to automate e2e testing of lightning CLI."""
+    env_copy = os.environ.copy()
+    env_copy["PREPARE_LIGHTING"] = "1"
+
+    cmd = [
+              sys.executable,
+              "-m",
+              "lightning",
+          ] + args
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        env_copy = os.environ.copy()
+        env_copy["PREPARE_LIGHTING"] = "1"
+        process = Popen(
+            cmd,
+            cwd=tmpdir,
+            env=env_copy,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        process.wait()
+
+    yield process.stdout.read().decode("UTF-8"), process.stderr.read().decode("UTF-8")
 
 @requires("playwright")
 @contextmanager
