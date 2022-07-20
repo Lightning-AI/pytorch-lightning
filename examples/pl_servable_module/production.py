@@ -13,7 +13,7 @@ from PIL import Image as PILImage
 
 from pytorch_lightning import cli_lightning_logo, LightningDataModule, LightningModule
 from pytorch_lightning.serve import ServableModule, ServableModuleValidator
-from pytorch_lightning.utilities.cli import LightningCLI
+from pytorch_lightning.cli import LightningCLI
 
 DATASETS_PATH = path.join(path.dirname(__file__), "..", "..", "Datasets")
 

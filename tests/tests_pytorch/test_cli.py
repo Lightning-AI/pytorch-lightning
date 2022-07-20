@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import inspect
 import json
 import os
@@ -27,19 +26,14 @@ from unittest.mock import ANY
 import pytest
 import torch
 import yaml
-from packaging import version
+from tests_pytorch.helpers.runif import RunIf
+from tests_pytorch.helpers.utils import no_warning_call
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.loggers import _COMET_AVAILABLE, _NEPTUNE_AVAILABLE, _WANDB_AVAILABLE, TensorBoardLogger
-from pytorch_lightning.plugins.environments import SLURMEnvironment
-from pytorch_lightning.strategies import DDPStrategy
-from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _TPU_AVAILABLE
-from pytorch_lightning.utilities.cli import (
+from pytorch_lightning.cli import (
     _JSONARGPARSE_SIGNATURES_AVAILABLE,
     instantiate_class,
     LightningArgumentParser,
@@ -47,14 +41,13 @@ from pytorch_lightning.utilities.cli import (
     LRSchedulerTypeTuple,
     SaveConfigCallback,
 )
+from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
+from pytorch_lightning.loggers import _COMET_AVAILABLE, _NEPTUNE_AVAILABLE, _WANDB_AVAILABLE, TensorBoardLogger
+from pytorch_lightning.plugins.environments import SLURMEnvironment
+from pytorch_lightning.strategies import DDPStrategy
+from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
-from tests_pytorch.helpers.runif import RunIf
-from tests_pytorch.helpers.utils import no_warning_call
-
-torchvision_version = version.parse("0")
-if _TORCHVISION_AVAILABLE:
-    torchvision_version = version.parse(__import__("torchvision").__version__)
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     from jsonargparse import lazy_instance
@@ -522,42 +515,6 @@ def test_lightning_cli_submodules(tmpdir):
     assert cli.config["model"]["main_param"] == 2
     assert isinstance(cli.model.submodule1, BoringModel)
     assert isinstance(cli.model.submodule2, BoringModel)
-
-
-@pytest.mark.skipif(torchvision_version < version.parse("0.8.0"), reason="torchvision>=0.8.0 is required")
-def test_lightning_cli_torch_modules(tmpdir):
-    class TestModule(BoringModel):
-        def __init__(self, activation: torch.nn.Module = None, transform: Optional[List[torch.nn.Module]] = None):
-            super().__init__()
-            self.activation = activation
-            self.transform = transform
-
-    config = """model:
-        activation:
-          class_path: torch.nn.LeakyReLU
-          init_args:
-            negative_slope: 0.2
-        transform:
-          - class_path: torchvision.transforms.Resize
-            init_args:
-              size: 64
-          - class_path: torchvision.transforms.CenterCrop
-            init_args:
-              size: 64
-    """
-    config_path = tmpdir / "config.yaml"
-    with open(config_path, "w") as f:
-        f.write(config)
-
-    cli_args = [f"--trainer.default_root_dir={tmpdir}", f"--config={str(config_path)}"]
-
-    with mock.patch("sys.argv", ["any.py"] + cli_args):
-        cli = LightningCLI(TestModule, run=False)
-
-    assert isinstance(cli.model.activation, torch.nn.LeakyReLU)
-    assert cli.model.activation.negative_slope == 0.2
-    assert len(cli.model.transform) == 2
-    assert all(isinstance(v, torch.nn.Module) for v in cli.model.transform)
 
 
 class BoringModelRequiredClasses(BoringModel):

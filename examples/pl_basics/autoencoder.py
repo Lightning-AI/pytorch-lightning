@@ -25,7 +25,7 @@ from torch.utils.data import DataLoader, random_split
 
 from pytorch_lightning import callbacks, cli_lightning_logo, LightningDataModule, LightningModule, Trainer
 from pytorch_lightning.demos.mnist_datamodule import MNIST
-from pytorch_lightning.utilities.cli import LightningCLI
+from pytorch_lightning.cli import LightningCLI
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 

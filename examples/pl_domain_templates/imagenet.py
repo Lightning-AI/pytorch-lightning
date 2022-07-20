@@ -48,7 +48,7 @@ from torchmetrics import Accuracy
 from pytorch_lightning import LightningModule
 from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
 from pytorch_lightning.strategies import ParallelStrategy
-from pytorch_lightning.utilities.cli import LightningCLI
+from pytorch_lightning.cli import LightningCLI
 
 
 class ImageNetLightningModel(LightningModule):

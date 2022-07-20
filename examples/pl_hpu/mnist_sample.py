@@ -18,7 +18,7 @@ from torch.nn import functional as F
 from pytorch_lightning import LightningModule
 from pytorch_lightning.demos.mnist_datamodule import MNISTDataModule
 from pytorch_lightning.plugins import HPUPrecisionPlugin
-from pytorch_lightning.utilities.cli import LightningCLI
+from pytorch_lightning.cli import LightningCLI
 
 
 class LitClassifier(LightningModule):

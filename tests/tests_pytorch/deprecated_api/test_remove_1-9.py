@@ -27,7 +27,7 @@ from pytorch_lightning.profiler.profiler import Profiler
 from pytorch_lightning.profiler.pytorch import PyTorchProfiler, RegisterRecordFunction, ScheduleWrapper
 from pytorch_lightning.profiler.simple import SimpleProfiler
 from pytorch_lightning.profiler.xla import XLAProfiler
-from pytorch_lightning.utilities.cli import (
+from pytorch_lightning.cli import (
     _deprecate_auto_registry_message,
     _deprecate_registry_message,
     CALLBACK_REGISTRY,
