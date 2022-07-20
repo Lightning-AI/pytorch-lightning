@@ -249,8 +249,8 @@ Example::
 
     .. code-block:: python
 
-        # This is part of the built-in `GPUAccelerator`
-        class GPUAccelerator(Accelerator):
+        # This is part of the built-in `CUDAAccelerator`
+        class CUDAAccelerator(Accelerator):
             """Accelerator for GPU devices."""
 
             @staticmethod
@@ -603,8 +603,8 @@ based on the accelerator type (``"cpu", "gpu", "tpu", "ipu", "auto"``).
 
     .. code-block:: python
 
-        # This is part of the built-in `GPUAccelerator`
-        class GPUAccelerator(Accelerator):
+        # This is part of the built-in `CUDAAccelerator`
+        class CUDAAccelerator(Accelerator):
             """Accelerator for GPU devices."""
 
             @staticmethod
