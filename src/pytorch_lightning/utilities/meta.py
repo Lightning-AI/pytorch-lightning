@@ -64,8 +64,8 @@ if _TORCH_GREATER_EQUAL_1_10:
             yield
         finally:
             del guard
-
-    def _handle_arange(func, args, kwargs):
+            
+    def _handle_arange(func: Callable, args: Any, kwargs: Any) -> Tensor:
         kwargs["device"] = torch.device("cpu")
         return torch.empty_like(func(*args, **kwargs), device="meta")
 
