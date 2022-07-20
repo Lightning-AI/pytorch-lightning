@@ -223,7 +223,7 @@ class IPUStrategy(ParallelStrategy):
         return self._inference_opts
 
     @property
-    def lightning_module(self) -> pl.LightningModule:
+    def lightning_module(self) -> "pl.LightningModule":
         model = self.model.module if isinstance(self.model, LightningIPUModule) else self.model
         assert model is not None
         return model
