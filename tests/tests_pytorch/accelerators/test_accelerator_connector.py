@@ -427,7 +427,9 @@ def test_strategy_choice_ddp_spawn_cpu():
 @RunIf(skip_windows=True)
 @mock.patch("pytorch_lightning.trainer.connectors.accelerator_connector._IS_INTERACTIVE", True)
 def test_strategy_choice_ddp_fork_in_interactive():
-    trainer = Trainer(strategy=None, devices=2)
+    """Test that when accelerator and strategy are unspecified, the connector chooses DDP Fork in interactive
+    environments by default."""
+    trainer = Trainer(devices=2)
     assert isinstance(trainer.accelerator, CPUAccelerator)
     assert isinstance(trainer.strategy, DDPSpawnStrategy)
     assert isinstance(trainer.strategy.cluster_environment, LightningEnvironment)
