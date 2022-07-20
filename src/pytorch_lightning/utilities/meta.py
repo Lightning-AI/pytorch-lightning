@@ -153,7 +153,7 @@ else:
 def get_all_subclasses(cls: Type) -> Set[Type]:
     subclass_list = []
 
-    def recurse(cl):
+    def recurse(cl: Type) -> None:
         for subclass in cl.__subclasses__():
             subclass_list.append(subclass)
             recurse(subclass)
