@@ -170,7 +170,7 @@ def recursively_setattr(root_module: nn.Module, prefix: str, materialized_module
 
     try:
         index = int(name)
-        root_module[index] = materialized_module
+        root_module[index] = materialized_module  # type: ignore[operator]
     except ValueError:
         setattr(root_module, name, materialized_module)
 
