@@ -112,8 +112,8 @@ if _TORCH_GREATER_EQUAL_1_10:
 
                 return func(*args, **(kwargs if kwargs is not None else {}))
 
-    def init_meta(module_fn: Callable[..., Module], *args, **kwargs) -> Module:
-        def create_instance(module=None) -> Module:
+    def init_meta(module_fn: Callable[..., Module], *args: Any, **kwargs: Any) -> Union[Module, MisconfigurationException]:
+        def create_instance(module: Optional[Any]=None) -> Module:
             if module:
                 module.__init__(*args, **kwargs)
                 return module
@@ -144,7 +144,7 @@ if _TORCH_GREATER_EQUAL_1_10:
 
 else:
 
-    def init_meta(*_, **__):
+    def init_meta(module_fn: Callable[..., Module], *args: Any, **kwargs: Any) -> Union[Module, MisconfigurationException]:
         if not _TORCH_GREATER_EQUAL_1_10:
             return MisconfigurationException("`init_meta` is supported from PyTorch 1.10.0")
 
