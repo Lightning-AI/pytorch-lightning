@@ -19,6 +19,13 @@ import pytest
 import pytorch_lightning.loggers.base as logger_base
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
+from pytorch_lightning.cli import (
+    _deprecate_auto_registry_message,
+    _deprecate_registry_message,
+    CALLBACK_REGISTRY,
+    LightningCLI,
+    SaveConfigCallback,
+)
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.profiler.advanced import AdvancedProfiler
@@ -27,13 +34,6 @@ from pytorch_lightning.profiler.profiler import Profiler
 from pytorch_lightning.profiler.pytorch import PyTorchProfiler, RegisterRecordFunction, ScheduleWrapper
 from pytorch_lightning.profiler.simple import SimpleProfiler
 from pytorch_lightning.profiler.xla import XLAProfiler
-from pytorch_lightning.cli import (
-    _deprecate_auto_registry_message,
-    _deprecate_registry_message,
-    CALLBACK_REGISTRY,
-    LightningCLI,
-    SaveConfigCallback,
-)
 from pytorch_lightning.utilities.imports import _KINETO_AVAILABLE
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from tests_pytorch.helpers.runif import RunIf

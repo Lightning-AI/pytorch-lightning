@@ -329,6 +329,7 @@ class LightningCLI:
         self.subclass_mode_data = (datamodule_class is None) or subclass_mode_data
 
         from pytorch_lightning.utilities.cli import _populate_registries
+
         _populate_registries(auto_registry)
 
         main_kwargs, subparser_kwargs = self._setup_parser_kwargs(

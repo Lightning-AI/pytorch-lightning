@@ -25,7 +25,6 @@ import pytorch_lightning.cli as new_cli
 from pytorch_lightning.utilities.meta import get_all_subclasses
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
-
 _deprecate_registry_message = (
     "`LightningCLI`'s registries were deprecated in v1.7 and will be removed "
     "in v1.9. Now any imported subclass is automatically available by name in "
@@ -105,7 +104,6 @@ DATAMODULE_REGISTRY = _Registry()
 LOGGER_REGISTRY = _Registry()
 
 
-
 def _populate_registries(subclasses: bool) -> None:  # Remove in v1.9
     if subclasses:
         rank_zero_deprecation(_deprecate_auto_registry_message)
@@ -140,10 +138,12 @@ def _deprecation(cls: Type) -> None:
         f" Use the equivalent class in `pytorch_lightning.cli.{cls.__name__}` instead."
     )
 
+
 class LightningArgumentParser(new_cli.LightningArgumentParser):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         _deprecation(type(self))
         super().__init__(*args, **kwargs)
+
 
 class SaveConfigCallback(new_cli.SaveConfigCallback):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
