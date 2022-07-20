@@ -42,7 +42,7 @@ if _TORCH_GREATER_EQUAL_1_10:
     ####################################################################
 
     @contextmanager
-    def enable_python_mode(cls) -> Iterator[None]:
+    def enable_python_mode(cls: Type[_MetaContext]) -> Iterator[None]:
         if not hasattr(cls, "__torch_dispatch__"):
             raise ValueError("The class passed to enable_python_mode " "must have a __torch_dispatch__ classmethod")
         if not isinstance(cls, type) or not issubclass(cls, (Tensor,)):
