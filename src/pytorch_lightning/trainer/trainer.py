@@ -2705,7 +2705,9 @@ class Trainer(
         self._loggers = loggers if loggers else []
 
     @property
-    def callback_metrics(self) -> dict:
+    def callback_metrics(self) -> Dict[str, Tensor]:
+        # TODO: the true typing return can include dictionaries as defined in
+        # `pytorch_lightning.trainer.connectors.logger_connector.result._OUT_DICT`
         return self._logger_connector.callback_metrics
 
     @property
