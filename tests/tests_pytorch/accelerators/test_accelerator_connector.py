@@ -744,9 +744,9 @@ def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
         Trainer(accelerator=accelerator, devices=devices)
 
 
-@pytest.marks.parametrize("expected_accelerator_flag,expected_accelerator_class",
-[pytest.param(("cuda", CUDAAccelerator), marks=RunIf(min_cuda_gpus=1)),
-pytest.param(("mps",MPSAccelerator), marks=RunIf(mps=True)),])
+@pytest.mark.parametrize("expected_accelerator_flag,expected_accelerator_class",
+[pytest.param("cuda", CUDAAccelerator, marks=RunIf(min_cuda_gpus=1)),
+pytest.param("mps",MPSAccelerator, marks=RunIf(mps=True)),])
 def test_gpu_accelerator_backend_choice(expected_accelerator_flag, expected_accelerator_class):
     
     trainer = Trainer(accelerator='gpu')
