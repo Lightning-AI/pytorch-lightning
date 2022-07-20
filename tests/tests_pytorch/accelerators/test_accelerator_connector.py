@@ -225,6 +225,7 @@ def test_ipython_compatible_dp_strategy_gpu(_, monkeypatch):
     assert trainer.strategy.launcher is None
 
 
+@RunIf(skip_windows=True)
 @mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
 def test_ipython_compatible_strategy_tpu(_, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
