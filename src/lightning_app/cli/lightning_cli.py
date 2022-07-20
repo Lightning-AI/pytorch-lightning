@@ -149,6 +149,9 @@ def command(
     id: Optional[str] = None,
 ):
     """Execute a function in a running application from its name."""
+
+    logger.warn("Lightning Commands are a beta feature and APIs aren't stable yet.")
+
     from lightning_app.utilities.commands.base import _download_command
 
     # 1: Collect the url and comments from the running application
@@ -172,7 +175,7 @@ def command(
     kwargs = {k.split("=")[0]: k.split("=")[1] for k in args}
 
     # 4: Execute commands
-    if not command_metadata["is_command"]:
+    if not command_metadata["is_client_command"]:
         for param in params:
             if param not in kwargs:
                 raise Exception(f"The argument --args {param}=X hasn't been provided.")

@@ -105,7 +105,7 @@ def test_client_commands(monkeypatch):
         {
             "command": "dummy",
             "affiliation": "root",
-            "is_command": True,
+            "is_client_command": True,
             "owner": "root",
         }
     )

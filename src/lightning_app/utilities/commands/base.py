@@ -14,6 +14,7 @@ from uuid import uuid4
 import requests
 from pydantic import BaseModel
 
+from lightning_app.utilities.app_helpers import is_overridden
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.network import LightningClient
 
@@ -29,11 +30,11 @@ def makedirs(path: str):
             raise e
 
 
-class _Config(BaseModel):
+class _ClientCommandConfig(BaseModel):
     command: str
     affiliation: str
     params: Dict[str, str]
-    is_command: bool
+    is_client_command: bool
     cls_path: str
     cls_name: str
     owner: str
@@ -86,7 +87,9 @@ class ClientCommand:
 def _download_command(
     command_metadata: Dict[str, Any], app_id: Optional[str]
 ) -> Tuple[ClientCommand, Dict[str, BaseModel]]:
-    config = _Config(**command_metadata)
+    # TODO: This is a skateboard implementation and the final version will rely on versioned
+    # immutable commands for security concerns
+    config = _ClientCommandConfig(**command_metadata)
     tmpdir = osp.join(gettempdir(), f"{getuser()}_commands")
     makedirs(tmpdir)
     target_file = osp.join(tmpdir, f"{config.command}.py")
@@ -168,3 +171,55 @@ def _upload_command(command_name: str, command: ClientCommand) -> Optional[str]:
         remote_url = str(shared_storage_path() / "artifacts" / filepath)
         fs.put(source_file, remote_url)
         return filepath
+
+
+def _populate_commands_endpoint(app):
+    if not is_overridden("configure_commands", app.root):
+        return
+
+    # 1: Populate commands metadata
+    commands = app.root.configure_commands()
+    commands_metadata = []
+    command_names = set()
+    for command_mapping in commands:
+        for command_name, command in command_mapping.items():
+            is_client_command = isinstance(command, ClientCommand)
+            extras = {}
+            if is_client_command:
+                _upload_command(command_name, command)
+                command, extras = _command_to_method_and_metadata(command)
+            if command_name in command_names:
+                raise Exception(f"The component name {command_name} has already been used. They need to be unique.")
+            command_names.add(command_name)
+            params = inspect.signature(command).parameters
+            commands_metadata.append(
+                {
+                    "command": command_name,
+                    "affiliation": command.__self__.name,
+                    "params": list(params.keys()),
+                    "is_client_command": is_client_command,
+                    **extras,
+                }
+            )
+
+    # 1.2: Pass the collected commands through the queue to the Rest API.
+    app.commands_metadata_queue.put(commands_metadata)
+
+
+def _process_command_requests(app):
+    if not is_overridden("configure_commands", app.root):
+        return
+
+    # 1: Populate commands metadata
+    commands = app.root.configure_commands()
+
+    # 2: Collect requests metadata
+    command_query = app.get_state_changed_from_queue(app.commands_requests_queue)
+    if command_query:
+        for command in commands:
+            for command_name, method in command.items():
+                if command_query["command_name"] == command_name:
+                    # 2.1: Evaluate the method associated to a specific command.
+                    # Validation is done on the CLI side.
+                    response = method(**command_query["command_arguments"])
+                    app.commands_responses_queue.put({"response": response, "id": command_query["id"]})

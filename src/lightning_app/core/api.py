@@ -162,7 +162,7 @@ async def get_spec(
 
 
 @fastapi_service.post("/api/v1/commands", response_class=JSONResponse)
-async def post_command(
+async def run_remote_command(
     request: Request,
 ) -> None:
     data = await request.json()

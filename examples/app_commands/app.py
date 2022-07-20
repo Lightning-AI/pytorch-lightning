@@ -6,7 +6,7 @@ from lightning_app.core.app import LightningApp
 
 class ChildFlow(LightningFlow):
     def trigger_method(self, name: str):
-        print(name)
+        print(f"Hello {name}")
 
     def configure_commands(self):
         return [{"nested_trigger_command": self.trigger_method}]
