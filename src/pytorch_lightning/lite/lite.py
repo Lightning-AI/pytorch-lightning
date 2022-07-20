@@ -57,6 +57,8 @@ class LightningLite(ABC):
         accelerator: The hardware to run on. Possible choices are: ``"cpu"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
         strategy: Strategy for how to run across multiple devices. Possible choices are:
             ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"ddp_sharded"``.
+        sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
+                Default: ``False``.
         devices: Number of devices to train on (``int``), which GPUs to train on (``list`` or ``str``), or ``"auto"``.
             The value applies per node.
         num_nodes: Number of GPU nodes for distributed training.
@@ -71,6 +73,7 @@ class LightningLite(ABC):
         self,
         accelerator: Optional[Union[str, Accelerator]] = None,
         strategy: Optional[Union[str, Strategy]] = None,
+        sync_batchnorm: bool = False,
         devices: Optional[Union[List[int], str, int]] = None,
         num_nodes: int = 1,
         precision: Union[int, str] = 32,
@@ -89,7 +92,7 @@ class LightningLite(ABC):
             strategy=strategy,
             gpus=gpus,
             num_nodes=num_nodes,
-            sync_batchnorm=False,  # TODO: add support?
+            sync_batchnorm=sync_batchnorm,
             benchmark=False,
             replace_sampler_ddp=True,
             deterministic=False,
