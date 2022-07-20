@@ -19,7 +19,7 @@ import pytest
 import torch
 from torch.utils.data import RandomSampler
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.data.dataset import Dataset, IterableDataset, Subset
+from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import SequentialSampler
 
@@ -829,53 +829,6 @@ def test_dataloader_distributed_sampler_already_attached(tmpdir):
     )
     trainer.fit(model)
     assert trainer.state.finished, "DDP Training failed"
-
-
-@RunIf(min_cuda_gpus=3)
-def test_batch_size_smaller_than_num_gpus(tmpdir):
-    # we need at least 3 gpus for this test
-    num_gpus = 3
-    batch_size = 3
-
-    class CurrentTestModel(BoringModel):
-        def __init__(self, batch_size) -> None:
-            super().__init__()
-            self.save_hyperparameters()
-            # batch norm doesn't work with batch size 1, we replace it
-            self.c_d1_bn = torch.nn.ReLU()
-
-        def training_step(self, *args, **kwargs):
-            output = super().training_step(*args, **kwargs)
-            loss = output["loss"]
-            # we make sure to add some metrics to the output dict,
-            # this is essential for this test
-            output["progress_bar"] = {"train_loss": loss}
-            return output
-
-        def train_dataloader(self):
-            dataset = RandomDataset(32, 64)
-            # construct a dataset with a size that is not divisible by num_gpus
-            # therefore the last batch will have a size < num_gpus
-            size = num_gpus * self.hparams.batch_size + (num_gpus - 1)
-            dataset = Subset(dataset, range(size))
-            dataloader = DataLoader(dataset, batch_size=self.hparams.batch_size, drop_last=False)
-            return dataloader
-
-    model = CurrentTestModel(batch_size=batch_size)
-
-    trainer = Trainer(
-        default_root_dir=tmpdir,
-        max_epochs=1,
-        limit_train_batches=0.1,
-        limit_val_batches=0,
-        accelerator="gpu",
-        devices=num_gpus,
-    )
-
-    # we expect the reduction for the metrics also to happen on the last batch
-    # where we will get fewer metrics than gpus
-    trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
 
 
 @pytest.mark.parametrize(

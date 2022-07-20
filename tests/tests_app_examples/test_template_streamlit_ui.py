@@ -10,7 +10,7 @@ from lightning_app.testing.testing import run_app_in_cloud, wait_for
 @pytest.mark.cloud
 def test_template_streamlit_ui_example_cloud() -> None:
     """This test ensures streamlit works in the cloud by clicking a button and checking the logs."""
-    with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "templates/template_streamlit_ui/")) as (
+    with run_app_in_cloud(os.path.join(_PROJECT_ROOT, "examples/app_template_streamlit_ui")) as (
         _,
         view_page,
         fetch_logs,
