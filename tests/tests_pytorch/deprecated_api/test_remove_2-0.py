@@ -20,7 +20,6 @@ import pytorch_lightning
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from tests_pytorch.callbacks.test_callbacks import OldStatefulCallback
-
 from tests_pytorch.helpers.runif import RunIf
 
 
