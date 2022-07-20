@@ -107,10 +107,10 @@ if _TORCH_GREATER_EQUAL_1_10:
                     if result is not NotImplemented:
                         return result
 
-                if "device" in kwargs:
+                if kwargs is not None and "device" in kwargs.keys():
                     kwargs["device"] = torch.device("meta")
 
-                return func(*args, **kwargs)
+                return func(*args, **(kwargs if kwargs is not None else {}))
 
     def init_meta(module_fn: Callable[..., Module], *args, **kwargs) -> Module:
         def create_instance(module=None) -> Module:
