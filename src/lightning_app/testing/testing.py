@@ -185,10 +185,6 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
             "duration": "120000",
         }
         context = browser.new_context(
-            # Eventually this will need to be deleted
-            http_credentials=HttpCredentials(
-                {"username": os.getenv("LAI_USER").strip(), "password": os.getenv("LAI_PASS")}
-            ),
             record_video_dir=os.path.join(Config.video_location, TEST_APP_NAME),
             record_har_path=Config.har_location,
         )

@@ -140,8 +140,6 @@ jobs:
 
       - name: Run the tests
         env:
-          LAI_USER: ${{ secrets.LAI_USER }}
-          LAI_PASS: ${{ secrets.LAI_PASS }}
           LIGHTNING_USER_ID: ${{ secrets.LIGHTNING_USER_ID }}
           LIGHTNING_API_KEY: ${{ secrets.LIGHTNING_API_KEY }}
           LIGHTNING_USERNAME: ${{ secrets.LIGHTNING_USERNAME }}
@@ -169,8 +167,6 @@ jobs:
       - name: Clean Previous Apps
         if: ${{ always() }}
         env:
-          LAI_USER: ${{ secrets.LAI_USER }}
-          LAI_PASS: ${{ secrets.LAI_PASS }}
           LIGHTNING_USER_ID: ${{ secrets.LIGHTNING_USER_ID }}
           LIGHTNING_API_KEY: ${{ secrets.LIGHTNING_API_KEY }}
           LIGHTNING_USERNAME: ${{ secrets.LIGHTNING_USERNAME }}
