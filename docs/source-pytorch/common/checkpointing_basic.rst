@@ -107,7 +107,7 @@ The LightningModule also has access to the Hyperparameters
 ----
 
 Initialize with other parameters
-===============================
+================================
 If you used the *self.save_hyperparameters()* method in the init of the LightningModule, you can initialize the model with different hyperparameters.
 
 .. code-block:: python
