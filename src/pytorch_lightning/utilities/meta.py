@@ -251,7 +251,7 @@ def _set_meta_device() -> None:
                 setattr(mod, subclass.__name__, meta_class)
             continue
 
-        class _IsinstanceMetaclass(type(subclass)):
+        class _IsinstanceMetaclass(type(subclass)):  # type: ignore[misc]
             def __instancecheck__(self, instance: Any) -> bool:
                 """Overrides the ``isinstance`` check on ``_MaterializerModule`` objects."""
                 return isinstance(instance, self.__bases__[0])
