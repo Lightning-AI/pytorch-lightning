@@ -29,6 +29,6 @@ def test_main_progress_bar_with_val_check_interval_int():
     trainer.reset_val_dataloader()
     expected = [15, 25, 25, 15]
 
-    for expected_count in expected:
-        assert trainer.progress_bar_callback.total_main_progress_bar_count_current_epoch == expected_count
-        trainer.fit_loop.epoch_loop._batches_that_stepped += train_batches
+    for count in expected:
+        assert trainer.progress_bar_callback.total_batches_current_epoch == count
+        trainer.fit_loop.epoch_loop.batch_progress.total.ready += train_batches

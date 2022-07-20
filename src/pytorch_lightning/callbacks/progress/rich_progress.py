@@ -324,7 +324,7 @@ class RichProgressBar(ProgressBarBase):
         self.refresh()
 
     def on_train_epoch_start(self, trainer, pl_module):
-        total_batches = self.total_main_progress_bar_count_current_epoch
+        total_batches = self.total_batches_current_epoch
         train_description = self._get_train_description(trainer.current_epoch)
 
         if self.main_progress_bar_id is not None and self._leave:

@@ -1480,7 +1480,7 @@ Can specify as float or int.
 
 - pass a ``float`` in the range [0.0, 1.0] to check after a fraction of the training epoch.
 - pass an ``int`` to check after a fixed number of training batches. An ``int`` value can only be higher than the number of training
-  batches when ``check_val_every_n_epoch=None``, which validates after every ``N`` training batches across ``trainer.fit``.
+  batches when ``check_val_every_n_epoch=None``, which validates after every ``N`` training batches across epochs or iteration-based training.
 
 .. testcode::
 
@@ -1493,7 +1493,7 @@ Can specify as float or int.
     # check validation set every 1000 training batches in the current epoch
     trainer = Trainer(val_check_interval=1000)
 
-    # check validation set every 1000 training batches across complete training
+    # check validation set every 1000 training batches across complete epochs or during iteration-based training
     # use this when using iterableDataset and your dataset has no length
     # (ie: production cases with streaming data)
     trainer = Trainer(val_check_interval=1000, check_val_every_n_epoch=None)

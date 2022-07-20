@@ -252,7 +252,7 @@ class TQDMProgressBar(ProgressBarBase):
         self.main_progress_bar = self.init_train_tqdm()
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", *_: Any) -> None:
-        total_batches = self.total_main_progress_bar_count_current_epoch
+        total_batches = self.total_batches_current_epoch
         self.main_progress_bar.reset(convert_inf(total_batches))
         self.main_progress_bar.set_description(f"Epoch {trainer.current_epoch}")
 

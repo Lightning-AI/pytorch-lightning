@@ -173,7 +173,7 @@ class ProgressBarBase(Callback):
         return sum(self.trainer.num_val_batches) if self._trainer.fit_loop.epoch_loop._should_check_val_epoch() else 0
 
     @property
-    def total_main_progress_bar_count_current_epoch(self) -> Union[int, float]:
+    def total_batches_current_epoch(self) -> Union[int, float]:
         total_train_batches = self.total_train_batches
         total_val_batches = self.total_val_batches
         assert self._trainer is not None
@@ -182,9 +182,9 @@ class ProgressBarBase(Callback):
             # val can be checked multiple times per epoch
             val_check_batch = self.trainer.val_check_batch
             if self.trainer.check_val_every_n_epoch is None:
-                batches_that_stepped = self.trainer.fit_loop.epoch_loop._batches_that_stepped
-                val_checks_per_epoch = ((batches_that_stepped + total_train_batches) // val_check_batch) - (
-                    batches_that_stepped // val_check_batch
+                train_batches_processed = self.trainer.fit_loop.total_batch_idx + 1
+                val_checks_per_epoch = ((train_batches_processed + total_train_batches) // val_check_batch) - (
+                    train_batches_processed // val_check_batch
                 )
             else:
                 val_checks_per_epoch = total_train_batches // val_check_batch
