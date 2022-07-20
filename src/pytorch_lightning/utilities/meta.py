@@ -19,7 +19,7 @@ from contextlib import contextmanager
 from functools import partial
 from itertools import chain
 from types import ModuleType
-from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Set, Type
+from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Set, Type, Union
 
 import torch
 from torch import nn, Tensor
@@ -69,12 +69,12 @@ if _TORCH_GREATER_EQUAL_1_10:
         kwargs["device"] = torch.device("cpu")
         return torch.empty_like(func(*args, **kwargs), device="meta")
 
-    def _handle_tril(func, args, kwargs):
+    def _handle_tril(func: Callable, args: Any, kwargs: Any) -> Union[Tensor, Any]:
         if args and isinstance(args[0], Tensor):
             return torch.empty_like(args[0], device="meta")
 
         return NotImplemented
-
+        
     class _MetaContext(Tensor):
         _op_handlers: Dict[Callable, Callable] = {}
 
