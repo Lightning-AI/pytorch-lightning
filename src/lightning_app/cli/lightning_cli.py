@@ -25,6 +25,38 @@ def get_app_url(runtime_type: RuntimeType, *args) -> str:
     else:
         return "http://127.0.0.1:7501/admin" if LOCAL_LAUNCH_ADMIN_VIEW else "http://127.0.0.1:7501/view"
 
+@click.group()
+def clusters():
+    """Manage your Lightning.ai BYOC clusters"""
+    pass
+
+@clusters.command('create')
+@click.argument('cluster_name')
+@click.option("--provider", type=str, default="aws", help="cloud provider to be used for your cluster")
+@click.option("--role-arn", type=str, default="", help="AWS IAM Role arn used to provision your cluster")
+@click.option("--external-id", type=str, default="", help="AWS IAM Role external-id")
+@click.option("--region", type=str, default="", help="AWS region to provision resources into")
+@click.option("--instance-types", type=str, default="", help="AWS instance-types to support")
+@click.option("--wait", type=bool, default=False, help="wait for cluster provisioning to complete (DEBUG)", is_flag=True)
+def create_cluster(cluster_name, **kwargs):
+    """Create a Lightning.ai BYOC clusters"""
+    click.echo(cluster_name)
+    click.echo('TODO(rra) implement cluster creation')
+    pass
+
+@clusters.command('list')
+def list_clusters(**kwargs):
+    """List your Lightning.ai BYOC clusters"""
+    click.echo('TODO(rra) list clusters')
+    pass
+
+@clusters.command('delete')
+@click.argument('cluster_name')
+@click.option('--force', type=bool, default=False, is_flag=True, help="force cluster deletion")
+def delete_cluster(cluster_name, **kwargs):
+    """Delete a Lightning.ai BYOC cluster"""
+    click.echo('TODO(rra) delete_cluster')
+    pass
 
 @click.group()
 @click.version_option(ver)
@@ -32,6 +64,7 @@ def main():
     register_all_external_components()
     pass
 
+main.add_command(clusters)
 
 @main.command()
 def login():
@@ -50,7 +83,6 @@ def login():
 def logout():
     """Log out of your Lightning.ai account."""
     Auth().clear()
-
 
 def _run_app(
     file: str, cloud: bool, without_server: bool, no_cache: bool, name: str, blocking: bool, open_ui: bool, env: tuple
