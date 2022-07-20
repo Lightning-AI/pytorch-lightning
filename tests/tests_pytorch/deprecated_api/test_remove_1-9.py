@@ -18,13 +18,10 @@ from unittest.mock import Mock
 import pytest
 
 import pytorch_lightning.loggers.base as logger_base
+import pytorch_lightning.utilities.cli as old_cli
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators.gpu import GPUAccelerator
-from pytorch_lightning.cli import (
-    LightningCLI,
-    SaveConfigCallback,
-)
-import pytorch_lightning.utilities.cli as old_cli
+from pytorch_lightning.cli import LightningCLI, SaveConfigCallback
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.profiler.advanced import AdvancedProfiler
@@ -176,7 +173,7 @@ def test_lightningCLI_old_module_deprecation():
         old_cli.LightningArgumentParser()
 
     with pytest.deprecated_call(match=r"instantiate_class.*deprecated in v1.7.*Use the equivalent function"):
-        assert isinstance(old_cli.instantiate_class(tuple(), {'class_path': 'pytorch_lightning.Trainer'}), Trainer)
+        assert isinstance(old_cli.instantiate_class(tuple(), {"class_path": "pytorch_lightning.Trainer"}), Trainer)
 
 
 def test_profiler_deprecation_warning():
