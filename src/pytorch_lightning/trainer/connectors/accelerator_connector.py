@@ -22,7 +22,7 @@ from typing_extensions import Literal
 
 from pytorch_lightning.accelerators.accelerator import Accelerator
 from pytorch_lightning.accelerators.cpu import CPUAccelerator
-from pytorch_lightning.accelerators.gpu import GPUAccelerator
+from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.accelerators.hpu import HPUAccelerator
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
 from pytorch_lightning.accelerators.mps import MPSAccelerator
@@ -370,12 +370,12 @@ class AcceleratorConnector:
                             )
                         self._accelerator_flag = "cpu"
                     if self._strategy_flag.parallel_devices[0].type == "cuda":
-                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "gpu"):
+                        if self._accelerator_flag and self._accelerator_flag not in ("auto", "cuda", "gpu"):
                             raise MisconfigurationException(
                                 f"GPU parallel_devices set through {self._strategy_flag.__class__.__name__} class,"
                                 f" but accelerator set to {self._accelerator_flag}, please choose one device type"
                             )
-                        self._accelerator_flag = "gpu"
+                        self._accelerator_flag = "cuda"
                     self._parallel_devices = self._strategy_flag.parallel_devices
 
         amp_type = amp_type if isinstance(amp_type, str) else None
@@ -475,7 +475,7 @@ class AcceleratorConnector:
                 if tpu_cores:
                     self._accelerator_flag = "tpu"
                 if gpus:
-                    self._accelerator_flag = "gpu"
+                    self._accelerator_flag = "cuda"
                 if num_processes:
                     self._accelerator_flag = "cpu"
 
@@ -497,7 +497,7 @@ class AcceleratorConnector:
             if MPSAccelerator.is_available():
                 return "mps"
             if torch.cuda.is_available() and torch.cuda.device_count() > 0:
-                return "gpu"
+                return "cuda"
         return "cpu"
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
@@ -534,7 +534,7 @@ class AcceleratorConnector:
             self._devices_flag = self.accelerator.auto_device_count()
 
     def _set_devices_flag_if_auto_select_gpus_passed(self) -> None:
-        if self._auto_select_gpus and isinstance(self._gpus, int) and isinstance(self.accelerator, GPUAccelerator):
+        if self._auto_select_gpus and isinstance(self._gpus, int) and isinstance(self.accelerator, CUDAAccelerator):
             self._devices_flag = pick_multiple_gpus(self._gpus)
             log.info(f"Auto select gpus: {self._devices_flag}")
 
@@ -546,7 +546,8 @@ class AcceleratorConnector:
             return SLURMEnvironment()
         for env_type in (BaguaEnvironment, TorchElasticEnvironment, KubeflowEnvironment, LSFEnvironment):
             if env_type.detect():
-                return env_type()
+                # Ignore type error because it is a false positive: https://github.com/python/mypy/issues/13044
+                return env_type()  # type: ignore[abstract]
         return LightningEnvironment()
 
     def _is_slurm_managing_tasks(self) -> bool:
@@ -578,8 +579,8 @@ class AcceleratorConnector:
             return DDPStrategy.strategy_name
         if len(self._parallel_devices) <= 1:
             # TODO: Change this once gpu accelerator was renamed to cuda accelerator
-            if isinstance(self._accelerator_flag, (GPUAccelerator, MPSAccelerator)) or (
-                isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("gpu", "mps")
+            if isinstance(self._accelerator_flag, (CUDAAccelerator, MPSAccelerator)) or (
+                isinstance(self._accelerator_flag, str) and self._accelerator_flag in ("cuda", "gpu", "mps")
             ):
                 device = device_parser.determine_root_gpu_device(self._parallel_devices)
             else:
@@ -608,7 +609,7 @@ class AcceleratorConnector:
         if (
             strategy_flag in DDPFullyShardedNativeStrategy.get_registered_strategies()
             or isinstance(self._strategy_flag, DDPFullyShardedNativeStrategy)
-        ) and self._accelerator_flag != "gpu":
+        ) and self._accelerator_flag not in ("cuda", "gpu"):
             raise MisconfigurationException(
                 f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
                 "but GPU accelerator is not used."
@@ -631,7 +632,7 @@ class AcceleratorConnector:
             )
 
         hvd.init()
-        if isinstance(self.accelerator, GPUAccelerator):
+        if isinstance(self.accelerator, CUDAAccelerator):
             # Horovod assigns one local GPU per process
             self._parallel_devices = [torch.device(f"cuda:{i}") for i in range(hvd.local_size())]
         else:
