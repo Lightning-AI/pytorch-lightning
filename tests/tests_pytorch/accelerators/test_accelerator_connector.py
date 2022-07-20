@@ -737,8 +737,18 @@ def test_plugin_only_one_instance_for_one_type(plugins, expected):
         Trainer(plugins=plugins)
 
 
-@pytest.mark.parametrize("accelerator", ("cpu", "gpu", "tpu", "ipu"))
+@pytest.mark.parametrize("accelerator", ("cpu", "cuda", "gpu", "tpu", "ipu"))
 @pytest.mark.parametrize("devices", ("0", 0, []))
 def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
     with pytest.raises(MisconfigurationException, match="value is not a valid input using"):
         Trainer(accelerator=accelerator, devices=devices)
+
+
+@pytest.marks.parametrize("expected_accelerator_flag,expected_accelerator_class",
+[pytest.param(("cuda", CUDAAccelerator), marks=RunIf(min_cuda_gpus=1)),
+pytest.param(("mps",MPSAccelerator), marks=RunIf(mps=True)),])
+def test_gpu_accelerator_backend_choice(expected_accelerator_flag, expected_accelerator_class):
+    
+    trainer = Trainer(accelerator='gpu')
+    assert trainer._accelerator_connector._accelerator_flag == expected_accelerator_flag
+    assert isinstance(trainer.accelerator, expected_accelerator_class)
