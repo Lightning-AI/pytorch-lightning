@@ -45,6 +45,7 @@ class HivemindStrategy(Strategy):
         averager_opts: Optional[Dict] = None,
         host_maddrs: Optional[List] = None,
         initial_peers: Optional[Union[str, List]] = None,
+        client_mode: bool = False,
         **optimizer_kwargs: Any,
     ):
         """Provides capabilities to train using the Hivemind Library, training collaboratively across the internet
@@ -106,6 +107,9 @@ class HivemindStrategy(Strategy):
             initial_peers: If connecting to a running process, a list of initial peers needs to be passed in.
                 This can also be set via the env variable ``INITIAL_PEERS``.
 
+            client_mode: Run DHT in client only mode, this is intended for nodes that are not reachable.
+                Defaults to ``False``.
+
             **optimizer_kwargs: kwargs are passed to the :class:`hivemind.Optimizer` class.
         """
         if not _HIVEMIND_AVAILABLE or platform.system() != "Linux":
@@ -124,6 +128,7 @@ class HivemindStrategy(Strategy):
         self._optimizer_zero_grad_original: Optional[Callable] = None
         self._run_id = run_id
         self._reuse_grad_buffers = reuse_grad_buffers
+        self._client_mode = client_mode
         self._optimizer_kwargs = dict(
             matchmaking_time=matchmaking_time,
             averaging_timeout=averaging_timeout,
@@ -143,6 +148,7 @@ class HivemindStrategy(Strategy):
             start=True,
             initial_peers=initial_peers,
             host_maddrs=host_maddrs if host_maddrs is not None else ["/ip4/0.0.0.0/tcp/0", "/ip4/0.0.0.0/udp/0/quic"],
+            client_mode=client_mode,
         )
 
         visible_addresses = [

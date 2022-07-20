@@ -251,16 +251,7 @@ def _run_collab_training_fn(initial_peers, wait_seconds, barrier, recorded_proce
     recorded_process_steps.append(recorded_global_steps)
 
 
-# TODO: check why it fails with PT 1.12
-@RunIf(hivemind=True, max_torch="1.12")
-@mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
-@pytest.mark.parametrize(
-    "num_processes, wait_seconds",
-    [(2, 0.25)],
-)
-def test_multiple_peers(num_processes, wait_seconds):
-    """Test to ensure that if we have two running processes with the same peers, they connect and train
-    successfully."""
+def _run_test_multiple_peers(num_processes, wait_seconds, **kwargs):
     dht_root = hivemind.DHT(start=True)
     barrier = mp.Barrier(num_processes)
     initial_peers = dht_root.get_visible_maddrs()
@@ -269,16 +260,18 @@ def test_multiple_peers(num_processes, wait_seconds):
         # allows processes to return their recorded logged peers/steps
         recorded_process_peers = manager.list()
         recorded_process_steps = manager.list()
+        kwargs_process = dict(
+            initial_peers=initial_peers,
+            wait_seconds=wait_seconds,
+            barrier=barrier,
+            recorded_process_peers=recorded_process_peers,
+            recorded_process_steps=recorded_process_steps,
+        )
+        kwargs_process.update(kwargs)
         processes = [
             mp.Process(
                 target=_run_collab_training_fn,
-                kwargs=dict(
-                    initial_peers=initial_peers,
-                    wait_seconds=wait_seconds,
-                    barrier=barrier,
-                    recorded_process_peers=recorded_process_peers,
-                    recorded_process_steps=recorded_process_steps,
-                ),
+                kwargs=kwargs_process,
             )
             for x in range(num_processes)
         ]
@@ -290,6 +283,31 @@ def test_multiple_peers(num_processes, wait_seconds):
         for process_peers, process_steps in zip(recorded_process_peers, recorded_process_steps):
             assert any(num_peer == num_processes for num_peer in process_peers)
             assert any(global_step > 0 for global_step in process_steps)
+
+
+# TODO: check why it fails with PT 1.12
+@RunIf(hivemind=True, max_torch="1.12")
+@mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
+@pytest.mark.parametrize(
+    "num_processes, wait_seconds",
+    [(2, 0.25)],
+)
+def test_multiple_peers(num_processes, wait_seconds):
+    """Test to ensure that if we have two running processes with the same peers, they connect and train
+    successfully."""
+    _run_test_multiple_peers(num_processes, wait_seconds)
+
+
+@RunIf(hivemind=True, max_torch="1.12")
+@mock.patch.dict(os.environ, {"HIVEMIND_MEMORY_SHARING_STRATEGY": "file_descriptor"}, clear=True)
+@pytest.mark.parametrize(
+    "num_processes, wait_seconds",
+    [(2, 0.25)],
+)
+def test_client_only_peers(num_processes, wait_seconds):
+    """Test with client-only peers
+    successfully."""
+    _run_test_multiple_peers(num_processes, wait_seconds, kwargs=dict(client_only=True))
 
 
 @RunIf(hivemind=True, min_cuda_gpus=1)
