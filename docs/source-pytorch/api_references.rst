@@ -12,7 +12,7 @@ accelerators
 
     Accelerator
     CPUAccelerator
-    GPUAccelerator
+    CUDAAccelerator
     HPUAccelerator
     IPUAccelerator
     TPUAccelerator

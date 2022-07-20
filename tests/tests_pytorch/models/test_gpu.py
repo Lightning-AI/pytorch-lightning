@@ -23,7 +23,7 @@ import torch
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import CPUAccelerator, GPUAccelerator
+from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.utilities import device_parser
@@ -196,7 +196,7 @@ def test_torchelastic_gpu_parsing(mocked_device_count, mocked_is_available, gpus
     assert isinstance(trainer._accelerator_connector.cluster_environment, TorchElasticEnvironment)
     # when use gpu
     if device_parser.parse_gpu_ids(gpus, include_cuda=True) is not None:
-        assert isinstance(trainer.accelerator, GPUAccelerator)
+        assert isinstance(trainer.accelerator, CUDAAccelerator)
         assert trainer.num_devices == len(gpus) if isinstance(gpus, list) else gpus
         assert trainer.device_ids == device_parser.parse_gpu_ids(gpus, include_cuda=True)
     # fall back to cpu
