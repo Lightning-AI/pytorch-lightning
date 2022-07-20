@@ -8,11 +8,10 @@ on:
     paths:
       - "dockers/**"
       - "!dockers/README.md"
-      - "requirements/*"
+      - "requirements/**"
       - "requirements.txt"
       - "environment.yml"
       - ".github/workflows/*docker*.yml"
-      - ".github/workflows/events-nightly.yml"
       - "setup.py"
   schedule:
     - cron: "0 0 * * *"  # at the end of every day
