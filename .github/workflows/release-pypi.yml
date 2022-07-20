@@ -183,6 +183,7 @@ jobs:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
 
   publish-package:
+    # fixme: each package needs to be signed with own auth token
     runs-on: ubuntu-20.04
     needs: build-meta-pkg
     if: startsWith(github.event.ref, 'refs/tags') || github.event_name == 'release'
