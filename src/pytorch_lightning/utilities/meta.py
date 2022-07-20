@@ -259,22 +259,22 @@ def _set_meta_device() -> None:
         # Create a class subclassing current `subclass` overriding its new method.
         # this will enable use to use `torch.distributed.nn.utils.init_meta` to create a `meta`
         # version of the current subclass module
-        class _MaterializerModule(subclass, metaclass=_IsinstanceMetaclass):
+        class _MaterializerModule(subclass, metaclass=_IsinstanceMetaclass):  # type: ignore[valid-type, misc]
             @classmethod
             @contextmanager
-            def instantiation_context(cls):
+            def instantiation_context(cls) -> Generator[None, None, None]:
                 _unset_meta_device(from_created=True)
                 yield
                 _set_meta_device_populated(from_created=True)
 
             @classmethod
-            def materialize(cls, materialize_fn: Callable):
+            def materialize(cls, materialize_fn: Callable) -> Type:
                 with cls.instantiation_context():
                     obj = materialize_fn()
                 return obj
 
             @staticmethod
-            def add_subclasses(subclass):
+            def add_subclasses(subclass: Type) -> None:
                 """This is used to unroll the instantiation tree while creating the modules."""
                 # Don't store the LightningModule as skipped from the Meta process.
                 if subclass != pl.LightningModule:
@@ -282,14 +282,16 @@ def _set_meta_device() -> None:
                 if subclass.__bases__[0] != torch.nn.modules.module.Module:
                     _MaterializerModule.add_subclasses(subclass.__bases__[0])
 
-            def __new__(cls, *args, **kwargs):
+            def __new__(cls, *args: Any, **kwargs: Any) -> Type:
                 subclass = cls.__bases__[0]
                 cls.add_subclasses(subclass)
                 with cls.instantiation_context():
                     obj = init_meta(subclass, *args, **kwargs)
+                    if(isinstance(obj, Exception)):
+                        raise obj
 
-                obj.materialize = partial(cls.materialize, materialize_fn=obj.materialize)
-                return obj
+                obj.materialize = partial(cls.materialize, materialize_fn=obj.materialize)  # type: ignore[assignment]
+                return obj  # type: ignore
 
         def search(mod: ModuleType) -> List[ModuleType]:
             out = []
