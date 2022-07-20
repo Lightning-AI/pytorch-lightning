@@ -17,6 +17,7 @@ from typing import Any, Optional, Union
 import torch
 from torch.nn import Module
 from typing_extensions import Self
+
 import pytorch_lightning as pl
 
 
@@ -47,7 +48,7 @@ class DeviceDtypeModuleMixin(Module):
 
         return device
 
-    def to(self, *args: Any, **kwargs: Any) -> Self: # type: ignore[valid-type]
+    def to(self, *args: Any, **kwargs: Any) -> Self:  # type: ignore[valid-type]
         """Moves and/or casts the parameters and buffers.
 
         This can be called as
