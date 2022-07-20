@@ -120,7 +120,7 @@ class StochasticWeightAveraging(Callback):
         self._device = device
         self._max_epochs: int
         self._model_contains_batch_norm: bool
-        self._average_model = pl.LightningModule()
+        self._average_model: "pl.LightningModule"
 
     @property
     def swa_start(self) -> int:
