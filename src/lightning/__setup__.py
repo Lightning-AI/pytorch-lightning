@@ -55,7 +55,7 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
     if kwargs["pkg_name"] == "lightning":
         _include_pkgs = ["lightning", "lightning.*"]
         # todo: generate this list automatically with parsing feature pkg versions
-        _requires = ["pytorch-lightning>=1.6.*", "lightning-app>=0.5.*"]
+        _requires = ["pytorch-lightning>=1.6.5", "lightning-app>=0.5.2"]
     else:
         _include_pkgs = ["*"]
         _requires = [
@@ -64,7 +64,11 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
             if os.path.isdir(d)
         ]
         _requires = list(chain(*_requires))
-    # todo: consider invaliding some additional arguments from packages, for example if include data or safe to zip
+    # TODO: consider invaliding some additional arguments from packages, for example if include data or safe to zip
+
+    # TODO: remove this once lightning-ui package is ready as a dependency
+    _setup_tools._download_frontend(_PROJECT_ROOT)
+
     return dict(
         name="lightning",
         version=_version.version,  # todo: consider adding branch for installation from source
