@@ -152,7 +152,7 @@ def test_fit_loop_done_log_messages(caplog):
 
     trainer.num_training_batches = 0
     assert fit_loop.done
-    assert 'No training batches' in caplog.text
+    assert "No training batches" in caplog.text
     caplog.clear()
     trainer.num_training_batches = 5
 
@@ -161,7 +161,7 @@ def test_fit_loop_done_log_messages(caplog):
     fit_loop.connect(epoch_loop=epoch_loop)
     fit_loop.max_steps = 10
     assert fit_loop.done
-    assert 'max_steps=10` reached' in caplog.text
+    assert "max_steps=10` reached" in caplog.text
     caplog.clear()
     fit_loop.max_steps = 20
 
@@ -169,18 +169,18 @@ def test_fit_loop_done_log_messages(caplog):
     fit_loop.max_epochs = 3
     trainer.should_stop = True
     assert fit_loop.done
-    assert 'max_epochs=3` reached' in caplog.text
+    assert "max_epochs=3` reached" in caplog.text
     caplog.clear()
     fit_loop.max_epochs = 5
 
     fit_loop.epoch_loop.min_steps = 0
     with caplog.at_level(level=logging.DEBUG, logger="pytorch_lightning.utilities.rank_zero"):
         assert fit_loop.done
-    assert 'should_stop` was set' in caplog.text
+    assert "should_stop` was set" in caplog.text
 
     fit_loop.epoch_loop.min_steps = 100
     assert not fit_loop.done
-    assert 'was signaled to stop but' in caplog.text
+    assert "was signaled to stop but" in caplog.text
 
 
 def test_warning_valid_train_step_end(tmpdir):
