@@ -16,6 +16,8 @@ import logging
 import os
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Union
+import pytorch_lightning as pl
+
 
 from pytorch_lightning.callbacks import (
     Callback,
@@ -37,7 +39,7 @@ _log = logging.getLogger(__name__)
 
 
 class CallbackConnector:
-    def __init__(self, trainer):
+    def __init__(self, trainer: "pl.Trainer"):
         self.trainer = trainer
 
     def on_trainer_init(
@@ -50,7 +52,7 @@ class CallbackConnector:
         enable_model_summary: bool,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
         accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None,
-    ):
+    ) -> None:
         # init folder paths for checkpoint + weights save callbacks
         self.trainer._default_root_dir = default_root_dir or os.getcwd()
         if weights_save_path:
@@ -188,7 +190,7 @@ class CallbackConnector:
         timer = Timer(duration=max_time, interval="step")
         self.trainer.callbacks.append(timer)
 
-    def _configure_fault_tolerance_callbacks(self):
+    def _configure_fault_tolerance_callbacks(self) -> None:
         from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 
         if any(isinstance(cb, _FaultToleranceCheckpoint) for cb in self.trainer.callbacks):
@@ -196,7 +198,7 @@ class CallbackConnector:
         # don't use `log_dir` to minimize the chances of failure
         self.trainer.callbacks.append(_FaultToleranceCheckpoint(dirpath=self.trainer.default_root_dir))
 
-    def _attach_model_logging_functions(self):
+    def _attach_model_logging_functions(self) -> None:
         lightning_module = self.trainer.lightning_module
         for callback in self.trainer.callbacks:
             callback.log = lightning_module.log
