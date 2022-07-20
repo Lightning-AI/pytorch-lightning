@@ -24,7 +24,7 @@ Lightning supports multiple ways of doing distributed training.
 - DistributedDataParallel (multiple-gpus across many machines)
     - Regular (``strategy='ddp'``)
     - Spawn (``strategy='ddp_spawn'``)
-    - Fork (``strategy='ddp_fork'``)
+    - Notebook/Fork (``strategy='ddp_notebook'``)
 - Horovod (``strategy='horovod'``) (multi-machine, multi-gpu, configured at runtime)
 - Bagua (``strategy='bagua'``) (multiple-gpus across many machines with advanced training algorithms)
 
@@ -101,7 +101,7 @@ There are cases in which it is NOT possible to use DDP. Examples are:
 - Jupyter Notebook, Google COLAB, Kaggle, etc.
 - You have a nested script without a root package
 
-In these situations you should use `dp` or `ddp_spawn` instead.
+In these situations you should use `ddp_notebook` or `dp` instead.
 
 Distributed Data Parallel 2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -201,18 +201,25 @@ You can then call your scripts anywhere
     python some_file.py --accelerator 'gpu' --devices 8 --strategy 'ddp'
 
 
-Distributed Data Parallel Fork
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Distributed Data Parallel in Notebooks
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-DDP Fork is an alternative to Spawn that can be used in interactive Python and Jupyter notebooks, Google Colab, Kaggle notebooks, and so on:
+DDP Notebook/Fork is an alternative to Spawn that can be used in interactive Python and Jupyter notebooks, Google Colab, Kaggle notebooks, and so on:
+The Trainer enables it by default when such environments are detected.
 
 .. code-block:: python
 
     # train on 8 GPUs in a Jupyter notebook
+    trainer = Trainer(accelerator="gpu", devices=8)
+
+    # can be set explicitly
+    trainer = Trainer(accelerator="gpu", devices=8, strategy="ddp_notebook")
+
+    # can also be used in non-interactive environments
     trainer = Trainer(accelerator="gpu", devices=8, strategy="ddp_fork")
 
 Data Parallel (``strategy="dp"``) is the only other strategy supported in interactive environments but is slower, is discouraged by PyTorch and has other limitations.
-Among the native distributed strategies, regular DDP (``strategy="ddp"``) is still recommended as the go-to strategy over Spawn and Fork for its speed and stability but it can only be used with scripts.
+Among the native distributed strategies, regular DDP (``strategy="ddp"``) is still recommended as the go-to strategy over Spawn and Fork/Notebook for its speed and stability but it can only be used with scripts.
 
 
 Comparison of DDP variants and tradeoffs
@@ -225,7 +232,7 @@ Comparison of DDP variants and tradeoffs
    * -
      - DDP
      - DDP Spawn
-     - DDP Fork
+     - DDP Notebook/Fork
    * - Works in Jupyter notebooks / IPython environments
      - No
      - No
