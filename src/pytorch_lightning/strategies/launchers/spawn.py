@@ -26,7 +26,6 @@ from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
-from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 from pytorch_lightning.utilities.types import _PATH
 
@@ -109,7 +108,7 @@ class _SpawnLauncher(_Launcher):
 
     def _recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer: "pl.Trainer") -> None:
         # transfer back the best path to the trainer
-        if trainer.checkpoint_callback:
+        if trainer.checkpoint_callback and hasattr(trainer.checkpoint_callback, "best_model_path"):
             trainer.checkpoint_callback.best_model_path = str(spawn_output.best_model_path)
 
         # TODO: pass also best score
@@ -122,16 +121,16 @@ class _SpawnLauncher(_Launcher):
         trainer.state = spawn_output.trainer_state
 
         # get the `callback_metrics` and set it to the trainer
-        if is_overridden("get_from_queue", trainer.lightning_module):
-            # only in case the user does not override it.
-            # TODO: Remove the if in v1.7
-            trainer.lightning_module.get_from_queue(spawn_output.extra)
         self.get_from_queue(trainer, spawn_output.extra)
 
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
         rank_zero_debug("Finalizing the DDP spawn environment.")
         checkpoint_callback = trainer.checkpoint_callback
-        best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
+        best_model_path = (
+            checkpoint_callback.best_model_path
+            if checkpoint_callback and hasattr(checkpoint_callback, "best_model_path")
+            else None
+        )
 
         # requires to compute the state_dict on all processes in case Metrics are present
         state_dict = trainer.lightning_module.state_dict()
@@ -147,9 +146,6 @@ class _SpawnLauncher(_Launcher):
 
         # adds the `callback_metrics` to the queue
         extra = _FakeQueue()
-        if is_overridden("add_to_queue", trainer.lightning_module):
-            # TODO: Remove the if in v1.7
-            trainer.lightning_module.add_to_queue(extra)
         self.add_to_queue(trainer, extra)
 
         return _SpawnOutput(best_model_path, weights_path, trainer.state, results, extra)

@@ -16,7 +16,6 @@ import logging
 import math
 import os
 import pickle
-import sys
 from argparse import Namespace
 from contextlib import nullcontext
 from copy import deepcopy
@@ -35,7 +34,7 @@ from torch.utils.data import DataLoader, IterableDataset
 import pytorch_lightning
 import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.accelerators import CPUAccelerator, GPUAccelerator
+from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
 from pytorch_lightning.callbacks import EarlyStopping, GradientAccumulationScheduler, ModelCheckpoint, Timer
 from pytorch_lightning.callbacks.fault_tolerance import _FaultToleranceCheckpoint
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
@@ -1013,13 +1012,9 @@ def test_on_exception_hook(tmpdir):
         def __init__(self):
             super().__init__()
             self.exception = None
-            self.exc_info = None
 
         def on_exception(self, trainer, pl_module, exception):
             self.exception = exception
-
-        def on_keyboard_interrupt(self, trainer, pl_module):
-            self.exc_info = sys.exc_info()
 
     interrupt_callback = InterruptCallback()
     handle_interrupt_callback = HandleInterruptCallback()
@@ -1035,15 +1030,10 @@ def test_on_exception_hook(tmpdir):
     )
     assert not trainer.interrupted
     assert handle_interrupt_callback.exception is None
-    assert handle_interrupt_callback.exc_info is None
-    with pytest.deprecated_call(match="on_keyboard_interrupt` callback hook was deprecated in v1.5"):
-        trainer.fit(model)
+    trainer.fit(model)
     assert trainer.interrupted
     assert isinstance(handle_interrupt_callback.exception, KeyboardInterrupt)
-    assert isinstance(handle_interrupt_callback.exc_info[1], KeyboardInterrupt)
-    with pytest.raises(MisconfigurationException), pytest.deprecated_call(
-        match="on_keyboard_interrupt` callback hook was deprecated in v1.5"
-    ):
+    with pytest.raises(MisconfigurationException):
         trainer.test(model)
     assert trainer.interrupted
     assert isinstance(handle_interrupt_callback.exception, MisconfigurationException)
@@ -1977,21 +1967,21 @@ def test_detect_anomaly_nan(tmpdir):
             {"strategy": None, "accelerator": "gpu", "devices": 1},
             SingleDeviceStrategy,
             "single_device",
-            GPUAccelerator,
+            CUDAAccelerator,
             1,
         ),
-        ({"strategy": "dp", "accelerator": "gpu", "devices": 1}, DataParallelStrategy, "dp", GPUAccelerator, 1),
-        ({"strategy": "ddp", "accelerator": "gpu", "devices": 1}, DDPStrategy, "ddp", GPUAccelerator, 1),
+        ({"strategy": "dp", "accelerator": "gpu", "devices": 1}, DataParallelStrategy, "dp", CUDAAccelerator, 1),
+        ({"strategy": "ddp", "accelerator": "gpu", "devices": 1}, DDPStrategy, "ddp", CUDAAccelerator, 1),
         (
             {"strategy": "ddp_spawn", "accelerator": "gpu", "devices": 1},
             DDPSpawnStrategy,
             "ddp_spawn",
-            GPUAccelerator,
+            CUDAAccelerator,
             1,
         ),
-        ({"strategy": None, "accelerator": "gpu", "devices": 2}, DDPSpawnStrategy, "ddp_spawn", GPUAccelerator, 2),
-        ({"strategy": "dp", "accelerator": "gpu", "devices": 2}, DataParallelStrategy, "dp", GPUAccelerator, 2),
-        ({"strategy": "ddp", "accelerator": "gpu", "devices": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
+        ({"strategy": None, "accelerator": "gpu", "devices": 2}, DDPSpawnStrategy, "ddp_spawn", CUDAAccelerator, 2),
+        ({"strategy": "dp", "accelerator": "gpu", "devices": 2}, DataParallelStrategy, "dp", CUDAAccelerator, 2),
+        ({"strategy": "ddp", "accelerator": "gpu", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
         ({"strategy": "ddp", "accelerator": "cpu", "devices": 2}, DDPStrategy, "ddp", CPUAccelerator, 2),
         (
             {"strategy": "ddp_spawn", "accelerator": "cpu", "devices": 2},
@@ -2011,7 +2001,7 @@ def test_detect_anomaly_nan(tmpdir):
             {"strategy": "ddp_fully_sharded", "accelerator": "gpu", "devices": 1},
             DDPFullyShardedStrategy,
             "ddp_fully_sharded",
-            GPUAccelerator,
+            CUDAAccelerator,
             1,
         ),
         (
@@ -2025,65 +2015,65 @@ def test_detect_anomaly_nan(tmpdir):
             {"strategy": DDPSpawnStrategy(), "accelerator": "gpu", "devices": 2},
             DDPSpawnStrategy,
             "ddp_spawn",
-            GPUAccelerator,
+            CUDAAccelerator,
             2,
         ),
         ({"strategy": DDPStrategy()}, DDPStrategy, "ddp", CPUAccelerator, 1),
-        ({"strategy": DDPStrategy(), "accelerator": "gpu", "devices": 2}, DDPStrategy, "ddp", GPUAccelerator, 2),
+        ({"strategy": DDPStrategy(), "accelerator": "gpu", "devices": 2}, DDPStrategy, "ddp", CUDAAccelerator, 2),
         (
             {"strategy": DataParallelStrategy(), "accelerator": "gpu", "devices": 2},
             DataParallelStrategy,
             "dp",
-            GPUAccelerator,
+            CUDAAccelerator,
             2,
         ),
         (
             {"strategy": DDPFullyShardedStrategy(), "accelerator": "gpu", "devices": 2},
             DDPFullyShardedStrategy,
             "ddp_fully_sharded",
-            GPUAccelerator,
+            CUDAAccelerator,
             2,
         ),
         (
             {"strategy": DDPSpawnShardedStrategy(), "accelerator": "gpu", "devices": 2},
             DDPSpawnShardedStrategy,
             "ddp_sharded_spawn",
-            GPUAccelerator,
+            CUDAAccelerator,
             2,
         ),
         (
             {"strategy": DDPShardedStrategy(), "accelerator": "gpu", "devices": 2},
             DDPShardedStrategy,
             "ddp_sharded",
-            GPUAccelerator,
+            CUDAAccelerator,
             2,
         ),
         (
             {"strategy": "ddp_spawn", "accelerator": "gpu", "devices": 2, "num_nodes": 2},
             DDPSpawnStrategy,
             "ddp_spawn",
-            GPUAccelerator,
+            CUDAAccelerator,
             2,
         ),
         (
             {"strategy": "ddp_fully_sharded", "accelerator": "gpu", "devices": 1, "num_nodes": 2},
             DDPFullyShardedStrategy,
             "ddp_fully_sharded",
-            GPUAccelerator,
+            CUDAAccelerator,
             1,
         ),
         (
             {"strategy": "ddp_sharded", "accelerator": "gpu", "devices": 2, "num_nodes": 2},
             DDPShardedStrategy,
             "ddp_sharded",
-            GPUAccelerator,
+            CUDAAccelerator,
             2,
         ),
         (
             {"strategy": "ddp_sharded_spawn", "accelerator": "gpu", "devices": 2, "num_nodes": 2},
             DDPSpawnShardedStrategy,
             "ddp_sharded_spawn",
-            GPUAccelerator,
+            CUDAAccelerator,
             2,
         ),
     ],

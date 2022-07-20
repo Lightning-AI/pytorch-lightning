@@ -172,6 +172,8 @@ def test_loops_restore(tmpdir):
     ckpt_path = str(tmpdir / "last.ckpt")
 
     trainer = Trainer(**trainer_args)
+    trainer.strategy.connect(model)
+
     for fn in TrainerFn:
         if fn != TrainerFn.TUNING:
             trainer_fn = getattr(trainer, f"{fn}_loop")

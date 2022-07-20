@@ -249,8 +249,8 @@ Example::
 
     .. code-block:: python
 
-        # This is part of the built-in `GPUAccelerator`
-        class GPUAccelerator(Accelerator):
+        # This is part of the built-in `CUDAAccelerator`
+        class CUDAAccelerator(Accelerator):
             """Accelerator for GPU devices."""
 
             @staticmethod
@@ -603,8 +603,8 @@ based on the accelerator type (``"cpu", "gpu", "tpu", "ipu", "auto"``).
 
     .. code-block:: python
 
-        # This is part of the built-in `GPUAccelerator`
-        class GPUAccelerator(Accelerator):
+        # This is part of the built-in `CUDAAccelerator`
+        class CUDAAccelerator(Accelerator):
             """Accelerator for GPU devices."""
 
             @staticmethod
@@ -954,7 +954,7 @@ Training will stop if max_steps or max_epochs have reached (earliest).
 .. testcode::
 
     # Default (disabled)
-    trainer = Trainer(max_steps=None)
+    trainer = Trainer(max_steps=-1)
 
     # Stop after 100 steps
     trainer = Trainer(max_steps=100)
@@ -1639,6 +1639,16 @@ The number of epochs run.
 .. code-block:: python
 
     if trainer.current_epoch >= 10:
+        ...
+
+is_last_batch
+*************
+
+Whether trainer is executing last batch in the current epoch.
+
+.. code-block:: python
+
+    if trainer.is_last_batch:
         ...
 
 global_step
