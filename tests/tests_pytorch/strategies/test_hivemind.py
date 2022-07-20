@@ -305,8 +305,7 @@ def test_multiple_peers(num_processes, wait_seconds):
     [(2, 0.25)],
 )
 def test_client_only_peers(num_processes, wait_seconds):
-    """Test with client-only peers
-    successfully."""
+    """Test with client-only peers successfully."""
     _run_test_multiple_peers(num_processes, wait_seconds, kwargs=dict(client_only=True))
 
 
