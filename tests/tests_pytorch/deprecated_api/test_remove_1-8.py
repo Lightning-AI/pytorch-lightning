@@ -1140,9 +1140,8 @@ def test_trainer_gpus(monkeypatch, trainer_kwargs):
         assert trainer.gpus == trainer_kwargs["devices"]
 
 
-@mock.patch("pytorch_lightning.strategies.launchers.spawn.mp.get_all_start_methods", return_value=["fork"])
-@mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
-def test_trainer_tpu_cores(*_):
+def test_trainer_tpu_cores(monkeypatch):
+    monkeypatch.setattr(pytorch_lightning.accelerators.tpu.TPUAccelerator, "is_available", lambda _: True)
     trainer = Trainer(accelerator="tpu", devices=8)
     with pytest.deprecated_call(
         match=(
