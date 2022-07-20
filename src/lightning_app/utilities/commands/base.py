@@ -17,6 +17,7 @@ from pydantic import BaseModel
 from lightning_app.utilities.app_helpers import is_overridden
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.network import LightningClient
+from lightning_app.utilities.state import AppState
 
 _logger = logging.getLogger(__name__)
 
@@ -48,13 +49,21 @@ class ClientCommand:
         self.owner = flow.name if flow else None
         self.requirements = requirements
         self.metadata = None
-        self.models = Optional[Dict[str, BaseModel]]
+        self.models: Optional[Dict[str, BaseModel]] = None
         self.app_url = None
+        self._state = None
 
     def _setup(self, metadata: Dict[str, Any], models: Dict[str, BaseModel], app_url: str) -> None:
         self.metadata = metadata
         self.models = models
         self.app_url = app_url
+
+    @property
+    def state(self):
+        if self._state is None:
+            self._state = AppState()
+            self._state._request_state()
+        return self._state
 
     def run(self, **cli_kwargs) -> None:
         """Overrides with the logic to execute on the client side."""
@@ -80,8 +89,10 @@ class ClientCommand:
 
     def __call__(self, **kwargs: Any) -> Any:
         assert self.models
-        kwargs = {k: self.models[k].parse_raw(v) for k, v in kwargs.items()}
-        return self.method(**kwargs)
+        input = {}
+        for k, v in kwargs.items():
+            input[k] = self.models[k].parse_raw(v)
+        return self.method(**input)
 
 
 def _download_command(
@@ -204,6 +215,7 @@ def _populate_commands_endpoint(app):
 
     # 1.2: Pass the collected commands through the queue to the Rest API.
     app.commands_metadata_queue.put(commands_metadata)
+    app.commands = commands
 
 
 def _process_command_requests(app):
@@ -211,7 +223,7 @@ def _process_command_requests(app):
         return
 
     # 1: Populate commands metadata
-    commands = app.root.configure_commands()
+    commands = app.commands
 
     # 2: Collect requests metadata
     command_query = app.get_state_changed_from_queue(app.commands_requests_queue)

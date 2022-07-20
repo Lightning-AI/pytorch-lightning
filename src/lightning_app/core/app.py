@@ -85,6 +85,7 @@ class LightningApp:
         self.copy_response_queues: t.Optional[t.Dict[str, BaseQueue]] = None
         self.caller_queues: t.Optional[t.Dict[str, BaseQueue]] = None
         self.work_queues: t.Optional[t.Dict[str, BaseQueue]] = None
+        self.commands: t.Optional[t.List] = None
 
         self.should_publish_changes_to_api = False
         self.component_affiliation = None
