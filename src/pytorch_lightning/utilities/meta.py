@@ -64,7 +64,7 @@ if _TORCH_GREATER_EQUAL_1_10:
             yield
         finally:
             del guard
-            
+
     def _handle_arange(func: Callable, args: Any, kwargs: Any) -> Tensor:
         kwargs["device"] = torch.device("cpu")
         return torch.empty_like(func(*args, **kwargs), device="meta")
@@ -74,7 +74,7 @@ if _TORCH_GREATER_EQUAL_1_10:
             return torch.empty_like(args[0], device="meta")
 
         return NotImplemented
-        
+
     class _MetaContext(Tensor):
         _op_handlers: Dict[Callable, Callable] = {}
 
@@ -91,7 +91,7 @@ if _TORCH_GREATER_EQUAL_1_10:
             )
 
         @classmethod
-        def __torch_dispatch__(cls, func: Callable, types: Any, args: Any=(), kwargs: Optional[Any]=None) -> Any:
+        def __torch_dispatch__(cls, func: Callable, types: Any, args: Any = (), kwargs: Optional[Any] = None) -> Any:
             cls._ensure_handlers_initialized()
 
             op_handler: Optional[Callable]
@@ -112,8 +112,10 @@ if _TORCH_GREATER_EQUAL_1_10:
 
                 return func(*args, **(kwargs if kwargs is not None else {}))
 
-    def init_meta(module_fn: Callable[..., Module], *args: Any, **kwargs: Any) -> Union[Module, MisconfigurationException]:
-        def create_instance(module: Optional[Any]=None) -> Module:
+    def init_meta(
+        module_fn: Callable[..., Module], *args: Any, **kwargs: Any
+    ) -> Union[Module, MisconfigurationException]:
+        def create_instance(module: Optional[Any] = None) -> Module:
             if module:
                 module.__init__(*args, **kwargs)
                 return module
@@ -144,7 +146,9 @@ if _TORCH_GREATER_EQUAL_1_10:
 
 else:
 
-    def init_meta(module_fn: Callable[..., Module], *args: Any, **kwargs: Any) -> Union[Module, MisconfigurationException]:
+    def init_meta(
+        module_fn: Callable[..., Module], *args: Any, **kwargs: Any
+    ) -> Union[Module, MisconfigurationException]:
         if not _TORCH_GREATER_EQUAL_1_10:
             return MisconfigurationException("`init_meta` is supported from PyTorch 1.10.0")
 
@@ -194,7 +198,7 @@ def materialize_module(root_module: nn.Module) -> nn.Module:
 
 
 # cache subclasses to optimize the search when resetting the meta device later on.
-__STORAGE_META__: Dict[Type, Tuple]= {}
+__STORAGE_META__: Dict[Type, Tuple] = {}
 __CREATED_MODULES__: Set[Type] = set()
 
 
@@ -287,7 +291,7 @@ def _set_meta_device() -> None:
                 cls.add_subclasses(subclass)
                 with cls.instantiation_context():
                     obj = init_meta(subclass, *args, **kwargs)
-                    if(isinstance(obj, Exception)):
+                    if isinstance(obj, Exception):
                         raise obj
 
                 obj.materialize = partial(cls.materialize, materialize_fn=obj.materialize)  # type: ignore[assignment]
