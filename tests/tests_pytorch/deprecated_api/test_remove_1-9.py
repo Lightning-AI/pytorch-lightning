@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
 
@@ -161,6 +162,21 @@ def test_lightningCLI_registries_register_automatically():
     with pytest.deprecated_call(match=old_cli._deprecate_auto_registry_message):
         with mock.patch("sys.argv", ["any.py"]):
             LightningCLI(BoringModel, run=False, auto_registry=True)
+
+
+def test_lightningCLI_old_module_deprecation():
+    with pytest.deprecated_call(match=r"LightningCLI.*deprecated in v1.7.*Use the equivalent class"):
+        with mock.patch("sys.argv", ["any.py"]):
+            old_cli.LightningCLI(BoringModel, run=False)
+
+    with pytest.deprecated_call(match=r"SaveConfigCallback.*deprecated in v1.7.*Use the equivalent class"):
+        old_cli.SaveConfigCallback(Mock(), Mock(), Mock())
+
+    with pytest.deprecated_call(match=r"LightningArgumentParser.*deprecated in v1.7.*Use the equivalent class"):
+        old_cli.LightningArgumentParser()
+
+    with pytest.deprecated_call(match=r"instantiate_class.*deprecated in v1.7.*Use the equivalent function"):
+        assert isinstance(old_cli.instantiate_class(tuple(), {'class_path': 'pytorch_lightning.Trainer'}), Trainer)
 
 
 def test_profiler_deprecation_warning():

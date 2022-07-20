@@ -134,7 +134,7 @@ def _populate_registries(subclasses: bool) -> None:  # Remove in v1.9
 
 def _deprecation(cls: Type) -> None:
     rank_zero_deprecation(
-        f"`{cls.__qualname__}` has been deprecated in v1.7 and will be removed in v1.9."
+        f"`pytorch_lightning.utilities.cli.{cls.__name__}` has been deprecated in v1.7 and will be removed in v1.9."
         f" Use the equivalent class in `pytorch_lightning.cli.{cls.__name__}` instead."
     )
 
