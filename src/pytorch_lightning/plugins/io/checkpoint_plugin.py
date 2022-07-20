@@ -61,6 +61,6 @@ class CheckpointIO(ABC):
             path: Path to checkpoint
         """
 
-    def on_train_end(self) -> None:
-        """Called when train ends."""
+    def teardown(self) -> None:
+        """This method is called to teardown the process."""
         pass

@@ -18,7 +18,7 @@ import queue
 import threading
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, IO, List, Optional, Union
+from typing import Any, Callable, Dict, IO, Optional, Union
 
 import fsspec
 import torch
@@ -27,23 +27,22 @@ from fsspec.implementations.local import AbstractFileSystem
 
 from pytorch_lightning.utilities.types import _PATH
 
-_state_observer_lock = threading.Lock()
+_checkpoint_lock = threading.Lock()
 
 
 class ThreadQueue(threading.Thread):
-    def __init__(self, func: Callable, q: queue.Queue, interval: int = 5) -> None:
+    def __init__(self, q: queue.Queue, interval: int = 1) -> None:
         super().__init__(daemon=True)
-        self.func = func
         self.q = q
         self._close_thread = False
         self._interval = interval
 
     def run(self) -> None:
-        with _state_observer_lock:
+        with _checkpoint_lock:
             while not (self._close_thread and self.q.empty()):
                 time.sleep(self._interval)
-                args = self.q.get()
-                self.func(*args)
+                func, args = self.q.get()
+                func(*args)
                 self.q.task_done()
 
     def join(self, timeout: Optional[float] = None) -> None:
@@ -79,26 +78,7 @@ def get_filesystem(path: _PATH, **kwargs: Any) -> AbstractFileSystem:
     return fs
 
 
-def atomic_save(
-    checkpoint: Dict[str, Any], filepath: Union[str, Path], threads: List[ThreadQueue] = None, queue: queue.Queue = None
-) -> None:
-    """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
-
-    Args:
-        checkpoint: The object to save.
-            Built to be used with the ``dump_checkpoint`` method, but can deal with anything which ``torch.save``
-            accepts.
-        filepath: The path to which the checkpoint will be saved.
-            This points to the file that the checkpoint will be stored in.
-    """
-    if threads is not None:
-        assert queue is not None
-        queue.put((checkpoint, filepath))
-    else:
-        _atomic_save(checkpoint, filepath)
-
-
-def _atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None:
+def atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None:
     """Saves a checkpoint atomically, avoiding the creation of incomplete checkpoints.
 
     Args:

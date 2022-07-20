@@ -448,6 +448,7 @@ class Strategy(ABC):
             self.lightning_module.cpu()
         self.precision_plugin.teardown()
         self.accelerator.teardown()
+        self.checkpoint_io.teardown()
 
     @classmethod
     def register_strategies(cls, strategy_registry) -> None:
@@ -471,7 +472,7 @@ class Strategy(ABC):
 
     def on_train_end(self) -> None:
         """Called when train ends."""
-        self.checkpoint_io.on_train_end()
+        pass
 
     def on_validation_end(self) -> None:
         """Called when validation ends."""
