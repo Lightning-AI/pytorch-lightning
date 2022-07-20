@@ -15,7 +15,9 @@ _FREEZE_REQUIREMENTS = bool(int(os.environ.get("FREEZE_REQUIREMENTS", 0)))
 
 def _load_py_module(name: str, location: str) -> ModuleType:
     spec = spec_from_file_location(name, location)
+    assert spec, f"Failed to load module {name} from {location}"
     py = module_from_spec(spec)
+    assert spec.loader, f"ModuleSpec.loader is None for {name} from {location}"
     spec.loader.exec_module(py)
     return py
 
@@ -37,6 +39,7 @@ def _adjust_manifest(**kwargs: Any) -> None:
         lines += [
             "recursive-include src *.md" + os.linesep,
             "recursive-include requirements *.txt" + os.linesep,
+            "recursive-include src/lightning_app/cli/*-template *" + os.linesep,  # Add templates
         ]
     with open(manifest_path, "w") as fp:
         fp.writelines(lines)
@@ -53,7 +56,7 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
     if kwargs["pkg_name"] == "lightning":
         _include_pkgs = ["lightning", "lightning.*"]
         # todo: generate this list automatically with parsing feature pkg versions
-        _requires = ["pytorch-lightning==1.6.*", "lightning-app==0.5.*"]
+        _requires = ["pytorch-lightning>=1.6.5", "lightning-app>=0.5.2"]
     else:
         _include_pkgs = ["*"]
         _requires = [
@@ -62,7 +65,11 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
             if os.path.isdir(d)
         ]
         _requires = list(chain(*_requires))
-    # todo: consider invaliding some additional arguments from packages, for example if include data or safe to zip
+    # TODO: consider invaliding some additional arguments from packages, for example if include data or safe to zip
+
+    # TODO: remove this once lightning-ui package is ready as a dependency
+    _setup_tools._download_frontend(_PROJECT_ROOT)
+
     return dict(
         name="lightning",
         version=_version.version,  # todo: consider adding branch for installation from source
@@ -76,20 +83,29 @@ def _setup_args(**kwargs: Any) -> Dict[str, Any]:
         package_dir={"": "src"},
         long_description=_long_description,
         long_description_content_type="text/markdown",
+        include_package_data=True,
         zip_safe=False,
         keywords=["deep learning", "pytorch", "AI"],  # todo: aggregate tags from all packages
         python_requires=">=3.7",  # todo: take the lowes based on all packages
+        entry_points={
+            "console_scripts": [
+                "lightning = lightning_app.cli.lightning_cli:main",
+            ],
+        },
         setup_requires=[],
         install_requires=_requires,
         extras_require={},  # todo: consider porting all other packages extras with prefix
         project_urls={
             "Bug Tracker": "https://github.com/Lightning-AI/lightning/issues",
+            "Documentation": "https://lightning.ai/lightning-docs",
             "Source Code": "https://github.com/Lightning-AI/lightning",
         },
         classifiers=[
             "Environment :: Console",
             "Natural Language :: English",
-            "Development Status :: 5 - Production/Stable",
+            # How mature is this project? Common values are
+            #   3 - Alpha, 4 - Beta, 5 - Production/Stable
+            "Development Status :: 4 - Beta",
             # Indicate who your project is intended for
             "Intended Audience :: Developers",
             "Topic :: Scientific/Engineering :: Artificial Intelligence",
