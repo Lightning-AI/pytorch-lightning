@@ -19,7 +19,7 @@ from contextlib import contextmanager
 from functools import partial
 from itertools import chain
 from types import ModuleType
-from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Set, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, Set, Tuple, Type, Union
 
 import torch
 from torch import nn, Tensor
@@ -194,8 +194,8 @@ def materialize_module(root_module: nn.Module) -> nn.Module:
 
 
 # cache subclasses to optimize the search when resetting the meta device later on.
-__STORAGE_META__ = {}
-__CREATED_MODULES__ = set()
+__STORAGE_META__: Dict[Type, Tuple]= {}
+__CREATED_MODULES__: Set[Type] = set()
 
 
 def _unset_meta_device(from_created: bool = False) -> None:
@@ -206,7 +206,7 @@ def _unset_meta_device(from_created: bool = False) -> None:
     if from_created:
         values = [__STORAGE_META__[key] for key in __CREATED_MODULES__]
     else:
-        values = __STORAGE_META__.values()
+        values = list(__STORAGE_META__.values())
 
     for mods, subclass, _ in values:
         for mod in mods:
@@ -221,7 +221,7 @@ def _set_meta_device_populated(from_created: bool = False) -> None:
     if from_created:
         values = [__STORAGE_META__[key] for key in __CREATED_MODULES__]
     else:
-        values = __STORAGE_META__.values()
+        values = list(__STORAGE_META__.values())
 
     for mods, subclass, meta_class in values:
         for mod in mods:
