@@ -1480,7 +1480,7 @@ Can specify as float or int.
 
 - pass a ``float`` in the range [0.0, 1.0] to check after a fraction of the training epoch.
 - pass an ``int`` to check after a fixed number of training batches. An ``int`` value can only be higher than the number of training
-  batches when ``check_val_every_n_epoch=None``, which validates after every ``N`` training batches across complete training.
+  batches when ``check_val_every_n_epoch=None``, which validates after every ``N`` training batches across ``trainer.fit``.
 
 .. testcode::
 

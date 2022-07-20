@@ -172,6 +172,27 @@ class ProgressBarBase(Callback):
         assert self._trainer is not None
         return sum(self.trainer.num_val_batches) if self._trainer.fit_loop.epoch_loop._should_check_val_epoch() else 0
 
+    @property
+    def total_main_progress_bar_count_current_epoch(self) -> Union[int, float]:
+        total_train_batches = self.total_train_batches
+        total_val_batches = self.total_val_batches
+        assert self._trainer is not None
+
+        if total_train_batches != float("inf") and total_val_batches != float("inf"):
+            # val can be checked multiple times per epoch
+            val_check_batch = self.trainer.val_check_batch
+            if self.trainer.check_val_every_n_epoch is None:
+                batches_that_stepped = self.trainer.fit_loop.epoch_loop._batches_that_stepped
+                val_checks_per_epoch = ((batches_that_stepped + total_train_batches) // val_check_batch) - (
+                    batches_that_stepped // val_check_batch
+                )
+            else:
+                val_checks_per_epoch = total_train_batches // val_check_batch
+
+            total_val_batches = total_val_batches * val_checks_per_epoch
+
+        return total_train_batches + total_val_batches
+
     def has_dataloader_changed(self, dataloader_idx: int) -> bool:
         old_dataloader_idx = self._current_eval_dataloader_idx
         self._current_eval_dataloader_idx = dataloader_idx
