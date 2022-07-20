@@ -73,7 +73,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             start_method="fork",
         )
         self.debug = debug
-        self.start_method = "fork"
 
     @property
     def root_device(self) -> torch.device:
