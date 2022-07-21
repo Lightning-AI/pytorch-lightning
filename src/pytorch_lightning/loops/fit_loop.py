@@ -151,7 +151,7 @@ class FitLoop(Loop[None]):
     def done(self) -> bool:
         """Evaluates when to leave the loop."""
         if self.trainer.num_training_batches == 0:
-            rank_zero_info(f"`Trainer.fit` stopped: No training batches.")
+            rank_zero_info("`Trainer.fit` stopped: No training batches.")
             return True
 
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
@@ -175,7 +175,7 @@ class FitLoop(Loop[None]):
             met_min_steps = self.epoch_loop.global_step >= self.min_steps if self.min_steps else True
             if met_min_epochs and met_min_steps:
                 self.trainer.should_stop = True
-                rank_zero_debug(f"`Trainer.fit` stopped: `trainer.should_stop` was set.")
+                rank_zero_debug("`Trainer.fit` stopped: `trainer.should_stop` was set.")
                 return True
             else:
                 rank_zero_info(
