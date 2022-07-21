@@ -288,7 +288,7 @@ class Strategy(ABC):
         """
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
-        """Reduce the early stopping decision across all processes."""
+        """Reduce a boolean decision across all processes."""
         return decision
 
     def pre_backward(self, closure_loss: Tensor) -> None:
