@@ -1,13 +1,15 @@
 import logging
 import os
-from pathlib import Path
-from typing import List, Tuple, Union, Optional
-from uuid import uuid4
 import sys
+from argparse import ArgumentParser
+from pathlib import Path
+from typing import List, Optional, Tuple, Union
+from uuid import uuid4
+
 import click
 import requests
 from requests.exceptions import ConnectionError
-from argparse import ArgumentParser
+
 from lightning_app import __version__ as ver
 from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
 from lightning_app.core.constants import get_lightning_cloud_url, LOCAL_LAUNCH_ADMIN_VIEW
@@ -39,6 +41,7 @@ def main():
         _main()
     else:
         app_command()
+
 
 @click.group()
 @click.version_option(ver)
@@ -146,7 +149,9 @@ def app_command():
     logger.warn("Lightning Commands are a beta feature and APIs aren't stable yet.")
 
     parser = ArgumentParser()
-    parser.add_argument("--app_id", default=None, type=Optional[str], help="Optional argument to identify an application.")
+    parser.add_argument(
+        "--app_id", default=None, type=Optional[str], help="Optional argument to identify an application."
+    )
     hparams, _ = parser.parse_known_args()
 
     # 1: Collect the url and comments from the running application

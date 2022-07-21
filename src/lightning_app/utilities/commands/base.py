@@ -102,7 +102,7 @@ def _download_command(
     # immutable commands for security concerns
     config = _ClientCommandConfig(**command_metadata)
     # tmpdir = osp.join(gettempdir(), f"{getuser()}_commands")
-    #makedirs(tmpdir)
+    # makedirs(tmpdir)
     target_file = osp.join(".", f"{config.command}.py")
     if app_id:
         client = LightningClient()
@@ -125,7 +125,7 @@ def _download_command(
     spec.loader.exec_module(mod)
     command = getattr(mod, cls_name)(method=None, requirements=config.requirements)
     models = {k: getattr(mod, v) for k, v in config.params.items()}
-    #shutil.rmtree(tmpdir)
+    # shutil.rmtree(tmpdir)
     return command, models
 
 
