@@ -513,7 +513,7 @@ class AcceleratorConnector:
         if MPSAccelerator.is_available():
             return "mps"
 
-        raise RuntimeError("No supported gpu backend found!")
+        raise MisconfigurationException("No supported gpu backend found!")
 
     def _set_parallel_devices_and_init_accelerator(self) -> None:
         if isinstance(self._accelerator_flag, Accelerator):
