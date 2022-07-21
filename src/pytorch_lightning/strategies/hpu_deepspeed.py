@@ -42,8 +42,7 @@ class HPUDeepSpeedStrategy(HPUParallelStrategy):
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
         billion parameter models on the Habana® Gaudi® infrastructure.
 
-        `For more information: https://pytorch-
-        lightning.readthedocs.io/en/latest/advanced/advanced_gpu.html#deepspeed`.
+        `For more information: https://docs.habana.ai/en/latest/PyTorch/DeepSpeed/DeepSpeed_User_Guide.html`.
         """
         super().__init__(
             accelerator=accelerator,
