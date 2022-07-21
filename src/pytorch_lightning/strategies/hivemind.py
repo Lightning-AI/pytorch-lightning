@@ -108,7 +108,6 @@ class HivemindStrategy(Strategy):
                 This can also be set via the env variable ``INITIAL_PEERS``.
 
             client_mode: Run DHT in client only mode, this is intended for nodes that are not reachable.
-                Defaults to ``False``.
 
             **optimizer_kwargs: kwargs are passed to the :class:`hivemind.Optimizer` class.
         """
