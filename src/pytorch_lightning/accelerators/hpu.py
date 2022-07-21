@@ -58,7 +58,7 @@ class HPUAccelerator(Accelerator):
         """Returns the number of HPU devices when the devices is set to auto."""
         try:
             return torch_hpu.device_count()
-        except (AttributeError, NameError) as e:
+        except (AttributeError, NameError):
             rank_zero_debug("HPU `auto_device_count` failed, returning default count of 8.")
             return 8
 
@@ -67,7 +67,7 @@ class HPUAccelerator(Accelerator):
         """Returns a bool indicating if HPU is currently available."""
         try:
             return torch_hpu.is_available()
-        except (AttributeError, NameError) as e:
+        except (AttributeError, NameError):
             return False
 
     @staticmethod
@@ -75,7 +75,7 @@ class HPUAccelerator(Accelerator):
         """Returns the name of the HPU device."""
         try:
             return torch_hpu.get_device_name()
-        except (AttributeError, NameError) as e:
+        except (AttributeError, NameError):
             return ""
 
     @classmethod
