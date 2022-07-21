@@ -45,6 +45,10 @@ Built-in Checkpoint IO Plugins
        respectively, common for most use cases.
    * - :class:`~pytorch_lightning.plugins.io.XLACheckpointIO`
      - CheckpointIO that utilizes :func:`xm.save` to save checkpoints for TPU training strategies.
+   * - :class:`~pytorch_lightning.plugins.io.HPUCheckpointIO`
+     - CheckpointIO to save checkpoints for HPU training strategies.
+   * - :class:`~pytorch_lightning.plugins.io.AsyncCheckpointIO`
+     - AsyncCheckpointIO enablses saving the checkpoints asynchronously.
 
 
 ***************************
@@ -94,3 +98,41 @@ Custom Checkpoint IO Plugin
 .. note::
 
     Some ``TrainingTypePlugins`` like ``DeepSpeedStrategy`` do not support custom ``CheckpointIO`` as checkpointing logic is not modifiable.
+
+
+**************************
+Asynchronous Checkpointing
+**************************
+
+.. warning::
+
+    This is currently an experimental plugin/feature and API changes are to be expected.
+
+To enable saving the checkpoints asynchronously without blocking your training, you can configure
+:class:`~pytorch_lightning.plugins.io.async_plugin.AsyncCheckpointIO` plugin to ``Trainer``.
+
+It uses it's base ``CheckpointIO`` plugin's saving logic to save the checkpoint but performs the this operation asynchronously.
+By default, this base ``CheckpointIO`` will be set-up for you and all you need to provide is the ``AsyncCheckpointIO`` instance to the ``Trainer``.
+
+.. code-block:: python
+
+   from pytorch_lightning.plugins.io import AsyncCheckpointIO
+
+
+   async_ckpt_io = AsyncCheckpointIO()
+   trainer = Trainer(plugins=[async_ckpt_io])
+   model = LitModel()
+   trainer.fit(model)
+
+
+If you want to plugin your own base ``CheckpointIO`` and want it be behave asynchronously, pass it while initializing ``AsyncCheckpointIO``.
+
+.. code-block:: python
+
+   from pytorch_lightning.plugins.io import AsyncCheckpointIO
+
+   base_ckpt_io = MyCustomCheckpointIO()
+   async_ckpt_io = AsyncCheckpointIO(checkpoint_io=base_ckpt_io)
+   trainer = Trainer(plugins=[async_ckpt_io])
+   model = LitModel()
+   trainer.fit(model)

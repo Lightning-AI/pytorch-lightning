@@ -24,6 +24,10 @@ from pytorch_lightning.utilities.types import _PATH
 class AsyncCheckpointIO(_WrappingCheckpointIO, CheckpointIO):
     """AsyncCheckpointIO enablses saving the checkpoints asynchronously.
 
+    .. warning::
+
+        This is currently an experimental plugin/feature and API changes are to be expected.
+
     Args:
         checkpoint_io: A checkpoint IO plugin that is used as the basis for async checkpointing.
         interval: Sleep time between each queue check.
