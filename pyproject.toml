@@ -47,7 +47,6 @@ warn_no_return = "False"
 # the list can be generated with:
 # mypy --no-error-summary 2>&1 | tr ':' ' ' | awk '{print $1}' | sort | uniq | sed 's/\.py//g; s|src/||g;  s|\/|\.|g' | xargs -I {} echo '"{}",'
 module = [
-    "pytorch_lightning.callbacks.model_checkpoint",
     "pytorch_lightning.callbacks.progress.rich_progress",
     "pytorch_lightning.callbacks.quantization",
     "pytorch_lightning.callbacks.stochastic_weight_avg",
@@ -58,9 +57,7 @@ module = [
     "pytorch_lightning.core.saving",
     "pytorch_lightning.demos.boring_classes",
     "pytorch_lightning.demos.mnist_datamodule",
-    "pytorch_lightning.loggers.mlflow",
     "pytorch_lightning.loggers.neptune",
-    "pytorch_lightning.loggers.tensorboard",
     "pytorch_lightning.loggers.wandb",
     "pytorch_lightning.profilers.advanced",
     "pytorch_lightning.profilers.base",
