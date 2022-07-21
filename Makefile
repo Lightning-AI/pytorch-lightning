@@ -10,9 +10,10 @@ clean:
 	rm -rf $(shell find . -name "mlruns")
 	rm -rf $(shell find . -name "lightning_log")
 	rm -rf $(shell find . -name "lightning_logs")
+	rm -rf $(shell find . -name "__pycache__")
+	rm -rf $(shell find . -name ".mypy_cache")
+	rm -rf $(shell find . -name ".pytest_cache")
 	rm -rf _ckpt_*
-	rm -rf .mypy_cache
-	rm -rf .pytest_cache
 	rm -rf ./docs/build
 	rm -rf ./docs/source-pytorch/notebooks
 	rm -rf ./docs/source-pytorch/generated
@@ -28,14 +29,13 @@ clean:
 
 test: clean
 	# Review the CONTRIBUTING documentation for other ways to test.
-	pip install -e . -r requirements/pytorch/devel.txt
-	pip install -r requirements/pytorch/strategies.txt
+	pip install -e . -r requirements/pytorch/devel.txt -r requirements/pytorch/strategies.txt
 	# run tests with coverage
 	python -m coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v
 	python -m coverage report
 
 docs: clean
-	pip install -e . --quiet -r requirements/pytorch/docs.txt
+	pip install -e . -r requirements/pytorch/docs.txt
 	cd docs && $(MAKE) html
 
 update:
