@@ -186,6 +186,10 @@ class AcceleratorConnector:
         self._amp_level_flag: Optional[str] = amp_level
         self._auto_select_gpus: bool = auto_select_gpus
 
+        # handle "gpu"
+        if self._accelerator_flag == "gpu":
+            self._accelerator_flag = self._choose_gpu_accelerator_backend()
+
         self._check_config_and_set_final_flags(
             strategy=strategy,
             accelerator=accelerator,
@@ -200,10 +204,6 @@ class AcceleratorConnector:
         )
         # 2. Instantiate Accelerator
         self._set_accelerator_if_ipu_strategy_is_passed()
-
-        # handle "gpu"
-        if self._accelerator_flag == "gpu":
-            self._accelerator_flag = self._choose_gpu_accelerator_backend()
 
         # handle `auto` and `None`
         if self._accelerator_flag == "auto" or self._accelerator_flag is None:
