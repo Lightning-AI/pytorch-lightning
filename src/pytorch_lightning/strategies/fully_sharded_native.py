@@ -201,7 +201,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             self._rank_0_will_call_children_scripts = True
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        assert self.accelerator, "self.accelerator must be set before self.accelerator.setup()"
+        assert self.accelerator is not None
         self.accelerator.setup(trainer)
         # share ddp pids to all processes
         self._rank_0_will_call_children_scripts = self.broadcast(self._rank_0_will_call_children_scripts)
@@ -287,6 +287,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
             self.model = self._layer_sync.revert(self.model)
 
         assert self.cluster_environment is not None
+        assert self.accelerator is not None
         self.cluster_environment.teardown()
         self.precision_plugin.teardown()
         self.accelerator.teardown()

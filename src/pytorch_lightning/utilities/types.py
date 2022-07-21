@@ -53,7 +53,8 @@ _DEVICE = Union[torch.device, str, int]
 
 @runtime_checkable
 class TrainingStep(Protocol):
-    """Protocol that requires ``training_step`` function so that it can safely be used by ``Strategy`` classes."""
+    """This class is used to detect if an object implements the `training_step` hook using
+    `isinstance(model, TrainingStep)`."""
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         ...
@@ -61,8 +62,8 @@ class TrainingStep(Protocol):
 
 @runtime_checkable
 class ValidationStep(Protocol):
-    """Protocol that requires ``validation_step`` function so that it can safely be used by ``Strategy``
-    classes."""
+    """This class is used to detect if an object implements the `validation_step` hook using
+    `isinstance(model, ValidationStep)`."""
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         ...
@@ -70,7 +71,8 @@ class ValidationStep(Protocol):
 
 @runtime_checkable
 class TestStep(Protocol):
-    """Protocol that requires ``test_step`` function so that it can safely be used by ``Strategy`` classes."""
+    """This class is used to detect if an object implements the `test_step` hook using
+    `isinstance(model, TestStep)`."""
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         ...
@@ -78,7 +80,8 @@ class TestStep(Protocol):
 
 @runtime_checkable
 class PredictStep(Protocol):
-    """Protocol that requires ``predict_step`` function so that it can safely be used by ``Strategy`` classes."""
+    """This class is used to detect if an object implements the `predict_step` hook using
+    `isinstance(model, PredictStep)`."""
 
     def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         ...

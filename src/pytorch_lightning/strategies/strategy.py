@@ -24,7 +24,7 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers, LightningOptimizer
-from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase, unwrap_lightning_module
+from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -59,10 +59,10 @@ class Strategy(ABC):
         precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
         self._accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = accelerator
-        self._launcher: Optional[_Launcher] = None
-        self._model: Optional[Module] = None
         self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
         self._precision_plugin: Optional[PrecisionPlugin] = precision_plugin
+        self._launcher: Optional[_Launcher] = None
+        self._model: Optional[Module] = None
         self._optimizers: List[Optimizer] = []
         self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
         self.lr_scheduler_configs: List[LRSchedulerConfig] = []
@@ -120,7 +120,7 @@ class Strategy(ABC):
         This is called before the LightningModule/DataModule setup hook which allows the user to access the accelerator
         environment before setup is complete.
         """
-        assert self.accelerator, "self.accelerator must be set before self.accelerator.setup_environment()"
+        assert self.accelerator is not None
         self.accelerator.setup_environment(self.root_device)
 
     def setup_optimizers(self, trainer: "pl.Trainer") -> None:
@@ -142,7 +142,7 @@ class Strategy(ABC):
         Args:
             trainer: the trainer instance
         """
-        assert self.accelerator, "self.accelerator must be set before self.accelerator.setup()"
+        assert self.accelerator is not None
         self.accelerator.setup(trainer)
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
@@ -150,7 +150,7 @@ class Strategy(ABC):
 
     def setup_precision_plugin(self) -> None:
         """Attaches the precision plugin to the accelerator."""
-        assert self.model, "self.model must be set before self.precision_plugin.connect()"
+        assert self.model is not None
         model, optimizers, lr_scheduler_configs = self.precision_plugin.connect(
             self.model, self.optimizers, self.lr_scheduler_configs
         )
@@ -172,7 +172,7 @@ class Strategy(ABC):
             closure_loss: a tensor holding the loss value to backpropagate
         """
         self.pre_backward(closure_loss)
-        assert self.lightning_module, "self.lightning_module must be set before self.precision_plugin.pre_backward()"
+        assert self.lightning_module is not None
         closure_loss = self.precision_plugin.pre_backward(self.lightning_module, closure_loss)
 
         self.precision_plugin.backward(self.lightning_module, closure_loss, *args, **kwargs)
@@ -326,9 +326,7 @@ class Strategy(ABC):
         return self.checkpoint_io.load_checkpoint(checkpoint_path)
 
     def load_model_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
-        assert self.lightning_module, (
-            "self.lightning_module must be set before " "self.lightning_module.load_model_state_dict() "
-        )
+        assert self.lightning_module is not None
         self.lightning_module.load_state_dict(checkpoint["state_dict"])
 
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
@@ -418,7 +416,7 @@ class Strategy(ABC):
 
     def lightning_module_state_dict(self) -> Dict[str, Union[Any, Tensor]]:
         """Returns model state."""
-        assert self.lightning_module, "self.lightning_module must be set before self.lightning_module.state_dict()"
+        assert self.lightning_module is not None
         return self.lightning_module.state_dict()
 
     def save_checkpoint(
@@ -464,11 +462,11 @@ class Strategy(ABC):
             log.detail(f"{self.__class__.__name__}: moving model to CPU")
             self.lightning_module.cpu()
         self.precision_plugin.teardown()
-        assert self.accelerator, "self.accelerator must be set before self.accelerator.teardown()"
+        assert self.accelerator is not None
         self.accelerator.teardown()
 
     @classmethod
-    def register_strategies(cls, strategy_registry: Dict) -> None:
+    def register_strategies(cls, strategy_registry: Dict[str, Any]) -> None:
         pass
 
     def on_train_start(self) -> None:
