@@ -64,7 +64,7 @@ class HPUParallelStrategy(DDPStrategy):
             accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=cluster_environment,
-            checkpoint_io=checkpoint_io or HPUCheckpointIO(),
+            checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
             ddp_comm_state=ddp_comm_state,
             ddp_comm_hook=ddp_comm_hook,
@@ -151,3 +151,9 @@ class HPUParallelStrategy(DDPStrategy):
         # Was set to local rank
         os.environ.pop("ID", None)
         os.environ.pop("HCCL_DISTRIBUTED_BACKEND", None)
+
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        if self._checkpoint_io is None:
+            self._checkpoint_io = HPUCheckpointIO()
+        return self._checkpoint_io

@@ -44,6 +44,7 @@ from pytorch_lightning.strategies import (
     DeepSpeedStrategy,
     SingleDeviceStrategy,
 )
+from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
@@ -742,3 +743,12 @@ def test_plugin_only_one_instance_for_one_type(plugins, expected):
 def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
     with pytest.raises(MisconfigurationException, match="value is not a valid input using"):
         Trainer(accelerator=accelerator, devices=devices)
+
+
+@mock.patch("pytorch_lightning.strategies.hpu_parallel._HPU_AVAILABLE", return_value=False)
+@mock.patch("pytorch_lightning.accelerators.hpu._HPU_AVAILABLE", return_value=False)
+@mock.patch("pytorch_lightning.plugins.precision.hpu._HPU_AVAILABLE", return_value=False)
+def test_accelerator_specific_custom_plugin(*_):
+    ckpt_plugin = TorchCheckpointIO()
+    trainer = Trainer(accelerator="hpu", strategy=HPUParallelStrategy(), plugins=[ckpt_plugin])
+    assert trainer.strategy.checkpoint_io is ckpt_plugin
