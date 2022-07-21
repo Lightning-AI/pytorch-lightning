@@ -133,6 +133,7 @@ ENV/
 
 # data
 .data/
+data/
 Datasets/
 mnist/
 MNIST/
@@ -151,6 +152,12 @@ wandb
 *.prof
 *.tar.gz
 .neptune/
+cov.xml
+
+# from tutorials
+test.png
+our_model.tar
+saved_models/
 
 # dataset generated from bolts in examples.
 cifar-10-batches-py
