@@ -41,14 +41,14 @@ else:
 
 
 def wrap_qat_forward_context(
-    quant_cb, model: "pl.LightningModule", func: Callable, trigger_condition: Optional[Union[Callable, int]] = None
+    quant_cb: Any, model: "pl.LightningModule", func: Callable, trigger_condition: Optional[Union[Callable, int]] = None
 ) -> Callable:
     """Decorator to wrap forward path as it is needed to quantize inputs and dequantize outputs for in/out
     compatibility Moreover this version has the (de)quantization conditional as it may not be needed for the
     training all the time."""
     # todo: consider using registering hook before/after forward
     @functools.wraps(func)
-    def wrapper(data) -> Any:
+    def wrapper(data: Any) -> Any:
         _is_func_true = isinstance(trigger_condition, Callable) and trigger_condition(model.trainer)
         _is_count_true = isinstance(trigger_condition, int) and quant_cb._forward_calls < trigger_condition
         _quant_run = trigger_condition is None or _is_func_true or _is_count_true
@@ -200,8 +200,8 @@ class QuantizationAwareTraining(Callback):
         self._observer_disabled_stages = set(self.OBSERVER_STAGES) - observer_enabled_stages
 
         self._forward_calls = 0
-        self._fake_quant_to_initial_state_dict = {}
-        self._last_fake_quant_to_observer_enabled = {}
+        self._fake_quant_to_initial_state_dict: Dict[FakeQuantizeBase, Tensor] = {}
+        self._last_fake_quant_to_observer_enabled: Dict[FakeQuantizeBase, Tensor] = {}
         self._module_prepared = False
 
     def _check_feasible_fuse(self, model: "pl.LightningModule") -> bool:
@@ -273,7 +273,7 @@ class QuantizationAwareTraining(Callback):
         }
         self._module_prepared = True
 
-    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
+    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         self._prepare_model(pl_module)
 
     def on_fit_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
