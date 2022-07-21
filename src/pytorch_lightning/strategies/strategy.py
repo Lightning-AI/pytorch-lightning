@@ -53,7 +53,7 @@ class Strategy(ABC):
         self.accelerator = accelerator
         self._launcher: Optional[_Launcher] = None
         self._model: Optional[Module] = None
-        self._checkpoint_io = checkpoint_io
+        self.checkpoint_io = checkpoint_io
         self.precision_plugin = precision_plugin
         self._optimizers: List[Optimizer] = []
         self._lightning_optimizers: Dict[int, LightningOptimizer] = {}

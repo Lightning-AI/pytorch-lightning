@@ -281,3 +281,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         if self._checkpoint_io is None:
             self._checkpoint_io = XLACheckpointIO()
         return self._checkpoint_io
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+        self._checkpoint_io = io

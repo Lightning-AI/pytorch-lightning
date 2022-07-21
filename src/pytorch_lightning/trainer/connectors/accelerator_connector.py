@@ -766,7 +766,7 @@ class AcceleratorConnector:
         if self.precision_plugin:
             self.strategy.precision_plugin = self.precision_plugin
         if self.checkpoint_io:
-            self.strategy._checkpoint_io = self.checkpoint_io
+            self.strategy.checkpoint_io = self.checkpoint_io
         if hasattr(self.strategy, "cluster_environment"):
             self.strategy.cluster_environment = self.cluster_environment
         if hasattr(self.strategy, "parallel_devices"):
