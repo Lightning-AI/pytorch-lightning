@@ -187,8 +187,8 @@ class AcceleratorConnector:
         self._auto_select_gpus: bool = auto_select_gpus
 
         # handle "gpu"
-        if self._accelerator_flag == "gpu":
-            self._accelerator_flag = self._choose_gpu_accelerator_backend()
+        if accelerator == "gpu":
+            accelerator = self._choose_gpu_accelerator_backend()
 
         self._check_config_and_set_final_flags(
             strategy=strategy,
