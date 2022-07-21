@@ -3,9 +3,7 @@ import os
 import tarfile
 import uuid
 import zipfile
-from dataclasses import dataclass
 from pathlib import Path
-from typing import List
 
 import lightning as L
 from lightning.app.storage import Drive
@@ -158,9 +156,9 @@ class FileServer(L.LightningWork):
         return self.url != ""
 
 
-import requests
+import requests  # noqa: E402
 
-from lightning import LightningWork
+from lightning import LightningWork  # noqa: E402
 
 
 class TestFileServer(LightningWork):
@@ -185,7 +183,7 @@ class TestFileServer(LightningWork):
             assert response.json() == {"asset_names": ["test.txt"]}
 
 
-from lightning import LightningApp, LightningFlow
+from lightning import LightningApp, LightningFlow  # noqa: E402
 
 
 class Flow(LightningFlow):
@@ -218,14 +216,16 @@ class Flow(LightningFlow):
         # in the UI using its `/` endpoint.
         return {"name": "File Server", "content": self.file_server}
 
-from lightning.app.runners import MultiProcessRuntime
+
+from lightning.app.runners import MultiProcessRuntime  # noqa: E402
 
 
 def test_file_server():
     app = LightningApp(Flow())
     MultiProcessRuntime(app).dispatch()
 
-from lightning.app.testing.testing import run_app_in_cloud
+
+from lightning.app.testing.testing import run_app_in_cloud  # noqa: E402
 
 
 def test_file_server_in_cloud():

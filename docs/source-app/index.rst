@@ -25,12 +25,10 @@ Welcome to ⚡ Lightning Apps
 Install Lightning
 *****************
 
-
-Pip users
-
 .. code-block:: bash
 
    pip install lightning
+
 
 Or read the :ref:`advanced install <install>` guide.
 

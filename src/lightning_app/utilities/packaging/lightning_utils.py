@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 LIGHTNING_FRONTEND_RELEASE_URL = "https://storage.googleapis.com/grid-packages/lightning-ui/v0.0.0/build.tar.gz"
 
 
-def download_frontend(root):
+def download_frontend(root: str = _PROJECT_ROOT):
     """Downloads an archive file for a specific release of the Lightning frontend and extracts it to the correct
     directory."""
     build_dir = "build"
