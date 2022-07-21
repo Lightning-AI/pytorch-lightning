@@ -41,40 +41,6 @@ if _TORCH_GREATER_EQUAL_1_10:
     # TODO: Removed once merged and released on PyTorch side           #
     ####################################################################
 
-    @contextmanager
-    def enable_python_mode(cls: Type[_MetaContext]) -> Iterator[None]:
-        if not hasattr(cls, "__torch_dispatch__"):
-            raise ValueError("The class passed to enable_python_mode " "must have a __torch_dispatch__ classmethod")
-        if not isinstance(cls, type) or not issubclass(cls, (Tensor,)):
-            raise ValueError("The argument passed to enable_python_mode " "must be the type of a Tensor subclass")
-        torch._C._enter_python_mode(cls)
-        try:
-            yield
-        finally:
-            torch._C._exit_python_mode()
-
-    _tls = threading.local()
-    _tls.in_call = False
-
-    @contextmanager
-    def _no_dispatch() -> Iterator[None]:
-        """Temporarily disables the Python dispatch mode."""
-        guard = _DisableTorchDispatch()  # noqa F841
-        try:
-            yield
-        finally:
-            del guard
-
-    def _handle_arange(func: Callable, args: Any, kwargs: Any) -> Tensor:
-        kwargs["device"] = torch.device("cpu")
-        return torch.empty_like(func(*args, **kwargs), device="meta")
-
-    def _handle_tril(func: Callable, args: Any, kwargs: Any) -> Union[Tensor, Any]:
-        if args and isinstance(args[0], Tensor):
-            return torch.empty_like(args[0], device="meta")
-
-        return NotImplemented
-
     class _MetaContext(Tensor):
         _op_handlers: Dict[Callable, Callable] = {}
 
@@ -111,6 +77,40 @@ if _TORCH_GREATER_EQUAL_1_10:
                     kwargs["device"] = torch.device("meta")
 
                 return func(*args, **(kwargs if kwargs is not None else {}))
+
+    @contextmanager
+    def enable_python_mode(cls: Type[_MetaContext]) -> Iterator[None]:
+        if not hasattr(cls, "__torch_dispatch__"):
+            raise ValueError("The class passed to enable_python_mode " "must have a __torch_dispatch__ classmethod")
+        if not isinstance(cls, type) or not issubclass(cls, (Tensor,)):
+            raise ValueError("The argument passed to enable_python_mode " "must be the type of a Tensor subclass")
+        torch._C._enter_python_mode(cls)
+        try:
+            yield
+        finally:
+            torch._C._exit_python_mode()
+
+    _tls = threading.local()
+    _tls.in_call = False
+
+    @contextmanager
+    def _no_dispatch() -> Iterator[None]:
+        """Temporarily disables the Python dispatch mode."""
+        guard = _DisableTorchDispatch()  # noqa F841
+        try:
+            yield
+        finally:
+            del guard
+
+    def _handle_arange(func: Callable, args: Any, kwargs: Any) -> Tensor:
+        kwargs["device"] = torch.device("cpu")
+        return torch.empty_like(func(*args, **kwargs), device="meta")
+
+    def _handle_tril(func: Callable, args: Any, kwargs: Any) -> Union[Tensor, Any]:
+        if args and isinstance(args[0], Tensor):
+            return torch.empty_like(args[0], device="meta")
+
+        return NotImplemented
 
     def init_meta(
         module_fn: Callable[..., Module], *args: Any, **kwargs: Any
