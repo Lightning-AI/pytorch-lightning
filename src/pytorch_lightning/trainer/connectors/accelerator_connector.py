@@ -63,6 +63,7 @@ from pytorch_lightning.strategies import (
     DDPStrategy,
     DeepSpeedStrategy,
     HorovodStrategy,
+    HPUDeepSpeedStrategy,
     HPUParallelStrategy,
     IPUStrategy,
     SingleDeviceStrategy,
@@ -213,6 +214,7 @@ class AcceleratorConnector:
             self._strategy_flag = self._choose_strategy()
         # In specific cases, ignore user selection and fall back to a different strategy
         self._check_strategy_and_fallback()
+        self._set_strategy_for_hpu_and_deepspeed()
         self._init_strategy()
 
         # 5. Instantiate Precision Plugin
@@ -618,6 +620,10 @@ class AcceleratorConnector:
         if strategy_flag:
             self._strategy_flag = strategy_flag
 
+    def _set_strategy_for_hpu_and_deepspeed(self) -> None:
+        if self._accelerator_flag == "hpu" and self._strategy_flag == "deepspeed":
+            self._strategy_flag = "hpu_deepspeed"
+
     def _handle_horovod(self) -> None:
         if self._num_nodes_flag > 1:
             raise MisconfigurationException(
@@ -804,10 +810,10 @@ class AcceleratorConnector:
             )
 
         if isinstance(self.accelerator, HPUAccelerator) and not isinstance(
-            self.strategy, (SingleHPUStrategy, HPUParallelStrategy)
+            self.strategy, (SingleHPUStrategy, HPUParallelStrategy, HPUDeepSpeedStrategy)
         ):
             raise ValueError(
-                "The `HPUAccelerator` can only be used with a `SingleHPUStrategy` or `HPUParallelStrategy`,"
+                "The `HPUAccelerator` can only be used with a `SingleHPUStrategy`, `HPUParallelStrategy` or `HPUDeepSpeedStrategy`,"
                 f" found {self.strategy.__class__.__name__}."
             )
 
@@ -830,6 +836,7 @@ class AcceleratorConnector:
             TPUSpawnStrategy,
             HorovodStrategy,
             HPUParallelStrategy,
+            HPUDeepSpeedStrategy,
         )
         is_distributed = isinstance(self.strategy, distributed_strategy)
         if isinstance(self.accelerator, TPUAccelerator):
