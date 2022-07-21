@@ -203,12 +203,12 @@ class Logger(ABC):
 
     @property
     @abstractmethod
-    def name(self) -> str:
+    def name(self) -> Optional[str]:
         """Return the experiment name."""
 
     @property
     @abstractmethod
-    def version(self) -> Union[int, str]:
+    def version(self) -> Optional[Union[int, str]]:
         """Return the experiment version."""
 
 
