@@ -16,13 +16,13 @@ import queue
 from typing import Any, Dict, Optional
 
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.utilities.cloud_io import _ThreadQueue
 from pytorch_lightning.utilities.types import _PATH
 
 
-class AsyncCheckpointIO(CheckpointIO):
-    """CheckpointIO that utilizes :func:`torch.save` and :func:`torch.load` to save and load checkpoints
-    respectively, common for most use cases.
+class AsyncCheckpointIO(_WrappingCheckpointIO, CheckpointIO):
+    """AsyncCheckpointIO enablses saving the checkpoints asynchronously.
 
     Args:
         checkpoint_io: A checkpoint IO plugin that is used as the basis for async checkpointing.
@@ -30,24 +30,10 @@ class AsyncCheckpointIO(CheckpointIO):
     """
 
     def __init__(self, checkpoint_io: Optional["CheckpointIO"] = None, interval: float = 2.0) -> None:
-        super().__init__()
+        super().__init__(checkpoint_io)
 
-        self._checkpoint_io = checkpoint_io
         self._thread = _ThreadQueue(q=queue.Queue(), interval=interval)
         self._thread.start()
-
-    @property
-    def checkpoint_io(self):
-        return self._checkpoint_io
-
-    @checkpoint_io.setter
-    def checkpoint_io(self, checkpoint_io: "CheckpointIO") -> None:
-        if self._checkpoint_io is None:
-            self._checkpoint_io = checkpoint_io
-
-    @property
-    def is_wrapper(self) -> bool:
-        return True
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.

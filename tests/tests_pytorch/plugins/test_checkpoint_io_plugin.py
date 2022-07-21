@@ -23,6 +23,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.io.async_plugin import AsyncCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
 from pytorch_lightning.strategies import SingleDeviceStrategy
 from pytorch_lightning.utilities.types import _PATH
 
@@ -118,3 +119,22 @@ def test_async_checkpoint_plugin(tmpdir):
 
     ckpt_files = {fn.name for fn in Path(tmpdir).glob("*.ckpt")}
     assert ckpt_files == {"epoch=0-step=1.ckpt", "epoch=1-step=2.ckpt"}
+
+
+def test_multi_wrapped_checkpoint_io_initialization():
+    base_ckpt_io = TorchCheckpointIO()
+    wrap_ckpt = AsyncCheckpointIO(base_ckpt_io)
+    ckpt_io = AsyncCheckpointIO(wrap_ckpt)
+    assert ckpt_io.checkpoint_io is wrap_ckpt
+    assert ckpt_io.checkpoint_io.checkpoint_io is base_ckpt_io
+    assert ckpt_io._base_checkpoint_io_configured is True
+    assert ckpt_io.checkpoint_io._base_checkpoint_io_configured is True
+
+    wrap_ckpt = AsyncCheckpointIO()
+    ckpt_io = AsyncCheckpointIO(wrap_ckpt)
+    trainer = Trainer(accelerator="cpu", plugins=[ckpt_io])
+    trainer.strategy.checkpoint_io
+    assert ckpt_io.checkpoint_io is wrap_ckpt
+    assert isinstance(ckpt_io.checkpoint_io.checkpoint_io, TorchCheckpointIO)
+    assert ckpt_io._base_checkpoint_io_configured is True
+    assert ckpt_io.checkpoint_io._base_checkpoint_io_configured is True

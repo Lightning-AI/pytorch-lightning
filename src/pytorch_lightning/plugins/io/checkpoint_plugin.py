@@ -64,7 +64,9 @@ class CheckpointIO(ABC):
     @property
     def is_wrapper(self) -> bool:
         """Property that tells whether a ``CheckpointIO`` is a wrapper around another ``CheckpointIO`` object."""
-        return False
+        from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
+
+        return isinstance(self, _WrappingCheckpointIO)
 
     def teardown(self) -> None:
         """This method is called to teardown the process."""
