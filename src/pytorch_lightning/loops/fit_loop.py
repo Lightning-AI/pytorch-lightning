@@ -175,7 +175,7 @@ class FitLoop(Loop[None]):
             met_min_steps = self.epoch_loop.global_step >= self.min_steps if self.min_steps else True
             if met_min_epochs and met_min_steps:
                 self.trainer.should_stop = True
-                rank_zero_debug(f"`Trainer.fit` stopped: `should_stop` was set.")
+                rank_zero_debug(f"`Trainer.fit` stopped: `trainer.should_stop` was set.")
                 return True
             else:
                 rank_zero_info(
