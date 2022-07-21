@@ -3,7 +3,7 @@ import os
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import List, Tuple, Union
 from uuid import uuid4
 
 import click
@@ -148,10 +148,10 @@ def app_command():
 
     logger.warn("Lightning Commands are a beta feature and APIs aren't stable yet.")
 
+    debug_mode = bool(int(os.getenv("DEBUG", "0")))
+
     parser = ArgumentParser()
-    parser.add_argument(
-        "--app_id", default=None, type=Optional[str], help="Optional argument to identify an application."
-    )
+    parser.add_argument("--app_id", default=None, type=str, help="Optional argument to identify an application.")
     hparams, _ = parser.parse_known_args()
 
     # 1: Collect the url and comments from the running application
@@ -190,8 +190,9 @@ def app_command():
         resp = requests.post(url + "/api/v1/commands", json=json, headers=headers_for({}))
         assert resp.status_code == 200, resp.json()
     else:
-        client_command, models = _download_command(command_metadata, hparams.app_id)
+        client_command, models = _download_command(command_metadata, hparams.app_id, debug_mode=debug_mode)
         client_command._setup(metadata=command_metadata, models=models, app_url=url)
+        sys.argv = sys.argv[2:]
         client_command.run()
 
 

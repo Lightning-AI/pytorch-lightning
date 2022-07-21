@@ -96,14 +96,16 @@ class ClientCommand:
 
 
 def _download_command(
-    command_metadata: Dict[str, Any], app_id: Optional[str]
+    command_metadata: Dict[str, Any],
+    app_id: Optional[str],
+    debug_mode: bool = False,
 ) -> Tuple[ClientCommand, Dict[str, BaseModel]]:
     # TODO: This is a skateboard implementation and the final version will rely on versioned
     # immutable commands for security concerns
     config = _ClientCommandConfig(**command_metadata)
-    # tmpdir = osp.join(gettempdir(), f"{getuser()}_commands")
-    # makedirs(tmpdir)
-    target_file = osp.join(".", f"{config.command}.py")
+    tmpdir = osp.join(gettempdir(), f"{getuser()}_commands")
+    makedirs(tmpdir)
+    target_file = osp.join(tmpdir, f"{config.command}.py")
     if app_id:
         client = LightningClient()
         project_id = _get_project(client).project_id
@@ -114,18 +116,18 @@ def _download_command(
                 with open(target_file, "wb") as f:
                     f.write(r.content)
     else:
-        shutil.copy(config.cls_path, target_file)
-
-    breakpoint()
+        if not debug_mode:
+            shutil.copy(config.cls_path, target_file)
 
     cls_name = config.cls_name
-    spec = spec_from_file_location(config.cls_name, target_file)
+    spec = spec_from_file_location(config.cls_name, config.cls_path if debug_mode else target_file)
     mod = module_from_spec(spec)
     sys.modules[cls_name] = mod
     spec.loader.exec_module(mod)
     command = getattr(mod, cls_name)(method=None, requirements=config.requirements)
     models = {k: getattr(mod, v) for k, v in config.params.items()}
-    # shutil.rmtree(tmpdir)
+    if debug_mode:
+        shutil.rmtree(tmpdir)
     return command, models
 
 

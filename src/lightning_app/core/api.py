@@ -3,6 +3,8 @@ import logging
 import os
 import queue
 import sys
+import time
+import traceback
 from copy import deepcopy
 from multiprocessing import Queue
 from threading import Event, Lock, Thread
@@ -65,17 +67,21 @@ logger = logging.getLogger(__name__)
 
 
 class UIRefresher(Thread):
-    def __init__(self, api_publish_state_queue, api_commands_metadata_queue) -> None:
+    def __init__(self, api_publish_state_queue, api_commands_metadata_queue, api_commands_responses_queue) -> None:
         super().__init__(daemon=True)
         self.api_publish_state_queue = api_publish_state_queue
         self.api_commands_metadata_queue = api_commands_metadata_queue
+        self.api_commands_responses_queue = api_commands_responses_queue
         self._exit_event = Event()
 
     def run(self):
         # TODO: Create multiple threads to handle the background logic
         # TODO: Investigate the use of `parallel=True`
-        while not self._exit_event.is_set():
-            self.run_once()
+        try:
+            while not self._exit_event.is_set():
+                self.run_once()
+        except Exception:
+            logger.error(traceback.print_exc())
 
     def run_once(self):
         try:
@@ -90,6 +96,14 @@ class UIRefresher(Thread):
             with lock:
                 global app_commands_metadata
                 app_commands_metadata = metadata
+        except queue.Empty:
+            pass
+
+        try:
+            response = self.api_commands_responses_queue.get(timeout=0)
+            with lock:
+                global commands_response_store
+                commands_response_store[response["id"]] = response
         except queue.Empty:
             pass
 
@@ -176,18 +190,19 @@ async def run_remote_command(
     if not affiliation:
         raise Exception("The provided affiliation is empty.")
 
-    async def fn(request: Request):
-        data = await request.json()
+    async def fn(data):
         request_id = data["id"]
         api_commands_requests_queue.put(data)
 
-        resp = api_commands_responses_queue.get()
-        if request_id == resp["id"]:
-            return resp["response"]
+        t0 = time.time()
+        while request_id not in commands_response_store:
+            await asyncio.sleep(0.1)
+            if (time.time() - t0) > 15:
+                raise Exception("The response wasn't never received.")
 
-        raise Exception("This is a bug. It shouldn't happen.")
+        return commands_response_store[request_id]
 
-    return await asyncio.create_task(fn(request))
+    return await asyncio.create_task(fn(data))
 
 
 @fastapi_service.get("/api/v1/commands", response_class=JSONResponse)
@@ -357,7 +372,7 @@ def start_server(
 
     global_app_state_store.add(TEST_SESSION_UUID)
 
-    refresher = UIRefresher(api_publish_state_queue, api_commands_metadata_queue)
+    refresher = UIRefresher(api_publish_state_queue, api_commands_metadata_queue, commands_responses_queue)
     refresher.setDaemon(True)
     refresher.start()
 
