@@ -21,6 +21,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
 class HPUDeepSpeedStrategy(HPUParallelStrategy):
@@ -31,7 +32,7 @@ class HPUDeepSpeedStrategy(HPUParallelStrategy):
         self,
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         zero_optimization: bool = True,
-        stage: int = 2,
+        stage: int = 1,
         config: Optional[Union[Path, str, dict]] = None,
         logging_level: int = logging.WARN,
         parallel_devices: Optional[List[torch.device]] = None,
@@ -51,6 +52,18 @@ class HPUDeepSpeedStrategy(HPUParallelStrategy):
             precision_plugin=precision_plugin,
             process_group_backend=process_group_backend,
         )
+
+    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.val_step_context():
+            return self.model(*args, **kwargs)
+
+    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        with self.precision_plugin.test_step_context():
+            return self.model(*args, **kwargs)
+
+    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        with self.precision_plugin.predict_step_context():
+            return self.model(*args, **kwargs)
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
