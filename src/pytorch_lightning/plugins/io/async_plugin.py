@@ -16,7 +16,7 @@ import queue
 from typing import Any, Dict, Optional
 
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
-from pytorch_lightning.utilities.cloud_io import ThreadQueue
+from pytorch_lightning.utilities.cloud_io import _ThreadQueue
 from pytorch_lightning.utilities.types import _PATH
 
 
@@ -26,14 +26,14 @@ class AsyncCheckpointIO(CheckpointIO):
 
     Args:
         checkpoint_io: A checkpoint IO plugin that is used as the basis for async checkpointing.
+        interval: Sleep time between each queue check.
     """
 
-    def __init__(self, checkpoint_io: Optional["CheckpointIO"] = None) -> None:
+    def __init__(self, checkpoint_io: Optional["CheckpointIO"] = None, interval: float = 2.0) -> None:
         super().__init__()
 
         self._checkpoint_io = checkpoint_io
-        self._queue = queue.Queue()
-        self._thread = ThreadQueue(q=self.queue)
+        self._thread = _ThreadQueue(q=queue.Queue(), interval=interval)
         self._thread.start()
 
     @property
@@ -42,7 +42,12 @@ class AsyncCheckpointIO(CheckpointIO):
 
     @checkpoint_io.setter
     def checkpoint_io(self, checkpoint_io: "CheckpointIO") -> None:
-        self._checkpoint_io = checkpoint_io
+        if self._checkpoint_io is None:
+            self._checkpoint_io = checkpoint_io
+
+    @property
+    def is_wrapper(self) -> bool:
+        return True
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
         """Save model/training states as a checkpoint file through state-dump and file-write.
@@ -52,7 +57,7 @@ class AsyncCheckpointIO(CheckpointIO):
             path: write-target path
             storage_options: not used in ``TorchCheckpointIO.save_checkpoint``
         """
-        self._queue.put((self.checkpoint_io.save_checkpoint, (checkpoint, path)))
+        self._thread._queue.put((self.checkpoint_io.save_checkpoint, (checkpoint, path)))
 
     def remove_checkpoint(self, path: _PATH) -> None:
         """Remove checkpoint file from the filesystem.

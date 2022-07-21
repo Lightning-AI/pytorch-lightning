@@ -21,6 +21,7 @@ import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.plugins.io.async_plugin import AsyncCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.strategies import SingleDeviceStrategy
 from pytorch_lightning.utilities.types import _PATH
@@ -94,26 +95,26 @@ def test_checkpoint_plugin_called(tmpdir):
     checkpoint_plugin.load_checkpoint.assert_called_with(tmpdir / "last-v1.ckpt")
 
 
-def test_checkpoint_plugin_called_async(tmpdir):
+def test_async_checkpoint_plugin(tmpdir):
     """Ensure that the custom checkpoint IO plugin and torch checkpoint IO plugin is called when async saving and
     loading."""
-    checkpoint_plugin = CustomCheckpointIO(save_async=True, num_threads=2)
-    checkpoint_plugin = MagicMock(wraps=checkpoint_plugin, spec=CustomCheckpointIO)
+
+    checkpoint_plugin = AsyncCheckpointIO()
 
     ck = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)
 
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
-        strategy=SingleDeviceStrategy("cpu", checkpoint_io=checkpoint_plugin),
+        plugins=[checkpoint_plugin],
         callbacks=ck,
         max_epochs=2,
         limit_train_batches=1,
         limit_val_batches=0,
+        enable_progress_bar=False,
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
     ckpt_files = {fn.name for fn in Path(tmpdir).glob("*.ckpt")}
     assert ckpt_files == {"epoch=0-step=1.ckpt", "epoch=1-step=2.ckpt"}
-    assert checkpoint_plugin.save_checkpoint.call_count == 2
-    assert checkpoint_plugin.remove_checkpoint.call_count == 0

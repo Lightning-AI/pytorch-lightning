@@ -27,27 +27,24 @@ from fsspec.implementations.local import AbstractFileSystem
 
 from pytorch_lightning.utilities.types import _PATH
 
-_checkpoint_lock = threading.Lock()
 
-
-class ThreadQueue(threading.Thread):
-    def __init__(self, q: queue.Queue, interval: int = 1) -> None:
+class _ThreadQueue(threading.Thread):
+    def __init__(self, q: queue.Queue, interval: float) -> None:
         super().__init__(daemon=True)
-        self.q = q
+        self._queue = q
         self._close_thread = False
         self._interval = interval
 
     def run(self) -> None:
-        with _checkpoint_lock:
-            while not (self._close_thread and self.q.empty()):
-                time.sleep(self._interval)
-                func, args = self.q.get()
-                func(*args)
-                self.q.task_done()
+        while not (self._close_thread and self._queue.empty()):
+            time.sleep(self._interval)
+            func, args = self._queue.get()
+            func(*args)
+            self._queue.task_done()
 
     def join(self, timeout: Optional[float] = None) -> None:
         self._close_thread = True
-        self.q.join()
+        self._queue.join()
         super().join(timeout)
 
 

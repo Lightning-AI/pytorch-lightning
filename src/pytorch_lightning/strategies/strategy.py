@@ -50,6 +50,7 @@ class Strategy(ABC):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ) -> None:
+
         self.accelerator = accelerator
         self._launcher: Optional[_Launcher] = None
         self._model: Optional[Module] = None
@@ -76,6 +77,8 @@ class Strategy(ABC):
     def checkpoint_io(self) -> CheckpointIO:
         if self._checkpoint_io is None:
             self._checkpoint_io = TorchCheckpointIO()
+        elif self._checkpoint_io.is_wrapper:
+            self._checkpoint_io.checkpoint_io = TorchCheckpointIO()
 
         return self._checkpoint_io
 
