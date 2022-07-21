@@ -14,7 +14,6 @@
 import json
 import os
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-from pytorch_lightning.strategies.strategy import TBroadcast
 
 import torch
 from torch import FloatTensor, Tensor
@@ -26,6 +25,7 @@ from pytorch_lightning.plugins.environments.cluster_environment import ClusterEn
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.parallel import ParallelStrategy
+from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn
 from pytorch_lightning.utilities import _IPU_AVAILABLE, _POPTORCH_AVAILABLE, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -111,12 +111,12 @@ class IPUStrategy(ParallelStrategy):
         self.device_iterations = device_iterations
         self.autoreport = autoreport
         self.autoreport_dir = autoreport_dir
-        self.poptorch_models : Dict[Union[RunningStage, str], "poptorch.PoplarExecutor"] = {}
+        self.poptorch_models: Dict[Union[RunningStage, str], "poptorch.PoplarExecutor"] = {}
         self._training_opts = training_opts
         self._inference_opts = inference_opts
 
         if self.autoreport:
-            options : Dict[str, Any] = {"autoReport.all": self.autoreport}
+            options: Dict[str, Any] = {"autoReport.all": self.autoreport}
             if self.autoreport_dir:
                 self._fs = get_filesystem(str(self.autoreport_dir))
                 self._fs.makedirs(self.autoreport_dir, exist_ok=True)
@@ -294,7 +294,7 @@ class IPUStrategy(ParallelStrategy):
         self.lightning_module._running_torchscript = False
         return out
 
-    def training_step(self,  *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         with self.precision_plugin.train_step_context():
             return self._step(RunningStage.TRAINING, *args, **kwargs)
 
@@ -302,11 +302,11 @@ class IPUStrategy(ParallelStrategy):
         with self.precision_plugin.val_step_context():
             return self._step(RunningStage.VALIDATING, *args, **kwargs)
 
-    def test_step(self,  *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
+    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.test_step_context():
             return self._step(RunningStage.TESTING, *args, **kwargs)
 
-    def predict_step(self,  *args: Any, **kwargs: Any) -> STEP_OUTPUT:
+    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         with self.precision_plugin.predict_step_context():
             return self._step(RunningStage.PREDICTING, *args, **kwargs)
 
