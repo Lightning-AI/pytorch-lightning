@@ -394,7 +394,8 @@ class Trainer(
             val_check_interval: How often to check the validation set. Pass a ``float`` in the range [0.0, 1.0] to check
                 after a fraction of the training epoch. Pass an ``int`` to check after a fixed number of training
                 batches. An ``int`` value can only be higher than the number of training batches when
-                ``check_val_every_n_epoch=None``.
+                ``check_val_every_n_epoch=None``, which validates after every ``N`` training batches
+                across epochs or during iteration-based training.
                 Default: ``1.0``.
 
             enable_model_summary: Whether to enable model summarization by default.
@@ -2705,7 +2706,9 @@ class Trainer(
         self._loggers = loggers if loggers else []
 
     @property
-    def callback_metrics(self) -> dict:
+    def callback_metrics(self) -> Dict[str, Tensor]:
+        # TODO: the true typing return can include dictionaries as defined in
+        # `pytorch_lightning.trainer.connectors.logger_connector.result._OUT_DICT`
         return self._logger_connector.callback_metrics
 
     @property
