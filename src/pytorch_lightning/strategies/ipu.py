@@ -13,7 +13,7 @@
 # limitations under the License.
 import json
 import os
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import torch
 from torch import FloatTensor, Tensor
@@ -225,11 +225,12 @@ class IPUStrategy(ParallelStrategy):
     @property
     def lightning_module(self) -> "pl.LightningModule":
         model = self.model.module if isinstance(self.model, LightningIPUModule) else self.model
-        assert model is not None
+        if not isinstance(model, pl.LightningModule):
+            raise TypeError(f"Unwrapping the module did not yield a `LightningModule`, got {type(model)} instead.")
         return model
 
     def _convert_to_poptorch_loader(
-        self, dataloader: DataLoader, sampler: Sampler, mode: Optional[RunningStage] = None
+        self, dataloader: DataLoader, sampler: Union[Sampler, Iterable], mode: Optional[RunningStage] = None
     ) -> "poptorch.DataLoader":
         if isinstance(dataloader, poptorch.DataLoader):
             # the user is returning the `poptorch.DataLoader` directly, don't change anything.
