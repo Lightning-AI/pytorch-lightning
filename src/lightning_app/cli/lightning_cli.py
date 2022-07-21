@@ -1,13 +1,13 @@
 import logging
 import os
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import List, Tuple, Union, Optional
 from uuid import uuid4
-
+import sys
 import click
 import requests
 from requests.exceptions import ConnectionError
-
+from argparse import ArgumentParser
 from lightning_app import __version__ as ver
 from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
 from lightning_app.core.constants import get_lightning_cloud_url, LOCAL_LAUNCH_ADMIN_VIEW
@@ -32,14 +32,22 @@ def get_app_url(runtime_type: RuntimeType, *args) -> str:
         return "http://127.0.0.1:7501/admin" if LOCAL_LAUNCH_ADMIN_VIEW else "http://127.0.0.1:7501/view"
 
 
+def main():
+    if len(sys.argv) == 1:
+        _main()
+    elif sys.argv[1] in _main.commands.keys():
+        _main()
+    else:
+        app_command()
+
 @click.group()
 @click.version_option(ver)
-def main():
+def _main():
     register_all_external_components()
     pass
 
 
-@main.command()
+@_main.command()
 def login():
     """Log in to your Lightning.ai account."""
     auth = Auth()
@@ -52,7 +60,7 @@ def login():
         exit(1)
 
 
-@main.command()
+@_main.command()
 def logout():
     """Log out of your Lightning.ai account."""
     Auth().clear()
@@ -99,7 +107,7 @@ def _run_app(
         click.echo("Application is ready in the cloud")
 
 
-@main.group()
+@_main.group()
 def run():
     """Run your application."""
 
@@ -131,36 +139,25 @@ def run_app(
     _run_app(file, cloud, without_server, no_cache, name, blocking, open_ui, env)
 
 
-@main.command("command")
-@click.argument("command", type=str, default="")
-@click.option(
-    "--args",
-    type=str,
-    default=[],
-    multiple=True,
-    help="Arguments to be passed to the method executed in the running app.",
-)
-@click.option(
-    "--id", help="Unique identifier for the application. It can be its ID, its url or its name.", default=None, type=str
-)
-def command(
-    command: str,
-    args: List[str],
-    id: Optional[str] = None,
-):
+def app_command():
     """Execute a function in a running application from its name."""
+    from lightning_app.utilities.commands.base import _download_command
 
     logger.warn("Lightning Commands are a beta feature and APIs aren't stable yet.")
 
-    from lightning_app.utilities.commands.base import _download_command
+    parser = ArgumentParser()
+    parser.add_argument("--app_id", default=None, type=Optional[str], help="Optional argument to identify an application.")
+    hparams, _ = parser.parse_known_args()
 
     # 1: Collect the url and comments from the running application
-    url, commands = _retrieve_application_url_and_available_commands(id)
+    url, commands = _retrieve_application_url_and_available_commands(hparams.app_id)
     if url is None or commands is None:
         raise Exception("We couldn't find any matching running app.")
 
     if not commands:
         raise Exception("This application doesn't expose any commands yet.")
+
+    command = sys.argv[1]
 
     command_names = [c["command"] for c in commands]
     if command not in command_names:
@@ -172,10 +169,10 @@ def command(
 
     # 3: Prepare the arguments provided by the users.
     # TODO: Improve what is supported there.
-    kwargs = {k.split("=")[0]: k.split("=")[1] for k in args}
 
     # 4: Execute commands
     if not command_metadata["is_client_command"]:
+        kwargs = {k.split("=")[0]: k.split("=")[1] for k in sys.argv[2:]}
         for param in params:
             if param not in kwargs:
                 raise Exception(f"The argument --args {param}=X hasn't been provided.")
@@ -188,36 +185,36 @@ def command(
         resp = requests.post(url + "/api/v1/commands", json=json, headers=headers_for({}))
         assert resp.status_code == 200, resp.json()
     else:
-        client_command, models = _download_command(command_metadata, id)
+        client_command, models = _download_command(command_metadata, hparams.app_id)
         client_command._setup(metadata=command_metadata, models=models, app_url=url)
-        client_command.run(**kwargs)
+        client_command.run()
 
 
-@main.group(hidden=True)
+@_main.group(hidden=True)
 def fork():
     """Fork an application."""
     pass
 
 
-@main.group(hidden=True)
+@_main.group(hidden=True)
 def stop():
     """Stop your application."""
     pass
 
 
-@main.group(hidden=True)
+@_main.group(hidden=True)
 def delete():
     """Delete an application."""
     pass
 
 
-@main.group(name="list", hidden=True)
+@_main.group(name="list", hidden=True)
 def get_list():
     """List your applications."""
     pass
 
 
-@main.group()
+@_main.group()
 def install():
     """Install Lightning apps and components."""
 
@@ -275,7 +272,7 @@ def install_component(name, yes, version):
         cmd_install.gallery_component(name, yes, version)
 
 
-@main.group()
+@_main.group()
 def init():
     """Init a Lightning app and component."""
 
