@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, macOS-10.15, windows-2019]
-        python-version: [3.7]
+        python-version: [3.8]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646
     timeout-minutes: 35
