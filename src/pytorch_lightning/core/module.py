@@ -532,7 +532,7 @@ class LightningModule(
         return torch.tensor(value, device=self.device)
 
     @staticmethod
-    def __check_numel_1(value: torch.Tensor, name: str) -> None:
+    def __check_numel_1(value: Tensor, name: str) -> None:
         if not torch.numel(value) == 1:
             raise ValueError(
                 f"`self.log({name}, {value})` was called, but the tensor must have a single element."

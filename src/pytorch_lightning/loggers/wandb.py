@@ -32,10 +32,11 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 try:
     import wandb
+    from wandb.sdk.lib import RunDisabled
     from wandb.wandb_run import Run
 except ModuleNotFoundError:
     # needed for test mocks, these tests shall be updated
-    wandb, Run = None, None
+    wandb, Run, RunDisabled = None, None, None  # type: ignore
 
 
 class WandbLogger(Logger):
@@ -251,18 +252,18 @@ class WandbLogger(Logger):
         self,
         name: Optional[str] = None,
         save_dir: Optional[str] = None,
-        offline: Optional[bool] = False,
+        offline: bool = False,
         id: Optional[str] = None,
         anonymous: Optional[bool] = None,
         version: Optional[str] = None,
         project: Optional[str] = None,
         log_model: Union[str, bool] = False,
-        experiment=None,
-        prefix: Optional[str] = "",
+        experiment: Union[Run, RunDisabled, None] = None,
+        prefix: str = "",
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
         agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         if wandb is None:
             raise ModuleNotFoundError(
                 "You want to use `wandb` logger which is not installed yet,"
@@ -288,17 +289,16 @@ class WandbLogger(Logger):
         self._log_model = log_model
         self._prefix = prefix
         self._experiment = experiment
-        self._logged_model_time = {}
-        self._checkpoint_callback = None
+        self._logged_model_time: Dict[str, float] = {}
+        self._checkpoint_callback: Optional["ReferenceType[Checkpoint]"] = None
         # set wandb init arguments
-        anonymous_lut = {True: "allow", False: None}
-        self._wandb_init = dict(
+        self._wandb_init: Dict[str, Any] = dict(
             name=name or project,
             project=project,
             id=version or id,
             dir=save_dir,
             resume="allow",
-            anonymous=anonymous_lut.get(anonymous, anonymous),
+            anonymous=("allow" if anonymous else None),
         )
         self._wandb_init.update(**kwargs)
         # extract parameters
@@ -310,7 +310,7 @@ class WandbLogger(Logger):
             wandb.require("service")
             _ = self.experiment
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
         # args needed to reload correct experiment
         if self._experiment is not None:
@@ -322,7 +322,7 @@ class WandbLogger(Logger):
         state["_experiment"] = None
         return state
 
-    @property
+    @property  # type: ignore[misc]
     @rank_zero_experiment
     def experiment(self) -> Run:
         r"""
@@ -357,13 +357,14 @@ class WandbLogger(Logger):
                 self._experiment = wandb.init(**self._wandb_init)
 
                 # define default x-axis
-                if getattr(self._experiment, "define_metric", None):
+                if isinstance(self._experiment, Run) and getattr(self._experiment, "define_metric", None):
                     self._experiment.define_metric("trainer/global_step")
                     self._experiment.define_metric("*", step_metric="trainer/global_step", step_sync=True)
 
+        assert isinstance(self._experiment, Run)
         return self._experiment
 
-    def watch(self, model: nn.Module, log: str = "gradients", log_freq: int = 100, log_graph: bool = True):
+    def watch(self, model: nn.Module, log: str = "gradients", log_freq: int = 100, log_graph: bool = True) -> None:
         self.experiment.watch(model, log=log, log_freq=log_freq, log_graph=log_graph)
 
     @rank_zero_only
@@ -379,7 +380,7 @@ class WandbLogger(Logger):
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)
         if step is not None:
-            self.experiment.log({**metrics, "trainer/global_step": step})
+            self.experiment.log(dict(metrics, **{"trainer/global_step": step}))
         else:
             self.experiment.log(metrics)
 
@@ -417,7 +418,7 @@ class WandbLogger(Logger):
         self.log_table(key, columns, data, dataframe, step)
 
     @rank_zero_only
-    def log_image(self, key: str, images: List[Any], step: Optional[int] = None, **kwargs: str) -> None:
+    def log_image(self, key: str, images: List[Any], step: Optional[int] = None, **kwargs: Any) -> None:
         """Log images (tensors, numpy arrays, PIL Images or file paths).
 
         Optional kwargs are lists passed to each image (ex: caption, masks, boxes).
