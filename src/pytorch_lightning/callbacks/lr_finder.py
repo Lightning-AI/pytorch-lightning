@@ -18,7 +18,7 @@ LRFinderCallback
 Finds optimal learning rate
 """
 
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.callback import Callback
@@ -76,14 +76,23 @@ class LRFinderCallback(Callback):
         self._early_stop_threshold = early_stop_threshold
         self._update_attr = update_attr
 
-        self._early_exit=False
+        self._early_exit = False
         self.optimal_lr = None
 
-    def lr_find(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule'):
-        self.optimal_lr = lr_find(trainer, pl_module, min_lr=self._min_lr, max_lr=self._max_lr, num_training=self._num_training, mode=self._mode, early_stop_threshold=self._early_stop_threshold, update_attr=self._update_attr)
+    def lr_find(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
+        self.optimal_lr = lr_find(
+            trainer,
+            pl_module,
+            min_lr=self._min_lr,
+            max_lr=self._max_lr,
+            num_training=self._num_training,
+            mode=self._mode,
+            early_stop_threshold=self._early_stop_threshold,
+            update_attr=self._update_attr,
+        )
 
         if self._early_exit:
             raise _TunerExitException()
 
-    def on_fit_start(self, trainer: 'pl.Trainer', pl_module: 'pl.LightningModule'):
+    def on_fit_start(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule"):
         self.lr_find(trainer, pl_module)

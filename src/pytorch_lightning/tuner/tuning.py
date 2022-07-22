@@ -78,7 +78,7 @@ class Tuner:
 
         # Run learning rate finder:
         if self.trainer.auto_lr_find:
-            lr_find_kwargs.setdefault('update_attr', True)
+            lr_find_kwargs.setdefault("update_attr", True)
             result["lr_find"] = self.lr_find(
                 model, train_dataloaders, val_dataloaders, dataloaders, datamodule, method, **lr_find_kwargs
             )
@@ -233,12 +233,19 @@ class Tuner:
         self.trainer.state.fn = TrainerFn.TUNING
         self.tuning = True
 
-        if method != 'fit':
+        if method != "fit":
             raise MisconfigurationException("method='fit' is an invalid configuration to run lr finder.")
 
         _check_tuner_configuration(self.trainer, train_dataloaders, val_dataloaders, dataloaders, method)
 
-        lr_finder_callback = LRFinderCallback(min_lr=min_lr, max_lr=max_lr, num_training=num_training, mode=mode, early_stop_threshold=early_stop_threshold, update_attr=update_attr)
+        lr_finder_callback = LRFinderCallback(
+            min_lr=min_lr,
+            max_lr=max_lr,
+            num_training=num_training,
+            mode=mode,
+            early_stop_threshold=early_stop_threshold,
+            update_attr=update_attr,
+        )
 
         lr_finder_callback._early_exit = True
         self.trainer.callbacks = [lr_finder_callback] + self.trainer.callbacks

@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from copy import deepcopy
 import importlib
 import logging
 import os
 import uuid
+from copy import deepcopy
 from functools import wraps
 from typing import Any, Callable, cast, Dict, List, Optional, Sequence, TYPE_CHECKING, Union
 
@@ -271,15 +271,15 @@ def lr_find(
 def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
     return {
         "optimizers": trainer.strategy.optimizers,
-        'lr_scheduler_configs': trainer.strategy.lr_scheduler_configs,
-        'optimizer_frequencies': trainer.strategy.optimizer_frequencies,
+        "lr_scheduler_configs": trainer.strategy.lr_scheduler_configs,
+        "optimizer_frequencies": trainer.strategy.optimizer_frequencies,
         "callbacks": trainer.callbacks,
         "logger": trainer.logger,
         # TODO: check if this is required
         "auto_lr_find": trainer.auto_lr_find,
         "max_steps": trainer.fit_loop.max_steps,
-        'limit_val_batches': trainer.limit_val_batches,
-        'loop_state_dict': deepcopy(trainer.fit_loop.state_dict())
+        "limit_val_batches": trainer.limit_val_batches,
+        "loop_state_dict": deepcopy(trainer.fit_loop.state_dict()),
     }
 
 
@@ -298,14 +298,14 @@ def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_sto
 
 
 def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
-    trainer.strategy.optimizers = params['optimizers']
-    trainer.strategy.lr_scheduler_configs = params['lr_scheduler_configs']
-    trainer.strategy.optimizer_frequencies = params['optimizer_frequencies']
+    trainer.strategy.optimizers = params["optimizers"]
+    trainer.strategy.lr_scheduler_configs = params["lr_scheduler_configs"]
+    trainer.strategy.optimizer_frequencies = params["optimizer_frequencies"]
     trainer.auto_lr_find = params["auto_lr_find"]
     trainer.callbacks = params["callbacks"]
     trainer.logger = params["logger"]
     trainer.fit_loop.max_steps = params["max_steps"]
-    trainer.limit_val_batches = params['limit_val_batches']
+    trainer.limit_val_batches = params["limit_val_batches"]
 
     loop = trainer.fit_loop
     loop.load_state_dict(deepcopy(params["loop_state_dict"]))
@@ -462,6 +462,7 @@ class _ExponentialLR(_LRScheduler):
     @property
     def lr(self) -> Union[float, List[float]]:
         return self._lr
+
 
 def _try_loop_run(trainer: "pl.Trainer", params) -> None:
     loop = trainer.fit_loop
