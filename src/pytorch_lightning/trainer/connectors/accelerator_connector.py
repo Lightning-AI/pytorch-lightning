@@ -507,11 +507,10 @@ class AcceleratorConnector:
 
     @staticmethod
     def _choose_gpu_accelerator_backend() -> str:
-        if CUDAAccelerator.is_available():
-            return "cuda"
-
         if MPSAccelerator.is_available():
             return "mps"
+        if CUDAAccelerator.is_available():
+            return "cuda"
 
         raise MisconfigurationException("No supported gpu backend found!")
 
