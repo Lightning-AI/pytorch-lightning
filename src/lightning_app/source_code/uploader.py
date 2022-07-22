@@ -65,7 +65,7 @@ class FileUploader:
                 retries = Retry(total=10)
                 with requests.Session() as s:
                     s.mount("https://", HTTPAdapter(max_retries=retries))
-                    if url.startswith("s3://"):
+                    if "tar.gz?" in url:
                         resp = s.put(url, data=data)
                         if "ETag" not in resp.headers:
                             raise ValueError(f"Unexpected response from S3, response: {resp.content}")

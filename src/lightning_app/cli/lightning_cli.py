@@ -152,7 +152,7 @@ def app_command():
 
     parser = ArgumentParser()
     parser.add_argument("--app_id", default=None, type=str, help="Optional argument to identify an application.")
-    hparams, _ = parser.parse_known_args()
+    hparams, argv = parser.parse_known_args()
 
     # 1: Collect the url and comments from the running application
     url, commands = _retrieve_application_url_and_available_commands(hparams.app_id)
@@ -162,7 +162,7 @@ def app_command():
     if not commands:
         raise Exception("This application doesn't expose any commands yet.")
 
-    command = sys.argv[1]
+    command = argv[0]
 
     command_names = [c["command"] for c in commands]
     if command not in command_names:
@@ -192,7 +192,7 @@ def app_command():
     else:
         client_command, models = _download_command(command_metadata, hparams.app_id, debug_mode=debug_mode)
         client_command._setup(metadata=command_metadata, models=models, app_url=url)
-        sys.argv = sys.argv[2:]
+        sys.argv = argv[1:]
         client_command.run()
 
 

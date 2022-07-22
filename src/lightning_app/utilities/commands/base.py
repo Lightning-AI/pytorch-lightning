@@ -61,7 +61,10 @@ class ClientCommand:
     @property
     def state(self):
         if self._state is None:
-            self._state = AppState()
+            assert self.app_url
+            # TODO: Resolve this hack
+            os.environ["LIGHTNING_APP_STATE_URL"] = "1"
+            self._state = AppState(host=self.app_url)
             self._state._request_state()
         return self._state
 

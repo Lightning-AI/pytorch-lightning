@@ -82,7 +82,7 @@ def _retrieve_application_url_and_available_commands(app_id_or_name_or_url: Opti
         lightningapp_names = [lightningapp.name for lightningapp in list_lightningapps.lightningapps]
 
         if not app_id_or_name_or_url:
-            raise Exception(f"Provide an application name, id or url with --id=X. Found {lightningapp_names}")
+            raise Exception(f"Provide an application name, id or url with --app_id=X. Found {lightningapp_names}")
 
         for lightningapp in list_lightningapps.lightningapps:
             if lightningapp.id == app_id_or_name_or_url or lightningapp.name == app_id_or_name_or_url:
