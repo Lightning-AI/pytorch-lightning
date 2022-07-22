@@ -154,7 +154,7 @@ def test_configure_commands(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["lightning", "sweep", "--sweep_name", "my_name", "--num_trials", "1"])
     app_command()
     time_left = 15
-    while process.exitcode is None:
+    while time_left > 0 or process.exitcode is None:
         sleep(0.1)
         time_left -= 0.1
     assert process.exitcode == 0
