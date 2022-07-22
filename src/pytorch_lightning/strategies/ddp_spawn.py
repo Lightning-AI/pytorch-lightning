@@ -22,6 +22,7 @@ from torch import Tensor
 from torch.distributed.constants import default_pg_timeout
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -71,6 +72,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         ddp_comm_wrapper: Optional[callable] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
+        start_method: Literal["spawn", "fork", "forkserver"] = "spawn",
         **kwargs: Any,
     ):
         super().__init__(
@@ -88,6 +90,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         self._local_rank = 0
         self._process_group_backend: Optional[str] = process_group_backend
         self._timeout: Optional[timedelta] = timeout
+        self._start_method = start_method
 
     @property
     def num_nodes(self) -> int:
@@ -124,7 +127,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         return self._process_group_backend
 
     def _configure_launcher(self):
-        self._launcher = _SpawnLauncher(self)
+        self._launcher = _SpawnLauncher(self, start_method=self._start_method)
 
     def setup(self, trainer: "pl.Trainer") -> None:
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
@@ -280,17 +283,20 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register(
-            "ddp_spawn_find_unused_parameters_false",
-            cls,
-            description="DDPSpawn Strategy with `find_unused_parameters` as False",
-            find_unused_parameters=False,
-        )
-        strategy_registry.register(
-            cls.strategy_name,
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )
+        for start_method in ("spawn", "fork"):
+            strategy_registry.register(
+                f"ddp_{start_method}_find_unused_parameters_false",
+                cls,
+                description=f"DDP {start_method.title()} strategy with `find_unused_parameters` as False",
+                find_unused_parameters=False,
+                start_method=start_method,
+            )
+            strategy_registry.register(
+                f"ddp_{start_method}",
+                cls,
+                description=f"DDP {start_method.title()} strategy",
+                start_method=start_method,
+            )
 
     def teardown(self) -> None:
         log.detail(f"{self.__class__.__name__}: tearing down strategy")
