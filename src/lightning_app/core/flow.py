@@ -630,6 +630,6 @@ class LightningFlow:
 
         .. code-block:: bash
 
-            lightning command my_command_name --args name=my_own_name
+            lightning my_command_name --args name=my_own_name
         """
         raise NotImplementedError
