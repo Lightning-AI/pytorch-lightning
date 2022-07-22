@@ -38,8 +38,8 @@ class _ThreadQueue(threading.Thread):
     def run(self) -> None:
         while not (self._close_thread and self._queue.empty()):
             time.sleep(self._interval)
-            func, args = self._queue.get()
-            func(*args)
+            func, (args, kwargs) = self._queue.get()
+            func(*args, **kwargs)
             self._queue.task_done()
 
     def join(self, timeout: Optional[float] = None) -> None:

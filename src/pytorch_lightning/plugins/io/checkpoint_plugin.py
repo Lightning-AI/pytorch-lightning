@@ -43,12 +43,13 @@ class CheckpointIO(ABC):
         """
 
     @abstractmethod
-    def load_checkpoint(self, path: _PATH, storage_options: Optional[Any] = None) -> Dict[str, Any]:
+    def load_checkpoint(self, path: _PATH, map_location: Optional[Any] = None) -> Dict[str, Any]:
         """Load checkpoint from a path when resuming or loading ckpt for test/validate/predict stages.
 
         Args:
             path: Path to checkpoint
-            storage_options: Optional parameters when loading the model/training states.
+            map_location: a function, :class:`torch.device`, string or a dict specifying how to remap storage
+            locations.
 
         Returns: The loaded checkpoint.
         """

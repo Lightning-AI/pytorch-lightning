@@ -18,10 +18,9 @@ from typing import Any, Dict, Optional
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.utilities.cloud_io import _ThreadQueue
-from pytorch_lightning.utilities.types import _PATH
 
 
-class AsyncCheckpointIO(_WrappingCheckpointIO, CheckpointIO):
+class AsyncCheckpointIO(_WrappingCheckpointIO):
     """AsyncCheckpointIO enablses saving the checkpoints asynchronously.
 
     .. warning::
@@ -39,36 +38,21 @@ class AsyncCheckpointIO(_WrappingCheckpointIO, CheckpointIO):
         self._thread = _ThreadQueue(q=queue.Queue(), interval=interval)
         self._thread.start()
 
-    def save_checkpoint(self, checkpoint: Dict[str, Any], path: _PATH, storage_options: Optional[Any] = None) -> None:
-        """Save model/training states as a checkpoint file through state-dump and file-write.
+    def save_checkpoint(self, *args: Any, **kwargs: Any) -> None:
+        """Uses the Thread-Queue mechanism to save the checkpoints using the base ``checkpoint_io``.
 
         Args:
             checkpoint: dict containing model and trainer state
             path: write-target path
             storage_options: not used in ``TorchCheckpointIO.save_checkpoint``
         """
-        self._thread._queue.put((self.checkpoint_io.save_checkpoint, (checkpoint, path)))
+        self._thread._queue.put((self.checkpoint_io.save_checkpoint, (args, kwargs)))
 
-    def remove_checkpoint(self, path: _PATH) -> None:
-        """Remove checkpoint file from the filesystem.
+    def remove_checkpoint(self, *args: Any, **kwargs: Any) -> None:
+        super().remove_checkpoint(*args, **kwargs)
 
-        Args:
-            path: Path to checkpoint
-        """
-        return self.checkpoint_io.remove_checkpoint(path)
-
-    def load_checkpoint(self, path: _PATH, storage_options: Optional[Any] = None) -> Dict[str, Any]:
-        """Loads checkpoint using :func:`torch.load`, with additional handling for ``fsspec`` remote loading of
-        files.
-
-        Args:
-            path: Path to checkpoint
-            map_location: a function, :class:`torch.device`, string or a dict specifying how to remap storage
-            locations.
-
-        Returns: The loaded checkpoint.
-        """
-        return self.checkpoint_io.load_checkpoint(path, storage_options)
+    def load_checkpoint(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
+        return super().load_checkpoint(*args, **kwargs)
 
     def teardown(self) -> None:
         """This method is called to close the threads."""
