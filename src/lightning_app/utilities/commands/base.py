@@ -180,7 +180,7 @@ def _upload_command(command_name: str, command: ClientCommand) -> Optional[str]:
     remote_url = str(shared_storage_path() / "artifacts" / filepath)
     fs = filesystem()
 
-    if _is_s3fs_available() and not fs.exists(remote_url):
+    if _is_s3fs_available():
         from s3fs import S3FileSystem
 
         if not isinstance(fs, S3FileSystem):

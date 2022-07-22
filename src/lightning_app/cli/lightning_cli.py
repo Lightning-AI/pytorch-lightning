@@ -177,10 +177,10 @@ def app_command():
 
     # 4: Execute commands
     if not command_metadata["is_client_command"]:
-        kwargs = {k.split("=")[0]: k.split("=")[1] for k in sys.argv[2:]}
+        kwargs = {k.split("=")[0].replace("--", ""): k.split("=")[1] for k in argv[1:]}
         for param in params:
             if param not in kwargs:
-                raise Exception(f"The argument --args {param}=X hasn't been provided.")
+                raise Exception(f"The argument --{param}=X hasn't been provided.")
         json = {
             "command_name": command,
             "command_arguments": kwargs,
@@ -192,7 +192,7 @@ def app_command():
     else:
         client_command, models = _download_command(command_metadata, hparams.app_id, debug_mode=debug_mode)
         client_command._setup(metadata=command_metadata, models=models, app_url=url)
-        sys.argv = argv[1:]
+        sys.argv = argv
         client_command.run()
 
 

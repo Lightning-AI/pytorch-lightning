@@ -1,15 +1,16 @@
+import argparse
+import sys
 from multiprocessing import Process
 from time import sleep
 from unittest.mock import MagicMock
 
 import pytest
 import requests
-from click.testing import CliRunner
 from pydantic import BaseModel
 
 from lightning import LightningFlow
 from lightning_app import LightningApp
-from lightning_app.cli.lightning_cli import command
+from lightning_app.cli.lightning_cli import app_command
 from lightning_app.core.constants import APP_SERVER_PORT
 from lightning_app.runners import MultiProcessRuntime
 from lightning_app.utilities.commands.base import _command_to_method_and_metadata, _download_command, ClientCommand
@@ -18,12 +19,18 @@ from lightning_app.utilities.state import AppState
 
 class SweepConfig(BaseModel):
     sweep_name: str
-    num_trials: str
+    num_trials: int
 
 
 class SweepCommand(ClientCommand):
-    def run(self, sweep_name: str, num_trials: str) -> None:
-        config = SweepConfig(sweep_name=sweep_name, num_trials=num_trials)
+    def run(self) -> None:
+        print(sys.argv)
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--sweep_name", type=str)
+        parser.add_argument("--num_trials", type=int)
+        hparams = parser.parse_args()
+
+        config = SweepConfig(sweep_name=hparams.sweep_name, num_trials=hparams.num_trials)
         response = self.invoke_handler(config=config)
         assert response is True
 
@@ -119,7 +126,7 @@ def target():
     MultiProcessRuntime(app).dispatch()
 
 
-def test_configure_commands():
+def test_configure_commands(monkeypatch):
     process = Process(target=target)
     process.start()
     time_left = 15
@@ -132,21 +139,11 @@ def test_configure_commands():
             time_left -= 0.1
 
     sleep(0.5)
-    runner = CliRunner()
-    result = runner.invoke(
-        command,
-        ["user_command", "--args", "name=something"],
-        catch_exceptions=False,
-    )
-    assert result.exit_code == 0
+    monkeypatch.setattr(sys, "argv", ["lightning", "user_command", "--name=something"])
+    app_command()
     sleep(0.5)
     state = AppState()
     state._request_state()
     assert state.names == ["something"]
-    runner = CliRunner()
-    result = runner.invoke(
-        command,
-        ["sweep", "--args", "sweep_name=my_name", "--args", "num_trials=num_trials"],
-        catch_exceptions=False,
-    )
-    assert result.exit_code == 0
+    monkeypatch.setattr(sys, "argv", ["lightning", "sweep", "--sweep_name", "my_name", "--num_trials", "1"])
+    app_command()

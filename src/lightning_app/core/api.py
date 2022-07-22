@@ -103,7 +103,7 @@ class UIRefresher(Thread):
             response = self.api_commands_responses_queue.get(timeout=0)
             with lock:
                 global commands_response_store
-                commands_response_store[response["id"]] = response
+                commands_response_store[response["id"]] = response["response"]
         except queue.Empty:
             pass
 
