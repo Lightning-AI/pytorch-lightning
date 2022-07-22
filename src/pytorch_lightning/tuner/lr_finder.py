@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from copy import deepcopy
 import importlib
 import logging
 import os
@@ -104,38 +105,31 @@ class _LRFinder:
         self._total_batch_idx = 0  # for debug purpose
 
     def _exchange_scheduler(self, trainer: "pl.Trainer", model: "pl.LightningModule") -> Callable[["pl.Trainer"], None]:
+        # TODO: update docs here
         """Decorate `trainer.strategy.setup_optimizers` method such that it sets the user's originally specified
         optimizer together with a new scheduler that takes care of the learning rate search."""
-        setup_optimizers = trainer.strategy.setup_optimizers
+        optimizers = trainer.strategy.optimizers
 
-        @wraps(setup_optimizers)
-        def func(trainer: "pl.Trainer") -> None:
-            # Decide the structure of the output from _init_optimizers_and_lr_schedulers
-            optimizers, _, _ = _init_optimizers_and_lr_schedulers(trainer.lightning_module)
+        if len(optimizers) != 1:
+            raise MisconfigurationException(
+                f"`model.configure_optimizers()` returned {len(optimizers)}, but"
+                " learning rate finder only works with single optimizer"
+            )
 
-            if len(optimizers) != 1:
-                raise MisconfigurationException(
-                    f"`model.configure_optimizers()` returned {len(optimizers)}, but"
-                    " learning rate finder only works with single optimizer"
-                )
+        optimizer = optimizers[0]
 
-            optimizer = optimizers[0]
+        new_lrs = [self.lr_min] * len(optimizer.param_groups)
+        for param_group, new_lr in zip(optimizer.param_groups, new_lrs):
+            param_group["lr"] = new_lr
+            param_group["initial_lr"] = new_lr
 
-            new_lrs = [self.lr_min] * len(optimizer.param_groups)
-            for param_group, new_lr in zip(optimizer.param_groups, new_lrs):
-                param_group["lr"] = new_lr
-                param_group["initial_lr"] = new_lr
+        args = (optimizer, self.lr_max, self.num_training)
+        scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)
+        scheduler = cast(pl.utilities.types._LRScheduler, scheduler)
 
-            args = (optimizer, self.lr_max, self.num_training)
-            scheduler = _LinearLR(*args) if self.mode == "linear" else _ExponentialLR(*args)
-            scheduler = cast(pl.utilities.types._LRScheduler, scheduler)
-
-            trainer.strategy.optimizers = [optimizer]
-            trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
-            trainer.strategy.optimizer_frequencies = []
-            _set_scheduler_opt_idx(trainer.optimizers, trainer.lr_scheduler_configs)
-
-        return func
+        trainer.strategy.optimizers = [optimizer]
+        trainer.strategy.lr_scheduler_configs = [LRSchedulerConfig(scheduler, interval="step", opt_idx=0)]
+        _set_scheduler_opt_idx(trainer.optimizers, trainer.lr_scheduler_configs)
 
     def plot(self, suggest: bool = False, show: bool = False) -> Optional["plt.Figure"]:
         """Plot results from lr_find run
@@ -225,23 +219,25 @@ def lr_find(
     # Save initial model, that is loaded after learning rate is found
     ckpt_path = os.path.join(trainer.default_root_dir, f".lr_find_{uuid.uuid4()}.ckpt")
     trainer.save_checkpoint(ckpt_path)
+
+    # Arguments we adjust during the lr finder, save for restoring
     params = __lr_finder_dump_params(trainer)
 
     # Set to values that are required by the algorithm
     __lr_finder_reset_params(trainer, num_training, early_stop_threshold)
 
-    # Initialize lr finder object (stores results)
-    lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
-
     # Disable standard progress bar for fit
     if trainer.progress_bar_callback:
         trainer.progress_bar_callback.disable()
 
+    # Initialize lr finder object (stores results)
+    lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
+
     # Configure optimizer and scheduler
-    trainer.strategy.setup_optimizers = lr_finder._exchange_scheduler(trainer, model)  # type: ignore[assignment]
+    lr_finder._exchange_scheduler(trainer, model)  # type: ignore[assignment]
 
     # Fit, lr & loss logged in callback
-    trainer.tuner._run(model)
+    _try_loop_run(trainer, params)
 
     # Prompt if we stopped early
     if trainer.global_step != num_training:
@@ -274,29 +270,46 @@ def lr_find(
 
 def __lr_finder_dump_params(trainer: "pl.Trainer") -> Dict[str, Any]:
     return {
-        "auto_lr_find": trainer.auto_lr_find,
+        "optimizers": trainer.strategy.optimizers,
+        'lr_scheduler_configs': trainer.strategy.lr_scheduler_configs,
+        'optimizer_frequencies': trainer.strategy.optimizer_frequencies,
         "callbacks": trainer.callbacks,
         "logger": trainer.logger,
+        # TODO: check if this is required
+        "auto_lr_find": trainer.auto_lr_find,
         "max_steps": trainer.fit_loop.max_steps,
+        'limit_val_batches': trainer.limit_val_batches,
+        'loop_state_dict': deepcopy(trainer.fit_loop.state_dict())
     }
 
 
 def __lr_finder_reset_params(trainer: "pl.Trainer", num_training: int, early_stop_threshold: float) -> None:
+    trainer.strategy.lr_scheduler_configs = []
+    trainer.strategy.optimizer_frequencies = []
     # avoid lr find being called multiple times
     trainer.auto_lr_find = False
     # Use special lr logger callback
     trainer.callbacks = [_LRCallback(num_training, early_stop_threshold, progress_bar_refresh_rate=1)]
     # No logging
-    trainer.loggers = [DummyLogger()] if trainer.loggers else []
+    trainer.logger = DummyLogger() if trainer.logger is not None else None
     # Max step set to number of iterations
     trainer.fit_loop.max_steps = num_training
+    trainer.limit_val_batches = num_training
 
 
 def __lr_finder_restore_params(trainer: "pl.Trainer", params: Dict[str, Any]) -> None:
+    trainer.strategy.optimizers = params['optimizers']
+    trainer.strategy.lr_scheduler_configs = params['lr_scheduler_configs']
+    trainer.strategy.optimizer_frequencies = params['optimizer_frequencies']
     trainer.auto_lr_find = params["auto_lr_find"]
     trainer.callbacks = params["callbacks"]
     trainer.logger = params["logger"]
     trainer.fit_loop.max_steps = params["max_steps"]
+    trainer.limit_val_batches = params['limit_val_batches']
+
+    loop = trainer.fit_loop
+    loop.load_state_dict(deepcopy(params["loop_state_dict"]))
+    loop.restarting = False
 
 
 class _LRCallback(Callback):
@@ -449,3 +462,9 @@ class _ExponentialLR(_LRScheduler):
     @property
     def lr(self) -> Union[float, List[float]]:
         return self._lr
+
+def _try_loop_run(trainer: "pl.Trainer", params) -> None:
+    loop = trainer.fit_loop
+    loop.load_state_dict(deepcopy(params["loop_state_dict"]))
+    loop.restarting = False
+    loop.run()
