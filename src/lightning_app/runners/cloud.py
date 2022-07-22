@@ -38,7 +38,7 @@ from lightning_app.source_code import LocalSourceCodeDir
 from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.dependency_caching import get_hash
 from lightning_app.utilities.packaging.app_config import AppConfig, find_config_file
-from lightning_app.utilities.packaging.lightning_utils import _PACKAGE_LIGHTNING_wheels_and_requirements
+from lightning_app.utilities.packaging.lightning_utils import _prepare_lightning_wheels_and_requirements
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ class CloudRuntime(Runtime):
         config_file = find_config_file(self.entrypoint_file)
         app_config = AppConfig.load_from_file(config_file) if config_file else AppConfig()
         root = config_file.parent if config_file else Path(self.entrypoint_file).absolute().parent
-        cleanup_handle = _PACKAGE_LIGHTNING_wheels_and_requirements(root)
+        cleanup_handle = _prepare_lightning_wheels_and_requirements(root)
         repo = LocalSourceCodeDir(path=root)
         self._check_uploaded_folder(root, repo)
         requirements_file = root / "requirements.txt"
