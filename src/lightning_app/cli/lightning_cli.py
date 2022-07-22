@@ -1,9 +1,12 @@
 import logging
 import os
+import re
+import json
+import time
+import click
 from pathlib import Path
 from typing import List, Tuple, Union
 
-import click
 from requests.exceptions import ConnectionError
 
 from lightning_app import __version__ as ver
@@ -11,13 +14,21 @@ from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_i
 from lightning_app.core.constants import get_lightning_cloud_url, LOCAL_LAUNCH_ADMIN_VIEW
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
+from lightning_app.utilities.openapi import create_openapi_object, string2dict
 from lightning_app.utilities.cli_helpers import _format_input_env_variables
 from lightning_app.utilities.install_components import register_all_external_components
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.network import LightningClient
 from lightning_cloud.openapi.models import (
     V1ClusterState,
-    Externalv1Cluster,
+    V1CreateClusterRequest,
+    V1AWSClusterDriverSpec,
+    V1InstanceSpec,
+    V1ClusterSpec,
+    V1ClusterType,
+    V1ClusterPerformanceProfile,
+    V1ClusterDriver,
+    V1KubernetesClusterDriver,
 )
 from lightning_app.cli.cmd_clusters import ClusterList
 from rich.console import Console
@@ -33,24 +44,171 @@ def get_app_url(runtime_type: RuntimeType, *args) -> str:
     else:
         return "http://127.0.0.1:7501/admin" if LOCAL_LAUNCH_ADMIN_VIEW else "http://127.0.0.1:7501/view"
 
+
 @click.group()
 def clusters():
     """Manage your Lightning.ai BYOC clusters"""
     pass
 
+
+def _check_cluster_name_is_valid(_ctx, _param, value):
+    pattern = r"^(?!-)[a-z0-9-]{1,63}(?<!-)$"
+    if not re.match(pattern, value):
+        raise click.ClickException(
+            f"cluster name doesn't match regex pattern {pattern}\nIn simple words, use lowercase letters, numbers, and occasional -"
+        )
+    return value
+
+
+default_instance_types = [
+    "g2.8xlarge",
+    "g3.16xlarge",
+    "g3.4xlarge",
+    "g3.8xlarge",
+    "g3s.xlarge",
+    "g4dn.12xlarge",
+    "g4dn.16xlarge",
+    "g4dn.2xlarge",
+    "g4dn.4xlarge",
+    "g4dn.8xlarge",
+    "g4dn.metal",
+    "g4dn.xlarge",
+    "p2.16xlarge",
+    "p2.8xlarge",
+    "p2.xlarge",
+    "p3.16xlarge",
+    "p3.2xlarge",
+    "p3.8xlarge",
+    "p3dn.24xlarge",
+    # "p4d.24xlarge",  # currently not supported
+    "t2.large",
+    "t2.medium",
+    "t2.xlarge",
+    "t2.2xlarge",
+    "t3.large",
+    "t3.medium",
+    "t3.xlarge",
+    "t3.2xlarge",
+]
+CLUSTER_STATE_CHECKING_TIMEOUT = 60
+MAX_CLUSTER_WAIT_TIME = 5400
+
+
 @clusters.command('create')
-@click.argument('cluster_name')
-@click.option("--provider", type=str, default="aws", help="cloud provider to be used for your cluster")
-@click.option("--role-arn", type=str, default="", help="AWS IAM Role arn used to provision your cluster")
-@click.option("--external-id", type=str, default="", help="AWS IAM Role external-id")
-@click.option("--region", type=str, default="", help="AWS region to provision resources into")
-@click.option("--instance-types", type=str, default="", help="AWS instance-types to support")
-@click.option("--wait", type=bool, default=False, help="wait for cluster provisioning to complete (DEBUG)", is_flag=True)
-def create_cluster(cluster_name, **kwargs):
+@click.argument('cluster_name', callback=_check_cluster_name_is_valid)
+@click.option("--provider", 'provider', type=str, default="aws", help="cloud provider to be used for your cluster")
+@click.option('--external-id', 'external_id', type=str, required=True)
+@click.option(
+    '--role-arn', 'role_arn', type=str, required=True, help="AWS role ARN attached to`the associated resources."
+)
+@click.option(
+    '--region',
+    'region',
+    type=str,
+    required=False,
+    default="us-east-1",
+    help="AWS region which is used to host the associated resources."
+)
+@click.option(
+    '--instance-types',
+    'instance_types',
+    type=str,
+    required=False,
+    default=",".join(default_instance_types),
+    help="Instance types which you desire to support for computer jobs within the cluster."
+)
+@click.option(
+    '--cost-savings',
+    'cost_savings',
+    type=bool,
+    required=False,
+    default=False,
+    is_flag=True,
+    help='using this flag ensures that the cluster is created with a profile that is optimized for '
+         'cost saving, making runs cheaper but start-up times may increase',
+)
+@click.option(
+    '--edit-before-creation',
+    default=False,
+    is_flag=True,
+    help="Edit the created cluster spec before submitting to API server."
+)
+@click.option(
+    '--wait',
+    'wait',
+    type=bool,
+    required=False,
+    default=False,
+    is_flag=True,
+    help='using this flag CLI will wait until the cluster is running',
+)
+def create_cluster(
+        cluster_name: str,
+        region: str,
+        role_arn: str,
+        external_id: str,
+        provider: str,
+        instance_types: str,
+        edit_before_creation: bool,
+        cost_savings: bool,
+        wait: bool,
+        **kwargs):
     """Create a Lightning.ai BYOC clusters"""
-    click.echo(cluster_name)
-    click.echo('TODO(rra) implement cluster creation')
-    pass
+    if provider != "aws":
+        click.echo("only AWS is supported today")
+        return
+
+    performance_profile = V1ClusterPerformanceProfile.DEFAULT
+    if cost_savings:
+        performance_profile = V1ClusterPerformanceProfile.COST_SAVING
+    body = V1CreateClusterRequest(
+        name=cluster_name,
+        spec=V1ClusterSpec(
+            cluster_type=V1ClusterType.BYOC,
+            performance_profile=performance_profile,
+            driver=V1ClusterDriver(
+                kubernetes=V1KubernetesClusterDriver(
+                    aws=V1AWSClusterDriverSpec(
+                        region=region,
+                        role_arn=role_arn,
+                        external_id=external_id,
+                        instance_types=[V1InstanceSpec(name=x) for x in instance_types.split(",")]
+                    )
+                )
+            )
+        )
+    )
+    new_body = body
+    if edit_before_creation:
+        after = click.edit(json.dumps(body.to_dict(), indent=4))
+        if after is not None:
+            new_body = create_openapi_object(string2dict(after), body)
+        if new_body == body:
+            click.echo("cluster unchanged")
+    api_client = LightningClient()
+    resp = api_client.cluster_service_create_cluster(body=new_body)
+    if wait:
+        start = time.time()
+        elapsed = 0
+        while elapsed < MAX_CLUSTER_WAIT_TIME:
+            cluster_resp = api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
+            new_cluster = None
+            for clust in cluster_resp.clusters:
+                if clust.id == resp.id:
+                    new_cluster = clust
+                    break
+            if new_cluster is not None:
+                if new_cluster.status.phase == V1ClusterState.RUNNING:
+                    break
+                elif new_cluster.status.phase == V1ClusterState.FAILED:
+                    raise click.ClickException(f"Creation failed for cluster {resp.id}")
+                time.sleep(CLUSTER_STATE_CHECKING_TIMEOUT)
+            elapsed = time.time() - start
+        else:
+            raise click.ClickException(f"Max time for cluster creation is elapsed")
+
+    click.echo(resp.to_str())
+
 
 @clusters.command('list')
 def list_clusters(**kwargs):
@@ -62,6 +220,7 @@ def list_clusters(**kwargs):
     click.echo('TODO(rra) list clusters')
     pass
 
+
 @clusters.command('delete')
 @click.argument('cluster_name')
 @click.option('--force', type=bool, default=False, is_flag=True, help="force cluster deletion")
@@ -70,13 +229,16 @@ def delete_cluster(cluster_name, **kwargs):
     click.echo('TODO(rra) delete_cluster')
     pass
 
+
 @click.group()
 @click.version_option(ver)
 def main():
     register_all_external_components()
     pass
 
+
 main.add_command(clusters)
+
 
 @main.command()
 def login():
@@ -95,6 +257,7 @@ def login():
 def logout():
     """Log out of your Lightning.ai account."""
     Auth().clear()
+
 
 def _run_app(
     file: str, cloud: bool, without_server: bool, no_cache: bool, name: str, blocking: bool, open_ui: bool, env: tuple

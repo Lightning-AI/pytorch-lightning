@@ -1,5 +1,5 @@
 import pytest
-from operator import contains
+
 from src.lightning_app.testing.testing import run_cli
 
 @pytest.mark.cloud
