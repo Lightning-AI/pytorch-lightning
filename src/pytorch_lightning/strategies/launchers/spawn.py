@@ -20,6 +20,7 @@ import numpy as np
 import torch
 import torch.multiprocessing as mp
 from torch import Tensor
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.strategies.launchers.base import _Launcher
@@ -34,27 +35,40 @@ class _SpawnLauncher(_Launcher):
     r"""Spawns processes that run a given function in parallel, and joins them all at the end.
 
     The main process in which this launcher is invoked creates N so-called worker processes (using
-    :func:`torch.multiprocessing.spawn`) that run the given function.
+    :func:`torch.multiprocessing.start_processes`) that run the given function.
     Worker processes have a rank that ranges from 0 to N - 1.
 
     Note:
         - This launcher requires all objects to be pickleable.
         - It is important that the entry point to the program/script is guarded by ``if __name__ == "__main__"``.
+        - With start method 'fork' the user must ensure that no CUDA context gets created in the main process before
+          the launcher is invoked. E.g., one should avoid creating cuda tensors or calling ``torch.cuda.*`` functions
+          before calling ``Trainer.fit``.
 
     Args:
         strategy: A reference to the strategy that is used together with this launcher.
+        start_method: The method how to start the processes.
+            - 'spawn': The default start method. Requires all objects to be pickleable.
+            - 'fork': Preferrable for IPython/Jupyter environments where 'spawn' is not available. Not available on
+              the Windows platform for example.
+            - 'forkserver': Alternative implementation to 'fork'.
     """
 
-    def __init__(self, strategy: Strategy) -> None:
+    def __init__(self, strategy: Strategy, start_method: Literal["spawn", "fork", "forkserver"] = "spawn") -> None:
         self._strategy = strategy
-        self._start_method = "spawn"
+        self._start_method = start_method
+        if start_method not in mp.get_all_start_methods():
+            raise ValueError(
+                f"The start method '{self._start_method}' is not available on this platform. Available methods are:"
+                f" {', '.join(mp.get_all_start_methods())}"
+            )
 
     @property
     def is_interactive_compatible(self) -> bool:
-        # The start method 'spawn' is currently the only one that works with DDP and CUDA support
-        # The start method 'fork' is the only one supported in Jupyter environments but not compatible with CUDA
-        # For more context, see https://github.com/Lightning-AI/lightning/issues/7550
-        return self._start_method == "fork" and self._strategy.root_device.type != "cuda"
+        # The start method 'spawn' is not supported in interactive environments
+        # The start method 'fork' is the only one supported in Jupyter environments, with constraints around CUDA
+        # initialization. For more context, see https://github.com/Lightning-AI/lightning/issues/7550
+        return self._start_method == "fork"
 
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
         """Spawns processes that run the given function in parallel.
@@ -75,7 +89,7 @@ class _SpawnLauncher(_Launcher):
         os.environ["MASTER_PORT"] = str(self._strategy.cluster_environment.main_port)
         context = mp.get_context(self._start_method)
         return_queue = context.SimpleQueue()
-        mp.spawn(
+        mp.start_processes(
             self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
             nprocs=self._strategy.num_processes,

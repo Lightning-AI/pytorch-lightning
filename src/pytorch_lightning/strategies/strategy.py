@@ -53,7 +53,7 @@ class Strategy(ABC):
         self.accelerator = accelerator
         self._launcher: Optional[_Launcher] = None
         self._model: Optional[Module] = None
-        self.checkpoint_io = checkpoint_io
+        self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
         self.precision_plugin = precision_plugin
         self._optimizers: List[Optimizer] = []
         self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
@@ -74,7 +74,10 @@ class Strategy(ABC):
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
-        return self._checkpoint_io if self._checkpoint_io is not None else TorchCheckpointIO()
+        if self._checkpoint_io is None:
+            self._checkpoint_io = TorchCheckpointIO()
+
+        return self._checkpoint_io
 
     @checkpoint_io.setter
     def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
