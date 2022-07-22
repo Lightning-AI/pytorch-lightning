@@ -131,7 +131,7 @@ the correct logging mode for you. Of course you can override the default behavio
 .. code-block:: python
 
     def training_step(self, batch, batch_idx):
-        self.log("my_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log("my_loss", loss, on_step=None, on_epoch=None, prog_bar=False, logger=True)
 
 The :meth:`~pytorch_lightning.core.module.LightningModule.log` method has a few options:
 
