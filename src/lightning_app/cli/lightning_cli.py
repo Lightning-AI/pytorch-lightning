@@ -115,9 +115,9 @@ def create_cluster(
         cost_savings: bool,
         wait: bool,
         **kwargs):
-    """Create a Lightning.ai BYOC clusters"""
+    """Create a Lightning.ai compute cluster with provided cloud provider credentials"""
     if provider != "aws":
-        click.echo("only AWS is supported today")
+        click.echo("only provider aws is supported today")
         return
 
     performance_profile = V1ClusterPerformanceProfile.DEFAULT
@@ -147,6 +147,7 @@ def create_cluster(
             new_body = create_openapi_object(string2dict(after), body)
         if new_body == body:
             click.echo("cluster unchanged")
+
     api_client = LightningClient()
     resp = api_client.cluster_service_create_cluster(body=new_body)
     if wait:

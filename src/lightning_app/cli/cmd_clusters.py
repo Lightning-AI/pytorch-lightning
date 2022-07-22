@@ -64,11 +64,17 @@ class ClusterList(Formatable):
         return table
 
 
-def _wait_for_cluster_state(api_client, cluster_id: str, target_state: V1ClusterState):
+def _wait_for_cluster_state(
+        api_client,
+        cluster_id: str,
+        target_state: V1ClusterState,
+        max_wait_time=MAX_CLUSTER_WAIT_TIME,
+        check_timeout=CLUSTER_STATE_CHECKING_TIMEOUT,
+):
     start = time.time()
     elapsed = 0
-    while elapsed < MAX_CLUSTER_WAIT_TIME:
-        cluster_resp = api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
+    while elapsed < max_wait_time:
+        cluster_resp = api_client.cluster_service_list_clusters()
         new_cluster = None
         for clust in cluster_resp.clusters:
             if clust.id == cluster_id:
@@ -79,7 +85,7 @@ def _wait_for_cluster_state(api_client, cluster_id: str, target_state: V1Cluster
                 break
             elif new_cluster.status.phase == V1ClusterState.FAILED:
                 raise click.ClickException(f"cluster {cluster_id} is in failed state")
-            time.sleep(CLUSTER_STATE_CHECKING_TIMEOUT)
+            time.sleep(check_timeout)
         elapsed = time.time() - start
     else:
         raise click.ClickException(f"Max wait time elapsed")
