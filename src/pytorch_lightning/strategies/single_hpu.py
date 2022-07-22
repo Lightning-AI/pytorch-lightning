@@ -52,6 +52,16 @@ class SingleHPUStrategy(SingleDeviceStrategy):
         )
 
     @property
+    def checkpoint_io(self) -> CheckpointIO:
+        if self._checkpoint_io is None:
+            self._checkpoint_io = HPUCheckpointIO()
+        return self._checkpoint_io
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+        self._checkpoint_io = io
+
+    @property
     def is_distributed(self) -> bool:
         return False
 
@@ -87,13 +97,3 @@ class SingleHPUStrategy(SingleDeviceStrategy):
             cls,
             description=f"{cls.__class__.__name__}",
         )
-
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
-        if self._checkpoint_io is None:
-            self._checkpoint_io = HPUCheckpointIO()
-        return self._checkpoint_io
-
-    @checkpoint_io.setter
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
-        self._checkpoint_io = io

@@ -74,6 +74,16 @@ class HPUParallelStrategy(DDPStrategy):
             **kwargs,
         )
 
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        if self._checkpoint_io is None:
+            self._checkpoint_io = HPUCheckpointIO()
+        return self._checkpoint_io
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+        self._checkpoint_io = io
+
     def setup_environment(self) -> None:
 
         os.environ["ID"] = str(self.local_rank)
@@ -151,13 +161,3 @@ class HPUParallelStrategy(DDPStrategy):
         # Was set to local rank
         os.environ.pop("ID", None)
         os.environ.pop("HCCL_DISTRIBUTED_BACKEND", None)
-
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
-        if self._checkpoint_io is None:
-            self._checkpoint_io = HPUCheckpointIO()
-        return self._checkpoint_io
-
-    @checkpoint_io.setter
-    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
-        self._checkpoint_io = io
