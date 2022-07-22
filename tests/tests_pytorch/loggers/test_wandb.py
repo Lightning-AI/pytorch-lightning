@@ -17,6 +17,7 @@ from unittest import mock
 
 import pytest
 
+import pytorch_lightning
 from pytorch_lightning import Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.loggers import WandbLogger
@@ -31,8 +32,6 @@ def test_wandb_logger_init(wandb, monkeypatch):
 
     Wandb doesn't work well with pytest so we have to mock it out here.
     """
-    import pytorch_lightning.loggers.wandb as imports
-
     # test wandb.init called when there is no W&B run
     wandb.run = None
     logger = WandbLogger(
@@ -63,7 +62,7 @@ def test_wandb_logger_init(wandb, monkeypatch):
     wandb.init.reset_mock()
     wandb.run = wandb.init()
 
-    monkeypatch.setattr(imports, "_WANDB_GREATER_EQUAL_0_12_10", True)
+    monkeypatch.setattr(pytorch_lightning.loggers.wandb, "_WANDB_GREATER_EQUAL_0_12_10", True)
     with pytest.warns(UserWarning, match="There is a wandb run already in progress"):
         logger = WandbLogger()
     # check that no new run is created
@@ -139,9 +138,7 @@ def test_wandb_pickle(wandb, tmpdir):
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
-    import pytorch_lightning.loggers.wandb as imports
-
-    monkeypatch.setattr(imports, "_WANDB_GREATER_EQUAL_0_12_10", True)
+    monkeypatch.setattr(pytorch_lightning.loggers.wandb, "_WANDB_GREATER_EQUAL_0_12_10", True)
     wandb.run = None
     logger = WandbLogger(save_dir=str(tmpdir), offline=True)
     # the logger get initialized
@@ -176,9 +173,7 @@ def test_wandb_logger_dirs_creation(wandb, monkeypatch, tmpdir):
 @mock.patch("pytorch_lightning.loggers.wandb.wandb")
 def test_wandb_log_model(wandb, monkeypatch, tmpdir):
     """Test that the logger creates the folders and files in the right place."""
-    import pytorch_lightning.loggers.wandb as imports
-
-    monkeypatch.setattr(imports, "_WANDB_GREATER_EQUAL_0_10_22", True)
+    monkeypatch.setattr(pytorch_lightning.loggers.wandb, "_WANDB_GREATER_EQUAL_0_10_22", True)
 
     wandb.run = None
     model = BoringModel()
