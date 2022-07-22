@@ -187,8 +187,6 @@ class CometLogger(Logger):
             self.rest_api_key = None
             self.comet_api = None
 
-        self._kwargs = kwargs
-
     @property  # type: ignore[misc]
     @rank_zero_experiment
     def experiment(self) -> Union[CometExperiment, CometExistingExperiment, CometOfflineExperiment]:
