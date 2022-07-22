@@ -249,7 +249,7 @@ Comparison of DDP variants and tradeoffs
      - No
      - Yes
      - No
-   * - Is the guard ``if "__name__"=="__main__"`` required?
+   * - Is the guard ``if __name__=="__main__"`` required?
      - Yes
      - Yes
      - No
