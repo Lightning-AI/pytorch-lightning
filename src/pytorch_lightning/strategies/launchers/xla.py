@@ -19,7 +19,7 @@ from typing import Any, Callable, Optional, TYPE_CHECKING
 import torch.multiprocessing as mp
 
 import pytorch_lightning as pl
-from pytorch_lightning.strategies.launchers.spawn import _FakeQueue, _MultiProcessingLauncher, _WorkerOutput
+from pytorch_lightning.strategies.launchers.multiprocessing import _FakeQueue, _MultiProcessingLauncher, _WorkerOutput
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import move_data_to_device

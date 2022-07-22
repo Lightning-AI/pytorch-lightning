@@ -16,17 +16,17 @@ from unittest.mock import ANY, Mock
 
 import pytest
 
-from pytorch_lightning.strategies.launchers.spawn import _MultiProcessingLauncher
+from pytorch_lightning.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 
 
-@mock.patch("pytorch_lightning.strategies.launchers.spawn.mp.get_all_start_methods", return_value=[])
+@mock.patch("pytorch_lightning.strategies.launchers.multiprocessing.mp.get_all_start_methods", return_value=[])
 def test_spawn_launcher_forking_on_unsupported_platform(_):
     with pytest.raises(ValueError, match="The start method 'fork' is not available on this platform"):
         _MultiProcessingLauncher(strategy=Mock(), start_method="fork")
 
 
 @pytest.mark.parametrize("start_method", ["spawn", "fork"])
-@mock.patch("pytorch_lightning.strategies.launchers.spawn.mp")
+@mock.patch("pytorch_lightning.strategies.launchers.multiprocessing.mp")
 def test_spawn_launcher_start_method(mp_mock, start_method):
     mp_mock.get_all_start_methods.return_value = [start_method]
     launcher = _MultiProcessingLauncher(strategy=Mock(), start_method=start_method)
