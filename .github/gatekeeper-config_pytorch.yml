@@ -1,8 +1,7 @@
 approvals:
-  # check will fail if there is no approval
-  minimum: 1
   groups:
     - name: 'PyTorch Lightning'
+      minimum: 1
       from:
         - awaelchli
         - Borda
