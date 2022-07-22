@@ -222,12 +222,75 @@ def list_clusters(**kwargs):
 
 
 @clusters.command('delete')
-@click.argument('cluster_name')
-@click.option('--force', type=bool, default=False, is_flag=True, help="force cluster deletion")
-def delete_cluster(cluster_name, **kwargs):
-    """Delete a Lightning.ai BYOC cluster"""
-    click.echo('TODO(rra) delete_cluster')
-    pass
+@click.argument('cluster', type=str)
+@click.option(
+    '--force',
+    'force',
+    type=bool,
+    required=False,
+    default=False,
+    is_flag=True,
+    help='Force delete cluster from grid system. This does NOT delete any resources created by the cluster, '
+         'just cleaning up the entry from the grid system. You should not use this under normal circumstances',
+)
+@click.option(
+    '--wait',
+    'wait',
+    type=bool,
+    required=False,
+    default=False,
+    is_flag=True,
+    help='using this flag CLI will wait until the cluster is deleted',
+)
+def delete_cluster(cluster: str, force: bool = False, wait: bool = False):
+    """Delete CLUSTER and all associated AWS resources.
+
+    Deleting a run also deletes all Runs and Experiments which were started
+    on the cluster. deletion permanently removes not only the record of all
+    runs on a cluster, but all associated experiments, artifacts, metrics, logs, etc.
+
+    This process may take a few minutes to complete, but once started is irriversable.
+    Deletion permanently removes not only cluster from being managed by Lightning.ai, but tears
+    down every resource Lightning managed (for that cluster id) in the host cloud. All object
+    stores, container registries, logs, compute nodes, volumes, etc. are deleted and
+    cannot be recovered.
+    """
+    if force:
+        click.echo(
+            "Force deleting cluster. This will cause grid to forget "
+            "about the cluster and any experiments, sessions, datastores, "
+            "tensorboards and other resources running on it.\n"
+            "WARNING: this will not clean up any resources managed by grid\n"
+            "Check your cloud provider that any existing cloud resources are deleted"
+        )
+        click.confirm('Do you want to continue?', abort=True)
+
+    client = LightningClient()
+    client.cluster_service_delete_cluster(id=cluster, force=force)
+    click.echo("Cluster deletion triggered successfully")
+
+    if wait:
+        start = time.time()
+        elapsed = 0
+        while elapsed < MAX_CLUSTER_WAIT_TIME:
+            cluster_resp = client.cluster_service_list_clusters()
+            cluster_to_del = None
+            for clust in cluster_resp.clusters:
+                if clust.id == cluster:
+                    cluster_to_del = clust
+                    break
+            if cluster_to_del is not None:
+                if cluster_to_del.status.phase == V1ClusterState.DELETED:
+                    break
+                elif cluster_to_del.status.phase == V1ClusterState.FAILED:
+                    raise click.ClickException(f"Deletion failed for cluster {cluster}")
+                time.sleep(CLUSTER_STATE_CHECKING_TIMEOUT)
+            else:
+                break
+            elapsed = time.time() - start
+        else:
+            raise click.ClickException(f"Max time for cluster deletion is elapsed")
+
 
 
 @click.group()
