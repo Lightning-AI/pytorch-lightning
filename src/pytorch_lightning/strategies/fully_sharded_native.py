@@ -276,10 +276,14 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
 
     def teardown(self) -> None:
         rank_zero_info(f"{self.__class__.__name__}: tearing down strategy...")
+
+        pl_module = self.lightning_module
         if (
-            self.lightning_module is not None
-            and self.lightning_module.trainer is not None
-            and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+            pl_module is not None
+            # `self.lightning_module._trainer` can be None if teardown gets called on an exception before
+            # the trainer gets set on the LightningModule
+            and pl_module._trainer is not None
+            and pl_module._trainer.state.fn == TrainerFn.FITTING
             and self._layer_sync
         ):
             assert self.model is not None
