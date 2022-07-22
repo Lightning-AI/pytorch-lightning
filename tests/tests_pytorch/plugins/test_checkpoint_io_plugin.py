@@ -119,7 +119,7 @@ def test_async_checkpoint_plugin(tmpdir):
         plugins=[checkpoint_plugin],
         callbacks=ck,
         max_epochs=3,
-        limit_train_batches=2,
+        limit_train_batches=1,
         limit_val_batches=0,
         enable_progress_bar=False,
         enable_model_summary=False,
@@ -128,6 +128,9 @@ def test_async_checkpoint_plugin(tmpdir):
 
     assert checkpoint_plugin.save_checkpoint.call_count == 3
     assert checkpoint_plugin.remove_checkpoint.call_count == 1
+
+    ckpt_files = {fn.name for fn in Path(tmpdir).glob("*.ckpt")}
+    assert ckpt_files == {"epoch=1-step=2.ckpt", "epoch=2-step=3.ckpt"}
 
     base_ckpt_io = trainer.strategy.checkpoint_io.checkpoint_io
     assert base_ckpt_io.save_checkpoint.call_count == 3

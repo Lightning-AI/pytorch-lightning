@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import queue
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, Optional
 
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
-from pytorch_lightning.utilities.cloud_io import _ThreadQueue
 
 
 class AsyncCheckpointIO(_WrappingCheckpointIO):
@@ -35,8 +34,8 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
     def __init__(self, checkpoint_io: Optional["CheckpointIO"] = None, interval: float = 2.0) -> None:
         super().__init__(checkpoint_io)
 
-        self._thread = _ThreadQueue(q=queue.Queue(), interval=interval)
-        self._thread_started = False
+        self._executor = ThreadPoolExecutor(max_workers=1)
+        self._error = None
 
     def save_checkpoint(self, *args: Any, **kwargs: Any) -> None:
         """Uses the Thread-Queue mechanism to save the checkpoints using the base ``checkpoint_io``.
@@ -46,11 +45,17 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
             path: write-target path
             storage_options: not used in ``TorchCheckpointIO.save_checkpoint``
         """
-        if not self._thread_started:
-            self._thread_started = True
-            self._thread.start()
 
-        self._thread._queue.put((self.checkpoint_io.save_checkpoint, (args, kwargs)))
+        def _save_checkpoint(*args, **kwargs):
+            try:
+                self.checkpoint_io.save_checkpoint(*args, **kwargs)
+            except Exception as e:
+                self._error = e
+
+        self._executor.submit(_save_checkpoint, *args, **kwargs)
+
+        if self._error:
+            raise self._error
 
     def remove_checkpoint(self, *args: Any, **kwargs: Any) -> None:
         super().remove_checkpoint(*args, **kwargs)
@@ -60,4 +65,4 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
 
     def teardown(self) -> None:
         """This method is called to close the threads."""
-        self._thread.join()
+        self._executor.shutdown(wait=True)

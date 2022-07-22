@@ -14,9 +14,6 @@
 """Utilities related to data saving/loading."""
 
 import io
-import queue
-import threading
-import time
 from pathlib import Path
 from typing import Any, Callable, Dict, IO, Optional, Union
 
@@ -26,26 +23,6 @@ from fsspec.core import url_to_fs
 from fsspec.implementations.local import AbstractFileSystem
 
 from pytorch_lightning.utilities.types import _PATH
-
-
-class _ThreadQueue(threading.Thread):
-    def __init__(self, q: queue.Queue, interval: float) -> None:
-        super().__init__(daemon=True)
-        self._queue = q
-        self._close_thread = False
-        self._interval = interval
-
-    def run(self) -> None:
-        while not (self._close_thread and self._queue.empty()):
-            time.sleep(self._interval)
-            func, (args, kwargs) = self._queue.get()
-            func(*args, **kwargs)
-            self._queue.task_done()
-
-    def join(self, timeout: Optional[float] = None) -> None:
-        self._close_thread = True
-        self._queue.join()
-        super().join(timeout)
 
 
 def load(
