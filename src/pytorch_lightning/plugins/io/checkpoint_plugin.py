@@ -62,13 +62,6 @@ class CheckpointIO(ABC):
             path: Path to checkpoint
         """
 
-    @property
-    def is_wrapper(self) -> bool:
-        """Property that tells whether a ``CheckpointIO`` is a wrapper around another ``CheckpointIO`` object."""
-        from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
-
-        return isinstance(self, _WrappingCheckpointIO)
-
     def teardown(self) -> None:
         """This method is called to teardown the process."""
         pass

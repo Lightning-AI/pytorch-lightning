@@ -36,7 +36,7 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
         super().__init__(checkpoint_io)
 
         self._thread = _ThreadQueue(q=queue.Queue(), interval=interval)
-        self._thread.start()
+        self._thread_started = False
 
     def save_checkpoint(self, *args: Any, **kwargs: Any) -> None:
         """Uses the Thread-Queue mechanism to save the checkpoints using the base ``checkpoint_io``.
@@ -46,6 +46,10 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
             path: write-target path
             storage_options: not used in ``TorchCheckpointIO.save_checkpoint``
         """
+        if not self._thread_started:
+            self._thread_started = True
+            self._thread.start()
+
         self._thread._queue.put((self.checkpoint_io.save_checkpoint, (args, kwargs)))
 
     def remove_checkpoint(self, *args: Any, **kwargs: Any) -> None:
