@@ -2,7 +2,8 @@
 Lightning Work
 ##############
 
-**Audience:** Users who want to know how Lightning Work works under the hood 🤯.
+| **Audience:** Users who want to know how Lightning Work works under the hood 🤯.
+| **Limitation:** At this time there is a 20GB disk size limit for Lightning Works.
 
 ----
 
