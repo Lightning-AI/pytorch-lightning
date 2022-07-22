@@ -168,19 +168,13 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         obj = torch.load(buffer)
         return obj
 
-    def reduce_boolean_decision(self, decision: bool) -> bool:
-        decision = torch.tensor(int(decision), device=self.root_device)
-        decision = self.reduce(decision, reduce_op="sum")
-        decision = bool(decision == self.world_size)
-        return decision
-
     def reduce(self, output, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None):
         if not isinstance(output, Tensor):
             output = torch.tensor(output, device=self.root_device)
 
-        _invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
-        _invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
-        if _invalid_reduce_op or _invalid_reduce_op_str:
+        invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
+        invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
+        if invalid_reduce_op or invalid_reduce_op_str:
             raise MisconfigurationException(
                 "Currently, TPUSpawn Strategy only support `sum`, `mean`, `avg` reduce operation."
             )
