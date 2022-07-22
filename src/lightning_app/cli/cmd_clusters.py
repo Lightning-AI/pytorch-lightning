@@ -3,6 +3,8 @@ from datetime import datetime
 from rich.table import Table
 from rich.text import Text
 import arrow
+import click
+import re
 
 from lightning_cloud.openapi.models import (
     V1ClusterState,
@@ -11,6 +13,7 @@ from lightning_cloud.openapi.models import (
 )
 
 from lightning_app.cli.core import Formatable
+
 
 class ClusterList(Formatable):
     def __init__(self, clusters: [Externalv1Cluster]):
@@ -54,3 +57,46 @@ class ClusterList(Formatable):
                 arrow.get(created_at).humanize() if created_at else "",
             )
         return table
+
+
+def _check_cluster_name_is_valid(_ctx, _param, value):
+    pattern = r"^(?!-)[a-z0-9-]{1,63}(?<!-)$"
+    if not re.match(pattern, value):
+        raise click.ClickException(
+            f"cluster name doesn't match regex pattern {pattern}\nIn simple words, use lowercase letters, numbers, and occasional -"
+        )
+    return value
+
+
+default_instance_types = [
+    "g2.8xlarge",
+    "g3.16xlarge",
+    "g3.4xlarge",
+    "g3.8xlarge",
+    "g3s.xlarge",
+    "g4dn.12xlarge",
+    "g4dn.16xlarge",
+    "g4dn.2xlarge",
+    "g4dn.4xlarge",
+    "g4dn.8xlarge",
+    "g4dn.metal",
+    "g4dn.xlarge",
+    "p2.16xlarge",
+    "p2.8xlarge",
+    "p2.xlarge",
+    "p3.16xlarge",
+    "p3.2xlarge",
+    "p3.8xlarge",
+    "p3dn.24xlarge",
+    # "p4d.24xlarge",  # currently not supported
+    "t2.large",
+    "t2.medium",
+    "t2.xlarge",
+    "t2.2xlarge",
+    "t3.large",
+    "t3.medium",
+    "t3.xlarge",
+    "t3.2xlarge",
+]
+CLUSTER_STATE_CHECKING_TIMEOUT = 60
+MAX_CLUSTER_WAIT_TIME = 5400
