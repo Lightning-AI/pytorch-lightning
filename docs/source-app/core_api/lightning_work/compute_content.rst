@@ -31,8 +31,8 @@ Here is the full list of supported machine names:
 
    * - Name
      - # of CPUs
-     - GPUs
-     - Memory
+     - GPUs (GPU Memory)
+     - RAM
    * - default
      - 2
      - 0
