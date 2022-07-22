@@ -39,12 +39,18 @@ class FlowCommands(LightningFlow):
     def __init__(self):
         super().__init__()
         self.names = []
+        self.has_sweep = False
+
+    def run(self):
+        if self.has_sweep and len(self.names) == 1:
+            sleep(2)
+            self._exit()
 
     def trigger_method(self, name: str):
         self.names.append(name)
 
     def sweep(self, config: SweepConfig):
-        print(config)
+        self.has_sweep = True
         return True
 
     def configure_commands(self):
@@ -147,3 +153,8 @@ def test_configure_commands(monkeypatch):
     assert state.names == ["something"]
     monkeypatch.setattr(sys, "argv", ["lightning", "sweep", "--sweep_name", "my_name", "--num_trials", "1"])
     app_command()
+    time_left = 15
+    while process.exitcode is None:
+        sleep(0.1)
+        time_left -= 0.1
+    assert process.exitcode == 0
