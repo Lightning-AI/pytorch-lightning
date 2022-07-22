@@ -48,7 +48,7 @@ Built-in Checkpoint IO Plugins
    * - :class:`~pytorch_lightning.plugins.io.HPUCheckpointIO`
      - CheckpointIO to save checkpoints for HPU training strategies.
    * - :class:`~pytorch_lightning.plugins.io.AsyncCheckpointIO`
-     - AsyncCheckpointIO enablses saving the checkpoints asynchronously.
+     - ``AsyncCheckpointIO`` enables saving the checkpoints asynchronously using the ``ThreadPoolExecutor``.
 
 
 ***************************

@@ -20,7 +20,7 @@ from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 
 
 class AsyncCheckpointIO(_WrappingCheckpointIO):
-    """AsyncCheckpointIO enablses saving the checkpoints asynchronously.
+    """``AsyncCheckpointIO`` enables saving the checkpoints asynchronously using the ``ThreadPoolExecutor``.
 
     .. warning::
 
@@ -38,13 +38,7 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
         self._error = None
 
     def save_checkpoint(self, *args: Any, **kwargs: Any) -> None:
-        """Uses the Thread-Queue mechanism to save the checkpoints using the base ``checkpoint_io``.
-
-        Args:
-            checkpoint: dict containing model and trainer state
-            path: write-target path
-            storage_options: not used in ``TorchCheckpointIO.save_checkpoint``
-        """
+        """Uses the ``ThreadPoolExecutor`` to save the checkpoints using the base ``checkpoint_io``."""
 
         def _save_checkpoint(*args, **kwargs):
             try:
