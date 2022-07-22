@@ -35,8 +35,8 @@ from pytorch_lightning import __version__, Callback, LightningDataModule, Lightn
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
 from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE
+from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
