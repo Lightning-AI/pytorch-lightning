@@ -88,7 +88,7 @@ def get_dist_path_if_editable_install(project_name) -> str:
     return ""
 
 
-def _PACKAGE_LIGHTNING_wheels_and_requirements(root: Path) -> Optional[Callable]:
+def _prepare_lightning_wheels_and_requirements(root: Path) -> Optional[Callable]:
 
     if "site-packages" in _PROJECT_ROOT:
         return
