@@ -82,7 +82,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
                 # `require_backward_grad_sync` will be reset in the
                 # ddp_strategy `post_training_step` hook
                 if not pl_module.automatic_optimization:
-                    trainer.model.require_backward_grad_sync = False
+                    trainer.model.require_backward_grad_sync = False  # type: ignore[assignment]
                 return output
             if trainer.testing:
                 return self.module.test_step(*inputs, **kwargs)
