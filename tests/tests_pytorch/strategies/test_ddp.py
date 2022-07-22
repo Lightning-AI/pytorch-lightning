@@ -103,7 +103,7 @@ def test_torch_distributed_backend_env_variables(tmpdir):
 @mock.patch("torch.cuda.set_device")
 @mock.patch("torch.cuda.is_available", return_value=True)
 @mock.patch("torch.cuda.device_count", return_value=1)
-@mock.patch("pytorch_lightning.accelerators.gpu.GPUAccelerator.is_available", return_value=True)
+@mock.patch("pytorch_lightning.accelerators.cuda.CUDAAccelerator.is_available", return_value=True)
 @mock.patch.dict(os.environ, {"PL_TORCH_DISTRIBUTED_BACKEND": "gloo"}, clear=True)
 def test_ddp_torch_dist_is_available_in_setup(
     mock_gpu_is_available, mock_device_count, mock_cuda_available, mock_set_device, tmpdir
