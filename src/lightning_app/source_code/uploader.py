@@ -86,7 +86,7 @@ class FileUploader:
         try:
             with open(self.source_file, "rb") as f:
                 data = f.read()
-                self.upload_data(self.presigned_url, data, self.retries, self.disconnect_retry_wait_seconds)
+            self.upload_data(self.presigned_url, data, self.retries, self.disconnect_retry_wait_seconds)
             self.progress.update(task_id, advance=len(data))
         finally:
             self.progress.stop()
