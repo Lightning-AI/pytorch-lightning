@@ -4,6 +4,7 @@ from rich.table import Table
 from rich.text import Text
 import arrow
 import click
+import time
 import re
 
 from lightning_cloud.openapi.models import (
@@ -13,6 +14,10 @@ from lightning_cloud.openapi.models import (
 )
 
 from lightning_app.cli.core import Formatable
+
+
+CLUSTER_STATE_CHECKING_TIMEOUT = 60
+MAX_CLUSTER_WAIT_TIME = 5400
 
 
 class ClusterList(Formatable):
@@ -59,6 +64,27 @@ class ClusterList(Formatable):
         return table
 
 
+def _wait_for_cluster_state(api_client, cluster_id: str, target_state: V1ClusterState):
+    start = time.time()
+    elapsed = 0
+    while elapsed < MAX_CLUSTER_WAIT_TIME:
+        cluster_resp = api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
+        new_cluster = None
+        for clust in cluster_resp.clusters:
+            if clust.id == cluster_id:
+                new_cluster = clust
+                break
+        if new_cluster is not None:
+            if new_cluster.status.phase == target_state:
+                break
+            elif new_cluster.status.phase == V1ClusterState.FAILED:
+                raise click.ClickException(f"cluster {cluster_id} is in failed state")
+            time.sleep(CLUSTER_STATE_CHECKING_TIMEOUT)
+        elapsed = time.time() - start
+    else:
+        raise click.ClickException(f"Max wait time elapsed")
+
+
 def _check_cluster_name_is_valid(_ctx, _param, value):
     pattern = r"^(?!-)[a-z0-9-]{1,63}(?<!-)$"
     if not re.match(pattern, value):
@@ -98,5 +124,3 @@ default_instance_types = [
     "t3.xlarge",
     "t3.2xlarge",
 ]
-CLUSTER_STATE_CHECKING_TIMEOUT = 60
-MAX_CLUSTER_WAIT_TIME = 5400

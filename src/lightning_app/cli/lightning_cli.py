@@ -33,9 +33,8 @@ from lightning_cloud.openapi.models import (
 from lightning_app.cli.cmd_clusters import (
     ClusterList,
     _check_cluster_name_is_valid,
-    MAX_CLUSTER_WAIT_TIME,
-    CLUSTER_STATE_CHECKING_TIMEOUT,
     default_instance_types,
+    _wait_for_cluster_state,
 )
 from rich.console import Console
 
@@ -151,24 +150,7 @@ def create_cluster(
     api_client = LightningClient()
     resp = api_client.cluster_service_create_cluster(body=new_body)
     if wait:
-        start = time.time()
-        elapsed = 0
-        while elapsed < MAX_CLUSTER_WAIT_TIME:
-            cluster_resp = api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
-            new_cluster = None
-            for clust in cluster_resp.clusters:
-                if clust.id == resp.id:
-                    new_cluster = clust
-                    break
-            if new_cluster is not None:
-                if new_cluster.status.phase == V1ClusterState.RUNNING:
-                    break
-                elif new_cluster.status.phase == V1ClusterState.FAILED:
-                    raise click.ClickException(f"Creation failed for cluster {resp.id}")
-                time.sleep(CLUSTER_STATE_CHECKING_TIMEOUT)
-            elapsed = time.time() - start
-        else:
-            raise click.ClickException(f"Max time for cluster creation is elapsed")
+        _wait_for_cluster_state(api_client, resp.id, V1ClusterState.RUNNING)
 
     click.echo(resp.to_str())
 
@@ -228,31 +210,12 @@ def delete_cluster(cluster: str, force: bool = False, wait: bool = False):
         )
         click.confirm('Do you want to continue?', abort=True)
 
-    client = LightningClient()
-    client.cluster_service_delete_cluster(id=cluster, force=force)
+    api_client = LightningClient()
+    api_client.cluster_service_delete_cluster(id=cluster, force=force)
     click.echo("Cluster deletion triggered successfully")
 
     if wait:
-        start = time.time()
-        elapsed = 0
-        while elapsed < MAX_CLUSTER_WAIT_TIME:
-            cluster_resp = client.cluster_service_list_clusters()
-            cluster_to_del = None
-            for clust in cluster_resp.clusters:
-                if clust.id == cluster:
-                    cluster_to_del = clust
-                    break
-            if cluster_to_del is not None:
-                if cluster_to_del.status.phase == V1ClusterState.DELETED:
-                    break
-                elif cluster_to_del.status.phase == V1ClusterState.FAILED:
-                    raise click.ClickException(f"Deletion failed for cluster {cluster}")
-                time.sleep(CLUSTER_STATE_CHECKING_TIMEOUT)
-            else:
-                break
-            elapsed = time.time() - start
-        else:
-            raise click.ClickException(f"Max time for cluster deletion is elapsed")
+        _wait_for_cluster_state(api_client, cluster, V1ClusterState.DELETED)
 
 
 
