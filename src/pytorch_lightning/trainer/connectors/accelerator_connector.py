@@ -186,10 +186,6 @@ class AcceleratorConnector:
         self._amp_level_flag: Optional[str] = amp_level
         self._auto_select_gpus: bool = auto_select_gpus
 
-        # handle "gpu"
-        if accelerator == "gpu":
-            accelerator = self._choose_gpu_accelerator_backend()
-
         self._check_config_and_set_final_flags(
             strategy=strategy,
             accelerator=accelerator,
@@ -205,9 +201,12 @@ class AcceleratorConnector:
         # 2. Instantiate Accelerator
         self._set_accelerator_if_ipu_strategy_is_passed()
 
-        # handle `auto` and `None`
+        # handle `auto`, `None` and `gpu`
         if self._accelerator_flag == "auto" or self._accelerator_flag is None:
             self._accelerator_flag = self._choose_auto_accelerator()
+        elif self._accelerator_flag == "gpu":
+            self._accelerator_flag = self._choose_gpu_accelerator_backend()
+
         self._set_parallel_devices_and_init_accelerator()
 
         # 3. Instantiate ClusterEnvironment
@@ -283,7 +282,7 @@ class AcceleratorConnector:
         if (
             accelerator is not None
             and accelerator not in self._accelerator_types
-            and accelerator != "auto"
+            and accelerator not in ("auto", "gpu")
             and not isinstance(accelerator, Accelerator)
         ):
             raise ValueError(
