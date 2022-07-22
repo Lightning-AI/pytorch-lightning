@@ -37,7 +37,7 @@ def get_app_url(runtime_type: RuntimeType, *args) -> str:
 def main():
     if len(sys.argv) == 1:
         _main()
-    elif sys.argv[1] in _main.commands.keys():
+    elif sys.argv[1] in _main.commands.keys() or sys.argv[1] == "--help":
         _main()
     else:
         app_command()

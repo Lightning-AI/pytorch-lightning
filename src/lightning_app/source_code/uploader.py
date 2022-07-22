@@ -39,8 +39,7 @@ class FileUploader:
         self.total_size = total_size
         self.name = name
 
-    @staticmethod
-    def upload_data(url: str, data, retries: int, disconnect_retry_wait_seconds: int) -> str:
+    def upload_data(self, url: str, data: bytes, retries: int, disconnect_retry_wait_seconds: int) -> str:
         """Send data to url.
 
         Parameters
@@ -65,19 +64,18 @@ class FileUploader:
                 retries = Retry(total=10)
                 with requests.Session() as s:
                     s.mount("https://", HTTPAdapter(max_retries=retries))
-                    if "tar.gz?" in url:
-                        resp = s.put(url, data=data)
-                        if "ETag" not in resp.headers:
-                            raise ValueError(f"Unexpected response from S3, response: {resp.content}")
-                        return resp.headers["ETag"]
-                    else:
-                        resp = s.put(url, files={"file": data})
-                        return str(resp.status_code)
+                    return self._upload_data(s, url, data)
             except BrokenPipeError:
                 time.sleep(disconnect_retry_wait_seconds)
                 disconnect_retries -= 1
 
         raise ValueError("Unable to upload file after multiple attempts")
+
+    def _upload_data(self, s: requests.Session, url: str, data: bytes):
+        resp = s.put(url, data=data)
+        if "ETag" not in resp.headers:
+            raise ValueError(f"Unexpected response from S3, response: {resp.content}")
+        return resp.headers["ETag"]
 
     def upload(self) -> None:
         """Upload files from source dir into target path in S3."""
