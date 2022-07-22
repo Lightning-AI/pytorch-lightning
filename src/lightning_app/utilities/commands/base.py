@@ -66,6 +66,7 @@ class ClientCommand:
             os.environ["LIGHTNING_APP_STATE_URL"] = "1"
             self._state = AppState(host=self.app_url)
             self._state._request_state()
+            os.environ.pop("LIGHTNING_APP_STATE_URL")
         return self._state
 
     def run(self, **cli_kwargs) -> None:
