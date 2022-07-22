@@ -14,7 +14,7 @@
 """Utilities for loggers."""
 
 from argparse import Namespace
-from typing import Any, Dict, Generator, List, MutableMapping, Optional, Union
+from typing import Any, Dict, Generator, List, Mapping, MutableMapping, Optional, Union
 
 import numpy as np
 import torch
@@ -133,8 +133,8 @@ def _sanitize_params(params: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _add_prefix(
-    metrics: Dict[str, Union[Tensor, float]], prefix: str, separator: str
-) -> Dict[str, Union[Tensor, float]]:
+    metrics: Mapping[str, Union[Tensor, float]], prefix: str, separator: str
+) -> Mapping[str, Union[Tensor, float]]:
     """Insert prefix before each key in a dict, separated by the separator.
 
     Args:
