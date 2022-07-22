@@ -17,7 +17,7 @@ def test_non_existing_python_script():
         run_work_isolated(python_script)
         assert not python_script.has_started
 
-    python_script = TracerPythonScript(match)
+    python_script = TracerPythonScript(match, raise_exception=False)
     run_work_isolated(python_script)
     assert python_script.has_failed
 
