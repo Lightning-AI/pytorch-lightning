@@ -72,7 +72,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
         pl_module = unwrap_lightning_module(self.module)
-        trainer = pl_module.trainer
+        trainer = pl_module._trainer
 
         if trainer is not None:
             if trainer.training:
