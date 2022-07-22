@@ -24,7 +24,6 @@ from pytorch_lightning.utilities.types import _DEVICE, STEP_OUTPUT
 
 if _HPU_AVAILABLE:
     import habana_frameworks.torch.core as htcore
-    import habana_frameworks.torch.core.hccl  # noqa: F401
 
 
 class SingleHPUStrategy(SingleDeviceStrategy):
