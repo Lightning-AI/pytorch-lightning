@@ -55,7 +55,7 @@ class AsyncCheckpointIO(_WrappingCheckpointIO, CheckpointIO):
         Args:
             path: Path to checkpoint
         """
-        return self._checkpoint_io.remove_checkpoint(path)
+        return self.checkpoint_io.remove_checkpoint(path)
 
     def load_checkpoint(self, path: _PATH, storage_options: Optional[Any] = None) -> Dict[str, Any]:
         """Loads checkpoint using :func:`torch.load`, with additional handling for ``fsspec`` remote loading of
@@ -68,7 +68,7 @@ class AsyncCheckpointIO(_WrappingCheckpointIO, CheckpointIO):
 
         Returns: The loaded checkpoint.
         """
-        return self._checkpoint_io.load_checkpoint(path, storage_options)
+        return self.checkpoint_io.load_checkpoint(path, storage_options)
 
     def teardown(self) -> None:
         """This method is called to close the threads."""

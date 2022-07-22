@@ -14,7 +14,7 @@
 import os
 from pathlib import Path
 from typing import Any, Dict, Optional
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 import torch
 
@@ -102,23 +102,36 @@ def test_async_checkpoint_plugin(tmpdir):
 
     checkpoint_plugin = AsyncCheckpointIO()
 
-    ck = ModelCheckpoint(dirpath=tmpdir, save_top_k=-1)
+    checkpoint_plugin.save_checkpoint = Mock(wraps=checkpoint_plugin.save_checkpoint)
+    checkpoint_plugin.remove_checkpoint = Mock(wraps=checkpoint_plugin.remove_checkpoint)
 
-    model = BoringModel()
+    class CustomBoringModel(BoringModel):
+        def on_fit_start(self):
+            base_ckpt_io = self.trainer.strategy.checkpoint_io.checkpoint_io
+            base_ckpt_io.save_checkpoint = Mock(wraps=base_ckpt_io.save_checkpoint)
+            base_ckpt_io.remove_checkpoint = Mock(wraps=base_ckpt_io.remove_checkpoint)
+
+    ck = ModelCheckpoint(dirpath=tmpdir, save_top_k=2, monitor="step", mode="max")
+
+    model = CustomBoringModel()
     trainer = Trainer(
         default_root_dir=tmpdir,
         plugins=[checkpoint_plugin],
         callbacks=ck,
-        max_epochs=2,
-        limit_train_batches=1,
+        max_epochs=3,
+        limit_train_batches=2,
         limit_val_batches=0,
         enable_progress_bar=False,
         enable_model_summary=False,
     )
     trainer.fit(model)
 
-    ckpt_files = {fn.name for fn in Path(tmpdir).glob("*.ckpt")}
-    assert ckpt_files == {"epoch=0-step=1.ckpt", "epoch=1-step=2.ckpt"}
+    assert checkpoint_plugin.save_checkpoint.call_count == 3
+    assert checkpoint_plugin.remove_checkpoint.call_count == 1
+
+    base_ckpt_io = trainer.strategy.checkpoint_io.checkpoint_io
+    assert base_ckpt_io.save_checkpoint.call_count == 3
+    assert base_ckpt_io.remove_checkpoint.call_count == 1
 
 
 def test_multi_wrapped_checkpoint_io_initialization():

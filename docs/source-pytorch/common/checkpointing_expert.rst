@@ -111,7 +111,7 @@ Asynchronous Checkpointing
 To enable saving the checkpoints asynchronously without blocking your training, you can configure
 :class:`~pytorch_lightning.plugins.io.async_plugin.AsyncCheckpointIO` plugin to ``Trainer``.
 
-It uses it's base ``CheckpointIO`` plugin's saving logic to save the checkpoint but performs the this operation asynchronously.
+It uses its base ``CheckpointIO`` plugin's saving logic to save the checkpoint but performs this operation asynchronously.
 By default, this base ``CheckpointIO`` will be set-up for you and all you need to provide is the ``AsyncCheckpointIO`` instance to the ``Trainer``.
 
 .. code-block:: python
@@ -125,7 +125,7 @@ By default, this base ``CheckpointIO`` will be set-up for you and all you need t
    trainer.fit(model)
 
 
-If you want to plugin your own base ``CheckpointIO`` and want it be behave asynchronously, pass it while initializing ``AsyncCheckpointIO``.
+If you want the plugin to use your own base ``CheckpointIO`` and want the base to behave asynchronously, pass it as an argument while initializing ``AsyncCheckpointIO``.
 
 .. code-block:: python
 
