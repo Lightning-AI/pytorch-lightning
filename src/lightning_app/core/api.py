@@ -80,8 +80,9 @@ class UIRefresher(Thread):
         try:
             while not self._exit_event.is_set():
                 self.run_once()
-        except Exception:
+        except Exception as e:
             logger.error(traceback.print_exc())
+            raise e
 
     def run_once(self):
         try:
@@ -198,7 +199,7 @@ async def run_remote_command(
         while request_id not in commands_response_store:
             await asyncio.sleep(0.1)
             if (time.time() - t0) > 15:
-                raise Exception("The response wasn't never received.")
+                raise Exception("The response was never received.")
 
         return commands_response_store[request_id]
 

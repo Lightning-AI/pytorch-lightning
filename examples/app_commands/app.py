@@ -29,11 +29,11 @@ class FlowCommands(LightningFlow):
         self.names.append(config.name)
 
     def configure_commands(self):
-        commnands = [
+        commands = [
             {"trigger_without_client_command": self.trigger_without_client_command},
             {"trigger_with_client_command": CustomCommand(self.trigger_with_client_command)},
         ]
-        return commnands + self.child_flow.configure_commands()
+        return commands + self.child_flow.configure_commands()
 
 
 app = LightningApp(FlowCommands())

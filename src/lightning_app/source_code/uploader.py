@@ -74,7 +74,7 @@ class FileUploader:
     def _upload_data(self, s: requests.Session, url: str, data: bytes):
         resp = s.put(url, data=data)
         if "ETag" not in resp.headers:
-            raise ValueError(f"Unexpected response from S3, response: {resp.content}")
+            raise ValueError(f"Unexpected response from {url}, response: {resp.content}")
         return resp.headers["ETag"]
 
     def upload(self) -> None:

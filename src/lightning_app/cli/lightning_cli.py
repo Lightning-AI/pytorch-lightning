@@ -172,11 +172,9 @@ def app_command():
     command_metadata = [c for c in commands if c["command"] == command][0]
     params = command_metadata["params"]
 
-    # 3: Prepare the arguments provided by the users.
-    # TODO: Improve what is supported there.
-
-    # 4: Execute commands
+    # 3: Execute the command
     if not command_metadata["is_client_command"]:
+        # TODO: Improve what is supported there.
         kwargs = {k.split("=")[0].replace("--", ""): k.split("=")[1] for k in argv[1:]}
         for param in params:
             if param not in kwargs:
