@@ -70,9 +70,9 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             cluster_environment=XLAEnvironment(),
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
+            start_method="fork",
         )
         self.debug = debug
-        self.start_method = "fork"
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
@@ -123,7 +123,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self._launcher = _XLASpawnLauncher(self)
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        self.start_method = "fork"
         self.accelerator.setup(trainer)
 
         if self.debug:
