@@ -87,6 +87,7 @@ from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
+    _IS_INTERACTIVE,
     _TORCH_GREATER_EQUAL_1_11,
     _TPU_AVAILABLE,
 )
@@ -588,7 +589,9 @@ class AcceleratorConnector:
             # TODO: lazy initialized device, then here could be self._strategy_flag = "single_device"
             return SingleDeviceStrategy(device=device)  # type: ignore
         if len(self._parallel_devices) > 1:
-            return DDPSpawnStrategy.strategy_name
+            if _IS_INTERACTIVE:
+                return "ddp_fork"
+            return "ddp_spawn"
 
         return DDPStrategy.strategy_name
 
