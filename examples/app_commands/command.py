@@ -1,3 +1,5 @@
+from argparse import ArgumentParser
+
 from pydantic import BaseModel
 
 from lightning_app.utilities.commands import ClientCommand
@@ -8,5 +10,8 @@ class CustomConfig(BaseModel):
 
 
 class CustomCommand(ClientCommand):
-    def run(self, name: str):
-        self.invoke_handler(config=CustomConfig(name=name))
+    def run(self):
+        parser = ArgumentParser()
+        parser.add_argument("--name", type=str)
+        args = parser.parse_args()
+        self.invoke_handler(config=CustomConfig(name=args.name))

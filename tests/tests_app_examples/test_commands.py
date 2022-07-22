@@ -18,12 +18,14 @@ def test_commands_example_cloud() -> None:
         fetch_logs,
     ):
         app_id = admin_page.url.split("/")[-1]
-        cmd = f"lightning command trigger_with_client_command --args name=something --id {app_id}"
+        cmd = f"lightning trigger_with_client_command --name=something --app_id {app_id}"
+        Popen(cmd, shell=True).wait()
+        cmd = f"lightning trigger_without_client_command --name=else --app_id {app_id}"
         Popen(cmd, shell=True).wait()
 
         has_logs = False
         while not has_logs:
             for log in fetch_logs():
-                if "['something']" in log:
+                if "['something', 'else']" in log:
                     has_logs = True
             sleep(1)
