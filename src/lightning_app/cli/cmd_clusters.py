@@ -1,5 +1,10 @@
 import json
 from datetime import datetime
+from dataclasses import dataclass
+
+from lightning_cloud.openapi import V1ClusterPerformanceProfile, V1CreateClusterRequest, V1ClusterSpec, V1ClusterDriver, \
+    V1KubernetesClusterDriver, V1AWSClusterDriverSpec, V1InstanceSpec
+from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 import arrow
@@ -14,11 +19,74 @@ from lightning_cloud.openapi.models import (
 )
 
 from lightning_app.cli.core import Formatable
-
+from lightning_app.utilities.network import LightningClient
+from lightning_app.utilities.openapi import create_openapi_object, string2dict
 
 CLUSTER_STATE_CHECKING_TIMEOUT = 60
 MAX_CLUSTER_WAIT_TIME = 5400
 
+class AWSClusterManager:
+    def __init__(self):
+        self.api_client = LightningClient()
+
+    def create(self, cost_savings=None, cluster_name=None, role_arn=None, region=None, external_id=None,
+               instance_types=None, edit_before_creation=None, wait=None):
+        performance_profile = V1ClusterPerformanceProfile.DEFAULT
+        if cost_savings:
+            performance_profile = V1ClusterPerformanceProfile.COST_SAVING
+        body = V1CreateClusterRequest(
+            name=cluster_name,
+            spec=V1ClusterSpec(
+                cluster_type=V1ClusterType.BYOC,
+                performance_profile=performance_profile,
+                driver=V1ClusterDriver(
+                    kubernetes=V1KubernetesClusterDriver(
+                        aws=V1AWSClusterDriverSpec(
+                            region=region,
+                            role_arn=role_arn,
+                            external_id=external_id,
+                            instance_types=[V1InstanceSpec(name=x) for x in instance_types.split(",")]
+                        )
+                    )
+                )
+            )
+        )
+        new_body = body
+        if edit_before_creation:
+            after = click.edit(json.dumps(body.to_dict(), indent=4))
+            if after is not None:
+                new_body = create_openapi_object(string2dict(after), body)
+            if new_body == body:
+                click.echo("cluster unchanged")
+
+
+        resp = self.api_client.cluster_service_create_cluster(body=new_body)
+        if wait:
+            _wait_for_cluster_state(self.api_client, resp.id, V1ClusterState.RUNNING)
+
+        click.echo(resp.to_str())
+
+    def list(self):
+        resp = self.api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
+        console = Console()
+        console.print(ClusterList(resp.clusters).as_table())
+
+    def delete(self, cluster_id=None, force=None, wait=None):
+        if force:
+            click.echo(
+                "Force deleting cluster. This will cause grid to forget "
+                "about the cluster and any experiments, sessions, datastores, "
+                "tensorboards and other resources running on it.\n"
+                "WARNING: this will not clean up any resources managed by grid\n"
+                "Check your cloud provider that any existing cloud resources are deleted"
+                )
+            click.confirm('Do you want to continue?', abort=True)
+
+        self.api_client.cluster_service_delete_cluster(id=cluster_id, force=force)
+        click.echo("Cluster deletion triggered successfully")
+
+        if wait:
+            _wait_for_cluster_state(self.api_client, cluster_id, V1ClusterState.DELETED)
 
 class ClusterList(Formatable):
     def __init__(self, clusters: [Externalv1Cluster]):

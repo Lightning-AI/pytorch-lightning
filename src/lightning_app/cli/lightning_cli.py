@@ -1,8 +1,5 @@
 import logging
 import os
-import re
-import json
-import time
 import click
 from pathlib import Path
 from typing import List, Tuple, Union
@@ -14,29 +11,19 @@ from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_i
 from lightning_app.core.constants import get_lightning_cloud_url, LOCAL_LAUNCH_ADMIN_VIEW
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
-from lightning_app.utilities.openapi import create_openapi_object, string2dict
 from lightning_app.utilities.cli_helpers import _format_input_env_variables
 from lightning_app.utilities.install_components import register_all_external_components
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.network import LightningClient
 from lightning_cloud.openapi.models import (
     V1ClusterState,
-    V1CreateClusterRequest,
-    V1AWSClusterDriverSpec,
-    V1InstanceSpec,
-    V1ClusterSpec,
-    V1ClusterType,
-    V1ClusterPerformanceProfile,
-    V1ClusterDriver,
-    V1KubernetesClusterDriver,
 )
 from lightning_app.cli.cmd_clusters import (
-    ClusterList,
     _check_cluster_name_is_valid,
     default_instance_types,
     _wait_for_cluster_state,
+    AWSClusterManager,
 )
-from rich.console import Console
 
 
 logger = logging.getLogger(__name__)
@@ -119,51 +106,22 @@ def create_cluster(
     if provider != "aws":
         click.echo("only provider aws is supported today")
         return
-
-    performance_profile = V1ClusterPerformanceProfile.DEFAULT
-    if cost_savings:
-        performance_profile = V1ClusterPerformanceProfile.COST_SAVING
-    body = V1CreateClusterRequest(
-        name=cluster_name,
-        spec=V1ClusterSpec(
-            cluster_type=V1ClusterType.BYOC,
-            performance_profile=performance_profile,
-            driver=V1ClusterDriver(
-                kubernetes=V1KubernetesClusterDriver(
-                    aws=V1AWSClusterDriverSpec(
-                        region=region,
-                        role_arn=role_arn,
-                        external_id=external_id,
-                        instance_types=[V1InstanceSpec(name=x) for x in instance_types.split(",")]
-                    )
-                )
-            )
-        )
-    )
-    new_body = body
-    if edit_before_creation:
-        after = click.edit(json.dumps(body.to_dict(), indent=4))
-        if after is not None:
-            new_body = create_openapi_object(string2dict(after), body)
-        if new_body == body:
-            click.echo("cluster unchanged")
-
-    api_client = LightningClient()
-    resp = api_client.cluster_service_create_cluster(body=new_body)
-    if wait:
-        _wait_for_cluster_state(api_client, resp.id, V1ClusterState.RUNNING)
-
-    click.echo(resp.to_str())
+    aws = AWSClusterManager()
+    aws.create(cluster_name=cluster_name,
+                    region=region,
+                    role_arn=role_arn,
+                    external_id=external_id,
+                    instance_types=instance_types,
+                    edit_before_creation=edit_before_creation,
+                    cost_savings=cost_savings,
+                    wait=wait)
 
 
 @clusters.command('list')
 def list_clusters(**kwargs):
-    api_client = LightningClient()
-    resp = api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
-    console = Console()
-    console.print(ClusterList(resp.clusters).as_table())
     """List your Lightning.ai BYOC clusters"""
-    click.echo('TODO(rra) list clusters')
+    mgr = AWSClusterManager()
+    mgr.list()
     pass
 
 
@@ -201,23 +159,8 @@ def delete_cluster(cluster: str, force: bool = False, wait: bool = False):
     stores, container registries, logs, compute nodes, volumes, etc. are deleted and
     cannot be recovered.
     """
-    if force:
-        click.echo(
-            "Force deleting cluster. This will cause grid to forget "
-            "about the cluster and any experiments, sessions, datastores, "
-            "tensorboards and other resources running on it.\n"
-            "WARNING: this will not clean up any resources managed by grid\n"
-            "Check your cloud provider that any existing cloud resources are deleted"
-        )
-        click.confirm('Do you want to continue?', abort=True)
-
-    api_client = LightningClient()
-    api_client.cluster_service_delete_cluster(id=cluster, force=force)
-    click.echo("Cluster deletion triggered successfully")
-
-    if wait:
-        _wait_for_cluster_state(api_client, cluster, V1ClusterState.DELETED)
-
+    mgr = AWSClusterManager()
+    mgr.delete(cluster_id=cluster, force=force, wait=wait)
 
 
 @click.group()

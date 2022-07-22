@@ -5,7 +5,17 @@ import pytest
 from click.testing import CliRunner
 from lightning_cloud.openapi import Externalv1LightningappInstance
 
-from lightning_app.cli.lightning_cli import get_app_url, login, logout, main, run
+from lightning_app.cli.lightning_cli import (
+    get_app_url,
+    login,
+    logout,
+    main,
+    run,
+    clusters,
+    create_cluster,
+    list_clusters,
+    delete_cluster,
+)
 from lightning_app.runners.runtime_type import RuntimeType
 
 
@@ -37,7 +47,7 @@ def test_start_target_url(runtime_type, extra_args, lightning_cloud_url, expecte
         assert get_app_url(runtime_type, *extra_args) == expected_url
 
 
-@pytest.mark.parametrize("command", [main, run])
+@pytest.mark.parametrize("command", [main, run, clusters])
 def test_commands(command):
     runner = CliRunner()
     result = runner.invoke(command)
@@ -50,6 +60,7 @@ def test_main_lightning_cli_help():
     assert "login   " in res
     assert "logout  " in res
     assert "run     " in res
+    assert "clusters" in res
 
     res = os.popen("python -m lightning_app run --help").read()
     assert "app  " in res
@@ -59,6 +70,42 @@ def test_main_lightning_cli_help():
     assert "flow" not in res
     assert "work" not in res
     assert "frontend" not in res
+
+
+@mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.create")
+def test_clusters_create(create: mock.MagicMock):
+    runner = CliRunner()
+    runner.invoke(create_cluster, ["test-7",
+                                   "--provider", "aws",
+                                   "--external-id", "dummy",
+                                   "--role-arn", "arn:aws:iam::1234567890:role/lai-byoc",
+                                   "--instance-types", "t2.small"])
+
+    create.assert_called_once_with(
+        cluster_name='test-7',
+        region='us-east-1',
+        role_arn='arn:aws:iam::1234567890:role/lai-byoc',
+        external_id='dummy',
+        instance_types='t2.small',
+        edit_before_creation=False,
+        cost_savings=False,
+        wait=False)
+
+
+@mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.list")
+def test_clusters_list(list: mock.MagicMock):
+    runner = CliRunner()
+    runner.invoke(list_clusters)
+
+    list.assert_called_once_with()
+
+
+@mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.delete")
+def test_clusters_delete(delete: mock.MagicMock):
+    runner = CliRunner()
+    runner.invoke(delete_cluster, ["test-7"])
+
+    delete.assert_called_once_with(cluster_id='test-7', force=False, wait=False)
 
 
 @mock.patch("lightning_app.utilities.login.Auth._run_server")
