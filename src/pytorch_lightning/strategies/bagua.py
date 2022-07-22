@@ -221,7 +221,7 @@ class BaguaStrategy(DDPStrategy):
         # abort the background communication for async algorithm
         assert self.lightning_module is not None
         if self.lightning_module.trainer.training and self._bagua_algorithm == "async":
-            self.model.bagua_algorithm.abort(self.model)
+            self.model.bagua_algorithm.abort(self.model)  # type: ignore
 
         if isinstance(self.model, BaguaDistributedDataParallel):
             self.model = self.lightning_module
