@@ -40,3 +40,11 @@ def test_cluster_lifecycle() -> None:
         cluster_name
     ]) as (stdout, stderr):
         assert "success" in stdout, "stdout: {0}\nstderr: {1}".format(stdout, stderr)
+
+@pytest.mark.cloud
+def test_cluster_list() -> None:
+    with run_cli([
+        "clusters",
+        "list"
+    ]) as (stdout, stderr):
+        assert "grid-cloud" in stdout, "stdout: {0}\nstderr: {1}".format(stdout, stderr)

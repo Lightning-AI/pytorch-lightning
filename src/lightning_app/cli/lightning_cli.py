@@ -14,6 +14,14 @@ from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.utilities.cli_helpers import _format_input_env_variables
 from lightning_app.utilities.install_components import register_all_external_components
 from lightning_app.utilities.login import Auth
+from lightning_app.utilities.network import LightningClient
+from lightning_cloud.openapi.models import (
+    V1ClusterState,
+    Externalv1Cluster,
+)
+from lightning_app.cli.cmd_clusters import ClusterList
+from rich.console import Console
+
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +54,10 @@ def create_cluster(cluster_name, **kwargs):
 
 @clusters.command('list')
 def list_clusters(**kwargs):
+    api_client = LightningClient()
+    resp = api_client.cluster_service_list_clusters(phase_not_in=[V1ClusterState.DELETED])
+    console = Console()
+    console.print(ClusterList(resp.clusters).as_table())
     """List your Lightning.ai BYOC clusters"""
     click.echo('TODO(rra) list clusters')
     pass
