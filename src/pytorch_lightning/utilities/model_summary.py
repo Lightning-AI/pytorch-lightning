@@ -257,7 +257,8 @@ class ModelSummary:
     def _forward_example_input(self) -> None:
         """Run the example input through each layer to get input- and output sizes."""
         model = self._model
-        trainer = self._model.trainer
+        # the summary is supported without a trainer instance so we need to use the underscore property
+        trainer = self._model._trainer
 
         input_ = model.example_input_array
         input_ = model._apply_batch_transfer_handler(input_)
