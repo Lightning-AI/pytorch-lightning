@@ -1140,6 +1140,7 @@ def test_trainer_gpus(monkeypatch, trainer_kwargs):
         assert trainer.gpus == trainer_kwargs["devices"]
 
 
+@RunIf(skip_windows=True)
 def test_trainer_tpu_cores(monkeypatch):
     monkeypatch.setattr(pytorch_lightning.accelerators.tpu.TPUAccelerator, "is_available", lambda _: True)
     trainer = Trainer(accelerator="tpu", devices=8)

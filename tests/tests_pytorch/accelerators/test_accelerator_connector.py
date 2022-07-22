@@ -45,6 +45,7 @@ from pytorch_lightning.strategies import (
     SingleDeviceStrategy,
 )
 from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
+from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
 
@@ -226,11 +227,9 @@ def test_ipython_compatible_dp_strategy_gpu(_, monkeypatch):
     assert trainer.strategy.launcher is None
 
 
+@RunIf(skip_windows=True)
 @mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
-@mock.patch(
-    "pytorch_lightning.strategies.launchers.spawn.torch.multiprocessing.get_all_start_methods", return_value=["fork"]
-)
-def test_ipython_compatible_strategy_tpu(_, __, monkeypatch):
+def test_ipython_compatible_strategy_tpu(_, monkeypatch):
     monkeypatch.setattr(pytorch_lightning.utilities, "_IS_INTERACTIVE", True)
     trainer = Trainer(accelerator="tpu")
     assert trainer.strategy.launcher.is_interactive_compatible
@@ -594,7 +593,7 @@ def test_strategy_choice_ddp_cpu_slurm(device_count_mock, setup_distributed_mock
     assert trainer.strategy.local_rank == 0
 
 
-@RunIf(min_torch="1.11")
+@RunIf(min_torch="1.12")
 def test_check_native_fsdp_strategy_and_fallback():
     with pytest.raises(
         MisconfigurationException,
@@ -602,25 +601,6 @@ def test_check_native_fsdp_strategy_and_fallback():
         "but GPU accelerator is not used.",
     ):
         Trainer(accelerator="cpu", strategy="fsdp_native")
-
-
-@mock.patch.dict(os.environ, {"CUDA_VISIBLE_DEVICES": "0"})
-@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1)
-@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True)
-@RunIf(min_torch="1.11")
-def test_mixed_precision_support_with_native_fsdp_strategy(device_count_mock, mock_cuda_available, tmpdir):
-    with pytest.raises(
-        MisconfigurationException, match="DDPFullyShardedNativeStrategy currently doesn't support Mixed Precision"
-    ):
-        trainer = Trainer(
-            default_root_dir=tmpdir,
-            fast_dev_run=True,
-            strategy="fsdp_native",
-            accelerator="gpu",
-            devices=1,
-            precision=16,
-        )
-        assert isinstance(trainer.strategy, DDPFullyShardedNativeStrategy)
 
 
 @mock.patch("pytorch_lightning.accelerators.tpu.TPUAccelerator.is_available", return_value=True)
@@ -759,6 +739,15 @@ def test_plugin_only_one_instance_for_one_type(plugins, expected):
 def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
     with pytest.raises(MisconfigurationException, match="value is not a valid input using"):
         Trainer(accelerator=accelerator, devices=devices)
+
+
+@mock.patch("pytorch_lightning.accelerators.hpu.HPUAccelerator.is_available", return_value=True)
+@mock.patch("pytorch_lightning.strategies.hpu_parallel._HPU_AVAILABLE", return_value=True)
+@mock.patch("pytorch_lightning.plugins.precision.hpu._HPU_AVAILABLE", return_value=True)
+def test_accelerator_specific_checkpoint_io(*_):
+    ckpt_plugin = TorchCheckpointIO()
+    trainer = Trainer(accelerator="hpu", strategy=HPUParallelStrategy(), plugins=[ckpt_plugin])
+    assert trainer.strategy.checkpoint_io is ckpt_plugin
 
 
 @pytest.mark.parametrize("strategy", _DDP_FORK_ALIASES)

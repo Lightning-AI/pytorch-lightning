@@ -21,9 +21,8 @@ from pytorch_lightning.strategies.launchers.spawn import _SpawnLauncher
 
 @mock.patch("pytorch_lightning.strategies.launchers.spawn.mp.get_all_start_methods", return_value=[])
 def test_spawn_launcher_forking_on_unsupported_platform(_):
-    launcher = _SpawnLauncher(strategy=Mock(), start_method="fork")
     with pytest.raises(ValueError, match="The start method 'fork' is not available on this platform"):
-        launcher.launch(function=Mock())
+        _SpawnLauncher(strategy=Mock(), start_method="fork")
 
 
 @pytest.mark.parametrize("start_method", ["spawn", "fork"])

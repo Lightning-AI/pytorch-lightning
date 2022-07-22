@@ -79,7 +79,8 @@ def test_deepspeed_strategy_registry_with_trainer(tmpdir, strategy):
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
 
 
-def test_tpu_spawn_debug_strategy_registry(tmpdir):
+@RunIf(skip_windows=True)
+def test_tpu_spawn_debug_strategy_registry():
 
     strategy = "tpu_spawn_debug"
 

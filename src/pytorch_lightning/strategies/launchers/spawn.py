@@ -57,6 +57,11 @@ class _SpawnLauncher(_Launcher):
     def __init__(self, strategy: Strategy, start_method: Literal["spawn", "fork", "forkserver"] = "spawn") -> None:
         self._strategy = strategy
         self._start_method = start_method
+        if start_method not in mp.get_all_start_methods():
+            raise ValueError(
+                f"The start method '{self._start_method}' is not available on this platform. Available methods are:"
+                f" {', '.join(mp.get_all_start_methods())}"
+            )
 
     @property
     def is_interactive_compatible(self) -> bool:
