@@ -124,7 +124,8 @@ class StochasticWeightAveraging(Callback):
 
     @property
     def swa_start(self) -> int:
-        return max(self._swa_epoch_start - 1, 0)  # type: ignore[return-value]  # 0-based
+        assert isinstance(self._swa_epoch_start, int)
+        return max(self._swa_epoch_start - 1, 0)  # 0-based
 
     @property
     def swa_end(self) -> int:
