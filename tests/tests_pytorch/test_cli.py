@@ -1417,7 +1417,7 @@ def test_comet_logger_init_args():
         "CometLogger",
         {
             "save_dir": "comet",  # Resolve from CometLogger.__init__
-            "workspace": "comet",  # Resolve from {CometExistingExperiment,CometExperiment,CometOfflineExperiment}.__init__
+            "workspace": "comet",  # Resolve from Comet{,Existing,Offline}Experiment.__init__
         },
     )
 
