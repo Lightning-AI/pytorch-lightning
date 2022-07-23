@@ -8,7 +8,7 @@ lightning init component placeholdername
 
 ## To run placeholdername
 
-First, install placeholdername (warning: this app has not been officially approved on the lightning gallery):
+First, install placeholdername (warning: this component has not been officially approved on the lightning gallery):
 
 ```bash
 lightning install component https://github.com/theUser/placeholdername
@@ -18,10 +18,10 @@ Once the app is installed, use it in an app:
 
 ```python
 from placeholdername import TemplateComponent
-import lightning_app as la
+import lightning as L
 
 
-class LitApp(lapp.LightningFlow):
+class LitApp(L.LightningFlow):
     def __init__(self) -> None:
         super().__init__()
         self.placeholdername = TemplateComponent()
@@ -31,5 +31,5 @@ class LitApp(lapp.LightningFlow):
         self.placeholdername.run()
 
 
-app = lapp.LightningApp(LitApp())
+app = L.LightningApp(LitApp())
 ```

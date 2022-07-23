@@ -73,7 +73,10 @@ os.makedirs(os.path.join(PATH_HERE, FOLDER_GENERATED), exist_ok=True)
 for md in glob.glob(os.path.join(PATH_ROOT, ".github", "*.md")):
     shutil.copy(md, os.path.join(PATH_HERE, FOLDER_GENERATED, os.path.basename(md)))
 # copy also the changelog
-_transform_changelog(os.path.join(PATH_ROOT, "CHANGELOG.md"), os.path.join(PATH_HERE, FOLDER_GENERATED, "CHANGELOG.md"))
+_transform_changelog(
+    os.path.join(PATH_ROOT, "src", "pytorch_lightning", "CHANGELOG.md"),
+    os.path.join(PATH_HERE, FOLDER_GENERATED, "CHANGELOG.md"),
+)
 
 # -- Project information -----------------------------------------------------
 
@@ -185,7 +188,7 @@ html_theme_path = [pt_lightning_sphinx_theme.get_html_theme_path()]
 
 html_theme_options = {
     "pytorch_project": "https://pytorchlightning.ai",
-    "canonical_url": pytorch_lightning.__docs_url__,
+    "canonical_url": pytorch_lightning.__about__.__docs_url__,
     "collapse_navigation": False,
     "display_version": True,
     "logo_only": False,

@@ -15,7 +15,7 @@
 import contextlib
 import logging
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, cast, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -120,7 +120,9 @@ class LayerSummary:
     @property
     def num_parameters(self) -> int:
         """Returns the number of parameters in this module."""
-        return sum(np.prod(p.shape) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
+        return sum(
+            cast(int, np.prod(p.shape)) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters()
+        )
 
 
 class ModelSummary:
@@ -255,7 +257,8 @@ class ModelSummary:
     def _forward_example_input(self) -> None:
         """Run the example input through each layer to get input- and output sizes."""
         model = self._model
-        trainer = self._model.trainer
+        # the summary is supported without a trainer instance so we need to use the underscore property
+        trainer = self._model._trainer
 
         input_ = model.example_input_array
         input_ = model._apply_batch_transfer_handler(input_)

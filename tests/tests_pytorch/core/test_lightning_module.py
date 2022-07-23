@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import sys
+import weakref
 from unittest.mock import Mock
 
 import pytest
@@ -276,11 +277,17 @@ def test_toggle_untoggle_3_optimizers_shared_parameters(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_cuda_gpus=1)
-def test_device_placement(tmpdir):
+@pytest.mark.parametrize(
+    "accelerator,device",
+    [
+        pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
+    ],
+)
+def test_device_placement(tmpdir, accelerator, device):
 
     model = BoringModel()
-    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator="gpu", devices=1)
+    trainer = Trainer(default_root_dir=tmpdir, fast_dev_run=True, accelerator=accelerator, devices=1)
     trainer.fit(model)
 
     def assert_device(device: torch.device) -> None:
@@ -289,8 +296,8 @@ def test_device_placement(tmpdir):
             assert p.device == device
 
     assert_device(torch.device("cpu"))
-    model.to(torch.device("cuda:0"))
-    assert_device(torch.device("cuda:0"))
+    model.to(torch.device(device))
+    assert_device(torch.device(device))
     trainer.test(model)
     assert_device(torch.device("cpu"))
     trainer.predict(model, dataloaders=model.train_dataloader())
@@ -410,3 +417,20 @@ def test_proper_refcount():
     lightning_module = LightningModule()
 
     assert sys.getrefcount(torch_module) == sys.getrefcount(lightning_module)
+
+
+def test_trainer_reference_recursively():
+    ensemble = LightningModule()
+    inner = LightningModule()
+    ensemble.inner = inner
+
+    assert inner._trainer is None
+    with pytest.raises(RuntimeError, match="attached to a `Trainer"):
+        _ = ensemble.trainer
+
+    trainer = Mock()
+    ensemble.trainer = trainer
+    # references match
+    assert ensemble.trainer is inner.trainer
+    # and the trainer was weakly referenced
+    assert inner.trainer is weakref.proxy(trainer)

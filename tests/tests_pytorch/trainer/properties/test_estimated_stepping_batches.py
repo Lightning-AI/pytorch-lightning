@@ -16,13 +16,13 @@ import logging
 from unittest import mock
 
 import pytest
-import torch
 from torch.utils.data import DataLoader
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.gradient_accumulation_scheduler import GradientAccumulationScheduler
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.strategies.ipu import IPUStrategy
+from pytorch_lightning.utilities import device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.datasets import RandomIterableDataset
 from tests_pytorch.helpers.runif import RunIf
@@ -122,15 +122,12 @@ def test_num_stepping_batches_accumulate_gradients(accumulate_grad_batches, expe
         ({"strategy": "ddp", "num_nodes": 3}, 4),
         ({"strategy": "ddp", "num_nodes": 4}, 3),
         ({"strategy": "dp"}, 64),
-        ({"strategy": "ddp2", "num_nodes": 1}, 64),
-        ({"strategy": "ddp2", "num_nodes": 2}, 32),
-        ({"strategy": "ddp2", "num_nodes": 3}, 22),
     ],
 )
 def test_num_stepping_batches_gpu(trainer_kwargs, estimated_steps, monkeypatch):
     """Test stepping batches with GPU strategies."""
-    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-    monkeypatch.setattr(torch.cuda, "device_count", lambda: 7)
+    monkeypatch.setattr(device_parser, "is_cuda_available", lambda: True)
+    monkeypatch.setattr(device_parser, "num_cuda_devices", lambda: 7)
     trainer = Trainer(max_epochs=1, devices=7, accelerator="gpu", **trainer_kwargs)
     model = BoringModel()
     trainer._data_connector.attach_data(model)

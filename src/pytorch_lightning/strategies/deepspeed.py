@@ -27,7 +27,7 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.accelerators.gpu import GPUAccelerator
+from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers
 from pytorch_lightning.overrides.base import _LightningModuleWrapperBase, _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
@@ -43,7 +43,7 @@ from pytorch_lightning.utilities.distributed import (
 )
 from pytorch_lightning.utilities.enums import AMPType, PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _DEEPSPEED_AVAILABLE
+from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
@@ -53,6 +53,7 @@ from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
 warning_cache = WarningCache()
 
+_DEEPSPEED_AVAILABLE: bool = _RequirementAvailable("deepspeed")
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
 
@@ -451,7 +452,7 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             raise MisconfigurationException("DeepSpeed does not support clipping gradients by value.")
 
-        if not isinstance(self.accelerator, GPUAccelerator):
+        if not isinstance(self.accelerator, CUDAAccelerator):
             raise MisconfigurationException(
                 f"DeepSpeed strategy is only supported on GPU but `{self.accelerator.__class__.__name__}` is used."
             )

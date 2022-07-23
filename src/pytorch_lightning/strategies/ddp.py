@@ -33,6 +33,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
+from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
@@ -52,12 +53,7 @@ from pytorch_lightning.utilities.distributed import (
     sync_ddp_if_available,
 )
 from pytorch_lightning.utilities.exceptions import DeadlockDetectedException
-from pytorch_lightning.utilities.imports import (
-    _FAIRSCALE_AVAILABLE,
-    _IS_WINDOWS,
-    _TORCH_GREATER_EQUAL_1_10,
-    _TORCH_GREATER_EQUAL_1_11,
-)
+from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUAL_1_10, _TORCH_GREATER_EQUAL_1_11
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
@@ -457,6 +453,7 @@ class DDPStrategy(ParallelStrategy):
     def teardown(self) -> None:
         log.detail(f"{self.__class__.__name__}: tearing down strategy")
 
+        pl_module = self.lightning_module
         if isinstance(self.model, DistributedDataParallel):
             if (
                 _TORCH_GREATER_EQUAL_1_11
@@ -468,15 +465,16 @@ class DDPStrategy(ParallelStrategy):
                     f" pass `Trainer(..., strategy={self.__class__.__name__}(static_graph=True))` to enable them."
                 )
             # unwrap model
-            self.model = self.lightning_module
+            self.model = pl_module
 
         if (
-            self.lightning_module.trainer is not None
-            and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+            pl_module is not None
+            # `self.lightning_module._trainer` can be None if teardown gets called on an exception before
+            # the trainer gets set on the LightningModule
+            and pl_module._trainer is not None
+            and pl_module._trainer.state.fn == TrainerFn.FITTING
             and self._layer_sync
         ):
-            # `self.lightning_module.trainer` can be None if teardown gets called on an exception before
-            # the trainer gets set on the LightningModule
             self.model = self._layer_sync.revert(self.model)
 
         super().teardown()
