@@ -58,3 +58,8 @@ class CloudCompute:
     @classmethod
     def from_dict(cls, d):
         return cls(**d["__cloud_compute__"])
+
+    @property
+    def devices(self) -> int:
+        # TODO: Add a resolver here.
+        return 1

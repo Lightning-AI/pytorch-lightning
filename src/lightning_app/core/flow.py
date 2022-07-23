@@ -207,8 +207,10 @@ class LightningFlow:
             structure = getattr(flow, struct_name)
             for flow in structure.flows:
                 LightningFlow._attach_backend(flow, backend)
+                flow._backend = backend
             for work in structure.works:
                 backend._wrap_run_method(_LightningAppRef().get_current(), work)
+                work._backend = backend
 
         for name in flow._structures:
             getattr(flow, name)._backend = backend
