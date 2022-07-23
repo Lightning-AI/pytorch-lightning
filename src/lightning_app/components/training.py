@@ -1,9 +1,12 @@
+import logging
 import os
 from typing import List, Optional, Tuple, Union
 
 from lightning import CloudCompute
 from lightning_app import LightningFlow, structures
 from lightning_app.components.python import TracerPythonScript
+
+_logger = logging.getLogger(__name__)
 
 
 class _LightningTrainerWork(TracerPythonScript):
@@ -40,12 +43,12 @@ class _LightningTrainerWork(TracerPythonScript):
 
     def run(self, internal_urls: Optional[List[Tuple[str, str]]] = None):
         if not internal_urls:
-            print(f"The node {self.node_rank} started !")
+            _logger.info(f"The node {self.node_rank} started !")
             return
 
         import torch.distributed as dist
 
-        print(f"Internal URLS: {internal_urls}")
+        _logger.debug(f"Internal URLS: {internal_urls}")
         master_address = str(internal_urls[0][0])
         master_port = str(internal_urls[0][1])
         devices = self.cloud_compute.devices
@@ -59,7 +62,7 @@ class _LightningTrainerWork(TracerPythonScript):
             "MASTER_PORT": master_port,
             "WORLD_SIZE": str(world_size),
         }
-        print(distributed_env_vars)
+        _logger.info(distributed_env_vars)
 
         backend = "gloo" if self.cloud_compute.accelerator == "cpu" else "nccl"
 
@@ -100,6 +103,16 @@ class LightningTrainingComponent(LightningFlow):
         cloud_compute: CloudCompute = CloudCompute("cpu"),
         sanity_serving: bool = False,
     ):
+        """This component enables to perform distributed training.
+
+        Arguments:
+            script_path: Path to the script to be executed.
+            script_args: The arguments to be pass to the script.
+            num_nodes: Number of nodes.
+            cloud_compute: The cloud compute object used in the cloud.
+            sanity_serving: Whether to validate the model correctly implements
+                the ServableModule API
+        """
         super().__init__()
         self.ws = structures.Dict()
         self.has_initialized = False
@@ -108,6 +121,9 @@ class LightningTrainingComponent(LightningFlow):
         self.num_nodes = num_nodes
         self._cloud_compute = cloud_compute  # TODO: Add support for cloudCOmpute
         self.sanity_serving = sanity_serving
+
+        if not self.is_running_in_cloud and num_nodes > 1:
+            _logger.info(f"This app is running locally, `num_nodes` would be mapped to devices * {num_nodes}.")
 
     def run(self):
         if not self.has_initialized:

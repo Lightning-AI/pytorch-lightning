@@ -1,6 +1,12 @@
 from dataclasses import asdict, dataclass
 from typing import List, Optional, Union
 
+_name_to_devices_map = {
+    "gpu": 1,
+    "gpu-fast": 1,
+    "gpu-fast-multi": 4,
+}
+
 
 @dataclass
 class CloudCompute:
@@ -62,6 +68,8 @@ class CloudCompute:
     @property
     def devices(self) -> int:
         # TODO: Add a resolver here.
+        if self.name in _name_to_devices_map:
+            return _name_to_devices_map[self.name]
         return 1
 
     @property
