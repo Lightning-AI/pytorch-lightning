@@ -61,6 +61,8 @@ from pytorch_lightning.utilities.warnings import WarningCache
 warning_cache = WarningCache()
 log = logging.getLogger(__name__)
 
+MODULE_OPTIMIZERS = Union[Optimizer, LightningOptimizer, List[Optimizer], List[LightningOptimizer]]
+
 
 class LightningModule(
     DeviceDtypeModuleMixin,
@@ -129,14 +131,10 @@ class LightningModule(
         ...
 
     @overload
-    def optimizers(
-        self, use_pl_optimizer: bool
-    ) -> Union[Optimizer, LightningOptimizer, List[Optimizer], List[LightningOptimizer]]:
+    def optimizers(self, use_pl_optimizer: bool) -> MODULE_OPTIMIZERS:
         ...
 
-    def optimizers(
-        self, use_pl_optimizer: bool = True
-    ) -> Union[Optimizer, LightningOptimizer, List[Optimizer], List[LightningOptimizer]]:
+    def optimizers(self, use_pl_optimizer: bool = True) -> MODULE_OPTIMIZERS:
         """Returns the optimizer(s) that are being used during training. Useful for manual optimization.
 
         Args:
@@ -148,7 +146,7 @@ class LightningModule(
             A single optimizer, or a list of optimizers in case multiple ones are present.
         """
         if use_pl_optimizer:
-            opts = list(self.trainer.strategy._lightning_optimizers.values())
+            opts: MODULE_OPTIMIZERS = list(self.trainer.strategy._lightning_optimizers.values())
         else:
             opts = self.trainer.optimizers
 
@@ -186,7 +184,7 @@ class LightningModule(
         return self._trainer
 
     @trainer.setter
-    def trainer(self, trainer: Optional["pl.Trainer"]) -> None:
+    def trainer(self, trainer: "pl.Trainer") -> None:
         for v in self.children():
             if isinstance(v, LightningModule):
                 v.trainer = trainer
@@ -274,7 +272,7 @@ class LightningModule(
         if self.trainer is None:
             return None
         if self._trainer is None:
-            return
+            return None
         loggers = self.trainer.loggers
         if len(loggers) == 0:
             return None
@@ -464,7 +462,7 @@ class LightningModule(
             logger=logger,
             on_step=on_step,
             on_epoch=on_epoch,
-            reduce_fx=reduce_fx,
+            reduce_fx=reduce_fx,  # type: ignore[arg-type]
             enable_graph=enable_graph,
             add_dataloader_idx=add_dataloader_idx,
             batch_size=batch_size,
