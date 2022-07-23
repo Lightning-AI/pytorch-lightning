@@ -15,7 +15,7 @@
             pass
 
 
-    class LightningCLI(pl.utilities.cli.LightningCLI):
+    class LightningCLI(pl.cli.LightningCLI):
         def __init__(self, *args, trainer_class=NoFitTrainer, run=False, **kwargs):
             super().__init__(*args, trainer_class=trainer_class, run=run, **kwargs)
 
@@ -65,7 +65,7 @@ there is a failure an exception is raised and the full stack trace printed.
 Reproducibility with the LightningCLI
 *************************************
 The topic of reproducibility is complex and it is impossible to guarantee reproducibility by just providing a class that
-people can use in unexpected ways. Nevertheless, the :class:`~pytorch_lightning.utilities.cli.LightningCLI` tries to
+people can use in unexpected ways. Nevertheless, the :class:`~pytorch_lightning.cli.LightningCLI` tries to
 give a framework and recommendations to make reproducibility simpler.
 
 When an experiment is run, it is good practice to use a stable version of the source code, either being a released
@@ -85,7 +85,7 @@ For every CLI implemented, users are encouraged to learn how to run it by readin
 :code:`--help` option and use the :code:`--print_config` option to guide the writing of config files. A few more details
 that might not be clear by only reading the help are the following.
 
-:class:`~pytorch_lightning.utilities.cli.LightningCLI` is based on argparse and as such follows the same arguments style
+:class:`~pytorch_lightning.cli.LightningCLI` is based on argparse and as such follows the same arguments style
 as many POSIX command line tools. Long options are prefixed with two dashes and its corresponding values should be
 provided with an empty space or an equal sign, as :code:`--option value` or :code:`--option=value`. Command line options
 are parsed from left to right, therefore if a setting appears multiple times the value most to the right will override
