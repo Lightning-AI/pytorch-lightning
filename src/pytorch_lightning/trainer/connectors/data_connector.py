@@ -14,7 +14,7 @@
 import multiprocessing
 import os
 from dataclasses import dataclass, field
-from typing import Any, Callable, Collection, List, Optional, Tuple, Union
+from typing import Any, Callable, Collection, Iterable, List, Optional, Tuple, TypeAlias, Union
 from weakref import proxy
 
 from torch.utils.data import DataLoader, Sampler, SequentialSampler
@@ -288,7 +288,9 @@ class DataConnector:
 
         return dataloader
 
-    def _resolve_sampler(self, dataloader: DataLoader, shuffle: bool, mode: Optional[RunningStage] = None) -> Sampler:
+    def _resolve_sampler(
+        self, dataloader: DataLoader, shuffle: bool, mode: Optional[RunningStage] = None
+    ) -> Union[Sampler, Iterable]:
         if self._requires_distributed_sampler(dataloader):
             sampler = self._get_distributed_sampler(
                 dataloader,
@@ -495,7 +497,7 @@ class _DataLoaderSource:
     instance: Optional[Union[TRAIN_DATALOADERS, EVAL_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"]]
     name: str
 
-    def dataloader(self) -> Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]:
+    def dataloader(self) -> Union[TypeAlias["instance"], TRAIN_DATALOADERS, EVAL_DATALOADERS]:
         """Returns the dataloader from the source.
 
         If the source is a module, the method with the corresponding :attr:`name` gets called.
