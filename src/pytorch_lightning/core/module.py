@@ -179,9 +179,10 @@ class LightningModule(
 
     @property
     def trainer(self) -> "pl.Trainer":
-        if not self._running_torchscript and self._trainer is None:
+        if self._running_torchscript and self._trainer is not None:
+            return self._trainer
+        else:
             raise RuntimeError(f"{self.__class__.__qualname__} is not attached to a `Trainer`.")
-        return self._trainer
 
     @trainer.setter
     def trainer(self, trainer: "pl.Trainer") -> None:
