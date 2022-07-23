@@ -45,11 +45,12 @@ from pytorch_lightning.utilities.warnings import PossibleUserWarning, WarningCac
 
 warning_cache = WarningCache()
 
-RESOLVE_OVERFIT_BATCH_DATALOADER_TYPE = Union[Collection[DataLoader], Union[DataLoader[Any], List[DataLoader[Any]]]]
+BATCH_DATALOADER = Union[Collection[DataLoader], List[DataLoader], Union[DataLoader[Any], List[DataLoader[Any]]]]
+REQUEST_DATALOADER = Union[DataLoader, List[DataLoader], BATCH_DATALOADER]
 
 
 class DataConnector:
-    def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
+    def __init__(self, trainer: TypeAlias["pl.Trainer"], multiple_trainloader_mode: str = "max_size_cycle"):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
         self._train_dataloader_source = _DataLoaderSource(None, "")
@@ -143,7 +144,7 @@ class DataConnector:
         # set local properties on the model
         self._copy_trainer_model_properties(model)
 
-    def _copy_trainer_model_properties(self, model: "pl.LightningModule") -> None:
+    def _copy_trainer_model_properties(self, model: TypeAlias["pl.LightningModule"]) -> None:
         model.trainer = proxy(self.trainer)
         # Remove setting use_amp in v1.8
         model._use_amp = self.trainer.amp_backend is not None
@@ -420,7 +421,7 @@ class DataConnector:
 
         return loader_num_batches, dataloaders
 
-    def _request_dataloader(self, stage: RunningStage) -> Union[DataLoader, List[DataLoader]]:
+    def _request_dataloader(self, stage: RunningStage) -> REQUEST_DATALOADER:
         """Requests a dataloader from the given model by calling dataloader hooks corresponding to the given stage.
 
         Returns:
@@ -439,9 +440,7 @@ class DataConnector:
         return dataloader
 
     @staticmethod
-    def _resolve_overfit_batches(
-        dataloaders: RESOLVE_OVERFIT_BATCH_DATALOADER_TYPE, mode: RunningStage
-    ) -> RESOLVE_OVERFIT_BATCH_DATALOADER_TYPE:
+    def _resolve_overfit_batches(dataloaders: BATCH_DATALOADER, mode: RunningStage) -> BATCH_DATALOADER:
         all_have_sequential_sampler = True
 
         def resolve_has_no_sequential_sampler(dataloader: DataLoader) -> None:
@@ -549,7 +548,7 @@ class _DataHookSelector:
 
     model: Optional["pl.LightningModule"]
     datamodule: Optional["pl.LightningDataModule"]
-    _valid_hooks: Tuple[str] = field(
+    _valid_hooks: Tuple[str, str, str] = field(
         default=("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
     )
 
