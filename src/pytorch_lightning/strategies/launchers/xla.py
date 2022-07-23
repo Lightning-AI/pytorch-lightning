@@ -19,7 +19,7 @@ from typing import Any, Callable, Optional, TYPE_CHECKING
 import torch.multiprocessing as mp
 
 import pytorch_lightning as pl
-from pytorch_lightning.strategies.launchers.spawn import _FakeQueue, _SpawnLauncher, _SpawnOutput
+from pytorch_lightning.strategies.launchers.multiprocessing import _FakeQueue, _MultiProcessingLauncher, _WorkerOutput
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.apply_func import move_data_to_device
@@ -34,8 +34,9 @@ if TYPE_CHECKING:
     from pytorch_lightning.strategies import Strategy
 
 
-class _XLASpawnLauncher(_SpawnLauncher):
-    r"""Spawns processes that run a given function in parallel on XLA supported hardware, and joins them all at the end.
+class _XLALauncher(_MultiProcessingLauncher):
+    r"""Launches processes that run a given function in parallel on XLA supported hardware, and joins them all at the
+    end.
 
     The main process in which this launcher is invoked creates N so-called worker processes (using the
     `torch_xla` :func:`xmp.spawn`) that run the given function.
@@ -57,13 +58,13 @@ class _XLASpawnLauncher(_SpawnLauncher):
         return True
 
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
-        """Spawns processes that run the given function in parallel.
+        """Launches processes that run the given function in parallel.
 
         The function is allowed to have a return value. However, when all processes join, only the return value
         of worker process 0 gets returned from this `launch` method in the main process.
 
         Arguments:
-            function: The entry point for all spawned processes.
+            function: The entry point for all launched processes.
             *args: Optional positional arguments to be passed to the given function.
             trainer: Optional reference to the :class:`~pytorch_lightning.trainer.trainer.Trainer` for which
                 a selected set of attributes get restored in the main process after processes join.
@@ -77,12 +78,12 @@ class _XLASpawnLauncher(_SpawnLauncher):
             nprocs=len(self._strategy.parallel_devices),
             start_method=self._start_method,
         )
-        spawn_output = return_queue.get()
+        worker_output = return_queue.get()
         if trainer is None:
-            return spawn_output
+            return worker_output
 
-        self._recover_results_in_main_process(spawn_output, trainer)
-        return spawn_output.trainer_results
+        self._recover_results_in_main_process(worker_output, trainer)
+        return worker_output.trainer_results
 
     def _wrapping_function(
         self,
@@ -110,8 +111,8 @@ class _XLASpawnLauncher(_SpawnLauncher):
         if self._strategy.local_rank == 0:
             time.sleep(2)
 
-    def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
-        rank_zero_debug("Finalizing the TPU spawn environment.")
+    def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_WorkerOutput"]:
+        rank_zero_debug("Collecting results from rank 0 process.")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = (
             checkpoint_callback.best_model_path
@@ -136,4 +137,4 @@ class _XLASpawnLauncher(_SpawnLauncher):
         extra = _FakeQueue()
         self.add_to_queue(trainer, extra)
 
-        return _SpawnOutput(best_model_path, weights_path, trainer.state, results, extra)
+        return _WorkerOutput(best_model_path, weights_path, trainer.state, results, extra)
