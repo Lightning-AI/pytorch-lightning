@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+-  Added ``ServableModule`` and its associated callback called ``ServableModuleValidator`` to ensure the model can served ([#13614](https://github.com/PyTorchLightning/pytorch-lightning/pull/13614))
+
 -  Converted validation loop config warnings to `PossibleUserWarning` ([#13377](https://github.com/PyTorchLightning/pytorch-lightning/pull/13377))
 
 
@@ -94,8 +96,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for calling unknown methods with `DummyLogger` ([#13224](https://github.com/PyTorchLightning/pytorch-lightning/pull/13224)
 
 
+- Added support for recursively setting the `Trainer` reference for ensembles of `LightningModule`s ([#13638](https://github.com/PyTorchLightning/pytorch-lightning/pull/13638)
+
+
 - Added Apple Silicon Support via `MPSAccelerator` ([#13123](https://github.com/PyTorchLightning/pytorch-lightning/pull/13123))
 
+
+- Added support for DDP Fork ([#13405](https://github.com/PyTorchLightning/pytorch-lightning/pull/13405))
 
 
 ### Changed
@@ -139,6 +146,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - The `WandbLogger` will now use the run name in the logs folder if it is provided, and otherwise the project name  ([#12604](https://github.com/PyTorchLightning/pytorch-lightning/pull/12604))
 
 
+- Enabled using any Sampler in distributed environment in Lite ([#13646](https://github.com/PyTorchLightning/pytorch-lightning/pull/13646))
+
+
+- Raised a warning instead of forcing `sync_dist=True` on epoch end ([13364](https://github.com/Lightning-AI/lightning/pull/13364))
+
+
+- Updated `val_check_interval`(int) to consider total train batches processed instead of `_batches_that_stepped` for validation check during training ([#12832](https://github.com/Lightning-AI/lightning/pull/12832)
+
+
+- Updated Habana Accelerator's `auto_device_count`, `is_available` & `get_device_name` methods based on the latest torch habana package ([#13423](https://github.com/PyTorchLightning/pytorch-lightning/pull/13423))
+
+
 -
 
 
@@ -173,6 +192,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 ### Removed
+
+- Removed deprecated `IndexBatchSamplerWrapper.batch_indices` ([#13565](https://github.com/PyTorchLightning/pytorch-lightning/pull/13565))
+
+
+- Removed the deprecated `LightningModule.add_to_queue` and `LightningModule.get_from_queue` method ([#13600](https://github.com/PyTorchLightning/pytorch-lightning/pull/13600))
+
+
+- Removed deprecated `pytorch_lightning.core.decorators.parameter_validation` from `decorators` ([#13514](https://github.com/Lightning-AI/lightning/pull/13514))
+
 
 - Removed the deprecated `Logger.close` method ([#13149](https://github.com/PyTorchLightning/pytorch-lightning/pull/13149))
 
@@ -252,10 +280,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the deprecated `test_transforms` argument from the `LightningDataModule` constructor ([#12773](https://github.com/PyTorchLightning/pytorch-lightning/pull/12773))
 
 
+- Removed deprecated `Trainer(max_steps=None)` ([#13591](https://github.com/Lightning-AI/lightning/pull/13591))
+
+
 - Removed deprecated `dataloader_idx` argument from `on_train_batch_start/end` hooks `Callback` and `LightningModule` ([#12769](https://github.com/PyTorchLightning/pytorch-lightning/pull/12769), [#12977](https://github.com/PyTorchLightning/pytorch-lightning/pull/12977))
 
 
 - Removed deprecated `get_progress_bar_dict` property from `LightningModule` ([#12839](https://github.com/PyTorchLightning/pytorch-lightning/pull/12839))
+
 
 - Removed sanity check for multi-optimizer support with habana backends ([#13217](https://github.com/PyTorchLightning/pytorch-lightning/pull/13217))
 
@@ -263,10 +295,38 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Removed the need to explicitly load habana module ([#13338](https://github.com/PyTorchLightning/pytorch-lightning/pull/13338))
 
 
+- Removed the deprecated `Strategy.post_dispatch()` hook ([#13461](https://github.com/PyTorchLightning/pytorch-lightning/pull/13461))
+
+
 - Removed deprecated `pytorch_lightning.callbacks.lr_monitor.LearningRateMonitor.lr_sch_names` ([#13353](https://github.com/Lightning-AI/lightning/pull/13353))
 
 
+- Removed deprecated `Trainer.slurm_job_id` in favor of `SLURMEnvironment.job_id` ([#13459](https://github.com/PyTorchLightning/pytorch-lightning/pull/13459))
+
+
 - Removed support for the `DDP2Strategy` ([#12705](https://github.com/PyTorchLightning/pytorch-lightning/pull/12705))
+
+
+- Removed deprecated `LightningDistributed` ([#13549](https://github.com/PyTorchLightning/pytorch-lightning/pull/13549))
+
+
+- Removed deprecated ClusterEnvironment properties `master_address` and `master_port` in favor of `main_address` and `main_port` ([#13458](https://github.com/PyTorchLightning/pytorch-lightning/pull/13458))
+
+
+- Removed deprecated ClusterEnvironment methods `KubeflowEnvironment.is_using_kubelfow()`, `LSFEnvironment.is_using_lsf()` and `TorchElasticEnvironment.is_using_torchelastic()` in favor of the `detect()` method ([#13458](https://github.com/PyTorchLightning/pytorch-lightning/pull/13458))
+
+
+- Removed deprecated `Callback.on_keyboard_interrupt` ([#13438](https://github.com/Lightning-AI/lightning/pull/13438))
+
+
+- Removed deprecated `LightningModule.on_post_move_to_device` ([#13548](https://github.com/Lightning-AI/lightning/pull/13548))
+
+
+- Removed `TPUSpawnStrategy.{tpu_local_core_rank,tpu_global_core_rank}` attributes in favor of `TPUSpawnStrategy.{local_rank,global_rank}` ([#11163](https://github.com/PyTorchLightning/pytorch-lightning/pull/11163))
+
+
+- Removed `SingleTPUStrategy.{tpu_local_core_rank,tpu_global_core_rank}` attributes in favor of `SingleTPUStrategy.{local_rank,global_rank}`([#11163](https://github.com/PyTorchLightning/pytorch-lightning/pull/11163))
+
 
 
 ### Fixed
@@ -287,23 +347,35 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed ``LightningCLI`` signature parameter resolving for some lightning classes ([#13283](https://github.com/PyTorchLightning/pytorch-lightning/pull/13283))
 
 
-- Fixed `estimated_stepping_batches` requiring distributed comms in `configure_optimizers` for the `DeepSpeedStrategy` ([#13350](https://github.com/PyTorchLightning/pytorch-lightning/pull/13350))
-
-
-- Fixed bug with Python version check that prevented use with development versions of Python ([#13420](https://github.com/PyTorchLightning/pytorch-lightning/pull/13420))
-
-
 - Fixed Model Summary when using DeepSpeed Stage 3 ([#13427](https://github.com/PyTorchLightning/pytorch-lightning/pull/13427))
 
 
 - Fixed `pytorch_lightning.utilities.distributed.gather_all_tensors` to handle tensors of different dimensions ([#12630](https://github.com/PyTorchLightning/pytorch-lightning/pull/12630))
 
 
-- The loops now call `.set_epoch()` also on batch samplers if the dataloader has one wrapped in a distributed sampler ([#13396](https://github.com/PyTorchLightning/pytorch-lightning/pull/13396))
-
-
 - Fixed the input validation for the accelerator Trainer argument when passed as a string ([#13417](https://github.com/PyTorchLightning/pytorch-lightning/pull/13417))
 
+
+- Fixed `Trainer.predict(return_predictions=False)` to track prediction's batch_indices ([#13629](https://github.com/Lightning-AI/lightning/pull/13629))
+
+
+- Fixed and issue that prevented setting a custom `CheckpointIO` plugin with strategies ([#13785](https://github.com/Lightning-AI/lightning/pull/13785))
+
+
+- Fixed main progress bar counter when `val_check_interval=int` and `check_val_every_n_epoch=None` ([#12832](https://github.com/Lightning-AI/lightning/pull/12832)
+
+
+## [1.6.5] - 2022-07-13
+
+### Fixed
+
+- Fixed `estimated_stepping_batches` requiring distributed comms in `configure_optimizers` for the `DeepSpeedStrategy` ([#13350](https://github.com/PyTorchLightning/pytorch-lightning/pull/13350))
+- Fixed bug with Python version check that prevented use with development versions of Python ([#13420](https://github.com/PyTorchLightning/pytorch-lightning/pull/13420))
+- The loops now call `.set_epoch()` also on batch samplers if the dataloader has one wrapped in a distributed sampler ([#13396](https://github.com/PyTorchLightning/pytorch-lightning/pull/13396))
+- Fixed the restoration of log step during restart ([#13467](https://github.com/PyTorchLightning/pytorch-lightning/pull/13467))
+
+
+- Used `global_step` while restoring logging step for old checkpoints ([#13645](https://github.com/PyTorchLightning/pytorch-lightning/pull/13645))
 
 
 ## [1.6.4] - 2022-06-01

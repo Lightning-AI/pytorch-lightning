@@ -172,9 +172,9 @@ class HivemindStrategy(Strategy):
     @property
     def root_device(self) -> torch.device:
         from pytorch_lightning.accelerators.cpu import CPUAccelerator
-        from pytorch_lightning.accelerators.gpu import GPUAccelerator
+        from pytorch_lightning.accelerators.cuda import CUDAAccelerator
 
-        if isinstance(self.accelerator, GPUAccelerator):
+        if isinstance(self.accelerator, CUDAAccelerator):
             return torch.device(f"cuda:{torch.cuda.current_device()}")
         elif isinstance(self.accelerator, CPUAccelerator):
             return torch.device("cpu")
@@ -309,6 +309,8 @@ class HiveMindScheduler:
 
     This code ensures that we only step when the HiveMind optimizer reaches the global step.
     """
+
+    base_lrs: List[float]
 
     def __init__(self, optimizer: "hivemind.Optimizer", scheduler: _LRScheduler) -> None:
         # copy most of the `Scheduler` methods into this instance. `__del__` is skipped in case the scheduler has
