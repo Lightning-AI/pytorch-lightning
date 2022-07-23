@@ -99,7 +99,7 @@ class LightningModule(
         self._use_amp: bool = False
 
         # the precision used
-        self.precision: int = 32
+        self.precision: Union[int, str] = 32
 
         # optionally can be set by user
         self._example_input_array = None

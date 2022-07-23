@@ -45,6 +45,8 @@ from pytorch_lightning.utilities.warnings import PossibleUserWarning, WarningCac
 
 warning_cache = WarningCache()
 
+RESOLVE_OVERFIT_BATCH_DATALOADER_TYPE = Union[Collection[DataLoader], Union[DataLoader[Any], List[DataLoader[Any]]]]
+
 
 class DataConnector:
     def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
@@ -224,7 +226,7 @@ class DataConnector:
                 category=PossibleUserWarning,
             )
 
-    def _requires_distributed_sampler(self, dataloader) -> bool:
+    def _requires_distributed_sampler(self, dataloader: DataLoader) -> bool:
         return (
             self.trainer._accelerator_connector.replace_sampler_ddp
             and self.trainer._accelerator_connector.is_distributed
@@ -435,10 +437,12 @@ class DataConnector:
         return dataloader
 
     @staticmethod
-    def _resolve_overfit_batches(dataloaders: Collection[DataLoader], mode: RunningStage) -> Collection[DataLoader]:
+    def _resolve_overfit_batches(
+        dataloaders: RESOLVE_OVERFIT_BATCH_DATALOADER_TYPE, mode: RunningStage
+    ) -> RESOLVE_OVERFIT_BATCH_DATALOADER_TYPE:
         all_have_sequential_sampler = True
 
-        def resolve_has_no_sequential_sampler(dataloader: DataLoader):
+        def resolve_has_no_sequential_sampler(dataloader: DataLoader) -> None:
             nonlocal all_have_sequential_sampler
             all_have_sequential_sampler = all_have_sequential_sampler & isinstance(
                 dataloader.sampler, SequentialSampler
@@ -453,14 +457,16 @@ class DataConnector:
             )
 
             def replace_sampler(dataloader: DataLoader) -> DataLoader:
-                return _update_dataloader(dataloader, sampler=SequentialSampler(dataloader.dataset), mode=mode)
+                return _update_dataloader(
+                    dataloader, sampler=SequentialSampler(dataloader.dataset), mode=mode
+                )  # type: ignore[arg-type]
 
             dataloaders = apply_to_collection(dataloaders, DataLoader, replace_sampler)
 
         return dataloaders
 
     @staticmethod
-    def _check_eval_shuffling(dataloader, mode):
+    def _check_eval_shuffling(dataloader: DataLoader, mode: RunningStage) -> None:
         # limit this warning only for samplers assigned automatically when shuffle is set
         if _is_dataloader_shuffled(dataloader):
             rank_zero_warn(
@@ -539,7 +545,7 @@ class _DataHookSelector:
         datamodule: A LightningDataModule
     """
 
-    model: "pl.LightningModule"
+    model: Optional["pl.LightningModule"]
     datamodule: Optional["pl.LightningDataModule"]
     _valid_hooks: Tuple[str] = field(
         default=("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")

@@ -25,7 +25,7 @@ from copy import deepcopy
 from datetime import timedelta
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Type, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Type, Union
 from weakref import proxy
 
 import torch
@@ -2229,7 +2229,7 @@ class Trainer(
         return self.strategy.is_global_zero
 
     @property
-    def distributed_sampler_kwargs(self) -> Optional[dict]:
+    def distributed_sampler_kwargs(self) -> Mapping:
         if isinstance(self.strategy, ParallelStrategy):
             return self.strategy.distributed_sampler_kwargs
 
