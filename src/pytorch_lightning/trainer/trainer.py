@@ -38,7 +38,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import (
     Accelerator,
-    GPUAccelerator,
+    CUDAAccelerator,
     HPUAccelerator,
     IPUAccelerator,
     MPSAccelerator,
@@ -394,7 +394,8 @@ class Trainer(
             val_check_interval: How often to check the validation set. Pass a ``float`` in the range [0.0, 1.0] to check
                 after a fraction of the training epoch. Pass an ``int`` to check after a fixed number of training
                 batches. An ``int`` value can only be higher than the number of training batches when
-                ``check_val_every_n_epoch=None``.
+                ``check_val_every_n_epoch=None``, which validates after every ``N`` training batches
+                across epochs or during iteration-based training.
                 Default: ``1.0``.
 
             enable_model_summary: Whether to enable model summarization by default.
@@ -1735,7 +1736,7 @@ class Trainer(
 
     def _log_device_info(self) -> None:
 
-        if GPUAccelerator.is_available():
+        if CUDAAccelerator.is_available():
             gpu_available = True
             gpu_type = " (cuda)"
         elif MPSAccelerator.is_available():
@@ -1745,7 +1746,7 @@ class Trainer(
             gpu_available = False
             gpu_type = ""
 
-        gpu_used = isinstance(self.accelerator, (GPUAccelerator, MPSAccelerator))
+        gpu_used = isinstance(self.accelerator, (CUDAAccelerator, MPSAccelerator))
         rank_zero_info(f"GPU available: {gpu_available}{gpu_type}, used: {gpu_used}")
 
         num_tpu_cores = self.num_devices if isinstance(self.accelerator, TPUAccelerator) else 0
@@ -1758,10 +1759,10 @@ class Trainer(
         rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
 
         # TODO: Integrate MPS Accelerator here, once gpu maps to both
-        if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
+        if CUDAAccelerator.is_available() and not isinstance(self.accelerator, CUDAAccelerator):
             rank_zero_warn(
                 "GPU available but not used. Set `accelerator` and `devices` using"
-                f" `Trainer(accelerator='gpu', devices={GPUAccelerator.auto_device_count()})`.",
+                f" `Trainer(accelerator='gpu', devices={CUDAAccelerator.auto_device_count()})`.",
                 category=PossibleUserWarning,
             )
 
@@ -2069,7 +2070,7 @@ class Trainer(
             "`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
             "Please use `Trainer.strategy.root_device.index` instead."
         )
-        return self.strategy.root_device.index if isinstance(self.accelerator, GPUAccelerator) else None
+        return self.strategy.root_device.index if isinstance(self.accelerator, CUDAAccelerator) else None
 
     @property
     def tpu_cores(self) -> int:
@@ -2093,7 +2094,7 @@ class Trainer(
             "`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
             " Please use `Trainer.num_devices` instead."
         )
-        return self.num_devices if isinstance(self.accelerator, GPUAccelerator) else 0
+        return self.num_devices if isinstance(self.accelerator, CUDAAccelerator) else 0
 
     @property
     def devices(self) -> int:
@@ -2109,7 +2110,7 @@ class Trainer(
             "`Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
             " Please use `Trainer.device_ids` instead."
         )
-        return self.device_ids if isinstance(self.accelerator, GPUAccelerator) else None
+        return self.device_ids if isinstance(self.accelerator, CUDAAccelerator) else None
 
     @property
     def lightning_module(self) -> "pl.LightningModule":
@@ -2705,7 +2706,9 @@ class Trainer(
         self._loggers = loggers if loggers else []
 
     @property
-    def callback_metrics(self) -> dict:
+    def callback_metrics(self) -> Dict[str, Tensor]:
+        # TODO: the true typing return can include dictionaries as defined in
+        # `pytorch_lightning.trainer.connectors.logger_connector.result._OUT_DICT`
         return self._logger_connector.callback_metrics
 
     @property

@@ -26,7 +26,6 @@ from pytorch_lightning.loggers.comet import _COMET_AVAILABLE, CometLogger  # noq
 from pytorch_lightning.loggers.mlflow import _MLFLOW_AVAILABLE, MLFlowLogger  # noqa: F401
 from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE, NeptuneLogger  # noqa: F401
 from pytorch_lightning.loggers.wandb import WandbLogger  # noqa: F401
-from pytorch_lightning.utilities.imports import _WANDB_AVAILABLE
 
 if _COMET_AVAILABLE:
     __all__.append("CometLogger")
@@ -38,6 +37,3 @@ if _MLFLOW_AVAILABLE:
 
 if _NEPTUNE_AVAILABLE:
     __all__.append("NeptuneLogger")
-
-if _WANDB_AVAILABLE:
-    __all__.append("WandbLogger")

@@ -34,7 +34,8 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.loggers import _COMET_AVAILABLE, _NEPTUNE_AVAILABLE, _WANDB_AVAILABLE, TensorBoardLogger
+from pytorch_lightning.loggers import _COMET_AVAILABLE, _NEPTUNE_AVAILABLE, TensorBoardLogger
+from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
@@ -201,8 +202,8 @@ def test_parse_args_parsing_complex_types(cli_args, expected, instantiate):
 )
 def test_parse_args_parsing_gpus(monkeypatch, cli_args, expected_gpu):
     """Test parsing of gpus and instantiation of Trainer."""
-    monkeypatch.setattr("torch.cuda.device_count", lambda: 2)
-    monkeypatch.setattr("torch.cuda.is_available", lambda: True)
+    monkeypatch.setattr("pytorch_lightning.utilities.device_parser.num_cuda_devices", lambda: 2)
+    monkeypatch.setattr("pytorch_lightning.utilities.device_parser.is_cuda_available", lambda: True)
     cli_args = cli_args.split(" ") if cli_args else []
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         parser = LightningArgumentParser(add_help=False, parse_as_dict=False)

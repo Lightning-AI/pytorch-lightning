@@ -3,14 +3,9 @@ name: Test App - examples
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
 on: # Trigger the workflow on push or pull request, but only for the master branch
   push:
-    branches:
-      - "master"
+    branches: [master, "release/*"]
   pull_request:
-    paths:
-      - "src/lightning_app/**"
-      - "tests/tests_app_examples/**"
-      - "requirements/app/**"
-      - "setup.py"
+    branches: [master, "release/*"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -22,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, macOS-10.15, windows-2019]
+        os: [ubuntu-20.04, macOS-11, windows-2019]
         python-version: [3.8]
         requires: ["oldest", "latest"]
 
