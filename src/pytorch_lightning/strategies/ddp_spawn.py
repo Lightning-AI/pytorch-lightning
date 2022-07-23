@@ -53,6 +53,13 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 log = logging.getLogger(__name__)
 
+_DDP_FORK_ALIASES = (
+    "ddp_fork",
+    "ddp_fork_find_unused_parameters_false",
+    "ddp_notebook",
+    "ddp_notebook_find_unused_parameters_false",
+)
+
 
 class DDPSpawnStrategy(ParallelStrategy):
     """Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training
@@ -283,18 +290,20 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        for start_method in ("spawn", "fork"):
+        entries = (
+            ("ddp_spawn", "spawn"),
+            ("ddp_spawn_find_unused_parameters_false", "spawn"),
+            ("ddp_fork", "fork"),
+            ("ddp_fork_find_unused_parameters_false", "fork"),
+            ("ddp_notebook", "fork"),
+            ("ddp_notebook_find_unused_parameters_false", "fork"),
+        )
+        for name, start_method in entries:
             strategy_registry.register(
-                f"ddp_{start_method}_find_unused_parameters_false",
+                name,
                 cls,
-                description=f"DDP {start_method.title()} strategy with `find_unused_parameters` as False",
+                description=f"DDP strategy with `find_unused_parameters` as False and `start_method` '{start_method}'",
                 find_unused_parameters=False,
-                start_method=start_method,
-            )
-            strategy_registry.register(
-                f"ddp_{start_method}",
-                cls,
-                description=f"DDP {start_method.title()} strategy",
                 start_method=start_method,
             )
 
