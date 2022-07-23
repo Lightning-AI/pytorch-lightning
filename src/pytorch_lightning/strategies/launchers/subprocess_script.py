@@ -23,7 +23,9 @@ import numpy as np
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.strategies.launchers.base import _Launcher
-from pytorch_lightning.utilities import _HYDRA_AVAILABLE
+from pytorch_lightning.utilities.imports import _RequirementAvailable
+
+_HYDRA_AVAILABLE = _RequirementAvailable("hydra")
 
 if _HYDRA_AVAILABLE:
     from hydra.core.hydra_config import HydraConfig
