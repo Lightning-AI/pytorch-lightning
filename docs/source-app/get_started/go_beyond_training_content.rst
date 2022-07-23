@@ -308,7 +308,7 @@ Implement the ``configure_layout`` method to connect them together:
 
 5: Init the ``app`` object
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-Initalize an ``app`` object with the ``TrainDeploy`` component (this won't run the App yet):
+Initialize an ``app`` object with the ``TrainDeploy`` component (this won't run the App yet):
 
 .. code:: python
     :emphasize-lines: 29
