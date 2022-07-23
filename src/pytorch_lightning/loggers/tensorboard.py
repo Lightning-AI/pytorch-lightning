@@ -96,7 +96,7 @@ class TensorBoardLogger(Logger):
         sub_dir: Optional[str] = None,
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
         agg_default_func: Optional[Callable[[Sequence[float]], float]] = None,
-        **kwargs,
+        **kwargs: Any,
     ):
         super().__init__(agg_key_funcs=agg_key_funcs, agg_default_func=agg_default_func)
         self._save_dir = save_dir
@@ -108,8 +108,8 @@ class TensorBoardLogger(Logger):
         self._prefix = prefix
         self._fs = get_filesystem(save_dir)
 
-        self._experiment = None
-        self.hparams = {}
+        self._experiment: Optional["SummaryWriter"] = None
+        self.hparams: Union[Dict[str, Any], Namespace] = {}
         self._kwargs = kwargs
 
     @property
@@ -138,7 +138,7 @@ class TensorBoardLogger(Logger):
         return log_dir
 
     @property
-    def save_dir(self) -> Optional[str]:
+    def save_dir(self) -> str:
         """Gets the save directory where the TensorBoard experiments are saved.
 
         Returns:
@@ -155,7 +155,7 @@ class TensorBoardLogger(Logger):
         """
         return self._sub_dir
 
-    @property
+    @property  # type: ignore[misc]
     @rank_zero_experiment
     def experiment(self) -> SummaryWriter:
         r"""
@@ -236,7 +236,7 @@ class TensorBoardLogger(Logger):
                     raise ValueError(m) from ex
 
     @rank_zero_only
-    def log_graph(self, model: "pl.LightningModule", input_array=None):
+    def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
         if self._log_graph:
             if input_array is None:
                 input_array = model.example_input_array
@@ -282,7 +282,7 @@ class TensorBoardLogger(Logger):
         return self._name
 
     @property
-    def version(self) -> int:
+    def version(self) -> Union[int, str]:
         """Get the experiment version.
 
         Returns:
@@ -292,7 +292,7 @@ class TensorBoardLogger(Logger):
             self._version = self._get_next_version()
         return self._version
 
-    def _get_next_version(self):
+    def _get_next_version(self) -> int:
         root_dir = self.root_dir
 
         try:
@@ -319,7 +319,7 @@ class TensorBoardLogger(Logger):
         # logging of arrays with dimension > 1 is not supported, sanitize as string
         return {k: str(v) if isinstance(v, (Tensor, np.ndarray)) and v.ndim > 1 else v for k, v in params.items()}
 
-    def __getstate__(self):
+    def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
         state["_experiment"] = None
         return state

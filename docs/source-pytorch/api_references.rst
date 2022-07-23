@@ -12,7 +12,7 @@ accelerators
 
     Accelerator
     CPUAccelerator
-    GPUAccelerator
+    CUDAAccelerator
     HPUAccelerator
     IPUAccelerator
     TPUAccelerator
@@ -198,6 +198,7 @@ environments
     LSFEnvironment
     SLURMEnvironment
     TorchElasticEnvironment
+    XLAEnvironment
 
 io
 ""
@@ -231,7 +232,7 @@ others
 profiler
 --------
 
-.. currentmodule:: pytorch_lightning.profiler
+.. currentmodule:: pytorch_lightning.profilers
 
 .. autosummary::
     :toctree: api
@@ -268,8 +269,7 @@ strategies
     :template: classtemplate.rst
 
     BaguaStrategy
-    CollaborativeStrategy
-    DDP2Strategy
+    HivemindStrategy
     DDPFullyShardedStrategy
     DDPShardedStrategy
     DDPSpawnShardedStrategy

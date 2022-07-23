@@ -7,9 +7,9 @@ import torch
 
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringModel
+from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.strategies import DDPShardedStrategy, DDPSpawnShardedStrategy
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _FAIRSCALE_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 
 if _FAIRSCALE_AVAILABLE:
@@ -170,7 +170,7 @@ def test_ddp_sharded_strategy_fit_ckpt_path_gpu_to_cpu(tmpdir):
         pytest.param(dict(accelerator="gpu", devices=2), marks=RunIf(min_cuda_gpus=2)),
     ),
 )
-def test_ddp_sharded_strategy_test_multigpu(tmpdir, trainer_kwargs):
+def test_ddp_sharded_strategy_test_multigpu(trainer_kwargs):
     """Test to ensure we can use validate and test without fit."""
     model = BoringModel()
     trainer = Trainer(

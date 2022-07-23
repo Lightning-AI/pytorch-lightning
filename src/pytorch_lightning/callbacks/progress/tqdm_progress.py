@@ -252,13 +252,7 @@ class TQDMProgressBar(ProgressBarBase):
         self.main_progress_bar = self.init_train_tqdm()
 
     def on_train_epoch_start(self, trainer: "pl.Trainer", *_: Any) -> None:
-        total_train_batches = self.total_train_batches
-        total_val_batches = self.total_val_batches
-        if total_train_batches != float("inf") and total_val_batches != float("inf"):
-            # val can be checked multiple times per epoch
-            val_checks_per_epoch = total_train_batches // trainer.val_check_batch
-            total_val_batches = total_val_batches * val_checks_per_epoch
-        total_batches = total_train_batches + total_val_batches
+        total_batches = self.total_batches_current_epoch
         self.main_progress_bar.reset(convert_inf(total_batches))
         self.main_progress_bar.set_description(f"Epoch {trainer.current_epoch}")
 
@@ -387,4 +381,3 @@ def _update_n(bar: _tqdm, current: int, refresh_rate: int) -> None:
         leftover = current % refresh_rate
         advance = leftover if (current == total and leftover != 0) else refresh_rate
         bar.update(advance)
-        bar.refresh()

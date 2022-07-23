@@ -49,10 +49,12 @@ def gallery_app(name, yes_arg, version_arg, cwd=None, overwrite=False):
     app_entry = _resolve_resource(registry_url, name=name, version_arg=version_arg, resource_type="app")
 
     # give the user the chance to do a manual install
-    source_url, git_url, folder_name = _show_install_app_prompt(app_entry, app, org, yes_arg, resource_type="app")
+    source_url, git_url, folder_name, git_sha = _show_install_app_prompt(
+        app_entry, app, org, yes_arg, resource_type="app"
+    )
 
     # run installation if requested
-    _install_app(source_url, git_url, folder_name, cwd=cwd, overwrite=overwrite)
+    _install_app(source_url, git_url, folder_name, cwd=cwd, overwrite=overwrite, git_sha=git_sha)
 
 
 def non_gallery_app(gh_url, yes_arg, cwd=None, overwrite=False):
@@ -110,7 +112,7 @@ def _show_non_gallery_install_component_prompt(gh_url, yes_arg):
         git+https://github.com/OrgName/repo-name.git@ALongCommitSHAString
 
         Example:
-        git+https://github.com/PyTorchLightning/LAI-slack-messenger.git@14f333456ffb6758bd19458e6fa0bf12cf5575e1
+        git+https://github.com/Lightning-AI/LAI-slack-messenger.git@14f333456ffb6758bd19458e6fa0bf12cf5575e1
         """
         raise SystemExit(m)
 
@@ -161,14 +163,16 @@ def _show_non_gallery_install_component_prompt(gh_url, yes_arg):
 def _show_install_app_prompt(entry, app, org, yes_arg, resource_type):
     source_url = entry["sourceUrl"]  # This URL is used only to display the repo and extract folder name
     full_git_url = entry["gitUrl"]  # Used to clone the repo (can include tokens for private repos)
-    git_url = full_git_url.split("#ref=")[0]
+    git_url_parts = full_git_url.split("#ref=")
+    git_url = git_url_parts[0]
+    git_sha = git_url_parts[1] if len(git_url_parts) == 2 else None
 
     folder_name = source_url.split("/")[-1]
 
     # yes arg does not prompt the user for permission to install anything
     # automatically creates env and sets up the project
     if yes_arg:
-        return source_url, git_url, folder_name
+        return source_url, git_url, folder_name, git_sha
 
     prompt = f"""
     ⚡ Installing Lightning {resource_type} ⚡
@@ -192,7 +196,7 @@ def _show_install_app_prompt(entry, app, org, yes_arg, resource_type):
         if not should_install:
             raise KeyboardInterrupt()
 
-        return source_url, git_url, folder_name
+        return source_url, git_url, folder_name, git_sha
     except KeyboardInterrupt:
         repo = entry["sourceUrl"]
         m = f"""
@@ -221,7 +225,7 @@ def _show_non_gallery_install_app_prompt(gh_url, yes_arg):
         https://github.com/YourOrgName/your-repo-name
 
         Example:
-        https://github.com/PyTorchLightning/lightning
+        https://github.com/Lightning-AI/lightning
         """
         raise SystemExit("")
 
@@ -367,7 +371,9 @@ def _install_with_env(repo_url, folder_name, cwd=None):
     logger.info(m)
 
 
-def _install_app(source_url: str, git_url: str, folder_name: str, cwd=None, overwrite: bool = False):
+def _install_app(
+    source_url: str, git_url: str, folder_name: str, cwd=None, overwrite: bool = False, git_sha: str = None
+):
     """Installing lighting app from the `git_url`
 
     Args:
@@ -381,6 +387,8 @@ def _install_app(source_url: str, git_url: str, folder_name: str, cwd=None, over
             Working director. If not specified, current working directory is used.
         overwrite:
             If true, overwrite the app directory without asking if it already exists
+        git_sha:
+            The git_sha for checking out the git repo of the app.
     """
 
     if not cwd:
@@ -411,6 +419,15 @@ def _install_app(source_url: str, git_url: str, folder_name: str, cwd=None, over
     # step into the repo folder
     os.chdir(f"{folder_name}")
     cwd = os.getcwd()
+
+    try:
+        if git_sha:
+            subprocess.check_output(["git", "checkout", git_sha], stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        if "did not match any" in str(e.output):
+            raise SystemExit("Looks like the git SHA is not valid or doesn't exist in app repo.")
+        else:
+            raise Exception(e)
 
     # activate and install reqs
     # TODO: remove shell=True... but need to run command in venv

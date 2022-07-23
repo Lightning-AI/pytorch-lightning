@@ -82,8 +82,8 @@ def test_connect_loops_recursive():
 
     trainer = Trainer()
     trainer.fit_loop = main_loop
+    assert child0.trainer is child1.trainer
     assert child0.trainer is trainer
-    assert child1.trainer is trainer
 
 
 def test_restarting_loops_recursive():

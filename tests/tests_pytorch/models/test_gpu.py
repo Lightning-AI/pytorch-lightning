@@ -23,7 +23,7 @@ import torch
 import tests_pytorch.helpers.pipelines as tpipes
 import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import CPUAccelerator, GPUAccelerator
+from pytorch_lightning.accelerators import CPUAccelerator, CUDAAccelerator
 from pytorch_lightning.demos.boring_classes import BoringModel
 from pytorch_lightning.plugins.environments import TorchElasticEnvironment
 from pytorch_lightning.utilities import device_parser
@@ -83,8 +83,8 @@ def mocked_device_count(monkeypatch):
     def is_available():
         return True
 
-    monkeypatch.setattr(torch.cuda, "is_available", is_available)
-    monkeypatch.setattr(torch.cuda, "device_count", device_count)
+    monkeypatch.setattr(device_parser, "is_cuda_available", is_available)
+    monkeypatch.setattr(device_parser, "num_cuda_devices", device_count)
 
 
 @pytest.fixture
@@ -92,7 +92,7 @@ def mocked_device_count_0(monkeypatch):
     def device_count():
         return 0
 
-    monkeypatch.setattr(torch.cuda, "device_count", device_count)
+    monkeypatch.setattr(device_parser, "num_cuda_devices", device_count)
 
 
 # Asking for a gpu when non are available will result in a MisconfigurationException
@@ -147,30 +147,30 @@ def test_determine_root_gpu_device(devices, expected_root_gpu):
     ],
 )
 def test_parse_gpu_ids(mocked_device_count, devices, expected_gpu_ids):
-    assert device_parser.parse_gpu_ids(devices) == expected_gpu_ids
+    assert device_parser.parse_gpu_ids(devices, include_cuda=True) == expected_gpu_ids
 
 
 @pytest.mark.parametrize("devices", [0.1, -2, False, [-1], [None], ["0"], [0, 0]])
 def test_parse_gpu_fail_on_unsupported_inputs(mocked_device_count, devices):
     with pytest.raises(MisconfigurationException):
-        device_parser.parse_gpu_ids(devices)
+        device_parser.parse_gpu_ids(devices, include_cuda=True)
 
 
 @pytest.mark.parametrize("devices", [[1, 2, 19], -1, "-1"])
 def test_parse_gpu_fail_on_non_existent_id(mocked_device_count_0, devices):
     with pytest.raises(MisconfigurationException):
-        device_parser.parse_gpu_ids(devices)
+        device_parser.parse_gpu_ids(devices, include_cuda=True)
 
 
 def test_parse_gpu_fail_on_non_existent_id_2(mocked_device_count):
     with pytest.raises(MisconfigurationException):
-        device_parser.parse_gpu_ids([1, 2, 19])
+        device_parser.parse_gpu_ids([1, 2, 19], include_cuda=True)
 
 
 @pytest.mark.parametrize("devices", [-1, "-1"])
 def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_count_0, devices):
     with pytest.raises(MisconfigurationException):
-        device_parser.parse_gpu_ids(devices)
+        device_parser.parse_gpu_ids(devices, include_cuda=True)
 
 
 @mock.patch.dict(
@@ -185,8 +185,8 @@ def test_parse_gpu_returns_none_when_no_devices_are_available(mocked_device_coun
         "TORCHELASTIC_RUN_ID": "1",
     },
 )
-@mock.patch("torch.cuda.device_count", return_value=1)
-@mock.patch("torch.cuda.is_available", return_value=True)
+@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1)
+@mock.patch("pytorch_lightning.utilities.device_parser.is_cuda_available", return_value=True)
 @pytest.mark.parametrize("gpus", [[0, 1, 2], 2, "0", [0, 2]])
 def test_torchelastic_gpu_parsing(mocked_device_count, mocked_is_available, gpus):
     """Ensure when using torchelastic and nproc_per_node is set to the default of 1 per GPU device That we omit
@@ -195,10 +195,10 @@ def test_torchelastic_gpu_parsing(mocked_device_count, mocked_is_available, gpus
         trainer = Trainer(gpus=gpus)
     assert isinstance(trainer._accelerator_connector.cluster_environment, TorchElasticEnvironment)
     # when use gpu
-    if device_parser.parse_gpu_ids(gpus) is not None:
-        assert isinstance(trainer.accelerator, GPUAccelerator)
+    if device_parser.parse_gpu_ids(gpus, include_cuda=True) is not None:
+        assert isinstance(trainer.accelerator, CUDAAccelerator)
         assert trainer.num_devices == len(gpus) if isinstance(gpus, list) else gpus
-        assert trainer.device_ids == device_parser.parse_gpu_ids(gpus)
+        assert trainer.device_ids == device_parser.parse_gpu_ids(gpus, include_cuda=True)
     # fall back to cpu
     else:
         assert isinstance(trainer.accelerator, CPUAccelerator)
@@ -284,7 +284,6 @@ def test_single_gpu_batch_parse():
 
     examples = [Example.fromdict(sample, fields) for sample in samples]
     dataset = Dataset(examples=examples, fields=fields.values())
-
     # Batch runs field.process() that numericalizes tokens, but it requires to build dictionary first
     text_field.build_vocab(dataset)
     label_field.build_vocab(dataset)

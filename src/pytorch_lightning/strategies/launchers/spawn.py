@@ -20,13 +20,13 @@ import numpy as np
 import torch
 import torch.multiprocessing as mp
 from torch import Tensor
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.strategies.strategy import Strategy
 from pytorch_lightning.trainer.states import TrainerFn, TrainerState
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
-from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 from pytorch_lightning.utilities.types import _PATH
 
@@ -35,27 +35,40 @@ class _SpawnLauncher(_Launcher):
     r"""Spawns processes that run a given function in parallel, and joins them all at the end.
 
     The main process in which this launcher is invoked creates N so-called worker processes (using
-    :func:`torch.multiprocessing.spawn`) that run the given function.
+    :func:`torch.multiprocessing.start_processes`) that run the given function.
     Worker processes have a rank that ranges from 0 to N - 1.
 
     Note:
         - This launcher requires all objects to be pickleable.
         - It is important that the entry point to the program/script is guarded by ``if __name__ == "__main__"``.
+        - With start method 'fork' the user must ensure that no CUDA context gets created in the main process before
+          the launcher is invoked. E.g., one should avoid creating cuda tensors or calling ``torch.cuda.*`` functions
+          before calling ``Trainer.fit``.
 
     Args:
         strategy: A reference to the strategy that is used together with this launcher.
+        start_method: The method how to start the processes.
+            - 'spawn': The default start method. Requires all objects to be pickleable.
+            - 'fork': Preferrable for IPython/Jupyter environments where 'spawn' is not available. Not available on
+              the Windows platform for example.
+            - 'forkserver': Alternative implementation to 'fork'.
     """
 
-    def __init__(self, strategy: Strategy) -> None:
+    def __init__(self, strategy: Strategy, start_method: Literal["spawn", "fork", "forkserver"] = "spawn") -> None:
         self._strategy = strategy
-        self._start_method = "spawn"
+        self._start_method = start_method
+        if start_method not in mp.get_all_start_methods():
+            raise ValueError(
+                f"The start method '{self._start_method}' is not available on this platform. Available methods are:"
+                f" {', '.join(mp.get_all_start_methods())}"
+            )
 
     @property
     def is_interactive_compatible(self) -> bool:
-        # The start method 'spawn' is currently the only one that works with DDP and CUDA support
-        # The start method 'fork' is the only one supported in Jupyter environments but not compatible with CUDA
-        # For more context, see https://github.com/Lightning-AI/lightning/issues/7550
-        return self._start_method == "fork" and self._strategy.root_device.type != "cuda"
+        # The start method 'spawn' is not supported in interactive environments
+        # The start method 'fork' is the only one supported in Jupyter environments, with constraints around CUDA
+        # initialization. For more context, see https://github.com/Lightning-AI/lightning/issues/7550
+        return self._start_method == "fork"
 
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
         """Spawns processes that run the given function in parallel.
@@ -76,7 +89,7 @@ class _SpawnLauncher(_Launcher):
         os.environ["MASTER_PORT"] = str(self._strategy.cluster_environment.main_port)
         context = mp.get_context(self._start_method)
         return_queue = context.SimpleQueue()
-        mp.spawn(
+        mp.start_processes(
             self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
             nprocs=self._strategy.num_processes,
@@ -109,7 +122,7 @@ class _SpawnLauncher(_Launcher):
 
     def _recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer: "pl.Trainer") -> None:
         # transfer back the best path to the trainer
-        if trainer.checkpoint_callback:
+        if trainer.checkpoint_callback and hasattr(trainer.checkpoint_callback, "best_model_path"):
             trainer.checkpoint_callback.best_model_path = str(spawn_output.best_model_path)
 
         # TODO: pass also best score
@@ -122,16 +135,16 @@ class _SpawnLauncher(_Launcher):
         trainer.state = spawn_output.trainer_state
 
         # get the `callback_metrics` and set it to the trainer
-        if is_overridden("get_from_queue", trainer.lightning_module):
-            # only in case the user does not override it.
-            # TODO: Remove the if in v1.7
-            trainer.lightning_module.get_from_queue(spawn_output.extra)
         self.get_from_queue(trainer, spawn_output.extra)
 
     def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
         rank_zero_debug("Finalizing the DDP spawn environment.")
         checkpoint_callback = trainer.checkpoint_callback
-        best_model_path = checkpoint_callback.best_model_path if checkpoint_callback else None
+        best_model_path = (
+            checkpoint_callback.best_model_path
+            if checkpoint_callback and hasattr(checkpoint_callback, "best_model_path")
+            else None
+        )
 
         # requires to compute the state_dict on all processes in case Metrics are present
         state_dict = trainer.lightning_module.state_dict()
@@ -147,9 +160,6 @@ class _SpawnLauncher(_Launcher):
 
         # adds the `callback_metrics` to the queue
         extra = _FakeQueue()
-        if is_overridden("add_to_queue", trainer.lightning_module):
-            # TODO: Remove the if in v1.7
-            trainer.lightning_module.add_to_queue(extra)
         self.add_to_queue(trainer, extra)
 
         return _SpawnOutput(best_model_path, weights_path, trainer.state, results, extra)

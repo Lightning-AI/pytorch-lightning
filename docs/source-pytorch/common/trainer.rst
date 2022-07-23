@@ -249,8 +249,8 @@ Example::
 
     .. code-block:: python
 
-        # This is part of the built-in `GPUAccelerator`
-        class GPUAccelerator(Accelerator):
+        # This is part of the built-in `CUDAAccelerator`
+        class CUDAAccelerator(Accelerator):
             """Accelerator for GPU devices."""
 
             @staticmethod
@@ -603,8 +603,8 @@ based on the accelerator type (``"cpu", "gpu", "tpu", "ipu", "auto"``).
 
     .. code-block:: python
 
-        # This is part of the built-in `GPUAccelerator`
-        class GPUAccelerator(Accelerator):
+        # This is part of the built-in `CUDAAccelerator`
+        class CUDAAccelerator(Accelerator):
             """Accelerator for GPU devices."""
 
             @staticmethod
@@ -954,7 +954,7 @@ Training will stop if max_steps or max_epochs have reached (earliest).
 .. testcode::
 
     # Default (disabled)
-    trainer = Trainer(max_steps=None)
+    trainer = Trainer(max_steps=-1)
 
     # Stop after 100 steps
     trainer = Trainer(max_steps=100)
@@ -1213,7 +1213,7 @@ See the :doc:`profiler documentation <../tuning/profiler>`. for more details.
 
 .. testcode::
 
-    from pytorch_lightning.profiler import SimpleProfiler, AdvancedProfiler
+    from pytorch_lightning.profilers import SimpleProfiler, AdvancedProfiler
 
     # default used by the Trainer
     trainer = Trainer(profiler=None)
@@ -1281,6 +1281,7 @@ replace_sampler_ddp
 Enables auto adding of :class:`~torch.utils.data.distributed.DistributedSampler`. In PyTorch, you must use it in
 distributed settings such as TPUs or multi-node. The sampler makes sure each GPU sees the appropriate part of your data.
 By default it will add ``shuffle=True`` for train sampler and ``shuffle=False`` for val/test sampler.
+If you already use a custom sampler, Lightning will wrap it in a way that it samples from your sampler in a distributed manner.
 If you want to customize it, you can set ``replace_sampler_ddp=False`` and add your own distributed sampler.
 If ``replace_sampler_ddp=True`` and a distributed sampler was already added,
 Lightning will not replace the existing one.
@@ -1478,7 +1479,8 @@ How often within one training epoch to check the validation set.
 Can specify as float or int.
 
 - pass a ``float`` in the range [0.0, 1.0] to check after a fraction of the training epoch.
-- pass an ``int`` to check after a fixed number of training batches.
+- pass an ``int`` to check after a fixed number of training batches. An ``int`` value can only be higher than the number of training
+  batches when ``check_val_every_n_epoch=None``, which validates after every ``N`` training batches across epochs or iteration-based training.
 
 .. testcode::
 
@@ -1488,10 +1490,13 @@ Can specify as float or int.
     # check validation set 4 times during a training epoch
     trainer = Trainer(val_check_interval=0.25)
 
-    # check validation set every 1000 training batches
+    # check validation set every 1000 training batches in the current epoch
+    trainer = Trainer(val_check_interval=1000)
+
+    # check validation set every 1000 training batches across complete epochs or during iteration-based training
     # use this when using iterableDataset and your dataset has no length
     # (ie: production cases with streaming data)
-    trainer = Trainer(val_check_interval=1000)
+    trainer = Trainer(val_check_interval=1000, check_val_every_n_epoch=None)
 
 
 .. code-block:: python
@@ -1638,6 +1643,16 @@ The number of epochs run.
 .. code-block:: python
 
     if trainer.current_epoch >= 10:
+        ...
+
+is_last_batch
+*************
+
+Whether trainer is executing last batch in the current epoch.
+
+.. code-block:: python
+
+    if trainer.is_last_batch:
         ...
 
 global_step

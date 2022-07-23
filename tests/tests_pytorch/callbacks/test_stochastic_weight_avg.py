@@ -162,9 +162,11 @@ def test_swa_callback_ddp_cpu(tmpdir):
     train_with_swa(tmpdir, strategy="ddp_spawn", accelerator="cpu", devices=2)
 
 
-@RunIf(min_cuda_gpus=1)
-def test_swa_callback_1_gpu(tmpdir):
-    train_with_swa(tmpdir, accelerator="gpu", devices=1)
+@pytest.mark.parametrize(
+    "accelerator", [pytest.param("gpu", marks=RunIf(min_cuda_gpus=1)), pytest.param("mps", marks=RunIf(mps=True))]
+)
+def test_swa_callback_1_gpu(tmpdir, accelerator):
+    train_with_swa(tmpdir, accelerator=accelerator, devices=1)
 
 
 @pytest.mark.parametrize("batchnorm", (True, False))
@@ -209,7 +211,7 @@ def test_swa_deepcopy(tmpdir):
             super().setup(trainer, pl_module, stage)
             assert self._average_model.train_dataloader is not pl_module.train_dataloader
             assert self._average_model.train_dataloader.__self__ == self._average_model
-            assert self._average_model.trainer is None
+            assert self._average_model._trainer is None
             self.setup_called = True
 
     model = BoringModel()
