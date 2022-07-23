@@ -33,7 +33,7 @@ from pytorch_lightning.utilities.fetching import (
     InterBatchParallelDataFetcher,
 )
 from pytorch_lightning.utilities.model_helpers import is_overridden
-from pytorch_lightning.utilities.rank_zero import rank_zero_warn
+from pytorch_lightning.utilities.rank_zero import rank_zero_debug, rank_zero_info, rank_zero_warn
 from pytorch_lightning.utilities.signature_utils import is_param_in_hook_signature
 
 log = logging.getLogger(__name__)
@@ -150,31 +150,40 @@ class FitLoop(Loop[None]):
     @property
     def done(self) -> bool:
         """Evaluates when to leave the loop."""
+        if self.trainer.num_training_batches == 0:
+            rank_zero_info("`Trainer.fit` stopped: No training batches.")
+            return True
+
         # TODO(@awaelchli): Move track steps inside training loop and move part of these condition inside training loop
         stop_steps = _is_max_limit_reached(self.epoch_loop.global_step, self.max_steps)
+        if stop_steps:
+            rank_zero_info(f"`Trainer.fit` stopped: `max_steps={self.max_steps!r}` reached.")
+            return True
+
         # `processed` is increased before `on_train_epoch_end`, the hook where checkpoints are typically saved.
         # we use it here because the checkpoint data won't have `completed` increased yet
         stop_epochs = _is_max_limit_reached(self.epoch_progress.current.processed, self.max_epochs)
         if stop_epochs:
             # in case they are not equal, override so `trainer.current_epoch` has the expected value
             self.epoch_progress.current.completed = self.epoch_progress.current.processed
+            rank_zero_info(f"`Trainer.fit` stopped: `max_epochs={self.max_epochs!r}` reached.")
+            return True
 
-        should_stop = False
         if self.trainer.should_stop:
             # early stopping
             met_min_epochs = self.epoch_progress.current.processed >= self.min_epochs if self.min_epochs else True
             met_min_steps = self.epoch_loop.global_step >= self.min_steps if self.min_steps else True
             if met_min_epochs and met_min_steps:
-                should_stop = True
+                self.trainer.should_stop = True
+                rank_zero_debug("`Trainer.fit` stopped: `trainer.should_stop` was set.")
+                return True
             else:
-                log.info(
-                    "Trainer was signaled to stop but required minimum epochs"
-                    f" ({self.min_epochs}) or minimum steps ({self.min_steps}) has"
-                    " not been met. Training will continue..."
+                rank_zero_info(
+                    f"Trainer was signaled to stop but the required `min_epochs={self.min_epochs!r}` or"
+                    f" `min_steps={self.min_steps!r}` has not been met. Training will continue..."
                 )
-        self.trainer.should_stop = should_stop
-
-        return stop_steps or should_stop or stop_epochs or self.trainer.num_training_batches == 0
+        self.trainer.should_stop = False
+        return False
 
     @property
     def skip(self) -> bool:
