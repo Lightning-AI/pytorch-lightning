@@ -458,8 +458,8 @@ class DataConnector:
 
             def replace_sampler(dataloader: DataLoader) -> DataLoader:
                 return _update_dataloader(
-                    dataloader, sampler=SequentialSampler(dataloader.dataset), mode=mode
-                )  # type: ignore[arg-type]
+                    dataloader, sampler=SequentialSampler(dataloader.dataset), mode=mode  # type: ignore[arg-type]
+                )
 
             dataloaders = apply_to_collection(dataloaders, DataLoader, replace_sampler)
 
