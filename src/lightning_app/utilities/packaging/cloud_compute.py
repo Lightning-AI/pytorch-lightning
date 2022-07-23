@@ -63,3 +63,8 @@ class CloudCompute:
     def devices(self) -> int:
         # TODO: Add a resolver here.
         return 1
+
+    @property
+    def accelerator(self) -> str:
+        # TODO: Add a resolver here.
+        return self.name
