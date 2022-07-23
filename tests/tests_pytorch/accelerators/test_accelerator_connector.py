@@ -44,6 +44,7 @@ from pytorch_lightning.strategies import (
     DeepSpeedStrategy,
     SingleDeviceStrategy,
 )
+from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from pytorch_lightning.strategies.hpu_parallel import HPUParallelStrategy
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests_pytorch.helpers.runif import RunIf
@@ -761,7 +762,7 @@ def test_accelerator_specific_checkpoint_io(*_):
     assert trainer.strategy.checkpoint_io is ckpt_plugin
 
 
-@pytest.mark.parametrize("strategy", ["ddp_fork", "ddp_fork_find_unused_parameters_false"])
+@pytest.mark.parametrize("strategy", _DDP_FORK_ALIASES)
 @mock.patch(
     "pytorch_lightning.trainer.connectors.accelerator_connector.torch.multiprocessing.get_all_start_methods",
     return_value=[],

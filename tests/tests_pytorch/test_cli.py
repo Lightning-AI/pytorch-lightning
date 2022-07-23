@@ -40,7 +40,8 @@ from pytorch_lightning.cli import (
     SaveConfigCallback,
 )
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.loggers import _COMET_AVAILABLE, _NEPTUNE_AVAILABLE, TensorBoardLogger
+from pytorch_lightning.loggers import _COMET_AVAILABLE, TensorBoardLogger
+from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE
 from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
 from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.strategies import DDPStrategy
