@@ -206,14 +206,17 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         rank_zero_only.rank = self.global_rank
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        assert self.model
         with self.precision_plugin.val_step_context():
             return self.model(*args, **kwargs)
 
     def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+        assert self.model
         with self.precision_plugin.test_step_context():
             return self.model(*args, **kwargs)
 
     def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+        assert self.model
         with self.precision_plugin.predict_step_context():
             return self.model(*args, **kwargs)
 
