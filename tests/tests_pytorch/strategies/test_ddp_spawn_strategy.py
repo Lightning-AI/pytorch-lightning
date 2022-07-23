@@ -23,7 +23,7 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
 from pytorch_lightning.strategies import DDPSpawnStrategy
-from pytorch_lightning.strategies.launchers.spawn import _SpawnLauncher
+from pytorch_lightning.strategies.launchers.spawn import _MultiProcessingLauncher
 from pytorch_lightning.trainer.states import TrainerFn
 from tests_pytorch.helpers.runif import RunIf
 
@@ -59,7 +59,7 @@ def test_ddp_cpu():
     trainer.fit(model)
 
 
-class CustomSpawnLauncher(_SpawnLauncher):
+class CustomMultiProcessingLauncher(_MultiProcessingLauncher):
     def add_to_queue(self, trainer, queue) -> None:
         queue.put("test_val")
         return super().add_to_queue(trainer, queue)
@@ -71,7 +71,7 @@ class CustomSpawnLauncher(_SpawnLauncher):
 
 class TestDDPSpawnStrategy(DDPSpawnStrategy):
     def _configure_launcher(self):
-        self._launcher = CustomSpawnLauncher(self)
+        self._launcher = CustomMultiProcessingLauncher(self)
 
 
 @RunIf(skip_windows=True)
