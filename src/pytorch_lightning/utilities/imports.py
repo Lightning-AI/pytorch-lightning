@@ -143,8 +143,6 @@ _HOROVOD_AVAILABLE = _module_available("horovod.torch")
 _HYDRA_AVAILABLE = _package_available("hydra")
 _HYDRA_EXPERIMENTAL_AVAILABLE = _module_available("hydra.experimental")
 _KINETO_AVAILABLE = torch.profiler.kineto_available()
-_NEPTUNE_AVAILABLE = _package_available("neptune")
-_NEPTUNE_GREATER_EQUAL_0_9 = _NEPTUNE_AVAILABLE and _compare_version("neptune", operator.ge, "0.9.0")
 _OMEGACONF_AVAILABLE = _package_available("omegaconf")
 _POPTORCH_AVAILABLE = _package_available("poptorch")
 _PSUTIL_AVAILABLE = _package_available("psutil")
@@ -153,9 +151,6 @@ _TORCH_QUANTIZE_AVAILABLE = bool([eg for eg in torch.backends.quantized.supporte
 _TORCHTEXT_AVAILABLE = _package_available("torchtext")
 _TORCHTEXT_LEGACY: bool = _TORCHTEXT_AVAILABLE and _compare_version("torchtext", operator.lt, "0.11.0")
 _TORCHVISION_AVAILABLE = _package_available("torchvision")
-_WANDB_AVAILABLE = _package_available("wandb")
-_WANDB_GREATER_EQUAL_0_10_22 = _WANDB_AVAILABLE and _compare_version("wandb", operator.ge, "0.10.22")
-_WANDB_GREATER_EQUAL_0_12_10 = _WANDB_AVAILABLE and _compare_version("wandb", operator.ge, "0.12.10")
 _XLA_AVAILABLE: bool = _package_available("torch_xla")
 
 

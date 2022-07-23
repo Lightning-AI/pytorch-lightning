@@ -1759,7 +1759,7 @@ class Trainer(
         rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
 
         # TODO: Integrate MPS Accelerator here, once gpu maps to both
-        if torch.cuda.is_available() and not isinstance(self.accelerator, CUDAAccelerator):
+        if CUDAAccelerator.is_available() and not isinstance(self.accelerator, CUDAAccelerator):
             rank_zero_warn(
                 "GPU available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='gpu', devices={CUDAAccelerator.auto_device_count()})`.",
