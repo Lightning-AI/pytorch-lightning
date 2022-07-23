@@ -1413,34 +1413,47 @@ def _test_logger_init_args(logger_name, init, unresolved={}):
 
 @pytest.mark.skipif(not _COMET_AVAILABLE, reason="comet-ml is required")
 def test_comet_logger_init_args():
-    _test_logger_init_args("CometLogger", {
-        "save_dir": "comet",  # Resolve from CometLogger.__init__
-        "workspace": "comet",  # Resolve from {CometExistingExperiment,CometExperiment,CometOfflineExperiment}.__init__
-    })
+    _test_logger_init_args(
+        "CometLogger",
+        {
+            "save_dir": "comet",  # Resolve from CometLogger.__init__
+            "workspace": "comet",  # Resolve from {CometExistingExperiment,CometExperiment,CometOfflineExperiment}.__init__
+        },
+    )
 
 
 @pytest.mark.skipif(not _NEPTUNE_AVAILABLE, reason="neptune-client is required")
 def test_neptune_logger_init_args():
-    _test_logger_init_args("NeptuneLogger", {
-        "name": "neptune",  # Resolve from NeptuneLogger.__init__
-    }, {
-        "description": "neptune",  # Unsupported resolving from neptune.new.internal.init.run.init_run
-    })
+    _test_logger_init_args(
+        "NeptuneLogger",
+        {
+            "name": "neptune",  # Resolve from NeptuneLogger.__init__
+        },
+        {
+            "description": "neptune",  # Unsupported resolving from neptune.new.internal.init.run.init_run
+        },
+    )
 
 
 def test_tensorboard_logger_init_args():
-    _test_logger_init_args("TensorBoardLogger", {
-        "save_dir": "tb",  # Resolve from TensorBoardLogger.__init__
-        "comment": "tb",  # Resolve from tensorboard.writer.SummaryWriter.__init__
-    })
+    _test_logger_init_args(
+        "TensorBoardLogger",
+        {
+            "save_dir": "tb",  # Resolve from TensorBoardLogger.__init__
+            "comment": "tb",  # Resolve from tensorboard.writer.SummaryWriter.__init__
+        },
+    )
 
 
 @pytest.mark.skipif(not _WANDB_AVAILABLE, reason="wandb is required")
 def test_wandb_logger_init_args():
-    _test_logger_init_args("WandbLogger", {
-        "save_dir": "wandb",  # Resolve from WandbLogger.__init__
-        "notes": "wandb",  # Resolve from wandb.sdk.wandb_init.init
-    })
+    _test_logger_init_args(
+        "WandbLogger",
+        {
+            "save_dir": "wandb",  # Resolve from WandbLogger.__init__
+            "notes": "wandb",  # Resolve from wandb.sdk.wandb_init.init
+        },
+    )
 
 
 def test_cli_auto_seeding():
