@@ -28,7 +28,7 @@ from pytorch_lightning.utilities import _FAIRSCALE_FULLY_SHARDED_AVAILABLE
 from pytorch_lightning.utilities.enums import PrecisionType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT, PredictStep, TrainingStep, ValidationStep, TestStep
 
 if _FAIRSCALE_FULLY_SHARDED_AVAILABLE:
     from fairscale.nn import default_auto_wrap_policy, enable_wrap
@@ -198,27 +198,23 @@ class DDPFullyShardedStrategy(DDPStrategy):
         self.lightning_module.to(self.root_device)
 
     def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert self.model
         with self.precision_plugin.train_step_context():
-            assert isinstance(self.model.training_step, Module)
+            assert isinstance(self.model, TrainingStep)
             return self.model.training_step(*args, **kwargs)
 
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model
         with self.precision_plugin.val_step_context():
-            assert isinstance(self.model.validation_step, Module)
+            assert isinstance(self.model, ValidationStep)
             return self.model.validation_step(*args, **kwargs)
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert self.model
         with self.precision_plugin.test_step_context():
-            assert isinstance(self.model.test_step, Module)
+            assert isinstance(self.model, TestStep)
             return self.model.test_step(*args, **kwargs)
 
     def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert self.model
         with self.precision_plugin.predict_step_context():
-            assert isinstance(self.model.predict_step, Module)
+            assert isinstance(self.model, PredictStep)
             return self.model.predict_step(*args, **kwargs)
 
     def post_training_step(self) -> None:
