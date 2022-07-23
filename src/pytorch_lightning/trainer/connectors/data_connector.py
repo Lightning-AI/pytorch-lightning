@@ -45,7 +45,7 @@ from pytorch_lightning.utilities.warnings import PossibleUserWarning, WarningCac
 
 warning_cache = WarningCache()
 
-BATCH_DATALOADER = Union[Collection[DataLoader], List[DataLoader], Union[DataLoader[Any], List[DataLoader[Any]]]]
+BATCH_DATALOADER = Union[Collection[DataLoader], List[DataLoader], DataLoader[Any]]
 REQUEST_DATALOADER = Union[DataLoader, List[DataLoader], BATCH_DATALOADER]
 
 
