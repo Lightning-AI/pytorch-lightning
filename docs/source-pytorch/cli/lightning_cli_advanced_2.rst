@@ -15,7 +15,7 @@
             pass
 
 
-    class LightningCLI(pl.utilities.cli.LightningCLI):
+    class LightningCLI(pl.cli.LightningCLI):
         def __init__(self, *args, trainer_class=NoFitTrainer, run=False, **kwargs):
             super().__init__(*args, trainer_class=trainer_class, run=run, **kwargs)
 

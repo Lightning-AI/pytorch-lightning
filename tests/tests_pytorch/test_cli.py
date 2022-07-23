@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import inspect
 import json
 import os
@@ -27,20 +26,12 @@ from unittest.mock import ANY
 import pytest
 import torch
 import yaml
-from packaging import version
 from torch.optim import SGD
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
 from pytorch_lightning import __version__, Callback, LightningDataModule, LightningModule, seed_everything, Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
-from pytorch_lightning.loggers import _COMET_AVAILABLE, _NEPTUNE_AVAILABLE, TensorBoardLogger
-from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
-from pytorch_lightning.plugins.environments import SLURMEnvironment
-from pytorch_lightning.strategies import DDPStrategy
-from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import _TPU_AVAILABLE
-from pytorch_lightning.utilities.cli import (
+from pytorch_lightning.cli import (
     _JSONARGPARSE_SIGNATURES_AVAILABLE,
     instantiate_class,
     LightningArgumentParser,
@@ -48,14 +39,18 @@ from pytorch_lightning.utilities.cli import (
     LRSchedulerTypeTuple,
     SaveConfigCallback,
 )
+from pytorch_lightning.demos.boring_classes import BoringDataModule, BoringModel
+from pytorch_lightning.loggers import _COMET_AVAILABLE, TensorBoardLogger
+from pytorch_lightning.loggers.neptune import _NEPTUNE_AVAILABLE
+from pytorch_lightning.loggers.wandb import _WANDB_AVAILABLE
+from pytorch_lightning.plugins.environments import SLURMEnvironment
+from pytorch_lightning.strategies import DDPStrategy
+from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 from tests_pytorch.helpers.runif import RunIf
 from tests_pytorch.helpers.utils import no_warning_call
-
-torchvision_version = version.parse("0")
-if _TORCHVISION_AVAILABLE:
-    torchvision_version = version.parse(__import__("torchvision").__version__)
 
 if _JSONARGPARSE_SIGNATURES_AVAILABLE:
     from jsonargparse import lazy_instance
@@ -525,7 +520,7 @@ def test_lightning_cli_submodules(tmpdir):
     assert isinstance(cli.model.submodule2, BoringModel)
 
 
-@pytest.mark.skipif(torchvision_version < version.parse("0.8.0"), reason="torchvision>=0.8.0 is required")
+@pytest.mark.skipif(not _TORCHVISION_AVAILABLE, reason="Tests a bug with torchvision, but it's not available")
 def test_lightning_cli_torch_modules(tmpdir):
     class TestModule(BoringModel):
         def __init__(self, activation: torch.nn.Module = None, transform: Optional[List[torch.nn.Module]] = None):
@@ -594,7 +589,7 @@ def test_lightning_cli_link_arguments(tmpdir):
             parser.link_arguments("data.batch_size", "model.init_args.batch_size")
             parser.link_arguments("data.num_classes", "model.init_args.num_classes", apply_on="instantiate")
 
-    cli_args[-1] = "--model=tests_pytorch.utilities.test_cli.BoringModelRequiredClasses"
+    cli_args[-1] = "--model=tests_pytorch.test_cli.BoringModelRequiredClasses"
 
     with mock.patch("sys.argv", ["any.py"] + cli_args):
         cli = MyLightningCLI(
