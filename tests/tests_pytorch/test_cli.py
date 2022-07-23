@@ -39,7 +39,7 @@ from pytorch_lightning.plugins.environments import SLURMEnvironment
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE
-from pytorch_lightning.utilities.cli import (
+from pytorch_lightning.cli import (
     _JSONARGPARSE_SIGNATURES_AVAILABLE,
     instantiate_class,
     LightningArgumentParser,
