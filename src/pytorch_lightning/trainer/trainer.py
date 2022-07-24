@@ -38,13 +38,13 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators import (
     Accelerator,
-    GPUAccelerator,
+    CUDAAccelerator,
     HPUAccelerator,
     IPUAccelerator,
     MPSAccelerator,
     TPUAccelerator,
 )
-from pytorch_lightning.callbacks import Callback, EarlyStopping, ModelCheckpoint, ProgressBarBase
+from pytorch_lightning.callbacks import Callback, Checkpoint, EarlyStopping, ProgressBarBase
 from pytorch_lightning.callbacks.prediction_writer import BasePredictionWriter
 from pytorch_lightning.core.datamodule import LightningDataModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
@@ -61,7 +61,6 @@ from pytorch_lightning.plugins import (
     PLUGIN_INPUT,
     PrecisionPlugin,
 )
-from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profilers import (
     AdvancedProfiler,
     PassThroughProfiler,
@@ -85,8 +84,7 @@ from pytorch_lightning.trainer.data_loading import TrainerDataLoadingMixin
 from pytorch_lightning.trainer.optimizers import TrainerOptimizersMixin
 from pytorch_lightning.trainer.states import RunningStage, TrainerFn, TrainerState, TrainerStatus
 from pytorch_lightning.trainer.supporters import CombinedLoader
-from pytorch_lightning.tuner.lr_finder import _LRFinder
-from pytorch_lightning.tuner.tuning import Tuner
+from pytorch_lightning.tuner.tuning import _TunerResult, Tuner
 from pytorch_lightning.utilities import (
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
@@ -306,7 +304,7 @@ class Trainer(
                 Default: ``50``.
 
             enable_progress_bar: Whether to enable to progress bar by default.
-                Default: ``False``.
+                Default: ``True``.
 
             profiler: To profile individual steps during training and assist in identifying bottlenecks.
                 Default: ``None``.
@@ -396,7 +394,8 @@ class Trainer(
             val_check_interval: How often to check the validation set. Pass a ``float`` in the range [0.0, 1.0] to check
                 after a fraction of the training epoch. Pass an ``int`` to check after a fixed number of training
                 batches. An ``int`` value can only be higher than the number of training batches when
-                ``check_val_every_n_epoch=None``.
+                ``check_val_every_n_epoch=None``, which validates after every ``N`` training batches
+                across epochs or during iteration-based training.
                 Default: ``1.0``.
 
             enable_model_summary: Whether to enable model summarization by default.
@@ -653,13 +652,12 @@ class Trainer(
                 return self.strategy.launcher.launch(trainer_fn, *args, trainer=self, **kwargs)
             else:
                 return trainer_fn(*args, **kwargs)
-        # TODO: treat KeyboardInterrupt as BaseException (delete the code below) in v1.7
+        # TODO(awaelchli): Unify both exceptions below, where `KeyboardError` doesn't re-raise
         except KeyboardInterrupt as exception:
             rank_zero_warn("Detected KeyboardInterrupt, attempting graceful shutdown...")
             # user could press Ctrl+c many times... only shutdown once
             if not self.interrupted:
                 self.state.status = TrainerStatus.INTERRUPTED
-                self._call_callback_hooks("on_keyboard_interrupt")
                 self._call_callback_hooks("on_exception", exception)
         except BaseException as exception:
             self.state.status = TrainerStatus.INTERRUPTED
@@ -1016,7 +1014,7 @@ class Trainer(
         datamodule: Optional[LightningDataModule] = None,
         scale_batch_size_kwargs: Optional[Dict[str, Any]] = None,
         lr_find_kwargs: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Optional[Union[int, _LRFinder]]]:
+    ) -> _TunerResult:
         r"""
         Runs routines to tune hyperparameters before training.
 
@@ -1228,7 +1226,6 @@ class Trainer(
     def _teardown(self):
         """This is the Trainer's internal teardown, unrelated to the `teardown` hooks in LightningModule and
         Callback; those are handled by :meth:`_call_teardown_hook`."""
-        self.strategy.post_dispatch(self)
         self.strategy.teardown()
         loop = self._active_loop
         # loop should never be `None` here but it can because we don't know the trainer stage with `ddp_spawn`
@@ -1406,7 +1403,7 @@ class Trainer(
                     f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured.'
                 )
 
-            if not self.checkpoint_callback.best_model_path:
+            if hasattr(self.checkpoint_callback, "best_model_path") and not self.checkpoint_callback.best_model_path:
                 if self.fast_dev_run:
                     raise MisconfigurationException(
                         f'You cannot execute `.{fn}(ckpt_path="best")` with `fast_dev_run=True`.'
@@ -1416,11 +1413,11 @@ class Trainer(
                     f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'
                 )
             # load best weights
-            ckpt_path = self.checkpoint_callback.best_model_path
+            ckpt_path = getattr(self.checkpoint_callback, "best_model_path", None)
 
         if ckpt_path == "last":
-            candidates = [ft.ckpt_path for ft in ft_checkpoints] + [
-                cb.last_model_path for cb in self.checkpoint_callbacks
+            candidates = [getattr(ft, "ckpt_path", None) for ft in ft_checkpoints] + [
+                getattr(cb, "last_model_path", None) for cb in self.checkpoint_callbacks
             ]
             candidates_fs = {path: get_filesystem(path) for path in candidates if path}
             candidates_ts = {path: fs.modified(path) for path, fs in candidates_fs.items() if fs.exists(path)}
@@ -1739,7 +1736,7 @@ class Trainer(
 
     def _log_device_info(self) -> None:
 
-        if GPUAccelerator.is_available():
+        if CUDAAccelerator.is_available():
             gpu_available = True
             gpu_type = " (cuda)"
         elif MPSAccelerator.is_available():
@@ -1749,7 +1746,7 @@ class Trainer(
             gpu_available = False
             gpu_type = ""
 
-        gpu_used = isinstance(self.accelerator, (GPUAccelerator, MPSAccelerator))
+        gpu_used = isinstance(self.accelerator, (CUDAAccelerator, MPSAccelerator))
         rank_zero_info(f"GPU available: {gpu_available}{gpu_type}, used: {gpu_used}")
 
         num_tpu_cores = self.num_devices if isinstance(self.accelerator, TPUAccelerator) else 0
@@ -1762,10 +1759,10 @@ class Trainer(
         rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
 
         # TODO: Integrate MPS Accelerator here, once gpu maps to both
-        if torch.cuda.is_available() and not isinstance(self.accelerator, GPUAccelerator):
+        if CUDAAccelerator.is_available() and not isinstance(self.accelerator, CUDAAccelerator):
             rank_zero_warn(
                 "GPU available but not used. Set `accelerator` and `devices` using"
-                f" `Trainer(accelerator='gpu', devices={GPUAccelerator.auto_device_count()})`.",
+                f" `Trainer(accelerator='gpu', devices={CUDAAccelerator.auto_device_count()})`.",
                 category=PossibleUserWarning,
             )
 
@@ -2073,7 +2070,7 @@ class Trainer(
             "`Trainer.root_gpu` is deprecated in v1.6 and will be removed in v1.8. "
             "Please use `Trainer.strategy.root_device.index` instead."
         )
-        return self.strategy.root_device.index if isinstance(self.accelerator, GPUAccelerator) else None
+        return self.strategy.root_device.index if isinstance(self.accelerator, CUDAAccelerator) else None
 
     @property
     def tpu_cores(self) -> int:
@@ -2097,7 +2094,7 @@ class Trainer(
             "`Trainer.num_gpus` was deprecated in v1.6 and will be removed in v1.8."
             " Please use `Trainer.num_devices` instead."
         )
-        return self.num_devices if isinstance(self.accelerator, GPUAccelerator) else 0
+        return self.num_devices if isinstance(self.accelerator, CUDAAccelerator) else 0
 
     @property
     def devices(self) -> int:
@@ -2113,7 +2110,7 @@ class Trainer(
             "`Trainer.data_parallel_device_ids` was deprecated in v1.6 and will be removed in v1.8."
             " Please use `Trainer.device_ids` instead."
         )
-        return self.device_ids if isinstance(self.accelerator, GPUAccelerator) else None
+        return self.device_ids if isinstance(self.accelerator, CUDAAccelerator) else None
 
     @property
     def lightning_module(self) -> "pl.LightningModule":
@@ -2232,11 +2229,6 @@ class Trainer(
         return self.strategy.is_global_zero
 
     @property
-    def slurm_job_id(self) -> Optional[int]:
-        rank_zero_deprecation("Method `slurm_job_id` is deprecated in v1.6.0 and will be removed in v1.7.0.")
-        return SLURMEnvironment.job_id()
-
-    @property
     def distributed_sampler_kwargs(self) -> Optional[dict]:
         if isinstance(self.strategy, ParallelStrategy):
             return self.strategy.distributed_sampler_kwargs
@@ -2308,17 +2300,17 @@ class Trainer(
         return [cb for cb in self.callbacks if isinstance(cb, BasePredictionWriter)]
 
     @property
-    def checkpoint_callback(self) -> Optional[ModelCheckpoint]:
+    def checkpoint_callback(self) -> Optional[Checkpoint]:
         """The first :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` callback in the
         Trainer.callbacks list, or ``None`` if it doesn't exist."""
         callbacks = self.checkpoint_callbacks
         return callbacks[0] if len(callbacks) > 0 else None
 
     @property
-    def checkpoint_callbacks(self) -> List[ModelCheckpoint]:
+    def checkpoint_callbacks(self) -> List[Checkpoint]:
         """A list of all instances of :class:`~pytorch_lightning.callbacks.model_checkpoint.ModelCheckpoint` found
         in the Trainer.callbacks list."""
-        return [c for c in self.callbacks if isinstance(c, ModelCheckpoint)]
+        return [c for c in self.callbacks if isinstance(c, Checkpoint)]
 
     @property
     def progress_bar_callback(self) -> Optional[ProgressBarBase]:
@@ -2575,6 +2567,7 @@ class Trainer(
 
     @property
     def is_last_batch(self) -> bool:
+        """Whether trainer is executing the last batch."""
         return self.fit_loop.epoch_loop.batch_progress.is_last_batch
 
     @property
@@ -2713,7 +2706,9 @@ class Trainer(
         self._loggers = loggers if loggers else []
 
     @property
-    def callback_metrics(self) -> dict:
+    def callback_metrics(self) -> Dict[str, Tensor]:
+        # TODO: the true typing return can include dictionaries as defined in
+        # `pytorch_lightning.trainer.connectors.logger_connector.result._OUT_DICT`
         return self._logger_connector.callback_metrics
 
     @property

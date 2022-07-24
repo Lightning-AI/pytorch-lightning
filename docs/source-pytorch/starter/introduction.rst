@@ -116,6 +116,7 @@ A LightningModule enables your PyTorch nn.Module to play together in complex way
     import os
     from torch import optim, nn, utils, Tensor
     from torchvision.datasets import MNIST
+    from torchvision.transforms import ToTensor
     import pytorch_lightning as pl
 
     # define any number of nn.Modules (or use your current ones)
@@ -160,7 +161,7 @@ Lightning supports ANY iterable (:class:`~torch.utils.data.DataLoader`, numpy, e
 .. code-block:: python
 
     # setup data
-    dataset = MNIST(os.getcwd(), download=True)
+    dataset = MNIST(os.getcwd(), download=True, transform=ToTensor())
     train_loader = utils.data.DataLoader(dataset)
 
 ----

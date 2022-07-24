@@ -40,6 +40,11 @@ def test_availability():
     assert HPUAccelerator.is_available()
 
 
+@RunIf(hpu=True)
+def test_device_name():
+    assert HPUAccelerator.get_device_name() == "GAUDI"
+
+
 @pytest.mark.skipif(_HPU_AVAILABLE, reason="test requires non-HPU machine")
 def test_fail_if_no_hpus():
     with pytest.raises(MisconfigurationException, match="HPUAccelerator can not run on your system"):
@@ -239,6 +244,7 @@ def test_inference_only(tmpdir, hpus):
     trainer.predict(model)
 
 
+@RunIf(hpu=True)
 def test_hpu_auto_device_count():
     assert HPUAccelerator.auto_device_count() == 8
 
