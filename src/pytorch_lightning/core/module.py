@@ -22,6 +22,7 @@ import tempfile
 import weakref
 from contextlib import contextmanager
 from pathlib import Path
+from types import FrameType
 from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, overload, Sequence, Tuple, Union
 
 import torch
@@ -179,10 +180,10 @@ class LightningModule(
 
     @property
     def trainer(self) -> "pl.Trainer":
-        if self._running_torchscript and self._trainer is not None:
-            return self._trainer
-        else:
+        if self._running_torchscript or self._trainer is None:
             raise RuntimeError(f"{self.__class__.__qualname__} is not attached to a `Trainer`.")
+        else:
+            return self._trainer
 
     @trainer.setter
     def trainer(self, trainer: "pl.Trainer") -> None:
@@ -1792,7 +1793,7 @@ class LightningModule(
             )
 
     @classmethod
-    def _auto_collect_arguments(cls, frame: Optional[types.FrameType] = None) -> Tuple[Dict, Dict]:
+    def _auto_collect_arguments(cls, frame: Optional[FrameType] = None) -> Tuple[Dict, Dict]:
         """Collect all module arguments in the current constructor and all child constructors. The child
         constructors are all the ``__init__`` methods that reach the current class through (chained)
         ``super().__init__()`` calls.
