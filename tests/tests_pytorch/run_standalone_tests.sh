@@ -40,7 +40,9 @@ parametrizations_arr=($parametrizations)
 # tests to skip - space separated
 blocklist='profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx utilities/test_warnings.py'
 report=''
-test_batch_size=6
+
+# the batch size can be set through the env variable PL_STANDALONE_TESTS_BATCH_SIZE and defaults to 6 if not set
+test_batch_size="${PL_STANDALONE_TESTS_BATCH_SIZE:-6}"
 
 rm -f standalone_test_output.txt  # in case it exists, remove it
 function show_batched_output {
@@ -81,6 +83,8 @@ done
 for pid in ${pids[*]}; do wait $pid; done
 show_batched_output
 echo "Batched mode finished. Continuing with the rest of standalone tests."
+
+# TODO: Most of the below needs to be skipped on TPU:
 
 if nvcc --version; then
     nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
