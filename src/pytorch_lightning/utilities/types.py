@@ -29,8 +29,6 @@ from torch.utils.data import DataLoader
 from torchmetrics import Metric
 from typing_extensions import Protocol, runtime_checkable
 
-import pytorch_lightning
-
 _NUMBER = Union[int, float]
 _METRIC = Union[Metric, Tensor, _NUMBER]
 _METRIC_COLLECTION = Union[_METRIC, Mapping[str, _METRIC]]
@@ -133,9 +131,7 @@ class DistributedDataParallel(Protocol):
 LRSchedulerTypeTuple = (torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau)
 LRSchedulerTypeUnion = Union[torch.optim.lr_scheduler._LRScheduler, torch.optim.lr_scheduler.ReduceLROnPlateau]
 LRSchedulerType = Union[Type[torch.optim.lr_scheduler._LRScheduler], Type[torch.optim.lr_scheduler.ReduceLROnPlateau]]
-LRSchedulerPLType = Union[
-    pytorch_lightning.utilities.types._LRScheduler, pytorch_lightning.utilities.types.ReduceLROnPlateau, Any
-]
+LRSchedulerPLType = Union[_LRScheduler, ReduceLROnPlateau, Any]
 
 
 @dataclass
