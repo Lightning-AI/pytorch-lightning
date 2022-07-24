@@ -1792,7 +1792,7 @@ class LightningModule(
             )
 
     @classmethod
-    def _auto_collect_arguments(cls, frame=None) -> Tuple[Dict, Dict]:  # type: ignore[no-untyped-def]
+    def _auto_collect_arguments(cls, frame: Optional[types.FrameType] = None) -> Tuple[Dict, Dict]:
         """Collect all module arguments in the current constructor and all child constructors. The child
         constructors are all the ``__init__`` methods that reach the current class through (chained)
         ``super().__init__()`` calls.
