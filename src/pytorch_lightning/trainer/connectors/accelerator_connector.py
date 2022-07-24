@@ -671,7 +671,7 @@ class AcceleratorConnector:
 
         if isinstance(self.accelerator, IPUAccelerator):
             return IPUPrecisionPlugin(self._precision_flag)  # type: ignore
-        if isinstance(self.accelerator, HPUAccelerator):
+        if isinstance(self.accelerator, HPUAccelerator) and not isinstance(self.strategy, HPUDeepSpeedStrategy):
             return HPUPrecisionPlugin(self._precision_flag)  # type: ignore
         if isinstance(self.accelerator, TPUAccelerator):
             if self._precision_flag == 32:
@@ -683,7 +683,7 @@ class AcceleratorConnector:
                         " is not supported with TPUs. Using `precision='bf16'` instead."
                     )
                 return TPUBf16PrecisionPlugin()
-        if isinstance(self.strategy, DeepSpeedStrategy):
+        if isinstance(self.strategy, DeepSpeedStrategy) or isinstance(self.strategy, HPUDeepSpeedStrategy):
             return DeepSpeedPrecisionPlugin(
                 self._precision_flag, self._amp_type_flag, self._amp_level_flag  # type: ignore
             )
