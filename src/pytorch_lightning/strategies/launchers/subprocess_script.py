@@ -27,10 +27,6 @@ from pytorch_lightning.utilities.imports import _RequirementAvailable
 
 _HYDRA_AVAILABLE = _RequirementAvailable("hydra")
 
-if _HYDRA_AVAILABLE:
-    from hydra.core.hydra_config import HydraConfig
-    from hydra.utils import get_original_cwd, to_absolute_path
-
 
 class _SubprocessScriptLauncher(_Launcher):
     r"""
@@ -105,6 +101,10 @@ class _SubprocessScriptLauncher(_Launcher):
         # allow the user to pass the node rank
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
+
+        if _HYDRA_AVAILABLE:
+            from hydra.core.hydra_config import HydraConfig
+            from hydra.utils import get_original_cwd, to_absolute_path
 
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec
