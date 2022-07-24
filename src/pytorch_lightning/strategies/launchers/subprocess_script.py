@@ -102,21 +102,22 @@ class _SubprocessScriptLauncher(_Launcher):
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
 
-        if _HYDRA_AVAILABLE:
-            from hydra.core.hydra_config import HydraConfig
-            from hydra.utils import get_original_cwd, to_absolute_path
-
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec
         if __main__.__spec__ is None:  # pragma: no-cover
             # Script called as `python a/b/c.py`
-            # when user is using hydra find the absolute path
-            path_lib = os.path.abspath if not _HYDRA_AVAILABLE else to_absolute_path
+            if _HYDRA_AVAILABLE:
+                # when user is using hydra find the absolute path
+                from hydra.utils import to_absolute_path
 
-            # pull out the commands used to run the script and resolve the abs file path
+                to_abs_path = to_absolute_path
+            else:
+                to_abs_path = os.path.abspath
+
+            # pull out the commands used to run the script and resolve the absolute file path
             command = sys.argv
             try:
-                full_path = path_lib(command[0])
+                full_path = to_abs_path(command[0])
             except Exception:
                 full_path = os.path.abspath(command[0])
 
@@ -140,6 +141,9 @@ class _SubprocessScriptLauncher(_Launcher):
             # if hydra is available and initialized, make sure to set the cwd correctly
             cwd: Optional[str] = None
             if _HYDRA_AVAILABLE:
+                from hydra.core.hydra_config import HydraConfig
+                from hydra.utils import get_original_cwd
+
                 if HydraConfig.initialized():
                     cwd = get_original_cwd()
                     os_cwd = f'"{os.getcwd()}"'
