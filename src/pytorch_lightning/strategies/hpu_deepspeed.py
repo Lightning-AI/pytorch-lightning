@@ -232,7 +232,6 @@ class HPUDeepSpeedStrategy(HPUParallelStrategy):
         # as part of the config
         self.config.setdefault("train_micro_batch_size_per_gpu", 1)
         self.model, optimizer = self._setup_model_and_optimizer(model, optimizers[0])
-        self._set_deepspeed_activation_checkpointing()
         return self.model, [optimizer]
 
     def _setup_model_and_optimizer(
@@ -331,7 +330,6 @@ class HPUDeepSpeedStrategy(HPUParallelStrategy):
                 scheduler = lr_scheduler.scheduler
 
         model, deepspeed_optimizer = self._setup_model_and_optimizer(model, optimizer, scheduler)
-        self._set_deepspeed_activation_checkpointing()
 
         # although we set these here, deepspeed manages the specific optimizer logic
         self.optimizers = [deepspeed_optimizer]
@@ -396,6 +394,16 @@ class HPUDeepSpeedStrategy(HPUParallelStrategy):
     def load_optimizer_state_dict(self, checkpoint: Mapping[str, Any]) -> None:
         # override to do nothing, deepspeed engine already loaded the states in `load_checkpoint()`
         pass
+
+    @property
+    def lightning_module(self):
+        # the model may not be wrapped with DeepEngine & LightningDeepSpeedModule if calling this too early
+        module = getattr(self.model, "module", self.model)
+        return module.module if isinstance(module, LightningDeepSpeedModule) else module
+
+    @property
+    def _multi_device(self) -> bool:
+        return self.num_processes > 1 or self.num_nodes > 1
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
