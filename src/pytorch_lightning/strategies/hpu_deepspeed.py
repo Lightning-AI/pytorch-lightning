@@ -86,6 +86,7 @@ class HPUDeepSpeedStrategy(HPUParallelStrategy):
         reduce_scatter: bool = True,
         allgather_bucket_size: int = 200_000_000,
         reduce_bucket_size: int = 200_000_000,
+        zero_allow_untested_optimizer: bool = True,
         config: Optional[Union[Path, str, dict]] = None,
         logging_level: int = logging.WARN,
         parallel_devices: Optional[List[torch.device]] = None,
@@ -108,7 +109,6 @@ class HPUDeepSpeedStrategy(HPUParallelStrategy):
                 "To use the `HPUDeepSpeedStrategy`, you must have DeepSpeed installed."
                 " Install it by running `pip install -U deepspeed`."
             )
-
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
@@ -122,6 +122,7 @@ class HPUDeepSpeedStrategy(HPUParallelStrategy):
             # User has not overridden config, set defaults
             self.config = self._create_default_config(
                 zero_optimization,
+                zero_allow_untested_optimizer,
                 stage=stage,
                 contiguous_gradients=contiguous_gradients,
                 overlap_comm=overlap_comm,
@@ -162,6 +163,10 @@ class HPUDeepSpeedStrategy(HPUParallelStrategy):
         self.set_world_ranks()
 
         self._init_deepspeed_distributed()
+
+        if not self._config_initialized:
+            self._format_config()
+            self._config_initialized = True
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.accelerator.setup(trainer)
@@ -209,6 +214,78 @@ class HPUDeepSpeedStrategy(HPUParallelStrategy):
         self.optimizer_frequencies = []
 
     @property
+    def handles_gradient_accumulation(self) -> bool:
+        """Whether the plugin handles gradient accumulation internally."""
+        return True
+
+    def _format_config(self):
+        if self.config is None:
+            raise MisconfigurationException(
+                "To use DeepSpeed you must pass in a DeepSpeed config dict, or a path to a JSON config."
+                " See: https://pytorch-lightning.readthedocs.io/en/latest/advanced/advanced_gpu.html#deepspeed"
+            )
+        self._format_batch_size_and_grad_accum_config()
+        self._format_precision_config()
+
+    def _format_batch_size_and_grad_accum_config(self):
+        # todo: using lite, we do not support these variables within the config
+        if self.lightning_module is None:
+            return
+
+        if "gradient_accumulation_steps" in self.config:
+            raise MisconfigurationException(
+                "Do not set `gradient_accumulation_steps` in the DeepSpeed config"
+                " as this will be set with the `accumulate_grad_batches` argument passed via the Lightning Trainer."
+            )
+        self.config["gradient_accumulation_steps"] = self.lightning_module.trainer.accumulate_grad_batches
+        if "train_micro_batch_size_per_gpu" not in self.config:
+            batch_size = self._auto_select_batch_size()
+            self.config["train_micro_batch_size_per_gpu"] = batch_size
+        if "gradient_clipping" not in self.config:
+            self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val or 0.0
+
+    def _auto_select_batch_size(self):
+        # train_micro_batch_size_per_gpu is used for throughput logging purposes
+        # by default we try to use the batch size of the loader
+        batch_size = 1
+        train_dl_source = self.lightning_module.trainer._data_connector._train_dataloader_source
+        if train_dl_source.is_defined():
+            try:
+                train_dataloader = train_dl_source.dataloader()
+                if hasattr(train_dataloader, "batch_sampler"):
+                    batch_size = train_dataloader.batch_sampler.batch_size
+            # broad exception on purpose as `source.dataloader()` will fail if the dataloader requires `setup`
+            # to have been called before
+            except Exception:
+                if self.global_rank == 0:
+                    deepspeed.utils.logging.logger.warning(
+                        "Tried to infer the batch size for internal deepspeed logging from the `train_dataloader()`. "
+                        "To ensure DeepSpeed logging remains correct, please manually pass the plugin with the "
+                        "batch size, `Trainer(strategy=DeepSpeedStrategy(logging_batch_size_per_gpu=batch_size))`."
+                    )
+        return batch_size
+
+    def _format_precision_config(self) -> None:
+        if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED):
+            if "fp16" not in self.config and self.precision_plugin.amp_type == AMPType.NATIVE:
+                # FP16 is a DeepSpeed standalone AMP implementation
+                rank_zero_info("Enabling DeepSpeed FP16.")
+                self.config["fp16"] = {
+                    "enabled": True,
+                    "loss_scale": self.loss_scale,
+                    "initial_scale_power": self.initial_scale_power,
+                    "loss_scale_window": self.loss_scale_window,
+                    "hysteresis": self.hysteresis,
+                    "min_loss_scale": self.min_loss_scale,
+                }
+            elif "amp" not in self.config and self.precision_plugin.amp_type == AMPType.APEX:
+                rank_zero_info("Enabling DeepSpeed APEX Implementation.")
+                self.config["amp"] = {"enabled": True, "opt_level": self.precision_plugin.amp_level}
+        elif "bf16" not in self.config and self.precision_plugin.precision == PrecisionType.BFLOAT:
+            rank_zero_info("Enabling DeepSpeed BF16.")
+            self.config["bf16"] = {"enabled": True}
+
+    @property
     def restore_checkpoint_after_setup(self) -> bool:
         return True
 
@@ -243,7 +320,7 @@ class HPUDeepSpeedStrategy(HPUParallelStrategy):
         """
         model_parameters = filter(lambda p: p.requires_grad, model.parameters())
         deepspeed_engine, deepspeed_optimizer, _, _ = deepspeed.initialize(
-            args=argparse.Namespace(device_rank=self.root_device.index),
+            args=argparse.Namespace(device_rank=self.local_rank, use_hpu=True),
             config=self.config,
             model=model,
             model_parameters=model_parameters,  # type: ignore
@@ -301,12 +378,14 @@ class HPUDeepSpeedStrategy(HPUParallelStrategy):
     def _create_default_config(
         self,
         zero_optimization: bool,
+        zero_allow_untested_optimizer: bool,
         **zero_kwargs,
     ):
         cfg = {}
         if zero_optimization:
             zero_config = zero_kwargs
             cfg = {
+                "zero_allow_untested_optimizer": zero_allow_untested_optimizer,
                 "zero_optimization": zero_config,
                 **cfg,
             }
