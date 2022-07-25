@@ -198,7 +198,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     def setup_distributed(self):
         reset_seed()
-        self.set_world_ranks(process_idx)
+        self.set_world_ranks()
         rank_zero_only.rank = self.global_rank
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
