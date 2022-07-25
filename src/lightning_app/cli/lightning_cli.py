@@ -38,11 +38,10 @@ def get_app_url(runtime_type: RuntimeType, *args) -> str:
 
 @click.group()
 def clusters():
-    """Manage your Lightning.ai compute clusters.
+    """Manage your Lightning AI compute clusters.
 
-    Lightning.ai supports running apps on your own cloud provider account.
-    This feature is currently in preview and requires an extra activation step.
-    Reach out to support@lightning.ai to enable this feature.
+    Lightning AI supports running Lightning Apps on your own cloud provider account.
+    Please contact support@lightning.ai to enable this feature.
     """
     pass
 
@@ -52,7 +51,7 @@ def clusters():
 @click.option("--provider", 'provider', type=str, default="aws", help="cloud provider to be used for your cluster")
 @click.option('--external-id', 'external_id', type=str, required=True)
 @click.option(
-    '--role-arn', 'role_arn', type=str, required=True, help="AWS role ARN attached to`the associated resources."
+    '--role-arn', 'role_arn', type=str, required=True, help="AWS role ARN attached to the associated resources."
 )
 @click.option(
     '--region',
@@ -60,7 +59,7 @@ def clusters():
     type=str,
     required=False,
     default="us-east-1",
-    help="AWS region which is used to host the associated resources."
+    help="AWS region that is used to host the associated resources."
 )
 @click.option(
     '--instance-types',
@@ -68,7 +67,7 @@ def clusters():
     type=str,
     required=False,
     default=",".join(default_instance_types),
-    help="Instance types which you desire to support for computer jobs within the cluster."
+    help="Instance types that you want to support, for computer jobs within the cluster."
 )
 @click.option(
     '--cost-savings',
@@ -77,14 +76,14 @@ def clusters():
     required=False,
     default=False,
     is_flag=True,
-    help='using this flag ensures that the cluster is created with a profile that is optimized for '
-         'cost saving, making runs cheaper but start-up times may increase',
+    help=""""Use this flag to ensure that the cluster is created with a profile that is optimized for cost savings. 
+        This makes runs cheaper but start-up times may increase.""",
 )
 @click.option(
     '--edit-before-creation',
     default=False,
     is_flag=True,
-    help="Edit the created cluster spec before submitting to API server."
+    help="Edit the cluster specs before submitting them to the API server."
 )
 @click.option(
     '--wait',
@@ -93,7 +92,7 @@ def clusters():
     required=False,
     default=False,
     is_flag=True,
-    help='using this flag CLI will wait until the cluster is running',
+    help='Enabling this flag makes the CLI wait until the cluster is running.',
 )
 def create_cluster(
         cluster_name: str,
@@ -106,9 +105,9 @@ def create_cluster(
         cost_savings: bool,
         wait: bool,
         **kwargs):
-    """Create a Lightning.ai compute cluster with provided cloud provider credentials"""
+    """Create a Lightning AI compute cluster with your cloud provider credentials."""
     if provider != "aws":
-        click.echo("only provider aws is supported today")
+        click.echo("Only AWS is supported for now. But support for more providers is coming soon.")
         return
     aws = AWSClusterManager()
     aws.create(cluster_name=cluster_name,
@@ -123,7 +122,7 @@ def create_cluster(
 
 @clusters.command('list')
 def list_clusters(**kwargs):
-    """List your Lightning.ai compute clusters"""
+    """List your Lightning AI compute clusters."""
     mgr = AWSClusterManager()
     mgr.list()
     pass
@@ -138,8 +137,10 @@ def list_clusters(**kwargs):
     required=False,
     default=False,
     is_flag=True,
-    help='Force delete cluster from grid system. This does NOT delete any resources created by the cluster, '
-         'just cleaning up the entry from the grid system. You should not use this under normal circumstances',
+    help="""Delete a cluster from Lightning AI. This does NOT delete any resources created by the cluster, 
+            it just removes the entry from Lightning AI.
+
+            WARNING: You should NOT use this under normal circumstances.""",
 )
 @click.option(
     '--wait',
@@ -148,10 +149,10 @@ def list_clusters(**kwargs):
     required=False,
     default=False,
     is_flag=True,
-    help='using this flag CLI will wait until the cluster is deleted',
+    help='Enabling this flag makes the CLI wait until the cluster is deleted.',
 )
 def delete_cluster(cluster: str, force: bool = False, wait: bool = False):
-    """Delete a Lightning.ai compute cluster and all associated cloud provider resources.
+    """Delete a Lightning AI compute cluster and all associated cloud provider resources.
 
     Deleting a run also deletes all Runs and Experiments which were started
     on the cluster. deletion permanently removes not only the record of all

@@ -74,11 +74,10 @@ class AWSClusterManager:
     def delete(self, cluster_id=None, force=None, wait=None):
         if force:
             click.echo("""
-            Force deleting cluster. This will cause grid to forget
-            about the cluster and any experiments, sessions, datastores,
-            tensorboards and other resources running on it.\n
-            WARNING: this will not clean up any resources managed by lightning\n
-            Check your cloud provider that any existing cloud resources are deleted  
+            Deletes a cluster. Lightning AI removes cluster artifacts and any experiments, sessions, datastores,
+            tensorboards, and other resources running on the cluster.\n
+            WARNING: Deleting a cluster does not clean up any resources managed by Lightning AI.\n
+            Check your cloud provider to verify that existing cloud resources are deleted.  
             """)
             click.confirm('Do you want to continue?', abort=True)
 
@@ -152,7 +151,7 @@ def _wait_for_cluster_state(
             if new_cluster.status.phase == target_state:
                 break
             elif new_cluster.status.phase == V1ClusterState.FAILED:
-                raise click.ClickException(f"cluster {cluster_id} is in failed state")
+                raise click.ClickException(f"Cluster {cluster_id} is in failed state.")
             time.sleep(check_timeout)
         elapsed = time.time() - start
     else:
@@ -163,7 +162,9 @@ def _check_cluster_name_is_valid(_ctx, _param, value):
     pattern = r"^(?!-)[a-z0-9-]{1,63}(?<!-)$"
     if not re.match(pattern, value):
         raise click.ClickException(
-            f"cluster name doesn't match regex pattern {pattern}\nIn simple words, use lowercase letters, numbers, and occasional -"
+            f"""The cluster name is invalid. 
+            Cluster names can only contain lowercase letters, numbers, and periodic hyphens ( - ). 
+            Provide a cluster name using valid characters and try again."""
         )
     return value
 
