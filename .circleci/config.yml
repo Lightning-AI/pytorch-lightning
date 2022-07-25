@@ -76,7 +76,6 @@ references:
   deploy_cluster: &deploy_cluster
    run:
      name: Deploy the job on the kubernetes cluster
-     no_output_timeout: 20m  # by default, the job terminates after 20min of no output.
      command: |
        export PATH=$PATH:$HOME/go/bin
        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet | kubectl create -f -) && \
@@ -97,6 +96,7 @@ references:
        echo "Done waiting. Job status code: $status_code" && \
        kubectl logs -f $pod_name --container=train
        echo "Done with log retrieval attempt."
+       echo $i
        exit $status_code
 
   stats: &stats
@@ -114,7 +114,7 @@ jobs:
     environment:
       - XLA_VER: 1.9
       - PYTHON_VER: 3.7
-      - MAX_CHECKS: 240
+      - MAX_CHECKS: 500
       - CHECK_SPEEP: 5
     steps:
       - checkout
