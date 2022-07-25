@@ -63,7 +63,31 @@ class LightningWork(abc.ABC):
                 with the same arguments in subsequent calls.
             raise_exception: Whether to re-raise an exception in the flow when raised from within the work run method.
             host: Bind socket to this host
-            port: Bind socket to this port
+            port: Bind socket to this port. Be default, this is None and should be called within your run method.
+            local_build_config: The local BuildConfig isn't used until Lightning supports DockerRuntime.
+            cloud_build_config: The cloud BuildConfig enables user to easily configure machine before running this work.
+            run_once: Deprecated in favor of cache_calls. This will be removed soon.
+
+        **Learn More About Lightning Work Inner Workings**
+
+        .. raw:: html
+
+            <div class="display-card-container">
+                <div class="row">
+
+        .. displayitem::
+            :header: The Lightning Work inner workings.
+            :description: Learn more Lightning Work.
+            :col_css: col-md-4
+            :button_link: ../../../core_api/lightning_work/index.html
+            :height: 180
+            :tag: Basic
+
+        .. raw:: html
+
+                </div>
+            </div>
+            <br />
         """
         from lightning_app.runners.backends.backend import Backend
 
@@ -98,6 +122,7 @@ class LightningWork(abc.ABC):
 
     @property
     def url(self) -> str:
+        """Returns the current url of the work."""
         return self._url
 
     @url.setter
@@ -106,6 +131,7 @@ class LightningWork(abc.ABC):
 
     @property
     def host(self) -> str:
+        """Returns the current host of the work."""
         return self._host
 
     @property
@@ -166,6 +192,7 @@ class LightningWork(abc.ABC):
 
     @property
     def cloud_build_config(self) -> BuildConfig:
+        """Returns the cloud build config used to prepare the selected cloud hardware."""
         return self._cloud_build_config
 
     @cloud_build_config.setter
@@ -179,6 +206,7 @@ class LightningWork(abc.ABC):
 
     @cloud_compute.setter
     def cloud_compute(self, cloud_compute) -> None:
+        """Returns the cloud compute used to select the cloud hardware."""
         self._cloud_compute = cloud_compute
 
     @property
@@ -465,6 +493,7 @@ class LightningWork(abc.ABC):
         pass
 
     def stop(self):
+        """Stops LightingWork component and shuts down hardware provisioned via L.CloudCompute."""
         if not self._backend:
             raise Exception(
                 "Can't stop the work, it looks like it isn't attached to a LightningFlow. "

@@ -21,6 +21,9 @@ from pytorch_lightning.utilities import _HPU_AVAILABLE, device_parser
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 
+if _HPU_AVAILABLE:
+    import habana_frameworks.torch.hpu as torch_hpu
+
 
 class HPUAccelerator(Accelerator):
     """Accelerator for HPU devices."""
@@ -52,13 +55,28 @@ class HPUAccelerator(Accelerator):
 
     @staticmethod
     def auto_device_count() -> int:
-        """Get the devices when set to auto."""
-        # TODO(@kaushikb11): Update this when api is exposed by the Habana team
-        return 8
+        """Returns the number of HPU devices when the devices is set to auto."""
+        try:
+            return torch_hpu.device_count()
+        except (AttributeError, NameError):
+            rank_zero_debug("HPU `auto_device_count` failed, returning default count of 8.")
+            return 8
 
     @staticmethod
     def is_available() -> bool:
-        return _HPU_AVAILABLE
+        """Returns a bool indicating if HPU is currently available."""
+        try:
+            return torch_hpu.is_available()
+        except (AttributeError, NameError):
+            return False
+
+    @staticmethod
+    def get_device_name() -> str:
+        """Returns the name of the HPU device."""
+        try:
+            return torch_hpu.get_device_name()
+        except (AttributeError, NameError):
+            return ""
 
     @classmethod
     def register_accelerators(cls, accelerator_registry: Dict) -> None:

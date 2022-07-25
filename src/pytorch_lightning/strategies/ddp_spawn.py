@@ -13,13 +13,16 @@
 # limitations under the License.
 import logging
 import os
+from datetime import timedelta
 from typing import Any, Dict, List, Optional, Union
 
 import torch
 import torch.distributed
 from torch import Tensor
+from torch.distributed.constants import default_pg_timeout
 from torch.nn import Module
 from torch.nn.parallel.distributed import DistributedDataParallel
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
@@ -27,7 +30,7 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.launchers.spawn import _SpawnLauncher
+from pytorch_lightning.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.distributed import (
@@ -50,6 +53,13 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 log = logging.getLogger(__name__)
 
+_DDP_FORK_ALIASES = (
+    "ddp_fork",
+    "ddp_fork_find_unused_parameters_false",
+    "ddp_notebook",
+    "ddp_notebook_find_unused_parameters_false",
+)
+
 
 class DDPSpawnStrategy(ParallelStrategy):
     """Spawns processes using the :func:`torch.multiprocessing.spawn` method and joins processes after training
@@ -68,6 +78,8 @@ class DDPSpawnStrategy(ParallelStrategy):
         ddp_comm_hook: Optional[callable] = None,
         ddp_comm_wrapper: Optional[callable] = None,
         process_group_backend: Optional[str] = None,
+        timeout: Optional[timedelta] = default_pg_timeout,
+        start_method: Literal["spawn", "fork", "forkserver"] = "spawn",
         **kwargs: Any,
     ):
         super().__init__(
@@ -84,6 +96,8 @@ class DDPSpawnStrategy(ParallelStrategy):
         self._ddp_comm_wrapper = ddp_comm_wrapper
         self._local_rank = 0
         self._process_group_backend: Optional[str] = process_group_backend
+        self._timeout: Optional[timedelta] = timeout
+        self._start_method = start_method
 
     @property
     def num_nodes(self) -> int:
@@ -120,7 +134,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         return self._process_group_backend
 
     def _configure_launcher(self):
-        self._launcher = _SpawnLauncher(self)
+        self._launcher = _MultiProcessingLauncher(self, start_method=self._start_method)
 
     def setup(self, trainer: "pl.Trainer") -> None:
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
@@ -158,7 +172,13 @@ class DDPSpawnStrategy(ParallelStrategy):
         self.set_world_ranks(process_idx)
         rank_zero_only.rank = self.global_rank
         self._process_group_backend = self._get_process_group_backend()
-        init_dist_connection(self.cluster_environment, self._process_group_backend, self.global_rank, self.world_size)
+        init_dist_connection(
+            self.cluster_environment,
+            self._process_group_backend,
+            self.global_rank,
+            self.world_size,
+            timeout=self._timeout,
+        )
 
     def _get_process_group_backend(self) -> str:
         return (
@@ -270,21 +290,27 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        strategy_registry.register(
-            "ddp_spawn_find_unused_parameters_false",
-            cls,
-            description="DDPSpawn Strategy with `find_unused_parameters` as False",
-            find_unused_parameters=False,
+        entries = (
+            ("ddp_spawn", "spawn"),
+            ("ddp_spawn_find_unused_parameters_false", "spawn"),
+            ("ddp_fork", "fork"),
+            ("ddp_fork_find_unused_parameters_false", "fork"),
+            ("ddp_notebook", "fork"),
+            ("ddp_notebook_find_unused_parameters_false", "fork"),
         )
-        strategy_registry.register(
-            cls.strategy_name,
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )
+        for name, start_method in entries:
+            strategy_registry.register(
+                name,
+                cls,
+                description=f"DDP strategy with `find_unused_parameters` as False and `start_method` '{start_method}'",
+                find_unused_parameters=False,
+                start_method=start_method,
+            )
 
     def teardown(self) -> None:
         log.detail(f"{self.__class__.__name__}: tearing down strategy")
 
+        pl_module = self.lightning_module
         if isinstance(self.model, DistributedDataParallel):
             if (
                 _TORCH_GREATER_EQUAL_1_11
@@ -296,14 +322,15 @@ class DDPSpawnStrategy(ParallelStrategy):
                     f" pass `Trainer(..., strategy={self.__class__.__name__}(static_graph=True))` to enable them."
                 )
             # unwrap model
-            self.model = self.lightning_module
+            self.model = pl_module
 
         if (
-            self.lightning_module.trainer is not None
-            and self.lightning_module.trainer.state.fn == TrainerFn.FITTING
+            pl_module is not None
+            # `self.lightning_module._trainer` can be None if teardown gets called on an exception before
+            # the trainer gets set on the LightningModule
+            and pl_module._trainer is not None
+            and pl_module._trainer.state.fn == TrainerFn.FITTING
             and self._layer_sync
         ):
-            # `self.lightning_module.trainer` can be None if teardown gets called on an exception before
-            # the trainer gets set on the LightningModule
             self.model = self._layer_sync.revert(self.model)
         super().teardown()

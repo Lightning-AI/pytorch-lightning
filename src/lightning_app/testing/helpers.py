@@ -23,7 +23,7 @@ def call_script(
     if args is None:
         args = []
     args = [str(a) for a in args]
-    command = [sys.executable, "-m", "coverage", "run", filepath] + args
+    command = [sys.executable, filepath] + args  # todo: add back coverage
     p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
         stdout, stderr = p.communicate(timeout=timeout)

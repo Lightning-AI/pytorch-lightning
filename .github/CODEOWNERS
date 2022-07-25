@@ -13,13 +13,17 @@
 *.yml           @borda @carmocca @akihironitta @tchaton
 
 # Docs
-/docs/                                  @edenlightning @tchaton @borda @awaelchli @RobertLaurella
-/.github/*.md                           @edenlightning @williamfalcon @borda
-/.github/ISSUE_TEMPLATE/                @edenlightning @borda @tchaton
-/docs/source-pytorch/conf.py                    @borda @awaelchli @carmocca
-/docs/source-pytorch/index.rst                  @williamfalcon
-/docs/source-pytorch/levels                     @williamfalcon @RobertLaurella
-/docs/source-pytorch/expertise_levels           @williamfalcon @RobertLaurella
+/docs/                                      @edenlightning @tchaton @borda @awaelchli @RobertLaurella @Felonious-Spellfire
+/.github/*.md                               @edenlightning @williamfalcon @borda
+/.github/ISSUE_TEMPLATE/                    @edenlightning @borda @tchaton
+/docs/source-pytorch/conf.py                @borda @awaelchli @carmocca
+/docs/source-pytorch/index.rst              @williamfalcon
+/docs/source-pytorch/levels                 @williamfalcon @RobertLaurella
+/docs/source-pytorch/expertise_levels       @williamfalcon @RobertLaurella
+/docs/source-app/                           @williamfalcon @Felonious-Spellfire @RobertLaurella @tchaton @awaelchli
+/docs/source-app/conf.py                    @borda @awaelchli @carmocca
+/docs/source-app/index.rst                  @williamfalcon
+/docs/source-app/expertise_levels           @williamfalcon @Felonious-Spellfire @RobertLaurella
 
 # Packages
 /src/pytorch_lightning/accelerators         @williamfalcon @tchaton @SeanNaren @awaelchli @justusschock @kaushikb11
@@ -40,6 +44,14 @@
 /src/pytorch_lightning/trainer/connectors   @tchaton @SeanNaren @carmocca @borda
 /src/pytorch_lightning/tuner                @SkafteNicki @borda @awaelchli
 /src/pytorch_lightning/utilities            @borda @tchaton @SeanNaren @carmocca
+
+/src/lightning_app                           @tchaton @awaelchli @manskx @hhsecond
+
+# Examples
+/examples/app_*                            @tchaton @awaelchli @manskx @hhsecond
+# App tests
+/tests/tests_app                          @tchaton @awaelchli @manskx @hhsecond
+/tests/tests_app_examples                 @tchaton @awaelchli @manskx @hhsecond
 
 # Specifics
 /src/pytorch_lightning/trainer/connectors/logger_connector      @tchaton @carmocca

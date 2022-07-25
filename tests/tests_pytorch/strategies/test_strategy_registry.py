@@ -79,7 +79,8 @@ def test_deepspeed_strategy_registry_with_trainer(tmpdir, strategy):
     assert isinstance(trainer.strategy, DeepSpeedStrategy)
 
 
-def test_tpu_spawn_debug_strategy_registry(tmpdir):
+@RunIf(skip_windows=True)
+def test_tpu_spawn_debug_strategy_registry():
 
     strategy = "tpu_spawn_debug"
 
@@ -105,22 +106,47 @@ def test_fsdp_strategy_registry(tmpdir):
 
 
 @pytest.mark.parametrize(
-    "strategy_name, strategy",
+    "strategy_name, strategy, expected_init_params",
     [
-        ("ddp_find_unused_parameters_false", DDPStrategy),
-        ("ddp_spawn_find_unused_parameters_false", DDPSpawnStrategy),
-        ("ddp_sharded_spawn_find_unused_parameters_false", DDPSpawnShardedStrategy),
-        ("ddp_sharded_find_unused_parameters_false", DDPShardedStrategy),
+        (
+            "ddp_find_unused_parameters_false",
+            DDPStrategy,
+            {"find_unused_parameters": False},
+        ),
+        (
+            "ddp_spawn_find_unused_parameters_false",
+            DDPSpawnStrategy,
+            {"find_unused_parameters": False, "start_method": "spawn"},
+        ),
+        pytest.param(
+            "ddp_fork_find_unused_parameters_false",
+            DDPSpawnStrategy,
+            {"find_unused_parameters": False, "start_method": "fork"},
+            marks=RunIf(skip_windows=True),
+        ),
+        pytest.param(
+            "ddp_notebook_find_unused_parameters_false",
+            DDPSpawnStrategy,
+            {"find_unused_parameters": False, "start_method": "fork"},
+            marks=RunIf(skip_windows=True),
+        ),
+        (
+            "ddp_sharded_spawn_find_unused_parameters_false",
+            DDPSpawnShardedStrategy,
+            {"find_unused_parameters": False},
+        ),
+        (
+            "ddp_sharded_find_unused_parameters_false",
+            DDPShardedStrategy,
+            {"find_unused_parameters": False},
+        ),
     ],
 )
-def test_ddp_find_unused_parameters_strategy_registry(tmpdir, strategy_name, strategy):
-
+def test_ddp_find_unused_parameters_strategy_registry(tmpdir, strategy_name, strategy, expected_init_params):
     trainer = Trainer(default_root_dir=tmpdir, strategy=strategy_name)
-
     assert isinstance(trainer.strategy, strategy)
-
     assert strategy_name in StrategyRegistry
-    assert StrategyRegistry[strategy_name]["init_params"] == {"find_unused_parameters": False}
+    assert StrategyRegistry[strategy_name]["init_params"] == expected_init_params
     assert StrategyRegistry[strategy_name]["strategy"] == strategy
 
 

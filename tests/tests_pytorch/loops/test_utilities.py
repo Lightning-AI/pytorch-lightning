@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest.mock import Mock
+
 import pytest
 import torch
 
-from pytorch_lightning.loops.utilities import _extract_hiddens, _v1_8_output_format
+from pytorch_lightning.loops.utilities import _extract_hiddens, _set_sampler_epoch, _v1_8_output_format
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -61,3 +63,23 @@ def test_v1_8_output_format():
         ...
 
     assert _v1_8_output_format(training_epoch_end)
+
+
+def test_set_sampler_epoch():
+    # No samplers
+    dataloader = Mock()
+    dataloader.sampler = None
+    dataloader.batch_sampler = None
+    _set_sampler_epoch(dataloader, 55)
+
+    # set_epoch not callable
+    dataloader = Mock()
+    dataloader.sampler.set_epoch = None
+    dataloader.batch_sampler.set_epoch = None
+    _set_sampler_epoch(dataloader, 55)
+
+    # set_epoch callable
+    dataloader = Mock()
+    _set_sampler_epoch(dataloader, 55)
+    dataloader.sampler.set_epoch.assert_called_once_with(55)
+    dataloader.batch_sampler.set_epoch.assert_called_once_with(55)

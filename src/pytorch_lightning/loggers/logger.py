@@ -13,19 +13,21 @@
 # limitations under the License.
 """Abstract base class used to build new loggers."""
 
-import argparse
+
 import functools
 import operator
 from abc import ABC, abstractmethod
 from argparse import Namespace
+from collections import defaultdict
 from functools import wraps
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Mapping, Optional, Sequence, Union
 from weakref import ReferenceType
 
 import numpy as np
+from torch import Tensor
 
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
+from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only
 
 
@@ -33,9 +35,20 @@ def rank_zero_experiment(fn: Callable) -> Callable:
     """Returns the real experiment on rank 0 and otherwise the DummyExperiment."""
 
     @wraps(fn)
-    def experiment(self):
+    def experiment(self) -> Union[Any, DummyExperiment]:  # type: ignore[no-untyped-def]
+        """
+        Note:
+            ``self`` is a custom logger instance. The loggers typically wrap an ``experiment`` method
+            with a ``@rank_zero_experiment`` decorator. An exception is that ``loggers.neptune`` wraps
+            ``experiment`` and ``run`` with rank_zero_experiment.
+
+            ``Union[Any, DummyExperiment]`` is used because the wrapped hooks have several return
+            types that are specific to the custom logger. The return type here can be considered as
+            ``Union[return type of logger.experiment, DummyExperiment]``.
+        """
+
         @rank_zero_only
-        def get_experiment():
+        def get_experiment() -> Callable:
             return fn(self)
 
         return get_experiment() or DummyExperiment()
@@ -86,7 +99,7 @@ class Logger(ABC):
         else:
             self._agg_default_func = np.mean
 
-    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
+    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
         """Called after model checkpoint callback saves a new checkpoint.
 
         Args:
@@ -98,7 +111,7 @@ class Logger(ABC):
         self,
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
         agg_default_func: Callable[[Sequence[float]], float] = np.mean,
-    ):
+    ) -> None:
         """Update aggregation methods.
 
         .. deprecated:: v1.6
@@ -119,7 +132,7 @@ class Logger(ABC):
             self._agg_default_func = agg_default_func
         rank_zero_deprecation("`Logger.update_agg_funcs` was deprecated in v1.6 and will be removed in v1.8.")
 
-    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         """Aggregates and records metrics. This method doesn't log the passed metrics instantaneously, but instead
         it aggregates them and logs only if metrics are ready to be logged.
 
@@ -134,7 +147,7 @@ class Logger(ABC):
         self.log_metrics(metrics=metrics, step=step)
 
     @abstractmethod
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         """
         Records metrics.
         This method logs metrics as as soon as it received them. If you want to aggregate
@@ -148,16 +161,16 @@ class Logger(ABC):
         pass
 
     @abstractmethod
-    def log_hyperparams(self, params: argparse.Namespace, *args, **kwargs):
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace], *args: Any, **kwargs: Any) -> None:
         """Record hyperparameters.
 
         Args:
-            params: :class:`~argparse.Namespace` containing the hyperparameters
+            params: :class:`~argparse.Namespace` or `Dict` containing the hyperparameters
             args: Optional positional arguments, depends on the specific logger being used
             kwargs: Optional keyword arguments, depends on the specific logger being used
         """
 
-    def log_graph(self, model: "pl.LightningModule", input_array=None) -> None:
+    def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
         """Record model graph.
 
         Args:
@@ -184,18 +197,18 @@ class Logger(ABC):
         return None
 
     @property
-    def group_separator(self):
+    def group_separator(self) -> str:
         """Return the default separator used by the logger to group the data into subfolders."""
         return "/"
 
     @property
     @abstractmethod
-    def name(self) -> str:
+    def name(self) -> Optional[str]:
         """Return the experiment name."""
 
     @property
     @abstractmethod
-    def version(self) -> Union[int, str]:
+    def version(self) -> Optional[Union[int, str]]:
         """Return the experiment version."""
 
 
@@ -221,7 +234,7 @@ class LoggerCollection(Logger):
     def __getitem__(self, index: int) -> Logger:
         return list(self._logger_iterable)[index]
 
-    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[ModelCheckpoint]") -> None:
+    def after_save_checkpoint(self, checkpoint_callback: "ReferenceType[Checkpoint]") -> None:
         for logger in self._logger_iterable:
             logger.after_save_checkpoint(checkpoint_callback)
 
@@ -229,7 +242,7 @@ class LoggerCollection(Logger):
         self,
         agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
         agg_default_func: Callable[[Sequence[float]], float] = np.mean,
-    ):
+    ) -> None:
         for logger in self._logger_iterable:
             logger.update_agg_funcs(agg_key_funcs, agg_default_func)
 
@@ -238,7 +251,7 @@ class LoggerCollection(Logger):
         """Returns a list of experiment objects for all the loggers in the logger collection."""
         return [logger.experiment for logger in self._logger_iterable]
 
-    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None):
+    def agg_and_log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
         for logger in self._logger_iterable:
             logger.agg_and_log_metrics(metrics=metrics, step=step)
 
@@ -246,19 +259,19 @@ class LoggerCollection(Logger):
         for logger in self._logger_iterable:
             logger.log_metrics(metrics=metrics, step=step)
 
-    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace]) -> None:
+    def log_hyperparams(self, params: Union[Dict[str, Any], Namespace], *args: Any, **kwargs: Any) -> None:
         for logger in self._logger_iterable:
-            logger.log_hyperparams(params)
+            logger.log_hyperparams(params, *args, **kwargs)
 
-    def log_graph(self, model: "pl.LightningModule", input_array=None) -> None:
+    def log_graph(self, model: "pl.LightningModule", input_array: Optional[Tensor] = None) -> None:
         for logger in self._logger_iterable:
             logger.log_graph(model, input_array)
 
-    def log_text(self, *args, **kwargs) -> None:
+    def log_text(self, *args: Any, **kwargs: Any) -> None:
         for logger in self._logger_iterable:
             logger.log_text(*args, **kwargs)
 
-    def log_image(self, *args, **kwargs) -> None:
+    def log_image(self, *args: Any, **kwargs: Any) -> None:
         for logger in self._logger_iterable:
             logger.log_image(*args, **kwargs)
 
@@ -293,17 +306,17 @@ class LoggerCollection(Logger):
 class DummyExperiment:
     """Dummy experiment."""
 
-    def nop(self, *args, **kw):
+    def nop(self, *args: Any, **kw: Any) -> None:
         pass
 
-    def __getattr__(self, _):
+    def __getattr__(self, _: Any) -> Callable:
         return self.nop
 
-    def __getitem__(self, idx) -> "DummyExperiment":
+    def __getitem__(self, idx: int) -> "DummyExperiment":
         # enables self.logger.experiment[0].add_image(...)
         return self
 
-    def __setitem__(self, *args, **kwargs) -> None:
+    def __setitem__(self, *args: Any, **kwargs: Any) -> None:
         pass
 
 
@@ -313,7 +326,7 @@ class DummyLogger(Logger):
     It is useful if we want to disable user's logger for a feature, but still ensure that user code can run
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._experiment = DummyExperiment()
 
@@ -322,10 +335,10 @@ class DummyLogger(Logger):
         """Return the experiment object associated with this logger."""
         return self._experiment
 
-    def log_metrics(self, *args, **kwargs) -> None:
+    def log_metrics(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    def log_hyperparams(self, *args, **kwargs) -> None:
+    def log_hyperparams(self, *args: Any, **kwargs: Any) -> None:
         pass
 
     @property
@@ -338,18 +351,18 @@ class DummyLogger(Logger):
         """Return the experiment version."""
         return ""
 
-    def __getitem__(self, idx) -> "DummyLogger":
+    def __getitem__(self, idx: int) -> "DummyLogger":
         # enables self.logger[0].experiment.add_image(...)
         return self
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[None, None, None]:
         # if DummyLogger is substituting a logger collection, pretend it is empty
         yield from ()
 
     def __getattr__(self, name: str) -> Callable:
         """Allows the DummyLogger to be called with arbitrary methods, to avoid AttributeErrors."""
 
-        def method(*args, **kwargs):
+        def method(*args: Any, **kwargs: Any) -> None:
             return None
 
         return method
@@ -357,7 +370,7 @@ class DummyLogger(Logger):
 
 def merge_dicts(
     dicts: Sequence[Mapping],
-    agg_key_funcs: Optional[Mapping[str, Callable[[Sequence[float]], float]]] = None,
+    agg_key_funcs: Optional[Mapping] = None,
     default_func: Callable[[Sequence[float]], float] = np.mean,
 ) -> Dict:
     """Merge a sequence with dictionaries into one dictionary by aggregating the same keys with some given
@@ -395,7 +408,7 @@ def merge_dicts(
     """
     agg_key_funcs = agg_key_funcs or {}
     keys = list(functools.reduce(operator.or_, [set(d.keys()) for d in dicts]))
-    d_out = {}
+    d_out: Dict = defaultdict(dict)
     for k in keys:
         fn = agg_key_funcs.get(k)
         values_to_agg = [v for v in [d_in.get(k) for d_in in dicts] if v is not None]
@@ -405,4 +418,4 @@ def merge_dicts(
         else:
             d_out[k] = (fn or default_func)(values_to_agg)
 
-    return d_out
+    return dict(d_out)

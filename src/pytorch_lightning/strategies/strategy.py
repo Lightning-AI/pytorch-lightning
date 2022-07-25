@@ -30,14 +30,13 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.trainer.states import TrainerFn
-from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.distributed import ReduceOp
-from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.optimizer import optimizer_to_device, optimizers_to_device
 from pytorch_lightning.utilities.types import _PATH, LRSchedulerConfig, STEP_OUTPUT
 
 TBroadcast = TypeVar("TBroadcast")
+TReduce = TypeVar("TReduce")
 
 log = logging.getLogger(__name__)
 
@@ -54,17 +53,12 @@ class Strategy(ABC):
         self.accelerator = accelerator
         self._launcher: Optional[_Launcher] = None
         self._model: Optional[Module] = None
-        self.checkpoint_io = checkpoint_io
+        self._checkpoint_io: Optional[CheckpointIO] = checkpoint_io
         self.precision_plugin = precision_plugin
         self._optimizers: List[Optimizer] = []
         self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
         self.lr_scheduler_configs: List[LRSchedulerConfig] = []
         self.optimizer_frequencies: List[int] = []
-        if is_overridden("post_dispatch", self, parent=Strategy):
-            rank_zero_deprecation(
-                f"`{self.__class__.__name__}.post_dispatch()` has been deprecated in v1.6 and will be removed in v1.7."
-                f" Move your implementation to `{self.__class__.__name__}.teardown()` instead."
-            )
 
     @property
     def launcher(self) -> Optional[_Launcher]:
@@ -80,7 +74,10 @@ class Strategy(ABC):
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
-        return self._checkpoint_io if self._checkpoint_io is not None else TorchCheckpointIO()
+        if self._checkpoint_io is None:
+            self._checkpoint_io = TorchCheckpointIO()
+
+        return self._checkpoint_io
 
     @checkpoint_io.setter
     def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
@@ -291,7 +288,7 @@ class Strategy(ABC):
         """
 
     def reduce_boolean_decision(self, decision: bool) -> bool:
-        """Reduce the early stopping decision across all processes."""
+        """Reduce a boolean decision across all processes."""
         return decision
 
     def pre_backward(self, closure_loss: Tensor) -> None:
@@ -505,11 +502,3 @@ class Strategy(ABC):
     def __setstate__(self, state: Dict) -> None:
         self.__dict__ = state
         self.optimizers = self.optimizers  # re-create the `_lightning_optimizers`
-
-    def post_dispatch(self, trainer: "pl.Trainer") -> None:
-        r"""
-        .. deprecated::
-            v1.6 This method has been deprecated in v1.6 and will be removed in v1.7. Use :meth:`teardown` instead.
-
-        Hook to do something after the training/evaluation/prediction finishes.
-        """

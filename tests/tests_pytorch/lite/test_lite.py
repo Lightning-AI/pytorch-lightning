@@ -267,6 +267,7 @@ def test_seed_everything():
         _StrategyType.DP,
         _StrategyType.DDP,
         _StrategyType.DDP_SPAWN,
+        pytest.param(_StrategyType.DDP_FORK, marks=RunIf(skip_windows=True)),
         pytest.param(_StrategyType.DEEPSPEED, marks=RunIf(deepspeed=True)),
         pytest.param(_StrategyType.DDP_SHARDED, marks=RunIf(fairscale=True)),
         pytest.param(_StrategyType.DDP_SHARDED_SPAWN, marks=RunIf(fairscale=True)),
@@ -295,6 +296,7 @@ def test_setup_dataloaders_replace_custom_sampler(strategy):
         _StrategyType.DP,
         _StrategyType.DDP,
         _StrategyType.DDP_SPAWN,
+        pytest.param(_StrategyType.DDP_FORK, marks=RunIf(skip_windows=True)),
         pytest.param(_StrategyType.DEEPSPEED, marks=RunIf(deepspeed=True)),
         pytest.param(_StrategyType.DDP_SHARDED, marks=RunIf(fairscale=True)),
         pytest.param(_StrategyType.DDP_SHARDED_SPAWN, marks=RunIf(fairscale=True)),
@@ -313,9 +315,11 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
     "accelerator, expected",
     [
         ("cpu", "cpu"),
+        pytest.param("cuda", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("tpu", "xla:0", marks=RunIf(tpu=True)),
         pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
+        pytest.param("gpu", "mps:0", marks=RunIf(mps=True)),
     ],
 )
 def test_to_device(accelerator, expected):

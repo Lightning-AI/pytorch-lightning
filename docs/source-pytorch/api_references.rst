@@ -12,7 +12,7 @@ accelerators
 
     Accelerator
     CPUAccelerator
-    GPUAccelerator
+    CUDAAccelerator
     HPUAccelerator
     IPUAccelerator
     TPUAccelerator
@@ -270,7 +270,6 @@ strategies
 
     BaguaStrategy
     HivemindStrategy
-    DDP2Strategy
     DDPFullyShardedStrategy
     DDPShardedStrategy
     DDPSpawnShardedStrategy

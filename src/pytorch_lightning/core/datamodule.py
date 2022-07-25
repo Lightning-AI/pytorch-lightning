@@ -65,7 +65,13 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
     @classmethod
     def add_argparse_args(cls, parent_parser: ArgumentParser, **kwargs) -> ArgumentParser:
-        """Extends existing argparse by default `LightningDataModule` attributes."""
+        """Extends existing argparse by default `LightningDataModule` attributes.
+
+        Example::
+
+            parser = ArgumentParser(add_help=False)
+            parser = LightningDataModule.add_argparse_args(parser)
+        """
         return add_argparse_args(cls, parent_parser, **kwargs)
 
     @classmethod
@@ -80,8 +86,6 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
 
         Example::
 
-            parser = ArgumentParser(add_help=False)
-            parser = LightningDataModule.add_argparse_args(parser)
             module = LightningDataModule.from_argparse_args(args)
         """
         return from_argparse_args(cls, args, **kwargs)

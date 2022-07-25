@@ -236,7 +236,7 @@ def test_swa_deepcopy(tmpdir):
             super().setup(trainer, pl_module, stage)
             assert self._average_model.train_dataloader is not pl_module.train_dataloader
             assert self._average_model.train_dataloader.__self__ == self._average_model
-            assert self._average_model.trainer is None
+            assert self._average_model._trainer is None
             self.setup_called = True
 
     model = BoringModel()
