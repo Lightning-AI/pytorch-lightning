@@ -93,8 +93,6 @@ class TracerPythonScript(LightningWork):
             :language: python
         """
         super().__init__(**kwargs)
-        if not os.path.exists(script_path):
-            raise FileNotFoundError(f"The provided `script_path` {script_path}` wasn't found.")
         self.script_path = str(script_path)
         if isinstance(script_args, str):
             script_args = script_args.split(" ")
@@ -105,6 +103,8 @@ class TracerPythonScript(LightningWork):
             setattr(self, name, None)
 
     def run(self, **kwargs):
+        if not os.path.exists(self.script_path):
+            raise FileNotFoundError(f"The provided `script_path` {self.script_path}` wasn't found.")
         kwargs = {k: v.value if isinstance(v, Payload) else v for k, v in kwargs.items()}
         init_globals = globals()
         init_globals.update(kwargs)
