@@ -315,9 +315,11 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
     "accelerator, expected",
     [
         ("cpu", "cpu"),
+        pytest.param("cuda", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("gpu", "cuda:0", marks=RunIf(min_cuda_gpus=1)),
         pytest.param("tpu", "xla:0", marks=RunIf(tpu=True, standalone=True)),
         pytest.param("mps", "mps:0", marks=RunIf(mps=True)),
+        pytest.param("gpu", "mps:0", marks=RunIf(mps=True)),
     ],
 )
 def test_to_device(accelerator, expected):
