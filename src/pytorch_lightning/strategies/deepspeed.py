@@ -603,11 +603,10 @@ class DeepSpeedStrategy(DDPStrategy):
         self.model = model
 
     @property
-    def lightning_module(self) -> "pl.LightningModule":
+    def lightning_module(self) -> Optional["pl.LightningModule"]:
         # the model may not be wrapped with DeepEngine & LightningDeepSpeedModule if calling this too early
         module = getattr(self.model, "module", self.model)
         module = module.module if isinstance(module, LightningDeepSpeedModule) else module
-        assert isinstance(module, pl.LightningModule)
         return module
 
     @property
