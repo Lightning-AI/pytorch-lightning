@@ -349,25 +349,38 @@ def test_replace_init_method_extra_kwargs():
 
 @pytest.mark.parametrize("predicting", [True, False])
 def test_custom_batch_sampler(predicting):
+    """This test asserts, that custom `BatchSampler`, with all the arguments, that are required in order to
+    properly reinstantiate the class, is invoked properly.
+
+    It also asserts, that during the reinstantiation, the wrapper of `__init__` method is not present anymore, therefore
+    not setting `__pl_saved_{args,arg_names,kwargs}` attributes.
+    """
+
     class MyBatchSampler(BatchSampler):
+        # Custom Batch sampler with extra argument and default value
         def __init__(self, sampler, extra_arg, drop_last=True):
             self.extra_arg = extra_arg
             super().__init__(sampler, 10, drop_last)
 
     sampler = RandomSampler(range(10))
     with _replace_init_method(BatchSampler):
+        # instantiate within `_replace_init_method` context manager, simulating `*_dataloader` hooks
         batch_sampler = MyBatchSampler(sampler, "random_str")
 
     dataloader = DataLoader(range(10), batch_sampler=batch_sampler)
 
+    # assert that passed information got saved
     assert dataloader.batch_sampler.__pl_saved_args == (sampler, "random_str")
     assert dataloader.batch_sampler.__pl_saved_kwargs == {"drop_last": True}
     assert dataloader.batch_sampler.__pl_saved_arg_names == ("sampler", "extra_arg")
 
+    # updating dataloader, what happens on access of the dataloaders.
+    # This should not fail, and would fail before support for custom args.
     dataloader = _update_dataloader(
         dataloader, dataloader.sampler, mode=RunningStage.PREDICTING if predicting else None
     )
 
+    # Assert the `__init__` method is not replaced anymore and everything is instantiated to correct types
     batch_sampler = dataloader.batch_sampler
 
     if predicting:
@@ -384,39 +397,53 @@ def test_custom_batch_sampler(predicting):
 
 
 def test_custom_batch_sampler_no_drop_last():
+    """Tests whether appropriate warning is raised when the custom `BatchSampler` does not support `drop_last` and
+    we want to reset it."""
+
     class MyBatchSampler(BatchSampler):
+        # Custom batch sampler with extra argument, but without `drop_last`
         def __init__(self, sampler, extra_arg):
             self.extra_arg = extra_arg
             super().__init__(sampler, 10, False)
 
     sampler = RandomSampler(range(10))
     with _replace_init_method(BatchSampler):
+        # instantiate within `_replace_init_method` context manager, simulating `*_dataloader` hooks
         batch_sampler = MyBatchSampler(sampler, "random_str")
 
     dataloader = DataLoader(range(10), batch_sampler=batch_sampler)
 
+    # assert that passed information got saved
     assert dataloader.batch_sampler.__pl_saved_args == (sampler, "random_str")
     assert dataloader.batch_sampler.__pl_saved_kwargs == {}
     assert dataloader.batch_sampler.__pl_saved_arg_names == ("sampler", "extra_arg")
 
+    # Assert that warning is raised
     with pytest.warns(UserWarning, match="drop_last=False"):
         dataloader = _update_dataloader(dataloader, dataloader.sampler, mode=RunningStage.PREDICTING)
 
 
 def test_custom_batch_sampler_no_sampler():
+    """Tests whether appropriate error is raised when the custom `BatchSampler` does not support sampler
+    argument."""
+
     class MyBatchSampler(BatchSampler):
+        # Custom batch sampler, without sampler argument.
         def __init__(self, extra_arg):
             self.extra_arg = extra_arg
             super().__init__(RandomSampler(range(10)), 10, False)
 
     with _replace_init_method(BatchSampler):
+        # instantiate within `_replace_init_method` context manager, simulating `*_dataloader` hooks
         batch_sampler = MyBatchSampler("random_str")
     dataloader = DataLoader(range(10), batch_sampler=batch_sampler)
 
+    # assert that passed information got saved
     assert dataloader.batch_sampler.__pl_saved_args == ("random_str",)
     assert dataloader.batch_sampler.__pl_saved_kwargs == {}
     assert dataloader.batch_sampler.__pl_saved_arg_names == ("extra_arg",)
 
+    # Assert that error is raised
     with pytest.raises(TypeError, match="sampler into the batch sampler"):
         dataloader = _update_dataloader(dataloader, dataloader.sampler, mode=RunningStage.PREDICTING)
 
