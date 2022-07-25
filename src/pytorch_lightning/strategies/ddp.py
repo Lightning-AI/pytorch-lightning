@@ -83,8 +83,8 @@ class DDPStrategy(ParallelStrategy):
         checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         ddp_comm_state: Optional[object] = None,
-        ddp_comm_hook: Optional[Callable] = None,
-        ddp_comm_wrapper: Optional[Callable] = None,
+        ddp_comm_hook: Optional[callable] = None,
+        ddp_comm_wrapper: Optional[callable] = None,
         model_averaging_period: Optional[int] = None,
         process_group_backend: Optional[str] = None,
         timeout: Optional[timedelta] = default_pg_timeout,
@@ -216,15 +216,9 @@ class DDPStrategy(ParallelStrategy):
     def set_world_ranks(self) -> None:
         if self.cluster_environment is None:
             return
-        print(f"node_rank: {self.node_rank}")
-        print(f"num_processes: {self.num_processes}")
-        print(f"local_rank: {self.local_rank}")
-        print("num_nodes", self.num_nodes)
         self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
         self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
         rank_zero_only.rank = self.cluster_environment.global_rank()
-        print(f"global_rank: {rank_zero_only.rank}")
-        print("world_size", self.cluster_environment.world_size())
 
     def pre_configure_ddp(self) -> None:
         # if unset, default `find_unused_parameters` `True`

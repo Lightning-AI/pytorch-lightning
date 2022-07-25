@@ -430,8 +430,6 @@ class Trainer(
         # init connectors
         self._data_connector = DataConnector(self, multiple_trainloader_mode)
 
-        print("before accelerator_connector")
-
         self._accelerator_connector = AcceleratorConnector(
             num_processes=num_processes,
             devices=devices,
@@ -451,15 +449,11 @@ class Trainer(
             amp_level=amp_level,
             plugins=plugins,
         )
-        print("after accelerator_connector")
-
         self._logger_connector = LoggerConnector(self)
         self._callback_connector = CallbackConnector(self)
         self._checkpoint_connector = CheckpointConnector(self, resume_from_checkpoint)
         self._signal_connector = SignalConnector(self)
         self.tuner = Tuner(self)
-
-        print("_parse_loop_limits")
 
         min_steps, max_steps, min_epochs, max_epochs, max_time = _parse_loop_limits(
             min_steps, max_steps, min_epochs, max_epochs, max_time
@@ -467,8 +461,6 @@ class Trainer(
         fit_loop = FitLoop(min_epochs=min_epochs, max_epochs=max_epochs)
         training_epoch_loop = TrainingEpochLoop(min_steps=min_steps, max_steps=max_steps)
         fit_loop.connect(epoch_loop=training_epoch_loop)
-
-        print("TrainingEpochLoop")
 
         # default .fit() loop
         self.fit_loop = fit_loop
@@ -490,8 +482,6 @@ class Trainer(
         self._validated_ckpt_path: Optional[str] = None  # TODO: remove in v1.8
         self._tested_ckpt_path: Optional[str] = None  # TODO: remove in v1.8
         self._predicted_ckpt_path: Optional[str] = None  # TODO: remove in v1.8
-
-        print("on_trainer_init")
 
         # init callbacks
         # Declare attributes to be set in _callback_connector on_trainer_init
@@ -516,8 +506,6 @@ class Trainer(
             reload_dataloaders_every_n_epochs,
             check_val_every_n_epoch,
         )
-
-        print("on_trainer_init")
 
         # gradient clipping
         if gradient_clip_val is not None and not isinstance(gradient_clip_val, (int, float)):

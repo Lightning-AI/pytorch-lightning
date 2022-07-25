@@ -88,30 +88,21 @@ class _SubprocessScriptLauncher(_Launcher):
             trainer: Optional reference to the :class:`~pytorch_lightning.trainer.trainer.Trainer`.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
-        print("creates_processes_externally", self.cluster_environment.creates_processes_externally)
         if not self.cluster_environment.creates_processes_externally:
-            print("_call_children_scripts")
             self._call_children_scripts()
-        print("After creating")
         return function(*args, **kwargs)
 
     def _call_children_scripts(self) -> None:
-        print("1")
         # bookkeeping of spawned processes
         self._check_can_spawn_children()
-        print("2")
 
         # DDP Environment variables
         os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
 
-        print("3")
-
         # allow the user to pass the node rank
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
-
-        print("4")
 
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec
@@ -133,18 +124,11 @@ class _SubprocessScriptLauncher(_Launcher):
         else:  # Script called as `python -m a.b.c`
             command = [sys.executable, "-m", __main__.__spec__.name] + sys.argv[1:]
 
-        print("5", self.num_processes, self.num_nodes)
-
         os.environ["WORLD_SIZE"] = f"{self.num_processes * self.num_nodes}"
 
-        print("6")
-
         for local_rank in range(1, self.num_processes):
-            print("7")
             env_copy = os.environ.copy()
             env_copy["LOCAL_RANK"] = f"{local_rank}"
-
-            print(f"Creating {local_rank}")
 
             # remove env var if global seed not set
             if os.environ.get("PL_GLOBAL_SEED") is None and "PL_GLOBAL_SEED" in env_copy:
@@ -152,24 +136,18 @@ class _SubprocessScriptLauncher(_Launcher):
 
             # start process
             # if hydra is available and initialized, make sure to set the cwd correctly
-            cwd: Optional[str] = os.getcwd()
+            cwd: Optional[str] = None
             if _HYDRA_AVAILABLE:
                 if HydraConfig.initialized():
                     cwd = get_original_cwd()
                     os_cwd = f'"{os.getcwd()}"'
                     command += [f"hydra.run.dir={os_cwd}", f"hydra.job.name=train_ddp_process_{local_rank}"]
-
-            print(command, cwd)
-            process = subprocess.Popen(command, env=env_copy, cwd=cwd, stderr=sys.stderr)
+            subprocess.Popen(command, env=env_copy, cwd=cwd)
 
             # starting all processes at once can cause issues
             # with dataloaders delay between 1-10 seconds
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
-
-            print(process.returncode)
-
-        print("done !")
 
     def _check_can_spawn_children(self) -> None:
         if self.cluster_environment.local_rank() != 0:

@@ -2,6 +2,8 @@ from dataclasses import asdict, dataclass
 from typing import List, Optional, Union
 
 _name_to_devices_map = {
+    "default": 2,
+    "cpu": 2,
     "gpu": 1,
     "gpu-fast": 1,
     "gpu-fast-multi": 4,

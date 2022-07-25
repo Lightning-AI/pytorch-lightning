@@ -79,9 +79,7 @@ class CUDAAccelerator(Accelerator):
     @staticmethod
     def get_parallel_devices(devices: List[int]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
-        parallel_devices = [torch.device("cuda", i) for i in devices]
-        print("get_parallel_devices", parallel_devices)
-        return parallel_devices
+        return [torch.device("cuda", i) for i in devices]
 
     @staticmethod
     def auto_device_count() -> int:
@@ -96,12 +94,6 @@ class CUDAAccelerator(Accelerator):
     def register_accelerators(cls, accelerator_registry: Dict) -> None:
         accelerator_registry.register(
             "cuda",
-            cls,
-            description=f"{cls.__class__.__name__}",
-        )
-        # temporarily enable "gpu" to point to the CUDA Accelerator
-        accelerator_registry.register(
-            "gpu",
             cls,
             description=f"{cls.__class__.__name__}",
         )

@@ -6,6 +6,6 @@ app = LightningApp(
     LightningTrainingComponent(
         "train.py",
         num_nodes=2,
-        cloud_compute=CloudCompute("gpu-fast-multi"),
+        cloud_compute=CloudCompute("cpu"),
     ),
 )
