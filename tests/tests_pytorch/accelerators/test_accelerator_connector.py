@@ -754,3 +754,10 @@ def test_gpu_accelerator_backend_choice_mps(*_):
 
     assert trainer._accelerator_connector._accelerator_flag == "mps"
     assert isinstance(trainer.accelerator, MPSAccelerator)
+
+
+@mock.patch("pytorch_lightning.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+@mock.patch("pytorch_lightning.accelerators.cuda.CUDAAccelerator.is_available", return_value=False)
+def test_gpu_accelerator_misconfiguration_exception(*_):
+    with pytest.raises(MisconfigurationException, match="No supported gpu backend found!"):
+        Trainer(accelerator="gpu")
