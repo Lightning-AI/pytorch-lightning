@@ -69,8 +69,8 @@ For more details, please refer to `PyTorch Mixed Precision Training on Gaudi <ht
 
 ----
 
-Enabling DeviceStatsMonitor
----------------------------
+Enabling DeviceStatsMonitor with HPUs
+----------------------------------------
 
 DeviceStatsMonitor is a callback that automatically monitors and logs device stats during training stage.
 This callback can be passed for training with HPUs. It returns a map of the following metrics with their values:
@@ -94,4 +94,4 @@ The below snippet shows how DeviceStatsMonitor can be enabled.
     from pytorch_lightning.callbacks import DeviceStatsMonitor
 
     device_stats = DeviceStatsMonitor()
-    trainer = Trainer(callbacks=[device_stats])
+    trainer = Trainer(accelerator="hpu", callbacks=[device_stats])
