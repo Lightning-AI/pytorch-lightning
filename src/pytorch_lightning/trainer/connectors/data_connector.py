@@ -549,7 +549,7 @@ class _DataHookSelector:
 
     model: Optional["pl.LightningModule"]
     datamodule: Optional["pl.LightningDataModule"]
-    _valid_hooks: Tuple[str, str, str] = field(
+    _valid_hooks: Tuple[str, ...] = field(
         default=("on_before_batch_transfer", "transfer_batch_to_device", "on_after_batch_transfer")
     )
 
