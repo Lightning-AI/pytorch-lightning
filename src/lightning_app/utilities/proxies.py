@@ -5,6 +5,7 @@ import signal
 import sys
 import threading
 import time
+import traceback
 import warnings
 from copy import deepcopy
 from dataclasses import dataclass
@@ -398,6 +399,9 @@ class WorkRunner:
             )
             self.delta_queue.put(ComponentDelta(id=self.work_name, delta=Delta(DeepDiff(state, self.work.state))))
             self.work.on_exception(e)
+            print("########## CAPTURED EXCEPTION ###########")
+            print(traceback.print_exc())
+            print("########## CAPTURED EXCEPTION ###########")
             return
 
         # 14. Copy all artifacts to the shared storage so other Works can access them while this Work gets scaled down
