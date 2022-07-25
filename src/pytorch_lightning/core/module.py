@@ -80,6 +80,7 @@ class LightningModule(
             "automatic_optimization",
             "truncated_bptt_steps",
             "use_amp",
+            "trainer",
         ]
         + DeviceDtypeModuleMixin.__jit_unused_properties__
         + HyperparametersMixin.__jit_unused_properties__
@@ -93,7 +94,7 @@ class LightningModule(
         torch._C._log_api_usage_once(f"lightning.module.{self.__class__.__name__}")
 
         # pointer to the trainer object
-        self.trainer: Optional["pl.Trainer"] = None
+        self._trainer: Optional["pl.Trainer"] = None
 
         self._use_amp: bool = False
 
@@ -173,6 +174,21 @@ class LightningModule(
         return lr_schedulers
 
     @property
+    def trainer(self) -> "pl.Trainer":
+        if not self._running_torchscript and self._trainer is None:
+            raise RuntimeError(f"{self.__class__.__qualname__} is not attached to a `Trainer`.")
+        return self._trainer
+
+    @trainer.setter
+    def trainer(self, trainer: Optional["pl.Trainer"]) -> None:
+        for v in self.children():
+            if isinstance(v, LightningModule):
+                v.trainer = trainer
+        if trainer is not None and not isinstance(trainer, weakref.ProxyTypes):
+            trainer = weakref.proxy(trainer)
+        self._trainer = trainer
+
+    @property
     def example_input_array(self) -> Any:
         """The example input array is a specification of what the module can consume in the :meth:`forward` method.
         The return type is interpreted as follows:
@@ -193,7 +209,7 @@ class LightningModule(
     @property
     def current_epoch(self) -> int:
         """The current epoch in the ``Trainer``, or 0 if not attached."""
-        return self.trainer.current_epoch if self.trainer else 0
+        return self.trainer.current_epoch if self._trainer else 0
 
     @property
     def global_step(self) -> int:
@@ -201,17 +217,17 @@ class LightningModule(
 
         If no Trainer is attached, this propery is 0.
         """
-        return self.trainer.global_step if self.trainer else 0
+        return self.trainer.global_step if self._trainer else 0
 
     @property
     def global_rank(self) -> int:
         """The index of the current process across all nodes and devices."""
-        return self.trainer.global_rank if self.trainer else 0
+        return self.trainer.global_rank if self._trainer else 0
 
     @property
     def local_rank(self) -> int:
         """The index of the current process within a single node."""
-        return self.trainer.local_rank if self.trainer else 0
+        return self.trainer.local_rank if self._trainer else 0
 
     @property
     def on_gpu(self):
@@ -249,7 +265,7 @@ class LightningModule(
         """Reference to the logger object in the Trainer."""
         # this should match the implementation of `trainer.logger`
         # we don't reuse it so we can properly set the deprecation stacklevel
-        if self.trainer is None:
+        if self._trainer is None:
             return
         loggers = self.trainer.loggers
         if len(loggers) == 0:
@@ -271,14 +287,14 @@ class LightningModule(
     @property
     def loggers(self) -> List[Logger]:
         """Reference to the list of loggers in the Trainer."""
-        return self.trainer.loggers if self.trainer else []
+        return self.trainer.loggers if self._trainer else []
 
     def _apply_batch_transfer_handler(
         self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0
     ) -> Any:
         device = device or self.device
         datahook_selector = (
-            _DataHookSelector(self, None) if self.trainer is None else self.trainer._data_connector._datahook_selector
+            _DataHookSelector(self, None) if self._trainer is None else self.trainer._data_connector._datahook_selector
         )
 
         hook = datahook_selector.get_hook("on_before_batch_transfer")
@@ -365,7 +381,7 @@ class LightningModule(
             value, object, self.__check_allowed, name, value, wrong_dtype=(numbers.Number, Metric, Tensor, dict)
         )
 
-        if self.trainer is None:
+        if self._trainer is None:
             # not an error to support testing the `*_step` methods without a `Trainer` reference
             rank_zero_warn(
                 "You are trying to `self.log()` but the `self.trainer` reference is not registered on the model yet."
@@ -1964,7 +1980,7 @@ class LightningModule(
     def __getstate__(self) -> Dict[str, Any]:
         state = dict(self.__dict__)
         if self._should_prevent_trainer_and_dataloaders_deepcopy:
-            state["trainer"] = None
+            state["_trainer"] = None
             state.pop("train_dataloader", None)
             state.pop("val_dataloader", None)
             state.pop("test_dataloader", None)
