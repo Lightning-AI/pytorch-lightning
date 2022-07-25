@@ -14,11 +14,12 @@
 import multiprocessing
 import os
 from dataclasses import dataclass, field
-from typing import Any, Callable, Collection, Iterable, List, Optional, Tuple, TypeAlias, Union
+from typing import Any, Callable, Collection, Iterable, List, Optional, Tuple, Union
 from weakref import proxy
 
 from torch.utils.data import DataLoader, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
+from typing_extensions import TypeAlias
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
