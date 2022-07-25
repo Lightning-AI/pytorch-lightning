@@ -374,7 +374,15 @@ def init_dist_connection(
     os.environ["MASTER_ADDR"] = cluster_environment.main_address
     os.environ["MASTER_PORT"] = str(cluster_environment.main_port)
     log.info(f"Initializing distributed: GLOBAL_RANK: {global_rank}, MEMBER: {global_rank + 1}/{world_size}")
-    torch.distributed.init_process_group(torch_distributed_backend, rank=global_rank, world_size=world_size, **kwargs)
+    torch.distributed.init_process_group(
+        torch_distributed_backend,
+        init_method=f"tcp://{cluster_environment.main_address}:{cluster_environment.main_port}",
+        rank=global_rank,
+        world_size=world_size,
+        **kwargs,
+    )
+
+    print("HERE")
 
     # on rank=0 let everyone know training is starting
     new_rank_zero_info(

@@ -133,11 +133,9 @@ class _SubprocessScriptLauncher(_Launcher):
         else:  # Script called as `python -m a.b.c`
             command = [sys.executable, "-m", __main__.__spec__.name] + sys.argv[1:]
 
-        print("5")
+        print("5", self.num_processes, self.num_nodes)
 
         os.environ["WORLD_SIZE"] = f"{self.num_processes * self.num_nodes}"
-
-        print("call_children_scripts", os.environ, self.num_processes)
 
         print("6")
 
@@ -146,7 +144,7 @@ class _SubprocessScriptLauncher(_Launcher):
             env_copy = os.environ.copy()
             env_copy["LOCAL_RANK"] = f"{local_rank}"
 
-            print(f"Creating {local_rank} {env_copy}")
+            print(f"Creating {local_rank}")
 
             # remove env var if global seed not set
             if os.environ.get("PL_GLOBAL_SEED") is None and "PL_GLOBAL_SEED" in env_copy:
@@ -154,18 +152,22 @@ class _SubprocessScriptLauncher(_Launcher):
 
             # start process
             # if hydra is available and initialized, make sure to set the cwd correctly
-            cwd: Optional[str] = None
+            cwd: Optional[str] = os.getcwd()
             if _HYDRA_AVAILABLE:
                 if HydraConfig.initialized():
                     cwd = get_original_cwd()
                     os_cwd = f'"{os.getcwd()}"'
                     command += [f"hydra.run.dir={os_cwd}", f"hydra.job.name=train_ddp_process_{local_rank}"]
-            subprocess.Popen(command, env=env_copy, cwd=cwd)
+
+            print(command, cwd)
+            process = subprocess.Popen(command, env=env_copy, cwd=cwd, stderr=sys.stderr)
 
             # starting all processes at once can cause issues
             # with dataloaders delay between 1-10 seconds
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
+
+            print(process.returncode)
 
         print("done !")
 

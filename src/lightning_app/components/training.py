@@ -16,8 +16,6 @@ class PyTorchLightningPythonScript(TracerPythonScript):
         script_args: Optional[Union[list, str]] = None,
         node_rank: int = 1,
         num_nodes: int = 1,
-        global_rank: int = 0,
-        local_rank: int = 0,
         sanity_serving: bool = False,
         cloud_compute: Optional[CloudCompute] = None,
         **kwargs,
@@ -27,8 +25,6 @@ class PyTorchLightningPythonScript(TracerPythonScript):
         )
         self.node_rank = node_rank
         self.num_nodes = num_nodes
-        self.global_rank = global_rank
-        self.local_rank = local_rank
         self.best_model_path: None
         self.best_model_score = None
         self.sanity_serving = sanity_serving
@@ -41,7 +37,7 @@ class PyTorchLightningPythonScript(TracerPythonScript):
         from pytorch_lightning import Trainer
 
         tracer = super().configure_tracer()
-        # tracer.add_traced(Trainer, "__init__", pre_fn=self._trainer_init_pre_middleware)
+        tracer.add_traced(Trainer, "__init__", pre_fn=self._trainer_init_pre_middleware)
         return tracer
 
     def run(self, internal_urls: Optional[List[Tuple[str, str]]] = None):
@@ -65,7 +61,9 @@ class PyTorchLightningPythonScript(TracerPythonScript):
             "PL_TRAINER_STRATEGY": "ddp",
             "PL_TRAINER_DEVICES": str(self.cloud_compute.devices),
             "PL_TRAINER_ACCELERATOR": "auto",
+            "PL_TORCH_DISTRIBUTED_BACKEND": "gloo",
         }
+
         _logger.info(distributed_env_vars)
         os.environ.update(distributed_env_vars)
         return super().run()
@@ -79,25 +77,12 @@ class PyTorchLightningPythonScript(TracerPythonScript):
         if self.node_rank != 0:
             return {}, args, kwargs
 
-        # from pytorch_lightning.serve import ServableModuleValidator
+        from pytorch_lightning.serve import ServableModuleValidator
 
-        # callbacks = kwargs.get("callbacks", [])
-        # if self.sanity_serving:
-        #     callbacks = callbacks + [ServableModuleValidator()]
-        # kwargs["callbacks"] = callbacks
-        # if self.is_running_in_cloud:
-        #     kwargs["num_nodes"] = self.num_nodes
-        #     kwargs["devices"] = self.cloud_compute.devices
-        # else:
-        #     kwargs["num_nodes"] = 1
-        # kwargs["accelerator"] = "auto"
-        # kwargs["plugins"] = _Environment(
-        #     main_address=self.master_address,
-        #     main_port=self.master_port,
-        #     world_size=self.world_size,
-        #     global_rank=self.global_rank,
-        #     node_rank=self.node_rank,
-        # )
+        callbacks = kwargs.get("callbacks", [])
+        if self.sanity_serving:
+            callbacks = callbacks + [ServableModuleValidator()]
+        kwargs["callbacks"] = callbacks
         return {}, args, kwargs
 
     @property
@@ -133,32 +118,16 @@ class LightningTrainingComponent(LightningFlow):
         self._cloud_compute = cloud_compute  # TODO: Add support for cloudCOmpute
         self.sanity_serving = sanity_serving
 
-        if not self.is_running_in_cloud and num_nodes > 1:
-            _logger.info(f"This app is running locally, `num_nodes` would be mapped to devices * {num_nodes}.")
-
     def run(self):
         if not self.has_initialized:
             for node_rank in range(self.num_nodes):
-
-                if self.is_running_in_cloud:
-                    devices = self._cloud_compute.devices
-                    global_rank = node_rank * devices if node_rank else 0
-                    work_node_rank = node_rank
-                    local_rank = 0
-                else:
-                    global_rank = node_rank
-                    work_node_rank = 0
-                    local_rank = node_rank
-
                 self.ws[str(node_rank)] = PyTorchLightningPythonScript(
                     script_path=self.script_path,
                     script_args=self.script_args,
                     cloud_compute=self._cloud_compute,
-                    node_rank=work_node_rank,
-                    global_rank=global_rank,
+                    node_rank=node_rank,
                     sanity_serving=self.sanity_serving,
                     num_nodes=self.num_nodes,
-                    local_rank=local_rank,
                 )
 
             self.has_initialized = True
@@ -175,7 +144,3 @@ class LightningTrainingComponent(LightningFlow):
     @property
     def ready(self) -> bool:
         return all(w.internal_ip for w in self.ws.values())
-
-    @property
-    def is_running_in_cloud(self) -> bool:
-        return "LIGHTNING_APP_STATE_URL" in os.environ
