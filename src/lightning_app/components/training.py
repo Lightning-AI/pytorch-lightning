@@ -76,7 +76,7 @@ class PyTorchLightningPythonScript(TracerPythonScript):
         raise SystemExit(0)
 
     def _trainer_init_pre_middleware(self, trainer, *args, **kwargs):
-        if self.node_rank != 0 :
+        if self.node_rank != 0:
             return {}, args, kwargs
 
         # from pytorch_lightning.serve import ServableModuleValidator
