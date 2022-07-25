@@ -494,7 +494,7 @@ class _DataLoaderSource:
             that returns the desired dataloader(s).
     """
 
-    instance: Optional[Union[TRAIN_DATALOADERS, EVAL_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"]]
+    instance: INSTANCE
     name: str
 
     def dataloader(self) -> Union[INSTANCE, TRAIN_DATALOADERS, EVAL_DATALOADERS]:
