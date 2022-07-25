@@ -45,16 +45,19 @@ def main():
 
 
 @click.group()
-def clusters():
-    """Manage your Lightning AI compute clusters.
-
-    Lightning AI supports running Lightning Apps on your own cloud provider account. Please contact support@lightning.ai
-    to enable this feature.
-    """
+@click.version_option(ver)
+def _main():
+    register_all_external_components()
     pass
 
 
-@clusters.command("create")
+@_main.group("create")
+def create_command():
+    """Create Lightning managed resources."""
+    pass
+
+
+@create_command.command("cluster")
 @click.argument("cluster_name", callback=_check_cluster_name_is_valid)
 @click.option("--provider", "provider", type=str, default="aws", help="cloud provider to be used for your cluster")
 @click.option("--external-id", "external_id", type=str, required=True)
@@ -129,64 +132,6 @@ def create_cluster(
         cost_savings=cost_savings,
         wait=wait,
     )
-
-
-@clusters.command("list")
-def list_clusters(**kwargs):
-    """List your Lightning AI compute clusters."""
-    mgr = AWSClusterManager()
-    mgr.list()
-    pass
-
-
-@clusters.command("delete")
-@click.argument("cluster", type=str)
-@click.option(
-    "--force",
-    "force",
-    type=bool,
-    required=False,
-    default=False,
-    is_flag=True,
-    help="""Delete a cluster from Lightning AI. This does NOT delete any resources created by the cluster,
-            it just removes the entry from Lightning AI.
-
-            WARNING: You should NOT use this under normal circumstances.""",
-)
-@click.option(
-    "--wait",
-    "wait",
-    type=bool,
-    required=False,
-    default=False,
-    is_flag=True,
-    help="Enabling this flag makes the CLI wait until the cluster is deleted.",
-)
-def delete_cluster(cluster: str, force: bool = False, wait: bool = False):
-    """Delete a Lightning AI compute cluster and all associated cloud provider resources.
-
-    Deleting a run also deletes all Runs and Experiments which were started
-    on the cluster. deletion permanently removes not only the record of all
-    runs on a cluster, but all associated experiments, artifacts, metrics, logs, etc.
-
-    This process may take a few minutes to complete, but once started is irriversable.
-    Deletion permanently removes not only cluster from being managed by Lightning.ai, but tears
-    down every resource Lightning managed (for that cluster id) in the host cloud. All object
-    stores, container registries, logs, compute nodes, volumes, etc. are deleted and
-    cannot be recovered.
-    """
-    mgr = AWSClusterManager()
-    mgr.delete(cluster_id=cluster, force=force, wait=wait)
-
-
-@click.group()
-@click.version_option(ver)
-def _main():
-    register_all_external_components()
-    pass
-
-
-_main.add_command(clusters)
 
 
 @_main.command()
@@ -345,15 +290,63 @@ def stop():
     pass
 
 
-@_main.group(hidden=True)
+@_main.group(name="delete")
 def delete():
-    """Delete an application."""
+    """Delete a Lightning managed resources."""
     pass
 
 
-@_main.group(name="list", hidden=True)
+@delete.command("cluster")
+@click.argument("cluster", type=str)
+@click.option(
+    "--force",
+    "force",
+    type=bool,
+    required=False,
+    default=False,
+    is_flag=True,
+    help="""Delete a cluster from Lightning AI. This does NOT delete any resources created by the cluster,
+            it just removes the entry from Lightning AI.
+
+            WARNING: You should NOT use this under normal circumstances.""",
+)
+@click.option(
+    "--wait",
+    "wait",
+    type=bool,
+    required=False,
+    default=False,
+    is_flag=True,
+    help="Enabling this flag makes the CLI wait until the cluster is deleted.",
+)
+def delete_cluster(cluster: str, force: bool = False, wait: bool = False):
+    """Delete a Lightning AI compute cluster and all associated cloud provider resources.
+
+    Deleting a run also deletes all Runs and Experiments which were started
+    on the cluster. deletion permanently removes not only the record of all
+    runs on a cluster, but all associated experiments, artifacts, metrics, logs, etc.
+
+    This process may take a few minutes to complete, but once started is irriversable.
+    Deletion permanently removes not only cluster from being managed by Lightning.ai, but tears
+    down every resource Lightning managed (for that cluster id) in the host cloud. All object
+    stores, container registries, logs, compute nodes, volumes, etc. are deleted and
+    cannot be recovered.
+    """
+    mgr = AWSClusterManager()
+    mgr.delete(cluster_id=cluster, force=force, wait=wait)
+
+
+@_main.group(name="list")
 def get_list():
-    """List your applications."""
+    """List your Lightning managed resources."""
+    pass
+
+
+@get_list.command("clusters")
+def list_clusters(**kwargs):
+    """List your Lightning AI compute clusters."""
+    mgr = AWSClusterManager()
+    mgr.list()
     pass
 
 

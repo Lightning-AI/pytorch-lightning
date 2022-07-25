@@ -7,10 +7,12 @@ from lightning_cloud.openapi import Externalv1LightningappInstance
 
 from lightning_app.cli.lightning_cli import (
     _main,
-    clusters,
     create_cluster,
+    create_command,
+    delete,
     delete_cluster,
     get_app_url,
+    get_list,
     list_clusters,
     login,
     logout,
@@ -47,7 +49,7 @@ def test_start_target_url(runtime_type, extra_args, lightning_cloud_url, expecte
         assert get_app_url(runtime_type, *extra_args) == expected_url
 
 
-@pytest.mark.parametrize("command", [_main, run, clusters])
+@pytest.mark.parametrize("command", [_main, run, get_list, create_command, delete])
 def test_commands(command):
     runner = CliRunner()
     result = runner.invoke(command)
@@ -60,7 +62,9 @@ def test_main_lightning_cli_help():
     assert "login   " in res
     assert "logout  " in res
     assert "run     " in res
-    assert "clusters" in res
+    assert "list    " in res
+    assert "delete  " in res
+    assert "create  " in res
 
     res = os.popen("python -m lightning run --help").read()
     assert "app  " in res
