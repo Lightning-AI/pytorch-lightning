@@ -7,7 +7,7 @@ import sys
 import tempfile
 import time
 from contextlib import contextmanager
-from subprocess import Popen, check_output
+from subprocess import Popen
 from time import sleep
 from typing import Any, Callable, Dict, Generator, List, Type
 
@@ -127,6 +127,7 @@ def browser_context_args(browser_context_args: Dict) -> Dict:
         "ignore_https_errors": True,
     }
 
+
 @contextmanager
 def run_cli(args) -> Generator:
     # TODO(rr) capture & pass stdout to allow inspection
@@ -135,10 +136,10 @@ def run_cli(args) -> Generator:
     env_copy["PREPARE_LIGHTING"] = "1"
 
     cmd = [
-              sys.executable,
-              "-m",
-              "lightning",
-          ] + args
+        sys.executable,
+        "-m",
+        "lightning",
+    ] + args
 
     with tempfile.TemporaryDirectory() as tmpdir:
         env_copy = os.environ.copy()
@@ -153,6 +154,7 @@ def run_cli(args) -> Generator:
         process.wait()
 
     yield process.stdout.read().decode("UTF-8"), process.stderr.read().decode("UTF-8")
+
 
 @requires("playwright")
 @contextmanager
@@ -206,11 +208,7 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
     # 5. Create chromium browser, auth to lightning_app.ai and yield the admin and view pages.
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=bool(int(os.getenv("HEADLESS", "0"))))
-        payload = {
-            "apiKey": Config.api_key,
-            "username": Config.username,
-            "duration": "120000",
-        }
+        payload = {"apiKey": Config.api_key, "username": Config.username, "duration": "120000"}
         context = browser.new_context(
             # Eventually this will need to be deleted
             http_credentials=HttpCredentials(

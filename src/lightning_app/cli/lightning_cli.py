@@ -1,29 +1,28 @@
 import logging
 import os
-import click
+import sys
+from argparse import ArgumentParser
 from pathlib import Path
 from typing import List, Tuple, Union
+from uuid import uuid4
 
+import click
+import requests
 from requests.exceptions import ConnectionError
 
 from lightning_app import __version__ as ver
 from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
+from lightning_app.cli.cmd_clusters import _check_cluster_name_is_valid, AWSClusterManager, default_instance_types
 from lightning_app.core.constants import get_lightning_cloud_url, LOCAL_LAUNCH_ADMIN_VIEW
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
-from lightning_app.utilities.cli_helpers import _format_input_env_variables
+from lightning_app.utilities.cli_helpers import (
+    _format_input_env_variables,
+    _retrieve_application_url_and_available_commands,
+)
 from lightning_app.utilities.install_components import register_all_external_components
 from lightning_app.utilities.login import Auth
-from lightning_app.utilities.network import LightningClient
-from lightning_cloud.openapi.models import (
-    V1ClusterState,
-)
-from lightning_app.cli.cmd_clusters import (
-    _check_cluster_name_is_valid,
-    default_instance_types,
-    _wait_for_cluster_state,
-    AWSClusterManager,
-)
+from lightning_app.utilities.state import headers_for
 
 logger = logging.getLogger(__name__)
 
@@ -36,91 +35,103 @@ def get_app_url(runtime_type: RuntimeType, *args) -> str:
         return "http://127.0.0.1:7501/admin" if LOCAL_LAUNCH_ADMIN_VIEW else "http://127.0.0.1:7501/view"
 
 
+def main():
+    if len(sys.argv) == 1:
+        _main()
+    elif sys.argv[1] in _main.commands.keys() or sys.argv[1] == "--help":
+        _main()
+    else:
+        app_command()
+
+
 @click.group()
 def clusters():
     """Manage your Lightning AI compute clusters.
 
-    Lightning AI supports running Lightning Apps on your own cloud provider account.
-    Please contact support@lightning.ai to enable this feature.
+    Lightning AI supports running Lightning Apps on your own cloud provider account. Please contact support@lightning.ai
+    to enable this feature.
     """
     pass
 
 
-@clusters.command('create')
-@click.argument('cluster_name', callback=_check_cluster_name_is_valid)
-@click.option("--provider", 'provider', type=str, default="aws", help="cloud provider to be used for your cluster")
-@click.option('--external-id', 'external_id', type=str, required=True)
+@clusters.command("create")
+@click.argument("cluster_name", callback=_check_cluster_name_is_valid)
+@click.option("--provider", "provider", type=str, default="aws", help="cloud provider to be used for your cluster")
+@click.option("--external-id", "external_id", type=str, required=True)
 @click.option(
-    '--role-arn', 'role_arn', type=str, required=True, help="AWS role ARN attached to the associated resources."
+    "--role-arn", "role_arn", type=str, required=True, help="AWS role ARN attached to the associated resources."
 )
 @click.option(
-    '--region',
-    'region',
+    "--region",
+    "region",
     type=str,
     required=False,
     default="us-east-1",
-    help="AWS region that is used to host the associated resources."
+    help="AWS region that is used to host the associated resources.",
 )
 @click.option(
-    '--instance-types',
-    'instance_types',
+    "--instance-types",
+    "instance_types",
     type=str,
     required=False,
     default=",".join(default_instance_types),
-    help="Instance types that you want to support, for computer jobs within the cluster."
+    help="Instance types that you want to support, for computer jobs within the cluster.",
 )
 @click.option(
-    '--cost-savings',
-    'cost_savings',
+    "--cost-savings",
+    "cost_savings",
     type=bool,
     required=False,
     default=False,
     is_flag=True,
-    help=""""Use this flag to ensure that the cluster is created with a profile that is optimized for cost savings. 
+    help=""""Use this flag to ensure that the cluster is created with a profile that is optimized for cost savings.
         This makes runs cheaper but start-up times may increase.""",
 )
 @click.option(
-    '--edit-before-creation',
+    "--edit-before-creation",
     default=False,
     is_flag=True,
-    help="Edit the cluster specs before submitting them to the API server."
+    help="Edit the cluster specs before submitting them to the API server.",
 )
 @click.option(
-    '--wait',
-    'wait',
+    "--wait",
+    "wait",
     type=bool,
     required=False,
     default=False,
     is_flag=True,
-    help='Enabling this flag makes the CLI wait until the cluster is running.',
+    help="Enabling this flag makes the CLI wait until the cluster is running.",
 )
 def create_cluster(
-        cluster_name: str,
-        region: str,
-        role_arn: str,
-        external_id: str,
-        provider: str,
-        instance_types: str,
-        edit_before_creation: bool,
-        cost_savings: bool,
-        wait: bool,
-        **kwargs):
+    cluster_name: str,
+    region: str,
+    role_arn: str,
+    external_id: str,
+    provider: str,
+    instance_types: str,
+    edit_before_creation: bool,
+    cost_savings: bool,
+    wait: bool,
+    **kwargs,
+):
     """Create a Lightning AI compute cluster with your cloud provider credentials."""
     if provider != "aws":
         click.echo("Only AWS is supported for now. But support for more providers is coming soon.")
         return
     aws = AWSClusterManager()
-    aws.create(cluster_name=cluster_name,
-               region=region,
-               role_arn=role_arn,
-               external_id=external_id,
-               instance_types=instance_types.split(","),
-               edit_before_creation=edit_before_creation,
-               cost_savings=cost_savings,
-               wait=wait)
+    aws.create(
+        cluster_name=cluster_name,
+        region=region,
+        role_arn=role_arn,
+        external_id=external_id,
+        instance_types=instance_types.split(","),
+        edit_before_creation=edit_before_creation,
+        cost_savings=cost_savings,
+        wait=wait,
+    )
 
 
-@clusters.command('list')
+@clusters.command("list")
 def list_clusters(**kwargs):
     """List your Lightning AI compute clusters."""
     mgr = AWSClusterManager()
@@ -128,28 +139,28 @@ def list_clusters(**kwargs):
     pass
 
 
-@clusters.command('delete')
-@click.argument('cluster', type=str)
+@clusters.command("delete")
+@click.argument("cluster", type=str)
 @click.option(
-    '--force',
-    'force',
+    "--force",
+    "force",
     type=bool,
     required=False,
     default=False,
     is_flag=True,
-    help="""Delete a cluster from Lightning AI. This does NOT delete any resources created by the cluster, 
+    help="""Delete a cluster from Lightning AI. This does NOT delete any resources created by the cluster,
             it just removes the entry from Lightning AI.
 
             WARNING: You should NOT use this under normal circumstances.""",
 )
 @click.option(
-    '--wait',
-    'wait',
+    "--wait",
+    "wait",
     type=bool,
     required=False,
     default=False,
     is_flag=True,
-    help='Enabling this flag makes the CLI wait until the cluster is deleted.',
+    help="Enabling this flag makes the CLI wait until the cluster is deleted.",
 )
 def delete_cluster(cluster: str, force: bool = False, wait: bool = False):
     """Delete a Lightning AI compute cluster and all associated cloud provider resources.
@@ -170,15 +181,15 @@ def delete_cluster(cluster: str, force: bool = False, wait: bool = False):
 
 @click.group()
 @click.version_option(ver)
-def main():
+def _main():
     register_all_external_components()
     pass
 
 
-main.add_command(clusters)
+_main.add_command(clusters)
 
 
-@main.command()
+@_main.command()
 def login():
     """Log in to your Lightning.ai account."""
     auth = Auth()
@@ -191,15 +202,14 @@ def login():
         exit(1)
 
 
-@main.command()
+@_main.command()
 def logout():
     """Log out of your Lightning.ai account."""
     Auth().clear()
 
 
 def _run_app(
-        file: str, cloud: bool, without_server: bool, no_cache: bool, name: str, blocking: bool, open_ui: bool,
-        env: tuple
+    file: str, cloud: bool, without_server: bool, no_cache: bool, name: str, blocking: bool, open_ui: bool, env: tuple
 ):
     file = _prepare_file(file)
 
@@ -239,7 +249,7 @@ def _run_app(
         click.echo("Application is ready in the cloud")
 
 
-@main.group()
+@_main.group()
 def run():
     """Run your application."""
 
@@ -257,45 +267,97 @@ def run():
 @click.option("--env", type=str, default=[], multiple=True, help="Env variables to be set for the app.")
 @click.option("--app_args", type=str, default=[], multiple=True, help="Collection of arguments for the app.")
 def run_app(
-        file: str,
-        cloud: bool,
-        without_server: bool,
-        no_cache: bool,
-        name: str,
-        blocking: bool,
-        open_ui: bool,
-        env: tuple,
-        app_args: List[str],
+    file: str,
+    cloud: bool,
+    without_server: bool,
+    no_cache: bool,
+    name: str,
+    blocking: bool,
+    open_ui: bool,
+    env: tuple,
+    app_args: List[str],
 ):
     """Run an app from a file."""
     _run_app(file, cloud, without_server, no_cache, name, blocking, open_ui, env)
 
 
-@main.group(hidden=True)
+def app_command():
+    """Execute a function in a running application from its name."""
+    from lightning_app.utilities.commands.base import _download_command
+
+    logger.warn("Lightning Commands are a beta feature and APIs aren't stable yet.")
+
+    debug_mode = bool(int(os.getenv("DEBUG", "0")))
+
+    parser = ArgumentParser()
+    parser.add_argument("--app_id", default=None, type=str, help="Optional argument to identify an application.")
+    hparams, argv = parser.parse_known_args()
+
+    # 1: Collect the url and comments from the running application
+    url, commands = _retrieve_application_url_and_available_commands(hparams.app_id)
+    if url is None or commands is None:
+        raise Exception("We couldn't find any matching running app.")
+
+    if not commands:
+        raise Exception("This application doesn't expose any commands yet.")
+
+    command = argv[0]
+
+    command_names = [c["command"] for c in commands]
+    if command not in command_names:
+        raise Exception(f"The provided command {command} isn't available in {command_names}")
+
+    # 2: Send the command from the user
+    command_metadata = [c for c in commands if c["command"] == command][0]
+    params = command_metadata["params"]
+
+    # 3: Execute the command
+    if not command_metadata["is_client_command"]:
+        # TODO: Improve what is supported there.
+        kwargs = {k.split("=")[0].replace("--", ""): k.split("=")[1] for k in argv[1:]}
+        for param in params:
+            if param not in kwargs:
+                raise Exception(f"The argument --{param}=X hasn't been provided.")
+        json = {
+            "command_name": command,
+            "command_arguments": kwargs,
+            "affiliation": command_metadata["affiliation"],
+            "id": str(uuid4()),
+        }
+        resp = requests.post(url + "/api/v1/commands", json=json, headers=headers_for({}))
+        assert resp.status_code == 200, resp.json()
+    else:
+        client_command, models = _download_command(command_metadata, hparams.app_id, debug_mode=debug_mode)
+        client_command._setup(metadata=command_metadata, models=models, app_url=url)
+        sys.argv = argv
+        client_command.run()
+
+
+@_main.group(hidden=True)
 def fork():
     """Fork an application."""
     pass
 
 
-@main.group(hidden=True)
+@_main.group(hidden=True)
 def stop():
     """Stop your application."""
     pass
 
 
-@main.group(hidden=True)
+@_main.group(hidden=True)
 def delete():
     """Delete an application."""
     pass
 
 
-@main.group(name="list", hidden=True)
+@_main.group(name="list", hidden=True)
 def get_list():
     """List your applications."""
     pass
 
 
-@main.group()
+@_main.group()
 def install():
     """Install Lightning apps and components."""
 
@@ -353,7 +415,7 @@ def install_component(name, yes, version):
         cmd_install.gallery_component(name, yes, version)
 
 
-@main.group()
+@_main.group()
 def init():
     """Init a Lightning app and component."""
 
