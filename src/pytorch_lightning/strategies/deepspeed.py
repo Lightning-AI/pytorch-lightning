@@ -53,7 +53,7 @@ from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
 warning_cache = WarningCache()
 
-_DEEPSPEED_AVAILABLE: _RequirementAvailable = _RequirementAvailable("deepspeed")
+_DEEPSPEED_AVAILABLE: bool = cast(bool, _RequirementAvailable("deepspeed"))
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
     from deepspeed.runtime.engine import DeepSpeedEngine
