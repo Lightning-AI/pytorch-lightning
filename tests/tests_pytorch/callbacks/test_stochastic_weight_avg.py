@@ -369,12 +369,12 @@ def _test_misconfiguration_error_with_sharded_model(tmpdir, strategy):
         trainer.fit(model)
 
 
-@RunIf(fairscale_fully_sharded=True, min_gpus=1)
+@RunIf(fairscale_fully_sharded=True, min_cuda_gpus=1)
 def test_misconfiguration_error_with_ddp_fully_sharded(tmpdir):
     _test_misconfiguration_error_with_sharded_model(tmpdir, "fsdp")
 
 
-@RunIf(deepspeed=True, min_gpus=1)
+@RunIf(deepspeed=True, min_cuda_gpus=1)
 def test_misconfiguration_error_with_deep_speed(tmpdir):
     _test_misconfiguration_error_with_sharded_model(tmpdir, "deepspeed")
 
