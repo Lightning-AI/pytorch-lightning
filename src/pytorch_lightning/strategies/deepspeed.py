@@ -48,7 +48,7 @@ from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import _LRScheduler, _PATH, ReduceLROnPlateau, LRSchedulerConfig, STEP_OUTPUT
+from pytorch_lightning.utilities.types import _LRScheduler, _PATH, LRSchedulerConfig, ReduceLROnPlateau, STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
 warning_cache = WarningCache()
@@ -142,7 +142,8 @@ class DeepSpeedStrategy(DDPStrategy):
         process_group_backend: Optional[str] = None,
     ) -> None:
         """Provides capabilities to run training using the DeepSpeed library, with training optimizations for large
-        billion parameter models. `For more information: https://pytorch-lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed`.
+        billion parameter models. `For more information: https://pytorch-
+        lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed`.
 
         .. warning:: ``DeepSpeedStrategy`` is in beta and subject to change.
 
@@ -400,7 +401,9 @@ class DeepSpeedStrategy(DDPStrategy):
     def restore_checkpoint_after_setup(self) -> bool:
         return True
 
-    def _setup_model_and_optimizers(self, model: Module, optimizers: List[Optimizer]) -> Tuple[DeepSpeedEngine, List[Optimizer]]:
+    def _setup_model_and_optimizers(
+        self, model: Module, optimizers: List[Optimizer]
+    ) -> Tuple[DeepSpeedEngine, List[Optimizer]]:
         """Setup a model and multiple optimizers together.
 
         Currently only a single optimizer is supported.
@@ -424,10 +427,10 @@ class DeepSpeedStrategy(DDPStrategy):
         return self.model, [optimizer]
 
     def _setup_model_and_optimizer(
-            self,
-            model: Module,
-            optimizer: Optional[Optimizer],
-            lr_scheduler: Optional[Union[_LRScheduler, ReduceLROnPlateau]] = None
+        self,
+        model: Module,
+        optimizer: Optional[Optimizer],
+        lr_scheduler: Optional[Union[_LRScheduler, ReduceLROnPlateau]] = None,
     ) -> Tuple[DeepSpeedEngine, Optimizer]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
@@ -456,7 +459,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 " which will use the internal mechanism."
             )
 
-        assert isinstance(self.lightning_module.trainer, pl.Trainer) 
+        assert isinstance(self.lightning_module.trainer, pl.Trainer)
         if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             raise MisconfigurationException("DeepSpeed does not support clipping gradients by value.")
 
