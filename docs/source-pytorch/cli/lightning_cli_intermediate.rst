@@ -82,7 +82,7 @@ The simplest way to control a model with the CLI is to wrap it in the LightningC
 
     # main.py
     import torch
-    from pytorch_lightning.utilities.cli import LightningCLI
+    from pytorch_lightning.cli import LightningCLI
 
     # simple demo classes for your convenience
     from pytorch_lightning.demos.boring_classes import DemoModel, BoringDataModule
