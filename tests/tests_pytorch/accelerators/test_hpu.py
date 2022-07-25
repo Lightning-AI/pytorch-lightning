@@ -319,7 +319,7 @@ def test_hpu_device_stats_monitor(tmpdir):
         "MaxAllocSize",
         "TotalSystemAllocs",
         "TotalSystemFrees",
-        "TotalActiveAllocs"
-        ]
+        "TotalActiveAllocs",
+    ]
     for f in fields:
         assert any(f in h for h in hpu_stats.keys())

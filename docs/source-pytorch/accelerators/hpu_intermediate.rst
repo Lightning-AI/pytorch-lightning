@@ -92,5 +92,6 @@ The below snippet shows how DeviceStatsMonitor can be enabled.
 
     from pytorch_lightning import Trainer
     from pytorch_lightning.callbacks import DeviceStatsMonitor
+
     device_stats = DeviceStatsMonitor()
     trainer = Trainer(callbacks=[device_stats])
