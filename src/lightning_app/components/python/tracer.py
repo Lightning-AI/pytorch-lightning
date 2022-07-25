@@ -79,7 +79,7 @@ class TracerPythonScript(LightningWork):
         This callback has a reference to the work and on every batch end, we are capturing the
         trainer ``global_step`` and ``best_model_path``.
 
-        Even more interesting, this component works for ANY Pytorch Lightning script and
+        Even more interesting, this component works for ANY PyTorch Lightning script and
         its state can be used in real time in a UI.
 
         .. literalinclude:: ../../../../examples/app_components/python/component_tracer.py
