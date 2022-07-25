@@ -48,7 +48,7 @@ Built-in Checkpoint IO Plugins
    * - :class:`~pytorch_lightning.plugins.io.HPUCheckpointIO`
      - CheckpointIO to save checkpoints for HPU training strategies.
    * - :class:`~pytorch_lightning.plugins.io.AsyncCheckpointIO`
-     - ``AsyncCheckpointIO`` enables saving the checkpoints asynchronously using the ``ThreadPoolExecutor``.
+     - ``AsyncCheckpointIO`` enables saving the checkpoints asynchronously in a thread.
 
 
 ***************************
@@ -111,9 +111,6 @@ Asynchronous Checkpointing
 To enable saving the checkpoints asynchronously without blocking your training, you can configure
 :class:`~pytorch_lightning.plugins.io.async_plugin.AsyncCheckpointIO` plugin to ``Trainer``.
 
-It uses its base ``CheckpointIO`` plugin's saving logic to save the checkpoint but performs this operation asynchronously.
-By default, this base ``CheckpointIO`` will be set-up for you and all you need to provide is the ``AsyncCheckpointIO`` instance to the ``Trainer``.
-
 .. code-block:: python
 
    from pytorch_lightning.plugins.io import AsyncCheckpointIO
@@ -123,7 +120,9 @@ By default, this base ``CheckpointIO`` will be set-up for you and all you need t
    trainer = Trainer(plugins=[async_ckpt_io])
 
 
-If you want the plugin to use your own base ``CheckpointIO`` and want the base to behave asynchronously, pass it as an argument while initializing ``AsyncCheckpointIO``.
+It uses its base ``CheckpointIO`` plugin's saving logic to save the checkpoint but performs this operation asynchronously.
+By default, this base ``CheckpointIO`` will be set-up for you and all you need to provide is the ``AsyncCheckpointIO`` instance to the ``Trainer``.
+But if you want the plugin to use your own custom base ``CheckpointIO`` and want the base to behave asynchronously, pass it as an argument while initializing ``AsyncCheckpointIO``.
 
 .. code-block:: python
 

@@ -49,7 +49,7 @@ class CheckpointIO(ABC):
         Args:
             path: Path to checkpoint
             map_location: a function, :class:`torch.device`, string or a dict specifying how to remap storage
-            locations.
+                locations.
 
         Returns: The loaded checkpoint.
         """

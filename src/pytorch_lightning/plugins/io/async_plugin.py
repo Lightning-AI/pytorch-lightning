@@ -20,7 +20,7 @@ from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 
 
 class AsyncCheckpointIO(_WrappingCheckpointIO):
-    """``AsyncCheckpointIO`` enables saving the checkpoints asynchronously using the ``ThreadPoolExecutor``.
+    """``AsyncCheckpointIO`` enables saving the checkpoints asynchronously in a thread.
 
     .. warning::
 
@@ -55,3 +55,5 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
     def teardown(self) -> None:
         """This method is called to close the threads."""
         self._executor.shutdown(wait=True)
+        if self._error:
+            raise self._error
