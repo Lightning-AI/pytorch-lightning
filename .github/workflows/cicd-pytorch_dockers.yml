@@ -109,7 +109,7 @@ jobs:
             UBUNTU_VERSION=${{ matrix.ubuntu_version }}
           file: dockers/base-cuda/Dockerfile
           push: ${{ env.PUSH_TO_HUB }}
-          tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+          tags: pytorchlightning/pytorch_lightning:base-cuda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}-cuda${{ matrix.cuda_version }}
         timeout-minutes: 95
       - uses: ravsamhq/notify-slack-action@v1
         if: failure() && env.PUSH_TO_HUB == 'true'
@@ -148,7 +148,7 @@ jobs:
             CUDA_VERSION=${{ matrix.cuda_version }}
           file: dockers/base-conda/Dockerfile
           push: ${{ env.PUSH_TO_HUB }}
-          tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}
+          tags: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python_version }}-torch${{ matrix.pytorch_version }}-cuda${{ matrix.cuda_version }}
         timeout-minutes: 95
       - uses: ravsamhq/notify-slack-action@v1
         if: failure() && env.PUSH_TO_HUB == 'true'
