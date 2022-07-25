@@ -16,9 +16,8 @@ import logging
 import os
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence, Union
+
 import pytorch_lightning as pl
-
-
 from pytorch_lightning.callbacks import (
     Callback,
     Checkpoint,
@@ -97,7 +96,9 @@ class CallbackConnector:
     def _configure_accumulated_gradients(
         self, accumulate_grad_batches: Optional[Union[int, Dict[int, int]]] = None
     ) -> None:
-        grad_accum_callback = [cb for cb in self.trainer.callbacks if isinstance(cb, GradientAccumulationScheduler)]
+        grad_accum_callback: List[GradientAccumulationScheduler] = [
+            cb for cb in self.trainer.callbacks if isinstance(cb, GradientAccumulationScheduler)
+        ]
 
         if grad_accum_callback:
             if accumulate_grad_batches is not None:
@@ -151,7 +152,7 @@ class CallbackConnector:
         is_progress_bar_rich = isinstance(progress_bar_callback, RichProgressBar)
 
         if progress_bar_callback is not None and is_progress_bar_rich:
-            model_summary = RichModelSummary()
+            model_summary: ModelSummary = RichModelSummary()
         else:
             model_summary = ModelSummary()
         self.trainer.callbacks.append(model_summary)
@@ -245,8 +246,8 @@ class CallbackConnector:
             A new list in which the last elements are Checkpoint if there were any present in the
             input.
         """
-        checkpoints = [c for c in callbacks if isinstance(c, Checkpoint)]
-        not_checkpoints = [c for c in callbacks if not isinstance(c, Checkpoint)]
+        checkpoints = [c for c in callbacks if isinstance(c, Checkpoint and Callback)]
+        not_checkpoints = [c for c in callbacks if not isinstance(c, Checkpoint and Callback)]
         return not_checkpoints + checkpoints
 
 
@@ -267,7 +268,7 @@ def _configure_external_callbacks() -> List[Callback]:
 
         factories = iter_entry_points("pytorch_lightning.callbacks_factory")
 
-    external_callbacks = []
+    external_callbacks: List[Callback] = []
     for factory in factories:
         callback_factory = factory.load()
         callbacks_list: List[Callback] = callback_factory()
