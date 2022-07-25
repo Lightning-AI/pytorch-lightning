@@ -244,7 +244,7 @@ class _AcceleratorType(LightningEnum):
     >>> _AcceleratorType.CPU == _AcceleratorType.from_str('cpu')
     True
     >>> # you can match the type with string
-    >>> _AcceleratorType.GPU == 'GPU'
+    >>> _AcceleratorType.CUDA == 'CUDA'
     True
     >>> # which is case invariant
     >>> _AcceleratorType.TPU in ('tpu', 'CPU')
@@ -252,7 +252,7 @@ class _AcceleratorType(LightningEnum):
     """
 
     CPU = "CPU"
-    GPU = "GPU"
+    CUDA = "CUDA"
     IPU = "IPU"
     TPU = "TPU"
     HPU = "HPU"
