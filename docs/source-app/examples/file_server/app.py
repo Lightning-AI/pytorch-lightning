@@ -55,7 +55,8 @@ class FileServer(L.LightningWork):
         uploaded_file = self.get_random_filename()
         meta_file = uploaded_file + ".meta"
         self.uploaded_files[filename] = {
-            "progress": (0, None), "done": False}
+            "progress": (0, None), "done": False
+        }
 
         # 2: Create a stream and write bytes of
         # the file to the disk under `uploaded_file` path.
