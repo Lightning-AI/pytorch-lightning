@@ -116,6 +116,8 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         )
         for source in sources:
             if not source.is_module():
+                assert source.instance
+                assert isinstance(source.instance, (DataLoader, list))
                 TPUSpawnStrategy._validate_dataloader(source.instance)
 
     def connect(self, model: "pl.LightningModule") -> None: # type: ignore
