@@ -145,7 +145,7 @@ class DataConnector:
         # set local properties on the model
         self._copy_trainer_model_properties(model)
 
-    def _copy_trainer_model_properties(self, model: TypeAlias["pl.LightningModule"]) -> None:
+    def _copy_trainer_model_properties(self, model: "pl.LightningModule") -> None:
         model.trainer = proxy(self.trainer)
         # Remove setting use_amp in v1.8
         model._use_amp = self.trainer.amp_backend is not None
