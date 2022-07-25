@@ -417,7 +417,7 @@ def test_custom_batch_sampler_no_sampler():
     assert dataloader.batch_sampler.__pl_saved_kwargs == {}
     assert dataloader.batch_sampler.__pl_saved_arg_names == ("extra_arg",)
 
-    with pytest.raises(MisconfigurationException, match="sampler into batch sampler"):
+    with pytest.raises(TypeError, match="sampler into the batch sampler"):
         dataloader = _update_dataloader(dataloader, dataloader.sampler, mode=RunningStage.PREDICTING)
 
 
