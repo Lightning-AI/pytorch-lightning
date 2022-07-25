@@ -53,10 +53,11 @@ from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
 warning_cache = WarningCache()
 
+DeepSpeedEngineType = "deepspeed.runtime.engine.DeepSpeedEngine"
+
 _DEEPSPEED_AVAILABLE: bool = cast(bool, _RequirementAvailable("deepspeed"))
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
-    from deepspeed.runtime.engine import DeepSpeedEngine
 
 
 def remove_module_hooks(model: torch.nn.Module) -> None:
@@ -403,7 +404,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def _setup_model_and_optimizers(
         self, model: Module, optimizers: List[Optimizer]
-    ) -> Tuple[DeepSpeedEngine, List[Optimizer]]:
+    ) -> Tuple[DeepSpeedEngineType, List[Optimizer]]:
         """Setup a model and multiple optimizers together.
 
         Currently only a single optimizer is supported.
@@ -431,7 +432,7 @@ class DeepSpeedStrategy(DDPStrategy):
         model: Module,
         optimizer: Optional[Optimizer],
         lr_scheduler: Optional[Union[_LRScheduler, ReduceLROnPlateau]] = None,
-    ) -> Tuple[DeepSpeedEngine, Optimizer]:
+    ) -> Tuple[DeepSpeedEngineType, Optimizer]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
         This calls :func:`deepspeed.initialize` internally.
@@ -774,7 +775,7 @@ class DeepSpeedStrategy(DDPStrategy):
         return cfg
 
     @property
-    def deepspeed_engine(self) -> DeepSpeedEngine:
+    def deepspeed_engine(self) -> DeepSpeedEngineType:
         return self.model
 
     @property
