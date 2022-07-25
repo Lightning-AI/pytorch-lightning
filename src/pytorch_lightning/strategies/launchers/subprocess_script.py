@@ -96,16 +96,22 @@ class _SubprocessScriptLauncher(_Launcher):
         return function(*args, **kwargs)
 
     def _call_children_scripts(self) -> None:
+        print("1")
         # bookkeeping of spawned processes
         self._check_can_spawn_children()
+        print("2")
 
         # DDP Environment variables
         os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
 
+        print("3")
+
         # allow the user to pass the node rank
         os.environ["NODE_RANK"] = str(self.cluster_environment.node_rank())
         os.environ["LOCAL_RANK"] = str(self.cluster_environment.local_rank())
+
+        print("4")
 
         # Check if the current calling command looked like `python a/b/c.py` or `python -m a.b.c`
         # See https://docs.python.org/3/reference/import.html#main-spec
@@ -127,9 +133,16 @@ class _SubprocessScriptLauncher(_Launcher):
         else:  # Script called as `python -m a.b.c`
             command = [sys.executable, "-m", __main__.__spec__.name] + sys.argv[1:]
 
+        print("5")
+
         os.environ["WORLD_SIZE"] = f"{self.num_processes * self.num_nodes}"
 
+        print("call_children_scripts", os.environ, self.num_processes)
+
+        print("6")
+
         for local_rank in range(1, self.num_processes):
+            print("7")
             env_copy = os.environ.copy()
             env_copy["LOCAL_RANK"] = f"{local_rank}"
 

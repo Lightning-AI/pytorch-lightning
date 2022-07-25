@@ -5,54 +5,8 @@ from typing import List, Optional, Tuple, Union
 from lightning import CloudCompute
 from lightning_app import LightningFlow, structures
 from lightning_app.components.python import TracerPythonScript
-from pytorch_lightning.plugins.environments import ClusterEnvironment
 
 _logger = logging.getLogger(__name__)
-
-
-class _Environment(ClusterEnvironment):
-    def __init__(self, main_address, main_port, world_size, global_rank, node_rank):
-        self._main_address = main_address
-        self._main_port = main_port
-        self._world_size = world_size
-        self._global_rank = global_rank
-        self._node_rank = node_rank
-        self._local_rank = None
-
-    def detect(self):
-        return True
-
-    @property
-    def creates_processes_externally(self) -> bool:
-        return False
-
-    @property
-    def main_address(self):
-        return self._main_address
-
-    @property
-    def main_port(self) -> int:
-        return self._main_port
-
-    def global_rank(self):
-        return self._global_rank
-
-    def node_rank(self) -> int:
-        return self._node_rank
-
-    def world_size(self):
-        return self._world_size
-
-    def set_world_size(self, size: int) -> None:
-        self._world_size = size
-
-    def set_global_rank(self, rank: int) -> None:
-        self._global_rank = rank
-
-    def local_rank(self):
-        if self._local_rank is None:
-            return 0
-        return self._local_rank
 
 
 class PyTorchLightningPythonScript(TracerPythonScript):
@@ -87,7 +41,7 @@ class PyTorchLightningPythonScript(TracerPythonScript):
         from pytorch_lightning import Trainer
 
         tracer = super().configure_tracer()
-        tracer.add_traced(Trainer, "__init__", pre_fn=self._trainer_init_pre_middleware)
+        # tracer.add_traced(Trainer, "__init__", pre_fn=self._trainer_init_pre_middleware)
         return tracer
 
     def run(self, internal_urls: Optional[List[Tuple[str, str]]] = None):
@@ -95,16 +49,12 @@ class PyTorchLightningPythonScript(TracerPythonScript):
             _logger.info(f"The node {self.node_rank} started !")
             return
 
-        import torch.distributed as dist
-
         _logger.debug(f"Internal URLS: {internal_urls}")
 
         self.master_address = str(internal_urls[0][0])
         self.master_port = str(internal_urls[0][1])
         devices = self.cloud_compute.devices
         self.world_size = self.num_nodes * devices
-
-        backend = "gloo" if self.cloud_compute.accelerator == "cpu" else "nccl"
 
         distributed_env_vars = {
             "MASTER_ADDRESS": self.master_address,
@@ -117,16 +67,6 @@ class PyTorchLightningPythonScript(TracerPythonScript):
             "PL_TRAINER_ACCELERATOR": "auto",
         }
         _logger.info(distributed_env_vars)
-
-        # backend = "gloo" if self.cloud_compute.accelerator == "cpu" else "nccl"
-
-        # dist.init_process_group(
-        #     backend=backend,
-        #     init_method=f"tcp://{master_address}:{master_port}",
-        #     world_size=world_size,
-        #     rank=self.global_rank,
-        # )
-
         os.environ.update(distributed_env_vars)
         return super().run()
 
@@ -136,18 +76,21 @@ class PyTorchLightningPythonScript(TracerPythonScript):
         raise SystemExit(0)
 
     def _trainer_init_pre_middleware(self, trainer, *args, **kwargs):
-        from pytorch_lightning.serve import ServableModuleValidator
+        if self.node_rank != 0 :
+            return {}, args, kwargs
 
-        callbacks = kwargs.get("callbacks", [])
-        if self.sanity_serving:
-            callbacks = callbacks + [ServableModuleValidator()]
-        kwargs["callbacks"] = callbacks
-        if self.is_running_in_cloud:
-            kwargs["num_nodes"] = self.num_nodes
-            kwargs["devices"] = self.cloud_compute.devices
-        else:
-            kwargs["num_nodes"] = 1
-        kwargs["accelerator"] = "auto"
+        # from pytorch_lightning.serve import ServableModuleValidator
+
+        # callbacks = kwargs.get("callbacks", [])
+        # if self.sanity_serving:
+        #     callbacks = callbacks + [ServableModuleValidator()]
+        # kwargs["callbacks"] = callbacks
+        # if self.is_running_in_cloud:
+        #     kwargs["num_nodes"] = self.num_nodes
+        #     kwargs["devices"] = self.cloud_compute.devices
+        # else:
+        #     kwargs["num_nodes"] = 1
+        # kwargs["accelerator"] = "auto"
         # kwargs["plugins"] = _Environment(
         #     main_address=self.master_address,
         #     main_port=self.master_port,
