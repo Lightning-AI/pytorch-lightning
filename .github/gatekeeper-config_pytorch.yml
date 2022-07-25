@@ -1,0 +1,15 @@
+approvals:
+  groups:
+    - name: 'PyTorch Lightning'
+      minimum: 1
+      from:
+        - awaelchli
+        - Borda
+        - carmocca
+        - ethanwharris
+        - kaushikb11
+        - krshrimali
+        - otaj
+        - rohitgr7
+        - tchaton
+        - williamFalcon
