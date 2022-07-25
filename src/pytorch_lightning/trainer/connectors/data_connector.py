@@ -19,7 +19,6 @@ from weakref import proxy
 
 from torch.utils.data import DataLoader, Sampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
-from typing_extensions import TypeAlias
 
 import pytorch_lightning as pl
 from pytorch_lightning.accelerators.ipu import IPUAccelerator
@@ -48,6 +47,7 @@ warning_cache = WarningCache()
 
 BATCH_DATALOADER = Union[Collection[DataLoader], List[DataLoader], DataLoader[Any]]
 REQUEST_DATALOADER = Union[DataLoader, List[DataLoader], BATCH_DATALOADER]
+INSTANCE = Optional[Union[TRAIN_DATALOADERS, EVAL_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"]]
 
 
 class DataConnector:
@@ -497,7 +497,7 @@ class _DataLoaderSource:
     instance: Optional[Union[TRAIN_DATALOADERS, EVAL_DATALOADERS, "pl.LightningModule", "pl.LightningDataModule"]]
     name: str
 
-    def dataloader(self) -> Union[TypeAlias["instance"], TRAIN_DATALOADERS, EVAL_DATALOADERS]:
+    def dataloader(self) -> Union[INSTANCE, TRAIN_DATALOADERS, EVAL_DATALOADERS]:
         """Returns the dataloader from the source.
 
         If the source is a module, the method with the corresponding :attr:`name` gets called.
