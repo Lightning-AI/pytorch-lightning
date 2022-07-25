@@ -15,6 +15,7 @@
 from typing import Dict, Optional
 
 import pytorch_lightning as pl
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.single_device import SingleDeviceStrategy
@@ -24,7 +25,6 @@ from pytorch_lightning.utilities.types import _DEVICE, STEP_OUTPUT
 
 if _HPU_AVAILABLE:
     import habana_frameworks.torch.core as htcore
-    import habana_frameworks.torch.core.hccl  # noqa: F401
 
 
 class SingleHPUStrategy(SingleDeviceStrategy):
@@ -36,7 +36,7 @@ class SingleHPUStrategy(SingleDeviceStrategy):
         self,
         device: _DEVICE = "hpu",
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
-        checkpoint_io: Optional[HPUCheckpointIO] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
     ):
 
@@ -46,9 +46,19 @@ class SingleHPUStrategy(SingleDeviceStrategy):
         super().__init__(
             accelerator=accelerator,
             device=device,
-            checkpoint_io=checkpoint_io or HPUCheckpointIO(),
+            checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
         )
+
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        if self._checkpoint_io is None:
+            self._checkpoint_io = HPUCheckpointIO()
+        return self._checkpoint_io
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+        self._checkpoint_io = io
 
     @property
     def is_distributed(self) -> bool:

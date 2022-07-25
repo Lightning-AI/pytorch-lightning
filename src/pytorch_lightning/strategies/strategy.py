@@ -82,7 +82,10 @@ class Strategy(ABC):
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
-        return self._checkpoint_io if self._checkpoint_io is not None else TorchCheckpointIO()
+        if self._checkpoint_io is None:
+            self._checkpoint_io = TorchCheckpointIO()
+
+        return self._checkpoint_io
 
     @checkpoint_io.setter
     def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:

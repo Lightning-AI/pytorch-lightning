@@ -20,6 +20,7 @@ import numpy as np
 import torch
 import torch.multiprocessing as mp
 from torch import Tensor
+from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.strategies.launchers.base import _Launcher
@@ -30,63 +31,76 @@ from pytorch_lightning.utilities.rank_zero import rank_zero_debug
 from pytorch_lightning.utilities.types import _PATH
 
 
-class _SpawnLauncher(_Launcher):
-    r"""Spawns processes that run a given function in parallel, and joins them all at the end.
+class _MultiProcessingLauncher(_Launcher):
+    r"""Launches processes that run a given function in parallel, and joins them all at the end.
 
     The main process in which this launcher is invoked creates N so-called worker processes (using
-    :func:`torch.multiprocessing.spawn`) that run the given function.
+    :func:`torch.multiprocessing.start_processes`) that run the given function.
     Worker processes have a rank that ranges from 0 to N - 1.
 
     Note:
         - This launcher requires all objects to be pickleable.
         - It is important that the entry point to the program/script is guarded by ``if __name__ == "__main__"``.
+        - With start method 'fork' the user must ensure that no CUDA context gets created in the main process before
+          the launcher is invoked. E.g., one should avoid creating cuda tensors or calling ``torch.cuda.*`` functions
+          before calling ``Trainer.fit``.
 
     Args:
         strategy: A reference to the strategy that is used together with this launcher.
+        start_method: The method how to start the processes.
+            - 'spawn': The default start method. Requires all objects to be pickleable.
+            - 'fork': Preferrable for IPython/Jupyter environments where 'spawn' is not available. Not available on
+              the Windows platform for example.
+            - 'forkserver': Alternative implementation to 'fork'.
     """
 
-    def __init__(self, strategy: Strategy) -> None:
+    def __init__(self, strategy: Strategy, start_method: Literal["spawn", "fork", "forkserver"] = "spawn") -> None:
         self._strategy = strategy
-        self._start_method = "spawn"
+        self._start_method = start_method
+        if start_method not in mp.get_all_start_methods():
+            raise ValueError(
+                f"The start method '{self._start_method}' is not available on this platform. Available methods are:"
+                f" {', '.join(mp.get_all_start_methods())}"
+            )
 
     @property
     def is_interactive_compatible(self) -> bool:
-        # The start method 'spawn' is currently the only one that works with DDP and CUDA support
-        # The start method 'fork' is the only one supported in Jupyter environments but not compatible with CUDA
-        # For more context, see https://github.com/Lightning-AI/lightning/issues/7550
-        return self._start_method == "fork" and self._strategy.root_device.type != "cuda"
+        # The start method 'spawn' is not supported in interactive environments
+        # The start method 'fork' is the only one supported in Jupyter environments, with constraints around CUDA
+        # initialization. For more context, see https://github.com/Lightning-AI/lightning/issues/7550
+        return self._start_method == "fork"
 
     def launch(self, function: Callable, *args: Any, trainer: Optional["pl.Trainer"] = None, **kwargs: Any) -> Any:
-        """Spawns processes that run the given function in parallel.
+        """Launches processes that run the given function in parallel.
 
         The function is allowed to have a return value. However, when all processes join, only the return value
         of worker process 0 gets returned from this `launch` method in the main process.
 
         Arguments:
-            function: The entry point for all spawned processes.
+            function: The entry point for all launched processes.
             *args: Optional positional arguments to be passed to the given function.
             trainer: Optional reference to the :class:`~pytorch_lightning.trainer.trainer.Trainer` for which
                 a selected set of attributes get restored in the main process after processes join.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
         # The default cluster environment in Lightning chooses a random free port number
-        # This needs to be done in the main process here before spawning to ensure each rank will connect
+        # This needs to be done in the main process here before starting processes to ensure each rank will connect
         # through the same port
         os.environ["MASTER_PORT"] = str(self._strategy.cluster_environment.main_port)
         context = mp.get_context(self._start_method)
         return_queue = context.SimpleQueue()
-        mp.spawn(
+        mp.start_processes(
             self._wrapping_function,
             args=(trainer, function, args, kwargs, return_queue),
             nprocs=self._strategy.num_processes,
             start_method=self._start_method,
         )
-        spawn_output = return_queue.get()
+        worker_output = return_queue.get()
         if trainer is None:
-            return spawn_output
+            return worker_output
 
-        self._recover_results_in_main_process(spawn_output, trainer)
-        return spawn_output.trainer_results
+        self._recover_results_in_main_process(worker_output, trainer)
+        return worker_output.trainer_results
 
     def _wrapping_function(
         self,
@@ -106,25 +120,25 @@ class _SpawnLauncher(_Launcher):
         if self._strategy.local_rank == 0:
             return_queue.put(move_data_to_device(results, "cpu"))
 
-    def _recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer: "pl.Trainer") -> None:
+    def _recover_results_in_main_process(self, worker_output: "_WorkerOutput", trainer: "pl.Trainer") -> None:
         # transfer back the best path to the trainer
         if trainer.checkpoint_callback and hasattr(trainer.checkpoint_callback, "best_model_path"):
-            trainer.checkpoint_callback.best_model_path = str(spawn_output.best_model_path)
+            trainer.checkpoint_callback.best_model_path = str(worker_output.best_model_path)
 
         # TODO: pass also best score
         # load last weights
-        if spawn_output.weights_path is not None:
-            ckpt = self._strategy.checkpoint_io.load_checkpoint(spawn_output.weights_path)
+        if worker_output.weights_path is not None:
+            ckpt = self._strategy.checkpoint_io.load_checkpoint(worker_output.weights_path)
             trainer.lightning_module.load_state_dict(ckpt)  # type: ignore[arg-type]
-            self._strategy.checkpoint_io.remove_checkpoint(spawn_output.weights_path)
+            self._strategy.checkpoint_io.remove_checkpoint(worker_output.weights_path)
 
-        trainer.state = spawn_output.trainer_state
+        trainer.state = worker_output.trainer_state
 
         # get the `callback_metrics` and set it to the trainer
-        self.get_from_queue(trainer, spawn_output.extra)
+        self.get_from_queue(trainer, worker_output.extra)
 
-    def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_SpawnOutput"]:
-        rank_zero_debug("Finalizing the DDP spawn environment.")
+    def _collect_rank_zero_results(self, trainer: "pl.Trainer", results: Any) -> Optional["_WorkerOutput"]:
+        rank_zero_debug("Collecting results from rank 0 process.")
         checkpoint_callback = trainer.checkpoint_callback
         best_model_path = (
             checkpoint_callback.best_model_path
@@ -148,7 +162,7 @@ class _SpawnLauncher(_Launcher):
         extra = _FakeQueue()
         self.add_to_queue(trainer, extra)
 
-        return _SpawnOutput(best_model_path, weights_path, trainer.state, results, extra)
+        return _WorkerOutput(best_model_path, weights_path, trainer.state, results, extra)
 
     def add_to_queue(self, trainer: "pl.Trainer", queue: "_FakeQueue") -> None:
         """Appends the :attr:`trainer.callback_metrics` dictionary to the given queue. To avoid issues with memory
@@ -189,7 +203,7 @@ class _FakeQueue(UserList):
         return len(self) == 0
 
 
-class _SpawnOutput(NamedTuple):
+class _WorkerOutput(NamedTuple):
     best_model_path: Optional[_PATH]
     weights_path: Optional[_PATH]
     trainer_state: TrainerState

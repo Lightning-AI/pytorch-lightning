@@ -72,6 +72,7 @@ from pytorch_lightning.strategies import (
     StrategyRegistry,
     TPUSpawnStrategy,
 )
+from pytorch_lightning.strategies.ddp_spawn import _DDP_FORK_ALIASES
 from pytorch_lightning.tuner.auto_gpu_select import pick_multiple_gpus
 from pytorch_lightning.utilities import (
     _StrategyType,
@@ -87,6 +88,7 @@ from pytorch_lightning.utilities.imports import (
     _HOROVOD_AVAILABLE,
     _HPU_AVAILABLE,
     _IPU_AVAILABLE,
+    _IS_INTERACTIVE,
     _TORCH_GREATER_EQUAL_1_11,
     _TPU_AVAILABLE,
 )
@@ -267,7 +269,7 @@ class AcceleratorConnector:
             if strategy == "ddp_cpu":
                 raise MisconfigurationException(
                     "`Trainer(strategy='ddp_cpu')` is not a valid strategy,"
-                    " you can use `Trainer(strategy='ddp'|'ddp_spawn', accelerator='cpu')` instead."
+                    " you can use `Trainer(strategy='ddp'|'ddp_spawn'|'ddp_fork', accelerator='cpu')` instead."
                 )
             if strategy == "tpu_spawn":
                 raise MisconfigurationException(
@@ -496,7 +498,7 @@ class AcceleratorConnector:
                 return "hpu"
             if MPSAccelerator.is_available():
                 return "mps"
-            if torch.cuda.is_available() and torch.cuda.device_count() > 0:
+            if CUDAAccelerator.is_available():
                 return "cuda"
         return "cpu"
 
@@ -588,7 +590,9 @@ class AcceleratorConnector:
             # TODO: lazy initialized device, then here could be self._strategy_flag = "single_device"
             return SingleDeviceStrategy(device=device)  # type: ignore
         if len(self._parallel_devices) > 1:
-            return DDPSpawnStrategy.strategy_name
+            if _IS_INTERACTIVE:
+                return "ddp_fork"
+            return "ddp_spawn"
 
         return DDPStrategy.strategy_name
 
@@ -614,7 +618,11 @@ class AcceleratorConnector:
                 f"You selected strategy to be `{DDPFullyShardedNativeStrategy.strategy_name}`, "
                 "but GPU accelerator is not used."
             )
-
+        if strategy_flag in _DDP_FORK_ALIASES and "fork" not in torch.multiprocessing.get_all_start_methods():
+            raise ValueError(
+                f"You selected `Trainer(strategy='{strategy_flag}')` but process forking is not supported on this"
+                f" platform. We recommed `Trainer(strategy='ddp_spawn')` instead."
+            )
         if strategy_flag:
             self._strategy_flag = strategy_flag
 

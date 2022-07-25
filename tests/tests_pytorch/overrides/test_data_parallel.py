@@ -43,17 +43,18 @@ from tests_pytorch.helpers.runif import RunIf
 def test_lightning_wrapper_module_methods(wrapper_class, stage):
     """Test that the LightningWrapper redirects .forward() to the LightningModule methods."""
     pl_module = Mock(spec=LightningModule)
-    pl_module.trainer = Mock()
+    trainer = Mock()
+    pl_module._trainer = trainer
     wrapped_module = wrapper_class(pl_module)
 
     batch = torch.rand(5)
     batch_idx = 3
 
     prop, step = stage
-    pl_module.trainer.sanity_checking = False
+    trainer.sanity_checking = False
 
     for p in ("training", "testing", "validating", "predicting"):
-        setattr(pl_module.trainer, p, p == prop)
+        setattr(trainer, p, p == prop)
 
     wrapped_module(batch, batch_idx)
     getattr(pl_module, step).assert_called_with(batch, batch_idx)
@@ -165,8 +166,9 @@ def test_lightning_parallel_module_device_access(nest, unnest):
 
     pl_module = DeviceAccessModel()
     # required for redirecting the forward call to training_step
-    pl_module.trainer = Mock()
-    pl_module.trainer.state.stage = RunningStage.TRAINING
+    trainer = Mock()
+    pl_module.trainer = trainer
+    trainer.state.stage = RunningStage.TRAINING
 
     root_device = torch.device("cuda", 0)
     wrapped_module = LightningParallelModule(pl_module).to(root_device)
@@ -191,8 +193,9 @@ def test_lightning_parallel_module_device_access_warning():
 
     pl_module = DeviceAccessModel()
     # required for redirecting the forward call to training_step
-    pl_module.trainer = Mock()
-    pl_module.trainer.state.stage = RunningStage.TRAINING
+    trainer = Mock()
+    pl_module.trainer = trainer
+    trainer.state.stage = RunningStage.TRAINING
 
     wrapped_module = LightningParallelModule(pl_module).cuda()
     model = DataParallel(wrapped_module, device_ids=[0, 1])

@@ -76,7 +76,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
                 "You have overridden the `LightningModule.backward` hook but it will be ignored since DeepSpeed handles"
                 " the backward logic internally."
             )
-        assert model.trainer is not None
         deepspeed_engine: "deepspeed.DeepSpeedEngine" = model.trainer.model
         deepspeed_engine.backward(closure_loss, *args, **kwargs)
 
@@ -110,7 +109,6 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
         # DeepSpeed handles the optimizer step internally
         deepspeed_engine: "deepspeed.DeepSpeedEngine"
         if isinstance(model, pl.LightningModule):
-            assert model.trainer is not None
             deepspeed_engine = model.trainer.model
         else:
             deepspeed_engine = model
