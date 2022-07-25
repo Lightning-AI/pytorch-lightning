@@ -322,15 +322,15 @@ def delete():
 def delete_cluster(cluster: str, force: bool = False, wait: bool = False):
     """Delete a Lightning AI compute cluster and all associated cloud provider resources.
 
-    Deleting a run also deletes all Runs and Experiments which were started
-    on the cluster. deletion permanently removes not only the record of all
-    runs on a cluster, but all associated experiments, artifacts, metrics, logs, etc.
+    Deleting a run also deletes all Runs and Experiments that were started on the cluster.
+    Deletion permanently removes not only the record of all runs on a cluster, but all associated experiments,
+    artifacts, metrics, logs, etc.
 
-    This process may take a few minutes to complete, but once started is irriversable.
-    Deletion permanently removes not only cluster from being managed by Lightning.ai, but tears
-    down every resource Lightning managed (for that cluster id) in the host cloud. All object
-    stores, container registries, logs, compute nodes, volumes, etc. are deleted and
-    cannot be recovered.
+    WARNING: This process may take a few minutes to complete, but once started it CANNOT be rolled back.
+    Deletion permanently removes not only the cluster from being managed by Lightning AI, but tears down
+    every resource Lightning AI managed (for that cluster id) in the host cloud.
+
+    All object stores, container registries, logs, compute nodes, volumes, etc. are deleted and cannot be recovered.
     """
     mgr = AWSClusterManager()
     mgr.delete(cluster_id=cluster, force=force, wait=wait)

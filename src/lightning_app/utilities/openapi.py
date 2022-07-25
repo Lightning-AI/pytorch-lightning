@@ -1,29 +1,24 @@
 import json
-from typing import Any, Dict, io
-
-import click
-from pathlib import Path
-
-import yaml
+from typing import Any, Dict
 
 
 def _duplicate_checker(js):
     result = {}
     for name, value in js:
         if name in result:
-            raise ValueError('Failed to load JSON: duplicate key {0}.'.format(name))
+            raise ValueError(f"Failed to load JSON: duplicate key {name}.")
         result[name] = value
     return result
 
 
 def string2dict(text):
     if not isinstance(text, str):
-        text = text.decode('utf-8')
+        text = text.decode("utf-8")
     try:
         js = json.loads(text, object_pairs_hook=_duplicate_checker)
         return js
     except ValueError as e:
-        raise ValueError('Failed to load JSON: {0}.'.format(str(e)))
+        raise ValueError(f"Failed to load JSON: {str(e)}.")
 
 
 def is_openapi(obj):
@@ -31,9 +26,10 @@ def is_openapi(obj):
 
 
 def create_openapi_object(json_obj: Dict, target: Any):
-    """ Create the openAPI object from the given json dict and based on the target object
-    We use the target object to make new object from the given json spec and hence target
-    must be a valid object.
+    """Create the OpenAPI object from the given JSON dict and based on the target object.
+
+    Lightning AI uses the target object to make new objects from the given JSON spec so the target must be a valid
+    object.
     """
     if not isinstance(json_obj, dict):
         raise TypeError("json_obj must be a dictionary")

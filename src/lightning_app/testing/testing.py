@@ -130,8 +130,7 @@ def browser_context_args(browser_context_args: Dict) -> Dict:
 
 @contextmanager
 def run_cli(args) -> Generator:
-    # TODO(rr) capture & pass stdout to allow inspection
-    """This utility is used to automate e2e testing of lightning CLI."""
+    """This utility is used to automate end-to-end testing of the Lightning AI CLI."""
     env_copy = os.environ.copy()
     env_copy["PREPARE_LIGHTING"] = "1"
 
