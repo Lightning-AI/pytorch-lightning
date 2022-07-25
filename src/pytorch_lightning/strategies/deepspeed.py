@@ -498,7 +498,8 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @property
     def zero_stage_3(self) -> bool:
-        if (zero_optimization := self.config.get("zero_optimization")) is None:
+        zero_optimization = self.config.get("zero_optimization")
+        if zero_optimization is None:
             raise MisconfigurationException(
                 "You must set `zero_optimization` in the DeepSpeed config."
                 " See: https://pytorch-lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed"
