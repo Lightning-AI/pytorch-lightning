@@ -17,15 +17,10 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 
 
 class _WrappingCheckpointIO(CheckpointIO):
-    """AsyncCheckpointIO enables saving the checkpoints asynchronously.
-
-    .. warning::
-
-        This is currently an experimental plugin/feature and API changes are to be expected.
+    """``_WrappingCheckpointIO`` is a wrapper checkpoint_io that uses a base checkpoint_io to handle checkpointing.
 
     Args:
-        checkpoint_io: A checkpoint IO plugin that is used as the basis for async checkpointing.
-        interval: Sleep time between each queue check.
+        checkpoint_io: A checkpoint IO plugin that is used as the basis.
     """
 
     def __init__(self, checkpoint_io: Optional["CheckpointIO"] = None) -> None:
@@ -41,7 +36,7 @@ class _WrappingCheckpointIO(CheckpointIO):
                 self._base_checkpoint_io_configured = True
 
     @property
-    def checkpoint_io(self):
+    def checkpoint_io(self) -> Optional["CheckpointIO"]:
         return self._checkpoint_io
 
     @checkpoint_io.setter
@@ -57,12 +52,15 @@ class _WrappingCheckpointIO(CheckpointIO):
 
     def save_checkpoint(self, *args: Any, **kwargs: Any) -> None:
         """Uses the base ``checkpoint_io`` to save the checkpoint."""
+        assert self.checkpoint_io is not None
         self.checkpoint_io.save_checkpoint(*args, **kwargs)
 
-    def remove_checkpoint(self, *args, **kwargs) -> None:
+    def remove_checkpoint(self, *args: Any, **kwargs: Any) -> None:
         """Uses the base ``checkpoint_io`` to remove the checkpoint."""
+        assert self.checkpoint_io is not None
         self.checkpoint_io.remove_checkpoint(*args, **kwargs)
 
     def load_checkpoint(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
         """Uses the base ``checkpoint_io`` to load the checkpoint."""
+        assert self.checkpoint_io is not None
         return self.checkpoint_io.load_checkpoint(*args, **kwargs)

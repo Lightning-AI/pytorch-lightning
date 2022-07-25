@@ -51,6 +51,9 @@ class SingleTPUStrategy(SingleDeviceStrategy):
     def checkpoint_io(self) -> CheckpointIO:
         if self._checkpoint_io is None:
             self._checkpoint_io = XLACheckpointIO()
+        elif isinstance(self._checkpoint_io, _WrappingCheckpointIO):
+            self._checkpoint_io.checkpoint_io = XLACheckpointIO()
+
         return self._checkpoint_io
 
     @checkpoint_io.setter

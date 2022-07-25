@@ -121,8 +121,6 @@ By default, this base ``CheckpointIO`` will be set-up for you and all you need t
 
    async_ckpt_io = AsyncCheckpointIO()
    trainer = Trainer(plugins=[async_ckpt_io])
-   model = LitModel()
-   trainer.fit(model)
 
 
 If you want the plugin to use your own base ``CheckpointIO`` and want the base to behave asynchronously, pass it as an argument while initializing ``AsyncCheckpointIO``.
@@ -134,5 +132,3 @@ If you want the plugin to use your own base ``CheckpointIO`` and want the base t
    base_ckpt_io = MyCustomCheckpointIO()
    async_ckpt_io = AsyncCheckpointIO(checkpoint_io=base_ckpt_io)
    trainer = Trainer(plugins=[async_ckpt_io])
-   model = LitModel()
-   trainer.fit(model)

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
@@ -28,34 +28,29 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
 
     Args:
         checkpoint_io: A checkpoint IO plugin that is used as the basis for async checkpointing.
-        interval: Sleep time between each queue check.
+        max_workers: Number of threads.
     """
 
-    def __init__(self, checkpoint_io: Optional["CheckpointIO"] = None, interval: float = 2.0) -> None:
+    def __init__(self, checkpoint_io: Optional["CheckpointIO"] = None, max_workers: int = 1) -> None:
         super().__init__(checkpoint_io)
 
-        self._executor = ThreadPoolExecutor(max_workers=1)
-        self._error = None
+        self._executor = ThreadPoolExecutor(max_workers=max_workers)
+        self._error: Optional[BaseException] = None
 
     def save_checkpoint(self, *args: Any, **kwargs: Any) -> None:
         """Uses the ``ThreadPoolExecutor`` to save the checkpoints using the base ``checkpoint_io``."""
 
-        def _save_checkpoint(*args, **kwargs):
+        def _save_checkpoint(*args: Any, **kwargs: Any) -> None:
             try:
+                assert self.checkpoint_io is not None
                 self.checkpoint_io.save_checkpoint(*args, **kwargs)
-            except Exception as e:
+            except BaseException as e:
                 self._error = e
 
         self._executor.submit(_save_checkpoint, *args, **kwargs)
 
         if self._error:
             raise self._error
-
-    def remove_checkpoint(self, *args: Any, **kwargs: Any) -> None:
-        super().remove_checkpoint(*args, **kwargs)
-
-    def load_checkpoint(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
-        return super().load_checkpoint(*args, **kwargs)
 
     def teardown(self) -> None:
         """This method is called to close the threads."""

@@ -64,4 +64,3 @@ class CheckpointIO(ABC):
 
     def teardown(self) -> None:
         """This method is called to teardown the process."""
-        pass
