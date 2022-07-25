@@ -28,13 +28,12 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
 
     Args:
         checkpoint_io: A checkpoint IO plugin that is used as the basis for async checkpointing.
-        max_workers: Number of threads.
     """
 
-    def __init__(self, checkpoint_io: Optional["CheckpointIO"] = None, max_workers: int = 1) -> None:
+    def __init__(self, checkpoint_io: Optional["CheckpointIO"] = None) -> None:
         super().__init__(checkpoint_io)
 
-        self._executor = ThreadPoolExecutor(max_workers=max_workers)
+        self._executor = ThreadPoolExecutor(max_workers=1)
         self._error: Optional[BaseException] = None
 
     def save_checkpoint(self, *args: Any, **kwargs: Any) -> None:
