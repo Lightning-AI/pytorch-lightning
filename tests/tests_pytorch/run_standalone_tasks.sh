@@ -18,7 +18,7 @@ set -e
 report=''
 
 if nvcc --version; then
-    nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
+    nvprof --profile-from-start off -o trace_name.prof -- python -m coverage run --source pytorch_lightning --append -m pytest --no-header profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
 fi
 
 # needs to run outside of `pytest`
