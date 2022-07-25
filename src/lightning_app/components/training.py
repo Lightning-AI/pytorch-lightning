@@ -142,7 +142,8 @@ class LightningTrainingComponent(LightningFlow):
                 internal_urls = [(w.internal_ip, w.port) for w in self.ws.values()]
                 work.run(internal_urls)
                 if all(w.has_finished for w in self.ws.values()):
-                    self._exit("Finished training")
+                    for w in self.ws.values():
+                        w.stop()
             else:
                 work.run()
 
