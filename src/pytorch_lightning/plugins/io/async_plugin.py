@@ -49,11 +49,15 @@ class AsyncCheckpointIO(_WrappingCheckpointIO):
 
         self._executor.submit(_save_checkpoint, *args, **kwargs)
 
+        # if an error was raised between the previous time `save_checkpoint`` was called and now,
+        # because `executor.submit` is not blocking
         if self._error:
             raise self._error
 
     def teardown(self) -> None:
         """This method is called to close the threads."""
         self._executor.shutdown(wait=True)
+
+        # if an error was raised anytime in any of the `executor.submit` calls
         if self._error:
             raise self._error
