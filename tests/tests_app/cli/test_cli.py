@@ -7,8 +7,8 @@ from lightning_cloud.openapi import Externalv1LightningappInstance
 
 from lightning_app.cli.lightning_cli import (
     _main,
+    create,
     create_cluster,
-    create_command,
     delete,
     delete_cluster,
     get_app_url,
@@ -49,7 +49,7 @@ def test_start_target_url(runtime_type, extra_args, lightning_cloud_url, expecte
         assert get_app_url(runtime_type, *extra_args) == expected_url
 
 
-@pytest.mark.parametrize("command", [_main, run, get_list, create_command, delete])
+@pytest.mark.parametrize("command", [_main, run, get_list, create, delete])
 def test_commands(command):
     runner = CliRunner()
     result = runner.invoke(command)

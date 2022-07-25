@@ -52,12 +52,12 @@ def _main():
 
 
 @_main.group("create")
-def create_command():
+def create():
     """Create Lightning managed resources."""
     pass
 
 
-@create_command.command("cluster")
+@create.command("cluster")
 @click.argument("cluster_name", callback=_check_cluster_name_is_valid)
 @click.option("--provider", "provider", type=str, default="aws", help="cloud provider to be used for your cluster")
 @click.option("--external-id", "external_id", type=str, required=True)
