@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, windows-2019, macOS-11]
-        python-version: ["3.7", "3.9"]  # minimum, maximum
+        python-version: ["3.7", "3.10"]  # minimum, maximum
         requires: ["oldest", "latest"]
         release: ["stable"]
         # TODO: re-enable RC testing
