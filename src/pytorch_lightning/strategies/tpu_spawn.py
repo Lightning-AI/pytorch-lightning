@@ -23,10 +23,11 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.environments import XLAEnvironment
+from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
-from pytorch_lightning.strategies.launchers.xla_spawn import _XLASpawnLauncher
+from pytorch_lightning.strategies.launchers.xla import _XLALauncher
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
@@ -58,21 +59,30 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self,
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[int]] = None,
-        checkpoint_io: Optional[XLACheckpointIO] = None,
+        checkpoint_io: Optional[CheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
         **_: Any,
     ) -> None:
-        checkpoint_io = checkpoint_io or XLACheckpointIO()
         super().__init__(
             accelerator=accelerator,
             parallel_devices=parallel_devices,
             cluster_environment=XLAEnvironment(),
             checkpoint_io=checkpoint_io,
             precision_plugin=precision_plugin,
+            start_method="fork",
         )
         self.debug = debug
-        self.start_method = "fork"
+
+    @property
+    def checkpoint_io(self) -> CheckpointIO:
+        if self._checkpoint_io is None:
+            self._checkpoint_io = XLACheckpointIO()
+        return self._checkpoint_io
+
+    @checkpoint_io.setter
+    def checkpoint_io(self, io: Optional[CheckpointIO]) -> None:
+        self._checkpoint_io = io
 
     @property
     def root_device(self) -> torch.device:
@@ -110,10 +120,9 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         return super().connect(model)
 
     def _configure_launcher(self):
-        self._launcher = _XLASpawnLauncher(self)
+        self._launcher = _XLALauncher(self)
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        self.start_method = "fork"
         self.accelerator.setup(trainer)
 
         if self.debug:

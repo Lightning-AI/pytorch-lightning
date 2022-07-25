@@ -470,6 +470,7 @@ class LightningLite(ABC):
             _StrategyType.DP,
             _StrategyType.DDP,
             _StrategyType.DDP_SPAWN,
+            _StrategyType.DDP_FORK,
             _StrategyType.DEEPSPEED,
             _StrategyType.DDP_SHARDED,
             _StrategyType.DDP_SHARDED_SPAWN,
