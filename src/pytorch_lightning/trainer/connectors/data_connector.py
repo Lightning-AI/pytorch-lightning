@@ -51,7 +51,7 @@ REQUEST_DATALOADER = Union[DataLoader, List[DataLoader], BATCH_DATALOADER]
 
 
 class DataConnector:
-    def __init__(self, trainer: TypeAlias["pl.Trainer"], multiple_trainloader_mode: str = "max_size_cycle"):
+    def __init__(self, trainer: "pl.Trainer", multiple_trainloader_mode: str = "max_size_cycle"):
         self.trainer = trainer
         self.multiple_trainloader_mode = multiple_trainloader_mode
         self._train_dataloader_source = _DataLoaderSource(None, "")
@@ -162,7 +162,7 @@ class DataConnector:
         self.trainer.train_dataloader = None
         self.trainer.val_dataloaders = None
         self.trainer.test_dataloaders = None
-        self.trainer.predict_dataloaders = None
+        self.trainer.predict_dataloaders = None  # type: ignore[assignment]
 
         self._train_dataloader_source = _DataLoaderSource(
             train_dataloaders if train_dataloaders is not None else model, "train_dataloader"
