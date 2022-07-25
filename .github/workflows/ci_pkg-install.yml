@@ -6,8 +6,6 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
-    paths-ignore:
-      - "src/lightning_app/**"  # todo: implement job skip
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -35,7 +33,7 @@ jobs:
       fail-fast: true
       max-parallel: 1
       matrix:
-        os: [ubuntu-20.04, macOS-10.15, windows-2019]
+        os: [ubuntu-20.04, macOS-11, windows-2019]
         pkg: ["app", "pytorch"]
         python-version: [3.8]  # , 3.9
 
@@ -76,7 +74,7 @@ jobs:
       fail-fast: false
       # max-parallel: 1
       matrix:
-        os: [ubuntu-20.04, macOS-10.15, windows-2019]
+        os: [ubuntu-20.04, macOS-11, windows-2019]
         pkg: ["", "lightning"]
         python-version: [3.8]  # , 3.9
 
@@ -109,7 +107,7 @@ jobs:
       fail-fast: false
       # max-parallel: 1
       matrix:
-        os: [ubuntu-20.04, macOS-10.15, windows-2019]
+        os: [ubuntu-20.04, macOS-11, windows-2019]
         python-version: [3.8]  # , 3.9
 
     steps:
