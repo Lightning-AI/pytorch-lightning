@@ -13,6 +13,7 @@ from lightning_app import LightningApp
 from lightning_app.cli.lightning_cli import app_command
 from lightning_app.core.constants import APP_SERVER_PORT
 from lightning_app.runners import MultiProcessRuntime
+from lightning_app.testing.helpers import RunIf
 from lightning_app.utilities.commands.base import _command_to_method_and_metadata, _download_command, ClientCommand
 from lightning_app.utilities.state import AppState
 
@@ -89,6 +90,7 @@ def run_failure_2(name: CustomModel):
     pass
 
 
+@RunIf(skip_windows=True)
 def test_command_to_method_and_metadata():
     with pytest.raises(Exception, match="The provided annotation for the argument name"):
         _command_to_method_and_metadata(ClientCommand(run_failure_0))
