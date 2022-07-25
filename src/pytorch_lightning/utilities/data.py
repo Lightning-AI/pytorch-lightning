@@ -342,10 +342,10 @@ def _dataloader_init_kwargs_resolve_sampler(
 
             success, args, kwargs = _replace_value_in_saved_args("sampler", sampler, args, kwargs, arg_names)
             if not success:
-                raise MisconfigurationException(
-                    "Trying to inject modified sampler into the batch sampler; however, it seems the class "
-                    f"`{batch_sampler_cls.__qualname__}` does not support argument called sampler. To mitigate this, "
-                    "expose argument `sampler` in the `__init__` method of your custom class."
+                raise TypeError(
+                    "Trying to inject a modified sampler into the batch sampler; however, it seems the class "
+                    f"`{batch_sampler_cls.__qualname__}` does not have an argument called `sampler.` To mitigate this, "
+                    "expose an argument `sampler` in the `__init__` method of your custom class."
                 )
 
             batch_sampler = batch_sampler_cls(*args, **kwargs)
@@ -365,7 +365,7 @@ def _dataloader_init_kwargs_resolve_sampler(
                     raise
 
                 # There could either be too few or too many arguments. Customizing the message based on this doesn't
-                # make much sense since our MisconfigurationException is going to be thrown from the original one.
+                # make much sense since our MisconfigurationException is going to be raised from the original one.
                 raise MisconfigurationException(
                     "We tried to re-instantiate your custom batch sampler and failed. "
                     "To mitigate this, either follow the API of `BatchSampler` or instantiate "
