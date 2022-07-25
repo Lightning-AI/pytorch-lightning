@@ -353,7 +353,7 @@ class DataConnector:
             dataloaders = self._resolve_overfit_batches(dataloaders, mode)
 
         if not isinstance(dataloaders, list):
-            dataloaders = [dataloaders]  # type: ignore[list-item]
+            dataloaders = list(dataloaders)
 
         if any(dl is None for dl in dataloaders):
             rank_zero_warn("One of given dataloaders is None and it will be skipped.")
