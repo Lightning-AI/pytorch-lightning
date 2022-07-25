@@ -767,7 +767,7 @@ def test_gpu_accelerator_backend_choice(expected_accelerator_flag, expected_acce
     assert isinstance(trainer.accelerator, expected_accelerator_class)
 
 
-@mock.patch("torch.cuda.device_count", return_value=1)
+@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1)
 def test_gpu_accelerator_backend_choice_cuda(_):
     trainer = Trainer(accelerator="gpu")
 
