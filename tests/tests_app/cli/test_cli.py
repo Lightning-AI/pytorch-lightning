@@ -86,7 +86,7 @@ def test_clusters_create(create: mock.MagicMock):
         region='us-east-1',
         role_arn='arn:aws:iam::1234567890:role/lai-byoc',
         external_id='dummy',
-        instance_types='t2.small',
+        instance_types=['t2.small'],
         edit_before_creation=False,
         cost_savings=False,
         wait=False)

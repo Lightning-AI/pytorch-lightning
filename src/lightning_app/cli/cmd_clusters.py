@@ -25,6 +25,7 @@ from lightning_app.utilities.openapi import create_openapi_object, string2dict
 CLUSTER_STATE_CHECKING_TIMEOUT = 60
 MAX_CLUSTER_WAIT_TIME = 5400
 
+
 class AWSClusterManager:
     def __init__(self):
         self.api_client = LightningClient()
@@ -45,7 +46,7 @@ class AWSClusterManager:
                             region=region,
                             role_arn=role_arn,
                             external_id=external_id,
-                            instance_types=[V1InstanceSpec(name=x) for x in instance_types.split(",")]
+                            instance_types=[V1InstanceSpec(name=x) for x in instance_types]
                         )
                     )
                 )
@@ -58,7 +59,6 @@ class AWSClusterManager:
                 new_body = create_openapi_object(string2dict(after), body)
             if new_body == body:
                 click.echo("cluster unchanged")
-
 
         resp = self.api_client.cluster_service_create_cluster(body=new_body)
         if wait:
@@ -73,13 +73,13 @@ class AWSClusterManager:
 
     def delete(self, cluster_id=None, force=None, wait=None):
         if force:
-            click.echo(
-                "Force deleting cluster. This will cause grid to forget "
-                "about the cluster and any experiments, sessions, datastores, "
-                "tensorboards and other resources running on it.\n"
-                "WARNING: this will not clean up any resources managed by grid\n"
-                "Check your cloud provider that any existing cloud resources are deleted"
-                )
+            click.echo("""
+            Force deleting cluster. This will cause grid to forget
+            about the cluster and any experiments, sessions, datastores,
+            tensorboards and other resources running on it.\n
+            WARNING: this will not clean up any resources managed by lightning\n
+            Check your cloud provider that any existing cloud resources are deleted  
+            """)
             click.confirm('Do you want to continue?', abort=True)
 
         self.api_client.cluster_service_delete_cluster(id=cluster_id, force=force)
@@ -107,7 +107,7 @@ class ClusterList(Formatable):
 
         cluster_type_lookup = {
             V1ClusterType.BYOC: Text("byoc", style="bold yellow"),
-            V1ClusterType.GLOBAL: Text("grid-cloud", style="bold green"),
+            V1ClusterType.GLOBAL: Text("lightning-cloud", style="bold green"),
         }
         for cluster in self.clusters:
             cluster: Externalv1Cluster

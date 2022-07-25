@@ -25,7 +25,6 @@ from lightning_app.cli.cmd_clusters import (
     AWSClusterManager,
 )
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -39,7 +38,12 @@ def get_app_url(runtime_type: RuntimeType, *args) -> str:
 
 @click.group()
 def clusters():
-    """Manage your Lightning.ai BYOC clusters"""
+    """Manage your Lightning.ai compute clusters.
+
+    Lightning.ai supports running apps on your own cloud provider account.
+    This feature is currently in preview and requires an extra activation step.
+    Reach out to support@lightning.ai to enable this feature.
+    """
     pass
 
 
@@ -108,18 +112,18 @@ def create_cluster(
         return
     aws = AWSClusterManager()
     aws.create(cluster_name=cluster_name,
-                    region=region,
-                    role_arn=role_arn,
-                    external_id=external_id,
-                    instance_types=instance_types,
-                    edit_before_creation=edit_before_creation,
-                    cost_savings=cost_savings,
-                    wait=wait)
+               region=region,
+               role_arn=role_arn,
+               external_id=external_id,
+               instance_types=instance_types.split(","),
+               edit_before_creation=edit_before_creation,
+               cost_savings=cost_savings,
+               wait=wait)
 
 
 @clusters.command('list')
 def list_clusters(**kwargs):
-    """List your Lightning.ai BYOC clusters"""
+    """List your Lightning.ai compute clusters"""
     mgr = AWSClusterManager()
     mgr.list()
     pass
@@ -147,7 +151,7 @@ def list_clusters(**kwargs):
     help='using this flag CLI will wait until the cluster is deleted',
 )
 def delete_cluster(cluster: str, force: bool = False, wait: bool = False):
-    """Delete CLUSTER and all associated AWS resources.
+    """Delete a Lightning.ai compute cluster and all associated cloud provider resources.
 
     Deleting a run also deletes all Runs and Experiments which were started
     on the cluster. deletion permanently removes not only the record of all
@@ -193,7 +197,8 @@ def logout():
 
 
 def _run_app(
-    file: str, cloud: bool, without_server: bool, no_cache: bool, name: str, blocking: bool, open_ui: bool, env: tuple
+        file: str, cloud: bool, without_server: bool, no_cache: bool, name: str, blocking: bool, open_ui: bool,
+        env: tuple
 ):
     file = _prepare_file(file)
 
@@ -251,15 +256,15 @@ def run():
 @click.option("--env", type=str, default=[], multiple=True, help="Env variables to be set for the app.")
 @click.option("--app_args", type=str, default=[], multiple=True, help="Collection of arguments for the app.")
 def run_app(
-    file: str,
-    cloud: bool,
-    without_server: bool,
-    no_cache: bool,
-    name: str,
-    blocking: bool,
-    open_ui: bool,
-    env: tuple,
-    app_args: List[str],
+        file: str,
+        cloud: bool,
+        without_server: bool,
+        no_cache: bool,
+        name: str,
+        blocking: bool,
+        open_ui: bool,
+        env: tuple,
+        app_args: List[str],
 ):
     """Run an app from a file."""
     _run_app(file, cloud, without_server, no_cache, name, blocking, open_ui, env)
