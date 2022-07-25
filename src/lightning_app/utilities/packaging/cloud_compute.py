@@ -7,12 +7,6 @@ _name_to_devices_map = {
     "gpu-fast-multi": 4,
 }
 
-_short_name_to_instance_map = {
-    "gpu-fast": "p3.2xlarge",
-    "gpu-fast-multi": "p3.8xlarge",
-}
-
-
 @dataclass
 class CloudCompute:
     """
@@ -62,9 +56,6 @@ class CloudCompute:
             raise ValueError("Setting a wait timeout isn't supported yet. Coming soon.")
 
         self.name = self.name.lower()
-
-        if self.name in _short_name_to_instance_map:
-            self.name = _short_name_to_instance_map[self.name]
 
     def to_dict(self):
         return {"__cloud_compute__": asdict(self)}

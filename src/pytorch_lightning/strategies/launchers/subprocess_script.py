@@ -88,8 +88,11 @@ class _SubprocessScriptLauncher(_Launcher):
             trainer: Optional reference to the :class:`~pytorch_lightning.trainer.trainer.Trainer`.
             **kwargs: Optional keyword arguments to be passed to the given function.
         """
+        print("creates_processes_externally", self.cluster_environment.creates_processes_externally)
         if not self.cluster_environment.creates_processes_externally:
+            print("_call_children_scripts")
             self._call_children_scripts()
+        print("After creating")
         return function(*args, **kwargs)
 
     def _call_children_scripts(self) -> None:
@@ -130,6 +133,8 @@ class _SubprocessScriptLauncher(_Launcher):
             env_copy = os.environ.copy()
             env_copy["LOCAL_RANK"] = f"{local_rank}"
 
+            print(f"Creating {local_rank} {env_copy}")
+
             # remove env var if global seed not set
             if os.environ.get("PL_GLOBAL_SEED") is None and "PL_GLOBAL_SEED" in env_copy:
                 del env_copy["PL_GLOBAL_SEED"]
@@ -148,6 +153,8 @@ class _SubprocessScriptLauncher(_Launcher):
             # with dataloaders delay between 1-10 seconds
             delay = np.random.uniform(1, 5, 1)[0]
             sleep(delay)
+
+        print("done !")
 
     def _check_can_spawn_children(self) -> None:
         if self.cluster_environment.local_rank() != 0:

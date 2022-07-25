@@ -151,6 +151,8 @@ class AcceleratorConnector:
             A. Class > str
             B. Strategy > Accelerator/precision/plugins
         """
+        print("Accelerator Connector", num_nodes, devices, accelerator, strategy)
+
         if deterministic:
             if benchmark is None:
                 # Set benchmark to False to ensure determinism
@@ -188,6 +190,8 @@ class AcceleratorConnector:
         self._amp_level_flag: Optional[str] = amp_level
         self._auto_select_gpus: bool = auto_select_gpus
 
+        print("1")
+
         self._check_config_and_set_final_flags(
             strategy=strategy,
             accelerator=accelerator,
@@ -197,9 +201,17 @@ class AcceleratorConnector:
             amp_level=amp_level,
             sync_batchnorm=sync_batchnorm,
         )
+
+        print("2")
+
+
+
         self._check_device_config_and_set_final_flags(
             devices=devices, num_nodes=num_nodes, num_processes=num_processes, gpus=gpus, ipus=ipus, tpu_cores=tpu_cores
         )
+
+        print("3")
+
         # 2. Instantiate Accelerator
         # handle `auto` and `None`
         self._set_accelerator_if_ipu_strategy_is_passed()
@@ -207,8 +219,12 @@ class AcceleratorConnector:
             self._accelerator_flag = self._choose_accelerator()
         self._set_parallel_devices_and_init_accelerator()
 
+        print("4")
+
         # 3. Instantiate ClusterEnvironment
         self.cluster_environment: ClusterEnvironment = self._choose_and_init_cluster_environment()
+
+        print("5")
 
         # 4. Instantiate Strategy - Part 1
         if self._strategy_flag is None:
@@ -217,11 +233,17 @@ class AcceleratorConnector:
         self._check_strategy_and_fallback()
         self._init_strategy()
 
+        print("6")
+
         # 5. Instantiate Precision Plugin
         self.precision_plugin = self._check_and_init_precision()
 
+        print("7")
+
         # 6. Instantiate Strategy - Part 2
         self._lazy_init_strategy()
+
+        print("8")
 
     def _init_deterministic(self, deterministic: Optional[Union[bool, _LITERAL_WARN]]) -> None:
         self.deterministic = deterministic or False  # default to False if not set
@@ -530,10 +552,12 @@ class AcceleratorConnector:
         self._devices_flag = self.accelerator.parse_devices(self._devices_flag)
         if not self._parallel_devices:
             self._parallel_devices = self.accelerator.get_parallel_devices(self._devices_flag)
+            print("Right there", self._parallel_devices)
 
     def _set_devices_flag_if_auto_passed(self) -> None:
         if self._devices_flag == "auto" or self._devices_flag is None:
             self._devices_flag = self.accelerator.auto_device_count()
+            print(f"Auto device {self._devices_flag}")
 
     def _set_devices_flag_if_auto_select_gpus_passed(self) -> None:
         if self._auto_select_gpus and isinstance(self._gpus, int) and isinstance(self.accelerator, CUDAAccelerator):
@@ -770,24 +794,33 @@ class AcceleratorConnector:
 
     def _lazy_init_strategy(self) -> None:
         """Lazily set missing attributes on the previously instantiated strategy."""
+        print("a")
         self.strategy.accelerator = self.accelerator
         if self.precision_plugin:
             self.strategy.precision_plugin = self.precision_plugin
         if self.checkpoint_io:
             self.strategy.checkpoint_io = self.checkpoint_io
+        print("b", self.cluster_environment)
         if hasattr(self.strategy, "cluster_environment"):
             self.strategy.cluster_environment = self.cluster_environment
         if hasattr(self.strategy, "parallel_devices"):
+            print("c", self.strategy.parallel_devices)
             if self.strategy.parallel_devices:
                 self._parallel_devices = self.strategy.parallel_devices
             else:
+                print("c1")
+                #print(self._parallel_devices, os.environ)
                 self.strategy.parallel_devices = self._parallel_devices
+                print("c2")
         if hasattr(self.strategy, "num_nodes"):
+            print("d", self._num_nodes_flag)
             self.strategy._num_nodes = self._num_nodes_flag
         if hasattr(self.strategy, "_layer_sync"):
             self.strategy._layer_sync = self._layer_sync
         if hasattr(self.strategy, "set_world_ranks"):
+            print("e")
             self.strategy.set_world_ranks()
+        print("f")
         self.strategy._configure_launcher()
 
         from pytorch_lightning.utilities import _IS_INTERACTIVE

@@ -5,11 +5,57 @@ from typing import List, Optional, Tuple, Union
 from lightning import CloudCompute
 from lightning_app import LightningFlow, structures
 from lightning_app.components.python import TracerPythonScript
+from pytorch_lightning.plugins.environments import ClusterEnvironment
 
 _logger = logging.getLogger(__name__)
 
 
-class _LightningTrainerWork(TracerPythonScript):
+class _Environment(ClusterEnvironment):
+
+    def __init__(self, main_address, main_port, world_size, global_rank, node_rank):
+        self._main_address = main_address
+        self._main_port = main_port
+        self._world_size = world_size
+        self._global_rank = global_rank
+        self._node_rank = node_rank
+        self._local_rank = None
+
+    def detect(self):
+        return True
+
+    @property
+    def creates_processes_externally(self) -> bool:
+        return False
+
+    @property
+    def main_address(self):
+        return self._main_address
+
+    @property
+    def main_port(self) -> int:
+        return self._main_port
+
+    def global_rank(self):
+        return self._global_rank
+
+    def node_rank(self) -> int:
+        return self._node_rank
+
+    def world_size(self):
+        return self._world_size
+
+    def set_world_size(self, size: int) -> None:
+        self._world_size = size
+
+    def set_global_rank(self, rank: int) -> None:
+        self._global_rank = rank
+
+    def local_rank(self):
+        if self._local_rank is None:
+            return 0
+        return self._local_rank
+
+class PyTorchLightningPythonScript(TracerPythonScript):
     def __init__(
         self,
         script_path: str,
@@ -33,6 +79,9 @@ class _LightningTrainerWork(TracerPythonScript):
         self.best_model_score = None
         self.sanity_serving = sanity_serving
         self.has_finished = False
+        self.master_address = None
+        self.master_port = None
+        self.world_size = None
 
     def configure_tracer(self):
         from pytorch_lightning import Trainer
@@ -49,29 +98,34 @@ class _LightningTrainerWork(TracerPythonScript):
         import torch.distributed as dist
 
         _logger.debug(f"Internal URLS: {internal_urls}")
-        master_address = str(internal_urls[0][0])
-        master_port = str(internal_urls[0][1])
-        devices = self.cloud_compute.devices
-        world_size = self.num_nodes * devices
 
-        distributed_env_vars = {
-            "NODE_RANK": str(self.node_rank),
-            "LOCAL_RANK": str(self.local_rank),
-            "GLOBAL_RANK": str(self.global_rank),
-            "MASTER_ADDRESS": master_address,
-            "MASTER_PORT": master_port,
-            "WORLD_SIZE": str(world_size),
-        }
-        _logger.info(distributed_env_vars)
+        self.master_address = str(internal_urls[0][0])
+        self.master_port = str(internal_urls[0][1])
+        devices = self.cloud_compute.devices
+        self.world_size = self.num_nodes * devices
 
         backend = "gloo" if self.cloud_compute.accelerator == "cpu" else "nccl"
 
-        dist.init_process_group(
-            backend=backend,
-            init_method=f"tcp://{master_address}:{master_port}",
-            world_size=world_size,
-            rank=self.global_rank,
-        )
+        distributed_env_vars = {
+            "MASTER_ADDRESS": self.master_address,
+            "MASTER_PORT": self.master_port,
+            "NODE_RANK": str(self.node_rank),
+            "WORLD_SIZE": str(self.world_size),
+            "PL_TRAINER_NUM_NODES": str(self.num_nodes),
+            "PL_TRAINER_STRATEGY": "ddp",
+            "PL_TRAINER_DEVICES": str(self.cloud_compute.devices),
+            "PL_TRAINER_ACCELERATOR": "auto",
+        }
+        _logger.info(distributed_env_vars)
+
+        # backend = "gloo" if self.cloud_compute.accelerator == "cpu" else "nccl"
+
+        # dist.init_process_group(
+        #     backend=backend,
+        #     init_method=f"tcp://{master_address}:{master_port}",
+        #     world_size=world_size,
+        #     rank=self.global_rank,
+        # )
 
         os.environ.update(distributed_env_vars)
         return super().run()
@@ -88,10 +142,24 @@ class _LightningTrainerWork(TracerPythonScript):
         if self.sanity_serving:
             callbacks = callbacks + [ServableModuleValidator()]
         kwargs["callbacks"] = callbacks
-        kwargs["devices"] = self.cloud_compute.devices
-        kwargs["num_nodes"] = self.num_nodes
+        if self.is_running_in_cloud:
+            kwargs["num_nodes"] = self.num_nodes
+            kwargs["devices"] = self.cloud_compute.devices
+        else:
+            kwargs["num_nodes"] = 1
         kwargs["accelerator"] = "auto"
+        # kwargs["plugins"] = _Environment(
+        #     main_address=self.master_address,
+        #     main_port=self.master_port,
+        #     world_size=self.world_size,
+        #     global_rank=self.global_rank,
+        #     node_rank=self.node_rank,
+        # )
         return {}, args, kwargs
+
+    @property
+    def is_running_in_cloud(self) -> bool:
+        return "LIGHTNING_APP_STATE_URL" in os.environ
 
 
 class LightningTrainingComponent(LightningFlow):
@@ -131,7 +199,7 @@ class LightningTrainingComponent(LightningFlow):
 
                 if self.is_running_in_cloud:
                     devices = self._cloud_compute.devices
-                    global_rank = (node_rank + 1) * devices - 1 if node_rank else 0
+                    global_rank = node_rank * devices if node_rank else 0
                     work_node_rank = node_rank
                     local_rank = 0
                 else:
@@ -139,7 +207,7 @@ class LightningTrainingComponent(LightningFlow):
                     work_node_rank = 0
                     local_rank = node_rank
 
-                self.ws[str(node_rank)] = _LightningTrainerWork(
+                self.ws[str(node_rank)] = PyTorchLightningPythonScript(
                     script_path=self.script_path,
                     script_args=self.script_args,
                     cloud_compute=self._cloud_compute,

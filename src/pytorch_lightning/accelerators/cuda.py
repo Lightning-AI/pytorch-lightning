@@ -79,7 +79,9 @@ class CUDAAccelerator(Accelerator):
     @staticmethod
     def get_parallel_devices(devices: List[int]) -> List[torch.device]:
         """Gets parallel devices for the Accelerator."""
-        return [torch.device("cuda", i) for i in devices]
+        parallel_devices = [torch.device("cuda", i) for i in devices]
+        print("get_parallel_devices", parallel_devices)
+        return parallel_devices
 
     @staticmethod
     def auto_device_count() -> int:

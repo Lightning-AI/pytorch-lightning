@@ -366,6 +366,9 @@ def init_dist_connection(
     if torch.distributed.is_initialized():
         log.debug("torch.distributed is already initialized. Exiting early")
         return
+
+    print(cluster_environment)
+
     global_rank = global_rank if global_rank is not None else cluster_environment.global_rank()
     world_size = world_size if world_size is not None else cluster_environment.world_size()
     os.environ["MASTER_ADDR"] = cluster_environment.main_address
