@@ -23,8 +23,8 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader, random_split
 
 from pytorch_lightning import cli_lightning_logo, LightningDataModule, LightningModule
+from pytorch_lightning.cli import LightningCLI
 from pytorch_lightning.demos.mnist_datamodule import MNIST
-from pytorch_lightning.utilities.cli import LightningCLI
 from pytorch_lightning.utilities.imports import _TORCHVISION_AVAILABLE
 
 if _TORCHVISION_AVAILABLE:
