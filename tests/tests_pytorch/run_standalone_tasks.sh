@@ -15,6 +15,7 @@
 set -e
 # THIS FILE ASSUMES IT IS RUN INSIDE THE tests/tests_pytorch DIRECTORY
 
+report=''
 
 if nvcc --version; then
     nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
