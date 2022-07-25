@@ -108,6 +108,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for DDP Fork ([#13405](https://github.com/PyTorchLightning/pytorch-lightning/pull/13405))
 
 
+- Added support for HPU Device stats monitor ([#13405](https://github.com/PyTorchLightning/pytorch-lightning/pull/13405))
+
+
 ### Changed
 
 - Enable validation during overfitting ([#12527](https://github.com/PyTorchLightning/pytorch-lightning/pull/12527))

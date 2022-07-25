@@ -39,9 +39,24 @@ class HPUAccelerator(Accelerator):
             raise MisconfigurationException(f"Device should be HPU, got {root_device} instead.")
 
     def get_device_stats(self, device: Union[str, torch.device]) -> Dict[str, Any]:
-        """HPU device stats aren't supported yet."""
-        rank_zero_debug("HPU device stats aren't supported yet.")
-        return {}
+        """
+        Returns a map of the following metrics with their values:
+            Limit,
+            InUse,
+            MaxInUse,
+            NumAllocs,
+            NumFrees,
+            ActiveAllocs,
+            MaxAllocSize,
+            TotalSystemAllocs,
+            TotalSystemFrees,
+            TotalActiveAllocs
+        """
+        try:
+            return torch_hpu.hpu.memory_stats(device)
+        except (AttributeError, NameError):
+            rank_zero_debug("HPU `get_device_stats` failed")
+            return {}
 
     @staticmethod
     def parse_devices(devices: Union[int, str, List[int]]) -> Optional[int]:
