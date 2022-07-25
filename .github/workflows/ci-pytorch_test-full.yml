@@ -40,18 +40,7 @@ jobs:
     - name: Decide if the test should be skipped
       id: skip
       shell: bash -l {0}
-      run: |
-        FILTER='src/pytorch_lightning|requirements/pytorch|tests/tests_pytorch|examples/pl_*'
-        echo "${{ steps.changed-files.outputs.all_changed_files }}" | tr " " "\n" > changed_files.txt
-        MATCHES=$(cat changed_files.txt | grep -E $FILTER)
-        echo $MATCHES
-        if [ -z "$MATCHES" ]; then
-            echo "Skip"
-            echo "::set-output name=continue::0"
-        else
-            echo "Continue"
-            echo "::set-output name=continue::1"
-        fi
+      run: echo "::set-output name=continue::1"
 
     - name: Set up Python ${{ matrix.python-version }}
       if: ${{ (steps.skip.outputs.continue == '1') }}
