@@ -204,8 +204,6 @@ class AcceleratorConnector:
 
         print("2")
 
-
-
         self._check_device_config_and_set_final_flags(
             devices=devices, num_nodes=num_nodes, num_processes=num_processes, gpus=gpus, ipus=ipus, tpu_cores=tpu_cores
         )
@@ -809,7 +807,7 @@ class AcceleratorConnector:
                 self._parallel_devices = self.strategy.parallel_devices
             else:
                 print("c1")
-                #print(self._parallel_devices, os.environ)
+                # print(self._parallel_devices, os.environ)
                 self.strategy.parallel_devices = self._parallel_devices
                 print("c2")
         if hasattr(self.strategy, "num_nodes"):

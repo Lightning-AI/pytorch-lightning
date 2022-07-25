@@ -11,7 +11,6 @@ _logger = logging.getLogger(__name__)
 
 
 class _Environment(ClusterEnvironment):
-
     def __init__(self, main_address, main_port, world_size, global_rank, node_rank):
         self._main_address = main_address
         self._main_port = main_port
@@ -54,6 +53,7 @@ class _Environment(ClusterEnvironment):
         if self._local_rank is None:
             return 0
         return self._local_rank
+
 
 class PyTorchLightningPythonScript(TracerPythonScript):
     def __init__(

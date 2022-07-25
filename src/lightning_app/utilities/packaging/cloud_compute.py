@@ -7,6 +7,7 @@ _name_to_devices_map = {
     "gpu-fast-multi": 4,
 }
 
+
 @dataclass
 class CloudCompute:
     """
