@@ -116,7 +116,7 @@ def test_onecyclelr_with_epoch_interval_warns():
 
 
 def test_scheduler_initialized_with_custom_reduceonplateau():
-    """Test for initialize custom scheduler with `reduce_on_plateau`argument."""
+    """Test for initialize custom scheduler with `reduce_on_plateau` argument."""
 
     class CustomReduceLROnPlateau:
         pass
@@ -124,6 +124,7 @@ def test_scheduler_initialized_with_custom_reduceonplateau():
     lr_scheduler = {"reduce_on_plateau": True, "scheduler": CustomReduceLROnPlateau(), "monitor": "my_loss"}
     config = _configure_schedulers_automatic_opt([lr_scheduler], None)
     assert isinstance(config[0].scheduler, CustomReduceLROnPlateau)
+    assert config[0].reduce_on_plateau is True
 
 
 def test_reducelronplateau_scheduling(tmpdir):
