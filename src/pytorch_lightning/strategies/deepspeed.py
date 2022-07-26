@@ -672,7 +672,7 @@ class DeepSpeedStrategy(DDPStrategy):
     def _auto_select_batch_size(self) -> int:
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
         # by default we try to use the batch size of the loader
-        assert isinstance(self.lightning_module, pl.LightningModule)
+        assert self.lightning_module is not None
         batch_size = 1
         train_dl_source = self.lightning_module.trainer._data_connector._train_dataloader_source
         if train_dl_source.is_defined():
