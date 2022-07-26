@@ -342,7 +342,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 )
             with open(config) as f:
                 config = json.load(f)
-        assert isinstance(config, dict)
+        assert isinstance(config, dict) or config is None
         return config
 
     def setup_distributed(self) -> None:
