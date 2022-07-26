@@ -94,9 +94,11 @@ references:
        printf "Waiting for job to finish: " && \
        while [ $i -lt $MAX_CHECKS ]; do ((i++)); if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then status_code=1 && break; elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1" ; then status_code=0 && break; else printf "."; fi; sleep $CHECK_SPEEP; done && \
        echo "Done waiting. Job status code: $status_code" && \
-       kubectl logs -f $pod_name --container=train
-       echo "Done with log retrieval attempt."
-       echo $i
+       kubectl logs -f $pod_name --container=train > /tmp/full_output.txt
+       if grep -q '<?xml version="1.0" ?>' /tmp/full_output.txt ; then csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/'; else mv /tmp/full_output.txt xx00; fi && \
+       # First portion is the test logs. Print these to Github Action stdout.
+       cat xx00 && \
+       echo "Done with log retrieval attempt." && \
        exit $status_code
 
   stats: &stats

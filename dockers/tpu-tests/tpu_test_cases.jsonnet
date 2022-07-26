@@ -42,6 +42,7 @@ local tputests = base.BaseTest {
       test_exit_code=$?
       echo "\n||| END PYTEST LOGS |||\n"
       coverage xml
+      cat coverage.xml | tr -d '\t'
       test $test_exit_code -eq 0
     |||
   ),
