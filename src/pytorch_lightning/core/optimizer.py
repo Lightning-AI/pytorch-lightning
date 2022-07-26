@@ -285,8 +285,7 @@ def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]
                     f' but is "{scheduler["interval"]}"'
                 )
             scheduler["reduce_on_plateau"] = scheduler.get(
-                    "reduce_on_plateau",
-                    isinstance(scheduler["scheduler"], optim.lr_scheduler.ReduceLROnPlateau)
+                "reduce_on_plateau", isinstance(scheduler["scheduler"], optim.lr_scheduler.ReduceLROnPlateau)
             )
             if scheduler["reduce_on_plateau"] and scheduler.get("monitor", None) is None:
                 raise MisconfigurationException(
