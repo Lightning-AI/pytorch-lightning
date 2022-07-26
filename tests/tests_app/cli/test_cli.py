@@ -1,5 +1,6 @@
 import os
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from click.testing import CliRunner
@@ -76,6 +77,7 @@ def test_main_lightning_cli_help():
     assert "frontend" not in res
 
 
+@mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
 @mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.create")
 def test_clusters_create(create: mock.MagicMock):
     runner = CliRunner()
@@ -106,6 +108,7 @@ def test_clusters_create(create: mock.MagicMock):
     )
 
 
+@mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
 @mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.list")
 def test_clusters_list(list: mock.MagicMock):
     runner = CliRunner()
@@ -114,6 +117,7 @@ def test_clusters_list(list: mock.MagicMock):
     list.assert_called_once_with()
 
 
+@mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
 @mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.delete")
 def test_clusters_delete(delete: mock.MagicMock):
     runner = CliRunner()
