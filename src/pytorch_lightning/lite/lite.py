@@ -54,7 +54,8 @@ class LightningLite(ABC):
     - Multi-node support.
 
     Args:
-        accelerator: The hardware to run on. Possible choices are: ``"cpu"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
+        accelerator: The hardware to run on. Possible choices are:
+            ``"cpu"``, ``"cuda"``, ``"mps"``, ``"gpu"``, ``"tpu"``, ``"auto"``.
         strategy: Strategy for how to run across multiple devices. Possible choices are:
             ``"dp"``, ``"ddp"``, ``"ddp_spawn"``, ``"deepspeed"``, ``"ddp_sharded"``.
         devices: Number of devices to train on (``int``), which GPUs to train on (``list`` or ``str``), or ``"auto"``.
@@ -436,7 +437,7 @@ class LightningLite(ABC):
         return DistributedSamplerWrapper(dataloader.sampler, **kwargs)
 
     def _check_accelerator_support(self, accelerator: Optional[Union[str, Accelerator]]) -> None:
-        supported = [t.value.lower() for t in self._supported_device_types()] + ["auto"]
+        supported = [t.value.lower() for t in self._supported_device_types()] + ["gpu", "auto"]
         valid = accelerator is None or isinstance(accelerator, Accelerator) or accelerator in supported
         if not valid:
             raise MisconfigurationException(
@@ -457,7 +458,7 @@ class LightningLite(ABC):
     def _supported_device_types() -> Sequence[_AcceleratorType]:
         return (
             _AcceleratorType.CPU,
-            _AcceleratorType.GPU,
+            _AcceleratorType.CUDA,
             _AcceleratorType.TPU,
             _AcceleratorType.MPS,
         )

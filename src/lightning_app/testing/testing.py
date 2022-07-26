@@ -179,11 +179,7 @@ def run_app_in_cloud(app_folder: str, app_name: str = "app.py") -> Generator:
     # 5. Create chromium browser, auth to lightning_app.ai and yield the admin and view pages.
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=bool(int(os.getenv("HEADLESS", "0"))))
-        payload = {
-            "apiKey": Config.api_key,
-            "username": Config.username,
-            "duration": "120000",
-        }
+        payload = {"apiKey": Config.api_key, "username": Config.username, "duration": "120000"}
         context = browser.new_context(
             # Eventually this will need to be deleted
             http_credentials=HttpCredentials(

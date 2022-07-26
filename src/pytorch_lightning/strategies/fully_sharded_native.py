@@ -85,7 +85,7 @@ class DDPFullyShardedNativeStrategy(ParallelStrategy):
         `For more information: https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/`.
 
         .. warning:: ``DDPFullyShardedNativeStrategy`` is in beta and subject to change. The interface can
-        bring breaking changes and new features with the next release of Pytorch.
+        bring breaking changes and new features with the next release of PyTorch.
 
         Defaults have been set and options have been exposed, but may require configuration
         based on your level of memory/speed efficiency. We suggest having a look at this tutorial for
