@@ -145,7 +145,7 @@ the actual status of 1.5 \[stable\] is following:
 Install future release from the source
 
 ```bash
-pip install git+https://github.com/Lightning-AI/lightning.git@release/1.5.x --upgrade
+pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/release/pytorch.zip -U
 ```
 
 #### Install bleeding-edge - future 1.6
@@ -153,7 +153,7 @@ pip install git+https://github.com/Lightning-AI/lightning.git@release/1.5.x --up
 Install nightly from the source (no guarantees)
 
 ```bash
-pip install https://github.com/Lightning-AI/lightning/archive/master.zip
+pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/master.zip -U
 ```
 
 or from testing PyPI
