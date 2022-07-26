@@ -116,7 +116,7 @@ def test_onecyclelr_with_epoch_interval_warns():
 
 
 def test_scheduler_initialized_with_reduce_on_plateau():
-    """Test."""
+    """Test to check that "reduce_on_plateau" key in lr scheduler dict must be a bool."""
     class CustomReduceLROnPlateau:
         pass
 
