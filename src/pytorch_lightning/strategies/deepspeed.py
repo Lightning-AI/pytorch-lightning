@@ -501,7 +501,7 @@ class DeepSpeedStrategy(DDPStrategy):
     def zero_stage_3(self) -> bool:
         assert isinstance(self.config, dict)
         zero_optimization = self.config.get("zero_optimization")
-        return zero_optimization and zero_optimization.get("stage") == 3
+        return zero_optimization is not None and zero_optimization.get("stage") == 3
 
     def _initialize_deepspeed_train(self, model: Module) -> None:
         optimizer, scheduler = None, None
