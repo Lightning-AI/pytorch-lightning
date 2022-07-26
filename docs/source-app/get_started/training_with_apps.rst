@@ -8,7 +8,7 @@ Evolve a model into an ML system
 
 **Required background:** Basic Python familiarity and complete the :ref:`build_model` guide.
 
-**Goal:** We'll walk you through the two key steps to build your first Lightning App from your existing Pytorch Lightning scripts.
+**Goal:** We'll walk you through the two key steps to build your first Lightning App from your existing PyTorch Lightning scripts.
 
 .. join_slack::
    :align: left
@@ -50,7 +50,7 @@ Inside the ``app.py`` file, add the following code.
 
 .. literalinclude:: ../code_samples/convert_pl_to_app/app.py
 
-This App runs the Pytorch Lightning script contained in the ``train.py`` file using the powerful :class:`~lightning_app.components.python.tracer.TracerPythonScript` component. This is really worth checking out!
+This App runs the PyTorch Lightning script contained in the ``train.py`` file using the powerful :class:`~lightning_app.components.python.tracer.TracerPythonScript` component. This is really worth checking out!
 
 ----
 
