@@ -132,10 +132,8 @@ class IPUStrategy(ParallelStrategy):
         # patch the dataloader creation function with the custom `poptorch.DataLoader`.
         # this violates the intended control flow for the plugins, but since this is experimental, we have chosen
         # to use the simpler solution before adding abstractions to override the `DataLoader` class
-
-        # Commented out to test if test failures are due to the poptorch loader
-        # self._update_dataloader_original = pl.trainer.connectors.data_connector._update_dataloader
-        # pl.trainer.connectors.data_connector._update_dataloader = self._convert_to_poptorch_loader
+        self._update_dataloader_original = pl.trainer.connectors.data_connector._update_dataloader
+        pl.trainer.connectors.data_connector._update_dataloader = self._convert_to_poptorch_loader
 
         super().setup(trainer)
 
