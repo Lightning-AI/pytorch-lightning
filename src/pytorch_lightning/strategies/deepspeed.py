@@ -849,7 +849,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @property
     def lightning_restore_optimizer(self) -> bool:
-        assert isinstance(self.lightning_module, pl.LightningModule)
+        assert self.lightning_module is not None
         # managed by DeepSpeed
         if self.load_full_weights and self.zero_stage_3 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
             rank_zero_warn(
