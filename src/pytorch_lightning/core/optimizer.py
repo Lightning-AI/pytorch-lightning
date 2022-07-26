@@ -284,10 +284,10 @@ def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]
                     'The "interval" key in lr scheduler dict must be "step" or "epoch"'
                     f' but is "{scheduler["interval"]}"'
                 )
-            if "reduce_on_plateau" not in scheduler:
-                scheduler["reduce_on_plateau"] = isinstance(
-                    scheduler["scheduler"], optim.lr_scheduler.ReduceLROnPlateau
-                )
+            scheduler["reduce_on_plateau"] = scheduler.get(
+                    "reduce_on_plateau",
+                    isinstance(scheduler["scheduler"], optim.lr_scheduler.ReduceLROnPlateau)
+            )
             elif not isinstance(scheduler["reduce_on_plateau"], bool):
                 raise MisconfigurationException(
                     'The "reduce_on_plateau" key in lr scheduler dict must be a bool'
