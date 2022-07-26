@@ -54,8 +54,9 @@ from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 warning_cache = WarningCache()
 
 _DEEPSPEED_AVAILABLE: bool = cast(bool, _RequirementAvailable("deepspeed"))
-if _DEEPSPEED_AVAILABLE: 
+if _DEEPSPEED_AVAILABLE:
     import deepspeed
+
     if TYPE_CHECKING:
         from deepspeed.runtime.engine import DeepSpeedEngine
 
@@ -839,7 +840,7 @@ class DeepSpeedStrategy(DDPStrategy):
         # Rely on deepspeed to load the checkpoint and necessary information
         assert isinstance(self.lightning_module, pl.LightningModule)
         assert isinstance(self.lightning_module.trainer, pl.Trainer)
-        
+
         from pytorch_lightning.trainer.states import TrainerFn
 
         is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
@@ -882,7 +883,7 @@ class DeepSpeedStrategy(DDPStrategy):
         """
 
         assert isinstance(self.lightning_module, pl.LightningModule)
-        
+
         def load(module: torch.nn.Module, prefix: str = "") -> None:
 
             missing_keys: List[str] = []
