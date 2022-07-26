@@ -105,6 +105,20 @@ class LightningTrainingComponent(LightningFlow):
     ):
         """This component enables to perform distributed multi-node multi-gpus training.
 
+        Example::
+
+            from lightning import LightningApp
+            from lightning.app.components.training import LightningTrainingComponent
+            from lightning.app.utilities.packaging.cloud_compute import CloudCompute
+
+            app = LightningApp(
+                LightningTrainingComponent(
+                    "train.py",
+                    num_nodes=2,
+                    cloud_compute=CloudCompute("gpu"),
+                ),
+            )
+
         Arguments:
             script_path: Path to the script to be executed.
             script_args: The arguments to be pass to the script.
