@@ -80,7 +80,6 @@ done
 # wait for leftover tests
 for pid in ${pids[*]}; do wait $pid; done
 show_batched_output
-echo "Batched mode finished. End of standalone tests."
 
 # echo test report
 printf '=%.s' {1..80}
