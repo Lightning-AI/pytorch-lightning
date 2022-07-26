@@ -96,7 +96,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
 
         if replica_device is not None:
             # by calling .to() we force the update to the self.device property
-            self.lightning_module.to(device=replica_device)
+            self._forward_module.to(device=replica_device)
         else:
             rank_zero_warn(
                 "Could not determine on which device the inputs are."
