@@ -476,7 +476,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 "DeepSpeed currently does not support different `accumulate_grad_batches` at different epochs."
             )
 
-        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
+        assert self.model is not None
         model = LightningDeepSpeedModule(pl_module=self.model, precision=self.precision_plugin.precision)
 
         if self.lightning_module.trainer and self.lightning_module.trainer.training:
