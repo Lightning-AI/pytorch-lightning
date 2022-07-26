@@ -18,9 +18,11 @@ set -e
 test_batch_size=6
 while getopts "b:" opt; do
     case $opt in
-        b) test_batch_size=$OPTARG;;
-        *) echo "Usage: $(basename $0) [-b batch_size]"
-        exit 1;;
+        b)
+            test_batch_size=$OPTARG;;
+        *)
+            echo "Usage: $(basename $0) [-b batch_size]"
+            exit 1;;
     esac
 done
 
