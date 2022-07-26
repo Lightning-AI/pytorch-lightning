@@ -46,17 +46,18 @@ class PyTorchLightningScriptRunner(TracerPythonScript):
         master_address = str(internal_urls[0][0])
         master_port = str(internal_urls[0][1])
 
-        distributed_env_vars = {
-            "MASTER_ADDR": master_address,
-            "MASTER_PORT": master_port,
-            "NODE_RANK": str(self.node_rank),
-            "WORLD_SIZE": str(self.num_nodes * self.cloud_compute.devices),
-            "PL_TRAINER_NUM_NODES": str(self.num_nodes),
-            "PL_TRAINER_STRATEGY": "ddp",
-            "PL_TRAINER_DEVICES": str(self.cloud_compute.devices),
-            "PL_TRAINER_ACCELERATOR": "auto",
-        }
-        os.environ.update(distributed_env_vars)
+        os.environ.update(
+            {
+                "MASTER_ADDR": master_address,
+                "MASTER_PORT": master_port,
+                "NODE_RANK": str(self.node_rank),
+                "WORLD_SIZE": str(self.num_nodes * self.cloud_compute.devices),
+                "PL_TRAINER_NUM_NODES": str(self.num_nodes),
+                "PL_TRAINER_STRATEGY": "ddp",
+                "PL_TRAINER_DEVICES": str(self.cloud_compute.devices),
+                "PL_TRAINER_ACCELERATOR": "auto",
+            }
+        )
         return super().run()
 
     def on_after_run(self, script_globals):
@@ -103,7 +104,7 @@ class LightningTrainingComponent(LightningFlow):
         sanity_serving: bool = False,
         script_runner: Type[TracerPythonScript] = PyTorchLightningScriptRunner,
     ):
-        """This component enables to perform distributed multi-node multi-gpus training.
+        """This component enables to perform distributed multi-node multi-devices training.
 
         Example::
 
@@ -133,7 +134,7 @@ class LightningTrainingComponent(LightningFlow):
         self.script_path = script_path
         self.script_args = script_args
         self.num_nodes = num_nodes
-        self._cloud_compute = cloud_compute  # TODO: Add support for cloudCOmpute
+        self._cloud_compute = cloud_compute  # TODO: Add support for cloudCompute
         self.sanity_serving = sanity_serving
         self._script_runner = script_runner
 
@@ -152,7 +153,7 @@ class LightningTrainingComponent(LightningFlow):
             self.has_initialized = True
 
         for work in self.ws.values():
-            if self.ready:
+            if self._ready:
                 internal_urls = [(w.internal_ip, w.port) for w in self.ws.values()]
                 work.run(internal_urls)
                 if all(w.has_finished for w in self.ws.values()):
@@ -162,5 +163,5 @@ class LightningTrainingComponent(LightningFlow):
                 work.run()
 
     @property
-    def ready(self) -> bool:
+    def _ready(self) -> bool:
         return all(w.internal_ip for w in self.ws.values())
