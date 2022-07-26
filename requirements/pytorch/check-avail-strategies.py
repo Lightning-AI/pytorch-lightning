@@ -1,4 +1,4 @@
-# import bagua
+import bagua
 import deepspeed  # noqa: F401
 import fairscale  # noqa: F401
 import horovod.torch
