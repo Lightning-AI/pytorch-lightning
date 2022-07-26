@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-import time
 from argparse import ArgumentParser
 from unittest import mock
 
@@ -27,6 +26,7 @@ from pytorch_lightning.accelerators import TPUAccelerator
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.demos.boring_classes import BoringModel, RandomDataset
 from pytorch_lightning.strategies import TPUSpawnStrategy
+from pytorch_lightning.strategies.launchers.xla import _save_spawn
 from pytorch_lightning.trainer.connectors.logger_connector.result import _Sync
 from pytorch_lightning.utilities import _TPU_AVAILABLE
 from pytorch_lightning.utilities.distributed import ReduceOp
@@ -35,8 +35,6 @@ from tests_pytorch.helpers.runif import RunIf
 
 if _TPU_AVAILABLE:
     import torch_xla
-    import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_multiprocessing as xmp
 
 
 class SerialLoaderBoringModel(BoringModel):
@@ -274,13 +272,7 @@ def test_broadcast_on_tpu():
         result = trainer.strategy.broadcast(obj)
         assert result == ("ver_0.5", "logger_name", 0)
 
-        # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
-        xm.rendezvous("end-process")
-        # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
-        if rank == 0:
-            time.sleep(1)
-
-    xmp.spawn(test_broadcast, nprocs=8, start_method="fork")
+    _save_spawn(test_broadcast, nprocs=8, start_method="fork")
 
 
 @pytest.mark.parametrize(
@@ -324,13 +316,7 @@ def test_tpu_reduce():
             else:
                 assert result.item() == 8
 
-        # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
-        xm.rendezvous("end-process")
-        # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
-        if rank == 0:
-            time.sleep(1)
-
-    xmp.spawn(test_reduce, nprocs=8, start_method="fork")
+    _save_spawn(test_reduce, nprocs=8, start_method="fork")
 
 
 @RunIf(tpu=True, standalone=True)
@@ -393,13 +379,7 @@ def test_tpu_sync_dist():
         value = sync(value)
         assert value.item() == 8
 
-        # https://github.com/pytorch/xla/issues/1801#issuecomment-602799542
-        xm.rendezvous("end-process")
-        # https://github.com/pytorch/xla/issues/2190#issuecomment-641665358
-        if rank == 0:
-            time.sleep(1)
-
-    xmp.spawn(test_sync_dist, nprocs=8, start_method="fork")
+    _save_spawn(test_sync_dist, nprocs=8, start_method="fork")
 
 
 @RunIf(tpu=True)
