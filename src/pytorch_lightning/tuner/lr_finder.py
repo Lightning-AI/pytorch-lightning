@@ -194,7 +194,7 @@ class _LRFinder:
                 " iteration limits or the size of your dataset/dataloader."
             )
             self._optimal_idx = None
-            return
+            return None
 
         # TODO: When computing the argmin here, and some losses are non-finite, the expected indices could be
         #   incorrectly shifted by an offset
