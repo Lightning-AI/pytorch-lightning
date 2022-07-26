@@ -14,6 +14,7 @@
 from typing import Any, Union
 
 import torch
+
 import pytorch_lightning as pl
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 
