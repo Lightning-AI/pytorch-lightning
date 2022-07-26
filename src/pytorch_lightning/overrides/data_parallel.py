@@ -66,7 +66,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         output = super().forward(*inputs, **kwargs)
 
         def output_transform(data: Any) -> Any:
-            device = cast(torch.device, self.module.device)
+            device = cast(torch.device, self.lightning_module.device)
             data = python_scalar_to_tensor(data, device)
             data = unsqueeze_scalar_tensor(data)
             return data
@@ -96,7 +96,7 @@ class LightningParallelModule(_LightningModuleWrapperBase):
 
         if replica_device is not None:
             # by calling .to() we force the update to the self.device property
-            self.module.to(device=replica_device)
+            self.lightning_module.to(device=replica_device)
         else:
             rank_zero_warn(
                 "Could not determine on which device the inputs are."

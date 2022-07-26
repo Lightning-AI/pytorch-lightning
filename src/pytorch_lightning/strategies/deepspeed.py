@@ -587,12 +587,6 @@ class DeepSpeedStrategy(DDPStrategy):
         self.model = model
 
     @property
-    def lightning_module(self):
-        # the model may not be wrapped with DeepEngine & LightningDeepSpeedModule if calling this too early
-        module = getattr(self.model, "module", self.model)
-        return module.module if isinstance(module, LightningDeepSpeedModule) else module
-
-    @property
     def distributed_sampler_kwargs(self):
         distributed_sampler_kwargs = dict(num_replicas=self.world_size, rank=self.global_rank)
         return distributed_sampler_kwargs

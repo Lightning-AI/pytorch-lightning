@@ -219,10 +219,6 @@ class IPUStrategy(ParallelStrategy):
             self._inference_opts = self._create_opts(training=False)
         return self._inference_opts
 
-    @property
-    def lightning_module(self) -> Optional["pl.LightningModule"]:
-        return self.model.module if isinstance(self.model, LightningIPUModule) else self.model
-
     def _convert_to_poptorch_loader(
         self, dataloader: DataLoader, sampler, mode: Optional[RunningStage] = None
     ) -> "poptorch.DataLoader":
