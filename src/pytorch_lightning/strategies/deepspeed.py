@@ -501,12 +501,7 @@ class DeepSpeedStrategy(DDPStrategy):
     def zero_stage_3(self) -> bool:
         assert isinstance(self.config, dict)
         zero_optimization = self.config.get("zero_optimization")
-        if zero_optimization is None:
-            raise MisconfigurationException(
-                "You must set `zero_optimization` in the DeepSpeed config."
-                " See: https://pytorch-lightning.readthedocs.io/en/stable/advanced/model_parallel.html#deepspeed"
-            )
-        return bool(self.config.get("zero_optimization")) and zero_optimization.get("stage") == 3
+        return zero_optimization and zero_optimization.get("stage") == 3
 
     def _initialize_deepspeed_train(self, model: Module) -> None:
         optimizer, scheduler = None, None
