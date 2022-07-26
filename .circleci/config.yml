@@ -106,7 +106,6 @@ references:
      name: Statistics
      command: |
        mv ./xx01 coverage.xml
-       # TODO: add human readable report
 
 jobs:
 
