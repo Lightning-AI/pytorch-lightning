@@ -653,12 +653,11 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def _format_batch_size_and_grad_accum_config(self) -> None:
         # todo: using lite, we do not support these variables within the config
-        assert isinstance(self.lightning_module, pl.LightningModule)
-        assert isinstance(self.lightning_module.trainer, pl.Trainer)
         assert isinstance(self.config, dict)
         if self.lightning_module is None:
             return
 
+        assert isinstance(self.lightning_module.trainer, pl.Trainer)
         if "gradient_accumulation_steps" in self.config:
             raise MisconfigurationException(
                 "Do not set `gradient_accumulation_steps` in the DeepSpeed config"
