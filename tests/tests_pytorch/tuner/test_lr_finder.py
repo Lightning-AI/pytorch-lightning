@@ -363,16 +363,19 @@ def test_multiple_lr_find_calls_gives_same_results(tmpdir):
     )
 
 
-@pytest.mark.parametrize("skip_begin,skip_end,losses,expected_error", [
-    (0, 0, [], True),
-    (10, 1, [], True),
-    (0, 2, [0, 1, 2], True),
-    (0, 1, [0, 1, 2], False),
-    (1, 1, [0, 1, 2], True),
-    (1, 1, [0, 1, 2, 3], False),
-    (0, 1, [float("nan"), float("nan"), 0, float("inf"), 1, 2, 3, float("inf"), 2, float("nan"), 1], False),
-    (4, 1, [float("nan"), float("nan"), 0, float("inf"), 1, 2, 3, float("inf"), 2, float("nan"), 1], False),
-])
+@pytest.mark.parametrize(
+    "skip_begin,skip_end,losses,expected_error",
+    [
+        (0, 0, [], True),
+        (10, 1, [], True),
+        (0, 2, [0, 1, 2], True),
+        (0, 1, [0, 1, 2], False),
+        (1, 1, [0, 1, 2], True),
+        (1, 1, [0, 1, 2, 3], False),
+        (0, 1, [float("nan"), float("nan"), 0, float("inf"), 1, 2, 3, float("inf"), 2, float("nan"), 1], False),
+        (4, 1, [float("nan"), float("nan"), 0, float("inf"), 1, 2, 3, float("inf"), 2, float("nan"), 1], False),
+    ],
+)
 def test_suggestion_not_enough_finite_points(losses, skip_begin, skip_end, expected_error, caplog):
     """Tests the error handling when not enough finite points are available to make a suggestion."""
     caplog.clear()
@@ -395,3 +398,18 @@ def test_suggestion_not_enough_finite_points(losses, skip_begin, skip_end, expec
             assert "Failed to compute suggestion for learning rate" in caplog.text
         else:
             assert lr is not None
+
+
+def test_lr_attribute_when_suggestion_invalid(tmpdir):
+    """Tests learning rate finder ends before `num_training` steps."""
+
+    class TestModel(BoringModel):
+        def __init__(self):
+            super().__init__()
+            self.learning_rate = 0.123
+
+    model = TestModel()
+    trainer = Trainer(default_root_dir=tmpdir)
+    lr_finder = trainer.tuner.lr_find(model=model, num_training=1)  # force insufficient data points
+    assert lr_finder.suggestion() is None
+    assert model.learning_rate == 0.123  # must remain unchanged because suggestion is not possible
