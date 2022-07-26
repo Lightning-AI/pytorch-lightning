@@ -331,7 +331,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self.hysteresis = hysteresis
         self.min_loss_scale = min_loss_scale
 
-    def _load_config(self, config: Optional[Union[Path, str, Dict[str, Any]]]) -> Optional[Dict[str, Any]]:
+    def _load_config(self, config: Optional[Union[_Path, str, Dict[str, Any]]]) -> Optional[Dict[str, Any]]:
         if config is None and self.DEEPSPEED_ENV_VAR in os.environ:
             rank_zero_info(f"Loading DeepSpeed config from set {self.DEEPSPEED_ENV_VAR} environment variable")
             config = os.environ[self.DEEPSPEED_ENV_VAR]
@@ -369,7 +369,7 @@ class DeepSpeedStrategy(DDPStrategy):
         self.barrier()
 
     def _init_deepspeed_distributed(self) -> None:
-        assert isinstance(self.cluster_environment, ClusterEnvironment)
+        assert self.cluster_environment is not None
         if platform.system() != "Windows":
             # do not set env variables on windows, allow deepspeed to control setup
             self._set_node_environment_variables()
@@ -389,7 +389,7 @@ class DeepSpeedStrategy(DDPStrategy):
         )
 
     def _set_node_environment_variables(self) -> None:
-        assert isinstance(self.cluster_environment, ClusterEnvironment)
+        assert self.cluster_environment is not None
         os.environ["MASTER_ADDR"] = self.cluster_environment.main_address
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
         os.environ["RANK"] = str(self.global_rank)
@@ -411,7 +411,6 @@ class DeepSpeedStrategy(DDPStrategy):
             The model wrapped into a :class:`deepspeed.DeepSpeedEngine` and a list with a single
             deepspeed optimizer.
         """
-        assert isinstance(self.config, dict)
         if len(optimizers) != 1:
             raise ValueError(
                 f"Currently only one optimizer is supported with DeepSpeed."
@@ -421,6 +420,7 @@ class DeepSpeedStrategy(DDPStrategy):
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
         # normally we set this to the batch size, but it is not available here unless the user provides it
         # as part of the config
+        assert self.config is not None
         self.config.setdefault("train_micro_batch_size_per_gpu", 1)
         self.model, optimizer = self._setup_model_and_optimizer(model, optimizers[0])
         self._set_deepspeed_activation_checkpointing()
@@ -668,7 +668,7 @@ class DeepSpeedStrategy(DDPStrategy):
         if "gradient_clipping" not in self.config:
             self.config["gradient_clipping"] = self.lightning_module.trainer.gradient_clip_val or 0.0
 
-    def _auto_select_batch_size(self) -> Optional[int]:
+    def _auto_select_batch_size(self) -> int:
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
         # by default we try to use the batch size of the loader
         assert isinstance(self.lightning_module, pl.LightningModule)
