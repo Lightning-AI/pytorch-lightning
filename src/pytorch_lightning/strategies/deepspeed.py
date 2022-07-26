@@ -485,7 +485,7 @@ class DeepSpeedStrategy(DDPStrategy):
             self._initialize_deepspeed_inference(model)
 
     def _init_optimizers(self) -> Tuple[Optimizer, Optional[LRSchedulerConfig], Optional[int]]:
-        assert isinstance(self.lightning_module, pl.LightningModule)
+        assert self.lightning_module is not None
         optimizers, lr_schedulers, optimizer_frequencies = _init_optimizers_and_lr_schedulers(self.lightning_module)
         if len(optimizers) > 1 or len(lr_schedulers) > 1:
             raise MisconfigurationException(
