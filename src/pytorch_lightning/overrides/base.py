@@ -95,4 +95,3 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
             if trainer.predicting:
                 return self.module.predict_step(*inputs, **kwargs)
         return self.module(*inputs, **kwargs)
-

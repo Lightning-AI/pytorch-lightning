@@ -19,13 +19,13 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
+from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
 from pytorch_lightning.trainer.states import TrainerFn
+from pytorch_lightning.utilities import _IS_WINDOWS, _module_available
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
-from pytorch_lightning.overrides.base import _LightningModuleWrapperBase
-from pytorch_lightning.utilities import _IS_WINDOWS, _module_available
 
 _FAIRSCALE_AVAILABLE = not _IS_WINDOWS and _module_available("fairscale.nn")
 
