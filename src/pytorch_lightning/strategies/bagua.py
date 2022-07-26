@@ -53,10 +53,10 @@ log = logging.getLogger(__name__)
 
 
 class LightningBaguaModule(_LightningModuleWrapperBase):
-    def __init__(self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]) -> None:
-        super().__init__(pl_module)
+    def __init__(self, forward_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]) -> None:
+        super().__init__(forward_module)
         # Bagua use `bagua_module_name` to distinguish different modules
-        self._bagua_module_name = f"{pl_module.__class__.__name__}{id(pl_module)}"
+        self._bagua_module_name = f"{forward_module.__class__.__name__}{id(forward_module)}"
 
 
 class BaguaStrategy(DDPStrategy):

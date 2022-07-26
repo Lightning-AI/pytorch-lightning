@@ -43,9 +43,9 @@ else:
 
 class LightningIPUModule(_LightningModuleWrapperBase):
     def __init__(
-        self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: Union[str, int]
+        self, forward_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: Union[str, int]
     ) -> None:
-        super().__init__(pl_module)
+        super().__init__(forward_module)
         self.precision = precision
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:

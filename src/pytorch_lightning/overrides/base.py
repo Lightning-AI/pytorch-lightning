@@ -11,13 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Optional
+from typing import Any, Union
 
 import torch
-import torch.nn as nn
-from torch.nn import DataParallel
-from torch.nn.parallel import DistributedDataParallel
-
 import pytorch_lightning as pl
 from pytorch_lightning.core.mixins import DeviceDtypeModuleMixin
 
@@ -54,45 +50,47 @@ class _LightningPrecisionModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Modu
 
 
 class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
-    def __init__(self, forward_module: nn.Module, lightning_module: Optional["pl.LightningDataModule"] = None) -> None:
+    def __init__(self, forward_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]) -> None:
         """Wraps the user's LightningModule and redirects the forward call to the appropriate method, either
         ``training_step``, ``validation_step``, ``test_step``, or ``predict_step``.
 
         Inheriting classes may also modify the inputs or outputs of forward.
 
         Args:
-            pl_module: the model to wrap
+            forward_module: The module to wrap. If it's not a LightningModule, it must have an attribute ``.module``
+                which must be a LightningModule reference.
         """
         super().__init__()
         self._forward_module = forward_module
-        self._lightning_module = lightning_module or forward_module
 
-        # set the parameters_to_ignore from LightningModule
-        _ddp_params_and_buffers_to_ignore = getattr(self._lightning_module, "_ddp_params_and_buffers_to_ignore", [])
+        # set the parameters_to_ignore from LightningModule.
+        _ddp_params_and_buffers_to_ignore = getattr(self._forward_module, "_ddp_params_and_buffers_to_ignore", [])
         self._ddp_params_and_buffers_to_ignore = [f"module.{p}" for p in _ddp_params_and_buffers_to_ignore]
 
     @property
-    def module(self):
-        return self._forward_module
+    def lightning_module(self) -> "pl.LightningModule":
+        if isinstance(self._forward_module, pl.LightningModule):
+            return self._forward_module
+        return self._forward_module.module
 
     def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        trainer = self._lightning_module.trainer
+        pl_module = self.lightning_module
+        trainer = pl_module._trainer
 
         if trainer is not None:
             if trainer.training:
-                output = self.module.training_step(*inputs, **kwargs)
+                output = self._forward_module.training_step(*inputs, **kwargs)
                 # In manual_optimization, we need to prevent DDP reducer as
                 # it is done manually in `LightningModule.manual_backward`
                 # `require_backward_grad_sync` will be reset in the
                 # ddp_strategy `post_training_step` hook
-                if not self._lightning_module.automatic_optimization:
+                if not pl_module.automatic_optimization:
                     trainer.model.require_backward_grad_sync = False  # type: ignore[assignment]
                 return output
             if trainer.testing:
-                return self.module.test_step(*inputs, **kwargs)
+                return self._forward_module.test_step(*inputs, **kwargs)
             if trainer.sanity_checking or trainer.validating:
-                return self.module.validation_step(*inputs, **kwargs)
+                return self._forward_module.validation_step(*inputs, **kwargs)
             if trainer.predicting:
-                return self.module.predict_step(*inputs, **kwargs)
-        return self.module(*inputs, **kwargs)
-
+                return self._forward_module.predict_step(*inputs, **kwargs)
+        return self._forward_module(*inputs, **kwargs)
