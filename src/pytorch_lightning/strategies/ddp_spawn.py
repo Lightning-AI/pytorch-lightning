@@ -139,10 +139,10 @@ class DDPSpawnStrategy(ParallelStrategy):
         self._launcher = _MultiProcessingLauncher(self, start_method=self._start_method)
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        
+
         assert self.cluster_environment is not None
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
-        
+
         assert self.accelerator is not None
         self.accelerator.setup(trainer)
 
@@ -260,7 +260,9 @@ class DDPSpawnStrategy(ParallelStrategy):
             assert isinstance(self.model, DistributedDataParallel)
             prepare_for_backward(self.model, closure_loss)
 
-    def reduce(self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean") -> Tensor:
+    def reduce(
+        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
+    ) -> Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
