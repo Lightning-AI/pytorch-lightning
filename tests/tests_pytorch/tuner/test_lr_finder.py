@@ -410,6 +410,6 @@ def test_lr_attribute_when_suggestion_invalid(tmpdir):
 
     model = TestModel()
     trainer = Trainer(default_root_dir=tmpdir)
-    lr_finder = trainer.tuner.lr_find(model=model, num_training=1)  # force insufficient data points
+    lr_finder = trainer.tuner.lr_find(model=model, update_attr=True, num_training=1)  # force insufficient data points
     assert lr_finder.suggestion() is None
     assert model.learning_rate == 0.123  # must remain unchanged because suggestion is not possible
