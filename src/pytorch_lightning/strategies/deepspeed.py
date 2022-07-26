@@ -832,7 +832,7 @@ class DeepSpeedStrategy(DDPStrategy):
             return super().load_checkpoint(checkpoint_path)
 
         # Rely on deepspeed to load the checkpoint and necessary information
-        assert isinstance(self.lightning_module, pl.LightningModule)
+        assert self.lightning_module is not None
 
         from pytorch_lightning.trainer.states import TrainerFn
 
