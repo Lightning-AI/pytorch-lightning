@@ -169,7 +169,7 @@ class StochasticWeightAveraging(Callback):
             for lr, group in zip(self._swa_lrs, optimizer.param_groups):
                 group["initial_lr"] = lr
 
-            self._swa_scheduler: = cast(
+            self._swa_scheduler = cast(
                 _LRScheduler,
                 SWALR(
                     optimizer,
