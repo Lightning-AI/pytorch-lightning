@@ -874,7 +874,7 @@ class DeepSpeedStrategy(DDPStrategy):
             ckpt: The ckpt file.
         """
 
-        assert isinstance(self.lightning_module, pl.LightningModule)
+        assert self.lightning_module is not None
 
         def load(module: torch.nn.Module, prefix: str = "") -> None:
 
