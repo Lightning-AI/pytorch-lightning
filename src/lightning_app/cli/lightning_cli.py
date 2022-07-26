@@ -12,7 +12,6 @@ from requests.exceptions import ConnectionError
 
 from lightning_app import __version__ as ver
 from lightning_app.cli import cmd_init, cmd_install, cmd_pl_init, cmd_react_ui_init
-from lightning_app.cli.cmd_clusters import _check_cluster_name_is_valid, AWSClusterManager, default_instance_types
 from lightning_app.core.constants import get_lightning_cloud_url, LOCAL_LAUNCH_ADMIN_VIEW
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
@@ -49,89 +48,6 @@ def main():
 def _main():
     register_all_external_components()
     pass
-
-
-@_main.group("create")
-def create():
-    """Create Lightning AI BYOC managed resources."""
-    pass
-
-
-@create.command("cluster")
-@click.argument("cluster_name", callback=_check_cluster_name_is_valid)
-@click.option("--provider", "provider", type=str, default="aws", help="cloud provider to be used for your cluster")
-@click.option("--external-id", "external_id", type=str, required=True)
-@click.option(
-    "--role-arn", "role_arn", type=str, required=True, help="AWS role ARN attached to the associated resources."
-)
-@click.option(
-    "--region",
-    "region",
-    type=str,
-    required=False,
-    default="us-east-1",
-    help="AWS region that is used to host the associated resources.",
-)
-@click.option(
-    "--instance-types",
-    "instance_types",
-    type=str,
-    required=False,
-    default=",".join(default_instance_types),
-    help="Instance types that you want to support, for computer jobs within the cluster.",
-)
-@click.option(
-    "--cost-savings",
-    "cost_savings",
-    type=bool,
-    required=False,
-    default=False,
-    is_flag=True,
-    help=""""Use this flag to ensure that the cluster is created with a profile that is optimized for cost savings.
-        This makes runs cheaper but start-up times may increase.""",
-)
-@click.option(
-    "--edit-before-creation",
-    default=False,
-    is_flag=True,
-    help="Edit the cluster specs before submitting them to the API server.",
-)
-@click.option(
-    "--wait",
-    "wait",
-    type=bool,
-    required=False,
-    default=False,
-    is_flag=True,
-    help="Enabling this flag makes the CLI wait until the cluster is running.",
-)
-def create_cluster(
-    cluster_name: str,
-    region: str,
-    role_arn: str,
-    external_id: str,
-    provider: str,
-    instance_types: str,
-    edit_before_creation: bool,
-    cost_savings: bool,
-    wait: bool,
-    **kwargs,
-):
-    """Create a Lightning AI BYOC compute cluster with your cloud provider credentials."""
-    if provider != "aws":
-        click.echo("Only AWS is supported for now. But support for more providers is coming soon.")
-        return
-    cluster_manager = AWSClusterManager()
-    cluster_manager.create(
-        cluster_name=cluster_name,
-        region=region,
-        role_arn=role_arn,
-        external_id=external_id,
-        instance_types=instance_types.split(","),
-        edit_before_creation=edit_before_creation,
-        cost_savings=cost_savings,
-        wait=wait,
-    )
 
 
 @_main.command()
@@ -287,66 +203,6 @@ def fork():
 @_main.group(hidden=True)
 def stop():
     """Stop your application."""
-    pass
-
-
-@_main.group(name="delete")
-def delete():
-    """Delete Lightning AI BYOC managed resources."""
-    pass
-
-
-@delete.command("cluster")
-@click.argument("cluster", type=str)
-@click.option(
-    "--force",
-    "force",
-    type=bool,
-    required=False,
-    default=False,
-    is_flag=True,
-    help="""Delete a BYOC cluster from Lightning AI. This does NOT delete any resources created by the cluster,
-            it just removes the entry from Lightning AI.
-
-            WARNING: You should NOT use this under normal circumstances.""",
-)
-@click.option(
-    "--wait",
-    "wait",
-    type=bool,
-    required=False,
-    default=False,
-    is_flag=True,
-    help="Enabling this flag makes the CLI wait until the cluster is deleted.",
-)
-def delete_cluster(cluster: str, force: bool = False, wait: bool = False):
-    """Delete a Lightning AI BYOC compute cluster and all associated cloud provider resources.
-
-    Deleting a run also deletes all Runs and Experiments that were started on the cluster.
-    Deletion permanently removes not only the record of all runs on a cluster, but all associated experiments,
-    artifacts, metrics, logs, etc.
-
-    WARNING: This process may take a few minutes to complete, but once started it CANNOT be rolled back.
-    Deletion permanently removes not only the BYOC cluster from being managed by Lightning AI, but tears down
-    every BYOC resource Lightning AI managed (for that cluster id) in the host cloud.
-
-    All object stores, container registries, logs, compute nodes, volumes, etc. are deleted and cannot be recovered.
-    """
-    cluster_manager = AWSClusterManager()
-    cluster_manager.delete(cluster_id=cluster, force=force, wait=wait)
-
-
-@_main.group(name="list")
-def get_list():
-    """List your Lightning AI BYOC managed resources."""
-    pass
-
-
-@get_list.command("clusters")
-def list_clusters(**kwargs):
-    """List your Lightning AI BYOC compute clusters."""
-    cluster_manager = AWSClusterManager()
-    cluster_manager.list()
     pass
 
 

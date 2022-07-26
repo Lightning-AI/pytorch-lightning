@@ -6,19 +6,10 @@ import pytest
 from click.testing import CliRunner
 from lightning_cloud.openapi import Externalv1LightningappInstance
 
-from lightning_app.cli.lightning_cli import (
-    _main,
-    create,
-    create_cluster,
-    delete,
-    delete_cluster,
-    get_app_url,
-    get_list,
-    list_clusters,
-    login,
-    logout,
-    run,
-)
+from lightning_app.cli.lightning_cli import _main, get_app_url, login, logout, run
+from lightning_app.cli.lightning_cli_create import create, create_cluster
+from lightning_app.cli.lightning_cli_delete import delete, delete_cluster
+from lightning_app.cli.lightning_cli_list import get_list, list_clusters
 from lightning_app.runners.runtime_type import RuntimeType
 
 

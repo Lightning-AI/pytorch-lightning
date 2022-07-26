@@ -160,12 +160,21 @@ class ClusterList(Formatable):
 
 
 def _wait_for_cluster_state(
-    api_client,
+    api_client: LightningClient,
     cluster_id: str,
     target_state: V1ClusterState,
-    max_wait_time=MAX_CLUSTER_WAIT_TIME,
-    check_timeout=CLUSTER_STATE_CHECKING_TIMEOUT,
+    max_wait_time: int = MAX_CLUSTER_WAIT_TIME,
+    check_timeout: int = CLUSTER_STATE_CHECKING_TIMEOUT,
 ):
+    """_wait_for_cluster_state waits until the provided cluster has reached a desired state, or failed.
+
+    :param api_client: LightningClient used for polling
+    :param cluster_id: cluster to wait for
+    :param target_state: desired state to be reached
+    :param max_wait_time: maximum duration in seconds to wait
+    :param check_timeout: duration in seconds between polling for cluster state
+    :return:
+    """
     start = time.time()
     elapsed = 0
     while elapsed < max_wait_time:
@@ -197,7 +206,7 @@ def _check_cluster_name_is_valid(_ctx, _param, value):
     return value
 
 
-default_instance_types = [
+_default_instance_types = [
     "g2.8xlarge",
     "g3.16xlarge",
     "g3.4xlarge",
