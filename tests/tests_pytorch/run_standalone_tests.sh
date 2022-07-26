@@ -15,6 +15,15 @@
 set -e
 # THIS FILE ASSUMES IT IS RUN INSIDE THE tests/tests_pytorch DIRECTORY
 
+test_batch_size=6
+while getopts "b:" opt; do
+    case $opt in
+        b) test_batch_size=$OPTARG;;
+        *) echo "Usage: $(basename $0) [-b batch_size]"
+        exit 1;;
+    esac
+done
+
 # this environment variable allows special tests to run
 export PL_RUN_STANDALONE_TESTS=1
 # python arguments
@@ -40,9 +49,6 @@ parametrizations_arr=($parametrizations)
 # tests to skip - space separated
 blocklist='profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx utilities/test_warnings.py'
 report=''
-
-# the batch size can be set through the env variable PL_STANDALONE_TESTS_BATCH_SIZE and defaults to 6 if not set
-test_batch_size="${PL_STANDALONE_TESTS_BATCH_SIZE:-6}"
 
 rm -f standalone_test_output.txt  # in case it exists, remove it
 function show_batched_output {
