@@ -196,6 +196,8 @@ class _LRFinder:
             self._optimal_idx = None
             return
 
+        # TODO: When computing the argmin here, and some losses are non-finite, the expected indices could be
+        #   incorrectly shifted by an offset
         min_grad = np.gradient(losses).argmin()
         self._optimal_idx = min_grad + skip_begin
         return self.results["lr"][self._optimal_idx]
