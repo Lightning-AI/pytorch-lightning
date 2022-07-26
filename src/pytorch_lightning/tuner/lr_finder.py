@@ -13,8 +13,7 @@
 # limitations under the License.
 import importlib
 import logging
-import os
-import uuid
+import tempfile
 from functools import wraps
 from typing import Any, Callable, cast, Dict, List, Optional, Sequence, TYPE_CHECKING, Union
 
@@ -213,51 +212,50 @@ def lr_find(
     if update_attr:
         lr_attr_name = _determine_lr_attr_name(trainer, model)
 
-    # Save initial model, that is loaded after learning rate is found
-    ckpt_path = os.path.join(trainer.default_root_dir, f".lr_find_{uuid.uuid4()}.ckpt")
-    trainer.save_checkpoint(ckpt_path)
-    params = __lr_finder_dump_params(trainer)
+    with tempfile.NamedTemporaryFile(dir=trainer.default_root_dir, prefix=".lr_find_", suffix=".ckpt") as ckpt_path:
+        # Save initial model, that is loaded after learning rate is found
+        trainer.save_checkpoint(ckpt_path.name)
+        params = __lr_finder_dump_params(trainer)
 
-    # Set to values that are required by the algorithm
-    __lr_finder_reset_params(trainer, num_training, early_stop_threshold)
+        # Set to values that are required by the algorithm
+        __lr_finder_reset_params(trainer, num_training, early_stop_threshold)
 
-    # Initialize lr finder object (stores results)
-    lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
+        # Initialize lr finder object (stores results)
+        lr_finder = _LRFinder(mode, min_lr, max_lr, num_training)
 
-    # Disable standard progress bar for fit
-    if trainer.progress_bar_callback:
-        trainer.progress_bar_callback.disable()
+        # Disable standard progress bar for fit
+        if trainer.progress_bar_callback:
+            trainer.progress_bar_callback.disable()
 
-    # Configure optimizer and scheduler
-    trainer.strategy.setup_optimizers = lr_finder._exchange_scheduler(trainer, model)  # type: ignore[assignment]
+        # Configure optimizer and scheduler
+        trainer.strategy.setup_optimizers = lr_finder._exchange_scheduler(trainer, model)  # type: ignore[assignment]
 
-    # Fit, lr & loss logged in callback
-    trainer.tuner._run(model)
+        # Fit, lr & loss logged in callback
+        trainer.tuner._run(model)
 
-    # Prompt if we stopped early
-    if trainer.global_step != num_training:
-        log.info(f"LR finder stopped early after {trainer.global_step} steps due to diverging loss.")
+        # Prompt if we stopped early
+        if trainer.global_step != num_training:
+            log.info(f"LR finder stopped early after {trainer.global_step} steps due to diverging loss.")
 
-    # Transfer results from callback to lr finder object
-    lr_finder.results.update({"lr": trainer.callbacks[0].lrs, "loss": trainer.callbacks[0].losses})
-    lr_finder._total_batch_idx = trainer.fit_loop.total_batch_idx  # for debug purpose
+        # Transfer results from callback to lr finder object
+        lr_finder.results.update({"lr": trainer.callbacks[0].lrs, "loss": trainer.callbacks[0].losses})
+        lr_finder._total_batch_idx = trainer.fit_loop.total_batch_idx  # for debug purpose
 
-    __lr_finder_restore_params(trainer, params)
+        __lr_finder_restore_params(trainer, params)
 
-    if trainer.progress_bar_callback:
-        trainer.progress_bar_callback.enable()
+        if trainer.progress_bar_callback:
+            trainer.progress_bar_callback.enable()
 
-    # Update lr attr if required
-    if update_attr:
-        lr = lr_finder.suggestion()
+        # Update lr attr if required
+        if update_attr:
+            lr = lr_finder.suggestion()
 
-        # TODO: log lr.results to self.logger
-        lightning_setattr(model, lr_attr_name, lr)
-        log.info(f"Learning rate set to {lr}")
+            # TODO: log lr.results to self.logger
+            lightning_setattr(model, lr_attr_name, lr)
+            log.info(f"Learning rate set to {lr}")
 
-    # Restore initial state of model
-    trainer._checkpoint_connector.restore(ckpt_path)
-    trainer.strategy.remove_checkpoint(ckpt_path)
+        # Restore initial state of model
+        trainer._checkpoint_connector.restore(ckpt_path.name)
 
     return lr_finder
 

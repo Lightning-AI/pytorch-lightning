@@ -13,6 +13,7 @@
 # limitations under the License
 import logging
 import os
+import tempfile
 import uuid
 from typing import Any, Dict, Optional, Tuple
 
@@ -58,37 +59,36 @@ def scale_batch_size(
             " Please disable the feature or incorporate the dataloader into the model."
         )
 
-    # Save initial model, that is loaded after batch size is found
-    ckpt_path = os.path.join(trainer.default_root_dir, f".scale_batch_size_{uuid.uuid4()}.ckpt")
-    trainer.save_checkpoint(ckpt_path)
-    params = __scale_batch_dump_params(trainer)
+    with tempfile.NamedTemporaryFile(dir=trainer.default_root_dir, prefix=".scale_batch_size_", suffix=".ckpt") as ckpt_path:
+        # Save initial model, that is loaded after batch size is found
+        trainer.save_checkpoint(ckpt_path.name)
+        params = __scale_batch_dump_params(trainer)
 
-    # Set to values that are required by the algorithm
-    __scale_batch_reset_params(trainer, steps_per_trial)
+        # Set to values that are required by the algorithm
+        __scale_batch_reset_params(trainer, steps_per_trial)
 
-    if trainer.progress_bar_callback:
-        trainer.progress_bar_callback.disable()
+        if trainer.progress_bar_callback:
+            trainer.progress_bar_callback.disable()
 
-    # Initially we just double in size until an OOM is encountered
-    new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=init_val)  # initially set to init_val
-    if mode == "power":
-        new_size = _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials)
-    elif mode == "binsearch":
-        new_size = _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials)
-    else:
-        raise ValueError("mode in method `scale_batch_size` could either be `power` or `binsearch`")
+        # Initially we just double in size until an OOM is encountered
+        new_size, _ = _adjust_batch_size(trainer, batch_arg_name, value=init_val)  # initially set to init_val
+        if mode == "power":
+            new_size = _run_power_scaling(trainer, model, new_size, batch_arg_name, max_trials)
+        elif mode == "binsearch":
+            new_size = _run_binsearch_scaling(trainer, model, new_size, batch_arg_name, max_trials)
+        else:
+            raise ValueError("mode in method `scale_batch_size` could either be `power` or `binsearch`")
 
-    garbage_collection_cuda()
-    log.info(f"Finished batch size finder, will continue with full run using batch size {new_size}")
+        garbage_collection_cuda()
+        log.info(f"Finished batch size finder, will continue with full run using batch size {new_size}")
 
-    __scale_batch_restore_params(trainer, params)
+        __scale_batch_restore_params(trainer, params)
 
-    if trainer.progress_bar_callback:
-        trainer.progress_bar_callback.enable()
+        if trainer.progress_bar_callback:
+            trainer.progress_bar_callback.enable()
 
-    # Restore initial state of model
-    trainer._checkpoint_connector.restore(ckpt_path)
-    trainer.strategy.remove_checkpoint(ckpt_path)
+        # Restore initial state of model
+        trainer._checkpoint_connector.restore(ckpt_path.name)
 
     return new_size
 
