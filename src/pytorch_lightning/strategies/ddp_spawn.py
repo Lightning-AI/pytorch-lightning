@@ -287,7 +287,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         with self.precision_plugin.val_step_context():
             assert self.lightning_module is not None
             assert self.model is not None
-            assert callable(self.model.validation)
+            assert callable(self.model.validation_step)
             if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
                 # used when calling `trainer.fit`
                 return self.model(*args, **kwargs)
