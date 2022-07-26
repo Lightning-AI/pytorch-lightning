@@ -52,7 +52,7 @@ def _main():
     register_all_external_components()
 
 
-@main.group()
+@_main.group()
 def show():
     """Show info about resource."""
     pass
@@ -109,12 +109,6 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
     for component_name, log_event in log_reader:
         message = f"[{component_name}] {log_event.timestamp.isoformat()} {log_event.message}"
         click.echo(message, err=log_event.labels.stream == "stderr", color=True)
-
-
-@main.command()
-def _main():
-    register_all_external_components()
-    pass
 
 
 @_main.command()
