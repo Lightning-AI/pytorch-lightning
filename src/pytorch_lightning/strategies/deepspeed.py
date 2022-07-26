@@ -56,12 +56,6 @@ warning_cache = WarningCache()
 _DEEPSPEED_AVAILABLE: bool = cast(bool, _RequirementAvailable("deepspeed"))
 if _DEEPSPEED_AVAILABLE:
     import deepspeed
-<<<<<<< HEAD
-=======
-
-    if TYPE_CHECKING:
-        from deepspeed.runtime.engine import DeepSpeedEngine
->>>>>>> 6b4f8c46dcbb53f4524c53ff5e50b88119608336
 
 
 def remove_module_hooks(model: torch.nn.Module) -> None:
