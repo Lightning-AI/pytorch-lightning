@@ -23,7 +23,7 @@ from torch.utils.data import Dataset, IterableDataset
 
 
 class MNIST(Dataset):
-    """Customized `MNIST <http://yann.lecun.com/exdb/mnist/>`_ dataset for testing Pytorch Lightning without the
+    """Customized `MNIST <http://yann.lecun.com/exdb/mnist/>`_ dataset for testing PyTorch Lightning without the
     torchvision dependency.
 
     Part of the code was copied from

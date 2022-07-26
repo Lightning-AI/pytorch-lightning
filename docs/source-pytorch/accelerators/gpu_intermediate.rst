@@ -21,8 +21,10 @@ Lightning supports multiple ways of doing distributed training.
 |
 
 - Data Parallel (``strategy='dp'``) (multiple-gpus, 1 machine)
-- DistributedDataParallel (``strategy='ddp'``) (multiple-gpus across many machines (python script based)).
-- DistributedDataParallel (``strategy='ddp_spawn'``) (multiple-gpus across many machines (spawn based)).
+- DistributedDataParallel (multiple-gpus across many machines)
+    - Regular (``strategy='ddp'``)
+    - Spawn (``strategy='ddp_spawn'``)
+    - Notebook/Fork (``strategy='ddp_notebook'``)
 - Horovod (``strategy='horovod'``) (multi-machine, multi-gpu, configured at runtime)
 - Bagua (``strategy='bagua'``) (multiple-gpus across many machines with advanced training algorithms)
 
@@ -99,7 +101,7 @@ There are cases in which it is NOT possible to use DDP. Examples are:
 - Jupyter Notebook, Google COLAB, Kaggle, etc.
 - You have a nested script without a root package
 
-In these situations you should use `dp` or `ddp_spawn` instead.
+In these situations you should use `ddp_notebook` or `dp` instead.
 
 Distributed Data Parallel 2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -197,6 +199,68 @@ You can then call your scripts anywhere
 
     cd /project/src
     python some_file.py --accelerator 'gpu' --devices 8 --strategy 'ddp'
+
+
+Distributed Data Parallel in Notebooks
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+DDP Notebook/Fork is an alternative to Spawn that can be used in interactive Python and Jupyter notebooks, Google Colab, Kaggle notebooks, and so on:
+The Trainer enables it by default when such environments are detected.
+
+.. code-block:: python
+
+    # train on 8 GPUs in a Jupyter notebook
+    trainer = Trainer(accelerator="gpu", devices=8)
+
+    # can be set explicitly
+    trainer = Trainer(accelerator="gpu", devices=8, strategy="ddp_notebook")
+
+    # can also be used in non-interactive environments
+    trainer = Trainer(accelerator="gpu", devices=8, strategy="ddp_fork")
+
+Data Parallel (``strategy="dp"``) is the only other strategy supported in interactive environments but is slower, is discouraged by PyTorch and has other limitations.
+Among the native distributed strategies, regular DDP (``strategy="ddp"``) is still recommended as the go-to strategy over Spawn and Fork/Notebook for its speed and stability but it can only be used with scripts.
+
+
+Comparison of DDP variants and tradeoffs
+****************************************
+
+.. list-table:: DDP variants and their tradeoffs
+   :widths: 40 20 20 20
+   :header-rows: 1
+
+   * -
+     - DDP
+     - DDP Spawn
+     - DDP Notebook/Fork
+   * - Works in Jupyter notebooks / IPython environments
+     - No
+     - No
+     - Yes
+   * - Supports multi-node
+     - Yes
+     - Yes
+     - Yes
+   * - Supported platforms
+     - Linux, Mac, Win
+     - Linux, Mac, Win
+     - Linux, Mac
+   * - Requires all objects to be picklable
+     - No
+     - Yes
+     - No
+   * - Is the guard ``if __name__=="__main__"`` required?
+     - Yes
+     - Yes
+     - No
+   * - Limitations in the main process
+     - None
+     - None
+     - GPU operations such as moving tensors to the GPU or calling ``torch.cuda`` functions before invoking ``Trainer.fit`` is not allowed.
+   * - Process creation time
+     - Slow
+     - Slow
+     - Fast
 
 
 Horovod
