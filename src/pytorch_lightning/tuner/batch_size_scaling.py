@@ -59,7 +59,9 @@ def scale_batch_size(
             " Please disable the feature or incorporate the dataloader into the model."
         )
 
-    with tempfile.NamedTemporaryFile(dir=trainer.default_root_dir, prefix=".scale_batch_size_", suffix=".ckpt") as ckpt_path:
+    with tempfile.NamedTemporaryFile(
+        dir=trainer.default_root_dir, prefix=".scale_batch_size_", suffix=".ckpt"
+    ) as ckpt_path:
         # Save initial model, that is loaded after batch size is found
         trainer.save_checkpoint(ckpt_path.name)
         params = __scale_batch_dump_params(trainer)
