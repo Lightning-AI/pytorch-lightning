@@ -117,6 +117,7 @@ def test_onecyclelr_with_epoch_interval_warns():
 
 def test_scheduler_initialized_with_reduce_on_plateau():
     """Test."""
+
     class CustomReduceLROnPlateau:
         pass
 
