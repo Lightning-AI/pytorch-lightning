@@ -53,6 +53,7 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ matrix.python_version }}
             PYTORCH_VERSION=${{ matrix.pytorch_version }}
+            CUDA_VERSION=${{ matrix.cuda_version }}
           file: dockers/release/Dockerfile
           push: false  # pushed in release-docker.yml only when PL is released
         timeout-minutes: 50
