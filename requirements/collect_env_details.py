@@ -25,8 +25,8 @@ import torch
 import tqdm
 
 sys.path += [os.path.abspath(".."), os.path.abspath("")]
-import pytorch_lightning  # noqa: E402
 import lightning_app  # noqa: E402
+import pytorch_lightning  # noqa: E402
 
 LEVEL_OFFSET = "\t"
 KEY_PADDING = 20
