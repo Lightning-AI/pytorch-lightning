@@ -123,7 +123,7 @@ class DeepSpeedStrategy(DDPStrategy):
         reduce_bucket_size: int = 200_000_000,
         zero_allow_untested_optimizer: bool = True,
         logging_batch_size_per_gpu: Union[str, int] = "auto",
-        config: Optional[Union[Path, str, dict]] = None,
+        config: Optional[Union[_PATH, Dict[str, Any]]] = None,
         logging_level: int = logging.WARN,
         parallel_devices: Optional[List[torch.device]] = None,
         cluster_environment: Optional[ClusterEnvironment] = None,
