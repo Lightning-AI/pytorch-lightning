@@ -49,7 +49,6 @@ warn_no_return = "False"
 module = [
     "pytorch_lightning.callbacks.progress.rich_progress",
     "pytorch_lightning.callbacks.quantization",
-    "pytorch_lightning.callbacks.stochastic_weight_avg",
     "pytorch_lightning.core.datamodule",
     "pytorch_lightning.core.decorators",
     "pytorch_lightning.core.module",
@@ -67,7 +66,6 @@ module = [
     "pytorch_lightning.strategies.ipu",
     "pytorch_lightning.strategies.sharded",
     "pytorch_lightning.strategies.sharded_spawn",
-    "pytorch_lightning.strategies.strategy",
     "pytorch_lightning.strategies.tpu_spawn",
     "pytorch_lightning.trainer.connectors.callback_connector",
     "pytorch_lightning.trainer.connectors.data_connector",
