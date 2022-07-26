@@ -139,7 +139,7 @@ the actual status of 1.6 \[stable\] is following:
 Install future release from the source
 
 ```bash
-pip install git+https://github.com/Lightning-AI/lightning.git@release/1.5.x --upgrade
+pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/release/pytorch.zip -U
 ```
 
 #### Install bleeding-edge - future 1.7
