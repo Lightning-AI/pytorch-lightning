@@ -360,7 +360,7 @@ class DeepSpeedStrategy(DDPStrategy):
     def setup(self, trainer: "pl.Trainer") -> None:
         self.accelerator.setup(trainer)
         # we set the device so that optimizers can be created with distributed comms.
-        assert isinstance(self.lightning_module, pl.LightningModule)
+        assert self.lightning_module is not None
         self.lightning_module._device = self.root_device
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
