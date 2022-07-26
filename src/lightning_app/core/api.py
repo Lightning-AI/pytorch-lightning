@@ -3,6 +3,8 @@ import logging
 import os
 import queue
 import sys
+import time
+import traceback
 from copy import deepcopy
 from multiprocessing import Queue
 from threading import Event, Lock, Thread
@@ -40,6 +42,10 @@ STATE_EVENT = "State changed"
 frontend_static_dir = os.path.join(FRONTEND_DIR, "static")
 
 api_app_delta_queue: Queue = None
+api_commands_requests_queue: Queue = None
+api_commands_metadata_queue: Queue = None
+api_commands_responses_queue: Queue = None
+
 template = {"ui": {}, "app": {}}
 templates = Jinja2Templates(directory=FRONTEND_DIR)
 
@@ -50,6 +56,8 @@ global_app_state_store.add(TEST_SESSION_UUID)
 lock = Lock()
 
 app_spec: Optional[List] = None
+app_commands_metadata: Optional[Dict] = None
+commands_response_store = {}
 
 logger = logging.getLogger(__name__)
 
@@ -59,22 +67,44 @@ logger = logging.getLogger(__name__)
 
 
 class UIRefresher(Thread):
-    def __init__(self, api_publish_state_queue) -> None:
+    def __init__(self, api_publish_state_queue, api_commands_metadata_queue, api_commands_responses_queue) -> None:
         super().__init__(daemon=True)
         self.api_publish_state_queue = api_publish_state_queue
+        self.api_commands_metadata_queue = api_commands_metadata_queue
+        self.api_commands_responses_queue = api_commands_responses_queue
         self._exit_event = Event()
 
     def run(self):
         # TODO: Create multiple threads to handle the background logic
         # TODO: Investigate the use of `parallel=True`
-        while not self._exit_event.is_set():
-            self.run_once()
+        try:
+            while not self._exit_event.is_set():
+                self.run_once()
+        except Exception as e:
+            logger.error(traceback.print_exc())
+            raise e
 
     def run_once(self):
         try:
             state = self.api_publish_state_queue.get(timeout=0)
             with lock:
                 global_app_state_store.set_app_state(TEST_SESSION_UUID, state)
+        except queue.Empty:
+            pass
+
+        try:
+            metadata = self.api_commands_metadata_queue.get(timeout=0)
+            with lock:
+                global app_commands_metadata
+                app_commands_metadata = metadata
+        except queue.Empty:
+            pass
+
+        try:
+            response = self.api_commands_responses_queue.get(timeout=0)
+            with lock:
+                global commands_response_store
+                commands_response_store[response["id"]] = response["response"]
         except queue.Empty:
             pass
 
@@ -144,6 +174,43 @@ async def get_spec(
         raise Exception("Missing X-Lightning-Session-ID header")
     global app_spec
     return app_spec or []
+
+
+@fastapi_service.post("/api/v1/commands", response_class=JSONResponse)
+async def run_remote_command(
+    request: Request,
+) -> None:
+    data = await request.json()
+    command_name = data.get("command_name", None)
+    if not command_name:
+        raise Exception("The provided command name is empty.")
+    command_arguments = data.get("command_arguments", None)
+    if not command_arguments:
+        raise Exception("The provided command metadata is empty.")
+    affiliation = data.get("affiliation", None)
+    if not affiliation:
+        raise Exception("The provided affiliation is empty.")
+
+    async def fn(data):
+        request_id = data["id"]
+        api_commands_requests_queue.put(data)
+
+        t0 = time.time()
+        while request_id not in commands_response_store:
+            await asyncio.sleep(0.1)
+            if (time.time() - t0) > 15:
+                raise Exception("The response was never received.")
+
+        return commands_response_store[request_id]
+
+    return await asyncio.create_task(fn(data))
+
+
+@fastapi_service.get("/api/v1/commands", response_class=JSONResponse)
+async def get_commands() -> Optional[Dict]:
+    global app_commands_metadata
+    with lock:
+        return app_commands_metadata
 
 
 @fastapi_service.post("/api/v1/delta")
@@ -279,6 +346,9 @@ class LightningUvicornServer(uvicorn.Server):
 def start_server(
     api_publish_state_queue,
     api_delta_queue,
+    commands_requests_queue,
+    commands_responses_queue,
+    commands_metadata_queue,
     has_started_queue: Optional[Queue] = None,
     host="127.0.0.1",
     port=8000,
@@ -288,16 +358,22 @@ def start_server(
 ):
     global api_app_delta_queue
     global global_app_state_store
+    global api_commands_requests_queue
+    global api_commands_responses_queue
     global app_spec
+
     app_spec = spec
     api_app_delta_queue = api_delta_queue
+    api_commands_requests_queue = commands_requests_queue
+    api_commands_responses_queue = commands_responses_queue
+    api_commands_metadata_queue = commands_metadata_queue
 
     if app_state_store is not None:
         global_app_state_store = app_state_store
 
     global_app_state_store.add(TEST_SESSION_UUID)
 
-    refresher = UIRefresher(api_publish_state_queue)
+    refresher = UIRefresher(api_publish_state_queue, api_commands_metadata_queue, commands_responses_queue)
     refresher.setDaemon(True)
     refresher.start()
 
