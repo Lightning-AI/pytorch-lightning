@@ -85,7 +85,7 @@ def _parse_loop_limits(
         The parsed limits, with default values being set for the ones that the user did not specify.
     """
     if max_epochs is None:
-        if max_steps == -1 and any(isinstance(cb, Timer) for cb in trainer.callbacks):
+        if max_steps == -1 and not any(isinstance(cb, Timer) for cb in trainer.callbacks):
             rank_zero_warn(
                 "`max_epochs` was not set. Setting it to 1000 epochs. To train without an epoch limit,"
                 " set `max_epochs=-1`.",
