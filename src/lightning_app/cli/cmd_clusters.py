@@ -98,7 +98,7 @@ class AWSClusterManager:
         console = Console()
         console.print(ClusterList(resp.clusters).as_table())
 
-    def delete(self, cluster_id=None, force=None, wait=None):
+    def delete(self, cluster_id: str = None, force: bool = False, wait: bool = False):
         if force:
             click.echo(
                 """

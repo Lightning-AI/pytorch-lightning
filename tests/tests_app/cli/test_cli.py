@@ -79,7 +79,7 @@ def test_main_lightning_cli_help():
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
 @mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.create")
-def test_clusters_create(create: mock.MagicMock):
+def test_create_cluster(create: mock.MagicMock):
     runner = CliRunner()
     runner.invoke(
         create_cluster,
@@ -110,7 +110,7 @@ def test_clusters_create(create: mock.MagicMock):
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
 @mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.list")
-def test_clusters_list(list: mock.MagicMock):
+def test_list_clusters(list: mock.MagicMock):
     runner = CliRunner()
     runner.invoke(list_clusters)
 
@@ -119,7 +119,7 @@ def test_clusters_list(list: mock.MagicMock):
 
 @mock.patch("lightning_cloud.login.Auth.authenticate", MagicMock())
 @mock.patch("lightning_app.cli.cmd_clusters.AWSClusterManager.delete")
-def test_clusters_delete(delete: mock.MagicMock):
+def test_delete_cluster(delete: mock.MagicMock):
     runner = CliRunner()
     runner.invoke(delete_cluster, ["test-7"])
 
