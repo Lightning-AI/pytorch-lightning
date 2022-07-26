@@ -108,7 +108,7 @@ def test_device_stats_monitor_tpu(tmpdir):
         def log_metrics(self, metrics, step=None) -> None:
             fields = ["avg. free memory (MB)", "avg. peak memory (MB)"]
             for f in fields:
-                assert any(f in h for h in metrics.keys())
+                assert any(f in h for h in metrics)
 
     trainer = Trainer(
         default_root_dir=tmpdir,
@@ -116,6 +116,7 @@ def test_device_stats_monitor_tpu(tmpdir):
         limit_train_batches=5,
         accelerator="tpu",
         devices=8,
+        log_every_n_steps=1,
         callbacks=[device_stats],
         logger=DebugLogger(tmpdir),
         enable_checkpointing=False,
