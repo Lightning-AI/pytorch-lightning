@@ -56,7 +56,7 @@ You can also fill out the list below manually.
 - GPU models and configuration:
 - How you installed PyTorch (`conda`, `pip`, source):
 - If compiling from source, the output of `torch.__config__.show()`:
-- Running environment of LightningApp (e.g. local, cloud): 
+- Running environment of LightningApp (e.g. local, cloud):
 - Any other relevant information:
 
 ### Additional context
