@@ -379,11 +379,7 @@ def _dataloader_init_kwargs_resolve_sampler(
             fast_forward_sampler.setup(dataloader_batch_size=1)
 
         return {
-            "sampler": None,
-            "shuffle": False,
             "batch_sampler": batch_sampler,
-            "batch_size": None,
-            "drop_last": False,
         }
 
     if fault_tolerant_mode.is_automatic:
