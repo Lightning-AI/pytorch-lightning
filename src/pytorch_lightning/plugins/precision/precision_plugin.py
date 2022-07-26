@@ -55,7 +55,6 @@ class PrecisionPlugin(CheckpointHooks):
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
         """
-        assert model.trainer is not None
         model.trainer._call_callback_hooks("on_before_backward", closure_loss)
         model.trainer._call_lightning_module_hook("on_before_backward", closure_loss)
         return closure_loss
@@ -90,7 +89,6 @@ class PrecisionPlugin(CheckpointHooks):
         """
         # once backward has been applied, release graph
         closure_loss = closure_loss.detach()
-        assert model.trainer is not None
         model.trainer._call_callback_hooks("on_after_backward")
         model.trainer._call_lightning_module_hook("on_after_backward")
         return closure_loss
@@ -103,14 +101,13 @@ class PrecisionPlugin(CheckpointHooks):
         tensor.backward(*args, **kwargs)
 
     def _after_closure(
-        self, model: Union["pl.LightningModule", Module], optimizer: Optimizer, optimizer_idx: int
+        self, model: Optional[Union["pl.LightningModule", Module]], optimizer: Optimizer, optimizer_idx: int
     ) -> None:
         """Utility to share some code after the closure has been run."""
         if not isinstance(model, pl.LightningModule):
             # none of this applies to Lite
             return
         trainer = model.trainer
-        assert trainer is not None
         trainer._call_callback_hooks("on_before_optimizer_step", optimizer, optimizer_idx)
         trainer._call_lightning_module_hook("on_before_optimizer_step", optimizer, optimizer_idx)
         # TODO: this is done for the entire model but should be changed to per-optimizer
@@ -143,7 +140,7 @@ class PrecisionPlugin(CheckpointHooks):
 
     def optimizer_step(
         self,
-        model: Union["pl.LightningModule", Module],
+        model: Optional[Union["pl.LightningModule", Module]],
         optimizer: Optimizer,
         optimizer_idx: int,
         closure: Callable[[], Any],
