@@ -19,7 +19,7 @@ import os
 import platform
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, cast, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Any, cast, Dict, Generator, List, Mapping, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
