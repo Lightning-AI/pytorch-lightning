@@ -15,7 +15,7 @@ from lightning_app.utilities.state import AppState
 def test_app_state_not_connected(_):
 
     """Test an error message when a disconnected AppState tries to access attributes."""
-    state = AppState()
+    state = AppState(port=8000)
     with pytest.raises(AttributeError, match="Failed to connect and fetch the app state"):
         _ = state.value
     with pytest.raises(AttributeError, match="Failed to connect and fetch the app state"):
@@ -209,7 +209,7 @@ def test_attach_plugin():
 @mock.patch("lightning_app.utilities.state._configure_session", return_value=requests)
 def test_app_state_connection_error(_):
     """Test an error message when a connection to retrieve the state can't be established."""
-    app_state = AppState()
+    app_state = AppState(port=8000)
     with pytest.raises(AttributeError, match=r"Failed to connect and fetch the app state\. Is the app running?"):
         app_state._request_state()
 
