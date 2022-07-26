@@ -139,11 +139,12 @@ def test_auto_scale_batch_size_trainer_arg(tmpdir, scale_arg):
 
     assert not os.path.exists(tmpdir / "scale_batch_size_temp_model.ckpt")
 
+
 @RunIf(min_cuda_gpus=1)
 @pytest.mark.parametrize("scale_mode", ["power", "binsearch"])
 def test_auto_scale_batch_size_calls_forward_method_x_times(tmpdir, scale_mode):
-    """Test that models actually go through forward loop (and don't get
-       skipped due to buggy epoch count resets)."""
+    """Test that models actually go through forward loop (and don't get skipped due to buggy epoch count
+    resets)."""
 
     class CounterModel(BatchSizeModel):
         def __init__(self):
@@ -162,8 +163,6 @@ def test_auto_scale_batch_size_calls_forward_method_x_times(tmpdir, scale_mode):
     expected_minimum_number_of_passed_epochs = max_trials
     actual_number_of_passed_epochs = model.num_completed_epochs
     assert actual_number_of_passed_epochs >= expected_minimum_number_of_passed_epochs
-
-
 
 
 @RunIf(min_cuda_gpus=1)
