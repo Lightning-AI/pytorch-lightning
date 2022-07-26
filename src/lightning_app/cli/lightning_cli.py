@@ -53,7 +53,7 @@ def _main():
 
 @_main.group("create")
 def create():
-    """Create Lightning managed resources."""
+    """Create Lightning AI BYOC managed resources."""
     pass
 
 
@@ -117,7 +117,7 @@ def create_cluster(
     wait: bool,
     **kwargs,
 ):
-    """Create a Lightning AI compute cluster with your cloud provider credentials."""
+    """Create a Lightning AI BYOC compute cluster with your cloud provider credentials."""
     if provider != "aws":
         click.echo("Only AWS is supported for now. But support for more providers is coming soon.")
         return
@@ -292,7 +292,7 @@ def stop():
 
 @_main.group(name="delete")
 def delete():
-    """Delete a Lightning managed resources."""
+    """Delete Lightning AI BYOC managed resources."""
     pass
 
 
@@ -305,7 +305,7 @@ def delete():
     required=False,
     default=False,
     is_flag=True,
-    help="""Delete a cluster from Lightning AI. This does NOT delete any resources created by the cluster,
+    help="""Delete a BYOC cluster from Lightning AI. This does NOT delete any resources created by the cluster,
             it just removes the entry from Lightning AI.
 
             WARNING: You should NOT use this under normal circumstances.""",
@@ -320,15 +320,15 @@ def delete():
     help="Enabling this flag makes the CLI wait until the cluster is deleted.",
 )
 def delete_cluster(cluster: str, force: bool = False, wait: bool = False):
-    """Delete a Lightning AI compute cluster and all associated cloud provider resources.
+    """Delete a Lightning AI BYOC compute cluster and all associated cloud provider resources.
 
     Deleting a run also deletes all Runs and Experiments that were started on the cluster.
     Deletion permanently removes not only the record of all runs on a cluster, but all associated experiments,
     artifacts, metrics, logs, etc.
 
     WARNING: This process may take a few minutes to complete, but once started it CANNOT be rolled back.
-    Deletion permanently removes not only the cluster from being managed by Lightning AI, but tears down
-    every resource Lightning AI managed (for that cluster id) in the host cloud.
+    Deletion permanently removes not only the BYOC cluster from being managed by Lightning AI, but tears down
+    every BYOC resource Lightning AI managed (for that cluster id) in the host cloud.
 
     All object stores, container registries, logs, compute nodes, volumes, etc. are deleted and cannot be recovered.
     """
@@ -338,13 +338,13 @@ def delete_cluster(cluster: str, force: bool = False, wait: bool = False):
 
 @_main.group(name="list")
 def get_list():
-    """List your Lightning managed resources."""
+    """List your Lightning AI BYOC managed resources."""
     pass
 
 
 @get_list.command("clusters")
 def list_clusters(**kwargs):
-    """List your Lightning AI compute clusters."""
+    """List your Lightning AI BYOC compute clusters."""
     mgr = AWSClusterManager()
     mgr.list()
     pass

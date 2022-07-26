@@ -1,22 +1,23 @@
 import json
+import re
+import time
 from datetime import datetime
-from dataclasses import dataclass
 
-from lightning_cloud.openapi import V1ClusterPerformanceProfile, V1CreateClusterRequest, V1ClusterSpec, V1ClusterDriver, \
-    V1KubernetesClusterDriver, V1AWSClusterDriverSpec, V1InstanceSpec
+import arrow
+import click
+from lightning_cloud.openapi import (
+    V1AWSClusterDriverSpec,
+    V1ClusterDriver,
+    V1ClusterPerformanceProfile,
+    V1ClusterSpec,
+    V1CreateClusterRequest,
+    V1InstanceSpec,
+    V1KubernetesClusterDriver,
+)
+from lightning_cloud.openapi.models import Externalv1Cluster, V1ClusterState, V1ClusterType
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
-import arrow
-import click
-import time
-import re
-
-from lightning_cloud.openapi.models import (
-    V1ClusterState,
-    Externalv1Cluster,
-    V1ClusterType,
-)
 
 from lightning_app.cli.core import Formatable
 from lightning_app.utilities.network import LightningClient
@@ -30,8 +31,17 @@ class AWSClusterManager:
     def __init__(self):
         self.api_client = LightningClient()
 
-    def create(self, cost_savings=None, cluster_name=None, role_arn=None, region=None, external_id=None,
-               instance_types=None, edit_before_creation=None, wait=None):
+    def create(
+        self,
+        cost_savings=None,
+        cluster_name=None,
+        role_arn=None,
+        region=None,
+        external_id=None,
+        instance_types=None,
+        edit_before_creation=None,
+        wait=None,
+    ):
         performance_profile = V1ClusterPerformanceProfile.DEFAULT
         if cost_savings:
             performance_profile = V1ClusterPerformanceProfile.COST_SAVING
@@ -46,11 +56,11 @@ class AWSClusterManager:
                             region=region,
                             role_arn=role_arn,
                             external_id=external_id,
-                            instance_types=[V1InstanceSpec(name=x) for x in instance_types]
+                            instance_types=[V1InstanceSpec(name=x) for x in instance_types],
                         )
                     )
-                )
-            )
+                ),
+            ),
         )
         new_body = body
         if edit_before_creation:
@@ -73,19 +83,22 @@ class AWSClusterManager:
 
     def delete(self, cluster_id=None, force=None, wait=None):
         if force:
-            click.echo("""
-            Deletes a cluster. Lightning AI removes cluster artifacts and any experiments, sessions, datastores,
+            click.echo(
+                """
+            Deletes a BYOC cluster. Lightning AI removes cluster artifacts and any experiments, sessions, datastores,
             tensorboards, and other resources running on the cluster.\n
             WARNING: Deleting a cluster does not clean up any resources managed by Lightning AI.\n
-            Check your cloud provider to verify that existing cloud resources are deleted.  
-            """)
-            click.confirm('Do you want to continue?', abort=True)
+            Check your cloud provider to verify that existing cloud resources are deleted.
+            """
+            )
+            click.confirm("Do you want to continue?", abort=True)
 
         self.api_client.cluster_service_delete_cluster(id=cluster_id, force=force)
         click.echo("Cluster deletion triggered successfully")
 
         if wait:
             _wait_for_cluster_state(self.api_client, cluster_id, V1ClusterState.DELETED)
+
 
 class ClusterList(Formatable):
     def __init__(self, clusters: [Externalv1Cluster]):
@@ -111,8 +124,7 @@ class ClusterList(Formatable):
         for cluster in self.clusters:
             cluster: Externalv1Cluster
             status = phases[cluster.status.phase]
-            if cluster.spec.desired_state == V1ClusterState.DELETED \
-                    and cluster.status.phase != V1ClusterState.DELETED:
+            if cluster.spec.desired_state == V1ClusterState.DELETED and cluster.status.phase != V1ClusterState.DELETED:
                 status = Text("terminating", style="bold red")
 
             # this guard is necessary only until 0.3.93 releases which includes the `created_at`
@@ -132,11 +144,11 @@ class ClusterList(Formatable):
 
 
 def _wait_for_cluster_state(
-        api_client,
-        cluster_id: str,
-        target_state: V1ClusterState,
-        max_wait_time=MAX_CLUSTER_WAIT_TIME,
-        check_timeout=CLUSTER_STATE_CHECKING_TIMEOUT,
+    api_client,
+    cluster_id: str,
+    target_state: V1ClusterState,
+    max_wait_time=MAX_CLUSTER_WAIT_TIME,
+    check_timeout=CLUSTER_STATE_CHECKING_TIMEOUT,
 ):
     start = time.time()
     elapsed = 0
@@ -155,15 +167,15 @@ def _wait_for_cluster_state(
             time.sleep(check_timeout)
         elapsed = time.time() - start
     else:
-        raise click.ClickException(f"Max wait time elapsed")
+        raise click.ClickException("Max wait time elapsed")
 
 
 def _check_cluster_name_is_valid(_ctx, _param, value):
     pattern = r"^(?!-)[a-z0-9-]{1,63}(?<!-)$"
     if not re.match(pattern, value):
         raise click.ClickException(
-            f"""The cluster name is invalid. 
-            Cluster names can only contain lowercase letters, numbers, and periodic hyphens ( - ). 
+            """The cluster name is invalid.
+            Cluster names can only contain lowercase letters, numbers, and periodic hyphens ( - ).
             Provide a cluster name using valid characters and try again."""
         )
     return value
