@@ -128,7 +128,11 @@ def _run_power_scaling(
     """Batch scaling mode where the size is doubled at each iteration until an OOM error is encountered."""
     for _ in range(max_trials):
         garbage_collection_cuda()
-        trainer.fit_loop.global_step = 0  # reset after each try
+
+        # reset after each try
+        trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.reset()
+        trainer.fit_loop.epoch_progress.current.reset()
+
         try:
             # Try fit
             trainer.tuner._run(model)
@@ -166,7 +170,11 @@ def _run_binsearch_scaling(
     count = 0
     while True:
         garbage_collection_cuda()
-        trainer.fit_loop.global_step = 0  # reset after each try
+
+        # reset after each try
+        trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.reset()
+        trainer.fit_loop.epoch_progress.current.reset()
+
         try:
             # Try fit
             trainer.tuner._run(model)
