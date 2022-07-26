@@ -172,7 +172,12 @@ def _run_binsearch_scaling(
         garbage_collection_cuda()
 
         # reset after each try
-        trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.reset()
+        if model.automatic_optimization:
+            optim_progress = trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress
+        else:
+            optim_progress = trainer.fit_loop.epoch_loop.batch_loop.manual_loop.optim_step_progress
+            
+        optim_progress.reset()
         trainer.fit_loop.epoch_progress.current.reset()
 
         try:
