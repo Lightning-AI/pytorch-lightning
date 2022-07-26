@@ -41,7 +41,7 @@ def _find_tensors(
 
 
 # In manual_optimization, we need to call reducer prepare_for_backward.
-# Note: Keep track of Pytorch DDP and update if there is a change
+# Note: Keep track of PyTorch DDP and update if there is a change
 # https://github.com/pytorch/pytorch/blob/v1.7.1/torch/nn/parallel/distributed.py#L626-L638
 def prepare_for_backward(model: DistributedDataParallel, output: Any) -> None:
     # `prepare_for_backward` is `DistributedDataParallel` specific.

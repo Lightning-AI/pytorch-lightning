@@ -278,7 +278,7 @@ def test_accelerator_cpu(_):
         MisconfigurationException,
         match="CUDAAccelerator can not run on your system since the accelerator is not available.",
     ):
-        Trainer(accelerator="gpu")
+        Trainer(accelerator="cuda")
 
     with pytest.deprecated_call(match=r"is deprecated in v1.7 and will be removed"):
         Trainer(accelerator="cpu", gpus=1)
@@ -671,7 +671,7 @@ def test_devices_auto_choice_mps():
 
 @pytest.mark.parametrize(
     ["parallel_devices", "accelerator"],
-    [([torch.device("cpu")], "gpu"), ([torch.device("cuda", i) for i in range(8)], ("tpu"))],
+    [([torch.device("cpu")], "cuda"), ([torch.device("cuda", i) for i in range(8)], ("tpu"))],
 )
 def test_parallel_devices_in_strategy_confilict_with_accelerator(parallel_devices, accelerator):
     with pytest.raises(MisconfigurationException, match=r"parallel_devices set through"):
@@ -746,11 +746,49 @@ def test_plugin_only_one_instance_for_one_type(plugins, expected):
         Trainer(plugins=plugins)
 
 
-@pytest.mark.parametrize("accelerator", ("cpu", "gpu", "tpu", "ipu"))
+@pytest.mark.parametrize("accelerator", ("cpu", "cuda", "mps", "tpu", "ipu"))
 @pytest.mark.parametrize("devices", ("0", 0, []))
 def test_passing_zero_and_empty_list_to_devices_flag(accelerator, devices):
     with pytest.raises(MisconfigurationException, match="value is not a valid input using"):
         Trainer(accelerator=accelerator, devices=devices)
+
+
+@pytest.mark.parametrize(
+    "expected_accelerator_flag,expected_accelerator_class",
+    [
+        pytest.param("cuda", CUDAAccelerator, marks=RunIf(min_cuda_gpus=1)),
+        pytest.param("mps", MPSAccelerator, marks=RunIf(mps=True)),
+    ],
+)
+def test_gpu_accelerator_backend_choice(expected_accelerator_flag, expected_accelerator_class):
+
+    trainer = Trainer(accelerator="gpu")
+    assert trainer._accelerator_connector._accelerator_flag == expected_accelerator_flag
+    assert isinstance(trainer.accelerator, expected_accelerator_class)
+
+
+@mock.patch("pytorch_lightning.utilities.device_parser.num_cuda_devices", return_value=1)
+def test_gpu_accelerator_backend_choice_cuda(_):
+    trainer = Trainer(accelerator="gpu")
+
+    assert trainer._accelerator_connector._accelerator_flag == "cuda"
+    assert isinstance(trainer.accelerator, CUDAAccelerator)
+
+
+@mock.patch("pytorch_lightning.accelerators.mps._MPS_AVAILABLE", return_value=True)
+@mock.patch("torch.device", return_value="mps")  # necessary because torch doesn't allow creation of mps devices
+def test_gpu_accelerator_backend_choice_mps(*_):
+    trainer = Trainer(accelerator="gpu")
+
+    assert trainer._accelerator_connector._accelerator_flag == "mps"
+    assert isinstance(trainer.accelerator, MPSAccelerator)
+
+
+@mock.patch("pytorch_lightning.accelerators.mps.MPSAccelerator.is_available", return_value=False)
+@mock.patch("pytorch_lightning.accelerators.cuda.CUDAAccelerator.is_available", return_value=False)
+def test_gpu_accelerator_misconfiguration_exception(*_):
+    with pytest.raises(MisconfigurationException, match="No supported gpu backend found!"):
+        Trainer(accelerator="gpu")
 
 
 @mock.patch("pytorch_lightning.accelerators.hpu.HPUAccelerator.is_available", return_value=True)
