@@ -3,7 +3,6 @@ import re
 import time
 from datetime import datetime
 
-import arrow
 import click
 from lightning_cloud.openapi import (
     V1AWSClusterDriverSpec,
@@ -138,7 +137,7 @@ class ClusterList(Formatable):
                 cluster.name,
                 cluster_type_lookup.get(cluster.spec.cluster_type, Text("unknown", style="red")),
                 status,
-                arrow.get(created_at).humanize() if created_at else "",
+                created_at.strftime("%Y-%m-%d") if created_at else "",
             )
         return table
 
