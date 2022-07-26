@@ -1,14 +1,6 @@
 from dataclasses import asdict, dataclass
 from typing import List, Optional, Union
 
-_name_to_devices_map = {
-    "default": 1,
-    "cpu": 1,
-    "gpu": 1,
-    "gpu-fast": 1,
-    "gpu-fast-multi": 4,
-}
-
 
 @dataclass
 class CloudCompute:
@@ -66,9 +58,3 @@ class CloudCompute:
     @classmethod
     def from_dict(cls, d):
         return cls(**d["__cloud_compute__"])
-
-    @property
-    def devices(self) -> int:
-        if self.name in _name_to_devices_map:
-            return _name_to_devices_map[self.name]
-        return 1

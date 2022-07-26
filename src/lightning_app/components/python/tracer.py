@@ -2,14 +2,21 @@ import logging
 import os
 import signal
 import sys
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, TypedDict, Union
 
 from lightning_app import LightningWork
+from lightning_app.storage.drive import Drive
 from lightning_app.storage.payload import Payload
 from lightning_app.utilities.app_helpers import _collect_child_process_pids
+from lightning_app.utilities.packaging.tarfile import clean_tarfile, extract_tarfile
 from lightning_app.utilities.tracer import Tracer
 
 logger = logging.getLogger(__name__)
+
+
+class Code(TypedDict):
+    drive: Drive
+    name: str
 
 
 class TracerPythonScript(LightningWork):
@@ -101,13 +108,34 @@ class TracerPythonScript(LightningWork):
         self.outputs = outputs or []
         for name in self.outputs:
             setattr(self, name, None)
+        self.params = None
 
-    def run(self, **kwargs):
+    def run(self, params: Optional[Dict[str, Any]] = None, code: Optional[Code] = None, **kwargs):
+        """
+        Arguments:
+            params: A dictionary of arguments to be be added to script_args
+            code: A dictionary with a drive and a file name to get retrieve
+        """
+
+        if params:
+            self.params = params
+            self.script_args.extend([f"--{k}={v}" for k, v in params.items()])
+
+        if code:
+            raise Exception(code)
+            clean_tarfile(code["name"], "r:gz")
+            code["drive"].get(code["name"])
+            extract_tarfile(code["name"], ".", "r:gz")
+            os.remove(code["name"])
+
         if not os.path.exists(self.script_path):
             raise FileNotFoundError(f"The provided `script_path` {self.script_path}` wasn't found.")
+
         kwargs = {k: v.value if isinstance(v, Payload) else v for k, v in kwargs.items()}
+
         init_globals = globals()
         init_globals.update(kwargs)
+
         self.on_before_run()
         env_copy = os.environ.copy()
         if self.env:

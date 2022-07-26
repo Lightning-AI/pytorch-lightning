@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import List, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 from lightning import CloudCompute
 from lightning_app import LightningFlow, structures
@@ -19,10 +19,18 @@ class PyTorchLightningScriptRunner(TracerPythonScript):
         num_nodes: int = 1,
         sanity_serving: bool = False,
         cloud_compute: Optional[CloudCompute] = None,
+        parallel: bool = True,
+        raise_exception: bool = True,
+        env: Optional[Dict[str, Any]] = None,
         **kwargs,
     ):
         super().__init__(
-            script_path, script_args, raise_exception=True, parallel=True, cloud_compute=cloud_compute, **kwargs
+            script_path,
+            script_args,
+            raise_exception=raise_exception,
+            parallel=parallel,
+            cloud_compute=cloud_compute,
+            **kwargs,
         )
         self.node_rank = node_rank
         self.num_nodes = num_nodes
@@ -30,6 +38,7 @@ class PyTorchLightningScriptRunner(TracerPythonScript):
         self.best_model_score = None
         self.sanity_serving = sanity_serving
         self.has_finished = False
+        self.env = env
 
     def configure_tracer(self):
         from pytorch_lightning import Trainer
@@ -38,44 +47,46 @@ class PyTorchLightningScriptRunner(TracerPythonScript):
         tracer.add_traced(Trainer, "__init__", pre_fn=self._trainer_init_pre_middleware)
         return tracer
 
-    def run(self, internal_urls: Optional[List[Tuple[str, str]]] = None):
+    def run(self, internal_urls: Optional[List[Tuple[str, str]]] = None, **kwargs):
         if not internal_urls:
+            # Note: This is called only once.
             _logger.info(f"The node {self.node_rank} started !")
             return
 
-        master_address = str(internal_urls[0][0])
-        master_port = str(internal_urls[0][1])
+        if self.env:
+            os.environ.update(self.env)
 
-        os.environ.update(
-            {
-                "MASTER_ADDR": master_address,
-                "MASTER_PORT": master_port,
-                "NODE_RANK": str(self.node_rank),
-                "WORLD_SIZE": str(self.num_nodes * self.cloud_compute.devices),
-                "PL_TRAINER_NUM_NODES": str(self.num_nodes),
-                "PL_TRAINER_STRATEGY": "ddp",
-                "PL_TRAINER_DEVICES": str(self.cloud_compute.devices),
-                "PL_TRAINER_ACCELERATOR": "auto",
-            }
-        )
-        return super().run()
+        distributed_env_vars = {
+            "MASTER_ADDR": internal_urls[0][0],
+            "MASTER_PORT": str(internal_urls[0][1]),
+            "NODE_RANK": str(self.node_rank),
+            "PL_TRAINER_NUM_NODES": str(self.num_nodes),
+            "PL_TRAINER_DEVICES": "auto",
+            "PL_TRAINER_ACCELERATOR": "auto",
+        }
+
+        os.environ.update(distributed_env_vars)
+        return super().run(**kwargs)
 
     def on_after_run(self, script_globals):
         from pytorch_lightning import Trainer
-        from pytorch_lightning.utilities.cli import LightningCLI
+        from pytorch_lightning.cli import LightningCLI
 
-        cli = [v for v in script_globals.values() if isinstance(v, LightningCLI)]
-        if cli:
-            trainer = cli[0].trainer
+        for v in script_globals.values():
+            if isinstance(v, LightningCLI):
+                trainer = v.trainer
+                break
+            elif isinstance(v, Trainer):
+                trainer = v
+                break
         else:
-            trainer = [v for v in script_globals.values() if isinstance(v, Trainer)][0]
+            raise RuntimeError("No trainer instance found.")
 
         if trainer.checkpoint_callback.best_model_score:
             self.best_model_path = Path(trainer.checkpoint_callback.best_model_path)
             self.best_model_score = float(trainer.checkpoint_callback.best_model_score)
+
         self.has_finished = True
-        # TODO: Why does it hang there.
-        raise SystemExit(0)
 
     def _trainer_init_pre_middleware(self, trainer, *args, **kwargs):
         if self.node_rank != 0:
@@ -103,6 +114,7 @@ class LightningTrainingComponent(LightningFlow):
         cloud_compute: CloudCompute = CloudCompute("default"),
         sanity_serving: bool = False,
         script_runner: Type[TracerPythonScript] = PyTorchLightningScriptRunner,
+        **kwargs,
     ):
         """This component enables to perform distributed multi-node multi-devices training.
 
@@ -129,7 +141,7 @@ class LightningTrainingComponent(LightningFlow):
                 the ServableModule API
         """
         super().__init__()
-        self.ws = structures.Dict()
+        self.ws = structures.List()
         self.has_initialized = False
         self.script_path = script_path
         self.script_args = script_args
@@ -137,31 +149,39 @@ class LightningTrainingComponent(LightningFlow):
         self._cloud_compute = cloud_compute  # TODO: Add support for cloudCompute
         self.sanity_serving = sanity_serving
         self._script_runner = script_runner
+        self._kwargs = kwargs
 
-    def run(self):
+    def run(self, **kwargs):
         if not self.has_initialized:
             for node_rank in range(self.num_nodes):
-                self.ws[str(node_rank)] = self._script_runner(
-                    script_path=self.script_path,
-                    script_args=self.script_args,
-                    cloud_compute=self._cloud_compute,
-                    node_rank=node_rank,
-                    sanity_serving=self.sanity_serving,
-                    num_nodes=self.num_nodes,
+                self.ws.append(
+                    self._script_runner(
+                        script_path=self.script_path,
+                        script_args=self.script_args,
+                        cloud_compute=self._cloud_compute,
+                        node_rank=node_rank,
+                        sanity_serving=self.sanity_serving,
+                        num_nodes=self.num_nodes,
+                        **self._kwargs,
+                    )
                 )
 
             self.has_initialized = True
 
-        for work in self.ws.values():
-            if self._ready:
-                internal_urls = [(w.internal_ip, w.port) for w in self.ws.values()]
-                work.run(internal_urls)
-                if all(w.has_finished for w in self.ws.values()):
-                    for w in self.ws.values():
+        for work in self.ws:
+            if all(w.internal_ip for w in self.ws):
+                internal_urls = [(w.internal_ip, w.port) for w in self.ws]
+                work.run(internal_urls=internal_urls, **kwargs)
+                if all(w.has_finished for w in self.ws):
+                    for w in self.ws:
                         w.stop()
             else:
                 work.run()
 
     @property
-    def _ready(self) -> bool:
-        return all(w.internal_ip for w in self.ws.values())
+    def best_model_score(self) -> Optional[float]:
+        return self.ws[0].best_model_score
+
+    @property
+    def best_model_paths(self) -> List[Optional[Path]]:
+        return [self.ws[node_idx].best_mode_path for node_idx in range(len(self.ws))]
