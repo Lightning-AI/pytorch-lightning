@@ -16,6 +16,7 @@ from lightning_app.core.queues import BaseQueue, SingleProcessQueue
 from lightning_app.frontend import Frontend
 from lightning_app.storage.path import storage_root_dir
 from lightning_app.utilities.app_helpers import _delta_to_appstate_delta, _LightningAppRef
+from lightning_app.utilities.commands.base import _populate_commands_endpoint, _process_command_requests
 from lightning_app.utilities.component import _convert_paths_after_init
 from lightning_app.utilities.enum import AppStage
 from lightning_app.utilities.exceptions import CacheMissException, ExitAppException
@@ -72,6 +73,9 @@ class LightningApp:
         # queues definition.
         self.delta_queue: t.Optional[BaseQueue] = None
         self.readiness_queue: t.Optional[BaseQueue] = None
+        self.commands_requests_queue: t.Optional[BaseQueue] = None
+        self.commands_responses_queue: t.Optional[BaseQueue] = None
+        self.commands_metadata_queue: t.Optional[BaseQueue] = None
         self.api_publish_state_queue: t.Optional[BaseQueue] = None
         self.api_delta_queue: t.Optional[BaseQueue] = None
         self.error_queue: t.Optional[BaseQueue] = None
@@ -81,6 +85,7 @@ class LightningApp:
         self.copy_response_queues: t.Optional[t.Dict[str, BaseQueue]] = None
         self.caller_queues: t.Optional[t.Dict[str, BaseQueue]] = None
         self.work_queues: t.Optional[t.Dict[str, BaseQueue]] = None
+        self.commands: t.Optional[t.List] = None
 
         self.should_publish_changes_to_api = False
         self.component_affiliation = None
@@ -345,6 +350,8 @@ class LightningApp:
         elif self.stage == AppStage.RESTARTING:
             return self._apply_restarting()
 
+        _process_command_requests(self)
+
         try:
             self.check_error_queue()
             t0 = time()
@@ -396,6 +403,8 @@ class LightningApp:
             self.api_publish_state_queue.put(self.state)
 
         self._reset_run_time_monitor()
+
+        _populate_commands_endpoint(self)
 
         while not done:
             done = self.run_once()
