@@ -168,7 +168,7 @@ class TestFileServer(LightningWork):
         super().__init__(cache_calls=True)
         self.drive = drive
 
-    def run(self, file_server_url: str, first = True):
+    def run(self, file_server_url: str, first=True):
         if first:
             with open("test.txt", "w") as f:
                 f.write("Some text.")

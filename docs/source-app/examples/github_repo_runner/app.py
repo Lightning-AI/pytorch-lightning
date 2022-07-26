@@ -139,8 +139,10 @@ class PyTorchLightningGithubRepoRunner(GithubRepoRunner):
 class KerasGithubRepoRunner(GithubRepoRunner):
     """Left to the users to implement."""
 
+
 class TensorflowGithubRepoRunner(GithubRepoRunner):
     """Left to the users to implement."""
+
 
 GITHUB_REPO_RUNNERS = {
     "PyTorch Lightning": PyTorchLightningGithubRepoRunner,
@@ -186,6 +188,7 @@ class Flow(LightningFlow):
     def configure_layout(self):
         # Create a StreamLit UI for the user to run his Github Repo.
         return StreamlitFrontend(render_fn=render_fn)
+
 
 def page_1__create_new_run(state):
     import streamlit as st
@@ -237,6 +240,7 @@ def page_1__create_new_run(state):
         # and run the associated work from the request information.
         state.requests = state.requests + [new_request]
 
+
 def page_2__view_run_lists(state):
     import streamlit as st
 
@@ -266,9 +270,9 @@ def page_3__view_app_state(state):
     st.markdown("# App State 🎈")
     st.write(state._state)
 
+
 def render_fn(state: AppState):
     import streamlit as st
-
 
     page_names_to_funcs = {
         "Create a new Run": partial(page_1__create_new_run, state=state),
