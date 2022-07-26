@@ -124,7 +124,7 @@ def test_scheduler_initialized_with_custom_reduceonplateau():
     lr_scheduler = {"reduce_on_plateau": True, "scheduler": CustomReduceLROnPlateau(), "monitor": "my_loss"}
     config = _configure_schedulers_automatic_opt([lr_scheduler], None)
     assert isinstance(config[0].scheduler, CustomReduceLROnPlateau)
-    assert config[0].reduce_on_plateau is True
+    assert config[0].reduce_on_plateau
 
 
 def test_reducelronplateau_scheduling(tmpdir):
