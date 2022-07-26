@@ -27,6 +27,7 @@ from pytorch_lightning.core.optimizer import _init_optimizers_and_lr_schedulers,
 from pytorch_lightning.overrides.base import unwrap_lightning_module
 from pytorch_lightning.plugins import TorchCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.launchers.base import _Launcher
 from pytorch_lightning.trainer.states import TrainerFn
@@ -84,6 +85,8 @@ class Strategy(ABC):
     def checkpoint_io(self) -> CheckpointIO:
         if self._checkpoint_io is None:
             self._checkpoint_io = TorchCheckpointIO()
+        elif isinstance(self._checkpoint_io, _WrappingCheckpointIO):
+            self._checkpoint_io.checkpoint_io = TorchCheckpointIO()
 
         return self._checkpoint_io
 
@@ -467,6 +470,7 @@ class Strategy(ABC):
         self.precision_plugin.teardown()
         assert self.accelerator is not None
         self.accelerator.teardown()
+        self.checkpoint_io.teardown()
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict[str, Any]) -> None:
