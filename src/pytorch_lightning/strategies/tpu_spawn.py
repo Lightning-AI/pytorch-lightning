@@ -24,10 +24,11 @@ import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.plugins.environments import XLAEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
+from pytorch_lightning.plugins.io.wrapper import _WrappingCheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.ddp_spawn import DDPSpawnStrategy
-from pytorch_lightning.strategies.launchers.xla_spawn import _XLASpawnLauncher
+from pytorch_lightning.strategies.launchers.xla import _XLALauncher
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
@@ -78,6 +79,9 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
     def checkpoint_io(self) -> CheckpointIO:
         if self._checkpoint_io is None:
             self._checkpoint_io = XLACheckpointIO()
+        elif isinstance(self._checkpoint_io, _WrappingCheckpointIO):
+            self._checkpoint_io.checkpoint_io = XLACheckpointIO()
+
         return self._checkpoint_io
 
     @checkpoint_io.setter
@@ -120,7 +124,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         return super().connect(model)
 
     def _configure_launcher(self):
-        self._launcher = _XLASpawnLauncher(self)
+        self._launcher = _XLALauncher(self)
 
     def setup(self, trainer: "pl.Trainer") -> None:
         self.accelerator.setup(trainer)

@@ -210,6 +210,7 @@ io
     :nosignatures:
     :template: classtemplate.rst
 
+    AsyncCheckpointIO
     CheckpointIO
     HPUCheckpointIO
     TorchCheckpointIO
