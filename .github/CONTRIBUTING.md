@@ -225,7 +225,7 @@ git push -f
 
 #### How to add new tests?
 
-We are using [pytest](https://docs.pytest.org/en/stable/) in Pytorch Lightning.
+We are using [pytest](https://docs.pytest.org/en/stable/) in PyTorch Lightning.
 
 Here are tutorials:
 

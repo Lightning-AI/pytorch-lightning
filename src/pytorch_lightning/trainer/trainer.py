@@ -256,7 +256,7 @@ class Trainer(
 
             deterministic: If ``True``, sets whether PyTorch operations must use deterministic algorithms.
                 Set to ``"warn"`` to use deterministic algorithms whenever possible, throwing warnings on operations
-                that don't support deterministic mode (requires Pytorch 1.11+). If not set, defaults to ``False``.
+                that don't support deterministic mode (requires PyTorch 1.11+). If not set, defaults to ``False``.
                 Default: ``None``.
 
             devices: Will be mapped to either `gpus`, `tpu_cores`, `num_processes` or `ipus`,
@@ -1759,7 +1759,7 @@ class Trainer(
         rank_zero_info(f"HPU available: {_HPU_AVAILABLE}, using: {num_hpus} HPUs")
 
         # TODO: Integrate MPS Accelerator here, once gpu maps to both
-        if torch.cuda.is_available() and not isinstance(self.accelerator, CUDAAccelerator):
+        if CUDAAccelerator.is_available() and not isinstance(self.accelerator, CUDAAccelerator):
             rank_zero_warn(
                 "GPU available but not used. Set `accelerator` and `devices` using"
                 f" `Trainer(accelerator='gpu', devices={CUDAAccelerator.auto_device_count()})`.",
