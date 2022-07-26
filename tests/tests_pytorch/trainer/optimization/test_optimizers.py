@@ -115,16 +115,19 @@ def test_onecyclelr_with_epoch_interval_warns():
         _configure_schedulers_automatic_opt([lr_scheduler], None)
 
 
-def test_scheduler_initialized_with_reduce_on_plateau():
-    """Test to check that "reduce_on_plateau" key in lr scheduler dict must be a bool."""
+def test_scheduler_initialized_with_custom_reduceonplateau():
+    """Test for initialize custom scheduler with `reduce_on_plateau`argument."""
 
     class CustomReduceLROnPlateau:
         pass
 
-    lr_scheduler = {"reduce_on_plateau": "true", "scheduler": CustomReduceLROnPlateau()}
-    msg = 'The "reduce_on_plateau" key in lr scheduler dict must be a bool but is '
-    with pytest.raises(MisconfigurationException, match=msg):
-        _configure_schedulers_automatic_opt([lr_scheduler], None)
+    lr_scheduler = {
+        "reduce_on_plateau": True,
+        "scheduler": CustomReduceLROnPlateau(),
+        "monitor": "my_loss"
+    }
+    config = _configure_schedulers_automatic_opt([lr_scheduler], None)
+    assert isinstance(config[0].scheduler, CustomReduceLROnPlateau)
 
 
 def test_reducelronplateau_scheduling(tmpdir):

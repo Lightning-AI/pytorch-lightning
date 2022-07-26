@@ -376,6 +376,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed main progress bar counter when `val_check_interval=int` and `check_val_every_n_epoch=None` ([#12832](https://github.com/Lightning-AI/lightning/pull/12832)
 
 
+- Improved support for custom scheduler `ReduceLROnPlateau` class ([#13569](https://github.com/Lightning-AI/lightning/issues/13569))
+
+
 ## [1.6.5] - 2022-07-13
 
 ### Fixed
