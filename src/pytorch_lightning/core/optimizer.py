@@ -291,7 +291,7 @@ def _configure_schedulers_automatic_opt(schedulers: list, monitor: Optional[str]
             elif not isinstance(scheduler["reduce_on_plateau"], bool):
                 raise MisconfigurationException(
                     'The "reduce_on_plateau" key in lr scheduler dict must be a bool'
-                    f' but is "{scheduler["reduce_on_plateau"]}"'
+                    f' but is "{type(scheduler["reduce_on_plateau"])}"'
                 )
             if scheduler["reduce_on_plateau"] and scheduler.get("monitor", None) is None:
                 raise MisconfigurationException(

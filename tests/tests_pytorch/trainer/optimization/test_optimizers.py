@@ -115,6 +115,17 @@ def test_onecyclelr_with_epoch_interval_warns():
         _configure_schedulers_automatic_opt([lr_scheduler], None)
 
 
+def test_scheduler_initialized_with_reduce_on_plateau():
+    """Test."""
+    class CustomReduceLROnPlateau:
+        pass
+
+    lr_scheduler = {"reduce_on_plateau": "true", "scheduler": CustomReduceLROnPlateau()}
+    msg = 'The "reduce_on_plateau" key in lr scheduler dict must be a bool but is '
+    with pytest.raises(MisconfigurationException, match=msg):
+        _configure_schedulers_automatic_opt([lr_scheduler], None)
+
+
 def test_reducelronplateau_scheduling(tmpdir):
     class TestModel(BoringModel):
         def training_step(self, batch, batch_idx):
