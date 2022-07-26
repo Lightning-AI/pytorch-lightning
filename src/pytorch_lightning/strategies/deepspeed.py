@@ -656,7 +656,6 @@ class DeepSpeedStrategy(DDPStrategy):
         if self.lightning_module is None:
             return
 
-        assert isinstance(self.lightning_module.trainer, pl.Trainer)
         if "gradient_accumulation_steps" in self.config:
             raise MisconfigurationException(
                 "Do not set `gradient_accumulation_steps` in the DeepSpeed config"
