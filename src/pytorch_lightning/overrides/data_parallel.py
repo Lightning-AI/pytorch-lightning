@@ -52,8 +52,8 @@ class LightningParallelModule(_LightningModuleWrapperBase):
         )
 
     Args:
-        forward_module: The module to wrap. If it's not a LightningModule, it must have an attribute ``.module`` which
-            must be a LightningModule reference.
+        forward_module: The module to wrap. If it's not a LightningModule, it must have an attribute ``.module``
+            pointing to a LightningModule reference.
     """
 
     def __init__(self, forward_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]) -> None:

@@ -58,7 +58,7 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
 
         Args:
             forward_module: The module to wrap. If it's not a LightningModule, it must have an attribute ``.module``
-                which must be a LightningModule reference.
+                pointing to a LightningModule reference.
         """
         super().__init__()
         self._forward_module = forward_module
