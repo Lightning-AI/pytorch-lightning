@@ -176,7 +176,7 @@ class CometLogger(Logger):
         logger.experiment.log_model(name="my-model", "<path to your model>")
 
     See Also:
-        - `Demo in Google Colab <https://cutt.ly/1ZocQS8>`__
+        - `Demo in Google Colab <https://tinyurl.com/22phzw5s>`__
         - `Comet Documentation <https://www.comet.com/docs/v2/integrations/ml-frameworks/pytorch-lightning/>`__
 
     Args:
