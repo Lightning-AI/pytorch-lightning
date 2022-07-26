@@ -53,7 +53,7 @@ else:
 
 class CometLogger(Logger):
     r"""
-    Track your parameters, metrics, source code and more using `Comet.ml <https://www.comet.com/?utm_source=pytorch_lightning&utm_medium=referral>`_.
+    Track your parameters, metrics, source code and more using `Comet <https://www.comet.com/?utm_source=pytorch_lightning&utm_medium=referral>`_.
 
     Install it with pip:
 
