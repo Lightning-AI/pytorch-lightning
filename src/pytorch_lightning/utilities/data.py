@@ -382,7 +382,7 @@ def _dataloader_init_kwargs_resolve_sampler(
             "sampler": None,
             "shuffle": False,
             "batch_sampler": batch_sampler,
-            "batch_size": 1,
+            "batch_size": None,
             "drop_last": False,
         }
 
