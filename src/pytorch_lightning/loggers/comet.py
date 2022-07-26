@@ -141,22 +141,22 @@ class CometLogger(Logger):
 
     .. code-block:: python
 
-        img = PIL.Image.open('<path to image>')
-        logger.experiment.log_image(img, file_name='my_image.png')
+        img = PIL.Image.open("<path to image>")
+        logger.experiment.log_image(img, file_name="my_image.png")
 
     Log Text data:
 
     .. code-block:: python
 
-        text = 'Lightning is awesome!'
+        text = "Lightning is awesome!"
         logger.experiment.log_text(text)
 
     Log Audio data:
 
     .. code-block:: python
 
-        audio = '<path to audio data>'
-        logger.experiment.log_audio(audio, file_name='my_audio.wav')
+        audio = "<path to audio data>"
+        logger.experiment.log_audio(audio, file_name="my_audio.wav")
 
     Log arbitary data assets:
 
@@ -165,13 +165,13 @@ class CometLogger(Logger):
 
     .. code-block:: python
 
-        logger.experiment.log_asset('<path to your asset>', file_name='my_data.pkl')
+        logger.experiment.log_asset("<path to your asset>", file_name="my_data.pkl")
 
     Log Models to Comet's Model Registry:
 
     .. code-block:: python
 
-        logger.experiment.log_model(name='my-model', '<path to your model>')
+        logger.experiment.log_model(name="my-model", "<path to your model>")
 
     See Also:
         - `Demo in Google Colab <https://colab.research.google.com/github/comet-ml/comet-examples/blob/master/integrations/model-training/pytorch-lightning/notebooks/Comet_and_Pytorch_Lightning.ipynb>`__
