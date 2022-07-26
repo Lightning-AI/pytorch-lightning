@@ -363,16 +363,19 @@ def test_multiple_lr_find_calls_gives_same_results(tmpdir):
     )
 
 
-@pytest.mark.parametrize("skip_begin,skip_end,losses,expected_error", [
-    (0, 0, [], True),
-    (10, 1, [], True),
-    (0, 2, [0, 1, 2], True),
-    (0, 1, [0, 1, 2], False),
-    (1, 1, [0, 1, 2], True),
-    (1, 1, [0, 1, 2, 3], False),
-    (0, 1, [float("nan"), float("nan"), 0, float("inf"), 1, 2, 3, float("inf"), 2, float("nan"), 1], False),
-    (4, 1, [float("nan"), float("nan"), 0, float("inf"), 1, 2, 3, float("inf"), 2, float("nan"), 1], False),
-])
+@pytest.mark.parametrize(
+    "skip_begin,skip_end,losses,expected_error",
+    [
+        (0, 0, [], True),
+        (10, 1, [], True),
+        (0, 2, [0, 1, 2], True),
+        (0, 1, [0, 1, 2], False),
+        (1, 1, [0, 1, 2], True),
+        (1, 1, [0, 1, 2, 3], False),
+        (0, 1, [float("nan"), float("nan"), 0, float("inf"), 1, 2, 3, float("inf"), 2, float("nan"), 1], False),
+        (4, 1, [float("nan"), float("nan"), 0, float("inf"), 1, 2, 3, float("inf"), 2, float("nan"), 1], False),
+    ],
+)
 def test_suggestion_not_enough_finite_points(losses, skip_begin, skip_end, expected_error, caplog):
     """Tests the error handling when not enough finite points are available to make a suggestion."""
     caplog.clear()
