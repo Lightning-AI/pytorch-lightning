@@ -162,6 +162,7 @@ class IPUStrategy(ParallelStrategy):
             if self.lightning_module.trainer.enable_validation:
                 model = poptorch.inferenceModel(model=model, options=inference_opts)
                 self.poptorch_models[RunningStage.VALIDATING] = model
+                self.poptorch_models[RunningStage.SANITY_CHECKING] = model
         elif trainer_fn == TrainerFn.VALIDATING:
             model = poptorch.inferenceModel(model=model, options=self.inference_opts)
             self.poptorch_models[RunningStage.VALIDATING] = model
