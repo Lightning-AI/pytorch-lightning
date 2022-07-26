@@ -174,8 +174,8 @@ class _LRFinder:
         return fig
 
     def suggestion(self, skip_begin: int = 10, skip_end: int = 1) -> Optional[float]:
-        """This will propose a suggestion for an initial learning rate based on the point with the steepest negative
-        gradient.
+        """This will propose a suggestion for an initial learning rate based on the point with the steepest
+        negative gradient.
 
         Args:
             skip_begin: how many samples to skip in the beginning; helps to avoid too naive estimates
