@@ -68,7 +68,6 @@ class Strategy(ABC):
         self._lightning_optimizers: Dict[int, LightningOptimizer] = {}
         self.lr_scheduler_configs: List[LRSchedulerConfig] = []
         self.optimizer_frequencies: List[int] = []
-        
 
     @property
     def launcher(self) -> Optional[_Launcher]:
