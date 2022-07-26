@@ -450,7 +450,7 @@ class DeepSpeedStrategy(DDPStrategy):
         return deepspeed_engine, deepspeed_optimizer
 
     def init_deepspeed(self) -> None:
-        assert isinstance(self.lightning_module, pl.LightningModule)
+        assert self.lightning_module is not None
         # deepspeed handles gradient clipping internally
         if is_overridden("configure_gradient_clipping", self.lightning_module, pl.LightningModule):
             rank_zero_warn(
