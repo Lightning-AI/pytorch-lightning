@@ -114,7 +114,7 @@ class Strategy(ABC):
             idx: LightningOptimizer._to_lightning_optimizer(opt, self, idx) for idx, opt in enumerate(self.optimizers)
         }
 
-    def connect(self, model: pl.LightningModule) -> None:
+    def connect(self, model: "pl.LightningModule") -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
         self._lightning_module = model
 

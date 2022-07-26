@@ -33,7 +33,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.core.optimizer import LightningOptimizer
 from pytorch_lightning.overrides import LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
-from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
+from pytorch_lightning.utilities.imports import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin

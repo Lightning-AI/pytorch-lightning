@@ -47,7 +47,7 @@ class DDPShardedStrategy(DDPStrategy):
     strategy_name = "ddp_sharded"
     _REDUCE_BUFFER_SIZE_DEFAULT: int = 2**23  # 8M
 
-    def connect(self, model: pl.LightningModule) -> None:
+    def connect(self, model: "pl.LightningModule") -> None:
         if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
             raise MisconfigurationException(
                 "`DDPShardedStrategy` requires `fairscale` to be installed."

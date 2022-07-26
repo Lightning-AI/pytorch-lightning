@@ -696,7 +696,7 @@ class Trainer(
 
             datamodule: An instance of :class:`~pytorch_lightning.core.datamodule.LightningDataModule`.
         """
-        self.strategy.model = model
+        self.strategy._lightning_module = model
         self._call_and_handle_interrupt(
             self._fit_impl, model, train_dataloaders, val_dataloaders, datamodule, ckpt_path
         )
@@ -776,7 +776,7 @@ class Trainer(
             :meth:`~pytorch_lightning.core.module.LightningModule.validation_epoch_end`, etc.
             The length of the list corresponds to the number of validation dataloaders used.
         """
-        self.strategy.model = model or self.lightning_module
+        self.strategy._lightning_module = model or self.lightning_module
         return self._call_and_handle_interrupt(self._validate_impl, model, dataloaders, ckpt_path, verbose, datamodule)
 
     def _validate_impl(
@@ -864,7 +864,7 @@ class Trainer(
             :meth:`~pytorch_lightning.core.module.LightningModule.test_epoch_end`, etc.
             The length of the list corresponds to the number of test dataloaders used.
         """
-        self.strategy.model = model or self.lightning_module
+        self.strategy._lightning_module = model or self.lightning_module
         return self._call_and_handle_interrupt(self._test_impl, model, dataloaders, ckpt_path, verbose, datamodule)
 
     def _test_impl(
@@ -951,7 +951,7 @@ class Trainer(
         Returns:
             Returns a list of dictionaries, one for each provided dataloader containing their respective predictions.
         """
-        self.strategy.model = model or self.lightning_module
+        self.strategy._lightning_module = model or self.lightning_module
         return self._call_and_handle_interrupt(
             self._predict_impl, model, dataloaders, datamodule, return_predictions, ckpt_path
         )

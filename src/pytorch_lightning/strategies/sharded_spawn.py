@@ -42,7 +42,7 @@ class DDPSpawnShardedStrategy(DDPSpawnStrategy):
 
     strategy_name = "ddp_sharded_spawn"
 
-    def connect(self, model: pl.LightningModule) -> None:
+    def connect(self, model: "pl.LightningModule") -> None:
         if not _FAIRSCALE_AVAILABLE:  # pragma: no cover
             raise MisconfigurationException(
                 "`DDPSpawnShardedStrategy` requires `fairscale` to be installed."
