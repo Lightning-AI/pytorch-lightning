@@ -19,7 +19,7 @@ import os
 import platform
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, cast, Dict, Generator, List, Mapping, Optional, Tuple, Union
+from typing import Any, cast, Dict, Generator, List, Mapping, Optional, Tuple, TYPE_CHECKING, Union
 
 import torch
 from torch import Tensor
@@ -53,11 +53,11 @@ from pytorch_lightning.utilities.warnings import rank_zero_warn, WarningCache
 
 warning_cache = WarningCache()
 
-DeepSpeedEngineType = "deepspeed.runtime.engine.DeepSpeedEngine"
-
 _DEEPSPEED_AVAILABLE: bool = cast(bool, _RequirementAvailable("deepspeed"))
-if _DEEPSPEED_AVAILABLE:
+if _DEEPSPEED_AVAILABLE: 
     import deepspeed
+    if TYPE_CHECKING:
+        from deepspeed.runtime.engine import DeepSpeedEngine
 
 
 def remove_module_hooks(model: torch.nn.Module) -> None:
@@ -344,7 +344,7 @@ class DeepSpeedStrategy(DDPStrategy):
                 )
             with open(config) as f:
                 config = json.load(f)
-
+        assert isinstance(config, dict)
         return config
 
     def setup_distributed(self) -> None:
@@ -362,6 +362,7 @@ class DeepSpeedStrategy(DDPStrategy):
     def setup(self, trainer: "pl.Trainer") -> None:
         self.accelerator.setup(trainer)
         # we set the device so that optimizers can be created with distributed comms.
+        assert isinstance(self.lightning_module, pl.LightningModule)
         self.lightning_module._device = self.root_device
         self.setup_optimizers(trainer)
         self.setup_precision_plugin()
@@ -403,7 +404,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def _setup_model_and_optimizers(
         self, model: Module, optimizers: List[Optimizer]
-    ) -> Tuple[DeepSpeedEngineType, List[Optimizer]]:
+    ) -> Tuple[DeepSpeedEngine, List[Optimizer]]:
         """Setup a model and multiple optimizers together.
 
         Currently only a single optimizer is supported.
@@ -412,6 +413,7 @@ class DeepSpeedStrategy(DDPStrategy):
             The model wrapped into a :class:`deepspeed.DeepSpeedEngine` and a list with a single
             deepspeed optimizer.
         """
+        assert isinstance(self.config, dict)
         if len(optimizers) != 1:
             raise ValueError(
                 f"Currently only one optimizer is supported with DeepSpeed."
@@ -431,7 +433,7 @@ class DeepSpeedStrategy(DDPStrategy):
         model: Module,
         optimizer: Optional[Optimizer],
         lr_scheduler: Optional[Union[_LRScheduler, ReduceLROnPlateau]] = None,
-    ) -> Tuple[DeepSpeedEngineType, Optimizer]:
+    ) -> Tuple[DeepSpeedEngine, Optimizer]:
         """Initialize one model and one optimizer with an optional learning rate scheduler.
 
         This calls :func:`deepspeed.initialize` internally.
@@ -449,6 +451,8 @@ class DeepSpeedStrategy(DDPStrategy):
         return deepspeed_engine, deepspeed_optimizer
 
     def init_deepspeed(self) -> None:
+        assert isinstance(self.lightning_module, pl.LightningModule)
+        assert isinstance(self.lightning_module.trainer, pl.Trainer)
         # deepspeed handles gradient clipping internally
         if is_overridden("configure_gradient_clipping", self.lightning_module, pl.LightningModule):
             rank_zero_warn(
@@ -459,7 +463,6 @@ class DeepSpeedStrategy(DDPStrategy):
                 " which will use the internal mechanism."
             )
 
-        assert isinstance(self.lightning_module.trainer, pl.Trainer)
         if self.lightning_module.trainer.gradient_clip_algorithm == GradClipAlgorithmType.VALUE:
             raise MisconfigurationException("DeepSpeed does not support clipping gradients by value.")
 
@@ -484,6 +487,7 @@ class DeepSpeedStrategy(DDPStrategy):
             self._initialize_deepspeed_inference(model)
 
     def _init_optimizers(self) -> Tuple[Optimizer, Optional[LRSchedulerConfig], Optional[int]]:
+        assert isinstance(self.lightning_module, pl.LightningModule)
         optimizers, lr_schedulers, optimizer_frequencies = _init_optimizers_and_lr_schedulers(self.lightning_module)
         if len(optimizers) > 1 or len(lr_schedulers) > 1:
             raise MisconfigurationException(
@@ -497,6 +501,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @property
     def zero_stage_3(self) -> bool:
+        assert isinstance(self.config, dict)
         zero_optimization = self.config.get("zero_optimization")
         if zero_optimization is None:
             raise MisconfigurationException(
@@ -507,6 +512,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def _initialize_deepspeed_train(self, model: Module) -> None:
         optimizer, scheduler = None, None
+        assert isinstance(self.config, dict)
         if "optimizer" in self.config:
             rank_zero_info(
                 "You have specified an optimizer and/or scheduler within the DeepSpeed config."
@@ -557,6 +563,7 @@ class DeepSpeedStrategy(DDPStrategy):
             yield
 
     def _set_deepspeed_activation_checkpointing(self) -> None:
+        assert isinstance(self.config, dict)
         if self.config.get("activation_checkpointing"):
             checkpoint_config = self.config["activation_checkpointing"]
             deepspeed.checkpointing.configure(
@@ -569,6 +576,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def _initialize_deepspeed_inference(self, model: Module) -> None:
         # todo: Currently DeepSpeed requires optimizers at inference to partition weights correctly
+        assert isinstance(self.config, dict)
         optimizer, scheduler = None, None
         if "optimizer" not in self.config:
             rank_zero_info(
@@ -607,6 +615,7 @@ class DeepSpeedStrategy(DDPStrategy):
         # the model may not be wrapped with DeepEngine & LightningDeepSpeedModule if calling this too early
         module = getattr(self.model, "module", self.model)
         module = module.module if isinstance(module, LightningDeepSpeedModule) else module
+        assert isinstance(module, pl.LightningModule)
         return module
 
     @property
@@ -646,10 +655,12 @@ class DeepSpeedStrategy(DDPStrategy):
 
     def _format_batch_size_and_grad_accum_config(self) -> None:
         # todo: using lite, we do not support these variables within the config
+        assert isinstance(self.lightning_module, pl.LightningModule)
+        assert isinstance(self.lightning_module.trainer, pl.Trainer)
+        assert isinstance(self.config, dict)
         if self.lightning_module is None:
             return
 
-        assert isinstance(self.lightning_module.trainer, pl.Trainer)
         if "gradient_accumulation_steps" in self.config:
             raise MisconfigurationException(
                 "Do not set `gradient_accumulation_steps` in the DeepSpeed config"
@@ -665,6 +676,7 @@ class DeepSpeedStrategy(DDPStrategy):
     def _auto_select_batch_size(self) -> Optional[int]:
         # train_micro_batch_size_per_gpu is used for throughput logging purposes
         # by default we try to use the batch size of the loader
+        assert isinstance(self.lightning_module, pl.LightningModule)
         assert isinstance(self.lightning_module.trainer, pl.Trainer)
         batch_size = 1
         train_dl_source = self.lightning_module.trainer._data_connector._train_dataloader_source
@@ -685,6 +697,7 @@ class DeepSpeedStrategy(DDPStrategy):
         return batch_size
 
     def _format_precision_config(self) -> None:
+        assert isinstance(self.config, dict)
         if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED):
             if "fp16" not in self.config and self.precision_plugin.amp_type == AMPType.NATIVE:
                 # FP16 is a DeepSpeed standalone AMP implementation
@@ -774,7 +787,7 @@ class DeepSpeedStrategy(DDPStrategy):
         return cfg
 
     @property
-    def deepspeed_engine(self) -> DeepSpeedEngineType:
+    def deepspeed_engine(self) -> DeepSpeedEngine:
         return self.model
 
     @property
@@ -824,6 +837,9 @@ class DeepSpeedStrategy(DDPStrategy):
             return super().load_checkpoint(checkpoint_path)
 
         # Rely on deepspeed to load the checkpoint and necessary information
+        assert isinstance(self.lightning_module, pl.LightningModule)
+        assert isinstance(self.lightning_module.trainer, pl.Trainer)
+        
         from pytorch_lightning.trainer.states import TrainerFn
 
         is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
@@ -839,6 +855,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
     @property
     def lightning_restore_optimizer(self) -> bool:
+        assert isinstance(self.lightning_module, pl.LightningModule)
         assert isinstance(self.lightning_module.trainer, pl.Trainer)
         # managed by DeepSpeed
         if self.load_full_weights and self.zero_stage_3 and self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
@@ -864,6 +881,8 @@ class DeepSpeedStrategy(DDPStrategy):
             ckpt: The ckpt file.
         """
 
+        assert isinstance(self.lightning_module, pl.LightningModule)
+        
         def load(module: torch.nn.Module, prefix: str = "") -> None:
 
             missing_keys: List[str] = []
