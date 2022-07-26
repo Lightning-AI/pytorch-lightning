@@ -332,6 +332,7 @@ class DDPSpawnStrategy(ParallelStrategy):
 
         pl_module = self.lightning_module
         if isinstance(self.model, DistributedDataParallel):
+            assert callable(self.model._get_ddp_logging_data)
             if (
                 _TORCH_GREATER_EQUAL_1_11
                 and not self.model.static_graph
