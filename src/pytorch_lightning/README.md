@@ -147,7 +147,7 @@ pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/release
 Install nightly from the source (no guarantees)
 
 ```bash
-pip install https://github.com/Lightning-AI/lightning/archive/master.zip
+pip install https://github.com/Lightning-AI/lightning/archive/refs/heads/master.zip -U
 ```
 
 or from testing PyPI
