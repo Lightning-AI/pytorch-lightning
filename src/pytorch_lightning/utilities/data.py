@@ -329,11 +329,21 @@ def _dataloader_init_kwargs_resolve_sampler(
     is_predicting = mode == RunningStage.PREDICTING
 
     if batch_sampler is not None and disallow_batch_sampler:
-        raise MisconfigurationException(
-            "It is not possible to have a batch sampler in your dataloader, when running on multiple IPU devices."
-        )
+        # Check that we don't have a PyTorch default batch sampler that was instantiated in DataLoader __init__
+        if not (
+            type(batch_sampler) is BatchSampler
+            and batch_sampler.sampler == sampler
+            and dataloader.batch_size == batch_sampler.batch_size
+        ):
+            raise MisconfigurationException(
+                "It is not possible to have a batch sampler in your dataloader, when running on multiple IPU devices."
+            )
     # checking the batch sampler type is different than PyTorch default.
-    if batch_sampler is not None and (type(batch_sampler) is not BatchSampler or is_predicting):
+    if (
+        not disallow_batch_sampler
+        and batch_sampler is not None
+        and (type(batch_sampler) is not BatchSampler or is_predicting)
+    ):
         batch_sampler = type(batch_sampler)(
             sampler,
             batch_size=batch_sampler.batch_size,
