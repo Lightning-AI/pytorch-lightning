@@ -60,7 +60,6 @@ module = [
     "pytorch_lightning.profilers.pytorch",
     "pytorch_lightning.profilers.simple",
     "pytorch_lightning.strategies.ddp",
-    "pytorch_lightning.strategies.ddp_spawn",
     "pytorch_lightning.strategies.deepspeed",
     "pytorch_lightning.strategies.fully_sharded",
     "pytorch_lightning.strategies.ipu",
