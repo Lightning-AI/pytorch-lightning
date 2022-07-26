@@ -121,8 +121,8 @@ def create_cluster(
     if provider != "aws":
         click.echo("Only AWS is supported for now. But support for more providers is coming soon.")
         return
-    aws = AWSClusterManager()
-    aws.create(
+    cluster_manager = AWSClusterManager()
+    cluster_manager.create(
         cluster_name=cluster_name,
         region=region,
         role_arn=role_arn,
@@ -332,8 +332,8 @@ def delete_cluster(cluster: str, force: bool = False, wait: bool = False):
 
     All object stores, container registries, logs, compute nodes, volumes, etc. are deleted and cannot be recovered.
     """
-    mgr = AWSClusterManager()
-    mgr.delete(cluster_id=cluster, force=force, wait=wait)
+    cluster_manager = AWSClusterManager()
+    cluster_manager.delete(cluster_id=cluster, force=force, wait=wait)
 
 
 @_main.group(name="list")
@@ -345,8 +345,8 @@ def get_list():
 @get_list.command("clusters")
 def list_clusters(**kwargs):
     """List your Lightning AI BYOC compute clusters."""
-    mgr = AWSClusterManager()
-    mgr.list()
+    cluster_manager = AWSClusterManager()
+    cluster_manager.list()
     pass
 
 

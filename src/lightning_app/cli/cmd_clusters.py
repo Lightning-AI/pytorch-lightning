@@ -27,23 +27,41 @@ MAX_CLUSTER_WAIT_TIME = 5400
 
 
 class AWSClusterManager:
+    """AWSClusterManager implements API calls specific to Lightning AI BYOC compute clusters when the AWS provider
+    is selected as compute backend."""
+
     def __init__(self):
         self.api_client = LightningClient()
 
     def create(
         self,
-        cost_savings=None,
-        cluster_name=None,
-        role_arn=None,
-        region=None,
-        external_id=None,
-        instance_types=None,
-        edit_before_creation=None,
-        wait=None,
+        cost_savings: bool = False,
+        cluster_name: str = None,
+        role_arn: str = None,
+        region: str = "us-east-1",
+        external_id: str = None,
+        instance_types: [str] = [],
+        edit_before_creation: bool = False,
+        wait: bool = False,
     ):
+        """request Lightning AI BYOC compute cluster creation.
+
+        :param cost_savings: flag indicating if the cluster should utilize cost savings mode
+        :param cluster_name: the name of the cluster to be created
+        :param role_arn: AWS IAM Role ARN used to provision resources
+        :param region: AWS region containing compute resources
+        :param external_id: AWS IAM Role external ID
+        :param instance_types: AWS instance types supported by the cluster
+        :param edit_before_creation: enable interactive editing of request before submitting it to Lightning AI
+        :param wait: wait for cluster to reach RUNNING state. use for debugging only
+        :return:
+        """
         performance_profile = V1ClusterPerformanceProfile.DEFAULT
         if cost_savings:
+            """In cost saving mode the number of compute nodes is reduced to one, reducing the cost for clusters
+            with low utilization."""
             performance_profile = V1ClusterPerformanceProfile.COST_SAVING
+
         body = V1CreateClusterRequest(
             name=cluster_name,
             spec=V1ClusterSpec(
@@ -84,8 +102,7 @@ class AWSClusterManager:
         if force:
             click.echo(
                 """
-            Deletes a BYOC cluster. Lightning AI removes cluster artifacts and any experiments, sessions, datastores,
-            tensorboards, and other resources running on the cluster.\n
+            Deletes a BYOC cluster. Lightning AI removes cluster artifacts and any resources running on the cluster.\n
             WARNING: Deleting a cluster does not clean up any resources managed by Lightning AI.\n
             Check your cloud provider to verify that existing cloud resources are deleted.
             """
