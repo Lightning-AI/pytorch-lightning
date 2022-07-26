@@ -115,7 +115,7 @@ jobs:
     environment:
       - XLA_VER: 1.9
       - PYTHON_VER: 3.7
-      - MAX_CHECKS: 500
+      - MAX_CHECKS: 1000
       - CHECK_SPEEP: 5
     steps:
       - checkout
