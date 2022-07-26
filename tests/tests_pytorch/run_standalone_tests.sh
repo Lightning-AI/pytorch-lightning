@@ -23,6 +23,7 @@ while getopts "b:" opt; do
         exit 1;;
     esac
 done
+shift $((OPTIND-1))
 
 # this environment variable allows special tests to run
 export PL_RUN_STANDALONE_TESTS=1
