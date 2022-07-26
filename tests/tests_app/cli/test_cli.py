@@ -5,7 +5,7 @@ import pytest
 from click.testing import CliRunner
 from lightning_cloud.openapi import Externalv1LightningappInstance
 
-from lightning_app.cli.lightning_cli import get_app_url, login, logout, main, run
+from lightning_app.cli.lightning_cli import _main, get_app_url, login, logout, run
 from lightning_app.runners.runtime_type import RuntimeType
 
 
@@ -37,7 +37,7 @@ def test_start_target_url(runtime_type, extra_args, lightning_cloud_url, expecte
         assert get_app_url(runtime_type, *extra_args) == expected_url
 
 
-@pytest.mark.parametrize("command", [main, run])
+@pytest.mark.parametrize("command", [_main, run])
 def test_commands(command):
     runner = CliRunner()
     result = runner.invoke(command)
@@ -46,12 +46,12 @@ def test_commands(command):
 
 def test_main_lightning_cli_help():
     """Validate the Lightning CLI."""
-    res = os.popen("python -m lightning_app --help").read()
+    res = os.popen("python -m lightning --help").read()
     assert "login   " in res
     assert "logout  " in res
     assert "run     " in res
 
-    res = os.popen("python -m lightning_app run --help").read()
+    res = os.popen("python -m lightning run --help").read()
     assert "app  " in res
 
     # hidden run commands should not appear in the help text

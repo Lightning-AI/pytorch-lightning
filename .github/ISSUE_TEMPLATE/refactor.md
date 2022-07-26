@@ -34,4 +34,4 @@ ______________________________________________________________________
 
 - [**Bolts**](https://github.com/Lightning-AI/lightning-bolts): Pretrained SOTA Deep Learning models, callbacks, and more for research and production with PyTorch Lightning and PyTorch.
 
-- [**Lightning Transformers**](https://github.com/Lightning-AI/lightning-transformers): Flexible interface for high-performance research using SOTA Transformers leveraging Pytorch Lightning, Transformers, and Hydra.
+- [**Lightning Transformers**](https://github.com/Lightning-AI/lightning-transformers): Flexible interface for high-performance research using SOTA Transformers leveraging PyTorch Lightning, Transformers, and Hydra.
