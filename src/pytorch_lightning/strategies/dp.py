@@ -70,7 +70,6 @@ class DataParallelStrategy(ParallelStrategy):
     def setup(self, trainer: "pl.Trainer") -> None:
         # model needs to be moved to the device before it is wrapped
         self.model_to_device()
-        breakpoint()
         assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         self.model = self._setup_model(LightningParallelModule(self.model))
         super().setup(trainer)
