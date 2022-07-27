@@ -14,71 +14,52 @@
 import pytest
 from torch import nn
 
+from pytorch_lightning import Trainer
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.demos.boring_classes import BoringModel
-from pytorch_lightning.utilities.meta import init_meta_context, is_on_meta_device, materialize_module
+from pytorch_lightning.utilities.imports import _RequirementAvailable
 from tests_pytorch.helpers.runif import RunIf
 
-
-class MLP(nn.Module):
-    def __init__(self, num_layers: int):
-        super().__init__()
-        self.layer = nn.Sequential(*[nn.Linear(1, 1) for _ in range(num_layers)] + [nn.Dropout(), nn.LayerNorm(1)])
+_TORCHDISTX_AVAILABLE = _RequirementAvailable("torchdistx")
 
 
 class SimpleBoringModel(LightningModule):
-    def __init__(self, num_layers: int):
+    def __init__(self, num_layers):
         super().__init__()
-        self.save_hyperparameters()
-        self.layer = nn.Sequential(*[nn.Linear(1, 1) for _ in range(self.hparams.num_layers)])
+        self.layer = nn.Sequential(*[nn.Linear(1, 1) for _ in range(num_layers)])
 
 
-@RunIf(min_torch="1.10.0", standalone=True)
-def test_init_meta_context():
+@pytest.mark.skipif(not _TORCHDISTX_AVAILABLE, reason=_TORCHDISTX_AVAILABLE.message)
+def test_deferred_init_with_lightning_module():
+    from torchdistx.deferred_init import deferred_init, materialize_module
 
-    with init_meta_context():
-        m = nn.Linear(in_features=1, out_features=1)
-        assert isinstance(m, nn.Linear)
-        assert m.weight.device.type == "meta"
-        assert is_on_meta_device(m)
-        mlp = MLP(4)
-        assert mlp.layer[0].weight.device.type == "meta"
-
-        mlp = materialize_module(mlp)
-        assert mlp.layer[0].weight.device.type == "cpu"
-
-        assert not is_on_meta_device(mlp)
-        assert not is_on_meta_device(nn.Module())
-
-        model = SimpleBoringModel(4)
-        assert model.layer[0].weight.device.type == "meta"
-        materialize_module(model)
-        assert model.layer[0].weight.device.type == "cpu"
-
-    mlp = MLP(4)
-    assert mlp.layer[0].weight.device.type == "cpu"
-    # no-op as already materialized.
-    materialize_module(mlp)
-    assert mlp.layer[0].weight.device.type == "cpu"
-
-    m = nn.Linear(in_features=1, out_features=1)
-    assert m.weight.device.type == "cpu"
-
-    with init_meta_context():
-        m = nn.Linear(in_features=1, out_features=1)
-        assert m.weight.device.type == "meta"
-
-    m = nn.Linear(in_features=1, out_features=1)
-    assert m.weight.device.type == "cpu"
-
-
-@RunIf(min_torch="1.10.0", standalone=True)
-def test_materialize_module_recursive_child():
-    """Test materialize_module doesn't set a child recursively to a model instantiated within init_meta_context."""
-    with init_meta_context():
-        model = BoringModel()
-
+    model = deferred_init(SimpleBoringModel, 4)
+    assert model.layer[0].weight.device.type == "cpu"
     materialize_module(model)
+    materialize_module(model)  # make sure it's idempotent
+    assert model.layer[0].weight.device.type == "cpu"
 
-    with pytest.raises(AttributeError, match="'Linear' object has no attribute 'layer'"):
-        model.layer.layer
+
+@pytest.mark.skipif(not _TORCHDISTX_AVAILABLE, reason=_TORCHDISTX_AVAILABLE.message)
+@pytest.mark.parametrize(
+    "trainer_kwargs",
+    (
+        {"accelerator": "auto"},
+        pytest.param(
+            {"strategy": "deepspeed_stage_3", "accelerator": "gpu", "devices": 2, "precision": 16},
+            marks=RunIf(min_cuda_gpus=2, deepspeed=True),
+        ),
+    ),
+)
+def test_deferred_init_with_trainer(tmpdir, trainer_kwargs):
+    from torchdistx.deferred_init import deferred_init
+
+    model = deferred_init(BoringModel)
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        fast_dev_run=True,
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        **trainer_kwargs
+    )
+    trainer.fit(model)
