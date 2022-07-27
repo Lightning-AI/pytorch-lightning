@@ -177,16 +177,17 @@ def test_setup_dataloaders_return_type():
     assert lite_dataloader1.dataset is dataset1
 
 
-@mock.patch("pytorch_lightning.lite.lite._replace_dataloader_init_method")
+@mock.patch("pytorch_lightning.lite.lite._replace_init_method")
 def test_setup_dataloaders_captures_dataloader_arguments(ctx_manager):
     """Test that Lite intercepts the DataLoader constructor arguments with a context manager in its run method."""
 
     class Lite(LightningLite):
         def run(self):
-            ctx_manager().__enter__.assert_called_once()
+            # One for BatchSampler, another for DataLoader
+            assert ctx_manager().__enter__.call_count == 2
 
     Lite().run()
-    ctx_manager().__exit__.assert_called_once()
+    assert ctx_manager().__exit__.call_count == 2
 
 
 def test_setup_dataloaders_raises_for_unknown_custom_args():

@@ -619,7 +619,11 @@ def test_poptorch_models_at_different_stages(tmpdir):
     trainer.optimizers = model.configure_optimizers()[0]
     trainer.state.fn = TrainerFn.FITTING
     trainer.strategy.setup(trainer)
-    assert list(trainer.strategy.poptorch_models) == [RunningStage.TRAINING, RunningStage.VALIDATING]
+    assert list(trainer.strategy.poptorch_models) == [
+        RunningStage.TRAINING,
+        RunningStage.VALIDATING,
+        RunningStage.SANITY_CHECKING,
+    ]
 
     for fn, stage in (
         (TrainerFn.VALIDATING, RunningStage.VALIDATING),
