@@ -13,7 +13,7 @@
 # limitations under the License.
 import io
 import os
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 import torch
 from torch import Tensor
@@ -105,7 +105,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
                     " HINT: You can mock the length on your dataset to bypass this MisconfigurationException."
                 )
 
-        apply_to_collection(dataloaders, dtype=DataLoader, function=check_has_len)
+        apply_to_collection(dataloaders, dtype=object, wrong_dtype=(Sequence, Mapping), function=check_has_len)
 
     @staticmethod
     def _validate_patched_dataloaders(model: "pl.LightningModule") -> None:
