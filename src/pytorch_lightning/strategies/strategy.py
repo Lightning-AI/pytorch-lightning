@@ -467,6 +467,7 @@ class Strategy(ABC):
         if self.lightning_module is not None:
             log.detail(f"{self.__class__.__name__}: moving model to CPU")
             self.lightning_module.cpu()
+        self.model = self.lightning_module
         self.precision_plugin.teardown()
         assert self.accelerator is not None
         self.accelerator.teardown()
