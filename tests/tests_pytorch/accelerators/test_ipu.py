@@ -99,7 +99,7 @@ class IPUClassificationModel(ClassificationModel):
 
 @pytest.mark.skipif(_IPU_AVAILABLE, reason="test requires non-IPU machine")
 @mock.patch("pytorch_lightning.accelerators.ipu.IPUAccelerator.is_available", return_value=True)
-def test_fail_if_no_ipus(mock_ipu_acc_avail, tmpdir):
+def test_fail_if_no_ipus(_, tmpdir):
     with pytest.raises(MisconfigurationException, match="IPU Accelerator requires IPU devices to run"):
         Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1)
 
@@ -486,7 +486,7 @@ def test_replication_factor(tmpdir):
 
     trainer = Trainer(default_root_dir=tmpdir, accelerator="ipu", devices=1, strategy=strategy)
     trainer.optimizers = model.configure_optimizers()[0]
-    strategy.model = model
+    strategy._lightning_module = model
     model.trainer = trainer
     trainer.state.fn = TrainerFn.FITTING
     trainer.strategy.setup(trainer)
@@ -541,7 +541,7 @@ def test_multi_optimizers_fails(tmpdir):
 
 
 @RunIf(ipu=True)
-def test_precision_plugin(tmpdir):
+def test_precision_plugin():
     """Ensure precision plugin value is set correctly."""
 
     plugin = IPUPrecisionPlugin(precision=16)
@@ -614,7 +614,7 @@ def test_poptorch_models_at_different_stages(tmpdir):
     trainer = Trainer(default_root_dir=tmpdir, strategy=strategy, accelerator="ipu", devices=8)
     model = BoringModel()
     model.trainer = trainer
-    strategy.model = model
+    strategy._lightning_module = model
 
     trainer.optimizers = model.configure_optimizers()[0]
     trainer.state.fn = TrainerFn.FITTING
