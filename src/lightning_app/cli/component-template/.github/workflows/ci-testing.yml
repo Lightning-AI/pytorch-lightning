@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, macOS-10.15, windows-2019]
+        os: [ubuntu-20.04, macOS-11, windows-2019]
         python-version: [3.7]
 
     # Timeout: https://stackoverflow.com/a/59076067/4521646

@@ -15,7 +15,6 @@
 Weights and Biases Logger
 -------------------------
 """
-import operator
 import os
 from argparse import Namespace
 from pathlib import Path
@@ -27,13 +26,9 @@ import torch.nn as nn
 from pytorch_lightning.callbacks import Checkpoint
 from pytorch_lightning.loggers.logger import Logger, rank_zero_experiment
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
-from pytorch_lightning.utilities.imports import _compare_version, _package_available
+from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict, _sanitize_callable_params
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
-
-_WANDB_AVAILABLE = _package_available("wandb")
-_WANDB_GREATER_EQUAL_0_10_22 = _WANDB_AVAILABLE and _compare_version("wandb", operator.ge, "0.10.22")
-_WANDB_GREATER_EQUAL_0_12_10 = _WANDB_AVAILABLE and _compare_version("wandb", operator.ge, "0.12.10")
 
 try:
     import wandb
@@ -42,6 +37,10 @@ try:
 except ModuleNotFoundError:
     # needed for test mocks, these tests shall be updated
     wandb, Run, RunDisabled = None, None, None  # type: ignore
+
+_WANDB_AVAILABLE = _RequirementAvailable("wandb")
+_WANDB_GREATER_EQUAL_0_10_22 = _RequirementAvailable("wandb>=0.10.22")
+_WANDB_GREATER_EQUAL_0_12_10 = _RequirementAvailable("wandb>=0.12.10")
 
 
 class WandbLogger(Logger):
@@ -380,7 +379,7 @@ class WandbLogger(Logger):
         self.experiment.config.update(params, allow_val_change=True)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(self, metrics: Mapping[str, float], step: Optional[int] = None) -> None:
         assert rank_zero_only.rank == 0, "experiment tried to log from global_rank != 0"
 
         metrics = _add_prefix(metrics, self._prefix, self.LOGGER_JOIN_CHAR)

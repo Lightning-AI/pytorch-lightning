@@ -5,7 +5,7 @@ if _is_pytorch_lightning_available():
     from torch.utils.data import DataLoader, Dataset
 
     from pytorch_lightning import LightningDataModule, LightningModule
-    from pytorch_lightning.utilities.cli import LightningCLI
+    from pytorch_lightning.cli import LightningCLI
 
     class RandomDataset(Dataset):
         def __init__(self, size, length):

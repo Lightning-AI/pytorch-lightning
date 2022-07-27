@@ -17,10 +17,9 @@ def test_non_existing_python_script():
         run_work_isolated(python_script)
         assert not python_script.has_started
 
-    with pytest.raises(FileNotFoundError, match=match):
-        python_script = TracerPythonScript(match)
-        run_work_isolated(python_script)
-        assert not python_script.has_started
+    python_script = TracerPythonScript(match, raise_exception=False)
+    run_work_isolated(python_script)
+    assert python_script.has_failed
 
 
 def test_simple_python_script():
