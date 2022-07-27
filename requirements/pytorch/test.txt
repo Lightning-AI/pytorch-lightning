@@ -16,3 +16,5 @@ psutil  # for `DeviceStatsMonitor`
 pandas  # needed in benchmarks
 fastapi
 uvicorn
+--extra-index-url https://download.pytorch.org/whl/cpu
+torchdistx
