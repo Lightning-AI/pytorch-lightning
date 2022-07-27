@@ -73,7 +73,7 @@ repos:
         name: Format imports
 
   - repo: https://github.com/psf/black
-    rev: 22.3.0
+    rev: 22.6.0
     hooks:
       - id: black
         name: Format code
@@ -95,11 +95,14 @@ repos:
           - mdformat-gfm
           #- mdformat-black
           - mdformat_frontmatter
-        exclude: src/pytorch_lightning/CHANGELOG.md
+        exclude: |
+            (?x)^(
+                src/pytorch_lightning/CHANGELOG.md|
+                src/lightning_app/CHANGELOG.md
+            )$
 
   - repo: https://github.com/PyCQA/flake8
     rev: 4.0.1
     hooks:
       - id: flake8
         name: Check PEP8
-        exclude: docs/source-app

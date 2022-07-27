@@ -61,10 +61,6 @@ class Loop(ABC, Generic[T]):
     @trainer.setter
     def trainer(self, trainer: "pl.Trainer") -> None:
         """Connects this loop's trainer and its children."""
-        if not isinstance(trainer, pl.Trainer):
-            raise MisconfigurationException(
-                f"Loop {self.__class__.__name__} should be connected to a `Trainer`, found: {trainer}."
-            )
         self._trainer = trainer
         for v in self.__dict__.values():
             if isinstance(v, Loop):
@@ -318,6 +314,7 @@ class Loop(ABC, Generic[T]):
         self.restarting = True
 
     def _load_from_state_dict(self, state_dict: Dict, prefix: str, metrics: Optional[Dict[str, Metric]] = None) -> None:
+        trainer = self._trainer
         for k, v in self.__dict__.items():
             key = prefix + k
             if key not in state_dict:
@@ -326,11 +323,7 @@ class Loop(ABC, Generic[T]):
 
             if isinstance(v, BaseProgress):
                 v.load_state_dict(state_dict[key])
-            elif (
-                isinstance(v, _ResultCollection)
-                and self.trainer is not None
-                and self.trainer.lightning_module is not None
-            ):
+            elif isinstance(v, _ResultCollection) and trainer is not None and trainer.lightning_module is not None:
                 metric_attributes = {
                     name: module
                     for name, module in self.trainer.lightning_module.named_modules()

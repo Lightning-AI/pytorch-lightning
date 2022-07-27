@@ -25,33 +25,10 @@ Welcome to ⚡ Lightning Apps
 Install Lightning
 *****************
 
-
-.. raw:: html
-
-   <div class="row" style='font-size: 16px'>
-      <div class='col-md-6'>
-
-Pip users
-
 .. code-block:: bash
 
    pip install lightning
 
-.. raw:: html
-
-      </div>
-      <div class='col-md-6'>
-
-Conda users
-
-.. code-block:: bash
-
-   conda install lightning -c conda-forge
-
-.. raw:: html
-
-      </div>
-   </div>
 
 Or read the :ref:`advanced install <install>` guide.
 
