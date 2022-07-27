@@ -16,6 +16,7 @@ def test_commands_example_cloud() -> None:
         admin_page,
         _,
         fetch_logs,
+        _,
     ):
         app_id = admin_page.url.split("/")[-1]
         cmd = f"lightning trigger_with_client_command --name=something --app_id {app_id}"
