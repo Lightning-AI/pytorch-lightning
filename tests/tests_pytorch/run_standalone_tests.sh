@@ -93,31 +93,7 @@ done
 # wait for leftover tests
 for pid in ${pids[*]}; do wait $pid; done
 show_batched_output
-echo "Batched mode finished. Continuing with the rest of standalone tests."
-
-if nvcc --version; then
-    nvprof --profile-from-start off -o trace_name.prof -- python ${defaults} profilers/test_profiler.py::test_pytorch_profiler_nested_emit_nvtx
-fi
-
-# needs to run outside of `pytest`
-python utilities/test_warnings.py
-if [ $? -eq 0 ]; then
-    report+="Ran\tutilities/test_warnings.py\n"
-fi
-
-# test deadlock is properly handled with TorchElastic.
-LOGS=$(PL_RUN_STANDALONE_TESTS=1 PL_RECONCILE_PROCESS=1 python -m torch.distributed.run --nproc_per_node=2 --max_restarts 0 -m coverage run --source pytorch_lightning -a plugins/environments/torch_elastic_deadlock.py | grep "SUCCEEDED")
-if [ -z "$LOGS" ]; then
-    exit 1
-fi
-report+="Ran\tplugins/environments/torch_elastic_deadlock.py\n"
-
-# test that a user can manually launch individual processes
-export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-args="--trainer.accelerator gpu --trainer.devices 2 --trainer.strategy ddp --trainer.max_epochs=1 --trainer.limit_train_batches=1 --trainer.limit_val_batches=1 --trainer.limit_test_batches=1"
-MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=1 python ../../examples/convert_from_pt_to_pl/image_classifier_5_lightning_datamodule.py ${args} &
-MASTER_ADDR="localhost" MASTER_PORT=1234 LOCAL_RANK=0 python ../../examples/convert_from_pt_to_pl/image_classifier_5_lightning_datamodule.py ${args}
-report+="Ran\tmanual ddp launch test\n"
+echo "Batched mode finished. End of standalone tests."
 
 # echo test report
 printf '=%.s' {1..80}
