@@ -130,12 +130,13 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self._launcher = _XLALauncher(self)
 
     def setup(self, trainer: "pl.Trainer") -> None:
-        assert self.model
+        assert self.accelerator
         self.accelerator.setup(trainer)
 
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
 
+        assert self.model
         shared_params = find_shared_parameters(self.model)
         self.model_to_device()
         assert isinstance(self.model.module, Module)
