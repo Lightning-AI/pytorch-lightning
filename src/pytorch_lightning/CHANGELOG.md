@@ -379,6 +379,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Fixed main progress bar counter when `val_check_interval=int` and `check_val_every_n_epoch=None` ([#12832](https://github.com/Lightning-AI/lightning/pull/12832)
 
 
+- Improved support for custom `ReduceLROnPlateau` scheduler if `reduce_on_plateau` is set by the user in scheduler config ([#13838](https://github.com/Lightning-AI/lightning/pull/13838))
+
+
 - Used `global_step` while restoring logging step for old checkpoints ([#13645](https://github.com/Lightning-AI/lightning/pull/13645))
 
 
