@@ -75,6 +75,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             start_method="fork",
         )
         self.debug = debug
+        self._launched = False
 
     @property
     def checkpoint_io(self) -> CheckpointIO:
@@ -91,6 +92,8 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     @property
     def root_device(self) -> torch.device:
+        if not self._launched:
+            raise RuntimeError("Accessing the XLA device before processes have spawned is not allowed.")
         return xm.xla_device()
 
     @staticmethod
@@ -133,7 +136,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self.accelerator.setup(trainer)
 
         if self.debug:
-            os.environ["PT_XLA_DEBUG"] = str(1)
+            os.environ["PT_XLA_DEBUG"] = "1"
 
         assert self.model
         shared_params = find_shared_parameters(self.model)
@@ -155,7 +158,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     @property
     def is_distributed(self) -> bool:
-        # HOST_WORLD_SIZE is None outside the xmp.spawn process
+        # HOST_WORLD_SIZE is not set outside the xmp.spawn process
         return (xenv.HOST_WORLD_SIZE in os.environ) and self.world_size != 1
 
     def process_dataloader(self, dataloader: DataLoader) -> MpDeviceLoader:
@@ -196,8 +199,9 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         invalid_reduce_op = isinstance(reduce_op, ReduceOp) and reduce_op != ReduceOp.SUM
         invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
         if invalid_reduce_op or invalid_reduce_op_str:
-            raise MisconfigurationException(
-                "Currently, TPUSpawn Strategy only support `sum`, `mean`, `avg` reduce operation."
+            raise ValueError(
+                "Currently, the TPUSpawnStrategy only supports `sum`, `mean`, `avg` for the reduce operation, got:"
+                f" {reduce_op}"
             )
 
         output = xm.mesh_reduce("reduce", output, sum)
@@ -208,6 +212,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         return output
 
     def _worker_setup(self, process_idx: int) -> None:
+        self._launched = True
         reset_seed()
         self.set_world_ranks(process_idx)
         rank_zero_only.rank = self.global_rank
