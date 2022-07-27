@@ -74,9 +74,9 @@ class PrecisionPlugin(CheckpointHooks):
             model: the model to be optimized
             closure_loss: the loss value obtained from the closure
             optimizer: current optimizer being used. ``None`` if using manual optimization
-            *args: Positional arguments intended for the actual function that performs the backward, like
+            \*args: Positional arguments intended for the actual function that performs the backward, like
                 :meth:`~torch.Tensor.backward`.
-            *kwargs: Keyword arguments for the same purpose as `*args`.
+            \**kwargs: Keyword arguments for the same purpose as ``*args``.
         """
         # do backward pass
         if model is not None and isinstance(model, pl.LightningModule):

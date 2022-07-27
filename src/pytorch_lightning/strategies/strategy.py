@@ -185,9 +185,9 @@ class Strategy(ABC):
             closure_loss: a tensor holding the loss value to backpropagate
             optimizer: An optional optimizer that gets passed down to the precision plugin's backward
             optimizer_idx: An optional optimizer index that gets passed down to the precision plugin's backward
-            *args: Positional arguments that get passed down to the precision plugin's backward, intended as arguments
+            \*args: Positional arguments that get passed down to the precision plugin's backward, intended as arguments
                 for the actual function that performs the backward, like :meth:`~torch.Tensor.backward`.
-            *kwargs: Keyword arguments for the same purpose as `*args`.
+            \**kwargs: Keyword arguments for the same purpose as ``*args``.
         """
         self.pre_backward(closure_loss)
         assert self.lightning_module is not None
