@@ -62,7 +62,8 @@ Currently there are some known limitations that are being addressed in the near 
 
 Please see the `MNIST example <https://github.com/Lightning-AI/lightning/blob/master/examples/pl_ipu/mnist_sample.py>`__ which displays most of the limitations and how to overcome them till they are resolved.
 
-* ``self.log`` is not supported in the ``training_step``, ``validation_step``, ``test_step`` or ``predict_step``. This is due to the step function being traced and sent to the IPU devices. We're actively working on fixing this
-* Multiple optimizers are not supported. ``training_step`` only supports returning one loss from the ``training_step`` function as a result
-* Since the step functions are traced, branching logic or any form of primitive values are traced into constants. Be mindful as this could lead to errors in your custom code
-* Clipping gradients is not supported
+* ``self.log`` is not supported in the ``training_step``, ``validation_step``, ``test_step`` or ``predict_step``. This is due to the step function being traced and sent to the IPU devices. We're actively working on fixing this.
+* Multiple optimizers are not supported. ``training_step`` only supports returning one loss from the ``training_step`` function as a result.
+* Since the step functions are traced, branching logic or any form of primitive values are traced into constants. Be mindful as this could lead to errors in your custom code.
+* Clipping gradients is not supported.
+* It is not possible to use :class:`torch.utils.data.BatchSampler` in your dataloaders if you are using multiple IPUs.
