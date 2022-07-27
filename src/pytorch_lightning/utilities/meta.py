@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from contextlib import contextmanager
-from typing import Any, Callable, Generator, Set, Type
+from typing import Any, Callable, Dict, Generator, Optional, Set, Type
 
+from torch import Tensor
 from torch.nn import Module
 
 from pytorch_lightning.utilities import rank_zero_deprecation
+from pytorch_lightning.utilities.imports import _module_available
 
 
 def is_meta_init() -> bool:
@@ -102,3 +104,15 @@ def is_on_meta_device(module: Module) -> bool:
         return param.is_meta
     except StopIteration:
         return False
+
+
+def _is_deferred(module: Module) -> bool:
+    if not _module_available("torchdistx.fake"):
+        return False
+    from torchdistx.fake import is_fake
+
+    def any_fake(tensors: Dict[str, Optional[Tensor]]) -> bool:
+        return any(is_fake(t) for t in tensors.values() if t is not None)
+
+    is_deferred = any(_is_deferred(m) for m in module.children())
+    return is_deferred or any_fake(module._parameters) or any_fake(module._buffers)

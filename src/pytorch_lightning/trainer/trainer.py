@@ -69,7 +69,7 @@ from pytorch_lightning.profilers import (
     SimpleProfiler,
     XLAProfiler,
 )
-from pytorch_lightning.strategies import ParallelStrategy, Strategy
+from pytorch_lightning.strategies import DDPSpawnStrategy, ParallelStrategy, Strategy
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import _LITERAL_WARN, AcceleratorConnector
@@ -1453,7 +1453,15 @@ class Trainer(
             if _module_available("torchdistx.deferred_init"):
                 from torchdistx.deferred_init import materialize_module
 
-                materialize_module(self.lightning_module)
+                from pytorch_lightning.utilities.meta import _is_deferred
+
+                if _is_deferred(self.lightning_module):
+                    if isinstance(self.strategy, DDPSpawnStrategy):
+                        raise NotImplementedError(
+                            f"The {type(self.strategy).__name__} strategy does not support `torchdistx`'s deferred"
+                            f" initialization."
+                        )
+                    materialize_module(self.lightning_module)
 
             self._call_lightning_module_hook("configure_sharded_model")
             self._call_callback_hooks("on_configure_sharded_model")

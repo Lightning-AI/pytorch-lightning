@@ -32,19 +32,25 @@ class SimpleBoringModel(LightningModule):
 @pytest.mark.skipif(not _TORCHDISTX_AVAILABLE, reason=_TORCHDISTX_AVAILABLE.message)
 def test_deferred_init_with_lightning_module():
     from torchdistx.deferred_init import deferred_init, materialize_module
+    from torchdistx.fake import is_fake
 
     model = deferred_init(SimpleBoringModel, 4)
-    assert model.layer[0].weight.device.type == "cpu"
+    weight = model.layer[0].weight
+    assert weight.device.type == "cpu"
+    assert is_fake(weight)
+
     materialize_module(model)
     materialize_module(model)  # make sure it's idempotent
-    assert model.layer[0].weight.device.type == "cpu"
+    weight = model.layer[0].weight
+    assert weight.device.type == "cpu"
+    assert not is_fake(weight)
 
 
 @pytest.mark.skipif(not _TORCHDISTX_AVAILABLE, reason=_TORCHDISTX_AVAILABLE.message)
 @pytest.mark.parametrize(
     "trainer_kwargs",
     (
-        {"accelerator": "auto"},
+        {"accelerator": "auto", "devices": 1},
         pytest.param(
             {"strategy": "deepspeed_stage_3", "accelerator": "gpu", "devices": 2, "precision": 16},
             marks=RunIf(min_cuda_gpus=2, deepspeed=True),
@@ -63,3 +69,7 @@ def test_deferred_init_with_trainer(tmpdir, trainer_kwargs):
         **trainer_kwargs
     )
     trainer.fit(model)
+
+
+def test_deferred_init_ddp_spawn():
+    ...  # FIXME
