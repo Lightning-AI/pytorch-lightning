@@ -79,7 +79,7 @@ class TracerPythonScript(LightningWork):
         This callback has a reference to the work and on every batch end, we are capturing the
         trainer ``global_step`` and ``best_model_path``.
 
-        Even more interesting, this component works for ANY Pytorch Lightning script and
+        Even more interesting, this component works for ANY PyTorch Lightning script and
         its state can be used in real time in a UI.
 
         .. literalinclude:: ../../../../examples/app_components/python/component_tracer.py
@@ -93,8 +93,6 @@ class TracerPythonScript(LightningWork):
             :language: python
         """
         super().__init__(**kwargs)
-        if not os.path.exists(script_path):
-            raise FileNotFoundError(f"The provided `script_path` {script_path}` wasn't found.")
         self.script_path = str(script_path)
         if isinstance(script_args, str):
             script_args = script_args.split(" ")
@@ -105,6 +103,8 @@ class TracerPythonScript(LightningWork):
             setattr(self, name, None)
 
     def run(self, **kwargs):
+        if not os.path.exists(self.script_path):
+            raise FileNotFoundError(f"The provided `script_path` {self.script_path}` wasn't found.")
         kwargs = {k: v.value if isinstance(v, Payload) else v for k, v in kwargs.items()}
         init_globals = globals()
         init_globals.update(kwargs)
