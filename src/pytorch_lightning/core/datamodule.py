@@ -150,7 +150,7 @@ class LightningDataModule(CheckpointHooks, DataHooks, HyperparametersMixin):
                 return [dataloader(ds) for ds in predict_dataset]
             return dataloader(predict_dataset)
 
-        datamodule = cls()
+        datamodule = cls(batch_size=batch_size)
         if train_dataset is not None:
             datamodule.train_dataloader = train_dataloader
         if val_dataset is not None:
