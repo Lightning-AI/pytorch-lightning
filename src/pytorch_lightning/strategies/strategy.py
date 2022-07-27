@@ -171,7 +171,14 @@ class Strategy(ABC):
         """
         return optimizer.state_dict()
 
-    def backward(self, closure_loss: Tensor, *args: Any, **kwargs: Any) -> Tensor:
+    def backward(
+        self,
+        closure_loss: Tensor,
+        optimizer: Optional[Optimizer],
+        optimizer_idx: Optional[int],
+        *args: Any,
+        **kwargs: Any,
+    ) -> Tensor:
         """Forwards backward-calls to the precision plugin.
 
         Args:
@@ -181,7 +188,7 @@ class Strategy(ABC):
         assert self.lightning_module is not None
         closure_loss = self.precision_plugin.pre_backward(self.lightning_module, closure_loss)
 
-        self.precision_plugin.backward(self.lightning_module, closure_loss, *args, **kwargs)
+        self.precision_plugin.backward(self.lightning_module, closure_loss, optimizer, optimizer_idx, *args, **kwargs)
 
         closure_loss = self.precision_plugin.post_backward(self.lightning_module, closure_loss)
         self.post_backward(closure_loss)
