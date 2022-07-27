@@ -21,7 +21,6 @@ from lightning_app.utilities.cli_helpers import (
     _retrieve_application_url_and_available_commands,
 )
 from lightning_app.utilities.cloud import _get_project
-from lightning_app.utilities.install_components import register_all_external_components
 from lightning_app.utilities.login import Auth
 from lightning_app.utilities.network import LightningClient
 from lightning_app.utilities.state import headers_for
@@ -64,14 +63,14 @@ def show():
 @click.argument("components", nargs=-1, required=False)
 @click.option("-f", "--follow", required=False, is_flag=True, help="Wait for new logs, to exit use CTRL+C.")
 def logs(app_name: str, components: List[str], follow: bool) -> None:
-    """Show application logs. By default prints logs for all currently available components. 
+    """Show application logs. By default prints logs for all currently available components.
 
     Example uses:
 
         Print all application logs:
 
             $ lightning show logs my-application
-        
+
 
         Print logs only from the root flow component:
 
@@ -100,7 +99,9 @@ def logs(app_name: str, components: List[str], follow: bool) -> None:
         )
 
     if app_name not in apps:
-        raise click.ClickException(f"LightningApp '{app_name}' does not exist. Please select one of available: [{', '.join(apps.keys())}]")
+        raise click.ClickException(
+            f"LightningApp '{app_name}' does not exist. Please select one of available: [{', '.join(apps.keys())}]"
+        )
 
     # Fetch all lightning works from given application
     # 'Flow' component is somewhat implicit, only one for whole app,

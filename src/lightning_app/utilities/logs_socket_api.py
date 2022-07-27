@@ -43,27 +43,31 @@ class _LightningLogsSocketAPI:
             .. code-block:: python
                 # Synchronous reading, run_forever() is blocking
 
+
                 def print_log_msg(ws_app, msg):
                     print(msg)
 
-                flow_logs_socket = client.create_lightning_logs_socket('project_id', 'app_id', 'flow', print_log_msg)
+
+                flow_logs_socket = client.create_lightning_logs_socket("project_id", "app_id", "flow", print_log_msg)
                 flow_socket.run_forever()
 
             .. code-block:: python
                 # Asynchronous reading (with Threads)
 
+
                 def print_log_msg(ws_app, msg):
                     print(msg)
 
-                flow_logs_socket = client.create_lightning_logs_socket('project_id', 'app_id', 'flow', print_log_msg)
-                work_logs_socket = client.create_lightning_logs_socket('project_id', 'app_id', 'work_1', print_log_msg)
+
+                flow_logs_socket = client.create_lightning_logs_socket("project_id", "app_id", "flow", print_log_msg)
+                work_logs_socket = client.create_lightning_logs_socket("project_id", "app_id", "work_1", print_log_msg)
 
                 flow_logs_thread = Thread(target=flow_logs_socket.run_forever)
                 work_logs_thread = Thread(target=work_logs_socket.run_forever)
 
                 flow_logs_thread.start()
                 work_logs_thread.start()
-                .......
+                # .......
 
                 flow_logs_socket.close()
                 work_logs_thread.close()
