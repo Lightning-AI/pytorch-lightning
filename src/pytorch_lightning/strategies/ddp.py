@@ -32,7 +32,7 @@ from torch.optim.optimizer import Optimizer
 import pytorch_lightning as pl
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.overrides import LightningDistributedModule, _LightningPrecisionModuleWrapperBase
+from pytorch_lightning.overrides import _LightningPrecisionModuleWrapperBase, LightningDistributedModule
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
@@ -271,7 +271,6 @@ class DDPStrategy(ParallelStrategy):
                 )
 
         assert self._ddp_comm_state is not None
-        # assert isinstance(self._ddp_comm_state, post_localSGD.PostLocalSGDState)
         self._model_averager = torch.distributed.algorithms.model_averaging.averagers.PeriodicModelAverager(
             period=self._model_averaging_period, warmup_steps=self._ddp_comm_state.start_localSGD_iter
         )
@@ -341,7 +340,9 @@ class DDPStrategy(ParallelStrategy):
         assert self.model is not None
         self.model.to(self.root_device)
 
-    def reduce(self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean") -> Tensor:
+    def reduce(
+        self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean"
+    ) -> Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
