@@ -234,7 +234,13 @@ class IPUStrategy(ParallelStrategy):
             dataloader, sampler, mode, self.replication_factor > 1
         )
         opts = self.training_opts if mode == RunningStage.TRAINING else self.inference_opts
+        from pprint import pprint
+
+        pprint(opts)
+        pprint(dl_args)
+        pprint(dl_kwargs)
         dataloader = poptorch.DataLoader(opts, *dl_args, **dl_kwargs)
+        pprint(dataloader)
         return dataloader
 
     def _handle_gradient_accumulation_steps(self) -> None:
