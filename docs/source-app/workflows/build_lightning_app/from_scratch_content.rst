@@ -87,10 +87,10 @@ You'll see a print-out like this:
         /Users/Your/Current/dir/your-app-name
 
     run your app with:
-        lightning run app your-app-name/your_app_name/app.py
+        lightning run app your-app-name/app.py
 
     run it on the cloud to share with your collaborators:
-        lightning run app your-app-name/your_app_name/app.py --cloud
+        lightning run app your-app-name/app.py --cloud
 
 ----
 
