@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 from lightning_cloud.openapi import (
     Body8,
-    Gridv1ImageSpec,
+    V1ImageSpec,
     V1BuildSpec,
     V1DependencyFileInfo,
     V1LightningappInstanceState,
@@ -78,7 +78,7 @@ class TestAppCreationClient:
         monkeypatch.setattr(Path, "is_file", lambda *args, **kwargs: True)
         monkeypatch.setattr(cloud, "Path", Path)
         cloud_runtime.dispatch(no_cache=True)
-        body.image_spec = Gridv1ImageSpec(
+        body.image_spec = V1ImageSpec(
             dependency_file_info=V1DependencyFileInfo(
                 package_manager=V1PackageManager.PIP,
                 path="requirements.txt",
@@ -191,7 +191,7 @@ class TestAppCreationClient:
                 enable_app_server=True,
                 flow_servers=[],
                 dependency_cache_key=get_hash(requirements_file),
-                image_spec=Gridv1ImageSpec(
+                image_spec=V1ImageSpec(
                     dependency_file_info=V1DependencyFileInfo(
                         package_manager=V1PackageManager.PIP, path="requirements.txt"
                     )

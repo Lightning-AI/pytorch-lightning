@@ -15,7 +15,7 @@ from lightning_cloud.openapi import (
     Body7,
     Body8,
     Body9,
-    Gridv1ImageSpec,
+    V1ImageSpec,
     V1BuildSpec,
     V1DependencyFileInfo,
     V1EnvVar,
@@ -130,7 +130,7 @@ class CloudRuntime(Runtime):
         # if requirements file at the root of the repository is present,
         # we pass just the file name to the backend, so backend can find it in the relative path
         if requirements_file.is_file():
-            app_spec.image_spec = Gridv1ImageSpec(
+            app_spec.image_spec = V1ImageSpec(
                 dependency_file_info=V1DependencyFileInfo(package_manager=V1PackageManager.PIP, path="requirements.txt")
             )
             if not DISABLE_DEPENDENCY_CACHE and not kwargs.get("no_cache"):
