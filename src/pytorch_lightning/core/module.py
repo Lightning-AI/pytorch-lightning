@@ -271,10 +271,8 @@ class LightningModule(
         """Reference to the logger object in the Trainer."""
         # this should match the implementation of `trainer.logger`
         # we don't reuse it so we can properly set the deprecation stacklevel
-        if self.trainer is None:
-            return None
         if self._trainer is None:
-            return None
+            return  # type: ignore[return-value]
         loggers = self.trainer.loggers
         if len(loggers) == 0:
             return None
