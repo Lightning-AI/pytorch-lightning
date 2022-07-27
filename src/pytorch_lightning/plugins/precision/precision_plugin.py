@@ -68,7 +68,7 @@ class PrecisionPlugin(CheckpointHooks):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        """Performs the actual backpropagation.
+        r"""Performs the actual backpropagation.
 
         Args:
             model: the model to be optimized

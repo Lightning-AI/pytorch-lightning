@@ -179,7 +179,7 @@ class Strategy(ABC):
         *args: Any,
         **kwargs: Any,
     ) -> Tensor:
-        """Forwards backward-calls to the precision plugin.
+        r"""Forwards backward-calls to the precision plugin.
 
         Args:
             closure_loss: a tensor holding the loss value to backpropagate
