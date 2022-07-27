@@ -15,7 +15,9 @@
 set -e
 # THIS FILE ASSUMES IT IS RUN INSIDE THE tests/tests_pytorch DIRECTORY
 
+# Batch size for testing: Determines how many standalone test invocations run in parallel
 test_batch_size=6
+
 while getopts "b:" opt; do
     case $opt in
         b)
