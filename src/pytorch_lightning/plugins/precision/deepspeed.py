@@ -27,7 +27,7 @@ from pytorch_lightning.utilities.warnings import WarningCache
 
 _DEEPSPEED_AVAILABLE = _RequirementAvailable("deepspeed")
 if TYPE_CHECKING and _DEEPSPEED_AVAILABLE:
-        import deepspeed
+    import deepspeed
 
 warning_cache = WarningCache()
 
