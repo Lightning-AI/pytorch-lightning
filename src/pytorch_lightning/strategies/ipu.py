@@ -42,9 +42,7 @@ else:
 
 
 class LightningIPUModule(_LightningModuleWrapperBase):
-    def __init__(
-        self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]
-    ) -> None:
+    def __init__(self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]) -> None:
         super().__init__(pl_module)
 
 
