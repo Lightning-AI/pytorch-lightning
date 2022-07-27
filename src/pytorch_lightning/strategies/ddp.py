@@ -59,7 +59,7 @@ from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUA
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.types import STEP_OUTPUT, TestStep, TrainingStep, ValidationStep
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
@@ -333,13 +333,15 @@ class DDPStrategy(ParallelStrategy):
     def pre_backward(self, closure_loss: Tensor) -> None:
         """Run before precision plugin executes backward."""
         if isinstance(self.lightning_module, LightningModule) and not self.lightning_module.automatic_optimization:
+            assert isinstance(self.model, DistributedDataParallel)
             prepare_for_backward(self.model, closure_loss)
 
-    def model_to_device(self):
+    def model_to_device(self) -> None:
         log.detail(f"{self.__class__.__name__}: moving model to device [{self.root_device}]...")
+        assert self.model is not None
         self.model.to(self.root_device)
 
-    def reduce(self, tensor, group: Optional[Any] = None, reduce_op: Union[ReduceOp, str] = "mean") -> Tensor:
+    def reduce(self, tensor: Tensor, group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = "mean") -> Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor.
 
         Args:
@@ -355,12 +357,14 @@ class DDPStrategy(ParallelStrategy):
             tensor = sync_ddp_if_available(tensor, group, reduce_op=reduce_op)
         return tensor
 
-    def training_step(self, *args, **kwargs) -> STEP_OUTPUT:
+    def training_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         with self.precision_plugin.train_step_context():
+            assert isinstance(self.model, TrainingStep)
             return self.model(*args, **kwargs)
 
-    def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
+            assert isinstance(self.model, ValidationStep)
             if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
                 # used when calling `trainer.fit`
                 return self.model(*args, **kwargs)
@@ -368,17 +372,20 @@ class DDPStrategy(ParallelStrategy):
                 # used when calling `trainer.validate`
                 return self.model.validation_step(*args, **kwargs)
 
-    def test_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
+    def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.test_step_context():
+            assert isinstance(self.model, TestStep)
             return self.model.test_step(*args, **kwargs)
 
-    def predict_step(self, *args, **kwargs) -> STEP_OUTPUT:
+    def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         with self.precision_plugin.predict_step_context():
+            assert isinstance(self.model, TestStep)
             return self.model.predict_step(*args, **kwargs)
 
-    def post_training_step(self):
-        if not self.lightning_module.automatic_optimization:
-            self.model.require_backward_grad_sync = True
+    def post_training_step(self) -> None:
+        if isinstance(self.lightning_module, LightningModule) and not self.lightning_module.automatic_optimization:
+            assert self.model is not None
+            self.model.require_backward_grad_sync = True  # type: ignore[assignment]
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
@@ -455,6 +462,7 @@ class DDPStrategy(ParallelStrategy):
         if len(os.listdir(sync_dir)) == (self.world_size // self.num_nodes):
             return
 
+        assert self._pids is not None
         for pid in self._pids:
             if pid != os.getpid():
                 os.kill(pid, signal.SIGKILL)
@@ -469,7 +477,7 @@ class DDPStrategy(ParallelStrategy):
             if (
                 _TORCH_GREATER_EQUAL_1_11
                 and not self.model.static_graph
-                and self.model._get_ddp_logging_data().get("can_set_static_graph")
+                and self.model._get_ddp_logging_data().get("can_set_static_graph")  # type: ignore[operator]
             ):
                 rank_zero_info(
                     "Your model can run with static graph optimizations. For future training runs, we suggest you"
@@ -486,6 +494,7 @@ class DDPStrategy(ParallelStrategy):
             and pl_module._trainer.state.fn == TrainerFn.FITTING
             and self._layer_sync
         ):
+            assert self.model is not None
             self.model = self._layer_sync.revert(self.model)
 
         super().teardown()
