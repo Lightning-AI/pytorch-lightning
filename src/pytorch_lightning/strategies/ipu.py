@@ -43,24 +43,9 @@ else:
 
 class LightningIPUModule(_LightningModuleWrapperBase):
     def __init__(
-        self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase], precision: Union[str, int]
+        self, pl_module: Union["pl.LightningModule", _LightningPrecisionModuleWrapperBase]
     ) -> None:
         super().__init__(pl_module)
-        self.precision = precision
-
-    def forward(self, *inputs: Any, **kwargs: Any) -> Any:
-        if self.precision in (PrecisionType.MIXED, PrecisionType.HALF):
-            inputs = self._move_float_tensors_to_half(inputs)
-
-        return super().forward(*inputs, **kwargs)
-
-    @staticmethod
-    def batch_to(data: Tensor) -> Tensor:
-        return data.half()
-
-    def _move_float_tensors_to_half(self, batch: Any) -> Any:
-        batch = apply_to_collection(batch, (FloatTensor, torch.cuda.FloatTensor), function=self.batch_to)
-        return batch
 
 
 class IPUStrategy(ParallelStrategy):
@@ -142,7 +127,7 @@ class IPUStrategy(ParallelStrategy):
         self._optimizer_zero_grad_original = self.lightning_module.optimizer_zero_grad
         self._disable_zero_grad()
 
-        model = LightningIPUModule(self.lightning_module, self.precision_plugin.precision)
+        model = LightningIPUModule(self.lightning_module)
         self.model = model
 
         # reset the backup
@@ -271,6 +256,15 @@ class IPUStrategy(ParallelStrategy):
         args = apply_to_collection(args, dtype=list, function=to_tuple)
         args = apply_to_collection(args, dtype=(int, float), function=to_tensor)
         return args
+
+    @staticmethod
+    def batch_to(data: Tensor) -> Tensor:
+        return data.half()
+
+    def batch_to_device(self, batch: Any, device: Optional[torch.device] = None, dataloader_idx: int = 0) -> Any:
+        if self.precision_plugin.precision in (PrecisionType.MIXED, PrecisionType.HALF):
+            batch = apply_to_collection(batch, (FloatTensor, torch.cuda.FloatTensor), function=self.batch_to)
+        return batch
 
     def _disable_zero_grad(self) -> None:
         lightning_module = self.lightning_module

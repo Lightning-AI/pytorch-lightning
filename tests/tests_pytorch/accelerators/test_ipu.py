@@ -205,7 +205,7 @@ def test_mixed_precision(tmpdir):
 def test_pure_half_precision(tmpdir):
     class TestCallback(Callback):
         def on_train_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
-            assert trainer.strategy.model.precision == 16
+            assert trainer.strategy.precision_plugin.precision == 16
             for param in trainer.strategy.model.parameters():
                 assert param.dtype == torch.float16
             raise SystemExit
