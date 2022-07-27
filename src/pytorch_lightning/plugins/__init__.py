@@ -1,6 +1,7 @@
 from typing import Union
 
 from pytorch_lightning.plugins.environments import ClusterEnvironment
+from pytorch_lightning.plugins.io.async_plugin import AsyncCheckpointIO
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.hpu_plugin import HPUCheckpointIO
 from pytorch_lightning.plugins.io.torch_plugin import TorchCheckpointIO
@@ -38,6 +39,7 @@ PLUGIN = Union[Strategy, PrecisionPlugin, ClusterEnvironment, CheckpointIO, Laye
 PLUGIN_INPUT = Union[PLUGIN, str]
 
 __all__ = [
+    "AsyncCheckpointIO",
     "CheckpointIO",
     "TorchCheckpointIO",
     "XLACheckpointIO",
