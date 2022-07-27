@@ -17,7 +17,9 @@ from collections import OrderedDict
 from typing import Dict, List, Tuple
 
 import torch
+from torch.nn import Parameter
 
+from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_summary import (
     _is_lazy_weight_tensor,
     get_human_readable_count,
@@ -40,7 +42,11 @@ class DeepSpeedLayerSummary(LayerSummary):
     @property
     def average_shard_parameters(self) -> int:
         """Returns the number of parameters in this module."""
-        return sum(p.partitioned_size() if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
+
+        def partitioned_size(p: Parameter) -> int:
+            return p.partitioned_size() if _RequirementAvailable("deepspeed<0.6.6") else p.partition_numel()
+
+        return sum(partitioned_size(p) if not _is_lazy_weight_tensor(p) else 0 for p in self._module.parameters())
 
 
 class DeepSpeedSummary(ModelSummary):
