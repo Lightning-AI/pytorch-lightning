@@ -116,6 +116,7 @@ class Strategy(ABC):
     def connect(self, model: "pl.LightningModule") -> None:
         """Called by the accelerator to connect the accelerator and the model with this plugin."""
         self._lightning_module = model
+        self.model = model
 
     def _configure_launcher(self) -> None:
         """Attach the launcher based on Strategy."""
@@ -467,7 +468,6 @@ class Strategy(ABC):
         if self.lightning_module is not None:
             log.detail(f"{self.__class__.__name__}: moving model to CPU")
             self.lightning_module.cpu()
-        self.model = self.lightning_module
         self.precision_plugin.teardown()
         assert self.accelerator is not None
         self.accelerator.teardown()
