@@ -27,11 +27,12 @@ from unittest.mock import ANY, call, patch
 import cloudpickle
 import pytest
 import torch
+import torch.nn as nn
 from torch.multiprocessing import ProcessRaisedException
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim import SGD
 from torch.utils.data import DataLoader, IterableDataset
-import torch.nn as nn
+
 import pytorch_lightning
 import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
