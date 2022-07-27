@@ -324,6 +324,9 @@ def _dataloader_init_kwargs_resolve_sampler(
     If the dataloader is being used for prediction, the sampler will be wrapped into an `IndexBatchSamplerWrapper`, so
     Lightning can keep track of its indices. If fault tolerant training is enabled, the sampler will be wrapped into a
     `FastForwardSampler`.
+
+    If there are multiple devices in IPU mode, it is necessary to disallow BatchSampler that isn't instantiated
+    automatically, since `poptorch.DataLoader` will try to increase the batch_size
     """
     fault_tolerant_mode = _FaultTolerantMode.detect_current_mode()
     batch_sampler = getattr(dataloader, "batch_sampler")
