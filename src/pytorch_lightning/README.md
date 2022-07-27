@@ -126,15 +126,15 @@ pip install pytorch-lightning['extra']
 conda install pytorch-lightning -c conda-forge
 ```
 
-#### Install stable 1.6.x
+#### Install stable 1.7.x
 
-the actual status of 1.6 \[stable\] is following:
+The actual status of 1.7 \[stable\] is the following:
 
-![CI basic testing](https://github.com/Lightning-AI/lightning/workflows/CI%20basic%20testing/badge.svg?branch=release%2F1.5.x&event=push)
-![CI complete testing](https://github.com/Lightning-AI/lightning/workflows/CI%20complete%20testing/badge.svg?branch=release%2F1.5.x&event=push)
-![PyTorch & Conda](https://github.com/Lightning-AI/lightning/workflows/PyTorch%20&%20Conda/badge.svg?branch=release%2F1.5.x&event=push)
-![TPU tests](https://github.com/Lightning-AI/lightning/workflows/TPU%20tests/badge.svg?branch=release%2F1.5.x&event=push)
-![Docs check](https://github.com/Lightning-AI/lightning/workflows/Docs%20check/badge.svg?branch=release%2F1.5.x&event=push)
+[![CI base testing](https://github.com/Lightning-AI/lightning/actions/workflows/ci_test-base.yml/badge.svg?branch=%27release/pytorch%27&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci_test-base.yml)
+[![CI complete testing](https://github.com/Lightning-AI/lightning/actions/workflows/ci_test-full-1.8.yml/badge.svg?branch=%27release/pytorch%27&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci_test-full-1.8.yml)
+[![PyTorch & Conda](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch_test-conda.yml/badge.svg?branch=%27release/pytorch%27&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci-pytorch_test-conda.yml)
+[![TPU tests](https://github.com/Lightning-AI/lightning/actions/workflows/ci_test-tpu.yml/badge.svg?branch=%27release/pytorch%27&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/ci_test-tpu.yml)
+[![Check Docs](https://github.com/Lightning-AI/lightning/actions/workflows/docs-checks.yml/badge.svg?branch=%27release/pytorch%27&event=push)](https://github.com/Lightning-AI/lightning/actions/workflows/docs-checks.yml)
 
 Install future release from the source
 
