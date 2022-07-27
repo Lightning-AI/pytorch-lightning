@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import os
 from copy import deepcopy
 from unittest import mock
@@ -401,8 +402,6 @@ def test_autocast():
     lite._precision_plugin.forward_context().__exit__.assert_called()
 
 
-# https://github.com/microsoft/DeepSpeed/issues/2139
-@pytest.mark.skipif(_RequirementAvailable("deepspeed>=0.6.5"), reason="Lite does not support 0.6.5")
 @RunIf(min_cuda_gpus=2, standalone=True, deepspeed=True)
 def test_deepspeed_multiple_models():
     class Lite(LightningLite):
@@ -466,4 +465,13 @@ def test_deepspeed_multiple_models():
             assert self.broadcast(True)
             assert self.is_global_zero == (self.local_rank == 0)
 
-    Lite(strategy=DeepSpeedStrategy(stage=3, logging_batch_size_per_gpu=1), devices=2, accelerator="gpu").run()
+    if _RequirementAvailable("deepspeed>=0.6.5"):
+        # https://github.com/microsoft/DeepSpeed/issues/2139
+        raise_if_deepspeed_incompatilbe = pytest.raises(
+            RuntimeError, match="DeepSpeed ZeRO-3 is not supported with this version of Lightning Lite"
+        )
+    else:
+        raise_if_deepspeed_incompatilbe = contextlib.suppress()
+
+    with raise_if_deepspeed_incompatilbe:
+        Lite(strategy=DeepSpeedStrategy(stage=3, logging_batch_size_per_gpu=1), devices=2, accelerator="gpu").run()
