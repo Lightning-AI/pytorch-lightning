@@ -32,6 +32,7 @@ from pytorch_lightning.strategies.launchers.xla import _XLALauncher
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
+from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.data import has_len
 from pytorch_lightning.utilities.distributed import ReduceOp
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -39,6 +40,8 @@ from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
+from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
+
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_env_vars as xenv
@@ -93,16 +96,15 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         return xm.xla_device()
 
     @staticmethod
-    def _validate_dataloader(dataloaders: Union[List[DataLoader], DataLoader]) -> None:
-        if not isinstance(dataloaders, list):
-            dataloaders = [dataloaders]
-
-        for dataloader in dataloaders:
+    def _validate_dataloader(dataloaders: Union[TRAIN_DATALOADERS, EVAL_DATALOADERS]) -> None:
+        def check_has_len(dataloader: DataLoader) -> None:
             if not has_len(dataloader):
                 raise MisconfigurationException(
                     "TPUs do not currently support IterableDataset objects, the dataset must implement `__len__`."
                     " HINT: You can mock the length on your dataset to bypass this MisconfigurationException."
                 )
+
+        apply_to_collection(dataloaders, dtype=DataLoader, function=check_has_len)
 
     @staticmethod
     def _validate_patched_dataloaders(model: "pl.LightningModule") -> None:
@@ -116,8 +118,8 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         )
         for source in sources:
             if not source.is_module():
-                assert source.instance
-                assert isinstance(source.instance, (DataLoader, list))
+                assert source.instance is not None
+                assert not isinstance(source.instance, (pl.LightningModule, pl.LightningDataModule))
                 TPUSpawnStrategy._validate_dataloader(source.instance)
 
     def connect(self, model: "pl.LightningModule") -> None:  # type: ignore
