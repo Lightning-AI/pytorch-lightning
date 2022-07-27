@@ -393,7 +393,7 @@ class NeptuneLogger(Logger):
                 " you can't provide other neptune.init() parameters.\n"
             )
 
-    def __getstate__(self) -> Dict:
+    def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
         # Run instance can't be pickled
         state["_run_instance"] = None
