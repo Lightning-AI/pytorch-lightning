@@ -164,6 +164,7 @@ def test_optimization(tmpdir):
     result = trainer.validate(datamodule=dm)
     assert dm.trainer is not None
     assert result[0]["val_acc"] > 0.7
+    assert False
 
     # test
     result = trainer.test(model, datamodule=dm)
