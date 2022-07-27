@@ -108,7 +108,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Added support for DDP Fork ([#13405](https://github.com/Lightning-AI/lightning/pull/13405))
 
 
-- Added support for async checkpointing ([#13658](https://github.com/PyTorchLightning/pytorch-lightning/pull/13658))
+- Added support for async checkpointing ([#13658](https://github.com/Lightning-AI/lightning/pull/13658))
 
 
 ### Changed
@@ -167,7 +167,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Updated Habana Accelerator's `auto_device_count`, `is_available` & `get_device_name` methods based on the latest torch habana package ([#13423](https://github.com/Lightning-AI/lightning/pull/13423))
 
 
-- Disallowed using `BatchSampler` when running on multiple IPUs ([#13854](https://github.com/PyTorchLightning/pytorch-lightning/pull/13854))
+- Disallowed using `BatchSampler` when running on multiple IPUs ([#13854](https://github.com/Lightning-AI/lightning/pull/13854))
 
 
 ### Deprecated
@@ -348,7 +348,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 - Improved support for custom `DataLoader`s when instantiated in `*_dataloader` hook ([#12981](https://github.com/Lightning-AI/lightning/pull/12981))
 
-- Allowed custom `BatchSampler`s when instantiated in `*_dataloader` hook [#13640](https://github.com/PyTorchLightning/pytorch-lightning/pull/13640))
+- Allowed custom `BatchSampler`s when instantiated in `*_dataloader` hook [#13640](https://github.com/Lightning-AI/lightning/pull/13640))
 
 
 - Fixed an issue with unsupported torch.inference_mode() on hpu backends by making it use no_grad ([#13014](https://github.com/Lightning-AI/lightning/pull/13014))
