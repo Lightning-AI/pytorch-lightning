@@ -34,7 +34,6 @@ from torch.utils.data import BatchSampler, DistributedSampler, RandomSampler, Se
 from torch.utils.data._utils.worker import _generate_state, get_worker_info
 from torch.utils.data.dataloader import DataLoader, default_collate
 from torch.utils.data.dataset import Dataset, IterableDataset
-from torch.utils.data.sampler import Sampler
 
 import tests_pytorch.helpers.utils as tutils
 from pytorch_lightning import Callback, LightningModule, seed_everything, Trainer
@@ -1175,15 +1174,6 @@ def test_validate_fault_tolerant(tmpdir):
 
     dl = DataLoader(data(), sampler=CustomRandomSampler(data()))
     with pytest.raises(TypeError, match="RandomSampler"):
-        _validate_fault_tolerant_automatic(dl, RunningStage.TRAINING)
-
-    class CustomBatchSampler(BatchSampler):
-        pass
-
-    sampler = Sampler(data())
-    batch_sampler = CustomBatchSampler(sampler, 2, False)
-    dl = DataLoader(data(), batch_sampler=batch_sampler)
-    with pytest.raises(TypeError, match="BatchSampler"):
         _validate_fault_tolerant_automatic(dl, RunningStage.TRAINING)
 
     class CustomIterable(IterableDataset):

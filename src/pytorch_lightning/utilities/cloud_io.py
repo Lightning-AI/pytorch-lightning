@@ -62,7 +62,6 @@ def atomic_save(checkpoint: Dict[str, Any], filepath: Union[str, Path]) -> None:
         filepath: The path to which the checkpoint will be saved.
             This points to the file that the checkpoint will be stored in.
     """
-
     bytesbuffer = io.BytesIO()
     torch.save(checkpoint, bytesbuffer)
     with fsspec.open(filepath, "wb") as f:
