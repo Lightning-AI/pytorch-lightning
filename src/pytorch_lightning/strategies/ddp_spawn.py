@@ -26,6 +26,7 @@ from typing_extensions import Literal
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
+from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
@@ -214,7 +215,7 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     def configure_ddp(self) -> None:
         self.pre_configure_ddp()
-        assert isinstance(self.model, pl.utilities.types.DistributedDataParallel)
+        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         self.model = self._setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
 
