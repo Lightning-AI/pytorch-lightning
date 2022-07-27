@@ -33,6 +33,7 @@ from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
+from pytorch_lightning.strategies.strategy import TBroadcast
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.distributed import (
     _get_process_group_backend_from_env,
@@ -286,29 +287,29 @@ class DDPSpawnStrategy(ParallelStrategy):
     def validation_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
         with self.precision_plugin.val_step_context():
             assert self.lightning_module is not None
-            assert isinstance(self.model, pl.utilities.types.DistributedDataParallel)
+            assert self.model is not None
             if self.lightning_module.trainer.state.fn == TrainerFn.FITTING:
                 # used when calling `trainer.fit`
                 return self.model(*args, **kwargs)
             else:
                 # used when calling `trainer.validate`
-                return self.model.validation_step(*args, **kwargs)
+                return self.model.validation_step(*args, **kwargs)  # type: ignore[operator]
 
     def test_step(self, *args: Any, **kwargs: Any) -> Optional[STEP_OUTPUT]:
-        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
+        assert self.model is not None
         with self.precision_plugin.test_step_context():
-            return self.model.test_step(*args, **kwargs)
+            return self.model.test_step(*args, **kwargs)  # type: ignore[operator]
 
     def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
-        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
+        assert self.model is not None
         with self.precision_plugin.predict_step_context():
-            return self.model.predict_step(*args, **kwargs)
+            return self.model.predict_step(*args, **kwargs)  # type: ignore[operator]
 
     def post_training_step(self) -> None:
         assert self.lightning_module is not None
         if not self.lightning_module.automatic_optimization:
             assert self.model is not None
-            self.model.require_backward_grad_sync = Tensor(True)
+            self.model.require_backward_grad_sync = Tensor([True])
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
@@ -334,11 +335,10 @@ class DDPSpawnStrategy(ParallelStrategy):
 
         pl_module = self.lightning_module
         if isinstance(self.model, DistributedDataParallel):
-            assert callable(self.model._get_ddp_logging_data)
             if (
                 _TORCH_GREATER_EQUAL_1_11
                 and not self.model.static_graph
-                and self.model._get_ddp_logging_data().get("can_set_static_graph")
+                and self.model._get_ddp_logging_data().get("can_set_static_graph")  # type: ignore[operator]
             ):
                 rank_zero_info(
                     "Your model can run with static graph optimizations. For future training runs, we suggest you"
