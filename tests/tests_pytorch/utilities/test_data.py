@@ -332,19 +332,19 @@ def test_replace_dataloader_init_method(cls, args, kwargs, arg_names, dataset, c
             assert getattr(dataloader, key) == value
 
 
-def test_dataloader_disallow_batch_sampler_no_raise():
+def test_dataloader_disallow_batch_sampler():
     dataset = RandomDataset(5, 100)
     dataloader = DataLoader(dataset, batch_size=10)
+
     # This should not raise
     _dataloader_init_kwargs_resolve_sampler(dataloader, dataloader.sampler, disallow_batch_sampler=True)
 
-
-def test_dataloader_disallow_batch_sampler_raise():
     dataset = RandomDataset(5, 100)
     sampler = SequentialSampler(dataset)
     batch_sampler = BatchSampler(sampler, batch_size=10, drop_last=False)
     dataloader = DataLoader(dataset, batch_sampler=batch_sampler)
 
+    # this should raise - using batch sampler, that was not automatically instantiated by DataLoader
     with pytest.raises(MisconfigurationException, match="when running on multiple IPU devices"):
         _dataloader_init_kwargs_resolve_sampler(dataloader, dataloader.sampler, disallow_batch_sampler=True)
 

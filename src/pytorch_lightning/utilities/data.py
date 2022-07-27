@@ -328,41 +328,38 @@ def _dataloader_init_kwargs_resolve_sampler(
     batch_sampler = getattr(dataloader, "batch_sampler")
     is_predicting = mode == RunningStage.PREDICTING
 
-    if batch_sampler is not None and disallow_batch_sampler:
-        # Check that we don't have a PyTorch default batch sampler that was instantiated in DataLoader __init__
-        if not (
-            type(batch_sampler) is BatchSampler
-            and batch_sampler.sampler == sampler
-            and dataloader.batch_size == batch_sampler.batch_size
-        ):
-            raise MisconfigurationException(
-                "It is not possible to have a batch sampler in your dataloader, when running on multiple IPU devices."
+    if batch_sampler is not None:
+        if disallow_batch_sampler:
+            # Check that we don't have a PyTorch default batch sampler that was instantiated in DataLoader __init__
+            if not (
+                type(batch_sampler) is BatchSampler
+                and batch_sampler.sampler == sampler
+                and dataloader.batch_size == batch_sampler.batch_size
+            ):
+                raise MisconfigurationException(
+                    "It is not possible to have a batch sampler in your dataloader, "
+                    "when running on multiple IPU devices."
+                )
+        elif type(batch_sampler) is not BatchSampler or is_predicting:
+            batch_sampler = type(batch_sampler)(
+                sampler,
+                batch_size=batch_sampler.batch_size,
+                drop_last=(False if is_predicting else batch_sampler.drop_last),
             )
-    # checking the batch sampler type is different than PyTorch default.
-    if (
-        not disallow_batch_sampler
-        and batch_sampler is not None
-        and (type(batch_sampler) is not BatchSampler or is_predicting)
-    ):
-        batch_sampler = type(batch_sampler)(
-            sampler,
-            batch_size=batch_sampler.batch_size,
-            drop_last=(False if is_predicting else batch_sampler.drop_last),
-        )
-        if is_predicting:
-            batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
+            if is_predicting:
+                batch_sampler = IndexBatchSamplerWrapper(batch_sampler)
 
-        if fault_tolerant_mode.is_automatic:
-            fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
-            fast_forward_sampler.setup(dataloader_batch_size=1)
+            if fault_tolerant_mode.is_automatic:
+                fast_forward_sampler = batch_sampler = FastForwardSampler(batch_sampler)
+                fast_forward_sampler.setup(dataloader_batch_size=1)
 
-        return {
-            "sampler": None,
-            "shuffle": False,
-            "batch_sampler": batch_sampler,
-            "batch_size": 1,
-            "drop_last": False,
-        }
+            return {
+                "sampler": None,
+                "shuffle": False,
+                "batch_sampler": batch_sampler,
+                "batch_size": 1,
+                "drop_last": False,
+            }
 
     if fault_tolerant_mode.is_automatic:
         fast_forward_sampler = sampler = FastForwardSampler(sampler)
