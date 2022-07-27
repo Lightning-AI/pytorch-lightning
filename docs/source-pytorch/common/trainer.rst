@@ -1761,3 +1761,33 @@ execution within that function, and the status of the Trainer.
     trainer.state.status
     # stage in ("train", "sanity_check", "validate", "test", "predict", "tune")
     trainer.state.stage
+
+should_stop
+***********
+
+If you want to terminate the training during ``.fit``, you can set ``trainer.should_stop=True`` and Lightning will terminate the training
+immediately. Note that, it will respect the arguments ``min_steps`` and ``min_epochs`` to check whether to stop it or not. If these
+arguments are set and the ``current_epoch`` or ``global_step`` doesn't meet these minimum conditions, training will continue until
+both conditions are met. If any of these arguments is not set, it won't be considered for the final decision.
+
+
+.. code-block:: python
+
+    trainer = Trainer()
+    # setting `trainer.should_stop`` at any point of training will terminate
+    trainer.should_stop = True
+
+    trainer = Trainer(min_epochs=5, max_epochs=100)
+    # setting `trainer.should_stop`` at any point before 5th epoch is completed
+    # will not terminate the training until 5th epoch is completed
+    trainer.should_stop = True
+
+    trainer = Trainer(min_steps=5, max_epochs=100)
+    # setting `trainer.should_stop`` at any point before 5th step is completed
+    # will not terminate the training until 5th step is completed
+    trainer.should_stop = True
+
+    trainer = Trainer(min_steps=5, min_epochs=5, max_epochs=100, limit_train_batches=10)
+    # setting `trainer.should_stop`` at any point before/after 5th step is completed
+    # will not terminate the training until 5th epoch is completed
+    trainer.should_stop = True

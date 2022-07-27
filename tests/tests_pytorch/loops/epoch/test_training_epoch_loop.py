@@ -271,6 +271,7 @@ def test_no_val_on_train_epoch_loop_restart(tmpdir):
 @pytest.mark.parametrize(
     "min_epochs, min_steps, current_epoch, global_step, epoch_loop_done, raise_info_msg",
     [
+        (None, None, 1, 4, True, False),
         (4, None, 1, 4, False, True),
         (4, 2, 1, 4, False, True),
         (4, None, 1, 10, True, False),
