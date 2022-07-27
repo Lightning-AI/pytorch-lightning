@@ -104,7 +104,7 @@ class TestPrecisionModel(BoringModel):
         grads = [p.grad for p in self.parameters()]
         assert len(grads) == len(self.original_grads)
         for actual, expected in zip(grads, self.original_grads):
-            torch_test_assert_close(actual, expected)
+            torch_test_assert_close(actual, expected, equal_nan=True)
 
     def check_grads_clipped(self):
         parameters = list(self.parameters())

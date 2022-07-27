@@ -131,7 +131,6 @@ def test_fully_sharded_native_strategy_sync_batchnorm(tmpdir):
 @pytest.mark.parametrize("precision", [16, "bf16"])
 def test_fully_sharded_native_strategy_checkpoint(tmpdir, precision):
     """Test to ensure that checkpoint is saved correctly when using a single GPU, and all stages can be run."""
-
     model = TestFSDPModel()
     trainer = Trainer(
         default_root_dir=tmpdir, accelerator="gpu", devices=1, strategy="fsdp_native", precision=precision, max_epochs=1
