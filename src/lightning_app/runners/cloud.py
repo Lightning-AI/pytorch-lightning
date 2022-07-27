@@ -25,6 +25,7 @@ from lightning_cloud.openapi import (
     V1LightningworkSpec,
     V1NetworkConfig,
     V1PackageManager,
+    V1ProjectClusterBinding,
     V1PythonDependencyInfo,
     V1UserRequestedComputeConfig,
     V1Work,
@@ -110,6 +111,7 @@ class CloudRuntime(Runtime):
                 spec = V1LightningworkSpec(
                     build_spec=build_spec,
                     cluster_id=cluster_id,
+                    # lightningapp_instance_id="t3.medium",
                     user_requested_compute_config=user_compute_config,
                     network_config=[V1NetworkConfig(name=random_name, port=work.port)],
                 )
@@ -163,9 +165,18 @@ class CloudRuntime(Runtime):
                 local_source=True,
                 dependency_cache_key=app_spec.dependency_cache_key,
             )
+            if cluster_id is not None:
+                self.backend.client.projects_service_create_project_cluster_binding(
+                    project.project_id,
+                    body=V1ProjectClusterBinding(cluster_id=cluster_id, project_id=project.project_id),
+                )
+
             lightning_app_release = self.backend.client.lightningapp_v2_service_create_lightningapp_release(
                 project.project_id, lightning_app.id, release_body
             )
+
+            if cluster_id is not None:
+                print(f"running app on {lightning_app_release.cluster_id}")
 
             if lightning_app_release.source_upload_url == "":
                 raise RuntimeError("The source upload url is empty.")
