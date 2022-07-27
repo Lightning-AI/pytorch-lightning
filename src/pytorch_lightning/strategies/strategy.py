@@ -171,7 +171,14 @@ class Strategy(ABC):
         """
         return optimizer.state_dict()
 
-    def backward(self, closure_loss: Tensor, optimizer: Optional[Optimizer], optimizer_idx: Optional[int], *args: Any, **kwargs: Any) -> Tensor:
+    def backward(
+        self,
+        closure_loss: Tensor,
+        optimizer: Optional[Optimizer],
+        optimizer_idx: Optional[int],
+        *args: Any,
+        **kwargs: Any,
+    ) -> Tensor:
         """Forwards backward-calls to the precision plugin.
 
         Args:
