@@ -304,7 +304,7 @@ class DDPSpawnStrategy(ParallelStrategy):
     def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         with self.precision_plugin.predict_step_context():
             assert isinstance(self.model, PredictStep)
-            return self.model.predict_step(*args, **kwargs)  # type: ignore[operator]
+            return self.model.predict_step(*args, **kwargs)
 
     def post_training_step(self) -> None:
         assert self.lightning_module is not None
