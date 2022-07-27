@@ -11,5 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pytorch_lightning.utilities.model_summary.model_summary import LayerSummary, ModelSummary, get_human_readable_count, parse_batch_shape, get_formatted_model_size, summarize  # noqa: F401
+from pytorch_lightning.utilities.model_summary.model_summary import (  # noqa: F401
+    get_formatted_model_size,
+    get_human_readable_count,
+    LayerSummary,
+    ModelSummary,
+    parse_batch_shape,
+    summarize,
+)
 from pytorch_lightning.utilities.model_summary.model_summary_deepspeed import DeepSpeedSummary  # noqa: F401
