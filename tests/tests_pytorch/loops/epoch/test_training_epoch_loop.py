@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 from unittest import mock
 from unittest.mock import patch
 
@@ -265,3 +266,37 @@ def test_no_val_on_train_epoch_loop_restart(tmpdir):
     ) as advance_mocked:
         trainer.fit(model, ckpt_path=ckpt_path)
         assert advance_mocked.call_count == 1
+
+
+@pytest.mark.parametrize(
+    "min_epochs, min_steps, current_epoch, global_step, epoch_loop_done, raise_info_msg",
+    [
+        (4, None, 1, 4, False, True),
+        (4, 2, 1, 4, False, True),
+        (4, None, 1, 10, True, False),
+        (4, 3, 1, 3, False, True),
+        (4, 10, 1, 10, True, False),
+        (None, 4, 1, 4, False, False),
+        (None, 10, 1, 10, True, False),
+    ],
+)
+def test_should_stop_early_stopping_conditions(
+    caplog, min_epochs, min_steps, current_epoch, global_step, epoch_loop_done, raise_info_msg
+):
+    def get_trainer():
+        trainer = Trainer(min_epochs=min_epochs, min_steps=min_steps, limit_val_batches=0)
+        trainer.num_training_batches = 10
+        trainer.should_stop = True
+        trainer.fit_loop.epoch_loop.batch_loop.optimizer_loop.optim_progress.optimizer.step.total.completed = (
+            global_step
+        )
+        trainer.fit_loop.epoch_loop.batch_progress.current.ready = global_step
+        trainer.fit_loop.epoch_progress.current.completed = current_epoch - 1
+        return trainer
+
+    trainer = get_trainer()
+    message = f"min_epochs={min_epochs}` or `min_steps={min_steps}` has not been met. Training will continue"
+    with caplog.at_level(logging.INFO, logger="pytorch_lightning.loops"):
+        assert trainer.fit_loop.epoch_loop.done is epoch_loop_done
+
+    assert (message in caplog.text) is raise_info_msg

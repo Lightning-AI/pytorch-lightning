@@ -174,15 +174,9 @@ class FitLoop(Loop[None]):
             met_min_epochs = self.epoch_progress.current.processed >= self.min_epochs if self.min_epochs else True
             met_min_steps = self.epoch_loop.global_step >= self.min_steps if self.min_steps else True
             if met_min_epochs and met_min_steps:
-                self.trainer.should_stop = True
                 rank_zero_debug("`Trainer.fit` stopped: `trainer.should_stop` was set.")
                 return True
-            else:
-                rank_zero_info(
-                    f"Trainer was signaled to stop but the required `min_epochs={self.min_epochs!r}` or"
-                    f" `min_steps={self.min_steps!r}` has not been met. Training will continue..."
-                )
-        self.trainer.should_stop = False
+
         return False
 
     @property
