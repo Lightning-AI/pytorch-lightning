@@ -63,6 +63,12 @@ class _LightningModuleWrapperBase(DeviceDtypeModuleMixin, torch.nn.Module):
         """
         super().__init__()
         self._forward_module = forward_module
+        if not isinstance(forward_module, pl.LightningModule) or (
+            not isinstance(getattr(forward_module, "module", None), pl.LightningModule)
+        ):
+            raise ValueError(
+                "`forward_module` must be a `LightningModule` instance or have an attribute `.module` pointing to one."
+            )
 
         # set the parameters_to_ignore from LightningModule.
         _ddp_params_and_buffers_to_ignore = getattr(self._forward_module, "_ddp_params_and_buffers_to_ignore", [])
