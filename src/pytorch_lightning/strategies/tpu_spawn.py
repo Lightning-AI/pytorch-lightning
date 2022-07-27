@@ -38,8 +38,7 @@ from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_only
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import _PATH, STEP_OUTPUT
-from pytorch_lightning.utilities.types import PredictStep, TestStep, TrainingStep, ValidationStep
+from pytorch_lightning.utilities.types import _PATH, PredictStep, STEP_OUTPUT, TestStep, TrainingStep, ValidationStep
 
 if _TPU_AVAILABLE:
     import torch_xla.core.xla_env_vars as xenv
@@ -121,7 +120,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
                 assert isinstance(source.instance, (DataLoader, list))
                 TPUSpawnStrategy._validate_dataloader(source.instance)
 
-    def connect(self, model: "pl.LightningModule") -> None: # type: ignore
+    def connect(self, model: "pl.LightningModule") -> None:  # type: ignore
         TPUSpawnStrategy._validate_patched_dataloaders(model)
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
@@ -188,7 +187,9 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         obj = torch.load(buffer)
         return obj
 
-    def reduce(self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None) -> Tensor:
+    def reduce(
+        self, output: Union[Tensor, Any], group: Optional[Any] = None, reduce_op: Optional[Union[ReduceOp, str]] = None
+    ) -> Tensor:
         if not isinstance(output, Tensor):
             output = torch.tensor(output, device=self.root_device)
 
