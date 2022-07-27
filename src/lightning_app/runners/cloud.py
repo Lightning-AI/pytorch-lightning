@@ -52,6 +52,7 @@ class CloudRuntime(Runtime):
         self,
         on_before_run: Optional[Callable] = None,
         name: str = "",
+        cluster_id: str = None,
         **kwargs: Any,
     ):
         """Method to dispatch and run the :class:`~lightning_app.core.app.LightningApp` in the cloud."""
@@ -108,6 +109,7 @@ class CloudRuntime(Runtime):
                 random_name = "".join(random.choice(string.ascii_lowercase) for _ in range(5))
                 spec = V1LightningworkSpec(
                     build_spec=build_spec,
+                    cluster_id=cluster_id,
                     user_requested_compute_config=user_compute_config,
                     network_config=[V1NetworkConfig(name=random_name, port=work.port)],
                 )
