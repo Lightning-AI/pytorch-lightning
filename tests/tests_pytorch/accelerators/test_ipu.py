@@ -602,7 +602,7 @@ def test_strategy_choice_ipu_plugin(tmpdir):
 
 
 @RunIf(ipu=True)
-def test_device_type_when_training_plugin_ipu_passed(tmpdir):
+def test_device_type_when_ipu_strategy_passed(tmpdir):
     trainer = Trainer(strategy=IPUStrategy(), accelerator="ipu", devices=8)
     assert isinstance(trainer.strategy, IPUStrategy)
     assert isinstance(trainer.accelerator, IPUAccelerator)
