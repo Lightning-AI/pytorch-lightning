@@ -224,7 +224,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         self.setup_optimizers(self.lightning_module.trainer)
         optimizers_to_device(self.optimizers, self.root_device)
 
-    def determine_ddp_device_ids(self) -> Optional[List[Union[int, torch.device]]]:
+    def determine_ddp_device_ids(self) -> Optional[List[int]]:
         if self.root_device.type == "cpu":
             return None
         return [self.root_device.index]
@@ -237,7 +237,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         else:
             torch.distributed.barrier()
 
-    def broadcast(self, obj: object, src: int = 0) -> object:  # type: ignore[override]
+    def broadcast(self, obj: TBroadcast, src: int = 0) -> TBroadcast:
         if not distributed_available():
             return obj
         obj = [obj]
@@ -308,7 +308,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         assert self.lightning_module is not None
         if not self.lightning_module.automatic_optimization:
             assert self.model is not None
-            self.model.require_backward_grad_sync = Tensor([True])
+            self.model.require_backward_grad_sync = True  # type: ignore[assignment]
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
