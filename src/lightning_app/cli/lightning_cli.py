@@ -16,14 +16,14 @@ from lightning_app.core.constants import get_lightning_cloud_url, LOCAL_LAUNCH_A
 from lightning_app.runners.runtime import dispatch
 from lightning_app.runners.runtime_type import RuntimeType
 from lightning_app.utilities.app_logs import _app_logs_reader
-from lightning_app.utilities.cloud import _get_project
-from lightning_app.utilities.network import LightningClient
 from lightning_app.utilities.cli_helpers import (
     _format_input_env_variables,
     _retrieve_application_url_and_available_commands,
 )
+from lightning_app.utilities.cloud import _get_project
 from lightning_app.utilities.install_components import register_all_external_components
 from lightning_app.utilities.login import Auth
+from lightning_app.utilities.network import LightningClient
 from lightning_app.utilities.state import headers_for
 
 logger = logging.getLogger(__name__)
