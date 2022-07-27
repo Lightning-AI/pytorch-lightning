@@ -30,9 +30,9 @@ from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.optim.optimizer import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning.core.optimizer import LightningOptimizer
-from pytorch_lightning.overrides import _LightningPrecisionModuleWrapperBase, LightningDistributedModule
+from pytorch_lightning.overrides import LightningDistributedModule
+from pytorch_lightning.overrides.base import _LightningPrecisionModuleWrapperBase
 from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.overrides.fairscale import _FAIRSCALE_AVAILABLE
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
@@ -305,7 +305,7 @@ class DDPStrategy(ParallelStrategy):
     def configure_ddp(self) -> None:
         log.detail(f"{self.__class__.__name__}: configuring DistributedDataParallel")
         self.pre_configure_ddp()
-        assert isinstance(self.model, (LightningModule, _LightningPrecisionModuleWrapperBase))
+        assert isinstance(self.model, (pl.LightningModule, _LightningPrecisionModuleWrapperBase))
         self.model = self._setup_model(LightningDistributedModule(self.model))
         self._register_ddp_hooks()
 
@@ -331,7 +331,7 @@ class DDPStrategy(ParallelStrategy):
 
     def pre_backward(self, closure_loss: Tensor) -> None:
         """Run before precision plugin executes backward."""
-        if isinstance(self.lightning_module, LightningModule) and not self.lightning_module.automatic_optimization:
+        if isinstance(self.lightning_module, pl.LightningModule) and not self.lightning_module.automatic_optimization:
             assert isinstance(self.model, DistributedDataParallel)
             prepare_for_backward(self.model, closure_loss)
 
@@ -384,7 +384,7 @@ class DDPStrategy(ParallelStrategy):
             return self.model.predict_step(*args, **kwargs)
 
     def post_training_step(self) -> None:
-        if isinstance(self.lightning_module, LightningModule) and not self.lightning_module.automatic_optimization:
+        if isinstance(self.lightning_module, pl.LightningModule) and not self.lightning_module.automatic_optimization:
             assert self.model is not None
             self.model.require_backward_grad_sync = True  # type: ignore[assignment]
 
