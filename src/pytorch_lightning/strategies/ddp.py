@@ -59,7 +59,7 @@ from pytorch_lightning.utilities.imports import _IS_WINDOWS, _TORCH_GREATER_EQUA
 from pytorch_lightning.utilities.optimizer import optimizers_to_device
 from pytorch_lightning.utilities.rank_zero import rank_zero_info, rank_zero_only, rank_zero_warn
 from pytorch_lightning.utilities.seed import reset_seed
-from pytorch_lightning.utilities.types import STEP_OUTPUT, TestStep, TrainingStep, ValidationStep
+from pytorch_lightning.utilities.types import PredictStep, STEP_OUTPUT, TestStep, TrainingStep, ValidationStep
 
 if _FAIRSCALE_AVAILABLE:
     from fairscale.optim import OSS
@@ -380,7 +380,7 @@ class DDPStrategy(ParallelStrategy):
 
     def predict_step(self, *args: Any, **kwargs: Any) -> STEP_OUTPUT:
         with self.precision_plugin.predict_step_context():
-            assert isinstance(self.model, TestStep)
+            assert isinstance(self.model, PredictStep)
             return self.model.predict_step(*args, **kwargs)
 
     def post_training_step(self) -> None:
