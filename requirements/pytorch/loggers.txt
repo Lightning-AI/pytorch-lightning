@@ -1,3 +1,6 @@
+# NOTE: the upper bound for package version is only set for CI stability and it is dropped while installing this package
+#  in case, you want to preserve/enforce restriction on latest compatible version, add "strict" as in-line comment
+
 # all supported loggers
 
 neptune-client>=0.10.0, <0.16.4
