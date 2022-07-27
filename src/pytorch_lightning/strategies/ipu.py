@@ -165,6 +165,8 @@ class IPUStrategy(ParallelStrategy):
             if self.lightning_module.trainer.enable_validation:
                 model = poptorch.inferenceModel(model=model, options=inference_opts)
                 self.poptorch_models[RunningStage.VALIDATING] = model
+                if self.lightning_module.trainer.num_sanity_val_steps > 0:
+                    self.poptorch_models[RunningStage.SANITY_CHECKING] = model
         elif trainer_fn == TrainerFn.VALIDATING:
             model = poptorch.inferenceModel(model=model, options=self.inference_opts)
             self.poptorch_models[RunningStage.VALIDATING] = model
@@ -236,7 +238,9 @@ class IPUStrategy(ParallelStrategy):
             # the user is returning the `poptorch.DataLoader` directly, don't change anything.
             return dataloader
 
-        dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(dataloader, sampler)
+        dl_args, dl_kwargs = _get_dataloader_init_args_and_kwargs(
+            dataloader, sampler, mode, self.replication_factor > 1
+        )
         opts = self.training_opts if mode == RunningStage.TRAINING else self.inference_opts
         dataloader = poptorch.DataLoader(opts, *dl_args, **dl_kwargs)
         return dataloader

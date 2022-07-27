@@ -26,9 +26,10 @@ from pytorch_lightning.utilities.imports import _RequirementAvailable
 from pytorch_lightning.utilities.model_helpers import is_overridden
 from pytorch_lightning.utilities.warnings import WarningCache
 
+_DEEPSPEED_AVAILABLE = _RequirementAvailable("deepspeed")
 _DEEPSPEED_GREATER_EQUAL_0_6 = _RequirementAvailable("deepspeed>=0.6.0")
 if TYPE_CHECKING:
-    if pl.strategies.deepspeed._DEEPSPEED_AVAILABLE:
+    if _DEEPSPEED_AVAILABLE:
         import deepspeed
 
 warning_cache = WarningCache()
@@ -88,7 +89,7 @@ class DeepSpeedPrecisionPlugin(PrecisionPlugin):
 
     def optimizer_step(
         self,
-        model: Union["pl.LightningModule", Module],
+        model: Optional[Union["pl.LightningModule", Module]],
         optimizer: Optimizer,
         optimizer_idx: int,
         closure: Callable[[], Any],

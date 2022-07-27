@@ -30,7 +30,7 @@ from pytorch_lightning.overrides.distributed import prepare_for_backward
 from pytorch_lightning.plugins.environments.cluster_environment import ClusterEnvironment
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.launchers.spawn import _SpawnLauncher
+from pytorch_lightning.strategies.launchers.multiprocessing import _MultiProcessingLauncher
 from pytorch_lightning.strategies.parallel import ParallelStrategy
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities.distributed import (
@@ -52,6 +52,13 @@ from pytorch_lightning.utilities.seed import reset_seed
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 log = logging.getLogger(__name__)
+
+_DDP_FORK_ALIASES = (
+    "ddp_fork",
+    "ddp_fork_find_unused_parameters_false",
+    "ddp_notebook",
+    "ddp_notebook_find_unused_parameters_false",
+)
 
 
 class DDPSpawnStrategy(ParallelStrategy):
@@ -127,7 +134,7 @@ class DDPSpawnStrategy(ParallelStrategy):
         return self._process_group_backend
 
     def _configure_launcher(self):
-        self._launcher = _SpawnLauncher(self, start_method=self._start_method)
+        self._launcher = _MultiProcessingLauncher(self, start_method=self._start_method)
 
     def setup(self, trainer: "pl.Trainer") -> None:
         os.environ["MASTER_PORT"] = str(self.cluster_environment.main_port)
@@ -283,18 +290,20 @@ class DDPSpawnStrategy(ParallelStrategy):
 
     @classmethod
     def register_strategies(cls, strategy_registry: Dict) -> None:
-        for start_method in ("spawn", "fork"):
+        entries = (
+            ("ddp_spawn", "spawn"),
+            ("ddp_spawn_find_unused_parameters_false", "spawn"),
+            ("ddp_fork", "fork"),
+            ("ddp_fork_find_unused_parameters_false", "fork"),
+            ("ddp_notebook", "fork"),
+            ("ddp_notebook_find_unused_parameters_false", "fork"),
+        )
+        for name, start_method in entries:
             strategy_registry.register(
-                f"ddp_{start_method}_find_unused_parameters_false",
+                name,
                 cls,
-                description=f"DDP {start_method.title()} strategy with `find_unused_parameters` as False",
+                description=f"DDP strategy with `find_unused_parameters` as False and `start_method` '{start_method}'",
                 find_unused_parameters=False,
-                start_method=start_method,
-            )
-            strategy_registry.register(
-                f"ddp_{start_method}",
-                cls,
-                description=f"DDP {start_method.title()} strategy",
                 start_method=start_method,
             )
 
