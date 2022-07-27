@@ -659,6 +659,8 @@ class Trainer(
             if not self.interrupted:
                 self.state.status = TrainerStatus.INTERRUPTED
                 self._call_callback_hooks("on_exception", exception)
+            # TODO: Do we need teardown here? What if we get keyboard interrupt and the model remains wrapped?
+            #   Will a subsequent call wrap the model again (and fail)?
         except BaseException as exception:
             self.state.status = TrainerStatus.INTERRUPTED
             if distributed_available() and self.world_size > 1:
